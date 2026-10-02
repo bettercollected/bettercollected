@@ -136,6 +136,14 @@ describe('AIInsightsCard', () => {
         expect(generateMock).not.toHaveBeenCalled();
     });
 
+    it('imported forms cannot get AI insights: their respondents never saw the notice', () => {
+        withFormSettings({ provider: 'google' });
+        renderCard();
+        expect(screen.getByText(/only available for forms collected with BetterCollected/)).toBeDefined();
+        expect(screen.queryByRole('button', { name: 'Allow AI insights on responses' })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
+    });
+
     it('members who are not admins cannot run insights', () => {
         auth.isAdmin = false;
         renderCard();

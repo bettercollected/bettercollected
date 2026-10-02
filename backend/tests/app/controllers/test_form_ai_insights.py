@@ -1,11 +1,14 @@
 """Response summaries & insights — opt-in, anonymised by construction."""
 
+import datetime as dt
 import json
+import uuid
 from typing import Any, Coroutine
 
 import pytest
 from httpx import AsyncClient
 
+from common.services.crypto_service import crypto_service
 from common.models.standard_form import (
     StandardChoice,
     StandardFieldProperty,
@@ -21,11 +24,14 @@ from tests.app.ai_helpers import (
     enable_ai,
     use_fake_provider,
 )
+from backend.app.models.dtos.request_dtos import AIProvider
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.config import settings
 from tests.app.controllers.data import testUser
 
 
@@ -560,3 +566,211 @@ class TestInsightsConsent:
         assert response.status_code == 403
         assert response.json()["code"] == "ai_insights_not_enabled"
         assert fake_insights_provider.calls == []
+
+
+async def _set_form_provider(workspace_id, form_id, provider: str) -> None:
+    association = await container.workspace_form_repo().find_workspace_form(
+        workspace_id, form_id
+    )
+    association.settings.provider = provider
+    await container.workspace_form_repo().save(association)
+
+
+async def _save_imported_response(workspace_id, form_id, answers) -> None:
+    """A response the way a provider sync stores it: the provider's own
+    timestamp, saved directly (form_import_service), never through submit."""
+    now = dt.datetime.now(dt.timezone.utc)
+    await container.form_response_repo().save(
+        FormResponseDocument(
+            response_id=f"google-{uuid.uuid4().hex}",
+            form_id=form_id,
+            provider="google",
+            answers=crypto_service.encrypt(
+                workspace_id=workspace_id, form_id=form_id, data=json.dumps(answers)
+            ),
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+
+class TestInsightsOnlyForFormsCollectedHere:
+    """An imported form's respondents answered on Google Forms / Typeform and
+    never saw the AI notice."""
+
+    async def test_imported_form_refuses_the_setting_and_generate(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        form_id = workspace_form.form_id
+        await _seed_form_and_responses(workspace.id, form_id)
+        await _save_imported_response(
+            workspace.id,
+            form_id,
+            {"q-feedback": {"type": "text", "text": "Answered on Google."}},
+        )
+        await _set_form_provider(workspace.id, form_id, "google")
+        url = _insights_url(workspace, form_id)
+
+        refused = await client.put(
+            f"{url}/settings", cookies=test_user_cookies, json={"enabled": True}
+        )
+        assert refused.status_code == 403
+        assert refused.json()["code"] == "ai_insights_not_enabled"
+
+        fake_insights_provider.replies = [json.dumps(INSIGHTS_REPLY)]
+        generated = await client.post(url, cookies=test_user_cookies, json={})
+        assert generated.status_code == 403
+        assert generated.json()["code"] == "ai_insights_not_enabled"
+        assert fake_insights_provider.calls == []
+        assert (
+            await container.form_ai_insight_repo().find(workspace.id, form_id) is None
+        )
+
+        # turning it off stays possible
+        off = await client.put(
+            f"{url}/settings", cookies=test_user_cookies, json={"enabled": False}
+        )
+        assert off.status_code == 200 and off.json()["enabled"] is False
+
+    async def test_imported_responses_are_never_analysed(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        form_id = workspace_form.form_id
+        await _seed_form_and_responses(workspace.id, form_id)
+        # newer than the notice, but imported: the respondent never saw it
+        await _save_imported_response(
+            workspace.id,
+            form_id,
+            {"q-feedback": {"type": "text", "text": "IMPORTED-ANSWER"}},
+        )
+
+        fake_insights_provider.replies = [json.dumps(INSIGHTS_REPLY)]
+        response = await client.post(
+            _insights_url(workspace, form_id), cookies=test_user_cookies, json={}
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["responseCount"] == 3
+        sent = json.dumps(fake_insights_provider.calls)
+        assert "IMPORTED-ANSWER" not in sent
+        assert "invoice is confusing" in sent
+
+
+class TestInsightsInternalFieldsInEveryVersion:
+    async def test_a_field_internal_only_in_an_older_version_is_left_out(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        form_id = workspace_form.form_id
+        await _seed_form_and_responses(workspace.id, form_id)
+        form_doc = await container.form_repo().get_form_document_by_id(form_id)
+        form_doc.fields[0].properties.fields.append(
+            StandardFormField(
+                id="q-office",
+                index=4,
+                type=StandardFormFieldType.SHORT_TEXT,
+                title="Office reference",
+                internal=True,
+                properties=StandardFieldProperty(fields=[]),
+            )
+        )
+        await container.form_repo().save_form(form_doc)
+        # v1: internal
+        await container.workspace_form_service().publish_form(
+            workspace.id, form_id, testUser
+        )
+        form_doc = await container.form_repo().get_form_document_by_id(form_id)
+        form_doc.fields[0].properties.fields[4].internal = False
+        await container.form_repo().save_form(form_doc)
+        # v2 and the draft: public
+        await container.workspace_form_service().publish_form(
+            workspace.id, form_id, testUser
+        )
+        draft_and_latest = (
+            await container.form_response_service().all_internal_field_ids(form_id)
+        )
+        assert "q-office" not in draft_and_latest
+
+        await _submit(
+            workspace.id,
+            form_id,
+            {
+                "q-feedback": {"type": "text", "text": "Fine."},
+                "q-office": {"type": "text", "text": "OLD-INTERNAL-VALUE"},
+            },
+        )
+        fake_insights_provider.replies = [json.dumps(INSIGHTS_REPLY)]
+        response = await client.post(
+            _insights_url(workspace, form_id), cookies=test_user_cookies, json={}
+        )
+        assert response.status_code == 200, response.text
+        sent = json.dumps(fake_insights_provider.calls)
+        assert "OLD-INTERNAL-VALUE" not in sent
+        assert "Fine." in sent
+
+
+class TestInsightsCompatibleProviderHost:
+    async def test_a_changed_compat_endpoint_needs_a_fresh_notice(
+        self,
+        monkeypatch,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        monkeypatch.setattr(
+            settings.ai, "COMPAT_BASE_URL", "http://llm-a.internal:11434/v1"
+        )
+        monkeypatch.setattr(settings.ai, "COMPAT_MODEL", "local-model")
+        fake = FakeProvider()
+        monkeypatch.setitem(
+            container.openai_service()._providers, AIProvider.COMPATIBLE, fake
+        )
+        await enable_ai(workspace, provider="compatible")
+        form_id = workspace_form.form_id
+        url = _insights_url(workspace, form_id)
+
+        enabled = await client.put(
+            f"{url}/settings", cookies=test_user_cookies, json={"enabled": True}
+        )
+        assert enabled.status_code == 200, enabled.text
+        assert "llm-a.internal" in enabled.json()["providerName"]
+        stored = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, form_id
+        )
+        assert stored.settings.ai_insights_provider == "compatible"
+        assert "llm-a.internal" in stored.settings.ai_insights_provider_name
+
+        await _seed_form_and_responses(workspace.id, form_id, allow=False)
+        fake.replies = [json.dumps(INSIGHTS_REPLY)]
+        same_host = await client.post(url, cookies=test_user_cookies, json={})
+        assert same_host.status_code == 200, same_host.text
+        assert len(fake.calls) == 1
+
+        # same provider id, another endpoint: respondents were told llm-a
+        monkeypatch.setattr(
+            settings.ai, "COMPAT_BASE_URL", "http://llm-b.example.com/v1"
+        )
+        moved = await client.post(url, cookies=test_user_cookies, json={})
+        assert moved.status_code == 403
+        assert moved.json()["code"] == "ai_insights_not_enabled"
+        assert len(fake.calls) == 1
+
+        # renewing the setting names the new host to respondents
+        renewed = await client.put(
+            f"{url}/settings", cookies=test_user_cookies, json={"enabled": True}
+        )
+        assert "llm-b.example.com" in renewed.json()["providerName"]

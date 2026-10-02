@@ -4,8 +4,10 @@ Principle #2 of the AI-native plan: the AI never touches respondent data by
 default. It needs three things (#716): the workspace AI opt-in (#715), the
 form's own "Allow AI insights on responses" setting (admins only, recorded
 with who and when; while on, respondents see a notice naming the provider),
-and an admin clicking generate. Only responses submitted after the setting
-was turned on, i.e. after the notice was shown, are ever sent. The result is
+and an admin clicking generate. Only forms collected by BetterCollected
+qualify (an imported form's respondents answered on the provider's page,
+which has no notice), and only their own responses submitted after the
+setting was turned on, i.e. after the notice was shown, are ever sent. The result is
 cached so viewing it later reads the cache, not the data, and the projection
 is minimising by construction:
 
@@ -13,7 +15,8 @@ is minimising by construction:
   projected into the prompt;
 - email / phone answer values are redacted before the model sees them —
   the summary reasons about their presence, not their content;
-- internal (staff-only) fields and their answers are left out;
+- internal (staff-only) fields and their answers are left out, also when
+  the field was internal only in an older version of the form;
 - free-text answers are sent as written (the UI says so), and the prompt
   forbids reproducing identifying details from them.
 """
@@ -22,7 +25,7 @@ import datetime as dt
 import json
 import re
 from http import HTTPStatus
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
@@ -44,6 +47,7 @@ from backend.app.services.ai.consent import (
     provider_name,
 )
 from backend.app.services.ai.prompt_builder import extract_json_object
+from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.internal_fields import (
     internal_field_ids,
     strip_internal_fields,
@@ -52,6 +56,8 @@ from backend.app.services.workspace_user_service import WorkspaceUserService
 
 MAX_RESPONSES = 200
 MAX_PROJECTION_CHARS = 60_000
+# forms built and collected in BetterCollected; anything else was imported
+SELF_PROVIDER = "self"
 REDACTED_TYPES = {"email": "[email provided]", "phone_number": "[phone provided]"}
 
 INSIGHTS_SYSTEM_PROMPT = """\
@@ -107,6 +113,22 @@ def _aware(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
     if value.tzinfo is None:
         return value.replace(tzinfo=dt.timezone.utc)
     return value
+
+
+def collected_by_bettercollected(association) -> bool:
+    """Whether respondents filled this form in BetterCollected, where the AI
+    notice is shown. An imported form's respondents answered on the
+    provider's own page (Google Forms, Typeform), which never shows it."""
+    settings = getattr(association, "settings", None)
+    return getattr(settings, "provider", None) == SELF_PROVIDER
+
+
+def submitted_here(
+    responses: List[FormResponseDocument],
+) -> List[FormResponseDocument]:
+    """Only responses submitted through BetterCollected; a response imported
+    from a provider is never analysed, whatever its timestamp."""
+    return [r for r in responses if getattr(r, "provider", None) == SELF_PROVIDER]
 
 
 def submitted_since(
@@ -226,13 +248,17 @@ def project_responses(
     workspace_id: PydanticObjectId,
     form: StandardForm,
     responses: List[FormResponseDocument],
+    internal_ids: Iterable[str] = (),
 ) -> tuple:
     """Anonymised plain-text projection of responses, within the char budget.
+
+    ``internal_ids`` adds field ids that are internal in other versions of
+    the form than ``form`` (see ``all_internal_field_ids``).
 
     Returns (projection_text, included_count).
     """
     # internal (staff-only) fields and their answers never reach the model
-    internal_ids = internal_field_ids(form)
+    internal_ids: Set[str] = internal_field_ids(form) | {str(i) for i in internal_ids}
     form = strip_internal_fields(form.model_copy(deep=True))
     titles = _question_titles(form)
     choice_labels = _choice_labels(form)
@@ -279,8 +305,10 @@ class FormAIInsightsService:
         form_response_repo: FormResponseRepository,
         insight_repo: FormAIInsightRepository,
         ai_consent_service: Optional[AIConsentService] = None,
+        form_response_service: Optional[FormResponseService] = None,
     ):
         self._workspace_user_service = workspace_user_service
+        self._form_response_service = form_response_service
         self._ai_consent = ai_consent_service
         self._provider_resolver = provider_resolver
         self._form_repo = form_repo
@@ -322,6 +350,7 @@ class FormAIInsightsService:
         _, association = await self._authorize(workspace_id, form_id, user)
         settings = association.settings
         if request.enabled:
+            self._require_collected_here(association)
             provider = await self._ai_consent.require_enabled(workspace_id)
             settings.ai_insights_enabled = True
             settings.ai_insights_provider = provider
@@ -348,11 +377,22 @@ class FormAIInsightsService:
             enabled_at=settings.ai_insights_enabled_at if enabled else None,
         )
 
+    @staticmethod
+    def _require_collected_here(association) -> None:
+        if not collected_by_bettercollected(association):
+            raise _insights_not_enabled(
+                "AI insights are only available for forms collected with "
+                "BetterCollected. This form's respondents answered on another "
+                "service and never saw the AI notice."
+            )
+
     async def _require_insights_allowed(
         self, workspace_id: PydanticObjectId, association
     ) -> dt.datetime:
         """The moment respondents started seeing the notice, or 403: the form
-        must allow AI insights, for the provider the workspace consented to."""
+        must be collected here and allow AI insights, for the provider (and,
+        for a compatible endpoint, the host) the notice named."""
+        self._require_collected_here(association)
         settings = association.settings
         if not settings or not settings.ai_insights_enabled:
             raise _insights_not_enabled(
@@ -361,8 +401,12 @@ class FormAIInsightsService:
                 "are analysed."
             )
         consented = await self._ai_consent.require_enabled(workspace_id)
-        if settings.ai_insights_provider != consented or not (
-            settings.ai_insights_enabled_at
+        # The name is compared too: for the compatible provider it carries the
+        # endpoint's host, so a changed COMPAT_BASE_URL needs a fresh notice.
+        if (
+            settings.ai_insights_provider != consented
+            or settings.ai_insights_provider_name != provider_name(consented)
+            or not settings.ai_insights_enabled_at
         ):
             raise _insights_not_enabled(
                 "Respondents were told a different AI provider. Turn AI insights "
@@ -406,9 +450,12 @@ class FormAIInsightsService:
             )
         # Newest first: every response submitted after the notice is newer
         # than any submitted before it, so filtering the latest ones is enough.
+        # Defence in depth: never a response imported from a provider.
         responses = submitted_since(
-            await self._form_response_repo.list_recent_by_form_id(
-                form_id, MAX_RESPONSES
+            submitted_here(
+                await self._form_response_repo.list_recent_by_form_id(
+                    form_id, MAX_RESPONSES
+                )
             ),
             since,
         )
@@ -421,7 +468,13 @@ class FormAIInsightsService:
                 ),
             )
         form = StandardForm(**form_document.model_dump())
-        projection, included = project_responses(workspace_id, form, responses)
+        # internal in the draft, the published or any older version
+        internal_ids = await self._form_response_service.all_internal_field_ids(
+            form_id, every_version=True
+        )
+        projection, included = project_responses(
+            workspace_id, form, responses, internal_ids
+        )
         if not included:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,

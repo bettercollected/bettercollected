@@ -226,12 +226,19 @@ documents) goes to an AI provider until the workspace has opted in. Code:
   name the respondent notice shows, who and when;
   `PUT …/forms/{id}/ai/insights/settings`, admins only, needs the workspace
   opt-in to turn on) and are admins-only to run or read. While on, the respondent
-  form's trust strip names the provider. Only responses with `created_at` at or
+  form's trust strip names the provider. Only forms collected here
+  (`settings.provider == "self"`) qualify: an imported form's respondents
+  answered on Google Forms / Typeform and never saw the notice, so the setting
+  and generate both refuse it, and only `provider == "self"` responses are ever
+  analysed. Only responses with `created_at` at or
   after `ai_insights_enabled_at` are analysed (turning it off and on again moves
-  that moment), and a workspace provider other than the one the notice named is
+  that moment), and a workspace provider other than the one the notice named
+  (id and resolved name, so a changed `COMPAT_BASE_URL` host counts) is
   refused (403 `ai_insights_not_enabled`) until the form setting is renewed. The
   projection redacts email/phone answers and leaves out internal fields and their
-  answers; free-text answers are sent as written, and the UI says so.
+  answers (internal in the draft or any published version,
+  `all_internal_field_ids(..., every_version=True)`); free-text answers are sent
+  as written, and the UI says so.
 - **MCP API keys with `responses:read`** hand full, unredacted answers to an
   external AI client: creating one requires `acknowledgeUnredactedResponses`,
   stored as `responses_read_acknowledged_by`/`_at` on the key.

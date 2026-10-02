@@ -88,6 +88,21 @@ export default function AIInsightsCard() {
         }
     };
 
+    // Imported forms (Google Forms, Typeform): respondents answered on the
+    // provider's page, which never showed the AI notice (#716).
+    const importedForm = !!form?.settings?.provider && form.settings.provider !== 'self';
+    if (importedForm) {
+        return (
+            <div className="mb-6 flex flex-col gap-2 rounded-lg border border-black-200 bg-white p-5">
+                <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-brand-500" />
+                    <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
+                </div>
+                <p className="max-w-[68ch] text-[13px] text-black-600">AI summaries are only available for forms collected with BetterCollected. This form&apos;s respondents answered on another service and never saw the AI notice.</p>
+            </div>
+        );
+    }
+
     if (!isAdmin) {
         return (
             <div className="mb-6 flex flex-col gap-2 rounded-lg border border-black-200 bg-white p-5">
