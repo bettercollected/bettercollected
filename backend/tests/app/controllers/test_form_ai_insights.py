@@ -747,12 +747,18 @@ class TestInsightsCompatibleProviderHost:
             f"{url}/settings", cookies=test_user_cookies, json={"enabled": True}
         )
         assert enabled.status_code == 200, enabled.text
-        assert "llm-a.internal" in enabled.json()["providerName"]
+        assert (
+            enabled.json()["providerName"]
+            == "this instance's own AI model (llm-a.internal)"
+        )
         stored = await container.workspace_form_repo().find_workspace_form(
             workspace.id, form_id
         )
         assert stored.settings.ai_insights_provider == "compatible"
-        assert "llm-a.internal" in stored.settings.ai_insights_provider_name
+        assert (
+            stored.settings.ai_insights_provider_name
+            == "this instance's own AI model (llm-a.internal)"
+        )
 
         await _seed_form_and_responses(workspace.id, form_id, allow=False)
         fake.replies = [json.dumps(INSIGHTS_REPLY)]
@@ -773,4 +779,7 @@ class TestInsightsCompatibleProviderHost:
         renewed = await client.put(
             f"{url}/settings", cookies=test_user_cookies, json={"enabled": True}
         )
-        assert "llm-b.example.com" in renewed.json()["providerName"]
+        assert (
+            renewed.json()["providerName"]
+            == "this instance's own AI model (llm-b.example.com)"
+        )
