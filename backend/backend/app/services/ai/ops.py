@@ -21,6 +21,8 @@ import uuid
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
 from common.models.standard_form import (
+    DATE_RULES_MAX,
+    DateRule,
     FieldLogic,
     FieldLogicCondition,
     LayoutType,
@@ -34,6 +36,8 @@ from common.models.standard_form import (
     StandardFormField,
     StandardFormFieldType,
     Theme,
+    date_rule_problems,
+    prune_date_rules,
 )
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -96,6 +100,20 @@ class NewFieldSpec(_CamelModel):
     internal: Optional[bool] = None
     # multiple_choice only: respondents may pick several choices
     allow_multiple: Optional[bool] = None
+    # date only: a short label shown with the picker ("Start date")
+    label: Optional[str] = Field(None, max_length=120)
+
+
+class DateRuleSpec(_CamelModel):
+    """A date question's constraint: its answer must be ``comparison`` a
+    fixed ``date`` (YYYY-MM-DD), ``today`` or the answer of another date
+    question (``fieldId``; inside a repeating group a sibling of the same
+    group, outside a group never a group's question)."""
+
+    comparison: Literal["before", "after", "on_or_before", "on_or_after"]
+    target: Literal["date", "today", "field"]
+    date: Optional[str] = None
+    field_id: Optional[str] = None
 
 
 class FieldPatch(_CamelModel):
@@ -117,6 +135,10 @@ class FieldPatch(_CamelModel):
     item_label: Optional[str] = None
     item_title: Optional[str] = None
     export_layout: Optional[Literal["columns", "rows"]] = None
+    # date questions only: a short label shown with the picker ("" clears),
+    # and the date rules (full replacement; [] clears).
+    label: Optional[str] = Field(None, max_length=120)
+    date_rules: Optional[List[DateRuleSpec]] = None
 
 
 class AddFieldOp(_CamelModel):
@@ -455,6 +477,10 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         properties.description = spec.description
     if spec.col_span is not None:
         properties.col_span = spec.col_span
+    if spec.label:
+        if spec.type != StandardFormFieldType.DATE:
+            raise OpError("A label only applies to date questions.")
+        properties.label = spec.label
 
     validations = StandardFieldValidations(required=spec.required) if spec.required is not None else StandardFieldValidations()
     if spec.internal:
@@ -534,6 +560,15 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
     if patch.internal is not None:
         field.internal = True if patch.internal else None
         changed.append("internal" if patch.internal else "respondent-facing")
+    if patch.label is not None:
+        if field.type != StandardFormFieldType.DATE:
+            raise OpError("A label only applies to date questions.")
+        field.properties.label = patch.label.strip() or None
+        changed.append("label")
+    if patch.date_rules is not None:
+        # validated against the form by _apply_update_field beforehand
+        field.properties.date_rules = _date_rules(patch.date_rules) or None
+        changed.append("date rules")
     group_keys = ("min_items", "max_items", "item_label", "item_title", "export_layout")
     group_patch = {k: getattr(patch, k) for k in group_keys if getattr(patch, k) is not None}
     if group_patch:
@@ -654,6 +689,52 @@ def _apply_add_group(form: StandardForm, op: AddGroupOp) -> str:
     )
 
 
+def _date_rules(specs: List[DateRuleSpec]) -> List[DateRule]:
+    if len(specs) > DATE_RULES_MAX:
+        raise OpError(f"A date question can have at most {DATE_RULES_MAX} date rules.")
+    try:
+        return [DateRule.model_validate(spec.model_dump()) for spec in specs]
+    except ValueError as e:
+        raise OpError(_validation_message(e))
+
+
+def _check_date_rules_patch(
+    form: StandardForm, field: StandardFormField, specs: List[DateRuleSpec]
+) -> None:
+    """Date rules go through the same checks as a builder save: an existing
+    date question of the same scope, never itself, no circle."""
+    if field.type != StandardFormFieldType.DATE:
+        raise OpError("Date rules only apply to date questions.")
+    rules = _date_rules(specs)
+    previous = field.properties.date_rules if field.properties else None
+    known = set(date_rule_problems(form.fields))
+    if field.properties is None:
+        field.properties = StandardFieldProperty(fields=[])
+    field.properties.date_rules = rules or None
+    try:
+        problems = [p for p in date_rule_problems(form.fields) if p not in known]
+    finally:
+        field.properties.date_rules = previous
+    if problems:
+        raise OpError(problems[0])
+
+
+def _date_rule_sources(form: StandardForm) -> set:
+    """Ids of every question some date rule compares with."""
+    sources = set()
+    for page in _pages(form):
+        for field in (page.properties.fields if page.properties else None) or []:
+            questions = [field] + (
+                _children(field) if _is_repeating_group(field) else []
+            )
+            for question in questions:
+                rules = (
+                    question.properties.date_rules if question.properties else None
+                ) or []
+                sources.update(r.field_id for r in rules if r.field_id)
+    return sources
+
+
 def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
     _, parent, _, field, _ = _locate_field(form, op.field_id)
     if op.patch.internal and parent is not None:
@@ -663,14 +744,26 @@ def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
             f"'{_title_text(field)}' is used by conditional logic, so it cannot become "
             "internal — respondents never answer internal fields. Remove the rule first."
         )
+    if op.patch.internal and op.field_id in _date_rule_sources(form):
+        raise OpError(
+            f"'{_title_text(field)}' is used by a date rule, so it cannot become "
+            "internal — respondents never answer internal fields. Remove the rule first."
+        )
+    if op.patch.date_rules is not None:
+        _check_date_rules_patch(form, field, op.patch.date_rules)
     changed = _patch_field(field, op.patch)
     return f"Updated '{_title_text(field)}' ({', '.join(changed)})"
+
+
+def _dropped_rules_note(form: StandardForm) -> str:
+    dropped = prune_date_rules(form.fields)
+    return f" (and {dropped} date rule(s) that used it)" if dropped else ""
 
 
 def _apply_remove_field(form: StandardForm, op: RemoveFieldOp) -> str:
     _, _, container, field, position = _locate_field(form, op.field_id)
     container.pop(position)
-    return f"Removed '{_title_text(field)}'"
+    return f"Removed '{_title_text(field)}'{_dropped_rules_note(form)}"
 
 
 def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
@@ -701,9 +794,11 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
     container.pop(position)
     insert_at = max(0, min(op.index, len(target)))
     target.insert(insert_at, field)
+    # In or out of a repeating group: rules across the boundary don't apply.
+    note = _dropped_rules_note(form)
     if where is None:
-        return f"Moved '{_title_text(field)}' to position {insert_at + 1}"
-    return f"Moved '{_title_text(field)}' to {where}"
+        return f"Moved '{_title_text(field)}' to position {insert_at + 1}{note}"
+    return f"Moved '{_title_text(field)}' to {where}{note}"
 
 
 def _apply_add_page(form: StandardForm, op: AddPageOp) -> str:
@@ -729,7 +824,7 @@ def _apply_remove_page(form: StandardForm, op: RemovePageOp) -> str:
     page = _find_page(form, op.page_id)
     form.fields.remove(page)
     count = len((page.properties.fields if page.properties else None) or [])
-    return f"Removed a page ({count} field(s) with it)"
+    return f"Removed a page ({count} field(s) with it){_dropped_rules_note(form)}"
 
 
 def _apply_update_form_info(form: StandardForm, op: UpdateFormInfoOp) -> str:
@@ -923,6 +1018,9 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
                 condition.field_id = id_map[condition.field_id]
             if condition.child_field_id in id_map:
                 condition.child_field_id = id_map[condition.child_field_id]
+        for rule in (field.properties.date_rules if field.properties else None) or []:
+            if rule.field_id in id_map:
+                rule.field_id = id_map[rule.field_id]
         repeat = field.properties.repeat if field.properties else None
         if repeat is not None and repeat.item_title:
             for old_id, new_id in id_map.items():
@@ -982,6 +1080,8 @@ def apply_form_ops(form: StandardForm, ops: List[FormOp]) -> Tuple[StandardForm,
             results.append(OpResult(index=i, op=op.op, ok=False, message=str(e)))
 
     _renumber(working)
+    # Nothing may leave with a date rule the save path would refuse.
+    prune_date_rules(working.fields)
     # The schema is the final arbiter — a structurally invalid result must
     # never leave this function.
     validated = StandardForm.model_validate(working.model_dump())
