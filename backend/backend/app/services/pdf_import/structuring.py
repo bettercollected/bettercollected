@@ -83,89 +83,91 @@ Rules:
   (1, 2, 3 ...), in the block's order.
 - Page numbers, form codes and watermarks go in ignore.
 - Never report values written or typed on the form: structure only.
+- Every key of the schema is present: use null (or []) for what does not apply.
 - When the page has no text layer, give label/title/text as the exact text you
   read from the image, in its original language and script.
 """
 
 
-def schema() -> dict:
-    ref_list = {"type": "array", "items": {"type": "string"}}
-    option = {
+def _object(properties: Dict[str, Any]) -> dict:
+    """An object in OpenAI's strict structured-output form: every property is
+    listed as required (optional ones are nullable instead) and no other
+    properties are allowed."""
+    return {
         "type": "object",
-        "properties": {
-            "refs": ref_list,
-            "text": {"type": "string"},
-            "is_other": {"type": "boolean"},
-        },
-        "required": ["refs"],
+        "properties": properties,
+        "required": list(properties),
+        "additionalProperties": False,
     }
-    question = {
-        "type": "object",
-        "properties": {
+
+
+def _nullable(schema_: dict) -> dict:
+    """An optional value: present but null when the model has nothing to say."""
+    if schema_.get("type") == "object":
+        return {"anyOf": [schema_, {"type": "null"}]}
+    kind = schema_["type"]
+    return {**schema_, "type": [kind, "null"] if isinstance(kind, str) else kind}
+
+
+def schema() -> dict:
+    """The answer's JSON schema, valid for OpenAI strict mode (every key
+    required, optional ones nullable, no additional properties, no length or
+    pattern keywords). ``validate`` treats a null like an absent key."""
+    ref_list = {"type": "array", "items": {"type": "string"}}
+    text = _nullable({"type": "string"})
+    option = _object(
+        {
+            "refs": ref_list,
+            "text": text,
+            "is_other": _nullable({"type": "boolean"}),
+        }
+    )
+    question = _object(
+        {
             "id": {"type": "string"},
             "kind": {"type": "string", "enum": QUESTION_KINDS},
             "label_refs": ref_list,
-            "label": {"type": "string"},
-            "help_refs": ref_list,
+            "label": text,
+            "help_refs": _nullable(ref_list),
             "slot_refs": ref_list,
-            "options": {"type": "array", "items": option},
-            "required": {"type": ["boolean", "null"]},
-            "section": {"type": ["string", "null"]},
-            "follow_up_of": {
-                "type": ["object", "null"],
-                "properties": {
-                    "question": {"type": "string"},
-                    "when": {"type": "string"},
-                },
-            },
-            "applicant_index": {"type": ["integer", "null"]},
-            "statement": {"type": ["string", "null"]},
-            "confidence": {"type": "number"},
-        },
-        "required": ["id", "kind"],
-    }
-    return {
-        "type": "object",
-        "properties": {
-            "sections": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "string"},
-                        "title_refs": ref_list,
-                        "title": {"type": "string"},
-                        "continues_previous": {"type": "boolean"},
-                    },
-                    "required": ["id"],
-                },
-            },
+            "options": _nullable({"type": "array", "items": option}),
+            "required": _nullable({"type": "boolean"}),
+            "section": text,
+            "follow_up_of": _nullable(
+                _object({"question": {"type": "string"}, "when": text})
+            ),
+            "applicant_index": _nullable({"type": "integer"}),
+            "statement": text,
+            "confidence": _nullable({"type": "number"}),
+        }
+    )
+    section = _object(
+        {
+            "id": {"type": "string"},
+            "title_refs": ref_list,
+            "title": text,
+            "continues_previous": _nullable({"type": "boolean"}),
+        }
+    )
+    statement = _object(
+        {
+            "id": {"type": "string"},
+            "refs": ref_list,
+            "text": text,
+            "legal": _nullable({"type": "boolean"}),
+            "section": text,
+        }
+    )
+    staff_only = _object({"refs": ref_list, "heading_refs": _nullable(ref_list)})
+    return _object(
+        {
+            "sections": {"type": "array", "items": section},
             "questions": {"type": "array", "items": question},
-            "statements": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "string"},
-                        "refs": ref_list,
-                        "text": {"type": "string"},
-                        "legal": {"type": "boolean"},
-                        "section": {"type": ["string", "null"]},
-                    },
-                    "required": ["id"],
-                },
-            },
-            "staff_only": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {"refs": ref_list, "heading_refs": ref_list},
-                },
-            },
-            "ignore": ref_list,
-        },
-        "required": ["sections", "questions"],
-    }
+            "statements": _nullable({"type": "array", "items": statement}),
+            "staff_only": _nullable({"type": "array", "items": staff_only}),
+            "ignore": _nullable(ref_list),
+        }
+    )
 
 
 # --- page context --------------------------------------------------------------
@@ -408,10 +410,26 @@ def _text(value) -> str:
     return value.strip()[:MAX_TEXT_CHARS] if isinstance(value, str) else ""
 
 
+def _without_nulls(value: Any, depth: int = 0) -> Any:
+    """The answer with null values removed: strict structured output sends
+    every optional key, as null when it does not apply, and a null means the
+    same as an absent key."""
+    if depth > 20:
+        return value
+    if isinstance(value, dict):
+        return {
+            k: _without_nulls(v, depth + 1) for k, v in value.items() if v is not None
+        }
+    if isinstance(value, list):
+        return [_without_nulls(v, depth + 1) for v in value if v is not None]
+    return value
+
+
 def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List[str]]:
     """(elements, errors, warnings). Errors make the answer unusable."""
     errors: List[str] = []
     warnings: List[str] = []
+    answer = _without_nulls(answer)
     if not isinstance(answer, dict):
         return [], ["the answer is not a JSON object"], []
     for key in ("sections", "questions", "statements", "staff_only", "ignore"):
@@ -588,13 +606,26 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
         refs = [r for r in (_refs(so.get("refs"))) if r in prims]
         for r in refs:
             claimed.setdefault(r, "staff_only")
-        heading = ctx.word_text(check_refs(_refs(so.get("heading_refs")), "staff_only"))
+        heading_refs = check_refs(_refs(so.get("heading_refs")), "staff_only")
+        heading = ctx.word_text(heading_refs)
+        heading_words = [i for i in map(_word_index, heading_refs) if i is not None]
+        for r in refs:
+            if prims[r]["kind"] == "staff_region":
+                heading = heading or prims[r].get("heading") or ""
+                heading_words += _heading_words(ctx, prims[r])
         elements.append(
             {
                 "type": "staff_only",
                 "id": f"p{ctx.number}-staff-{len(elements) + 1}",
                 "refs": refs,
                 "heading": heading,
+                # the answer places staff fill in; questions keep theirs
+                "fields": staff_fields(
+                    ctx,
+                    refs,
+                    heading_words,
+                    taken=[r for r, owner in claimed.items() if owner in question_ids],
+                ),
             }
         )
     for r in _refs(answer.get("ignore")):
@@ -725,59 +756,16 @@ def _in_reading_order(ctx: PageContext, elements: List[dict]) -> List[dict]:
     return ordered
 
 
-def heuristic(ctx: PageContext) -> List[dict]:
-    """Structure a page from geometry alone: a label for every answer place,
-    checkbox rows as choices, tables as tables, bars as sections."""
-    if not ctx.has_text_layer:
-        return []
-    elements: List[dict] = []
-    used: set = set()
-    n = 0
-    for p in ctx.primitives:
-        if p["kind"] == "section_bar":
-            used.update(p["words"])
-            elements.append(
-                {
-                    "type": "section",
-                    "id": f"p{ctx.number}-{p['id']}",
-                    "title": p.get("title", ""),
-                    "refs": [f"w{i}" for i in p["words"]],
-                    "continues_previous": False,
-                    "text_source": "document",
-                    "grounded": True,
-                }
-            )
-        elif p["kind"] == "staff_region":
-            elements.append(
-                {
-                    "type": "staff_only",
-                    "id": f"p{ctx.number}-{p['id']}",
-                    "refs": [p["id"]],
-                    "heading": p.get("heading", ""),
-                }
-            )
-        elif p["kind"] == "paragraph":
-            used.update(p["words"])
-            text = " ".join(ctx.words[i]["text"] for i in p["words"])
-            elements.append(
-                {
-                    "type": "statement",
-                    "id": f"p{ctx.number}-{p['id']}",
-                    "text": text,
-                    "refs": [f"w{i}" for i in p["words"]],
-                    "legal": True,
-                    "section": None,
-                    "text_source": "document",
-                }
-            )
-    checkboxes = [
-        p
-        for p in ctx.primitives
-        if p["kind"] == "checkbox" and not _inside_staff(p, ctx)
-    ]
+def _checkbox_rows(
+    ctx: PageContext, checkboxes: Sequence[dict], used: set
+) -> List[Tuple[List[dict], List[dict], List[int]]]:
+    """Checkboxes on one line as (row, options, label words): each option is
+    the words right of its box, the label the words before the first box.
+    Words taken are added to ``used``."""
     rows: Dict[int, List[dict]] = {}
     for c in checkboxes:
         rows.setdefault(round(c["bbox"][1] / 6), []).append(c)
+    out = []
     for row in rows.values():
         row.sort(key=lambda c: c["bbox"][0])
         options = []
@@ -813,6 +801,180 @@ def heuristic(ctx: PageContext) -> List[dict]:
                 )
         label_words = _label_near(ctx, row[0]["bbox"], used)
         used.update(label_words)
+        out.append((row, options, label_words))
+    return out
+
+
+MAX_STAFF_FIELDS = 30  # per staff-only part
+STAFF_SLOT_KINDS = ("answer_slot", "cell_run", "area", "checkbox", "signature")
+
+
+def _centre_in(box: Sequence[float], region: Sequence[float]) -> bool:
+    cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    return region[0] <= cx <= region[2] and region[1] <= cy <= region[3]
+
+
+def _heading_words(ctx: PageContext, region: dict) -> List[int]:
+    """The words of a staff region's heading line."""
+    heading = (region.get("heading") or "").split()
+    words = [i for i in region.get("words") or [] if i < len(ctx.words)]
+    first = next(
+        (i for i in words if heading and ctx.words[i]["text"] == heading[0]), None
+    )
+    if first is None:
+        return []
+    top = ctx.words[first]["top"]
+    return [i for i in words if abs(ctx.words[i]["top"] - top) <= 2]
+
+
+def staff_fields(
+    ctx: PageContext,
+    refs: Sequence[str],
+    heading_words: Sequence[int] = (),
+    taken: Sequence[str] = (),
+) -> List[dict]:
+    """The labelled answer places of a staff-only part (what staff fill in on
+    the paper form): the slots it references and those inside the staff
+    regions it references, each with the label beside it. The compile stage
+    turns them into internal fields. Slots in ``taken`` (claimed by a
+    question) are left alone; labels only come from words inside the part,
+    never from filled-in answers."""
+    if not ctx.has_text_layer:
+        return []
+    prims = ctx.primitive_ids
+    regions = [
+        prims[r]["bbox"]
+        for r in refs
+        if r in prims and prims[r]["kind"] == "staff_region"
+    ]
+    taken = set(taken)
+    signature_slots = {
+        p.get("slot")
+        for p in ctx.primitives
+        if p["kind"] == "signature" and p.get("slot")
+    }
+    slots = [
+        p
+        for p in ctx.primitives
+        if p["kind"] in STAFF_SLOT_KINDS
+        and p["id"] not in taken
+        and p["id"] not in signature_slots
+        and (p["id"] in refs or any(_centre_in(p["bbox"], r) for r in regions))
+    ]
+    if not slots:
+        return []
+    used = set(heading_words)
+    if regions:
+        used |= {
+            i
+            for i, w in enumerate(ctx.words)
+            if not any(
+                _centre_in((w["x0"], w["top"], w["x1"], w["bottom"]), r)
+                for r in regions
+            )
+        }
+    for p in slots:
+        if p["kind"] == "signature":
+            used.update(p.get("words") or [])
+    fields: List[dict] = []
+    checkboxes = [p for p in slots if p["kind"] == "checkbox"]
+    for row, options, label_words in _checkbox_rows(ctx, checkboxes, used):
+        label = " ".join(ctx.words[i]["text"] for i in label_words)
+        if len(options) >= 2:
+            kind = "single_choice"
+        elif options:
+            kind, label = "yes_no", label or options[0]["label"]
+        else:
+            continue
+        if label:
+            fields.append(
+                {
+                    "kind": kind,
+                    "label": label,
+                    "label_refs": [f"w{i}" for i in label_words],
+                    "slot_refs": [c["id"] for c in row],
+                    "options": options if kind == "single_choice" else [],
+                    "top": row[0]["bbox"][1],
+                }
+            )
+    for p in slots:
+        if p["kind"] == "checkbox":
+            continue
+        if p["kind"] == "signature":
+            label_words = [i for i in p.get("words") or [] if i not in ctx.values]
+        else:
+            label_words = _label_near(ctx, p["bbox"], used)
+            used.update(label_words)
+        label = " ".join(ctx.words[i]["text"] for i in label_words)
+        label = re.sub(r"[.…_]{3,}", "", label).strip()
+        if not label:
+            continue
+        fields.append(
+            {
+                "kind": _kind_for(label, p),
+                "label": label,
+                "label_refs": [f"w{i}" for i in label_words],
+                "slot_refs": [p["id"]],
+                "options": [],
+                "top": p["bbox"][1],
+            }
+        )
+    fields.sort(key=lambda f: f.pop("top"))
+    return fields[:MAX_STAFF_FIELDS]
+
+
+def heuristic(ctx: PageContext) -> List[dict]:
+    """Structure a page from geometry alone: a label for every answer place,
+    checkbox rows as choices, tables as tables, bars as sections."""
+    if not ctx.has_text_layer:
+        return []
+    elements: List[dict] = []
+    used: set = set()
+    n = 0
+    for p in ctx.primitives:
+        if p["kind"] == "section_bar":
+            used.update(p["words"])
+            elements.append(
+                {
+                    "type": "section",
+                    "id": f"p{ctx.number}-{p['id']}",
+                    "title": p.get("title", ""),
+                    "refs": [f"w{i}" for i in p["words"]],
+                    "continues_previous": False,
+                    "text_source": "document",
+                    "grounded": True,
+                }
+            )
+        elif p["kind"] == "staff_region":
+            elements.append(
+                {
+                    "type": "staff_only",
+                    "id": f"p{ctx.number}-{p['id']}",
+                    "refs": [p["id"]],
+                    "heading": p.get("heading", ""),
+                    "fields": staff_fields(ctx, [p["id"]], _heading_words(ctx, p)),
+                }
+            )
+        elif p["kind"] == "paragraph":
+            used.update(p["words"])
+            text = " ".join(ctx.words[i]["text"] for i in p["words"])
+            elements.append(
+                {
+                    "type": "statement",
+                    "id": f"p{ctx.number}-{p['id']}",
+                    "text": text,
+                    "refs": [f"w{i}" for i in p["words"]],
+                    "legal": True,
+                    "section": None,
+                    "text_source": "document",
+                }
+            )
+    checkboxes = [
+        p
+        for p in ctx.primitives
+        if p["kind"] == "checkbox" and not _inside_staff(p, ctx)
+    ]
+    for row, options, label_words in _checkbox_rows(ctx, checkboxes, used):
         label = " ".join(ctx.words[i]["text"] for i in label_words) or (
             options[0]["label"] if len(options) == 1 else ""
         )

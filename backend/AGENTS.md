@@ -267,17 +267,41 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   compose service; one page per call) stores page PNGs;
   `structure` (`pdf_import/structuring.py`) asks the instance's default AI provider
   (`analyze_page`: page image + words and layout items by id, JSON schema; OpenAI uses
-  `PDF_IMPORT_OPENAI_MODEL`, default `gpt-6-luna`) for questions that reference those
-  ids. Labels are rebuilt from the referenced words; invalid answers are retried once,
-  then the page is structured deterministically. Result: `fdm.json`. Tests never call
-  a real provider (autouse fixture in `tests/app/pdf_import/conftest.py`).
+  `PDF_IMPORT_OPENAI_MODEL`, default `gpt-6-luna`, with **strict** structured output)
+  for questions that reference those ids. `structuring.schema()` must stay valid for
+  OpenAI strict mode — every object lists all its properties in `required` (optional
+  ones are nullable, a nullable object is an `anyOf` with null), `additionalProperties:
+  false` everywhere, no length/pattern/format/range keywords; `test_structuring.py`
+  checks it. `validate()` drops nulls first, so null = absent. Labels are rebuilt from
+  the referenced words; invalid answers are retried once, then the page is structured
+  deterministically. Staff-only elements carry their labelled answer places
+  (`fields`, from `structuring.staff_fields`: slots inside the staff region, labels only
+  from words inside it, slots a question claimed left alone). Result: `fdm.json`. Tests
+  never call a real provider (autouse fixture in `tests/app/pdf_import/conftest.py`).
 - **Compile** (`pdf_import/compile.py`) turns `fdm.json` into the draft form with explicit
   redesign rules (pages per section, other+specify and follow-up visibility, verbatim
   statements and a terms page, typed-name signatures, B.S./A.D. as two dates, location
-  questions, tables as rows of fields for now) and the brand theme from section-bar
-  colours (darkened to WCAG AA for white text). Built from an empty form through
-  `apply_form_ops` and saved once, so a retry is idempotent. Every applied rule, drop,
-  interim mapping and staff-only part is listed in `report.compile`.
+  questions) and the brand theme from section-bar colours (darkened to WCAG AA for white
+  text). Built from an empty form through `apply_form_ops` (pages, then `add_group` at
+  the planned positions, then logic) and saved once, so a retry is idempotent;
+  `with_stable_ids` renumbers every uuid in order of appearance, group children and
+  the logic pointing at them included. Every applied rule and drop is listed in
+  `report.compile`.
+  - **Staff-only parts → internal fields** (D5/D10): each labelled slot becomes an
+    internal field (only `INTERNAL_CAPABLE_TYPES`; photo/thumbprint boxes are listed as
+    dropped) on pages of their own at the end, with no heading statement (a visible
+    field would keep the page alive for respondents). No "Please specify" or other
+    logic is ever built on them, and `internal_logic_violations` runs on the result.
+    A part with nothing labelled is only listed (`staff_only_listed`).
+  - **Repeating groups** (D7): an open-row table becomes a group (one question per
+    column, max = the paper's empty rows capped at 50, min 1 only if required, item
+    label from the table's label or its first column); a table with labelled rows stays
+    a grid of fields. Joint-applicant blocks (`applicant_index` 1..n asking the same
+    questions, compared by kind + label without numbers) become one "Applicants" group
+    with max = n; questions that cannot repeat (uploads, tables, location sketches) stay
+    per applicant with "Applicant N:" prefixes, and blocks that differ keep the
+    prefixes. Logic stays item-scoped: a rule whose source is a group child is only
+    kept when its target is in the same group.
 - **Artifacts:** stage outputs (`text.json`, `layout.json`, `pages/<n>.png`, `fdm.json`) are stored next to the original
   in the form's private folder, so they are deleted with the form.
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).

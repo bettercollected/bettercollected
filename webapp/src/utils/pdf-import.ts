@@ -43,11 +43,15 @@ const RULE_LABELS: Record<string, (n: number) => string> = {
     location_sketch_to_questions: () => 'The location sketch became landmark, distance and direction questions',
     photo_box_to_upload: (n) => `${n} photo box${n > 1 ? 'es' : ''} became an image upload`,
     character_cells_to_text: (n) => `${n} character-box field${n > 1 ? 's' : ''} became text fields`,
-    table_to_rows_of_fields: (n) => `${n} table${n > 1 ? 's' : ''} became rows of fields`,
+    open_table_to_repeating_group: (n) => `${n} table${n > 1 ? 's' : ''} became ${n > 1 ? 'repeating groups' : 'a repeating group'}: respondents add one entry per row`,
+    fixed_table_to_fields: (n) => `${n} table${n > 1 ? 's' : ''} with labelled rows became a grid of fields`,
+    applicant_blocks_to_repeating_group: () => 'The blocks for joint applicants became one repeating group with an entry per applicant',
+    applicant_blocks_prefixed: (n) => `${n} question${n > 1 ? 's' : ''} for further applicants ${n > 1 ? 'were' : 'was'} labelled "Applicant 2", "Applicant 3"…`,
+    staff_only_to_internal_fields: (n) => `${n} staff-only field${n > 1 ? 's' : ''} became internal field${n > 1 ? 's' : ''} that staff fill in`,
     long_section_split: (n) => `${n} long section${n > 1 ? 's were' : ' was'} split across pages`,
     tiny_section_merged: (n) => `${n} short section${n > 1 ? 's were' : ' was'} merged into the page before`,
     theme_from_document: () => "The form's colours were taken from the document",
-    staff_only_listed: (n) => `${n} staff-only part${n > 1 ? 's were' : ' was'} set aside`,
+    staff_only_listed: (n) => `${n} staff-only part${n > 1 ? 's were' : ' was'} left out: nothing to fill in was found`,
     consent: (n) => `${n} agreement${n > 1 ? 's' : ''} added`
 };
 
@@ -55,6 +59,14 @@ export function describeRules(rules: Record<string, number> | undefined): string
     return Object.entries(rules ?? {})
         .filter(([, n]) => n > 0)
         .map(([key, n]) => (RULE_LABELS[key] ? RULE_LABELS[key](n) : `${key.replace(/_/g, ' ')} (${n})`));
+}
+
+/** A staff-only part of the paper form, as the review screen lists it. */
+export function describeStaffPart(part: { heading?: string | null; internal_fields?: number | null }): string {
+    const heading = part.heading?.trim() || 'Staff-only part';
+    const n = Number(part.internal_fields ?? 0);
+    if (n > 0) return `${heading}: ${n} internal field${n === 1 ? '' : 's'} that staff fill in on each submission. Respondents never see ${n === 1 ? 'it' : 'them'}.`;
+    return `${heading}: left out, nothing to fill in was found. Respondents never see it.`;
 }
 
 /** Where a box (PDF points, top-left origin) sits on an image displayed at `displayWidth` pixels. */

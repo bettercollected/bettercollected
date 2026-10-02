@@ -203,7 +203,8 @@ class OpenAIFormProvider(AIFormProvider):
             ],
             response_format={
                 "type": "json_schema",
-                "json_schema": {"name": "form_page", "schema": schema, "strict": False},
+                # the schema follows strict mode's rules (structuring.schema)
+                "json_schema": {"name": "form_page", "schema": schema, "strict": True},
             },
             max_completion_tokens=PAGE_MAX_TOKENS,
             timeout=PAGE_TIMEOUT_S,

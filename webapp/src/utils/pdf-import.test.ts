@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { STAGES, aiStructuringNote, describeRules, describeWithheld, isAiWording, placeBox, progressPercent, stageStates, validateUpload } from '@app/utils/pdf-import';
+import { STAGES, aiStructuringNote, describeRules, describeStaffPart, describeWithheld, isAiWording, placeBox, progressPercent, stageStates, validateUpload } from '@app/utils/pdf-import';
 
 describe('stageStates', () => {
     it('marks finished, current and waiting stages', () => {
@@ -20,6 +20,21 @@ describe('describeRules', () => {
     it('explains applied rules in plain words and skips zeros', () => {
         const lines = describeRules({ other_option_gets_specify_field: 2, long_section_split: 0, unknown_rule: 1 });
         expect(lines).toEqual(['2 "Other" options got a "Please specify" field', 'unknown rule (1)']);
+    });
+    it('says tables and applicant blocks repeat and staff parts became internal fields', () => {
+        expect(describeRules({ open_table_to_repeating_group: 1, applicant_blocks_to_repeating_group: 1, staff_only_to_internal_fields: 3 })).toEqual([
+            '1 table became a repeating group: respondents add one entry per row',
+            'The blocks for joint applicants became one repeating group with an entry per applicant',
+            '3 staff-only fields became internal fields that staff fill in'
+        ]);
+    });
+});
+
+describe('describeStaffPart', () => {
+    it('says what became of a staff-only part', () => {
+        expect(describeStaffPart({ heading: 'For office use only', internal_fields: 2 })).toBe('For office use only: 2 internal fields that staff fill in on each submission. Respondents never see them.');
+        expect(describeStaffPart({ heading: '', internal_fields: 1 })).toBe('Staff-only part: 1 internal field that staff fill in on each submission. Respondents never see it.');
+        expect(describeStaffPart({ heading: 'Bank use', internal_fields: 0 })).toBe('Bank use: left out, nothing to fill in was found. Respondents never see it.');
     });
 });
 
@@ -53,7 +68,6 @@ describe('aiStructuringNote', () => {
         expect(aiStructuringNote(undefined)).toBe('AI structuring: off (built-in reader only)');
     });
 });
-
 
 describe('describeWithheld', () => {
     it('lists pages with withheld words in page order', () => {
