@@ -35,8 +35,8 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
     const handleAddForm = () => {
         if (selectedForm) {
             addFormOnGroup({
-                groupsForUpdate: [group],
-                groups: selectedForm?.groups || [],
+                // the server replaces the form's groups: keep the ones it is already in
+                groupsForUpdate: [...(selectedForm?.groups || []), group],
                 form: selectedForm,
                 workspaceId: workspace.id
             });
