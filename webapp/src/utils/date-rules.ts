@@ -107,10 +107,24 @@ export interface DateRuleBound {
     label: string;
 }
 
-/** Short name of a date question in messages: its label, else its title. */
+/** What the canvas shows for a date question without a title of its own. */
+const DATE_TITLE_PLACEHOLDER = 'Select a date';
+
+/** The question's own title text ('' when it has none: new questions show a placeholder). */
+function ownTitle(field: StandardFormFieldDto | undefined): string {
+    const title = plainTitle(field);
+    return title === 'Untitled question' ? '' : title;
+}
+
+/** A date question as the builder lists it: the text the canvas shows for it. */
+export function dateQuestionTitle(field: StandardFormFieldDto | undefined): string {
+    return ownTitle(field) || DATE_TITLE_PLACEHOLDER;
+}
+
+/** Short name of a date question in messages: its label, else its title, else a neutral phrase. */
 export function dateFieldName(field: StandardFormFieldDto | undefined): string {
     const label = field?.properties?.label?.trim();
-    return label || plainTitle(field);
+    return label || ownTitle(field) || 'the other date';
 }
 
 /** The field's rules that apply given the answers so far, with their bounds. */
@@ -301,7 +315,7 @@ export function getDateRuleSources(slides: Array<StandardFormFieldDto>, ownerId:
         .slice(0, Math.max(position, 0))
         .filter((q) => q && isUsableSource(owner, q) && !wouldCreateDateRuleCycle(slides, ownerId, q.field.id))
         .map((q) => {
-            const name = plainTitle(q.field);
+            const name = dateQuestionTitle(q.field);
             return { id: q.field.id, label: multiPage && !owner.groupId ? `Page ${pageOf(q.field.id) + 1} · ${name}` : name };
         });
 }

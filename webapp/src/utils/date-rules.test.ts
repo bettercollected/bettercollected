@@ -177,3 +177,15 @@ describe('builder helpers', () => {
         expect(stays.properties!.fields![1].properties!.dateRules![0].fieldId).toBe('new-0');
     });
 });
+
+describe('naming the other date question', () => {
+    it('uses the label, then the title text, then a neutral phrase', async () => {
+        const { dateFieldName, dateQuestionTitle } = await import('@app/utils/date-rules');
+        const untitled = { id: 'd1', type: 'date', properties: {} } as any;
+        expect(dateFieldName(untitled)).toBe('the other date');
+        expect(dateQuestionTitle(untitled)).toBe('Select a date');
+        const rich = { id: 'd2', type: 'date', title: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Start date' }] }] }, properties: {} } as any;
+        expect(dateFieldName(rich)).toBe('Start date');
+        expect(dateFieldName({ ...rich, properties: { label: 'Arrival' } })).toBe('Arrival');
+    });
+});

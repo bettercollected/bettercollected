@@ -476,3 +476,26 @@ async def test_response_edit_breaking_a_rule_is_422(workspace):
         StandardFormResponseCamelModel(answers={"start": _day("2026-03-15")}),
         testUser,
     )
+
+
+def test_messages_name_the_other_date_from_label_rich_title_or_a_phrase():
+    from types import SimpleNamespace
+
+    from backend.app.services.date_rules import _title
+
+    rich = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [
+                    {"type": "text", "text": "Start", "marks": [{"type": "bold"}]},
+                    {"type": "text", "text": " date"},
+                ],
+            }
+        ],
+    }
+    assert _title(SimpleNamespace(title=rich, properties=None)) == "Start date"
+    labelled = SimpleNamespace(title=rich, properties=SimpleNamespace(label="Arrival"))
+    assert _title(labelled) == "Arrival"
+    assert _title(SimpleNamespace(title=None, properties=None)) == "the other date"

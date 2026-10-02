@@ -85,10 +85,29 @@ def _type_value(field_type: Any) -> Optional[str]:
 
 
 def _title(field: Any) -> str:
+    """The question's name in messages: its label, else its title text (plain
+    string or the editor's TipTap JSON), else a neutral phrase."""
+    properties = getattr(field, "properties", None)
+    label = getattr(properties, "label", None) if properties else None
+    if isinstance(label, str) and label.strip():
+        return label.strip()
     title = getattr(field, "title", None)
-    if isinstance(title, str) and title.strip():
-        return title.strip()
-    return "a date question"
+    if isinstance(title, str):
+        text = title
+    else:
+        text = " ".join(_text_nodes(title))
+    text = " ".join(text.split())
+    return text or "the other date"
+
+
+def _text_nodes(node: Any) -> List[str]:
+    if isinstance(node, dict):
+        if node.get("type") == "text":
+            return [str(node.get("text") or "")]
+        if node.get("type") == "answerPipe":
+            return [str((node.get("attrs") or {}).get("label") or "")]
+        return [t for child in node.get("content") or [] for t in _text_nodes(child)]
+    return []
 
 
 def _date_value(answer: Any) -> Optional[str]:
