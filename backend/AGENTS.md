@@ -68,6 +68,18 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
 - **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
   (query only spine columns; add one + an Alembic revision under `backend/migrations/` when a query needs a new
   field). Migrations run as the service role (`bc_app`), never as the superuser.
+- **Schema check at startup** (`common/db/schema_guard.py`, wired in `backend/db/startup.py`; auth and google pass
+  their own `MigrationTarget` in their `asgi.py`): when any group reads/writes Postgres the service refuses to start
+  unless its schema is at the code's Alembic head (and, for the backend, procrastinate's `jobs` tables exist when a job
+  kind is on Postgres). All-Mongo flags skip it. `deploy.sh` migrates explicitly; `DB_AUTO_MIGRATE=true` (default
+  off) makes each service run `alembic upgrade head` in-process at startup instead, serialised across replicas by a
+  per-schema Postgres advisory lock (a waiting replica gives up after `DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS`, default
+  300; the migration's own DDL waits at most 60s for a table lock). A new revision has to ship with the code that
+  needs it. A database migrated *past* the image (a rollback) only logs a warning and starts, so **migrations must
+  be expand-only**: never drop or rename what the previous release still uses in the same release that stops using
+  it. They also run in one transaction, so no `CREATE INDEX CONCURRENTLY` / `autocommit_block` — ship that as a
+  manual step. Tests: `common/tests/test_schema_guard.py`,
+  `tests/app/db/test_auto_migrate.py` (real throw-away database initialised by `postgres/init`).
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.
@@ -374,6 +386,7 @@ DATABASE_URL=postgresql+asyncpg://bettercollected:bettercollected@localhost:5432
 DB_WRITE_MODE=dual ... uv run pytest
 DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ... uv run pytest
 uv run alembic -c alembic.ini upgrade head   # as the service role (bc_app), see backend/.env.example
+DB_AUTO_MIGRATE=true ./run.sh                # or: migrate app + jobs schemas at startup (advisory-locked)
 python -m backend.jobs.worker                # procrastinate worker (JOBS_BACKEND=postgres)
 ```
 Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.

@@ -19,6 +19,7 @@ a code change — and by the migration CLI, which runs out of band as a one-off 
 | `python -m backend.migrate …` (also `auth.migrate`, `googleform.migrate`) | one-off container, service role | `preflight` · `backfill` · `verify` · `reconcile` · `status` · `jobs-sweep` |
 | outbox `mirror_write_failures` | Mongo collection + Postgres table, per service | mirror writes that failed; drained by `reconcile` |
 | `jobs-worker` service, actions-executor with `JOBS_BACKEND=postgres` | compose | consume the `default` and `actions` queues |
+| `DB_AUTO_MIGRATE` (default `false`) | backend (+ jobs-worker), auth, google | `true`: each service runs `alembic upgrade head` for its own schema at startup (backend: plus procrastinate's `jobs` tables), under a per-schema Postgres advisory lock |
 
 Groups (backend): `refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`.
 Auth and google each have one group (`auth`, `google`).
@@ -29,12 +30,44 @@ for `forms` while `responses` reads Mongo, for `identity` while `forms` reads Mo
 `actions` while `identity` reads Mongo. `postgres_primary_dual` is always allowed. A violation
 fails the service at startup with the rule spelled out.
 
+**Schema check at startup.** Whenever a service's flags put any group on Postgres (`dual` and
+beyond, a Postgres read source or shadow reads), it compares its schema's Alembic revision with
+the code's head before serving and **refuses to start** if the schema is behind or was never
+migrated — the log names the schema, both revisions and the fix. A schema *ahead* of the code (a
+newer release migrated it, then a rollback or reschedule brought the older image back) logs a
+warning and starts: migrations are expand-only, so the older code still runs on it. The backend also
+requires procrastinate's `jobs` tables when a job kind is on Postgres. With every flag at its
+Mongo default nothing is checked and no database is needed. (Before this check a service on an
+unmigrated database started "fine" and then answered every Postgres-backed request with 500
+`UndefinedTable`.) An unreachable Postgres keeps its old rule: fatal only when a group *serves*
+from it.
+
+**Who runs the migrations.** `deploy.sh` runs them explicitly before the services roll (below).
+A deployment that does not go through `deploy.sh` — the hosted deploys use Docker Swarm
+(`.github/workflows/deploy.yml`, `mesudip/docker-stack`) with their own stack definition, and
+nothing there migrates — must either run the same commands as a pre-deploy step or set
+**`DB_AUTO_MIGRATE=true`** on backend, jobs-worker, auth and integrations-googleform. Then each
+service migrates its own schema in-process at startup, before serving, as its own role; replicas
+starting together serialise on a Postgres advisory lock (one per schema), the others wait and then
+find the schema at head. Applied revisions are logged (`DB_AUTO_MIGRATE: schema 'app' migrated,
+applied …`); a failed migration refuses to start. A waiting replica gives up after
+`DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS` (default 300) and the migration's DDL waits at most 60s for a
+table lock, so a stuck migration fails and restarts instead of hanging. A newer schema than the
+image knows (a rollback past a migration) is left alone with a warning — nothing is migrated
+backwards automatically. Migrations run in a single transaction: one that needs non-transactional
+DDL (`CREATE INDEX CONCURRENTLY`, an `autocommit_block`) can't go through `DB_AUTO_MIGRATE` and must
+be run by hand before the release.
+
 ## R1 — release with everything still on Mongo
 
 Prerequisites in the deployment (`deploy.sh` does these): the `app-postgres` service with the
 five role passwords (`APP_POSTGRES_PASSWORD`, `BC_APP_PASSWORD`, `BC_AUTH_PASSWORD`,
 `BC_GOOGLE_PASSWORD`, `BC_JOBS_EXEC_PASSWORD`), `DATABASE_URL` per service, `alembic upgrade head`
-per service **as its own role**, and `python -m backend.jobs.schema`.
+per service **as its own role**, and `python -m backend.jobs.schema` — or, instead of the last two,
+`DB_AUTO_MIGRATE=true` (see "Schema check at startup" above). Note that with every flag on Mongo
+the services skip the schema step entirely, so on R1 `DB_AUTO_MIGRATE` alone migrates nothing:
+run the explicit commands once, or let the first restart with `DB_WRITE_MODE=dual` (Phase 1,
+step 1) migrate.
 
 1. Deploy with all flags at their defaults (`mongo` / `temporal`). Behaviour is unchanged; the only
    new thing running is the Postgres container and empty tables.
@@ -121,6 +154,14 @@ Mongo up from the dump plus the outbox.
 ```bash
 # what is in effect, counters, outbox, reachability (admin cookie)
 curl -b "$COOKIES" https://<backend>/api/v1/persistence/status
+
+# schema migrations by hand (what deploy.sh runs; DB_AUTO_MIGRATE=true does the same at startup)
+docker compose -f docker-compose.deployment.yml run --rm --no-deps backend \
+  /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head
+docker compose -f docker-compose.deployment.yml run --rm --no-deps backend \
+  /api/backend/.venv/bin/python -m backend.jobs.schema
+# … auth: /api/auth/.venv/bin/alembic -c /api/auth/alembic.ini upgrade head
+# … integrations-googleform: alembic -c /api/integrations/google/alembic.ini upgrade head
 
 # migration CLI, one-off container with DATABASE_URL (service role) + MONGO_URI
 docker compose -f docker-compose.deployment.yml run --rm --no-deps backend \

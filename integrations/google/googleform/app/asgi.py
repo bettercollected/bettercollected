@@ -18,14 +18,22 @@ from googleform.app.exceptions.http import (
 )
 from googleform.app.router import root_api_router
 from googleform.app.services.database_service import close_db, init_db
-from common.db import check_postgres_at_startup, dispose_engine
+from common.db import MigrationTarget, check_postgres_at_startup, dispose_engine
 from googleform.app.services.migration_service import (
     migrate_credentials_to_include_user_id,
 )
 from googleform.app.utils import AiohttpClient
 from googleform.config import settings
+import googleform
+from googleform.db.base import SCHEMA
 
 log = logging.getLogger(__name__)
+
+# The google schema's Alembic history: checked (and with DB_AUTO_MIGRATE=true,
+# applied) at startup whenever a group is on Postgres.
+MIGRATIONS = MigrationTarget.for_package(
+    googleform, SCHEMA, service="integrations/google"
+)
 
 
 async def on_startup():
@@ -42,7 +50,9 @@ async def on_startup():
         "persistence flags: %s",
         json.dumps(Container.flags().describe(["google"]), sort_keys=True),
     )
-    await check_postgres_at_startup(Container.flags(), Container.pg_engine())
+    await check_postgres_at_startup(
+        Container.flags(), Container.pg_engine(), MIGRATIONS
+    )
 
 
 async def on_shutdown():
