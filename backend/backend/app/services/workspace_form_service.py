@@ -548,8 +548,13 @@ class WorkspaceFormService:
         response.answers = _checked_group_answers(form, response.answers)
 
         if form_files:
+            # stored with the response's other files, where downloads look first
+            response.response_id = str(response_id)
             response = await self.upload_files_to_s3_and_update_url(
-                form_files=form_files, response=response
+                form_files=form_files,
+                response=response,
+                workspace_id=str(workspace_id),
+                form_id=str(form_id),
             )
 
         form_response = await self.form_response_service.patch_form_response(

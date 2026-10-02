@@ -248,6 +248,12 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
+        getWorkspaceFormVersion: builder.query<StandardFormDto, { workspaceId: string; formId: string; version: number }>({
+            query: ({ workspaceId, formId, version }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/versions/${version}`,
+                method: 'GET'
+            })
+        }),
         getFormsSubmissions: builder.query<Page<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspaceId}/forms/${query.formId}/submissions`,
@@ -626,6 +632,7 @@ export const {
     useGetWorkspaceRespondersQuery,
     useGetWorkspaceSubmissionQuery,
     useLazyGetWorkspaceSubmissionQuery,
+    useLazyGetWorkspaceFormVersionQuery,
     useLazyGetWorkspaceNameSuggestionsQuery,
     useLazyGetWorkspaceNameAvailabilityQuery,
     useLazySearchWorkspaceFormsQuery,

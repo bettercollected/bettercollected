@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import re
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Sequence, Set
 
@@ -48,6 +49,19 @@ from backend.app.services.internal_fields import (
     validate_internal_answer,
 )
 from backend.app.utils.hash import hash_string
+
+# An uploaded answer file's id is client-supplied: only a plain id (no "/",
+# not "." or "..") may ever become part of a storage key, so it can't name
+# another workspace's object.
+_PLAIN_FILE_ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
+
+
+def is_plain_file_id(value) -> bool:
+    return (
+        isinstance(value, str)
+        and _PLAIN_FILE_ID.fullmatch(value) is not None
+        and value not in (".", "..")
+    )
 
 
 class FormResponseService:
@@ -252,10 +266,14 @@ class FormResponseService:
                 else decrypted_answer
             )
             if decrypted_answer.get("file_metadata") is not None:
-                file_url = self._aws_service.generate_presigned_url(
-                    decrypted_answer["file_metadata"].get("id")
+                decrypted_response.answers[key]["file_metadata"]["url"] = (
+                    self.file_download_url(
+                        workspace_id,
+                        response.form_id,
+                        response.response_id,
+                        decrypted_answer["file_metadata"].get("id"),
+                    )
                 )
-                decrypted_response.answers[key]["file_metadata"]["url"] = file_url
 
         return SingleSubmissionResponse(
             form=form,
@@ -641,6 +659,22 @@ class FormResponseService:
             for key, value in (stored or {}).items()
         }
 
+    def file_download_url(self, workspace_id, form_id, response_id, file_id) -> str:
+        """A download link for an uploaded answer file, signed for the key the
+        file is actually stored under: the response's own folder (submissions),
+        the shared private folder (older edits) or the bare id (oldest uploads).
+        An empty string when the file is in none of them."""
+        if not is_plain_file_id(file_id):
+            return ""
+        for key in (
+            f"private/{workspace_id}/{form_id}/{response_id}/{file_id}",
+            f"private/{file_id}",
+            str(file_id),
+        ):
+            if self._aws_service.check_if_key_exists(key):
+                return self._aws_service.generate_presigned_url(key=key)
+        return ""
+
     def generate_presigned_url_for_each_response(
         self,
         file_fields: List[StandardFormField],
@@ -651,16 +685,11 @@ class FormResponseService:
             file_answer = response.answers.get(field.id, {})
             if file_answer and file_answer.get("file_metadata") is not None:
                 file_id = file_answer.get("file_metadata", {}).get("id", "")
-                private_key = f"private/{workspace_id}/{response.form_id}/{response.response_id}/{file_id}"
-                key_exists = self._aws_service.check_if_key_exists(private_key)
-                if key_exists:
-                    url = self._aws_service.generate_presigned_url(key=private_key)
-                else:
-                    key = file_answer.get("file_metadata", {}).get("id", "")
-                    url = (
-                        self._aws_service.generate_presigned_url(key=key) if key else ""
+                response.answers[field.id]["file_metadata"]["url"] = (
+                    self.file_download_url(
+                        workspace_id, response.form_id, response.response_id, file_id
                     )
-                response.answers[field.id]["file_metadata"]["url"] = url
+                )
         return response
 
 

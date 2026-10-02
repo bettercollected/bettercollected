@@ -150,7 +150,7 @@ class WorkspaceFormsRouter(Routable):
             logo=logo,
             cover_image=cover_image,
         )
-        return FormDtoCamelModel(**response.model_dump(mode='json'))
+        return FormDtoCamelModel(**response.model_dump(mode="json"))
 
     @post("/{form_id}/ai/chat")
     async def chat_edit_form_with_ai(
@@ -303,7 +303,7 @@ class WorkspaceFormsRouter(Routable):
             logo=logo,
             cover_image=cover_image,
         )
-        return StandardFormCamelModel(**response.model_dump(mode='json'))
+        return StandardFormCamelModel(**response.model_dump(mode="json"))
 
     @post("/{form_id}/duplicate", response_model=FormDtoCamelModel)
     async def duplicate_form(
@@ -318,7 +318,7 @@ class WorkspaceFormsRouter(Routable):
         response = await self.workspace_form_service.duplicate_form(
             workspace_id=workspace_id, form_id=form_id, user=user
         )
-        return StandardFormCamelModel(**response.model_dump(mode='json'))
+        return StandardFormCamelModel(**response.model_dump(mode="json"))
 
     @post("/{form_id}/publish", response_model=FormDtoCamelModel)
     async def publish_form(
@@ -330,7 +330,7 @@ class WorkspaceFormsRouter(Routable):
         form = await self.workspace_form_service.publish_form(
             workspace_id=workspace_id, form_id=form_id, user=user
         )
-        form_dict = form.model_dump(mode='json')
+        form_dict = form.model_dump(mode="json")
         form_dict["form_id"] = str(form_id)
         return StandardFormCamelModel(**form_dict)
 
@@ -348,6 +348,7 @@ class WorkspaceFormsRouter(Routable):
     ):
         form_files = None
         if files and file_field_ids and file_ids:
+            _check_file_ids(file_ids)
             form_files = [
                 FormFileResponse(
                     file_id=file_id,
@@ -391,6 +392,7 @@ class WorkspaceFormsRouter(Routable):
 
         form_files = None
         if files and file_field_ids and file_ids:
+            _check_file_ids(file_ids)
             form_files = [
                 FormFileResponse(
                     file_id=file_id,
@@ -460,7 +462,7 @@ class WorkspaceFormsRouter(Routable):
         data = await self._form_service.patch_settings_in_workspace_form(
             workspace_id, form_id, settings, user
         )
-        return WorkspaceFormPatchResponse(**data.model_dump(mode='json'))
+        return WorkspaceFormPatchResponse(**data.model_dump(mode="json"))
 
     @patch(
         "/{form_id}/groups/add",
@@ -599,3 +601,14 @@ class WorkspaceFormsRouter(Routable):
             workspace_id=workspace_id, form_id=form_id, action_id=action_id
         )
         return response
+
+
+def _check_file_ids(file_ids) -> None:
+    """Refuse an upload whose file id isn't a plain id before anything is stored."""
+    from backend.app.services.form_response_service import is_plain_file_id
+
+    if not all(is_plain_file_id(file_id) for file_id in file_ids):
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content="Invalid file id.",
+        )

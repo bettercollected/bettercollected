@@ -163,6 +163,8 @@ export interface StandardFormResponseDto {
     internalAnswersVersion?: number;
     responseId: string;
     formId?: string;
+    /** The published form version this response was submitted against. */
+    formVersion?: number;
     formTitle?: string;
     formCustomUrl?: string;
     provider: string;
