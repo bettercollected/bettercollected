@@ -251,13 +251,15 @@ class ResponderGroupsRepository:
 
     @write_op
     async def add_groups_to_form(self, form_id: str, group_ids: List[PydanticObjectId]):
-        ids_to_add = group_ids
+        ids_to_add = list(group_ids)
         existing_groups = await ResponderGroupFormDocument.find(
             {"form_id": form_id}
         ).to_list()
         ids_to_remove = [group.group_id for group in existing_groups]
 
-        for group_id in ids_to_remove:
+        # iterate over a copy: removing from the list being iterated skipped
+        # every other kept group, which was then deleted and re-added
+        for group_id in list(ids_to_remove):
             if group_id in ids_to_add:
                 ids_to_remove.remove(group_id)
                 ids_to_add.remove(group_id)

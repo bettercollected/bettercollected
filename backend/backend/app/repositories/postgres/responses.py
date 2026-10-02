@@ -870,7 +870,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             )
 
     async def add_groups_to_form(self, form_id: str, group_ids: List[PydanticObjectId]):
-        ids_to_add = group_ids
+        ids_to_add = list(group_ids)
         existing_groups = await self._links(ResponderGroupFormRow.form_id == form_id)
         ids_to_remove = [group.group_id for group in existing_groups]
         for group_id in list(ids_to_remove):
