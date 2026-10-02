@@ -264,6 +264,8 @@ class FormAIInsightsService:
     ) -> FormAIInsightsResponse:
         """The explicit opt-in action — the only moment the AI reads answers."""
         form_document = await self._authorize(workspace_id, form_id, user)
+        # The workspace's AI opt-in (#715) before any response is read.
+        provider = await self._provider_resolver(workspace_id, request.provider)
 
         total = await self._form_response_repo.count_responses_for_form_ids([form_id])
         if total == 0:
@@ -282,7 +284,6 @@ class FormAIInsightsService:
                 content="No readable answers found in this form's responses.",
             )
 
-        provider = self._provider_resolver(request.provider)
         raw_reply = await provider.chat(
             INSIGHTS_SYSTEM_PROMPT,
             [

@@ -156,6 +156,14 @@ class Workspace(WorkspaceRequestDto):
     custom_domain_updated_at: Optional[dt.datetime] = None
     # nonce of the registration in progress (idempotency), cleared on success
     custom_domain_attempt: Optional[str] = None
+    # AI consent (#715): off until a workspace admin opts in, for the one
+    # provider consent was granted for. See services/ai/consent.py.
+    ai_enabled: Optional[bool] = False
+    ai_provider: Optional[str] = None
+    ai_enabled_by: Optional[str] = None
+    ai_enabled_at: Optional[dt.datetime] = None
+    ai_disabled_by: Optional[str] = None
+    ai_disabled_at: Optional[dt.datetime] = None
 
 
 class WorkspaceFormSettings(BaseModel):

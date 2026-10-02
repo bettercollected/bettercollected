@@ -8,27 +8,19 @@ from httpx import AsyncClient
 
 from tests.app.controllers.data import testUser
 from backend.app.container import container
+from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.ai.memory import EXTRACTION_SYSTEM_PROMPT
 
 
-class FakeProvider:
-    def __init__(self):
-        self.replies = []
-        self.calls = []
-
-    async def chat(self, system: str, messages: list) -> str:
-        self.calls.append({"system": system, "messages": messages})
-        return self.replies.pop(0)
-
-
 @pytest.fixture()
-def fake_provider(monkeypatch):
+async def fake_provider(monkeypatch, workspace):
+    # AI on for the fixture workspace (#715); the provider is a fake
     fake = FakeProvider()
-    service = container.form_ai_chat_service()
-    monkeypatch.setattr(service, "_provider_resolver", lambda name: fake)
+    use_fake_provider(monkeypatch, fake)
+    await enable_ai(workspace)
     return fake
 
 
@@ -96,7 +88,80 @@ class TestAIMemoryEndpoints:
         assert response.status_code == 422
 
 
+async def _learn(client, workspace, cookies, enabled: bool = True):
+    response = await client.put(
+        f"/api/v1/workspaces/{workspace.id}/ai-memory/settings",
+        cookies=cookies,
+        json={"learnPreferences": enabled},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {"learnPreferences": enabled}
+
+
 class TestExtractionThroughChat:
+    async def test_no_extraction_without_learn_my_preferences(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_provider: FakeProvider,
+    ):
+        """Default off: a chat turn makes exactly one provider call and
+        nothing is remembered."""
+        fake_provider.replies = [
+            json.dumps({"reply": "Done.", "ops": []}),
+            json.dumps({"memories": ["Should never be stored"]}),
+        ]
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
+            cookies=test_user_cookies,
+            json={"message": "never add placeholder text to my inputs"},
+        )
+        assert response.status_code == 200, response.text
+        assert len(fake_provider.calls) == 1
+        assert (
+            await container.ai_preference_memory_repo().find(workspace.id, testUser.id)
+            is None
+        )
+
+        # Turned on and off again: still no extraction.
+        await _learn(client, workspace, test_user_cookies, True)
+        await _learn(client, workspace, test_user_cookies, False)
+        fake_provider.calls.clear()
+        fake_provider.replies = [
+            json.dumps({"reply": "Done.", "ops": []}),
+            json.dumps({"memories": ["Should never be stored"]}),
+        ]
+        await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
+            cookies=test_user_cookies,
+            json={"message": "again"},
+        )
+        assert len(fake_provider.calls) == 1
+        document = await container.ai_preference_memory_repo().find(
+            workspace.id, testUser.id
+        )
+        assert document.entries == []
+
+    async def test_extraction_stops_when_workspace_ai_is_off(
+        self,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+        client: AsyncClient,
+        fake_provider: FakeProvider,
+    ):
+        from backend.app.services.ai.memory import AIMemoryService
+        from tests.app.ai_helpers import disable_ai
+
+        await _learn(client, workspace, test_user_cookies, True)
+        await disable_ai(workspace)
+        fake_provider.replies = [json.dumps({"memories": ["x"]})]
+        await AIMemoryService().extract_from_turn(
+            fake_provider, workspace.id, testUser.id, "hi", "ok"
+        )
+        assert fake_provider.calls == []
+
     async def test_chat_turn_extracts_memory_in_background(
         self,
         client: AsyncClient,
@@ -105,6 +170,7 @@ class TestExtractionThroughChat:
         test_user_cookies: dict[str, str],
         fake_provider: FakeProvider,
     ):
+        await _learn(client, workspace, test_user_cookies)
         fake_provider.replies = [
             json.dumps(
                 {"reply": "Done — no placeholders.", "ops": []}
@@ -151,6 +217,7 @@ class TestExtractionThroughChat:
         test_user_cookies: dict[str, str],
         fake_provider: FakeProvider,
     ):
+        await _learn(client, workspace, test_user_cookies)
         # Only ONE reply queued: the extraction call will raise (pop from
         # empty) inside the background task — and must be swallowed.
         fake_provider.replies = [json.dumps({"reply": "Okay.", "ops": []})]

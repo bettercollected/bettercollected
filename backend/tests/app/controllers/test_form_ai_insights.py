@@ -15,6 +15,7 @@ from common.models.standard_form import (
 )
 
 from backend.app.container import container
+from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -23,21 +24,12 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from tests.app.controllers.data import testUser
 
 
-class FakeProvider:
-    def __init__(self):
-        self.replies = []
-        self.calls = []
-
-    async def chat(self, system: str, messages: list) -> str:
-        self.calls.append({"system": system, "messages": messages})
-        return self.replies.pop(0)
-
-
 @pytest.fixture()
-def fake_insights_provider(monkeypatch):
+async def fake_insights_provider(monkeypatch, workspace):
+    # AI on for the fixture workspace (#715); the provider is a fake
     fake = FakeProvider()
-    service = container.form_ai_insights_service()
-    monkeypatch.setattr(service, "_provider_resolver", lambda name: fake)
+    use_fake_provider(monkeypatch, fake)
+    await enable_ai(workspace)
     return fake
 
 
@@ -216,6 +208,7 @@ class TestFormAIInsights:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
     ):
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/insights",

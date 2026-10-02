@@ -21,6 +21,11 @@ from backend.app.services.ai.api_keys import (
     CreateAPIKeyDto,
     CreatedAPIKeyDto,
 )
+from backend.app.services.ai.consent import (
+    LearnPreferencesDto,
+    UpdateWorkspaceAISettingsDto,
+    WorkspaceAISettingsDto,
+)
 from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
@@ -179,6 +184,42 @@ class WorkspaceRouter(Routable):
         return await container.ai_profile_service().update_profile(
             workspace_id, profile, user
         )
+
+    @get("/{workspace_id}/ai-settings")
+    async def get_ai_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> WorkspaceAISettingsDto:
+        """Whether AI features are on for this workspace, which provider they
+        use, and the caller's own "Learn my preferences" setting."""
+        return await container.ai_consent_service().get_settings(workspace_id, user)
+
+    @put("/{workspace_id}/ai-settings")
+    async def update_ai_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        request: UpdateWorkspaceAISettingsDto,
+        user: User = Depends(get_logged_user),
+    ) -> WorkspaceAISettingsDto:
+        """Turn AI features on (for one provider) or off. Admins only;
+        recorded with who and when."""
+        return await container.ai_consent_service().update_settings(
+            workspace_id, request, user
+        )
+
+    @put("/{workspace_id}/ai-memory/settings")
+    async def update_ai_memory_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        request: LearnPreferencesDto,
+        user: User = Depends(get_logged_user),
+    ) -> LearnPreferencesDto:
+        """The caller's "Learn my preferences" setting (default off)."""
+        enabled = await container.ai_memory_service().set_learn_preferences(
+            workspace_id, user, request.learn_preferences
+        )
+        return LearnPreferencesDto(learn_preferences=enabled)
 
     @get("/{workspace_id}/api-keys")
     async def list_api_keys(

@@ -192,6 +192,8 @@ class FormAIReviewService:
         user: User,
     ) -> FormAIReviewResponse:
         form_document, association = await self._load_form(workspace_id, form_id, user)
+        # The workspace's AI opt-in (#715) before the profile is loaded.
+        provider = await self._provider_resolver(workspace_id, request.provider)
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
         # The snapshot includes trust settings — a review that can't see the
@@ -200,7 +202,6 @@ class FormAIReviewService:
             project_form(form, settings=association.settings), profile
         )
 
-        provider = self._provider_resolver(request.provider)
         raw_reply = await provider.chat(
             system, [{"role": "user", "content": "Review this form now."}]
         )

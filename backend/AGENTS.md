@@ -187,6 +187,36 @@ and architecture.
   docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
   `.env.deployment`.
 
+## AI consent (#715)
+
+No user content (form content, prompts, the AI profile, memory, responses, uploaded
+documents) goes to an AI provider until the workspace has opted in. Code:
+`services/ai/consent.py`, enforced through `OpenAIService.provider_for_workspace`.
+
+- **Workspace setting:** `ai_enabled` on the workspace document (default off; a
+  missing value counts as off, so existing workspaces start with AI off), with
+  `ai_provider` (the one provider consent was granted for), `ai_enabled_by`/`_at`
+  and `ai_disabled_by`/`_at`. `GET/PUT /workspaces/{id}/ai-settings`; only admins
+  change it, and only for a provider configured on the instance.
+- **One choke point:** every AI path gets its provider from
+  `provider_for_workspace(workspace_id, requested)`, which raises 403
+  `{"code": "ai_not_enabled", "message": ...}` while AI is off and always returns
+  the consented provider (a client-chosen `provider` is ignored unless it is that
+  one). Call it **after** the membership check and **before** loading the AI
+  profile, memory or responses. Never call `_get_provider` from a feature: it is
+  the raw lookup (tests replace it with a fake).
+- **Memory extraction** after a chat turn also needs the user's own "Learn my
+  preferences" (`UserAIPreferenceMemoryDocument.learn_preferences`, default off,
+  `PUT /workspaces/{id}/ai-memory/settings`); `extract_from_turn` re-checks both.
+- **PDF import** needs the per-upload `ai_consent` on top (see below).
+- **MCP API keys with `responses:read`** hand full, unredacted answers to an
+  external AI client: creating one requires `acknowledgeUnredactedResponses`,
+  stored as `responses_read_acknowledged_by`/`_at` on the key.
+- **Tests** never call a real provider: `tests/app/ai_helpers.py` has a counting
+  `FakeProvider`, `use_fake_provider` (replaces only the raw lookup, so the opt-in
+  check still runs) and `enable_ai(workspace)`. A new AI path needs a test that it
+  answers 403 `ai_not_enabled` with zero provider calls while AI is off.
+
 ## PDF form import (in progress)
 
 `POST /workspaces/{id}/form-imports` (multipart `file`) turns an uploaded PDF or
@@ -244,11 +274,12 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.
-- **AI needs consent per import:** nothing from an uploaded document (page text,
-  layout text, page images) goes to an AI provider unless the uploader sent
-  `ai_consent=true` with that upload (stored with `ai_consent_at`/`_by`). Without it
-  `_structure` passes no provider and only the deterministic structuring runs. The
-  workspace AI opt-in (#715) will be required on top of it.
+- **AI needs two consents per import:** nothing from an uploaded document (page
+  text, layout text, page images) goes to an AI provider unless the workspace has
+  AI enabled (see "AI consent" below) **and** the uploader sent `ai_consent=true`
+  with that upload (stored with `ai_consent_at`/`_by`). With either missing
+  `_structure` passes no provider, only the deterministic structuring runs, and
+  `report.notes` names what is missing.
 - **Answers on filled-in forms never become questions:** words inside answer
   boxes, on answer lines and in table answer cells (`structuring.value_words`)
   are left out of the model prompt, of labels/options and of the heuristic. A box
