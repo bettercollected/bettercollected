@@ -9,6 +9,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { FieldConditionalLogic, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
+import { pruneOrphanedDateRules, remapDateRules } from '@app/utils/date-rules';
 import { newRepeatingGroup, remapGroupChildIds, remapTextTokens } from '@app/utils/repeating-groups';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
@@ -174,6 +175,9 @@ export default function useFormFieldsAtom() {
             remapConditions(field.properties?.logic?.conditions);
             field.properties?.fields?.forEach((child) => field.type === FieldTypes.GROUP && remapConditions(child.properties?.logic?.conditions));
         });
+        // Date rules between the page's questions follow them into the copy
+        // (group siblings were remapped with their group).
+        remapDateRules(clone.properties?.fields, idMap);
         clone.properties?.jumps?.forEach((jump) => {
             remapConditions(jump.conditions);
             if (jump.target === oldSlideId) jump.target = clone.id;
@@ -210,6 +214,7 @@ export default function useFormFieldsAtom() {
         // piping chips that pointed at them.
         pruneOrphanedConditions(updatedFormFields);
         pruneOrphanedPipes(updatedFormFields);
+        pruneOrphanedDateRules(updatedFormFields);
         if (activeSlideComponent?.index === formFields.length) {
             setActiveSlideComponent({
                 id: 'welcome-page',
@@ -338,6 +343,7 @@ export default function useFormFieldsAtom() {
             if (target.properties?.logic) delete target.properties.logic;
             pruneOrphanedConditions(formFields);
             pruneOrphanedPipes(formFields);
+            pruneOrphanedDateRules(formFields);
         }
         setFormFields([...formFields]);
     };
@@ -420,6 +426,8 @@ export default function useFormFieldsAtom() {
             pruneOrphanedConditions(formFields);
             pruneOrphanedPipes(formFields);
         }
+        // A question whose type changed is no longer a date its siblings can use.
+        pruneOrphanedDateRules(formFields);
         setFormFields([...formFields]);
     };
 
@@ -487,6 +495,7 @@ export default function useFormFieldsAtom() {
         // Sweep any logic or piping chips that referenced the removed question.
         pruneOrphanedConditions(formFields);
         pruneOrphanedPipes(formFields);
+        pruneOrphanedDateRules(formFields);
         setFormFields([...formFields]);
         setTimeout(() => {
             setActiveFieldComponent(null);

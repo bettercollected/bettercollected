@@ -221,7 +221,10 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     {"op":"add_group","pageId":str,"title":str,"itemLabel":str,"minItems":int,"maxItems":int,
     "itemTitle"?:str,"exportLayout"?:"columns"|"rows","fields":[field]} (repeating group:
     questions filled once per item, e.g. per applicant; no nesting, no file_upload inside) ·
-    {"op":"update_field","fieldId":str,"patch":{...same keys as field}} ·
+    {"op":"update_field","fieldId":str,"patch":{...same keys as field}} (a date question's
+    patch may also set "label":str and "dateRules":[{"comparison":"before"|"after"|"on_or_before"|
+    "on_or_after","target":"date"|"today"|"field","date"?:"YYYY-MM-DD","fieldId"?:str}], max 5,
+    [] clears; "fieldId" is another date question of the same level or the same group) ·
     {"op":"remove_field","fieldId":str} ·
     {"op":"move_field","fieldId":str,"toPageId"?:str,"toGroupId"?:str,"index":int} ·
     {"op":"add_page","index"?:int,"fields"?:[field]} · {"op":"remove_page","pageId":str} ·

@@ -66,6 +66,13 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   and internal fields cannot go inside a group.)
 - {"op":"update_field","fieldId":"...","patch":{"title":"?","description":"?","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?}}
   (on a group the patch may also set "minItems","maxItems","itemLabel","itemTitle","exportLayout")
+  (on a date question the patch may also set "label" — a short label shown with the picker,
+  e.g. "Start date"; "" clears — and "dateRules": [{"comparison":"before"|"after"|"on_or_before"|
+  "on_or_after","target":"date"|"today"|"field","date":"YYYY-MM-DD"?,"fieldId":"<other date question>"?}],
+  at most 5, [] clears. A rule on another date question applies only once it is answered; it must
+  be a date question of the same page level or, inside a repeating group, of the same group;
+  never itself, never in a circle. E.g. end date after start date:
+  {"comparison":"after","target":"field","fieldId":"<start date id>"})
 - {"op":"remove_field","fieldId":"..."}
 - {"op":"move_field","fieldId":"...","toPageId":"?","toGroupId":"?","index":0}
 - {"op":"add_page","index":0?,"fields":[<field specs>]?}
@@ -135,6 +142,12 @@ def _project_field(f) -> dict:
             entry["placeholder"] = props.placeholder
         if getattr(props, "col_span", None):
             entry["colSpan"] = props.col_span
+        if getattr(props, "label", None):
+            entry["label"] = props.label
+        if getattr(props, "date_rules", None):
+            entry["dateRules"] = [
+                r.model_dump(by_alias=True, exclude_none=True) for r in props.date_rules
+            ]
         if getattr(props, "logic", None) and props.logic.conditions:
             entry["logic"] = {
                 "action": props.logic.action,

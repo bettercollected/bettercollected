@@ -117,6 +117,18 @@ form (item limits, required questions per item, item-scoped visibility evaluated
 `move_field.toGroupId`, group conditions via `groupMode` COUNT/ANY/ALL. Internal fields are not allowed
 inside a repeating group (model, builder save and AI ops refuse it).
 
+**Date questions:** `properties.label` is a short label shown with the picker ("Start date"), apart
+from the title. `properties.date_rules` (`DateRule`, at most 5) constrain the answer: before / after /
+on or before / on or after a fixed date, today, or another date question (`field_id`). The model refuses
+rules on non-date questions and on the question itself; `date_rule_problems` (common) checks the rest on
+every form save and in AI ops (the question exists, is a respondent-facing date of the same scope —
+page level, or the same repeating group, per item — and rules form no circle); `prune_date_rules` drops
+rules a structural AI edit left dangling. `services/date_rules.py` enforces them on submit and response
+edits (422), skipping rules whose other question is unanswered or hidden by logic, like the webapp's
+`utils/date-rules.ts` — keep the two in step. Dates are compared as `YYYY-MM-DD` strings; "today" is
+accepted within one day either side of UTC (the server can't know the respondent's zone), and on an edit
+"today" is the submission day.
+
 ## Seed scripts
 
 `backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment

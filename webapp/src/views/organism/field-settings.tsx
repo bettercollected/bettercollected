@@ -13,10 +13,12 @@ import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field
 import { canBeInternal } from '@app/utils/internal-fields';
 import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
 import { isRepeatingGroup } from '@app/utils/repeating-groups';
+import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
+import { getDateRuleSources } from '@app/utils/date-rules';
 
 export default function FieldSettings() {
     const { setActiveFieldComponent } = useActiveFieldComponent();
-    const { updateFieldRequired, updateFieldInternal, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
+    const { formFields, updateFieldRequired, updateFieldInternal, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
@@ -188,6 +190,16 @@ export default function FieldSettings() {
                         />
                     </div>
                     {errorMsg && <span className="text-xs text-red-500">{errorMsg}</span>}
+                </div>
+            )}
+
+            {activeField && activeSlide && activeField.type === FieldTypes.DATE && (
+                <div className="border-t border-black-200 pt-4">
+                    <DateFieldSettings
+                        field={activeField}
+                        sources={getDateRuleSources(formFields || [], activeField.id)}
+                        onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(activeField.index, activeSlide.index, property, value))}
+                    />
                 </div>
             )}
 

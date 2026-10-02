@@ -7,6 +7,8 @@ from common.models.standard_form import (
     StandardFieldAttachment,
     Condition,
     ConditionalActions,
+    DATE_RULES_MAX,
+    DateRule,
     FieldLogic,
     FieldPosition,
     PageJump,
@@ -14,6 +16,7 @@ from common.models.standard_form import (
     LayoutType,
     RepeatSettings,
     Theme,
+    check_field_date_rules,
     check_repeating_group_structure,
 )
 from fastapi import UploadFile
@@ -96,6 +99,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     tabular_value: Optional[List[List[str]]] = None
     col_span: Optional[int] = Field(None, ge=1, le=12)
     repeat: Optional[RepeatSettings] = None
+    label: Optional[str] = Field(None, max_length=120)
+    date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
 
 
 class StandardFormFieldCamelModel(CamelModel):
@@ -116,6 +121,7 @@ class StandardFormFieldCamelModel(CamelModel):
     @model_validator(mode="after")
     def _check_repeating_group(self):
         check_repeating_group_structure(self)
+        check_field_date_rules(self)
         return self
 
 

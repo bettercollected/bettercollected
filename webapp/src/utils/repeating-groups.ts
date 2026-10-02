@@ -194,19 +194,27 @@ export function getRepeatingGroups(slides: Array<StandardFormFieldDto> | undefin
  * to its maximum. A group they cannot see any more — hidden by its visibility
  * rule, or on a page that is not on the path they took (`visitedSlideIndexes`,
  * when known) — is dropped, even if it was filled in earlier.
+ *
+ * Every other answer on a page off that path is dropped too: a jump that
+ * skipped the page means the respondent never confirmed it, and a server
+ * check on it (e.g. a date rule) would be one they can't see to fix.
  */
 export function normalizeGroupAnswersForSubmit(slides: Array<StandardFormFieldDto> | undefined, answers: Record<string, any>, visitedSlideIndexes?: Iterable<number>): Record<string, any> {
     let next = { ...(answers || {}) };
     const visited = visitedSlideIndexes ? new Set(visitedSlideIndexes) : null;
+    const offPath = (slideIndex: number) => !!visited && !visited.has(slideIndex);
     (slides ?? []).forEach((slide, slideIndex) => {
         slide?.properties?.fields?.forEach((group) => {
             if (!isRepeatingGroup(group) || next[group.id] === undefined) return;
-            if ((visited && !visited.has(slideIndex)) || isFieldHiddenByLogic(group, next)) {
+            if (offPath(slideIndex) || isFieldHiddenByLogic(group, next)) {
                 delete next[group.id];
                 return;
             }
             next = ensureGroupItems(next, group);
         });
+    });
+    (slides ?? []).forEach((slide, slideIndex) => {
+        if (offPath(slideIndex)) slide?.properties?.fields?.forEach((field) => delete next[field.id]);
     });
     return next;
 }
@@ -323,7 +331,8 @@ export function remapTextTokens(text: string, idMap: Record<string, string>): st
 /**
  * Give a repeating group's questions (and their choices) fresh ids, in place,
  * remapping what refers to them inside the group: sibling visibility rules,
- * sibling pipes in titles/descriptions and the item title. Returns old → new ids.
+ * sibling date rules, sibling pipes in titles/descriptions and the item title.
+ * Returns old → new ids.
  */
 export function remapGroupChildIds(group: StandardFormFieldDto, newId: () => string = v4): Record<string, string> {
     const idMap: Record<string, string> = {};
@@ -341,6 +350,9 @@ export function remapGroupChildIds(group: StandardFormFieldDto, newId: () => str
     children.forEach((child) => {
         child.properties?.logic?.conditions?.forEach((condition) => {
             if (idMap[condition.fieldId]) condition.fieldId = idMap[condition.fieldId];
+        });
+        child.properties?.dateRules?.forEach((rule) => {
+            if (rule.fieldId && idMap[rule.fieldId]) rule.fieldId = idMap[rule.fieldId];
         });
         if (child.title && typeof child.title !== 'string') remapNode(child.title);
         else if (typeof child.title === 'string') child.title = remapTextTokens(child.title, idMap);

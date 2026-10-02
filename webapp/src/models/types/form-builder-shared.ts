@@ -84,6 +84,23 @@ export interface RepeatSettings {
     exportLayout?: 'columns' | 'rows';
 }
 
+export type DateRuleComparison = 'before' | 'after' | 'on_or_before' | 'on_or_after';
+export type DateRuleTarget = 'date' | 'today' | 'field';
+
+/**
+ * A constraint on a date question's answer (stored at `properties.dateRules`):
+ * the chosen date must be `comparison` a fixed `date` (YYYY-MM-DD), today, or
+ * the answer of another date question (`fieldId`). See utils/date-rules.ts.
+ */
+export interface DateRule {
+    comparison: DateRuleComparison;
+    target: DateRuleTarget;
+    /** YYYY-MM-DD, when `target` is `date`. */
+    date?: string;
+    /** Another date question, when `target` is `field`. */
+    fieldId?: string;
+}
+
 export interface FieldConditionalLogic {
     action: LogicAction;
     operator: LogicalOperator;

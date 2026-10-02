@@ -116,6 +116,20 @@ describe('add / remove within limits', () => {
         expect(normalizeGroupAnswersForSubmit(twoPages, answers, [-1, 0, 1]).g.items).toHaveLength(1);
     });
 
+    it('drops every answer on a page a jump skipped', () => {
+        const start: StandardFormFieldDto = { id: 'start', index: 0, type: FieldTypes.DATE, title: 'Start' };
+        const end: StandardFormFieldDto = { id: 'end', index: 0, type: FieldTypes.DATE, title: 'End' };
+        const pages: StandardFormFieldDto[] = [
+            { id: 's0', index: 0, type: FieldTypes.SLIDE, properties: { fields: [start] } },
+            { id: 's1', index: 1, type: FieldTypes.SLIDE, properties: { fields: [end] } },
+            { id: 's2', index: 2, type: FieldTypes.SLIDE, properties: { fields: [name] } }
+        ];
+        const answers = { start: { date: '2026-03-12' }, end: { date: '2026-03-10' }, name: text('A') };
+        expect(normalizeGroupAnswersForSubmit(pages, answers, [-1, 0, 2])).toEqual({ start: answers.start, name: answers.name });
+        expect(normalizeGroupAnswersForSubmit(pages, answers, [-1, 0, 1, 2])).toEqual(answers);
+        expect(normalizeGroupAnswersForSubmit(pages, answers)).toEqual(answers);
+    });
+
     it('treats null limits as unset and empty child answers as missing', () => {
         expect(getRepeatSettings(group({ minItems: null, maxItems: null }))).toMatchObject({ minItems: 1, maxItems: 3 });
         const invalid = validateGroupAnswer(group({ maxItems: 4 }), answersWith({ name: {} }, { name: { type: 'text', text: '' } }, { name: { choice: {} } }, { name: text('ok') }));

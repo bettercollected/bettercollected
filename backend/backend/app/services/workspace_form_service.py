@@ -14,6 +14,7 @@ from common.models.standard_form import (
     StandardFormResponse,
     Trigger,
     StandardFormSettings,
+    date_rule_problems,
 )
 from common.models.user import User
 from fastapi import UploadFile
@@ -41,6 +42,7 @@ from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.date_rules import today_range, validate_date_rule_answers
 from backend.app.services.form_service import FormService
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
@@ -351,6 +353,7 @@ class WorkspaceFormService:
             workspace_id=workspace_id, user=user
         )
         ensure_no_internal_logic(form)
+        ensure_valid_date_rules(form)
         form.form_id = str(PydanticObjectId())
 
         if logo:
@@ -415,6 +418,7 @@ class WorkspaceFormService:
             workspace_id=workspace_id, user=user
         )
         ensure_no_internal_logic(form)
+        ensure_valid_date_rules(form)
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_form_ids(
                 [str(form_id)]
@@ -557,6 +561,25 @@ class WorkspaceFormService:
             )
 
         response.answers = _checked_group_answers(form, response.answers)
+        # Date rules against the answers as they will be after the edit, but
+        # only for what this edit touches; "today" is the submission day.
+        merged = {}
+        if existing.answers:
+            merged.update(
+                self.form_response_service.decrypt_form_response(
+                    workspace_id=workspace_id, response=existing.model_copy(deep=True)
+                ).answers
+                or {}
+            )
+        merged.update(response.answers or {})
+        _check_date_rules(
+            form,
+            merged,
+            today=today_range(
+                existing.created_at.date() if existing.created_at else None
+            ),
+            changed=list((response.answers or {}).keys()),
+        )
 
         if form_files:
             # stored with the response's other files, where downloads look first
@@ -614,6 +637,7 @@ class WorkspaceFormService:
         response.answers = _checked_group_answers(
             latest_version_of_form or form, response.answers
         )
+        _check_date_rules(latest_version_of_form or form, response.answers)
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.
         if form_files:
@@ -929,3 +953,25 @@ def _checked_group_answers(form, answers):
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=" ".join(problems)
         )
     return drop_hidden_group_answers(form, answers)
+
+
+def ensure_valid_date_rules(form) -> None:
+    """Date rules must use existing date questions of the same scope, never
+    themselves, and not depend on each other in a circle (422 otherwise)."""
+    problems = date_rule_problems(getattr(form, "fields", None))
+    if problems:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=" ".join(problems)
+        )
+
+
+def _check_date_rules(form, answers, today=None, changed=None) -> None:
+    """Enforce the form's date rules on submitted answers (422 otherwise),
+    the same way the webapp does while the form is filled."""
+    if form is None:
+        return
+    problems = validate_date_rule_answers(form, answers, today=today, changed=changed)
+    if problems:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=" ".join(problems)
+        )
