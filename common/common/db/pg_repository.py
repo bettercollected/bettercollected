@@ -7,7 +7,7 @@ the boundary as documents, through :mod:`common.db.beanie_bridge`.
 
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional, Sequence, Type
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Type
 
 from sqlalchemy import delete, func, select
 from sqlalchemy import inspect as sa_inspect
@@ -24,6 +24,11 @@ class PostgresNotConfigured(RuntimeError):
 class PostgresRepositoryBase:
     row: Type[Any]
     document: Type[Any]
+    # Other document types this repository's writes persist, and their tables
+    # (e.g. a form repository's published versions). A replayed write
+    # (@write_op(replay=True)) hands over whatever the primary saved, so each
+    # type a replayed method returns must be listed here or in ``document``.
+    document_rows: Dict[Type[Any], Type[Any]] = {}
 
     def __init__(self, session_factory: Optional[async_sessionmaker[AsyncSession]]):
         self._sessions = session_factory
@@ -165,14 +170,24 @@ class PostgresRepositoryBase:
 
     async def replay_write(self, documents: Iterable[Any]) -> None:
         """Store what the primary persisted (``@write_op(replay=True)``)."""
-        documents = list(documents)
+        by_row: Dict[Type[Any], List[Any]] = {}
         for document in documents:
-            if not isinstance(document, self.document):
-                raise TypeError(
-                    f"{type(self).__name__} cannot store a "
-                    f"{type(document).__name__}; expected {self.document.__name__}"
-                )
-        await self.upsert_many(documents)
+            row = self._row_for(document)
+            by_row.setdefault(row, []).append(document)
+        for row, batch in by_row.items():
+            await self.upsert_many(batch, row=row)
+
+    def _row_for(self, document: Any) -> Type[Any]:
+        if isinstance(document, self.document):
+            return self.row
+        for document_type, row in self.document_rows.items():
+            if isinstance(document, document_type):
+                return row
+        expected = [self.document, *self.document_rows]
+        raise TypeError(
+            f"{type(self).__name__} cannot store a {type(document).__name__}; "
+            f"expected one of {[t.__name__ for t in expected]}"
+        )
 
     async def delete_where(self, *where: Any, row: Optional[Type[Any]] = None) -> int:
         async with self._session() as session, session.begin():

@@ -68,3 +68,6 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
+markers = [
+    "allow_mirror_failures: the test makes mirror writes fail on purpose",
+]

@@ -449,3 +449,23 @@ def mock_get_workspace_by_query():
         "common.services.http_client.HttpClient.get",
         side_effect=get_workspace_by_query,
     )
+
+
+@pytest.fixture(autouse=True)
+def no_silent_mirror_failures(request):
+    """In a mirrored mode (dual / postgres_primary_dual) a failing mirror write
+    is swallowed by design: the request still succeeds and the outbox records
+    it. In tests that silence would hide a store that can't take a write, so
+    any mirror failure fails the test. Tests that exercise failures on purpose
+    mark themselves with @pytest.mark.allow_mirror_failures."""
+    metrics = container.routing_metrics()
+    before = dict(metrics.mirror_failures)
+    yield
+    if request.node.get_closest_marker("allow_mirror_failures"):
+        return
+    new = {
+        key: count - before.get(key, 0)
+        for key, count in metrics.mirror_failures.items()
+        if count > before.get(key, 0)
+    }
+    assert not new, f"mirror writes failed (group, method): {new}"
