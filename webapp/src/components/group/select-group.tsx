@@ -14,7 +14,7 @@ import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Checkbox } from '@app/shadcn/components/ui/checkbox';
-import { selectForm, setForm } from '@app/store/forms/slice';
+import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -42,7 +42,9 @@ const SelectGroup = () => {
         });
         if (response.data) {
             const settings = response.data.settings;
-            dispatch(setForm({ ...form, settings }));
+            // settings only: a whole-form write here would put back this
+            // component's stale copy and undo the group change saved alongside
+            dispatch(setFormSettings(settings));
         } else {
             if (response.error.status === 409) {
                 toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });

@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { usePathname, useRouter } from 'next/navigation';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
@@ -8,9 +7,10 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { setForm } from '@app/store/forms/slice';
-import { useAppDispatch } from '@app/store/hooks';
+import { selectForm, setForm } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useAddFormOnGroupMutation, useDeleteGroupFormMutation } from '@app/store/workspaces/api';
+import { formGroupsAfterSave } from '@app/utils/form-groups';
 
 
 interface IDeleteFormFromGroupProps {
@@ -20,7 +20,9 @@ interface IDeleteFormFromGroupProps {
 }
 
 interface IAddFormOnGroupProps {
-    groups: Array<ResponderGroupDto>;
+    /** Unused; kept so existing callers compile. */
+    groups?: Array<ResponderGroupDto>;
+    /** The COMPLETE set of groups the form should be in (the server replaces the set). */
     groupsForUpdate: Array<ResponderGroupDto | null> | null;
     workspaceId: string;
     form: StandardFormDto;
@@ -31,8 +33,9 @@ export function useGroupForm() {
     const [addForm] = useAddFormOnGroupMutation();
     const [removeForm] = useDeleteGroupFormMutation();
     const dispatch = useAppDispatch();
-    const router = useRouter();
-    const pathname = usePathname();
+    // the form open on the page; only it may be updated in the store (the group
+    // pages work on other forms)
+    const openForm = useAppSelector(selectForm);
     const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const { t } = useTranslation();
@@ -43,7 +46,9 @@ export function useGroupForm() {
                 groupId: group?.id,
                 formId: form.formId
             }).unwrap();
-            dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group?.id) }));
+            if (openForm?.formId === form.formId) {
+                dispatch(setForm({ ...openForm, groups: (openForm.groups ?? []).filter((formGroup) => formGroup.id !== group?.id) }));
+            }
 
             toast({ description: t(toastMessage.removed).toString() });
             closeModal();
@@ -52,27 +57,19 @@ export function useGroupForm() {
         }
     };
 
-    const addFormOnGroup = async ({ groups, groupsForUpdate, workspaceId, form }: IAddFormOnGroupProps) => {
+    const addFormOnGroup = async ({ groupsForUpdate, workspaceId, form }: IAddFormOnGroupProps) => {
+        const groups = formGroupsAfterSave(groupsForUpdate ?? []);
         try {
-            let groupIds = [];
-            if (groupsForUpdate) {
-                for (let group of groupsForUpdate) {
-                    groupIds.push(group?.id);
-                }
-            }
             await addForm({
                 workspaceId: workspaceId,
-                groups: groupIds,
+                groups: groups.map((group) => group.id),
                 formId: form.formId
-            });
-            //     .then((data: any) => {
-            //     const dataArray = Array.from(data);
-            //     dispatch(setForm({ ...form, groups: [...groups, ...dataArray] }));
-            // });
-            router.push(pathname);
+            }).unwrap();
+            // show what was saved right away (the settings page reads the form from the store)
+            if (openForm?.formId === form.formId) {
+                dispatch(setForm({ ...openForm, groups }));
+            }
             toast({ description: t(toastMessage.addedOnGroup).toString() });
-            // closeModal();
-            // fullScreenModal.closeModal();
         } catch (error) {
             toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
