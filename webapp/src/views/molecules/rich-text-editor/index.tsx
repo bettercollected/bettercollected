@@ -17,6 +17,7 @@ import { FontSize } from '@app/utils/richTextEditorExtenstion/font-size';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { getGroupPipeOptions, isRepeatingGroup } from '@app/utils/repeating-groups';
 import { buildSourceFields } from '@app/views/molecules/form-builder/condition-editor-shared';
+import { HEADING_CLASSES, TEXT_BLOCK_HEADING_LEVELS } from '@app/utils/text-headings';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -155,7 +156,7 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
                     attributes: {
                         // Match the responder's question scale (24px/600) so the
                         // canvas is honest about what responders will see.
-                        class: 'outline-none text-2xl font-semibold leading-snug w-full max-w-full min-w-[300px]',
+                        class: `outline-none text-2xl font-semibold leading-snug w-full max-w-full min-w-[300px] ${HEADING_CLASSES}`,
                         style: 'word-break: break-word'
                     }
                 }}
@@ -244,6 +245,27 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
     );
 };
 
+// Heading levels for text blocks only: a question's title is its label, so it
+// stays a paragraph. Clicking the active level turns the line back into text.
+const HeadingButtons = ({ editor }: { editor: Editor }) => (
+    <div className="flex items-center gap-1 border-l border-black-300 pl-3" role="group" aria-label="Heading level">
+        {TEXT_BLOCK_HEADING_LEVELS.map((level) => (
+            <div
+                key={level}
+                role="button"
+                tabIndex={0}
+                aria-pressed={editor.isActive('heading', { level })}
+                title={`Heading ${level}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => editor.chain().focus().toggleHeading({ level }).run()}
+                className={cn('cursor-pointer rounded px-1 text-sm font-semibold text-black-700', editor.isActive('heading', { level }) && 'bg-gray-200')}
+            >
+                H{level}
+            </div>
+        ))}
+    </div>
+);
+
 const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) => {
     const editorRef = useCurrentEditor();
     // Constrain label sizing to the type scale (Design-Language.md §2) so creators
@@ -314,6 +336,7 @@ const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: S
                 <div onClick={() => editor?.chain().focus().toggleUnderline().run()} className={cn('cursor-pointer rounded', editor?.isActive('underline') && 'bg-gray-200')}>
                     <u className="px-1 text-xl">U</u>
                 </div>
+                {field.type === FieldTypes.TEXT && <HeadingButtons editor={editor} />}
                 <InsertPipeMenu editor={editor} field={field} slide={slide} />
             </div>
         </div>

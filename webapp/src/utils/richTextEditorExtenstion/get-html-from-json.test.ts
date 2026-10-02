@@ -62,3 +62,18 @@ describe('getHtmlFromJson (TipTap 3 schema)', () => {
         expect(html).toBe('<p><strong>Name &lt;iframe srcdoc=&quot;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;/iframe&gt; &amp; &lt;a href=&quot;x&quot;&gt;co&lt;/a&gt;</strong></p>');
     });
 });
+
+describe('text block headings', () => {
+    it('renders heading levels from a stored title', () => {
+        const html =
+            getHtmlFromJson({
+                type: 'doc',
+                content: [
+                    { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Section' }] },
+                    { type: 'paragraph', content: [{ type: 'text', text: 'Details below.' }] }
+                ]
+            } as any) ?? '';
+        expect(html).toContain('<h2>Section</h2>');
+        expect(html).toContain('<p>Details below.</p>');
+    });
+});

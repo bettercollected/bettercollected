@@ -12,6 +12,7 @@ import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-fr
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
+import { HEADING_CLASSES } from '@app/utils/text-headings';
 
 export default function QuestionWrapper({ field, children, errorMessage }: { field: StandardFormFieldDto; children?: React.ReactNode; errorMessage?: string }) {
     const { formResponse } = useFormResponse();
@@ -62,7 +63,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 <div className="relative flex flex-wrap items-baseline gap-x-2.5">
                     {/* Labels: weight and contrast carry the hierarchy, not size
                         (ratified 2026-07-08 against the form-redesign mocks). */}
-                    <div id={`q-title-${field.id}`} className={`${tokens.labelClass} [&_p]:inline`}>
+                    <div id={`q-title-${field.id}`} className={`${tokens.labelClass} [&_p]:inline ${HEADING_CLASSES}`}>
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
                         {isAnswerable && isRequired && (
                             <>
