@@ -11,8 +11,11 @@ touching a Postgres store fails with ``UndefinedTable``. So at startup:
    under a Postgres advisory lock held on a dedicated connection, so replicas
    starting together serialise: the first migrates, the others wait, then find
    the schema at head and continue.
-2. Compare the database's revision with the code's head(s); behind, ahead or
-   missing refuses to start with a message naming the fix.
+2. Compare the database's revision with the code's head(s); behind or missing
+   refuses to start with a message naming the fix. Ahead (a newer release
+   migrated it, then this image came back in a rollback or a reschedule) only
+   warns: migrations are expand-only, so the older code still runs on the
+   newer schema, and refusing would turn every rollback into an outage.
 
 With every group on Mongo the check is skipped entirely (no database needed).
 deploy.sh's explicit migration step keeps working unchanged: it simply leaves
@@ -21,9 +24,11 @@ nothing for step 1 to do.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from enum import Enum
@@ -54,7 +59,14 @@ from common.db.flags import DbFlags
 logger = logging.getLogger(__name__)
 
 AUTO_MIGRATE_KEY = "DB_AUTO_MIGRATE"
+LOCK_WAIT_KEY = "DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS"
+DEFAULT_LOCK_WAIT_SECONDS = 300.0
+# How long the migration's own DDL may wait for a table lock (e.g. behind a
+# long query holding it) before failing, so a stuck migration ends instead of
+# hanging every replica until its healthcheck kills it.
+MIGRATION_LOCK_TIMEOUT = "60s"
 _LOCK_NAMESPACE = "bettercollected:schema-migrate:"
+_LOCK_POLL_SECONDS = 1.0
 
 
 def auto_migrate_enabled(env: Mapping[str, str] = os.environ) -> bool:
@@ -64,6 +76,14 @@ def auto_migrate_enabled(env: Mapping[str, str] = os.environ) -> bool:
         "yes",
         "on",
     }
+
+
+def lock_wait_seconds(env: Mapping[str, str] = os.environ) -> float:
+    raw = (env.get(LOCK_WAIT_KEY) or "").strip()
+    try:
+        return float(raw) if raw else DEFAULT_LOCK_WAIT_SECONDS
+    except ValueError:
+        return DEFAULT_LOCK_WAIT_SECONDS
 
 
 def lock_key(schema: str) -> int:
@@ -162,6 +182,12 @@ class RevisionCheck:
     def ok(self) -> bool:
         return self.state is RevisionState.CURRENT
 
+    @property
+    def blocking(self) -> bool:
+        """Behind or never migrated: this code would query tables that are not
+        there. Ahead is not blocking (see the module docstring)."""
+        return self.state in (RevisionState.BEHIND, RevisionState.MISSING)
+
     def message(self) -> str:
         current = ", ".join(self.current) or "none"
         expected = ", ".join(self.expected) or "none"
@@ -189,10 +215,10 @@ class RevisionCheck:
         if self.state is RevisionState.AHEAD:
             return (
                 f"{where} is ahead: database at revision {current}, which this code "
-                f"does not know (a newer release migrated it); code expects {expected}. "
-                f"Deploy the release that matches the database, or downgrade the "
-                f"schema explicitly with alembic — migrations never run backwards "
-                f"automatically."
+                f"does not know (a newer release migrated it, e.g. before a "
+                f"rollback); code expects {expected}. Starting anyway: migrations are "
+                f"expand-only, so this release still runs on the newer schema. "
+                f"Nothing is migrated backwards automatically."
             )
         return f"{where} is at head ({expected})"
 
@@ -248,14 +274,27 @@ class AuxiliarySchema:
 
 # -- locking + migration ------------------------------------------------------------
 @asynccontextmanager
-async def schema_lock(conn: AsyncConnection, schema: str) -> AsyncIterator[None]:
+async def schema_lock(
+    conn: AsyncConnection, schema: str, wait_seconds: float = DEFAULT_LOCK_WAIT_SECONDS
+) -> AsyncIterator[None]:
     """Session-level advisory lock on a dedicated connection: survives the
-    migration's commits, released explicitly (or by the connection closing)."""
+    migration's commits, released explicitly (or by the connection closing).
+    Waits at most ``wait_seconds`` for another instance's migration, polling,
+    then gives up with :class:`TimeoutError`."""
     key = lock_key(schema)
-    got = await conn.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": key})
-    if not got:
-        logger.info("schema %r: another instance is migrating it; waiting", schema)
-        await conn.execute(text("SELECT pg_advisory_lock(:k)"), {"k": key})
+    deadline = time.monotonic() + wait_seconds
+    waiting = False
+    while not await conn.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": key}):
+        await conn.commit()
+        if not waiting:
+            logger.info("schema %r: another instance is migrating it; waiting", schema)
+            waiting = True
+        if time.monotonic() >= deadline:
+            raise TimeoutError(
+                f"schema {schema!r}: another instance held the migration lock for "
+                f"more than {wait_seconds:g}s ({LOCK_WAIT_KEY})"
+            )
+        await asyncio.sleep(_LOCK_POLL_SECONDS)
     await conn.commit()
     try:
         yield
@@ -295,14 +334,24 @@ def migration_engine(url: str) -> AsyncEngine:
     return create_async_engine(url, poolclass=NullPool)
 
 
-async def upgrade_schema(url: str, target: MigrationTarget) -> list[str]:
+async def upgrade_schema(
+    url: str, target: MigrationTarget, wait_seconds: float = DEFAULT_LOCK_WAIT_SECONDS
+) -> list[str]:
     """``alembic upgrade head`` for one schema under its advisory lock.
-    Returns the revisions applied (empty when already at head)."""
+    Returns the revisions applied (empty when already at head, or when the
+    database is ahead of this code — nothing to upgrade to)."""
     engine = migration_engine(url)
     try:
         async with engine.connect() as conn:
-            async with schema_lock(conn, target.schema):
+            async with schema_lock(conn, target.schema, wait_seconds):
                 before = await read_revisions(conn, target.schema)
+                await conn.commit()
+                _, known = target.code_revisions()
+                if set(before or ()) - known:
+                    return []
+                await conn.execute(
+                    text(f"SET lock_timeout = '{MIGRATION_LOCK_TIMEOUT}'")
+                )
                 await conn.commit()
                 await conn.run_sync(_upgrade_sync, target)
                 await conn.commit()
@@ -313,12 +362,14 @@ async def upgrade_schema(url: str, target: MigrationTarget) -> list[str]:
     return _applied(target, before, after)
 
 
-async def ensure_auxiliary(url: str, aux: AuxiliarySchema) -> bool:
+async def ensure_auxiliary(
+    url: str, aux: AuxiliarySchema, wait_seconds: float = DEFAULT_LOCK_WAIT_SECONDS
+) -> bool:
     """Apply an auxiliary schema under its advisory lock; True when applied."""
     engine = migration_engine(url)
     try:
         async with engine.connect() as conn:
-            async with schema_lock(conn, aux.name):
+            async with schema_lock(conn, aux.name, wait_seconds):
                 present = await aux.present(conn)
                 if not present:
                     # like Alembic's env: a no-op where postgres/init created it
@@ -350,9 +401,10 @@ async def ensure_schema_ready(
             raise SchemaNotReady(f"{AUTO_MIGRATE_KEY}=true but DATABASE_URL is not set")
         url = engine.url.render_as_string(hide_password=False)
         names = ([target.schema] if target else []) + [a.name for a in auxiliary]
+        wait = lock_wait_seconds(env)
         try:
             if target is not None:
-                applied = await upgrade_schema(url, target)
+                applied = await upgrade_schema(url, target, wait)
                 if applied:
                     # WARNING on purpose: a schema change must be visible in every
                     # service's logs, whatever level they are configured to show.
@@ -364,10 +416,10 @@ async def ensure_schema_ready(
                     )
                 else:
                     logger.info(
-                        "%s: schema %r already at head", AUTO_MIGRATE_KEY, target.schema
+                        "%s: schema %r: nothing to apply", AUTO_MIGRATE_KEY, target.schema
                     )
             for aux in auxiliary:
-                if await ensure_auxiliary(url, aux):
+                if await ensure_auxiliary(url, aux, wait):
                     logger.warning("%s: schema %r applied", AUTO_MIGRATE_KEY, aux.name)
                 else:
                     logger.info(
@@ -387,8 +439,10 @@ async def ensure_schema_ready(
             logger.info(
                 "schema %r at head (%s)", target.schema, ", ".join(check.expected)
             )
-        else:
+        elif check.blocking:
             problems.append(check.message())
+        else:
+            logger.warning("%s", check.message())
     needed_aux = [a for a in auxiliary if a.needed(flags)]
     if needed_aux:
         async with _require(engine).connect() as conn:

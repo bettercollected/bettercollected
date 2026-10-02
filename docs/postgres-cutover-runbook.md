@@ -32,8 +32,10 @@ fails the service at startup with the rule spelled out.
 
 **Schema check at startup.** Whenever a service's flags put any group on Postgres (`dual` and
 beyond, a Postgres read source or shadow reads), it compares its schema's Alembic revision with
-the code's head before serving and **refuses to start** if the schema is behind, ahead or was
-never migrated — the log names the schema, both revisions and the fix. The backend also
+the code's head before serving and **refuses to start** if the schema is behind or was never
+migrated — the log names the schema, both revisions and the fix. A schema *ahead* of the code (a
+newer release migrated it, then a rollback or reschedule brought the older image back) logs a
+warning and starts: migrations are expand-only, so the older code still runs on it. The backend also
 requires procrastinate's `jobs` tables when a job kind is on Postgres. With every flag at its
 Mongo default nothing is checked and no database is needed. (Before this check a service on an
 unmigrated database started "fine" and then answered every Postgres-backed request with 500
@@ -48,8 +50,13 @@ nothing there migrates — must either run the same commands as a pre-deploy ste
 service migrates its own schema in-process at startup, before serving, as its own role; replicas
 starting together serialise on a Postgres advisory lock (one per schema), the others wait and then
 find the schema at head. Applied revisions are logged (`DB_AUTO_MIGRATE: schema 'app' migrated,
-applied …`); a failed migration refuses to start. A newer schema than the image knows (a rollback
-past a migration) is refused too — redeploy the matching image or downgrade explicitly.
+applied …`); a failed migration refuses to start. A waiting replica gives up after
+`DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS` (default 300) and the migration's DDL waits at most 60s for a
+table lock, so a stuck migration fails and restarts instead of hanging. A newer schema than the
+image knows (a rollback past a migration) is left alone with a warning — nothing is migrated
+backwards automatically. Migrations run in a single transaction: one that needs non-transactional
+DDL (`CREATE INDEX CONCURRENTLY`, an `autocommit_block`) can't go through `DB_AUTO_MIGRATE` and must
+be run by hand before the release.
 
 ## R1 — release with everything still on Mongo
 

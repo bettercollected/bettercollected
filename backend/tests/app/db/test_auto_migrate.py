@@ -29,6 +29,7 @@ from backend.db.startup import MIGRATIONS
 from backend.jobs.schema import JOBS_SCHEMA
 from common.db import AUTO_MIGRATE_KEY, SchemaNotReady, ensure_schema_ready, load_flags
 from common.db.engine import normalise_url
+from common.db.schema_guard import lock_key
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("DATABASE_URL"),
@@ -187,7 +188,7 @@ async def test_concurrent_auto_migrations_serialise(app_role_url, caplog):
     messages = [r.getMessage() for r in caplog.records]
     assert any("another instance is migrating it; waiting" in m for m in messages)
     assert sum("schema 'app' migrated, applied" in m for m in messages) == 1
-    assert sum("schema 'app' already at head" in m for m in messages) == 2
+    assert sum("schema 'app': nothing to apply" in m for m in messages) == 2
 
     state = await _state(app_role_url)
     heads, _ = MIGRATIONS.code_revisions()
@@ -208,3 +209,37 @@ async def test_failed_migration_refuses_to_start(app_role_url):
     assert f"{AUTO_MIGRATE_KEY}: migrating schema(s) app, jobs failed" in str(
         raised.value
     )
+
+
+async def test_a_database_ahead_of_the_code_still_starts(app_role_url, caplog):
+    """A rollback past a migration: the older image starts (with a warning) and
+    auto-migrate leaves the newer schema alone instead of failing on it."""
+    await _guard(app_role_url, env=AUTO)
+    await _execute(app_role_url, "UPDATE app.alembic_version SET version_num = 'from_the_future'")
+
+    caplog.set_level(logging.WARNING, logger="common.db.schema_guard")
+    await _guard(app_role_url, env={})
+    await _guard(app_role_url, env=AUTO)
+
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert sum("schema 'app' is ahead" in w for w in warnings) == 2
+    assert (await _state(app_role_url))["revision"] == ["from_the_future"]
+
+
+async def test_waiting_for_the_migration_lock_gives_up(app_role_url):
+    """Another instance stuck holding the lock: give up after the configured
+    wait instead of hanging until the healthcheck kills the replica."""
+    holder = create_async_engine(app_role_url, poolclass=NullPool)
+    try:
+        async with holder.connect() as conn:
+            await conn.execute(
+                text("SELECT pg_advisory_lock(:k)"), {"k": lock_key(SCHEMA)}
+            )
+            await conn.commit()
+            with pytest.raises(SchemaNotReady) as raised:
+                await _guard(
+                    app_role_url, env={**AUTO, "DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS": "1"}
+                )
+    finally:
+        await holder.dispose()
+    assert "held the migration lock for more than 1s" in str(raised.value)

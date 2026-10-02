@@ -18,6 +18,7 @@ from common.db.schema_guard import (
     compare_revisions,
     ensure_schema_ready,
     lock_key,
+    lock_wait_seconds,
 )
 
 KNOWN = {"0001", "0002", "0003"}
@@ -148,6 +149,45 @@ async def test_postgres_flags_refuse_a_schema_behind(target, env):
             revision_source=FakeRevisions(("0001",)),
         )
     assert "'app' is behind" in str(raised.value)
+
+
+async def test_postgres_flags_start_on_a_schema_ahead_with_a_warning(target, caplog):
+    """A rollback (or reschedule) onto an older image must not take the service
+    down: migrations are expand-only, so the older code runs on the newer schema."""
+    caplog.set_level("WARNING", logger="common.db.schema_guard")
+    await ensure_schema_ready(
+        load_flags({"DB_WRITE_MODE": "dual"}),
+        None,
+        target,
+        env={},
+        revision_source=FakeRevisions(("0009",)),
+    )
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert any("'app' is ahead" in w and "Starting anyway" in w for w in warnings)
+
+
+def test_only_behind_and_missing_block():
+    blocking = {
+        state: compare_revisions("app", current, ["0002"], {"0001", "0002"}).blocking
+        for state, current in [
+            ("current", ["0002"]),
+            ("behind", ["0001"]),
+            ("ahead", ["0009"]),
+            ("missing", None),
+        ]
+    }
+    assert blocking == {
+        "current": False,
+        "behind": True,
+        "ahead": False,
+        "missing": True,
+    }
+
+
+def test_lock_wait_is_configurable():
+    assert lock_wait_seconds({}) == 300
+    assert lock_wait_seconds({"DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS": "2.5"}) == 2.5
+    assert lock_wait_seconds({"DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS": "soon"}) == 300
 
 
 async def test_postgres_flags_accept_head(target):

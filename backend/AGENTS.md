@@ -73,8 +73,12 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
   unless its schema is at the code's Alembic head (and, for the backend, procrastinate's `jobs` tables exist when a job
   kind is on Postgres). All-Mongo flags skip it. `deploy.sh` migrates explicitly; `DB_AUTO_MIGRATE=true` (default
   off) makes each service run `alembic upgrade head` in-process at startup instead, serialised across replicas by a
-  per-schema Postgres advisory lock. A new revision therefore has to ship with the code that needs it — an image is
-  refused by a database migrated *past* it as well. Tests: `common/tests/test_schema_guard.py`,
+  per-schema Postgres advisory lock (a waiting replica gives up after `DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS`, default
+  300; the migration's own DDL waits at most 60s for a table lock). A new revision has to ship with the code that
+  needs it. A database migrated *past* the image (a rollback) only logs a warning and starts, so **migrations must
+  be expand-only**: never drop or rename what the previous release still uses in the same release that stops using
+  it. They also run in one transaction, so no `CREATE INDEX CONCURRENTLY` / `autocommit_block` — ship that as a
+  manual step. Tests: `common/tests/test_schema_guard.py`,
   `tests/app/db/test_auto_migrate.py` (real throw-away database initialised by `postgres/init`).
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
