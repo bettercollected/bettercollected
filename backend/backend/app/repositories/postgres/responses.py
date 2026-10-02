@@ -82,6 +82,8 @@ def _filter_terms(doc, filter_query) -> list:
 class PostgresFormResponseRepository(PostgresRepositoryBase):
     row = FormResponseRow
     document = FormResponseDocument
+    # add_deletion_request
+    document_rows = {FormResponseDeletionRequest: ResponseDeletionRequestRow}
 
     def __init__(self, session_factory, form_repo, workspace_form_repo):
         super().__init__(session_factory)
@@ -637,6 +639,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
     row = WorkspaceResponderRow
     document = WorkspaceResponderDocument
+    document_rows = {WorkspaceTags: WorkspaceTagRow}  # create_workspace_tag
 
     async def create_workspace_tag(self, workspace_id: PydanticObjectId, title: str):
         workspace_tag = await self.one_of(

@@ -99,6 +99,7 @@ def _fold(target: dict, source: dict, mapping: Dict[str, str]) -> None:
 class PostgresFormRepository(PostgresRepositoryBase):
     row = FormRow
     document = FormDocument
+    document_rows = {FormVersionsDocument: FormVersionRow}  # publish_form
 
     def __init__(self, session_factory, responder_groups, form_responses):
         super().__init__(session_factory)
