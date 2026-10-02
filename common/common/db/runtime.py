@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any, Callable, Optional, Type
+import os
+from typing import Any, Callable, Mapping, Optional, Sequence, Type
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
@@ -19,6 +20,7 @@ from common.db.engine import DatabaseSettings, make_engine, make_sessionmaker, p
 from common.db.flags import DbFlags, ReadSource
 from common.db.outbox import MirrorWriteFailureDocument
 from common.db.routing import MirrorFailure
+from common.db.schema_guard import AuxiliarySchema, MigrationTarget, ensure_schema_ready
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +67,19 @@ class LazyRepository:
 
 
 async def check_postgres_at_startup(
-    flags: DbFlags, engine: Optional[AsyncEngine]
+    flags: DbFlags,
+    engine: Optional[AsyncEngine],
+    target: Optional[MigrationTarget] = None,
+    auxiliary: Sequence[AuxiliarySchema] = (),
+    *,
+    env: Mapping[str, str] = os.environ,
 ) -> None:
     """Reachability is checked only when the flags involve Postgres at all, and
     is fatal only when a group *serves* from it: a mirror failing must never
-    take the application down."""
+    take the application down. Once reachable, the service's schema
+    (``target``, plus ``auxiliary`` ones) is migrated when ``DB_AUTO_MIGRATE``
+    is on and must then be at the code's head — a reachable database with the
+    wrong schema refuses to start (:mod:`common.db.schema_guard`)."""
     if not flags.requires_postgres():
         return
     if engine is None:
@@ -88,6 +98,9 @@ async def check_postgres_at_startup(
             "Postgres unreachable at startup; it is only a mirror, continuing: %s",
             type(exc).__name__,
         )
+        return
+    if target is not None or auxiliary:
+        await ensure_schema_ready(flags, engine, target, auxiliary, env=env)
 
 
 async def dispose_engine(engine: Optional[AsyncEngine]) -> None:

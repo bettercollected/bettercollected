@@ -162,8 +162,10 @@ class DbFlags:
                 return True
         return False
 
-    def requires_postgres(self) -> bool:
-        """Whether the process needs a working DATABASE_URL at all."""
+    def uses_postgres_tables(self) -> bool:
+        """Whether any repository group reads from or writes to Postgres (as
+        primary, mirror or shadow) — i.e. the service's own schema must be at
+        its migration head. Jobs on Postgres touch only the ``jobs`` schema."""
         if (
             self.default_write is not WriteMode.MONGO
             or self.default_read is ReadSource.POSTGRES
@@ -173,12 +175,15 @@ class DbFlags:
             return True
         if any(r is ReadSource.POSTGRES for r in self.read_overrides.values()):
             return True
-        if (
-            self.jobs_default is JobsBackend.POSTGRES
-            or JobsBackend.POSTGRES in self.jobs_overrides.values()
-        ):
-            return True
         return self.shadow_read_sample > 0
+
+    def requires_postgres(self) -> bool:
+        """Whether the process needs a working DATABASE_URL at all."""
+        return (
+            self.uses_postgres_tables()
+            or self.jobs_default is JobsBackend.POSTGRES
+            or JobsBackend.POSTGRES in self.jobs_overrides.values()
+        )
 
     def validate(self, mongo_joins: Mapping[str, Iterable[str]] = {}) -> None:
         """``mongo_joins``: group -> groups whose collections its *Mongo*

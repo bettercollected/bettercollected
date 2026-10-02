@@ -80,7 +80,16 @@ def _run_sync(connection: Connection, context, metadata: MetaData, schema: str) 
 
 
 def run_migrations(context, metadata: MetaData, schema: str) -> None:
-    """Entry point for ``env.py``: offline SQL emission or online async execution."""
+    """Entry point for ``env.py``: offline SQL emission or online async execution.
+
+    A caller already holding a (sync) connection — the in-process upgrade at
+    startup (:mod:`common.db.schema_guard`), which runs inside the service's
+    event loop and under an advisory lock — passes it as
+    ``config.attributes["connection"]``; the caller then owns the commit."""
+    connection = context.config.attributes.get("connection")
+    if connection is not None:
+        _run_sync(connection, context, metadata, schema)
+        return
     url = resolve_url(context.config)
     if context.is_offline_mode():
         context.configure(

@@ -54,6 +54,14 @@ from common.db.runtime import (
     postgres_repository,
     redact,
 )
+from common.db.schema_guard import (
+    AUTO_MIGRATE_KEY,
+    AuxiliarySchema,
+    MigrationTarget,
+    SchemaNotReady,
+    auto_migrate_enabled,
+    ensure_schema_ready,
+)
 from common.db.spine import SpineColumns
 from common.db.pg_repository import PostgresNotConfigured, PostgresRepositoryBase
 from common.db.outbox import (
@@ -81,6 +89,12 @@ __all__ = [
     "ReadSource",
     "WriteMode",
     "load_flags",
+    "AUTO_MIGRATE_KEY",
+    "AuxiliarySchema",
+    "MigrationTarget",
+    "SchemaNotReady",
+    "auto_migrate_enabled",
+    "ensure_schema_ready",
     "MIRROR_OPS",
     "MirrorWriteFailureDocument",
     "MirrorWriteFailureMixin",
