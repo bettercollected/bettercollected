@@ -59,11 +59,13 @@ function dockerup() {
     fi
   done
 
-  # Schema migrations run once, here, before the services roll — never from
-  # application startup, where several replicas would race each other
+  # Schema migrations run once, here, before the services roll
   # (plans/postgres-consolidation.md). Each service owns one schema and its own
   # Alembic history; `run --rm --no-deps` executes inside the freshly pulled
-  # image with the same DATABASE_URL the service will use.
+  # image with the same DATABASE_URL the service will use. Services check the
+  # revision at startup and refuse to serve on a stale schema; with
+  # DB_AUTO_MIGRATE=true they would migrate themselves (advisory-locked), which
+  # finds nothing left to do after this step.
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" pull -q backend auth $([ "$googleform_flag" = true ] && echo integrations-googleform)
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" up -d --wait app-postgres
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head
