@@ -413,6 +413,14 @@ class FormRepository:
             .first_or_none()
         )
 
+    async def get_versions_of_form(self, form_id: PydanticObjectId):
+        """Every published version of a form, oldest first."""
+        return (
+            await FormVersionsDocument.find({"form_id": str(form_id)})
+            .sort(("version", SortDirection.ASCENDING))
+            .to_list()
+        )
+
     async def get_form_by_by_version(
         self, form_id: PydanticObjectId, version: FormVersion | int
     ):

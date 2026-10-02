@@ -127,6 +127,13 @@ export interface StandardFormDto {
         purpose?: string;
         /** Plain-words retention, e.g. "kept for 90 days". */
         retentionText?: string;
+        // "Allow AI insights on responses" (#716): while on, respondents see
+        // a notice naming the provider; only later responses are analysed.
+        aiInsightsEnabled?: boolean | null;
+        aiInsightsProvider?: string | null;
+        aiInsightsProviderName?: string | null;
+        aiInsightsEnabledBy?: string | null;
+        aiInsightsEnabledAt?: string | null;
         responseExpiration?: string;
         disableBranding: boolean;
         hidden: boolean;

@@ -101,6 +101,13 @@ export const formsApi = createApi({
                 method: 'GET'
             })
         }),
+        updateAIInsightsSettings: builder.mutation<any, { workspaceId: string; formId: string; enabled: boolean }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/insights/settings`,
+                method: 'PUT',
+                body: { enabled: request.enabled }
+            })
+        }),
         generateAIInsights: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/insights`,
@@ -111,4 +118,4 @@ export const formsApi = createApi({
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation, useUpdateAIInsightsSettingsMutation } = formsApi;

@@ -3,7 +3,7 @@ from http import HTTPStatus
 from typing import Optional
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, get, patch, post, delete
+from classy_fastapi import Routable, get, patch, post, put, delete
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
@@ -20,6 +20,8 @@ from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
 from backend.app.services.ai.insights import (
     FormAIInsightsRequest,
     FormAIInsightsResponse,
+    FormAIInsightsSettingsDto,
+    FormAIInsightsSettingsRequest,
 )
 from backend.app.services.ai.review import (
     ApplyReviewFixRequest,
@@ -208,6 +210,21 @@ class WorkspaceFormsRouter(Routable):
         """The explicit opt-in action (plan principle #2): the ONLY moment
         the AI reads this form's responses. Result is cached."""
         return await container.form_ai_insights_service().generate(
+            workspace_id=workspace_id, form_id=form_id, request=request, user=user
+        )
+
+    @put("/{form_id}/ai/insights/settings")
+    async def update_ai_insights_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        request: FormAIInsightsSettingsRequest,
+        user=Depends(get_logged_user),
+    ) -> FormAIInsightsSettingsDto:
+        """'Allow AI insights on responses' for this form (admins only).
+        While on, respondents see a notice naming the AI provider, and only
+        responses submitted afterwards are analysed."""
+        return await container.form_ai_insights_service().update_settings(
             workspace_id=workspace_id, form_id=form_id, request=request, user=user
         )
 

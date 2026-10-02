@@ -161,8 +161,8 @@ class TestEnforcement:
         test_user_cookies: dict[str, str],
         fake: FakeProvider,
     ):
-        await _seed_form_and_responses(workspace.id, workspace_form.form_id)
         await enable_ai(workspace)
+        await _seed_form_and_responses(workspace.id, workspace_form.form_id)
         fake.replies = [
             json.dumps({"reply": "Done.", "ops": []}),
             json.dumps({"summary": "Looks fine.", "findings": []}),

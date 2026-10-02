@@ -516,14 +516,25 @@ class FormResponseService:
             form = await self._form_repo.get_form_document_by_id(str(form_id))
         return internal_fields(form) if form else []
 
-    async def all_internal_field_ids(self, form_id: str) -> Set[str]:
+    async def all_internal_field_ids(
+        self, form_id: str, every_version: bool = False
+    ) -> Set[str]:
         """Ids that are internal in the draft or the latest published version
         — used to refuse respondent input for them whichever version the
-        respondent was served."""
+        respondent was served.
+
+        ``every_version`` adds every older published version too, for readers
+        of stored answers (AI insights): an answer to a field that was
+        internal when it was given stays staff-only even if the field is
+        public now."""
         ids: Set[str] = set()
-        latest = await self._form_repo.get_latest_version_of_form(form_id)
+        versions = (
+            await self._form_repo.get_versions_of_form(form_id)
+            if every_version
+            else [await self._form_repo.get_latest_version_of_form(form_id)]
+        )
         draft = await self._form_repo.get_form_document_by_id(str(form_id))
-        for form in (latest, draft):
+        for form in (*versions, draft):
             if form is not None:
                 ids |= internal_field_ids(form)
         return ids

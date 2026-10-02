@@ -112,6 +112,11 @@ def strip_internal_fields(form: Any) -> Any:
     are kept as they are."""
     if form is None:
         return form
+    # who allowed AI insights is staff information: respondents only need to
+    # know that (and to which provider) responses may be analysed
+    settings = _get(form, "settings")
+    if settings is not None and _get(settings, "ai_insights_enabled_by") is not None:
+        _set(settings, "ai_insights_enabled_by", None)
     fields = _get(form, "fields")
     if not fields:
         return form

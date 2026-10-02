@@ -412,6 +412,15 @@ class PostgresFormRepository(PostgresRepositoryBase):
             order_by=(FormVersionRow.version.desc(), FormVersionRow.id),
         )
 
+    async def get_versions_of_form(self, form_id: PydanticObjectId):
+        """Every published version of a form, oldest first."""
+        return await self.many(
+            FormVersionRow.form_id == _oid(form_id),
+            order_by=(FormVersionRow.version, FormVersionRow.id),
+            row=FormVersionRow,
+            document=FormVersionsDocument,
+        )
+
     async def get_form_by_by_version(
         self, form_id: PydanticObjectId, version: FormVersion | int
     ):
