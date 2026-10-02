@@ -323,7 +323,8 @@ export function remapTextTokens(text: string, idMap: Record<string, string>): st
 /**
  * Give a repeating group's questions (and their choices) fresh ids, in place,
  * remapping what refers to them inside the group: sibling visibility rules,
- * sibling pipes in titles/descriptions and the item title. Returns old → new ids.
+ * sibling date rules, sibling pipes in titles/descriptions and the item title.
+ * Returns old → new ids.
  */
 export function remapGroupChildIds(group: StandardFormFieldDto, newId: () => string = v4): Record<string, string> {
     const idMap: Record<string, string> = {};
@@ -341,6 +342,9 @@ export function remapGroupChildIds(group: StandardFormFieldDto, newId: () => str
     children.forEach((child) => {
         child.properties?.logic?.conditions?.forEach((condition) => {
             if (idMap[condition.fieldId]) condition.fieldId = idMap[condition.fieldId];
+        });
+        child.properties?.dateRules?.forEach((rule) => {
+            if (rule.fieldId && idMap[rule.fieldId]) rule.fieldId = idMap[rule.fieldId];
         });
         if (child.title && typeof child.title !== 'string') remapNode(child.title);
         else if (typeof child.title === 'string') child.title = remapTextTokens(child.title, idMap);

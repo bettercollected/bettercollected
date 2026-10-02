@@ -15,7 +15,9 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { getFlowSessionId } from '@app/utils/flow-session';
+import { getInputFieldsById } from '@app/utils/answer-piping';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
+import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
@@ -190,6 +192,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             // (keyed by the item-scoped id the question renders under).
             ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {})
         };
+        // Date rules (e.g. "after Start date"), on top of a missing answer.
+        Object.entries(validateDateRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, getInputFieldsById(standardForm?.fields))).forEach(([id, problems]) => {
+            invalidations[id] = [...(invalidations[id] ?? []), ...problems] as any;
+        });
         setInvalidFields(invalidations);
         if (Object.keys(invalidations).length !== 0) {
             // Every key is the id of the element to bring into view; questions

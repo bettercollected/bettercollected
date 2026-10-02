@@ -212,3 +212,39 @@ describe('flow-view mutations', () => {
         expect(result.current.formFields[1].properties?.position).toBeUndefined();
     });
 });
+
+describe('date rules', () => {
+    const datePage = (): StandardFormFieldDto[] => [
+        {
+            id: 'slide-1',
+            index: 0,
+            type: FieldTypes.SLIDE,
+            properties: {
+                fields: [
+                    { id: 'start', index: 0, type: FieldTypes.DATE },
+                    { id: 'end', index: 1, type: FieldTypes.DATE, properties: { dateRules: [{ comparison: 'after', target: 'field', fieldId: 'start' }] } }
+                ]
+            }
+        }
+    ];
+
+    it('duplicateSlide points copied rules at the copied dates', () => {
+        const { result } = setup();
+        act(() => result.current.initFormFields(datePage()));
+        act(() => {
+            result.current.duplicateSlide(0);
+        });
+        const [copiedStart, copiedEnd] = result.current.formFields[1].properties!.fields!;
+        expect(copiedStart.id).not.toBe('start');
+        expect(copiedEnd.properties!.dateRules![0].fieldId).toBe(copiedStart.id);
+        // The original keeps its own reference.
+        expect(result.current.formFields[0].properties!.fields![1].properties!.dateRules![0].fieldId).toBe('start');
+    });
+
+    it('deleting the referenced date drops the rule', () => {
+        const { result } = setup();
+        act(() => result.current.initFormFields(datePage()));
+        act(() => result.current.deleteField(0, 0));
+        expect(result.current.formFields[0].properties!.fields![0].properties!.dateRules).toBeUndefined();
+    });
+});

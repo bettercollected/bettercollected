@@ -8,6 +8,8 @@ import { FieldConditionalLogic, LogicalOperator } from '@app/models/types/form-b
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { getGroupChildren, getRepeatSettings, newGroupChild, REPEAT_CHILD_FIELD_TYPES } from '@app/utils/repeating-groups';
 import { buildSourceFields, ConditionRow, fieldText, isConditionSource, newConditionFor, SourceField } from '@app/views/molecules/form-builder/condition-editor-shared';
+import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
+import { getDateRuleSources } from '@app/utils/date-rules';
 
 const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type === FieldTypes.TEXT ? 'Statement' : (formFieldsList.find((f) => f.type === type)?.name ?? type.replaceAll('_', ' ')) }));
 const CHOICE_TYPES: string[] = [FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN];
@@ -173,6 +175,14 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                     + Add option
                                 </button>
                             </div>
+                        )}
+                        {child.type === FieldTypes.DATE && (
+                            <DateFieldSettings
+                                field={child}
+                                sources={getDateRuleSources(formFields || [], child.id)}
+                                onChange={(patch) => patchProps(child, patch)}
+                                sourceHint={`Rules can compare with an earlier date question of the same ${itemLabel.toLowerCase()}.`}
+                            />
                         )}
                         {logic && (
                             <div className="flex flex-col gap-1.5">
