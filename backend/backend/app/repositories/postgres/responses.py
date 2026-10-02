@@ -9,6 +9,7 @@ form ids those repositories know, because the Mongo ``$unwind`` drops
 responses whose form is gone.
 """
 
+import datetime as dt
 import json
 import re
 from http import HTTPStatus
@@ -516,6 +517,11 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                 )
         response_document.form_id = str(form_id)
         response_document.provider = "self"
+        # submitted now, whatever the client sent: the time must not be the
+        # respondent's to choose (newest-first order, "submitted since")
+        now = dt.datetime.now(dt.timezone.utc)
+        response_document.created_at = now
+        response_document.updated_at = now
         return await self.upsert(response_document)
 
     async def patch_form_response(
@@ -561,6 +567,8 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             form_id=form_id,
             data=json.dumps(answers),
         )
+        # an edit keeps the submission time and records when it changed
+        response_document.updated_at = dt.datetime.now(dt.timezone.utc)
         return await self.upsert(response_document)
 
     async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
