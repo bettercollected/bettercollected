@@ -1,5 +1,6 @@
 import datetime as dt
 import enum
+import re
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
@@ -440,6 +441,59 @@ class RepeatSettings(BaseModel):
         return "columns" if self.effective_max <= REPEAT_COLUMNS_EXPORT_MAX else "rows"
 
 
+# At most this many date rules per date question.
+DATE_RULES_MAX = 5
+_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+class DateRule(BaseModel):
+    """One constraint on the answer of a ``date`` question, stored at
+    ``properties.date_rules``: the chosen date must be ``comparison``
+    (before / after / on or before / on or after) a fixed ``date``
+    (``YYYY-MM-DD``), ``today``, or the answer of another date question
+    (``field_id``). Dates are compared as calendar dates, never as instants.
+
+    A rule on another question applies only when that question is answered
+    and not hidden by logic. Inside a repeating group a rule may only use a
+    sibling of the same group (it then means "this item's answer"); outside
+    a group it may not use a group's questions. Cross-question checks need
+    the whole form: see :func:`date_rule_problems`. The webapp's twin is
+    ``webapp/src/utils/date-rules.ts``."""
+
+    comparison: Literal["before", "after", "on_or_before", "on_or_after"]
+    target: Literal["date", "today", "field"]
+    date: Optional[str] = None
+    field_id: Optional[str] = None
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    @model_validator(mode="after")
+    def _check_target(self):
+        if self.target == "date":
+            if not is_iso_date(self.date):
+                raise ValueError("A date rule needs a date written as YYYY-MM-DD.")
+            self.field_id = None
+        elif self.target == "field":
+            if not isinstance(self.field_id, str) or not self.field_id.strip():
+                raise ValueError("A date rule on another question needs its id.")
+            self.date = None
+        else:
+            self.date = None
+            self.field_id = None
+        return self
+
+
+def is_iso_date(value: Any) -> bool:
+    """Is ``value`` a calendar date written exactly as ``YYYY-MM-DD``?"""
+    if not isinstance(value, str) or not _ISO_DATE.fullmatch(value):
+        return False
+    try:
+        dt.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
 class StandardFieldProperty(BaseModel):
     hidden: Optional[bool] = None
     logic: Optional[FieldLogic] = None
@@ -473,6 +527,12 @@ class StandardFieldProperty(BaseModel):
     col_span: Optional[int] = Field(None, ge=1, le=12)
     # Present only on a repeating ``group`` field (see RepeatSettings).
     repeat: Optional[RepeatSettings] = None
+    # Short label shown with the control itself (e.g. "Start date" above a
+    # date picker), distinct from the question title. Date questions only
+    # for now.
+    label: Optional[str] = Field(None, max_length=120)
+    # Constraints on a date question's answer (see DateRule).
+    date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -517,6 +577,7 @@ class StandardFormField(BaseModel):
     @model_validator(mode="after")
     def _check_repeating_group(self):
         check_repeating_group_structure(self)
+        check_field_date_rules(self)
         return self
 
 
@@ -556,6 +617,213 @@ def check_repeating_group_structure(field: Any) -> None:
         if child_id and child_id in seen:
             raise ValueError("Questions inside a repeating group need unique ids.")
         seen.add(child_id)
+
+
+def check_field_date_rules(field: Any) -> None:
+    """Checks of a field's own date rules (the cross-question ones need the
+    whole form, see :func:`date_rule_problems`): only date questions have
+    rules, and a rule never compares a question with itself."""
+    properties = getattr(field, "properties", None)
+    rules = getattr(properties, "date_rules", None) if properties else None
+    if not rules:
+        return
+    if _type_value(getattr(field, "type", None)) != StandardFormFieldType.DATE.value:
+        raise ValueError("Only date questions can have date rules.")
+    field_id = getattr(field, "id", None)
+    for rule in rules:
+        if field_id and getattr(rule, "field_id", None) == field_id:
+            raise ValueError("A date rule cannot compare a question with itself.")
+
+
+def _question_title(field: Any) -> str:
+    title = getattr(field, "title", None)
+    if isinstance(title, str) and title.strip():
+        return title.strip()
+    return getattr(field, "id", None) or "a question"
+
+
+def iter_questions_with_scope(fields: Any):
+    """Yield ``(question, group)`` for every question of a form: page
+    questions (``group`` None) and the questions of repeating groups (with
+    their group). Pages themselves are not questions."""
+    for top in fields or []:
+        if _type_value(getattr(top, "type", None)) == StandardFormFieldType.SLIDE.value:
+            properties = getattr(top, "properties", None)
+            questions = (
+                getattr(properties, "fields", None) if properties else None
+            ) or []
+        else:
+            questions = [top]
+        for question in questions:
+            yield question, None
+            properties = getattr(question, "properties", None)
+            if (
+                properties is not None
+                and getattr(properties, "repeat", None) is not None
+            ):
+                for child in getattr(properties, "fields", None) or []:
+                    yield child, question
+
+
+def date_rule_problems(fields: Any) -> List[str]:
+    """Readable problems with the date rules of a form's questions: a rule
+    must use an existing, respondent-facing date question of the same scope
+    (the page level, or the same repeating group), never itself, and rules
+    must not depend on each other in a circle."""
+    questions = list(iter_questions_with_scope(fields))
+    scopes: Dict[str, Any] = {}
+    for question, group in questions:
+        question_id = getattr(question, "id", None)
+        if question_id:
+            scopes[str(question_id)] = (question, group)
+    problems: List[str] = []
+    edges: Dict[str, List[str]] = {}
+    for question, group in questions:
+        properties = getattr(question, "properties", None)
+        rules = (getattr(properties, "date_rules", None) if properties else None) or []
+        if not rules:
+            continue
+        title = _question_title(question)
+        if (
+            _type_value(getattr(question, "type", None))
+            != StandardFormFieldType.DATE.value
+        ):
+            problems.append(
+                f"'{title}' is not a date question, so it cannot have date rules."
+            )
+            continue
+        for rule in rules:
+            if getattr(rule, "target", None) != "field":
+                continue
+            ref_id = str(getattr(rule, "field_id", None) or "")
+            if ref_id == str(getattr(question, "id", None)):
+                problems.append(
+                    f"A date rule of '{title}' cannot compare it with itself."
+                )
+                continue
+            entry = scopes.get(ref_id)
+            if entry is None:
+                problems.append(
+                    f"A date rule of '{title}' uses a question that does not exist (any more)."
+                )
+                continue
+            ref, ref_group = entry
+            ref_title = _question_title(ref)
+            if (
+                _type_value(getattr(ref, "type", None))
+                != StandardFormFieldType.DATE.value
+            ):
+                problems.append(
+                    f"A date rule of '{title}' uses '{ref_title}', which is not a date question."
+                )
+                continue
+            if getattr(ref, "internal", None):
+                problems.append(
+                    f"A date rule of '{title}' uses the internal field '{ref_title}' — "
+                    "respondents never answer internal fields."
+                )
+                continue
+            group_id = getattr(group, "id", None) if group is not None else None
+            ref_group_id = (
+                getattr(ref_group, "id", None) if ref_group is not None else None
+            )
+            if group_id != ref_group_id:
+                problems.append(
+                    f"A date rule of '{title}' uses '{ref_title}' from "
+                    + ("another part of the form" if group_id else "a repeating group")
+                    + ": inside a repeating group, rules can only use dates of the same "
+                    "group, and questions outside a group cannot use a group's dates."
+                )
+                continue
+            edges.setdefault(str(getattr(question, "id", None)), []).append(ref_id)
+    cycle = _find_cycle(edges)
+    if cycle:
+        names = [_question_title(scopes[i][0]) for i in cycle if i in scopes]
+        problems.append(
+            "Date rules cannot depend on each other in a circle ("
+            + " → ".join(f"'{n}'" for n in names + names[:1])
+            + ")."
+        )
+    return problems
+
+
+def _usable_date_rule_source(question: Any, group: Any, entry: Any) -> bool:
+    if entry is None:
+        return False
+    ref, ref_group = entry
+    if ref is question:
+        return False
+    if _type_value(getattr(ref, "type", None)) != StandardFormFieldType.DATE.value:
+        return False
+    if getattr(ref, "internal", None):
+        return False
+    group_id = getattr(group, "id", None) if group is not None else None
+    ref_group_id = getattr(ref_group, "id", None) if ref_group is not None else None
+    return group_id == ref_group_id
+
+
+def prune_date_rules(fields: Any) -> int:
+    """Drop date rules a structural edit left dangling (their question was
+    removed, moved in or out of a repeating group, made internal or is no
+    longer a date) and the rules of questions that are no longer dates, in
+    place. Returns how many rules were dropped. Builder twin:
+    ``pruneOrphanedDateRules`` (webapp)."""
+    questions = list(iter_questions_with_scope(fields))
+    scopes = {
+        str(getattr(q, "id", None)): (q, g)
+        for q, g in questions
+        if getattr(q, "id", None)
+    }
+    dropped = 0
+    for question, group in questions:
+        properties = getattr(question, "properties", None)
+        rules = (getattr(properties, "date_rules", None) if properties else None) or []
+        if not rules:
+            continue
+        if (
+            _type_value(getattr(question, "type", None))
+            != StandardFormFieldType.DATE.value
+        ):
+            kept = []
+        else:
+            kept = [
+                rule
+                for rule in rules
+                if getattr(rule, "target", None) != "field"
+                or _usable_date_rule_source(
+                    question, group, scopes.get(str(getattr(rule, "field_id", None)))
+                )
+            ]
+        dropped += len(rules) - len(kept)
+        properties.date_rules = kept or None
+    return dropped
+
+
+def _find_cycle(edges: Dict[str, List[str]]) -> Optional[List[str]]:
+    """First cycle in a small directed graph, as the list of its nodes."""
+    state: Dict[str, int] = {}
+    stack: List[str] = []
+
+    def visit(node: str) -> Optional[List[str]]:
+        state[node] = 1
+        stack.append(node)
+        for target in edges.get(node, []):
+            if state.get(target) == 1:
+                return stack[stack.index(target) :]
+            if state.get(target) is None:
+                found = visit(target)
+                if found:
+                    return found
+        stack.pop()
+        state[node] = 2
+        return None
+
+    for node in list(edges):
+        if state.get(node) is None:
+            found = visit(node)
+            if found:
+                return found
+    return None
 
 
 StandardFieldProperty.model_rebuild()
