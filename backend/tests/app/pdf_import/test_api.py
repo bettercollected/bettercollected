@@ -400,16 +400,24 @@ class CountingProvider:
 
 
 async def _import_with(client, workspace, cookies, no_real_ai_provider, **form):
+    """Import with the real workspace opt-in check (provider_for_workspace) and
+    only the raw provider lookup behind it replaced by a counting fake."""
+    from tests.app.ai_helpers import use_fake_provider
+
     provider = CountingProvider()
-    no_real_ai_provider._provider_resolver = lambda *_: provider
-    response = await client.post(
-        url(workspace),
-        cookies=cookies,
-        files={"file": ("form.pdf", documents.form_pdf(), "application/pdf")},
-        data=form,
+    no_real_ai_provider._provider_resolver = (
+        container.openai_service().provider_for_workspace
     )
-    assert response.status_code == 202, response.text
-    done = await finished(client, workspace, cookies, response.json()["id"])
+    with pytest.MonkeyPatch.context() as patch:
+        use_fake_provider(patch, provider)
+        response = await client.post(
+            url(workspace),
+            cookies=cookies,
+            files={"file": ("form.pdf", documents.form_pdf(), "application/pdf")},
+            data=form,
+        )
+        assert response.status_code == 202, response.text
+        done = await finished(client, workspace, cookies, response.json()["id"])
     assert done["status"] == ImportStatus.COMPLETED, done
     return done, provider
 

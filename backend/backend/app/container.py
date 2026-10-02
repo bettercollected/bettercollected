@@ -572,13 +572,14 @@ class AppContainer(containers.DeclarativeContainer):
         repo=form_import_repo,
         store=pdf_import_store,
         settings=settings.pdf_import,
-        # provider id -> AI provider, looked up per run (openai_service is
-        # defined further down this container); the workspace opt-in is
-        # checked by the pipeline through ai_consent
+        # workspace id -> the consented AI provider, through the same opt-in
+        # check as every other AI path (openai_service is defined further
+        # down this container, so it is looked up per run)
         provider_resolver=providers.Object(
-            lambda provider: container.openai_service()._get_provider(provider)
+            lambda workspace_id: container.openai_service().provider_for_workspace(
+                workspace_id
+            )
         ),
-        ai_consent=providers.Object(lambda: container.ai_consent_service()),
         form_repo=form_repo,
         workspace_form_service=workspace_form_service,
     )

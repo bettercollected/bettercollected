@@ -91,7 +91,6 @@ class ImportPipeline:
         provider_resolver=None,
         form_repo=None,
         workspace_form_service=None,
-        ai_consent=None,
     ):
         self._repo = repo
         # the draft form the import fills (compile stage)
@@ -100,10 +99,10 @@ class ImportPipeline:
         self._workspace_forms = workspace_form_service
         self._store = store
         self._settings = settings
-        # provider id -> the AI provider for imports (resolved per run)
+        # async workspace id -> the AI provider the workspace consented to;
+        # raises when it has not opted in (OpenAIService.provider_for_workspace,
+        # the one way to get a provider, #715). Resolved per run.
         self._provider_resolver = provider_resolver
-        # () -> AIConsentService: the workspace's AI opt-in (#715)
-        self._ai_consent = ai_consent
 
     def stages(
         self,
@@ -281,10 +280,10 @@ class ImportPipeline:
     async def _workspace_ai_provider(self, record: FormImportDocument):
         """The provider the workspace consented to, or None when it has not
         opted in to AI (or the check itself fails)."""
-        if self._ai_consent is None:
+        if self._provider_resolver is None:
             return None
         try:
-            return await self._ai_consent().consented_provider(record.workspace_id)
+            return await self._provider_resolver(record.workspace_id)
         except Exception:  # noqa: BLE001 — no answer means no consent
             return None
 
@@ -293,9 +292,9 @@ class ImportPipeline:
         goes to a provider unless both the workspace opted in to AI and the
         uploader consented for this import; otherwise only the deterministic
         structuring runs and the report says which consent is missing."""
-        consented = await self._workspace_ai_provider(record)
+        provider = await self._workspace_ai_provider(record)
         missing = []
-        if not consented:
+        if provider is None:
             missing.append("AI is not enabled for this workspace")
         if not record.ai_consent:
             missing.append("no consent for this import")
@@ -304,12 +303,7 @@ class ImportPipeline:
                 "AI structuring not used: " + "; ".join(missing)
             )
             return None
-        if self._provider_resolver is None:
-            return None
-        try:
-            return self._provider_resolver(consented)
-        except Exception:  # noqa: BLE001 — no provider: deterministic structuring only
-            return None
+        return provider
 
     async def _structure(self, record: FormImportDocument, data: bytes) -> dict:
         """The Form Document Model: one model call per page, grounded on the
