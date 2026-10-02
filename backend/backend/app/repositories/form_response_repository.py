@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
@@ -387,9 +388,14 @@ class FormResponseRepository(BaseRepository):
                 )
         response_document.form_id = str(form_id)
         response_document.provider = "self"
+        # submitted now, whatever the client sent: the time must not be the
+        # respondent's to choose (newest-first order, "submitted since")
+        now = dt.datetime.now(dt.timezone.utc)
+        response_document.created_at = now
+        response_document.updated_at = now
         return await response_document.save()
 
-    @write_op
+    @write_op(replay=True)
     async def patch_form_response(
         self,
         form_id: PydanticObjectId,
@@ -432,6 +438,8 @@ class FormResponseRepository(BaseRepository):
             form_id=form_id,
             data=json.dumps(answers),
         )
+        # an edit keeps the submission time and records when it changed
+        response_document.updated_at = dt.datetime.now(dt.timezone.utc)
         return await response_document.save()
 
     @write_op
