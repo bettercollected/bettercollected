@@ -800,29 +800,28 @@ def prune_date_rules(fields: Any) -> int:
 
 
 def _find_cycle(edges: Dict[str, List[str]]) -> Optional[List[str]]:
-    """First cycle in a small directed graph, as the list of its nodes."""
+    """First cycle in a directed graph, as the list of its nodes.
+
+    Iterative, so a long chain of rules can't exhaust the recursion limit.
+    """
     state: Dict[str, int] = {}
-    stack: List[str] = []
-
-    def visit(node: str) -> Optional[List[str]]:
-        state[node] = 1
-        stack.append(node)
-        for target in edges.get(node, []):
-            if state.get(target) == 1:
-                return stack[stack.index(target) :]
-            if state.get(target) is None:
-                found = visit(target)
-                if found:
-                    return found
-        stack.pop()
-        state[node] = 2
-        return None
-
-    for node in list(edges):
-        if state.get(node) is None:
-            found = visit(node)
-            if found:
-                return found
+    for root in list(edges):
+        if state.get(root) is not None:
+            continue
+        path: List[str] = [root]
+        pending = [iter(edges.get(root, []))]
+        state[root] = 1
+        while pending:
+            target = next(pending[-1], None)
+            if target is None:
+                pending.pop()
+                state[path.pop()] = 2
+            elif state.get(target) == 1:
+                return path[path.index(target) :]
+            elif state.get(target) is None:
+                state[target] = 1
+                path.append(target)
+                pending.append(iter(edges.get(target, [])))
     return None
 
 

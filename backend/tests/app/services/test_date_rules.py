@@ -160,6 +160,22 @@ def test_bad_references_are_problems(fields, expected):
     assert problems and expected in " ".join(problems)
 
 
+def _chain(length, closed):
+    """Date questions each ruled after the next; closed loops the last back."""
+    ids = [f"d{i}" for i in range(length)]
+    targets = ids[1:] + ([ids[0]] if closed else [])
+    return [
+        _date(field_id, field_id, [_after(target)] if target else None)
+        for field_id, target in zip(ids, targets + [None])
+    ]
+
+
+def test_a_long_chain_of_rules_is_checked_without_recursion():
+    assert date_rule_problems(_form(_chain(3000, closed=False)).fields) == []
+    problems = date_rule_problems(_form(_chain(3000, closed=True)).fields)
+    assert problems and "circle" in " ".join(problems)
+
+
 def test_sibling_in_the_same_group_is_fine():
     group = _group([_date("in", "Check-in"), _date("out", "Check-out", [_after("in")])])
     assert date_rule_problems(_form([group]).fields) == []

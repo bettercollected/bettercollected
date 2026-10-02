@@ -194,19 +194,27 @@ export function getRepeatingGroups(slides: Array<StandardFormFieldDto> | undefin
  * to its maximum. A group they cannot see any more — hidden by its visibility
  * rule, or on a page that is not on the path they took (`visitedSlideIndexes`,
  * when known) — is dropped, even if it was filled in earlier.
+ *
+ * Every other answer on a page off that path is dropped too: a jump that
+ * skipped the page means the respondent never confirmed it, and a server
+ * check on it (e.g. a date rule) would be one they can't see to fix.
  */
 export function normalizeGroupAnswersForSubmit(slides: Array<StandardFormFieldDto> | undefined, answers: Record<string, any>, visitedSlideIndexes?: Iterable<number>): Record<string, any> {
     let next = { ...(answers || {}) };
     const visited = visitedSlideIndexes ? new Set(visitedSlideIndexes) : null;
+    const offPath = (slideIndex: number) => !!visited && !visited.has(slideIndex);
     (slides ?? []).forEach((slide, slideIndex) => {
         slide?.properties?.fields?.forEach((group) => {
             if (!isRepeatingGroup(group) || next[group.id] === undefined) return;
-            if ((visited && !visited.has(slideIndex)) || isFieldHiddenByLogic(group, next)) {
+            if (offPath(slideIndex) || isFieldHiddenByLogic(group, next)) {
                 delete next[group.id];
                 return;
             }
             next = ensureGroupItems(next, group);
         });
+    });
+    (slides ?? []).forEach((slide, slideIndex) => {
+        if (offPath(slideIndex)) slide?.properties?.fields?.forEach((field) => delete next[field.id]);
     });
     return next;
 }
