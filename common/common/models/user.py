@@ -62,6 +62,9 @@ class User(BaseModel):
     sub: UserIdentifier
     plan: Optional[Plans] = Plans.FREE
     roles: Optional[List[str]] = []
+    # The session's email was proven at sign-in (OTP, or a provider that says
+    # so). Carried in the tokens so a refresh keeps or drops what it grants.
+    email_verified: Optional[bool] = None
 
     def is_admin(self):
         """

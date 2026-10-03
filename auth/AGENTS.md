@@ -45,6 +45,16 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - **Stripe billing** (`controllers/stripe_router.py`, logic in `services/stripe_service.py`):
   `GET /stripe/plans`, `GET /stripe/session/create/checkout`, `GET /stripe/session/create/portal`,
   `POST /stripe/webhooks`.
+- **Platform admins** (`ADMIN` role, not workspace admins — and *every* platform-admin power behind the backend's
+  `get_logged_admin`, not only metrics): `PLATFORM_ADMIN_EMAILS` (comma-separated) adds ADMIN to those users' token
+  roles via `services/platform_admins.py:roles_for`, **only for sessions whose email was verified at sign-in**: OTP
+  login, and Google when userinfo reports `verified_email`. Typeform's `/me` email and the `/callback` JWT exchange
+  never get it. The session's `email_verified` claim lives in the backend-issued tokens (`common.models.user.User`);
+  on refresh the backend passes it to `GET /status?email_verified=`, which grants only when it is true. Never stored,
+  so removing an email revokes it at the user's next token (tokens already issued keep it until they expire,
+  `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES`); an ADMIN stored on the user document still counts. Sessions from before this
+  claim existed count as unverified (sign in again). `GET /admin/metrics` (user counts for the backend's platform
+  metrics page) requires ADMIN.
 
 ## Cross-service position
 

@@ -22,6 +22,10 @@ from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
+from backend.app.repositories.metric_periods import (
+    iso_second,
+    mongo_counts_per_period,
+)
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
     FormResponseDeletionRequest,
@@ -232,6 +236,47 @@ class FormResponseRepository(BaseRepository):
 
     async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
         return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).count()
+
+    # -- platform metrics (admin dashboard) ------------------------------------
+    # Responses with ``answers`` (deletion-only stubs have none), dated by
+    # ``created_at``: the submission time, also for imported responses.
+    async def count_responses(
+        self, submitted_since: Optional[dt.datetime] = None
+    ) -> int:
+        query: Dict[str, Any] = {"answers": {"$exists": True}}
+        if submitted_since is not None:
+            query["created_at"] = {"$gte": iso_second(submitted_since)}
+        return await FormResponseDocument.find(query).count()
+
+    async def count_anonymous_responses(self) -> int:
+        """Responses that name no data owner (no ``dataOwnerIdentifier``)."""
+        return await FormResponseDocument.find(
+            {"answers": {"$exists": True}, "dataOwnerIdentifier": {"$in": [None, ""]}}
+        ).count()
+
+    async def count_identified_responders(self) -> int:
+        """Distinct ``dataOwnerIdentifier`` values; never returns them."""
+        rows = (
+            await FormResponseDocument.find(
+                {
+                    "answers": {"$exists": True},
+                    "dataOwnerIdentifier": {"$nin": [None, ""]},
+                }
+            )
+            .aggregate([{"$group": {"_id": "$dataOwnerIdentifier"}}, {"$count": "n"}])
+            .to_list()
+        )
+        return rows[0]["n"] if rows else 0
+
+    async def count_responses_per_period(
+        self, boundaries: List[dt.datetime]
+    ) -> List[int]:
+        return await mongo_counts_per_period(
+            FormResponseDocument,
+            "created_at",
+            [iso_second(b) for b in boundaries],
+            match={"answers": {"$exists": True}},
+        )
 
     async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
         success_deletion_request = (

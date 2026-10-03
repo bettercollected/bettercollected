@@ -17,6 +17,7 @@ from auth.app.repositories.user_repository import UserRepository
 from auth.app.schemas.user import UserDocument
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.mail_service import MailService
+from auth.app.services.platform_admins import roles_for
 from auth.config import settings
 
 
@@ -31,10 +32,15 @@ class AuthService:
         self.user_repository = user_repository
         self.http_client = http_client
 
-    async def get_user_status(self, user_id: PydanticObjectId):
+    async def get_user_status(
+        self, user_id: PydanticObjectId, email_verified: bool = False
+    ):
+        """``email_verified``: the refreshing session's claim (the backend reads
+        it from the user's signed refresh token)."""
         user = await self.user_repository.get_user_by_id(user_id)
         await self.user_repository.update_last_logged_in(user_id=user_id)
-        return UserResponseDto(**user.dict())
+        roles = roles_for(user.email, user.roles, verified=email_verified)
+        return UserResponseDto(**{**user.dict(), "roles": roles})
 
     @staticmethod
     def get_logged_user(jwt_token: str) -> User:
@@ -110,7 +116,8 @@ class AuthService:
                     id=str(user.id),
                     sub=user.email,
                     plan=user.plan,
-                    roles=user.roles,
+                    roles=roles_for(user.email, user.roles, verified=True),
+                    email_verified=True,
                 )
             else:
                 raise HTTPException(status_code=404, content="Error user not found.")

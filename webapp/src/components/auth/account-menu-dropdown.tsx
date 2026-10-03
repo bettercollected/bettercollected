@@ -23,7 +23,7 @@ import { useGetStatusQuery } from '@app/store/auth/api';
 import { setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ChevronRight, LogOut, Settings } from 'lucide-react';
+import { BarChart3, ChevronRight, LogOut, Settings } from 'lucide-react';
 
 interface IAuthAccountMenuDropdownProps {
     isClientDomain?: boolean;
@@ -159,6 +159,20 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                             </div>
                         </ActiveLink>
                     </li>
+                    {/* Platform admins (ADMIN role), not workspace admins; the page
+                        lives on the dashboard host only. */}
+                    {!isClientDomain && user?.roles?.includes('ADMIN') && (
+                        <li className="list-none">
+                            <ActiveLink href="/admin/metrics">
+                                <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
+                                    <div className="text-black-900 flex items-center justify-center">
+                                        <BarChart3 width={20} height={20} />
+                                    </div>
+                                    <span>{t(profileMenu.platformMetrics)}</span>
+                                </div>
+                            </ActiveLink>
+                        </li>
+                    )}
 
                     <li className="list-none">
                         <Separator className="my-2" />

@@ -51,7 +51,10 @@ class AuthService:
         try:
             response_data = await self.http_client.get(
                 settings.auth_settings.BASE_URL + "/auth/status",
-                params={"user_id": user.id},
+                params={
+                    "user_id": user.id,
+                    "email_verified": user.email_verified is True,
+                },
                 timeout=60,
             )
             response_data["tags"] = await self.user_tags_service.get_user_tags_by_id(

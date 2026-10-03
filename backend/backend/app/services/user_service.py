@@ -25,7 +25,11 @@ async def get_logged_user(request: Request, response: Response) -> User:
             async with httpx.AsyncClient() as http_client:
                 user_response = await http_client.get(
                     settings.auth_settings.BASE_URL + "/auth/status",
-                    params={"user_id": user.id},
+                    # the session's own claim, from the signed refresh token
+                    params={
+                        "user_id": user.id,
+                        "email_verified": user.email_verified is True,
+                    },
                     timeout=60,
                 )
                 if user_response.status_code == 404:
@@ -33,6 +37,7 @@ async def get_logged_user(request: Request, response: Response) -> User:
                 user_response = user_response.json()
                 if user_response:
                     user_response["sub"] = user_response.get("email")
+                    user_response["email_verified"] = user.email_verified is True
                 set_access_token_to_response(
                     user=User(**user_response) if user_response else user,
                     response=response,
@@ -96,7 +101,9 @@ async def check_if_refresh_token_is_blacklisted(token: str):
         key=settings.auth_settings.JWT_SECRET,
         algorithms=["HS256"],
     )
-    from backend.app.container import container  # at call time: container imports this module
+    from backend.app.container import (
+        container,
+    )  # at call time: container imports this module
 
     blacklisted = await container.blacklisted_refresh_token_repo().find_by_token(token)
     if blacklisted:
@@ -110,7 +117,9 @@ async def add_refresh_token_to_blacklist(request: Request):
         key=settings.auth_settings.JWT_SECRET,
         algorithms=["HS256"],
     )
-    from backend.app.container import container  # at call time: container imports this module
+    from backend.app.container import (
+        container,
+    )  # at call time: container imports this module
 
     await container.blacklisted_refresh_token_repo().add(
         token=refresh_token, expiry=jwt_response.get("exp")

@@ -6,6 +6,7 @@ import loguru
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository  # noqa: F401
 from auth.app.services.base_auth_provider import BaseAuthProvider
+from auth.app.services.platform_admins import roles_for
 from auth.config import settings
 
 from common.configs.crypto import Crypto
@@ -121,11 +122,16 @@ class GoogleAuthProvider(BaseAuthProvider):
             last_name=user.get("family_name"),
             profile_image=user.get("picture"),
         )
+        # oauth2 v2 userinfo says "verified_email" (OpenID Connect: "email_verified")
+        verified = (
+            user.get("verified_email") is True or user.get("email_verified") is True
+        )
         user = User(
             id=str(user_document.id),
             sub=user_document.email,
-            roles=user_document.roles,
+            roles=roles_for(user_document.email, user_document.roles, verified),
             plan=user_document.plan,
+            email_verified=verified,
         )
         state_json["user"] = user.dict()
         return state_json

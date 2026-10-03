@@ -86,6 +86,8 @@ class TypeformAuthProvider(BaseAuthProvider):
         user = User(
             id=str(user_document.id),
             sub=user_document.email,
+            # Typeform's /me email is not proven to be the user's: no
+            # configured platform-admin grant (see platform_admins.py)
             roles=user_document.roles,
             plan=user_document.plan,
         )

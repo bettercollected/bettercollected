@@ -26,6 +26,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
+from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
 from backend.app.repositories.postgres.forms import _fold, _oid, _sort_terms, _text
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
@@ -356,6 +357,44 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
         return await self.count(FormResponseRow.form_id.in_(form_ids))
+
+    # -- platform metrics (admin dashboard) ------------------------------------
+    @staticmethod
+    def _with_answers():
+        return FormResponseRow.doc.has_key("answers")
+
+    async def count_responses(
+        self, submitted_since: Optional[dt.datetime] = None
+    ) -> int:
+        where = [self._with_answers()]
+        if submitted_since is not None:
+            where.append(FormResponseRow.created_at >= utc(submitted_since))
+        return await self.count(*where)
+
+    async def count_anonymous_responses(self) -> int:
+        owner = FormResponseRow.data_owner_identifier
+        return await self.count(self._with_answers(), or_(owner.is_(None), owner == ""))
+
+    async def count_identified_responders(self) -> int:
+        owner = FormResponseRow.data_owner_identifier
+        async with self._session() as session:
+            return (
+                await session.execute(
+                    select(func.count(owner.distinct())).where(
+                        self._with_answers(), owner.is_not(None), owner != ""
+                    )
+                )
+            ).scalar_one()
+
+    async def count_responses_per_period(
+        self, boundaries: List[dt.datetime]
+    ) -> List[int]:
+        return await postgres_counts_per_period(
+            self,
+            FormResponseRow.created_at,
+            [utc(b) for b in boundaries],
+            self._with_answers(),
+        )
 
     async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
         dr = ResponseDeletionRequestRow

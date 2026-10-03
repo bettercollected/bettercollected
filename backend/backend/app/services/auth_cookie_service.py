@@ -21,6 +21,8 @@ def set_token_to_response(
             "sub": user.sub,
             "roles": user.roles,
             "plan": user.plan,
+            # proven at sign-in; auth grants config-named platform admins only then
+            "email_verified": user.email_verified is True,
             "exp": expiry,
             "jti": str(uuid.uuid4()),
         },

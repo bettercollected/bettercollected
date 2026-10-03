@@ -27,6 +27,10 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.invitation_request import InvitationRequest
+from backend.app.repositories.metric_periods import (
+    object_id_at,
+    postgres_counts_per_period,
+)
 from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
 from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -168,6 +172,23 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
     ) -> WorkspaceDocument:
         return await self.one(
             WorkspaceRow.owner_id == owner_id, WorkspaceRow.is_default.is_(True)
+        )
+
+    async def count_workspaces(
+        self, created_since: Optional[datetime.datetime] = None
+    ) -> int:
+        if created_since is None:
+            return await self.count()
+        return await self.count(WorkspaceRow.id >= str(object_id_at(created_since)))
+
+    async def count_disabled_workspaces(self) -> int:
+        return await self.count(WorkspaceRow.disabled.is_(True))
+
+    async def count_workspaces_created_per_period(
+        self, boundaries: List[datetime.datetime]
+    ) -> List[int]:
+        return await postgres_counts_per_period(
+            self, WorkspaceRow.id, [str(object_id_at(b)) for b in boundaries]
         )
 
     async def delete_workspaces_with_ids(self, workspace_ids: List[PydanticObjectId]):

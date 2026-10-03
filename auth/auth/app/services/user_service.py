@@ -1,5 +1,6 @@
 import asyncio
-from typing import List
+import datetime as dt
+from typing import Any, Dict, List
 
 from beanie import PydanticObjectId
 from common.enums.plan import Plans
@@ -71,6 +72,32 @@ class UserService:
         user = await self.user_repo.get_user_by_id(user_id=user_id)
         user.plan = Plans.PRO
         return await user.save()
+
+    async def get_platform_user_metrics(
+        self, first_week: dt.date, weeks: int
+    ) -> Dict[str, Any]:
+        """User counts for the platform metrics dashboard — aggregates only.
+        ``weekly_new`` has one entry per week from ``first_week`` (UTC), the
+        weeks the backend charts its own series for."""
+        now = dt.datetime.now(dt.timezone.utc)
+        last_30_days = now - dt.timedelta(days=30)
+        start = dt.datetime.combine(first_week, dt.time(), tzinfo=dt.timezone.utc)
+        boundaries = [start + dt.timedelta(weeks=i) for i in range(weeks + 1)]
+        weekly = await self.user_repo.count_users_created_per_period(boundaries)
+        return {
+            "total": await self.user_repo.count_users(),
+            "new_last_30_days": await self.user_repo.count_users(
+                created_since=last_30_days
+            ),
+            "active_last_30_days": await self.user_repo.count_users_active_since(
+                last_30_days
+            ),
+            "by_plan": await self.user_repo.count_users_by_plan(),
+            "weekly_new": [
+                {"week_start": boundary.date().isoformat(), "count": count}
+                for boundary, count in zip(boundaries, weekly)
+            ],
+        }
 
 
 def run_sync(func, *args, **kwargs):
