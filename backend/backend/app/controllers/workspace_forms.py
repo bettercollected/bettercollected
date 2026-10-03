@@ -474,7 +474,7 @@ class WorkspaceFormsRouter(Routable):
             workspace_id
         )
         if not workspace.is_pro and settings.disable_branding is not None:
-            return HTTPException(403, "You are forbidden to perform this action")
+            raise HTTPException(403, "You are forbidden to perform this action")
 
         data = await self._form_service.patch_settings_in_workspace_form(
             workspace_id, form_id, settings, user

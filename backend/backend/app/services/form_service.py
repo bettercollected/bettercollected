@@ -324,6 +324,12 @@ class FormService:
         await self._form_repo.save_form_version(form_version_document)
         return await self._form_repo.save_form(form_document)
 
+    async def check_form_in_workspace(self, workspace_id: PydanticObjectId, form_id):
+        if not await self._workspace_form_repo.find_workspace_form(
+            workspace_id, str(form_id)
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
+
     async def patch_settings_in_workspace_form(
         self,
         workspace_id: PydanticObjectId,
@@ -331,12 +337,13 @@ class FormService:
         settings: SettingsPatchDto,
         user: User,
     ):
-        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
+        if not await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
-        )
+        ):
+            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
-                workspace_id=workspace_id, query=form_id, is_admin=is_admin
+                workspace_id=workspace_id, query=form_id, is_admin=True
             )
         )
         if not workspace_form:

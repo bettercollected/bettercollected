@@ -179,7 +179,7 @@ class WorkspaceService:
             workspace_id
         )
         if not str(workspace_document.owner_id) == user.id:
-            return HTTPException(
+            raise HTTPException(
                 HTTPStatus.FORBIDDEN, "You are not authorized to perform this action."
             )
 

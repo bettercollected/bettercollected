@@ -232,6 +232,7 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self._delete_form(workspace_id, form_id)
 
     async def delete_draft_form(self, workspace_id: PydanticObjectId, form_id: str):
@@ -300,6 +301,7 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self.responder_groups_service.add_groups_to_form(
             form_id=form_id, group_ids=group_ids
         )
@@ -314,6 +316,7 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        await self.check_form_exists_in_workspace(workspace_id, form_id)
         await self.responder_groups_service.remove_group_from_form(
             form_id=form_id, group_id=group_id
         )
@@ -419,16 +422,13 @@ class WorkspaceFormService:
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
-        workspace_forms = (
-            await self.workspace_form_repository.get_workspace_forms_form_ids(
-                [str(form_id)]
-            )
+        workspace_form = await self.workspace_form_repository.find_workspace_form(
+            workspace_id, str(form_id)
         )
-        if (len(workspace_forms)) == 0:
+        if not workspace_form:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
-        workspace_form = workspace_forms[0]
         if form.settings:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
@@ -713,6 +713,10 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        if not await self.workspace_form_repository.find_workspace_form(
+            workspace_id, str(form_id)
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
         return await self.form_response_service.delete_form_response(
             form_id=form_id, response_id=response_id, workspace_id=workspace_id
         )
@@ -723,6 +727,7 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        await self.check_form_exists_in_workspace(workspace_id, str(form_id))
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         return await self.form_service.publish_form(form_id=form_id)
 

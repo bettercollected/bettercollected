@@ -94,7 +94,8 @@ class FormTemplateService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        template = await self.form_template_repo.get_template_by_id(template_id)
+        # public templates, or private ones of a workspace the user is in
+        template = await self.get_template_by_id(user=user, template_id=template_id)
         minified_form = FormDtoCamelModel(**template.model_dump(mode="json"))
         return await self.workspace_form_service.create_form(
             workspace_id=workspace_id,

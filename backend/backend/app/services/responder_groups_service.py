@@ -47,6 +47,10 @@ class ResponderGroupsService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id, user
         )
+        if not await self.responder_groups_repo.get_group_in_workspace(
+            workspace_id=workspace_id, group_id=group_id
+        ):
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=not_found)
         response = await self.responder_groups_repo.get_emails_in_group(
             group_id=group_id
         )
@@ -100,6 +104,8 @@ class ResponderGroupsService:
             workspace_id=workspace_id, user=user
         )
         validate_group_regex(regex)
+        if form_id:
+            await self.form_service.check_form_in_workspace(workspace_id, form_id)
         group = await self.responder_groups_repo.create_group(
             workspace_id=workspace_id, name=name, description=description, regex=regex
         )
@@ -153,7 +159,7 @@ class ResponderGroupsService:
             workspace_id=workspace_id, group_id=group_id
         )
         if not group:
-            return HTTPException(status_code=HTTPStatus.NOT_FOUND, content=not_found)
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=not_found)
 
     async def remove_responder_group(
         self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User

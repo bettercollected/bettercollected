@@ -845,6 +845,7 @@ class AppContainer(containers.DeclarativeContainer):
         MediaLibraryService,
         media_library_repo=media_library_repo,
         aws_service=aws_service,
+        workspace_user_service=workspace_user_service,
     )
 
     umami_client: UmamiClient = providers.Singleton(UmamiClient)
@@ -869,6 +870,9 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         integration_action_service=integration_action_service,
         form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
+        workspace_user_repo=workspace_user_repo,
+        action_repository=action_repository,
     )
 
     form_actions_service: FormActionsService = providers.Singleton(
