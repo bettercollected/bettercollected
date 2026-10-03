@@ -36,3 +36,7 @@ class MailService:
 
     async def send_async_mail(self, message, template_name="verification_code.html"):
         await self.fast_mail.send_message(message=message, template_name=template_name)
+
+    async def send_message(self, message):
+        """Send a message whose body is already rendered."""
+        await self.fast_mail.send_message(message=message)

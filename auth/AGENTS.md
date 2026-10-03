@@ -61,6 +61,12 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - Issues JWTs that the **backend** wraps into cookie sessions (backend owns the refresh-token blacklist, not auth).
 - Login OAuth here is distinct from provider *import* OAuth in `integrations/google` (:8003) / typeform (:8002).
 - Emails (OTP, invites) go out via `mail_service.py` (SMTP / fastapi-mail); templates in `app/templates/`.
+- **Notifications** (`controllers/notifications_router.py`, `services/notification_service.py`):
+  `POST /notifications/submission-update` mails a respondent that staff responded to their submission. Not a
+  relay: Bearer JWT required (the backend forwards the poster's), structured fields only (`recipient`,
+  `form_title`, `workspace_title`, `link`; extra keys → 422), a fixed autoescaped template, single-line titles,
+  and the link must be `/<handle>/submissions/<id>` on `CLIENT_URL` (also read from `API_CLIENT_URL`) or
+  `CLIENT_ADMIN_URL` — custom domains are refused on purpose. A per-sender, per-process burst guard answers 429.
 
 ## Run / test
 

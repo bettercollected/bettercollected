@@ -16,16 +16,21 @@ from auth.app.services.user_service import UserService
 from common.models.user import User
 
 
-def get_platform_admin(authorization: Optional[str] = Header(None)) -> User:
-    """The caller from a ``Bearer`` token; 401 without a valid one, 403 unless
-    it carries the ADMIN role."""
+def get_bearer_user(authorization: Optional[str] = Header(None)) -> User:
+    """The caller from a ``Bearer`` token; 401 without a valid one."""
     scheme, _, token = (authorization or "").partition(" ")
     if scheme.lower() != "bearer" or not token:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Authorization token is missing.")
     try:
-        user = AuthService.get_logged_user(token)
+        return AuthService.get_logged_user(token)
     except Exception:  # noqa: BLE001 — expired, forged or malformed alike
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid authorization token.")
+
+
+def get_platform_admin(authorization: Optional[str] = Header(None)) -> User:
+    """The caller from a ``Bearer`` token; 401 without a valid one, 403 unless
+    it carries the ADMIN role."""
+    user = get_bearer_user(authorization)
     if not user.is_admin():
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "You are not authorized to perform this action."
