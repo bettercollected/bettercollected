@@ -505,3 +505,46 @@ async def test_save_internal_answers_is_conditional_on_the_version(sessions):
         missing = edit(0, "x")
         missing.response_id = "nope"
         assert await repo.save_internal_answers(missing, 0) is None
+
+
+async def test_add_respondent_feedback_appends_on_both_stores(sessions):
+    """Respondent feedback is an append-only history: both stores add the
+    entry after the earlier ones (also to a response saved before the field
+    existed, stored as null), touch nothing else and return None for a
+    response that is gone."""
+    from common.models.standard_form import RespondentFeedback
+
+    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    mongo = FormResponseRepository(crypto=container.crypto())
+    postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
+    seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
+    await seed_both((mongo, postgres), "save", seed)
+
+    def entry(n, status=None, message=None):
+        return RespondentFeedback(
+            id=f"e{n}",
+            status=status,
+            message=message,
+            created_at=at(10 + n),
+            created_by="u1",
+            created_by_email="staff@example.com",
+        )
+
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("add_respondent_feedback", lambda: ("r1", entry(1, status="Selected"))),
+            ("add_respondent_feedback", lambda: ("r1", entry(2, message=b"v1:x"))),
+            ("add_respondent_feedback", lambda: ("nope", entry(3))),  # None
+            ("get_response", lambda: ("r1",)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        stored = await repo.get_response("r1")
+        assert [e.id for e in stored.respondent_feedback] == ["e1", "e2"]
+        assert stored.respondent_feedback[0].status == "Selected"
+        assert stored.respondent_feedback[1].message == b"v1:x"
+        assert stored.respondent_feedback[1].created_at == at(12)
+        assert "respondent" in str(stored.answers)
+        assert await repo.add_respondent_feedback("nope", entry(4)) is None

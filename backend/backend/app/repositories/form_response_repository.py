@@ -10,7 +10,11 @@ from common.base.repo import BaseRepository
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
 from common.enums.form_provider import FormProvider
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.standard_form import (
+    RespondentFeedback,
+    StandardFormResponse,
+    StandardFormResponseAnswer,
+)
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
@@ -540,6 +544,26 @@ class FormResponseRepository(BaseRepository):
                     )
                 }
             },
+            response_type=UpdateResponse.NEW_DOCUMENT,
+        )
+
+    @write_op(replay=True)
+    async def add_respondent_feedback(
+        self, response_id: str, entry: RespondentFeedback
+    ) -> Optional[FormResponseDocument]:
+        """Append one feedback entry (its message already encrypted) to a
+        response's history, touching nothing else. Returns the stored
+        document, or None when the response is gone."""
+        encoded = to_bson_dict(
+            FormResponseDocument(response_id=response_id, respondent_feedback=[entry])
+        )["respondent_feedback"][0]
+        # ``$push`` refuses a null field, which every response saved before
+        # this feature carries: make it an empty list first.
+        await FormResponseDocument.find_one(
+            {"response_id": response_id, "respondent_feedback": None}
+        ).update({"$set": {"respondent_feedback": []}})
+        return await FormResponseDocument.find_one({"response_id": response_id}).update(
+            {"$push": {"respondent_feedback": encoded}},
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
 
