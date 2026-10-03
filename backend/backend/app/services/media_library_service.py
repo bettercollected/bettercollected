@@ -1,11 +1,15 @@
 from http import HTTPStatus
 from beanie import PydanticObjectId
+from bson import ObjectId
+from common.constants import MESSAGE_FORBIDDEN
+from common.models.user import User
 from fastapi import File, UploadFile
 
 from backend.app.exceptions.http import HTTPException
 from backend.app.models.dtos.media_libraries_dto import MediaType
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.workspace_user_service import WorkspaceUserService
 from starlette.requests import Request
 
 
@@ -13,21 +17,36 @@ class MediaLibraryService:
     MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 
     def __init__(
-        self, media_library_repo: MediaLibraryRepository, aws_service: AWSS3Service
+        self,
+        media_library_repo: MediaLibraryRepository,
+        aws_service: AWSS3Service,
+        workspace_user_service: WorkspaceUserService,
     ):
         self._media_library_repo = media_library_repo
         self._aws_service = aws_service
+        self._workspace_user_service = workspace_user_service
+
+    async def _check_member(self, workspace_id: str, user: User):
+        if not ObjectId.is_valid(workspace_id):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+            )
+        await self._workspace_user_service.check_user_has_access_in_workspace(
+            PydanticObjectId(workspace_id), user
+        )
 
     async def get_medias_in_workspace_by_workspace_id(
-        self, workspace_id: str, media_query: str
+        self, workspace_id: str, media_query: str, user: User
     ):
+        await self._check_member(workspace_id, user)
         return await self._media_library_repo.get_media_library_by_worksapce_id(
             workspace_id, media_query
         )
 
     async def delete_media_from_library_of_workspace(
-        self, workspace_id: str, media_id: PydanticObjectId
+        self, workspace_id: str, media_id: PydanticObjectId, user: User
     ):
+        await self._check_member(workspace_id, user)
         media = await self._media_library_repo.get_single_media_from_workspace_library(
             workspace_id=workspace_id, media_id=media_id
         )
@@ -47,7 +66,9 @@ class MediaLibraryService:
         file: UploadFile,
         media_name: str,
         request: Request,
+        user: User,
     ):
+        await self._check_member(workspace_id, user)
         if file is not None:
             file_type = check_if_file_is_of_supported_type(file)
             if not file_type:
@@ -57,9 +78,9 @@ class MediaLibraryService:
                 )
             file_size = get_file_size(request)
             if file_size > self.MAX_FILE_SIZE_BYTES:
-                return HTTPException(
-                    status_code=HTTPStatus.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                    content=HTTPStatus.REQUEST_HEADER_FIELDS_TOO_LARGE,
+                raise HTTPException(
+                    status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                    content="File is too large.",
                 )
             file_id = PydanticObjectId()
             s3_key = str(workspace_id) + str(file_id)

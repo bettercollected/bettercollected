@@ -191,6 +191,24 @@ class FormResponseService:
             return response_page
         return form_responses
 
+    async def check_member_and_form_in_workspace(
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
+    ):
+        """403 unless the user is a member of the workspace, 404 unless the
+        form belongs to it."""
+        if not await self._workspace_user_repo.has_user_access_in_workspace(
+            workspace_id, user
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+            )
+        if not await self._workspace_form_repo.find_workspace_form(
+            workspace_id, form_id
+        ):
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "Form not found in the workspace."
+            )
+
     async def get_workspace_form_all_submissions(
         self, form_id: str, workspace_id: PydanticObjectId, user: User
     ):
@@ -332,6 +350,11 @@ class FormResponseService:
         )
         # TODO : Handle case for multiple form import by other user
         response = await self._form_response_repo.get_response(response_id)
+        # Membership only counts for responses to this workspace's forms.
+        if not response or not await self._workspace_form_repo.find_workspace_form(
+            workspace_id, response.form_id
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Response not found in workspace")
 
         # Anonymous responses carry no dataOwnerIdentifier — their owner is
         # recognisable only by the anonymous identity hash. Without this check

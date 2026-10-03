@@ -33,7 +33,7 @@ class MediaLibrary(Routable):
         user: User = Depends(get_logged_user),
     ):
         return await self.media_library_service.get_medias_in_workspace_by_workspace_id(
-            workspace_id, media_query
+            workspace_id, media_query, user
         )
 
     @post("", response_model=MediaLibraryCamelModel)
@@ -49,6 +49,7 @@ class MediaLibrary(Routable):
             file=file,
             media_name=file.filename,
             request=request,
+            user=user,
         )
         return MediaLibraryDto(**media.model_dump(mode='json'))
 
@@ -60,5 +61,5 @@ class MediaLibrary(Routable):
         user: User = Depends(get_logged_user),
     ):
         return await self.media_library_service.delete_media_from_library_of_workspace(
-            workspace_id=workspace_id, media_id=media_id
+            workspace_id=workspace_id, media_id=media_id, user=user
         )

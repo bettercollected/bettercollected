@@ -83,6 +83,7 @@ class WorkspaceMembersService:
                 "inviter_id": user.id,
                 "token": workspace_invitation.invitation_token,
             },
+            headers={"X-Internal-Key": settings.auth_settings.INTERNAL_NOTIFY_KEY},
             timeout=60,
         )
         return workspace_invitation

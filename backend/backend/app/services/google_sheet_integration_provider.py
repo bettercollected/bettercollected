@@ -35,7 +35,11 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
         provider_url = await self.form_provider_service.get_provider_url(
             FormProvider.GOOGLE
         )
-        state = {"client_referer_uri": client_referer_url}
+        # Bound to the user who starts the flow; checked on the callback.
+        state = {
+            "client_referer_uri": client_referer_url,
+            "user_id": kwargs.get("user_id"),
+        }
         state = self.crypto.encrypt(json.dumps(state))
         authorization_url = (
             f"{provider_url}/{FormProvider.GOOGLE}/oauth/integration/authorize"

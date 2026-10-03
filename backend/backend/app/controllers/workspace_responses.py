@@ -186,6 +186,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
         user: User = Depends(get_logged_user),
     ):
         """Aggregate drop-off + transition counts for the builder's Insights overlay."""
+        await self._form_response_service.check_member_and_form_in_workspace(
+            workspace_id, form_id, user
+        )
         events = await self._flow_event_repo.list_by_form_id(form_id)
         return aggregate_flow_events([e.model_dump() for e in events])
 
