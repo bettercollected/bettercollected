@@ -157,7 +157,10 @@ async def test_forwards_the_refreshed_token(
     import backend.app.services.user_service as user_service
 
     monkeypatch.setattr(user_service.httpx, "AsyncClient", FakeStatusClient)
-    cookies = {"Authorization": "expired", "RefreshToken": test_user_cookies["RefreshToken"]}
+    cookies = {
+        "Authorization": "expired",
+        "RefreshToken": test_user_cookies["RefreshToken"],
+    }
     response = await client.get(URL, cookies=cookies)
     assert response.status_code == 200
     assert response.json()["users"] is not None
