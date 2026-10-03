@@ -376,6 +376,28 @@ class TestWorkspaces:
         actual_response = check_handle_availability.json()
         assert actual_response == expected_response
 
+    async def test_reserved_handles_are_unavailable(
+        self,
+        client: AsyncClient,
+        workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
+        test_pro_user_cookies: dict[str, str],
+    ):
+        # /admin/metrics is the platform admin dashboard: a workspace called
+        # "admin" would lose its pages to it.
+        for handle in ("admin", "Admin"):
+            available = await client.get(
+                f"{common_url}/check-handle-availability/{handle}",
+                cookies=test_pro_user_cookies,
+            )
+            assert available.json() is False
+
+        patched = await client.patch(
+            f"{common_url}/{workspace_pro.id}",
+            cookies=test_pro_user_cookies,
+            data={**workspace_attribute, "workspace_name": "admin"},
+        )
+        assert patched.status_code == 409
+
     async def test_check_handle_availability_using_workspace_name_and_workspace_id(
         self,
         client: AsyncClient,

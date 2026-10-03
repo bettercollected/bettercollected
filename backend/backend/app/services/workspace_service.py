@@ -45,6 +45,22 @@ from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
 
+# Top-level paths the webapp serves itself; a workspace with one of these
+# handles would be shadowed by (or shadow) that route — `/admin/metrics` is the
+# platform admin dashboard.
+RESERVED_WORKSPACE_NAMES = frozenset({"submissions", "forms", "templates", "admin"})
+
+
+def is_reserved_workspace_name(workspace_name: str) -> bool:
+    return workspace_name.strip().lower() in RESERVED_WORKSPACE_NAMES
+
+
+def raise_if_reserved_workspace_name(workspace_name: str) -> None:
+    if is_reserved_workspace_name(workspace_name):
+        raise HTTPException(
+            HTTPStatus.CONFLICT, content="This workspace handle is reserved."
+        )
+
 
 class WorkspaceService:
     def __init__(
@@ -114,6 +130,7 @@ class WorkspaceService:
                 status_code=HTTPStatus.CONFLICT, content="Cannot add more workspaces"
             )
         if workspace_name:
+            raise_if_reserved_workspace_name(workspace_name)
             existing_workspace_with_name = await self._workspace_repo.find_by_name(
                 workspace_name
             )
@@ -176,6 +193,7 @@ class WorkspaceService:
             workspace_patch.workspace_name
             and workspace_patch.workspace_name != workspace_document.workspace_name
         ):
+            raise_if_reserved_workspace_name(workspace_patch.workspace_name)
             exists_by_handle = await self._workspace_repo.find_by_name(
                 workspace_patch.workspace_name
             )
@@ -361,8 +379,7 @@ class WorkspaceService:
     async def check_if_workspace_handle_is_unique(
         self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
     ):
-        predefined_workspace_name = ["submissions", "forms", "templates"]
-        if workspace_name in predefined_workspace_name:
+        if is_reserved_workspace_name(workspace_name):
             return False
         existing_workspace = await self._workspace_repo.find_by_name(workspace_name)
         if workspace_id is not None:
