@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { AnswerDto, InternalAnswerMeta, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { AnswerDto, InternalAnswerMeta, StaffFeedback, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
@@ -353,6 +353,16 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${responseId}/internal-answers`,
                 method: 'PATCH',
                 body: { answers, version }
+            }),
+            invalidatesTags: [SUBMISSION_TAG]
+        }),
+        // Workspace admins post an update (status and/or message) that the
+        // submission's respondent sees. Returns the history, staff view.
+        postRespondentFeedback: builder.mutation<StaffFeedback, { workspaceId: string; formId: string; responseId: string; status?: string | null; message?: string | null }>({
+            query: ({ workspaceId, formId, responseId, status, message }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${responseId}/feedback`,
+                method: 'POST',
+                body: { status: status || null, message: message || null }
             }),
             invalidatesTags: [SUBMISSION_TAG]
         }),
@@ -718,5 +728,6 @@ export const {
     useLazyGetFormAllSubmissionsQuery,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,
-    useUpdateInternalAnswersMutation
+    useUpdateInternalAnswersMutation,
+    usePostRespondentFeedbackMutation
 } = workspacesApi;

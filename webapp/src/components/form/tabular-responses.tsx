@@ -134,7 +134,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             workspace_id: workspace?.id ?? '',
             submission_id: response.responseId
         }).then((result: any) => {
-            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields });
+            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields, feedback: result.data.feedback });
         });
     };
 
