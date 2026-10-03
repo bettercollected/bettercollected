@@ -20,6 +20,7 @@ from googleform.app.router import root_api_router
 from googleform.app.services.database_service import close_db, init_db
 from common.db import MigrationTarget, check_postgres_at_startup, dispose_engine
 from googleform.app.services.migration_service import (
+    log_if_internal_key_missing,
     migrate_credentials_to_include_user_id,
 )
 from googleform.app.utils import AiohttpClient
@@ -44,6 +45,7 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
+    log_if_internal_key_missing()
 
     AiohttpClient.get_aiohttp_client()
     log.info(

@@ -45,6 +45,7 @@ from backend.app.services.integration_provider_factory import IntegrationProvide
 from backend.app.services.internal_fields import strip_internal_fields
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 
@@ -132,6 +133,7 @@ class FormService:
             response = await AiohttpClient.get_aiohttp_client().get(
                 f"{settings.auth_settings.BASE_URL}/users",
                 params={"user_ids": user_ids},
+                headers=auth_service_headers(),
             )
             return await response.json()
         except (ServerDisconnectedError, TimeoutError):

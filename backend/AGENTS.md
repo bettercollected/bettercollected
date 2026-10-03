@@ -400,7 +400,10 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 ## Cross-service integration points
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; refresh-token
-  blacklist in Mongo; cookies via `auth_cookie_service.py`.
+  blacklist in Mongo; cookies via `auth_cookie_service.py`. The auth service's API is internal-only (#766): every
+  call to `settings.auth_settings.BASE_URL`/`CALLBACK_URI` passes `headers=auth_service_headers(...)`
+  (`services/internal_auth.py`, the shared `AUTH_INTERNAL_NOTIFY_KEY`); `tests/app/services/test_auth_call_sites.py`
+  fails on a call without it. Never add the key to a shared client — it also calls third parties.
 - **Jobs:** `services/temporal_service.py` starts the three background jobs — user deletion, scheduled response
   deletion (at the response's expiration), action-code execution — on Temporal (default) or, per job kind via
   `JOBS_BACKEND__<job>=postgres`, as procrastinate jobs (`backend/jobs/tasks.py`; `run_action` is deferred by name and

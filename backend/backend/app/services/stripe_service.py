@@ -4,6 +4,7 @@ from fastapi import Request
 
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.workspace_service import WorkspaceService
@@ -27,19 +28,22 @@ class StripeService:
 
     async def get_plans(self):
         return await self.http_client.get(
-            settings.auth_settings.BASE_URL + "/stripe/plans"
+            settings.auth_settings.BASE_URL + "/stripe/plans",
+            headers=auth_service_headers(),
         )
 
     async def create_checkout_session(self, user, price_id: str):
         return await self.http_client.get(
             settings.auth_settings.BASE_URL + "/stripe/session/create/checkout",
             params={"user_id": user.id, "price_id": price_id},
+            headers=auth_service_headers(),
         )
 
     async def create_portal_session(self, user):
         return await self.http_client.get(
             settings.auth_settings.BASE_URL + "/stripe/session/create/portal",
             params={"user_id": user.id},
+            headers=auth_service_headers(),
         )
 
     async def webhooks(self, request: Request):
@@ -49,6 +53,8 @@ class StripeService:
             settings.auth_settings.BASE_URL + "/stripe/webhooks",
             params={"stripe_signature": signature},
             content=body,
+            # the route also works on the Stripe signature alone
+            headers=auth_service_headers(),
             timeout=60000000,
         )
         json_response = response

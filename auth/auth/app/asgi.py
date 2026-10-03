@@ -6,6 +6,7 @@ import logging
 import auth
 import sentry_sdk
 from auth.app.container import container
+from auth.app.controllers.internal_key import log_if_internal_key_missing
 from auth.app.exceptions import (
     HTTPException,
     http_exception_handler,
@@ -39,6 +40,7 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
+    log_if_internal_key_missing()
     database_client = container.database_client()
     await init_db(database_client)
     log.info(

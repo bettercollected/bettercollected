@@ -64,6 +64,32 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   claim existed count as unverified (sign in again). `GET /admin/metrics` (user counts for the backend's platform
   metrics page) requires ADMIN.
 
+## Internal-only API (#766)
+
+Nothing outside the deployment may call this service: the browser only ever talks to the backend, which calls
+auth server-to-server. Every route requires the shared key in the `X-Internal-Key` header
+(`controllers/internal_key.py` `require_internal_key`, `hmac.compare_digest`; **503** while
+`AUTH_INTERNAL_NOTIFY_KEY` is unset, **403** when the header is missing or wrong) **except**:
+
+- `GET /ready` — health checks;
+- `POST /stripe/webhooks` — authenticated by its Stripe signature (Stripe calls the backend, which forwards here
+  with the key, but the route must keep working on the signature alone).
+
+`/admin/metrics` and `/notifications/*` need the key *and* their own Bearer checks. The auth, users and admin
+routers take the guard router-level (`@router(..., dependencies=INTERNAL_ONLY)`); notifications and
+`stripe_router.py` have it per route (a `Depends` parameter — classy-fastapi's route decorators can't take
+`dependencies=`), the latter to leave the webhook open. A new
+route is guarded automatically when it lives on a guarded router; `tests/integration/app/controllers/test_internal_key_guard.py`
+walks every route in the OpenAPI schema and fails if one answers without the key (add it to `OPEN` only on
+purpose). Tests: `app_runner` sends the key by default; `without_internal_key(app_runner)` drops it.
+
+The setting keeps its historical name `AUTH_INTERNAL_NOTIFY_KEY` (it first guarded only notification mails) and
+must have the **same value on the backend (and its jobs worker), auth and integrations/google**. All three log an
+ERROR at startup when it is unset but still start (a refusal to boot would turn a config miss into an outage);
+until it is set, sign-in, session refresh, invitations and member lists fail with 503. Callers: backend
+`services/internal_auth.py` `auth_service_headers()` (enforced by `backend/tests/app/services/test_auth_call_sites.py`),
+google `services/migration_service.py`. Never put the key on a shared HTTP client (it also calls third parties).
+
 ## Cross-service position
 
 - Issues JWTs that the **backend** wraps into cookie sessions (backend owns the refresh-token blacklist, not auth).
@@ -71,8 +97,8 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - Emails (OTP, invites) go out via `mail_service.py` (SMTP / fastapi-mail); templates in `app/templates/`.
 - **Notifications** (`controllers/notifications_router.py`, `services/notification_service.py`):
   `POST /notifications/submission-update` mails a respondent that staff responded to their submission. Not a
-  relay: **only the backend may call it** — the `X-Internal-Key` header must equal `AUTH_INTERNAL_NOTIFY_KEY`
-  (shared with the backend, `hmac.compare_digest`; 503 while unset, 403 when missing or wrong), because a user's
+  relay: **only the backend may call it** — the internal key, like every route (see "Internal-only API"),
+  because a user's
   token alone would let anyone mail any address from our domain. Also a Bearer JWT (the backend forwards the
   poster's; it keys the burst guard), the sender name is always `ORGANIZATION_NAME` (the workspace title
   appears only in the body), structured fields only (`recipient`,

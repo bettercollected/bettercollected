@@ -1,5 +1,6 @@
 """Platform-admin endpoints (``ADMIN`` in the token's roles, not workspace
-admins). The backend calls them with the requesting admin's access token."""
+admins). The backend calls them with the requesting admin's access token and,
+like every internal route, the internal key."""
 
 import datetime as dt
 from http import HTTPStatus
@@ -9,6 +10,7 @@ from classy_fastapi import Routable, get
 from fastapi import Depends, Header, Query
 
 from auth.app.container import container
+from auth.app.controllers.internal_key import INTERNAL_ONLY
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
 from auth.app.services.auth_service import AuthService
@@ -38,7 +40,7 @@ def get_platform_admin(authorization: Optional[str] = Header(None)) -> User:
     return user
 
 
-@router(prefix="/admin", tags=["Platform admin"])
+@router(prefix="/admin", tags=["Platform admin"], dependencies=INTERNAL_ONLY)
 class AdminRouter(Routable):
     def __init__(self, user_service=container.user_service(), *args, **kwargs):
         super().__init__(*args, **kwargs)

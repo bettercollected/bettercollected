@@ -5,6 +5,7 @@ import logging
 from beanie import PydanticObjectId
 
 from auth.app.container import container
+from auth.app.controllers.internal_key import INTERNAL_ONLY
 from auth.app.router import router
 from auth.app.services.auth_service import AuthService
 
@@ -22,7 +23,7 @@ from starlette.requests import Request
 log = logging.getLogger(__name__)
 
 
-@router(prefix="/auth")
+@router(prefix="/auth", dependencies=INTERNAL_ONLY)
 class AuthRoutes(Routable):
     def __init__(
         self, auth_service: AuthService = container.auth_service(), *args, **kwargs

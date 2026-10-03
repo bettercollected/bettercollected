@@ -15,6 +15,7 @@ from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocumen
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
@@ -83,7 +84,7 @@ class WorkspaceMembersService:
                 "inviter_id": user.id,
                 "token": workspace_invitation.invitation_token,
             },
-            headers={"X-Internal-Key": settings.auth_settings.INTERNAL_NOTIFY_KEY},
+            headers=auth_service_headers(),
             timeout=60,
         )
         return workspace_invitation
@@ -180,7 +181,9 @@ class WorkspaceMembersService:
         self, user_ids: List[PydanticObjectId]
     ) -> List[Any]:
         response_data = await self.http_client.get(
-            settings.auth_settings.BASE_URL + "/users", params={"user_ids": user_ids}
+            settings.auth_settings.BASE_URL + "/users",
+            params={"user_ids": user_ids},
+            headers=auth_service_headers(),
         )
         return response_data.get("users_info")
 

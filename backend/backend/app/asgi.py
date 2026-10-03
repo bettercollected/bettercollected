@@ -26,6 +26,7 @@ from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
+from backend.app.services.internal_auth import log_if_internal_key_missing
 from backend.app.services.umami_client import provision_umami_website
 from backend.app.utils import AiohttpClient
 from scripts.seed_flow_templates import seed_flow_templates
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI):
     """FastAPI lifespan context manager handling startup and shutdown."""
     # --- Startup ---
     logger.info("Execute FastAPI startup event handler.")
+    log_if_internal_key_missing()
 
     AiohttpClient.get_aiohttp_client()
 

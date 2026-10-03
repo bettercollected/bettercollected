@@ -17,6 +17,7 @@ from pymongo import AsyncMongoClient
 
 from backend.app.container import container
 from backend.app.handlers.database import close_db, init_db
+from backend.app.services.internal_auth import log_if_internal_key_missing
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 from backend.db.startup import check_postgres_at_startup, dispose_postgres
@@ -26,6 +27,7 @@ from backend.jobs.app import DEFAULT_QUEUE, app
 async def main() -> None:
     queues = [q for q in os.environ.get("JOBS_QUEUES", DEFAULT_QUEUE).split(",") if q]
     concurrency = int(os.environ.get("JOBS_CONCURRENCY", "4"))
+    log_if_internal_key_missing()  # delete_user removes the account in auth
     AiohttpClient.get_aiohttp_client()
     client = AsyncMongoClient(settings.mongo_settings.URI)
     container.database_client.override(providers.Object(client))

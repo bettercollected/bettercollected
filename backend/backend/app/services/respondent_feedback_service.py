@@ -31,6 +31,7 @@ from backend.app.services.respondent_feedback import (
     feedback_entries,
     staff_feedback,
 )
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 ONLY_ADMINS = "Only workspace admins can respond to submissions."
@@ -40,7 +41,6 @@ FEEDBACK_OFF = (
 )
 # The auth service sends the notice (its mail templates and SMTP settings).
 NOTIFY_PATH = "/notifications/submission-update"
-INTERNAL_KEY_HEADER = "X-Internal-Key"
 NOTIFY_TIMEOUT_SECONDS = 10
 
 
@@ -162,10 +162,7 @@ class RespondentFeedbackService:
                     "workspace_title": workspace.title or None,
                     "link": link,
                 },
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    INTERNAL_KEY_HEADER: settings.auth_settings.INTERNAL_NOTIFY_KEY,
-                },
+                headers=auth_service_headers(Authorization=f"Bearer {access_token}"),
                 timeout=NOTIFY_TIMEOUT_SECONDS,
             )
             return True

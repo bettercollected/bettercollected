@@ -166,7 +166,8 @@ services:
       # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
       UMAMI_URL: http://umami:3000
       DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
-      # shared with auth; only the backend may trigger notification mails
+      # shared with auth and integrations-googleform: the auth service's API
+      # refuses every request without it (sign-in, users, billing, mails)
       AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
       # Schema migrations: deploy.sh runs them before the services roll. A stack
       # deployed without it (Docker Swarm / docker stack deploy, CI) can let each
@@ -243,6 +244,8 @@ services:
       # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
       UMAMI_URL: http://umami:3000
       DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
+      # delete_user removes the account from the auth service (see backend)
+      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
       # PDF form import: documents are only opened by the isolated document-sandbox
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
@@ -267,6 +270,7 @@ services:
       STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL}
       STRIPE_RETURN_URL: ${STRIPE_REDIRECT_URL}
       DATABASE_URL: postgresql+asyncpg://bc_auth:${BC_AUTH_PASSWORD}@app-postgres:5432/bettercollected
+      # every route but /ready and POST /stripe/webhooks requires it
       AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
     depends_on:
@@ -294,6 +298,8 @@ services:
     image: bettercollected/integrations-google:nightly
     environment:
       DATABASE_URL: postgresql+asyncpg://bc_google:${BC_GOOGLE_PASSWORD}@app-postgres:5432/bettercollected
+      # calls the auth service's /users, which requires it
+      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
     env_file:
       - .env.deployment
