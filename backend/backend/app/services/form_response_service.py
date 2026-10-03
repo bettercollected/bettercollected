@@ -24,6 +24,7 @@ from backend.app.models.dtos.form_response_dto import (
     SingleSubmissionResponse,
 )
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.respondent_feedback_dto import StaffFeedback
 from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
     StandardFormFieldCamelModel,
@@ -34,6 +35,7 @@ from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
+from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
@@ -47,6 +49,14 @@ from backend.app.services.internal_fields import (
     strip_internal_answers,
     strip_internal_fields,
     validate_internal_answer,
+)
+from backend.app.services.respondent_feedback import (
+    current_status,
+    decrypt_feedback,
+    emails_respondent,
+    feedback_entries,
+    present_to_respondent,
+    staff_feedback,
 )
 from backend.app.utils.hash import hash_string
 
@@ -72,12 +82,14 @@ class FormResponseService:
         workspace_form_repo: WorkspaceFormRepository,
         workspace_user_repo: WorkspaceUserRepository,
         aws_service: AWSS3Service,
+        workspace_repo: WorkspaceRepository,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
         self._workspace_user_repo = workspace_user_repo
         self._aws_service = aws_service
+        self._workspace_repo = workspace_repo
 
     async def get_all_workspace_responses(
         self,
@@ -122,9 +134,12 @@ class FormResponseService:
         user_responses = await self._form_response_repo.get_user_submissions(
             form_ids=form_ids, user=user, request_for_deletion=request_for_deletion
         )
-        # A respondent's own listing never carries staff-entered values.
+        # A respondent's own listing never carries staff-entered values; of
+        # the feedback only the current status (no staff identity).
         for item in user_responses.items:
             strip_internal_answers(item)
+            if not request_for_deletion:
+                present_to_respondent(item, None, enabled=False, with_entries=False)
         if not request_for_deletion:
             return self.decrypt_response_page(
                 workspace_id=workspace_id, responses_page=user_responses
@@ -259,6 +274,26 @@ class FormResponseService:
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
         )
+        staff_view = None
+        if is_admin:
+            entries = feedback_entries(decrypted_response)  # decrypted above
+            staff_view = StaffFeedback(
+                entries=staff_feedback(entries),
+                current_status=current_status(entries),
+                can_post=bool(workspace_form.settings.respondent_feedback_enabled)
+                and await self._workspace_user_repo.is_user_admin_in_workspace(
+                    workspace_id, user
+                ),
+                notifies_respondent=emails_respondent(
+                    workspace_form.settings, response
+                ),
+            )
+        else:
+            present_to_respondent(
+                decrypted_response,
+                await self._workspace_title(workspace_id),
+                enabled=bool(workspace_form.settings.respondent_feedback_enabled),
+            )
         for key, decrypted_answer in decrypted_response.answers.items():
             decrypted_answer = (
                 decrypted_answer.model_dump(mode="json")
@@ -279,7 +314,15 @@ class FormResponseService:
             form=form,
             response=decrypted_response,
             internal_fields=staff_internal_fields,
+            feedback=staff_view,
         )
+
+    async def _workspace_title(self, workspace_id: PydanticObjectId) -> Optional[str]:
+        """The organisation's name, shown to respondents as the author of
+        feedback in place of the staff member who posted it."""
+        workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
+        # not the handle: a default workspace is named after its owner's id
+        return (workspace.title or None) if workspace else None
 
     async def request_for_response_deletion(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
@@ -399,6 +442,10 @@ class FormResponseService:
                     data=response.internal_answers,
                 )
             )
+        if getattr(response, "respondent_feedback", None):
+            response.respondent_feedback = decrypt_feedback(
+                workspace_id, response.form_id, response.respondent_feedback
+            )
         return response
 
     async def submit_form_response(
@@ -472,14 +519,22 @@ class FormResponseService:
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
         )
+        respondent_response = StandardFormResponseCamelModel(
+            **decrypted_response.model_dump(mode="json")
+        )
+        # Feedback is the respondent's to read here, like the answers: with
+        # the workspace as the author, never the staff member.
+        present_to_respondent(
+            respondent_response,
+            await self._workspace_title(workspace_id),
+            enabled=bool(workspace_form.settings.respondent_feedback_enabled),
+        )
 
         return {
             "form": strip_internal_fields(
                 StandardFormCamelModel(**form.model_dump(mode="json"))
             ),
-            "response": StandardFormResponseCamelModel(
-                **decrypted_response.model_dump(mode="json")
-            ),
+            "response": respondent_response,
         }
 
     async def request_for_response_deletion_by_uuid(

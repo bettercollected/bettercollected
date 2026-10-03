@@ -7,6 +7,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { utcToLocalDate, utcToLocalDateTIme } from '@app/utils/date-utils';
 import Link from 'next/link';
+import FeedbackStatusChip from '@Components/form/feedback-status-chip';
 
 
 interface IWorkspaceFormResponseDeletionCardProps {
@@ -66,6 +67,11 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
                         <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-[#0E8A5F]" title="Submitted without your identity attached">
                             <ShieldIcon className="h-3 w-3" strokeWidth={2} />
                             Anonymous
+                        </span>
+                    )}
+                    {!deletionRequests && response?.feedback?.currentStatus && (
+                        <span title="The latest status from the organisation">
+                            <FeedbackStatusChip status={response.feedback.currentStatus} />
                         </span>
                     )}
                     {!!response?.status && (

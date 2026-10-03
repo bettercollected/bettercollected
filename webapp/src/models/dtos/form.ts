@@ -85,6 +85,40 @@ export interface InternalAnswerMeta {
     updated_at?: string;
 }
 
+/** One staff update on a submission as the respondent sees it (no staff identity). */
+export interface RespondentFeedbackEntry {
+    status?: string | null;
+    message?: string | null;
+    createdAt?: string;
+}
+
+/** The respondent's view of the feedback on their submission. */
+export interface RespondentFeedbackView {
+    /** The organisation (workspace title); never the staff member. */
+    author?: string | null;
+    currentStatus?: string | null;
+    updatedAt?: string | null;
+    /** Left out in listings, which only carry the current status. */
+    entries?: RespondentFeedbackEntry[] | null;
+}
+
+/** One staff update as workspace members see it. */
+export interface StaffFeedbackEntry extends RespondentFeedbackEntry {
+    id?: string;
+    createdBy?: string;
+    createdByEmail?: string;
+}
+
+/** The feedback panel of a submission, for workspace members. */
+export interface StaffFeedback {
+    entries?: StaffFeedbackEntry[];
+    currentStatus?: string | null;
+    /** Workspace admins and the owner, while the form has feedback on. */
+    canPost?: boolean;
+    /** Whether a new update emails the respondent a notice. */
+    notifiesRespondent?: boolean;
+}
+
 export interface StandardFormDto {
     formId: string;
     importedFormId?: string;
@@ -142,6 +176,9 @@ export interface StandardFormDto {
         showSubmissionNumber?: boolean;
         allowEditingResponse?: boolean;
         showOriginalForm?: boolean;
+        /** "Respond to submissions": staff post updates respondents see. */
+        respondentFeedbackEnabled?: boolean;
+        feedbackStatuses?: string[];
     };
     isPublished?: boolean;
     importerDetails?: UserStatus;
@@ -192,6 +229,8 @@ export interface StandardFormResponseDto {
     expirationType?: any;
     dataOwnerIdentifier?: string | null | undefined;
     responses?: Array<{ questionId: string; answer: any }>;
+    /** Respondent-facing payloads only: the staff's updates on this submission. */
+    feedback?: RespondentFeedbackView | null;
 }
 
 export interface WorkspaceResponderDto {

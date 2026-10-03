@@ -121,6 +121,9 @@ from backend.app.services.integration_action_service import IntegrationActionSer
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
 from backend.app.services.platform_metrics_service import PlatformMetricsService
+from backend.app.services.respondent_feedback_service import (
+    RespondentFeedbackService,
+)
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -500,6 +503,17 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         workspace_user_repo=workspace_user_repo,
         aws_service=aws_service,
+        workspace_repo=workspace_repo,
+    )
+
+    respondent_feedback_service: RespondentFeedbackService = providers.Singleton(
+        RespondentFeedbackService,
+        form_response_repo=form_response_repo,
+        form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
+        workspace_user_repo=workspace_user_repo,
+        workspace_repo=workspace_repo,
+        http_client=http_client,
     )
 
     workspace_user_service: WorkspaceUserService = providers.Singleton(

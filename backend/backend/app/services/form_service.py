@@ -365,6 +365,22 @@ class FormService:
         if settings.show_original_form is not None:
             workspace_form.settings.show_original_form = settings.show_original_form
 
+        # Respondent feedback: only on forms collected here — an imported
+        # form's responses are re-imported from the provider.
+        if settings.respondent_feedback_enabled:
+            if workspace_form.settings.provider != "self":
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST,
+                    "Responding to submissions is only available for forms "
+                    "built in BetterCollected.",
+                )
+        if settings.respondent_feedback_enabled is not None:
+            workspace_form.settings.respondent_feedback_enabled = (
+                settings.respondent_feedback_enabled
+            )
+        if settings.feedback_statuses is not None:
+            workspace_form.settings.feedback_statuses = settings.feedback_statuses
+
         # Trust-layer content — empty string clears a value.
         if settings.privacy_policy_url is not None:
             workspace_form.settings.privacy_policy_url = (

@@ -60,7 +60,11 @@ from common.db import (
     to_bson_dict,
 )
 from common.db.beanie_bridge import row_values
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.standard_form import (
+    RespondentFeedback,
+    StandardFormResponse,
+    StandardFormResponseAnswer,
+)
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from camel_converter import to_camel, to_snake
@@ -659,6 +663,28 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             stored.internal_answers = response.internal_answers
             stored.internal_answers_meta = response.internal_answers_meta
             stored.internal_answers_version = response.internal_answers_version
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
+
+    async def add_respondent_feedback(
+        self, response_id: str, entry: RespondentFeedback
+    ) -> Optional[FormResponseDocument]:
+        """Twin of the Mongo ``$push``: the row is locked while the entry is
+        appended to the stored history."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(FormResponseRow.doc)
+                    .where(FormResponseRow.response_id == response_id)
+                    .order_by(FormResponseRow.created_at, FormResponseRow.id)
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            stored = from_row_doc(FormResponseDocument, doc)
+            stored.respondent_feedback = [*(stored.respondent_feedback or []), entry]
             await session.execute(self._upsert_statement(row_values(stored)))
         return stored
 

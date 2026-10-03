@@ -119,6 +119,22 @@ AI ops both refuse it). `validations.required` on an internal field is stored bu
 staff-side "complete" state yet). A new endpoint that returns a form or a response to respondents must use the
 same two strip helpers.
 
+**Respondent feedback** ("Respond to submissions"): a form built here opts in with
+`WorkspaceFormSettings.respondent_feedback_enabled` and lists its `feedback_statuses` (≤ 10, 1–40 chars,
+unique ignoring case; `normalize_feedback_statuses`). Workspace admins and the owner (active membership +
+`is_user_admin_in_workspace`) post `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/feedback`
+(`{status?, message?}`, at least one; a status outside the form's list → 422). Entries are appended to
+`StandardFormResponse.respondent_feedback` (`add_respondent_feedback`, `replay=True`), message encrypted like
+`answers` and decrypted in `decrypt_form_response`. `StandardFormResponseCamelModel.respondent_feedback` is
+`exclude=True`: the stored list (staff identity, ciphertext) is never serialised. Members get
+`SingleSubmissionResponse.feedback` (who posted each); respondents get `response.feedback` through
+`present_to_respondent` (`services/respondent_feedback.py`): the workspace title as author, never staff — on
+their submission page, the by-uuid receipt and, as `currentStatus` only, "my submissions". A new update emails
+a notice (never the update) through auth's `POST /notifications/submission-update` with the poster's token,
+only when the form requires a verified identity and the submitter is identified; a mail failure is logged and
+never fails the update. The link is always `API_CLIENT_URL/<workspace_name>/submissions/<response_id>` (auth
+accepts only its configured hosts, so never a custom domain).
+
 **Repeating groups:** a `group` field with `properties.repeat` (`RepeatSettings`: min/max items ≤ 50,
 item label/title, `export_layout`) in `common/models/standard_form.py`; the model rejects nested groups and
 unsupported child types (`REPEAT_CHILD_FIELD_TYPES`) — legacy imported groups without `repeat` are untouched.
