@@ -16,7 +16,6 @@ from auth.version import __version__
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
     .parent.parent.absolute()
@@ -48,6 +47,9 @@ class Application(BaseSettings):
     AUTH_JWT_SECRET: str
     AUTH_AES_HEX_KEY: str
     CLIENT_ADMIN_URL: Optional[str] = "http://localhost:3000"
+    # Comma-separated emails that are platform admins (ADMIN role), on top of
+    # any ADMIN stored on the user; see app/services/platform_admins.py.
+    PLATFORM_ADMIN_EMAILS: Optional[str] = ""
 
     model_config = SettingsConfigDict(case_sensitive=True)
 

@@ -45,6 +45,11 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - **Stripe billing** (`controllers/stripe_router.py`, logic in `services/stripe_service.py`):
   `GET /stripe/plans`, `GET /stripe/session/create/checkout`, `GET /stripe/session/create/portal`,
   `POST /stripe/webhooks`.
+- **Platform admins** (`ADMIN` role, not workspace admins): `PLATFORM_ADMIN_EMAILS` (comma-separated) adds ADMIN to
+  those users' roles wherever roles go into a token — OTP and OAuth login, `/callback`, and `/status` (which the backend
+  refreshes access tokens from) — via `services/platform_admins.py:roles_for`. Never stored, so removing an email revokes
+  it at the user's next token; an ADMIN stored on the user document still counts. `GET /admin/metrics` (user counts for
+  the backend's platform metrics page) requires it.
 
 ## Cross-service position
 
