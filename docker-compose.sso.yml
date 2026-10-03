@@ -1,0 +1,44 @@
+# Dev-only: enterprise SSO spike (docs/sso-spike.md).
+#   Ory Polis (formerly BoxyHQ SAML Jackson) on http://localhost:5225
+#   Mock SAML IdP                            on http://localhost:4000
+# Don't run this file directly: scripts/sso-dev-setup.sh generates the
+# throwaway keys/secrets in .sso-dev/ (gitignored), creates the `polis`
+# database in app-postgres, starts both containers and registers the SAML
+# connection. Polis joins the network of docker-compose.local.yml to reach
+# app-postgres.
+services:
+  polis:
+    image: boxyhq/jackson:latest
+    ports:
+      - "5225:5225"
+    env_file:
+      - .sso-dev/polis.env
+    environment:
+      EXTERNAL_URL: http://localhost:5225
+      NEXTAUTH_URL: http://localhost:5225
+      DB_ENGINE: sql
+      DB_TYPE: postgres
+      # SP-initiated only; IdP-initiated logins are refused (see the doc).
+      IDP_ENABLED: "false"
+      # Exact redirect_uri match (scheme, host, port and path).
+      OPENID_REDIRECT_EXACT_MATCH: "true"
+      SAML_AUDIENCE: https://saml.bettercollected.local
+      BOXYHQ_NO_ANALYTICS: "1"
+      DO_NOT_TRACK: "1"
+    networks:
+      - app
+
+  mock-saml:
+    image: boxyhq/mock-saml:latest
+    ports:
+      - "4000:4000"
+    env_file:
+      - .sso-dev/mock-saml.env
+    environment:
+      APP_URL: http://localhost:4000
+      ENTITY_ID: https://mock-saml.bettercollected.local/entityid
+
+networks:
+  app:
+    name: bettercollected_default
+    external: true

@@ -88,6 +88,7 @@ class AuthService:
         client_referer_url: str,
         creator: bool,
         prospective_pro_user: bool,
+        login_hint: str = None,
     ):
         url = await self.auth_provider_factory.get_auth_provider(
             provider
@@ -95,6 +96,7 @@ class AuthService:
             client_referer_url,
             creator=creator,
             prospective_pro_user=prospective_pro_user,
+            login_hint=login_hint,
         )
         return {"auth_url": url}
 

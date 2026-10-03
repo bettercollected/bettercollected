@@ -85,6 +85,31 @@ class WorkspaceUserService:
         )
         return await self.workspace_user_repository.save(workspace_user)
 
+    async def add_sso_member(self, workspace_id: str, user: User):
+        """Just-in-time membership for an SSO sign-in (spike, docs/sso-spike.md):
+        the first SSO login of a user makes them a COLLABORATOR of the
+        workspace whose IdP vouched for them; an existing membership (any role)
+        is left alone. Same path as an accepted invitation, so the collaborator
+        limit applies. Returns the workspace."""
+        try:
+            workspace = await self.workspace_repo.find_by_id(
+                PydanticObjectId(workspace_id)
+            )
+        except Exception:
+            workspace = None
+        if not workspace or workspace.disabled:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content={
+                    "code": "sso_workspace_unavailable",
+                    "message": "The workspace for this sign-in is not available.",
+                },
+            )
+        await self.add_user_to_workspace_with_role(
+            workspace_id=workspace.id, user=user, role=WorkspaceRoles.COLLABORATOR
+        )
+        return workspace
+
     async def get_mine_workspaces(self, user_id: str):
         workspace_users = await self.workspace_user_repository.get_mine_workspaces(
             user_id=user_id

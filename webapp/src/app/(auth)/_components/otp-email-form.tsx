@@ -18,6 +18,8 @@ import { signUpScreen } from '@app/constants/locales/signup-screen';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
 import { capitalize } from '@app/utils/string-utils';
 
+import SsoSignIn, { ssoEnabled } from './sso-sign-in';
+
 interface OtpEmailFormProps {
     isModal?: boolean;
     isSignup?: string | boolean;
@@ -75,7 +77,8 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
     };
 
     return (
-        <form className={`w-full ${isModal ? 'mt-16' : ''}`} onSubmit={handleEmailInputForCreator}>
+        <div className="w-full">
+            <form className={`w-full ${isModal ? 'mt-16' : ''}`} onSubmit={handleEmailInputForCreator}>
             {loginErrorMessage && (
                 <p role="alert" className="body4 mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 !text-red-700">
                     {loginErrorMessage}
@@ -133,6 +136,12 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
             >
                 {constants.sendCodeButton}
             </Button>
-        </form>
+            </form>
+            {ssoEnabled && !isModal && (
+                <div className="mt-6 w-full">
+                    <SsoSignIn isCreator={isCreator} fromProPlan={fromProPlan} />
+                </div>
+            )}
+        </div>
     );
 }

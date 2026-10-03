@@ -24,6 +24,7 @@ from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_service import WorkspaceService
+from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 
@@ -61,6 +62,7 @@ class AuthService:
         temporal_service: TemporalService,
         crypto: Crypto,
         user_tags_service: UserTagsService,
+        workspace_user_service: WorkspaceUserService = None,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -70,6 +72,7 @@ class AuthService:
         self.temporal_service = temporal_service
         self.crypto = crypto
         self.user_tags_service = user_tags_service
+        self.workspace_user_service = workspace_user_service
 
     async def get_user_status(self, user: User):
         try:
@@ -209,6 +212,17 @@ class AuthService:
             timeout=120,
         )
         user = response_data.get("user")
+        await self._after_basic_login(user, response_data)
+        client_referer_url = response_data.get("client_referer_url", "")
+        if not user and response_data.get("error"):
+            # auth refused the sign-in (e.g. the provider did not verify the
+            # email, #758): back to the login page, which explains it
+            client_referer_url = with_login_error(
+                client_referer_url, response_data.get("error"), provider
+            )
+        return user, client_referer_url
+
+    async def _after_basic_login(self, user, response_data):
         if user and Roles.FORM_CREATOR in user.get("roles"):
             await self.user_tags_service.add_user_tag(
                 user_id=user.get("id"), tag=UserTagType.NEW_USER
@@ -218,14 +232,45 @@ class AuthService:
                 await self.user_tags_service.add_user_tag(
                     user_id=User(**user).id, tag=UserTagType.PROSPECTIVE_PRO_USER
                 )
-        client_referer_url = response_data.get("client_referer_url", "")
-        if not user and response_data.get("error"):
-            # auth refused the sign-in (e.g. the provider did not verify the
-            # email, #758): back to the login page, which explains it
-            client_referer_url = with_login_error(
-                client_referer_url, response_data.get("error"), provider
-            )
-        return user, client_referer_url
+
+    async def get_sso_login_url(
+        self,
+        email: str,
+        client_referer_url: str,
+        creator: bool = False,
+        prospective_pro_user: bool = False,
+    ) -> str:
+        """Enterprise SSO via Polis (spike, docs/sso-spike.md): auth resolves
+        the tenant from the email's domain and answers the Polis authorize URL."""
+        response_data = await self.http_client.get(
+            settings.auth_settings.BASE_URL + "/auth/sso/basic",
+            params={
+                "client_referer_url": client_referer_url,
+                "creator": creator,
+                "prospective_pro_user": prospective_pro_user,
+                "login_hint": email,
+            },
+        )
+        return response_data.get("auth_url")
+
+    async def sso_callback(self, code: str, state: str):
+        """Auth exchanges the Polis code and checks the email against the
+        tenant's domains; here the user joins that workspace (just in time)
+        before cookies are set. Returns (user, client_referer_url, workspace)."""
+        response_data = await self.http_client.get(
+            settings.auth_settings.BASE_URL + "/auth/sso/basic/callback",
+            params={"code": code, "state": state},
+            timeout=120,
+        )
+        user = response_data.get("user")
+        workspace_id = response_data.get("sso_workspace_id")
+        if not user or not workspace_id:
+            raise HTTPException(HTTPStatus.UNAUTHORIZED, content="SSO sign-in failed")
+        workspace = await self.workspace_user_service.add_sso_member(
+            workspace_id, User(**user)
+        )
+        await self._after_basic_login(user, response_data)
+        return User(**user), response_data.get("client_referer_url", ""), workspace
 
     async def delete_user(self, user: User):
         await self.delete_credentials_from_integrations(user=user)

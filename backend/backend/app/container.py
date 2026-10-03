@@ -703,6 +703,7 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
         crypto=crypto,
         user_tags_service=user_tags_service,
+        workspace_user_service=workspace_user_service,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(

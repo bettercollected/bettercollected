@@ -6,3 +6,4 @@ webapp/.yarn
 .DS_Store
 # local document-sandbox socket (docker-compose.local.yml)
 /.run/
+.sso-dev/

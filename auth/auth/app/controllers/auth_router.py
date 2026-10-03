@@ -1,6 +1,7 @@
 """Auth controller implementation."""
 
 import logging
+from typing import Optional
 
 from beanie import PydanticObjectId
 
@@ -66,9 +67,14 @@ class AuthRoutes(Routable):
         client_referer_url,
         creator: bool = False,
         prospective_pro_user: bool = False,
+        login_hint: Optional[str] = None,
     ):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
-            provider_name, client_referer_url, creator, prospective_pro_user
+            provider_name,
+            client_referer_url,
+            creator,
+            prospective_pro_user,
+            login_hint=login_hint,
         )
         return basic_auth_url
 

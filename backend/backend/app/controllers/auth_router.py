@@ -3,9 +3,11 @@
 import logging
 from http import HTTPStatus
 from typing import Optional
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 from classy_fastapi import Routable, get, post, delete
 from common.enums.form_provider import FormProvider
+from common.exceptions.http import HTTPException as CommonHTTPException
 from common.models.user import User, UserLoginWithOTP
 from fastapi import Depends
 from pydantic import EmailStr
@@ -13,6 +15,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.user_feedback import UserFeedbackDto
 from backend.app.models.dtos.user_status_dto import UserStatusDto
 from backend.app.router import router
@@ -53,7 +56,7 @@ class AuthRoutes(Routable):
         auth_service=container.auth_service(),
         user_feedback_service=container.user_feedback_service(),
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.auth_service: AuthService = auth_service
@@ -147,6 +150,56 @@ class AuthRoutes(Routable):
         if state_data.client_referer_uri:
             return response
         return {"message": "Token saved successfully."}
+
+    @get("/sso/login")
+    async def _sso_login(
+        self,
+        request: Request,
+        email: str,
+        creator: bool = False,
+        prospective_pro_user: bool = False,
+    ):
+        """Enterprise SSO (spike, docs/sso-spike.md): send the browser to the
+        workspace's identity provider via Polis, or back with ``sso_error``."""
+        client_referer_url = request.headers.get("referer") or _default_login_url()
+        try:
+            auth_url = await self.auth_service.get_sso_login_url(
+                email,
+                client_referer_url,
+                creator=creator,
+                prospective_pro_user=prospective_pro_user,
+            )
+        except (HTTPException, CommonHTTPException) as e:
+            return RedirectResponse(_with_sso_error(client_referer_url, e))
+        return RedirectResponse(auth_url)
+
+    @get("/sso/callback")
+    async def _sso_callback(
+        self,
+        code: Optional[str] = None,
+        state: Optional[str] = None,
+        error: Optional[str] = None,
+    ):
+        if error or not code or not state:
+            # Polis reports IdP/connection failures as ?error=...; we can't
+            # trust the state for a redirect target here, so use the default.
+            return RedirectResponse(
+                _with_sso_error(_default_login_url(), None, "sso_failed")
+            )
+        try:
+            user, client_referer_url, workspace = await self.auth_service.sso_callback(
+                code, state
+            )
+        except (HTTPException, CommonHTTPException) as e:
+            referer = _error_content(e).get("client_referer_url")
+            return RedirectResponse(_with_sso_error(referer or _default_login_url(), e))
+        target = urljoin(
+            client_referer_url or _default_login_url(),
+            f"/{workspace.workspace_name}/dashboard/forms",
+        )
+        response = RedirectResponse(target)
+        set_tokens_to_response(user, response)
+        return response
 
     @get(
         "/{provider}/basic",
@@ -244,3 +297,35 @@ class AuthRoutes(Routable):
         )
         delete_token_cookie(response)
         return resp
+
+
+SSO_ERROR_CODES = {
+    "sso_disabled",
+    "sso_not_configured",
+    "sso_failed",
+    "sso_expired",
+    "sso_bad_state",
+    "sso_tenant_mismatch",
+    "sso_email_domain_not_allowed",
+    "sso_workspace_unavailable",
+}
+
+
+def _default_login_url() -> str:
+    return settings.api_settings.CLIENT_URL.rstrip("/") + "/login"
+
+
+def _error_content(error) -> dict:
+    content = getattr(error, "content", None)
+    return content if isinstance(content, dict) else {}
+
+
+def _with_sso_error(url: str, error, code: Optional[str] = None) -> str:
+    """``url`` with ``sso_error=<code>`` (a fixed code, never free text)."""
+    code = code or _error_content(error).get("code")
+    if code not in SSO_ERROR_CODES:
+        code = "sso_failed"
+    parts = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query) if k != "sso_error"]
+    query.append(("sso_error", code))
+    return urlunsplit(parts._replace(query=urlencode(query)))
