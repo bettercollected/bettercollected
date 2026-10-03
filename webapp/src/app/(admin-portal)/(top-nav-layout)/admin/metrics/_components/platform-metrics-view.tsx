@@ -213,7 +213,9 @@ export default function PlatformMetricsView() {
     const status = (error as { status?: number | string } | undefined)?.status;
 
     let body: React.ReactNode;
-    if (auth?.isLoading) {
+    // A signed-in user's status never clears isLoading (setAuth(user) leaves it
+    // as it was), so only an unknown user still counts as loading.
+    if (auth?.isLoading && !isSignedIn) {
         body = <LoadingGrid />;
     } else if (!isSignedIn || status === 401) {
         body = (

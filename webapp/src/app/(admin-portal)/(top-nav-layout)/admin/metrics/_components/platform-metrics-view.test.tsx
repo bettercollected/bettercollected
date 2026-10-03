@@ -67,4 +67,13 @@ describe('PlatformMetricsView', () => {
         expect(screen.getByTestId('weekly-chart')).toBeTruthy();
         expect(screen.getByRole('tab', { name: 'New organizations' }).getAttribute('data-state')).toBe('active');
     });
+
+    it('shows the counts for a signed-in admin whose auth state still says loading', () => {
+        // setAuth(user) after the status call leaves isLoading as it was (true)
+        auth.value = { id: 'u1', roles: ['ADMIN'], isLoading: true };
+        query.value = { ...query.value, data: metrics };
+        render(<PlatformMetricsView />);
+        expect(screen.queryByLabelText('Loading metrics')).toBeNull();
+        expect(screen.getByText('44,004')).toBeTruthy();
+    });
 });
