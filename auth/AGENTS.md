@@ -38,6 +38,14 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - **Provider factory** — `services/auth_provider_factory.py` (`get_auth_provider`) wires **Google** and **Typeform**
   OAuth providers (`google_auth_provider.py`, `typeform_auth_provider.py`, both extending `base_auth_provider.py`).
   Add a new login provider by implementing `base_auth_provider` and registering it in the factory.
+- **Account linking** (#758) — accounts are keyed by email, so a provider sign-in may use or create the account for
+  an email only when the provider verified it: go through `services/provider_sign_in.py`
+  (`account_for_provider_sign_in`), never `save_user` directly. Google needs `verified_email`; Typeform's `/me`
+  email is unproven, so Typeform sign-in is always refused (existing and new accounts alike — a new one would squat
+  the address). A refusal returns the state without `user` plus `error`/`provider`; the backend redirects to the
+  login page with `login_error=unverified_email&login_provider=…`, which the webapp explains. `GET /callback` (the
+  backend's import-OAuth token exchange) never creates accounts, and the backend only sends it the signed-in user's
+  own email.
 - **Routes** (`controllers/auth_router.py`):
   - `GET /otp/send`, `GET /otp/validate` — email OTP login.
   - `GET /{provider_name}/basic` + `GET /{provider}/basic/callback` — per-provider OAuth login.

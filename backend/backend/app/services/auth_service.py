@@ -1,6 +1,8 @@
 import json
+import re
 from http import HTTPStatus
-from typing import Tuple
+from typing import Optional, Tuple
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from common.configs.crypto import Crypto
 from common.enums.roles import Roles
@@ -24,6 +26,28 @@ from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+
+_LOGIN_ERROR_CODE = re.compile(r"^[a-z_]{1,64}$")
+
+
+def _same_email(a: Optional[str], b: Optional[str]) -> bool:
+    return bool(a and b) and a.strip().lower() == b.strip().lower()
+
+
+def with_login_error(url: str, code: str, provider: str) -> str:
+    """``url`` (the page the sign-in started from) with ``login_error`` and
+    ``login_provider`` query parameters; unchanged when there is no page to
+    return to or the code is not a plain identifier."""
+    if not url or not isinstance(code, str) or not _LOGIN_ERROR_CODE.match(code):
+        return url
+    parts = urlsplit(url)
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parts.query, keep_blank_values=True)
+        if key not in ("login_error", "login_provider")
+    ]
+    query += [("login_error", code), ("login_provider", provider)]
+    return urlunsplit(parts._replace(query=urlencode(query)))
 
 
 class AuthService:
@@ -143,6 +167,11 @@ class AuthService:
             extra_params={"user_id": user.id},
         )
         user_info = UserInfo(**response_data)
+        # The import provider's email proves nothing about who the user is, so
+        # this flow never moves the session to another account (#758): only the
+        # signed-in user's own email is exchanged for fresh tokens.
+        if not _same_email(user_info.email, user.sub):
+            raise HTTPException(403, "Invalid User Authentication.")
 
         jwt_token = self.jwt_service.encode(user_info)
 
@@ -189,7 +218,14 @@ class AuthService:
                 await self.user_tags_service.add_user_tag(
                     user_id=User(**user).id, tag=UserTagType.PROSPECTIVE_PRO_USER
                 )
-        return user, response_data.get("client_referer_url", "")
+        client_referer_url = response_data.get("client_referer_url", "")
+        if not user and response_data.get("error"):
+            # auth refused the sign-in (e.g. the provider did not verify the
+            # email, #758): back to the login page, which explains it
+            client_referer_url = with_login_error(
+                client_referer_url, response_data.get("error"), provider
+            )
+        return user, client_referer_url
 
     async def delete_user(self, user: User):
         await self.delete_credentials_from_integrations(user=user)

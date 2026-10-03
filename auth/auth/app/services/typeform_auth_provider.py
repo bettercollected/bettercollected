@@ -5,6 +5,11 @@ from typing import Any, Dict
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository  # noqa: F401
 from auth.app.services.base_auth_provider import BaseAuthProvider
+from auth.app.services.provider_sign_in import (
+    ProviderSignInRefused,
+    account_for_provider_sign_in,
+    refused_state,
+)
 from auth.config import settings
 
 from common.configs.crypto import Crypto
@@ -75,14 +80,22 @@ class TypeformAuthProvider(BaseAuthProvider):
         )
         if not user_response:
             return state_json
-        name: str = user_response.get("alias").split()
+        name = (user_response.get("alias") or "").split() or [None]
         creator = state_json.get("creator", False)
-        user_document = await _user_repository().save_user(
-            user_response.get("email"),
-            creator=creator,
-            first_name=name[0],
-            last_name=name[-1],
-        )
+        try:
+            # Typeform's /me email is not proven to be the user's: never sign in
+            # to, or create, the account for it (see provider_sign_in.py)
+            user_document = await account_for_provider_sign_in(
+                _user_repository(),
+                "typeform",
+                user_response.get("email"),
+                False,
+                creator=creator,
+                first_name=name[0],
+                last_name=name[-1],
+            )
+        except ProviderSignInRefused as refusal:
+            return refused_state(state_json, refusal)
         user = User(
             id=str(user_document.id),
             sub=user_document.email,
@@ -90,6 +103,7 @@ class TypeformAuthProvider(BaseAuthProvider):
             # configured platform-admin grant (see platform_admins.py)
             roles=user_document.roles,
             plan=user_document.plan,
+            email_verified=False,
         )
         state_json["user"] = user.dict()
         return state_json
