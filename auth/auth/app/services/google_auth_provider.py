@@ -122,11 +122,16 @@ class GoogleAuthProvider(BaseAuthProvider):
             last_name=user.get("family_name"),
             profile_image=user.get("picture"),
         )
+        # oauth2 v2 userinfo says "verified_email" (OpenID Connect: "email_verified")
+        verified = (
+            user.get("verified_email") is True or user.get("email_verified") is True
+        )
         user = User(
             id=str(user_document.id),
             sub=user_document.email,
-            roles=roles_for(user_document.email, user_document.roles),
+            roles=roles_for(user_document.email, user_document.roles, verified),
             plan=user_document.plan,
+            email_verified=verified,
         )
         state_json["user"] = user.dict()
         return state_json

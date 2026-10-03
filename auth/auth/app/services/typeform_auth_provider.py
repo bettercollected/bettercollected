@@ -5,7 +5,6 @@ from typing import Any, Dict
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository  # noqa: F401
 from auth.app.services.base_auth_provider import BaseAuthProvider
-from auth.app.services.platform_admins import roles_for
 from auth.config import settings
 
 from common.configs.crypto import Crypto
@@ -87,7 +86,9 @@ class TypeformAuthProvider(BaseAuthProvider):
         user = User(
             id=str(user_document.id),
             sub=user_document.email,
-            roles=roles_for(user_document.email, user_document.roles),
+            # Typeform's /me email is not proven to be the user's: no
+            # configured platform-admin grant (see platform_admins.py)
+            roles=user_document.roles,
             plan=user_document.plan,
         )
         state_json["user"] = user.dict()

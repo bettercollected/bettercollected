@@ -1,10 +1,17 @@
 """Platform admins named by configuration (``PLATFORM_ADMIN_EMAILS``).
 
-The ADMIN role is added when a user's roles go into a token (login, the
-provider callbacks, and ``/auth/status``, which the backend refreshes access
-tokens from), never stored. Removing an email from the setting therefore
-revokes the role at that user's next token. An ADMIN stored on the user
-document still counts as before.
+A listed email gets the ADMIN role, and with it every platform-admin power
+(``get_logged_admin`` in the backend), not only the metrics page. So the grant
+needs proof the user owns the address: it applies only to sessions whose email
+was verified at sign-in (OTP, or Google reporting it verified), never to a
+provider that merely returns an email (Typeform) or to an unverified one.
+
+The role is added when roles go into a token (login, and ``/auth/status``,
+which the backend refreshes access tokens from, told whether the session was
+verified), never stored. Removing an email therefore revokes the role at that
+user's next token; tokens already issued keep it until they expire
+(``AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES``). An ADMIN stored on the user document
+still counts as before.
 """
 
 from typing import Iterable, List, Optional
@@ -22,12 +29,17 @@ def platform_admin_emails(configured: Optional[str] = None) -> frozenset:
 
 
 def roles_for(
-    email: Optional[str], roles: Optional[Iterable[str]], configured=None
+    email: Optional[str],
+    roles: Optional[Iterable[str]],
+    verified: bool,
+    configured: Optional[str] = None,
 ) -> List[str]:
-    """``roles`` plus ADMIN when ``email`` is a configured platform admin."""
+    """``roles`` plus ADMIN when ``email`` is a configured platform admin and
+    was verified at sign-in; otherwise ``roles`` unchanged."""
     effective = list(roles or [])
     if (
-        email
+        verified is True
+        and email
         and email.strip().lower() in platform_admin_emails(configured)
         and Roles.ADMIN not in effective
     ):

@@ -1,4 +1,5 @@
 """Auth controller implementation."""
+
 import logging
 
 from beanie import PydanticObjectId
@@ -30,8 +31,10 @@ class AuthRoutes(Routable):
         self.auth_service = auth_service
 
     @get("/status")
-    async def _get_user_status(self, user_id: PydanticObjectId):
-        return await self.auth_service.get_user_status(user_id)
+    async def _get_user_status(
+        self, user_id: PydanticObjectId, email_verified: bool = False
+    ):
+        return await self.auth_service.get_user_status(user_id, email_verified)
 
     @get("/otp/send")
     async def _send_otp_to_email(
@@ -58,7 +61,11 @@ class AuthRoutes(Routable):
 
     @get("/{provider_name}/basic")
     async def _basic_auth(
-        self, provider_name: str, client_referer_url, creator: bool = False, prospective_pro_user: bool =False
+        self,
+        provider_name: str,
+        client_referer_url,
+        creator: bool = False,
+        prospective_pro_user: bool = False,
     ):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider_name, client_referer_url, creator, prospective_pro_user
