@@ -10,6 +10,7 @@ from httpx import AsyncClient
 from backend.app.container import container
 from backend.app.services.platform_metrics_service import week_starts
 from common.exceptions.http import HTTPException as CommonHTTPException
+from common.models.user import User
 from tests.app.controllers.data import testUser
 
 URL = "/api/v1/admin/metrics"
@@ -121,6 +122,50 @@ async def test_admin_gets_counts(
 
     # nothing identifying in the payload
     assert testUser.sub not in response.text
+
+
+class FakeStatusClient:
+    """Stands in for the httpx client ``get_logged_user`` refreshes through."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get(self, url, params=None, **kwargs):
+        user = {**testUser.model_dump(), "email": testUser.sub}  # /auth/status shape
+
+        class Reply:
+            status_code = 200
+
+            @staticmethod
+            def json():
+                return user
+
+        return Reply()
+
+
+async def test_forwards_the_refreshed_token(
+    client: AsyncClient, test_user_cookies, auth_ok, monkeypatch
+):
+    """An expired access token is refreshed for this request; auth must get the
+    new token, not the expired one, or the user counts would come back empty."""
+    import backend.app.services.user_service as user_service
+
+    monkeypatch.setattr(user_service.httpx, "AsyncClient", FakeStatusClient)
+    cookies = {"Authorization": "expired", "RefreshToken": test_user_cookies["RefreshToken"]}
+    response = await client.get(URL, cookies=cookies)
+    assert response.status_code == 200
+    assert response.json()["users"] is not None
+
+    (call,) = auth_ok.calls
+    forwarded = call["headers"]["Authorization"].removeprefix("Bearer ")
+    assert forwarded != "expired"
+    assert container.jwt_service().decode(forwarded, User).id == testUser.id
 
 
 async def test_auth_down_returns_the_rest(

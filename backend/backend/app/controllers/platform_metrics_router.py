@@ -2,9 +2,13 @@
 not workspace admins): counts of organizations, users, form creators and
 responders, forms and responses, with a 12-week series. Aggregates only."""
 
+import http.cookies
+from typing import Optional
+
 from classy_fastapi import Routable, get
 from fastapi import Depends
 from starlette.requests import Request
+from starlette.responses import Response
 
 from backend.app.container import container
 from backend.app.models.dtos.platform_metrics_dto import PlatformMetricsDto
@@ -12,6 +16,16 @@ from backend.app.router import router
 from backend.app.services.platform_metrics_service import PlatformMetricsService
 from backend.app.services.user_service import get_access_token, get_logged_admin
 from common.models.user import User
+
+
+def forwarded_access_token(request: Request, response: Response) -> Optional[str]:
+    """The access token to forward to auth: the one ``get_logged_user`` just
+    issued on this response when the request's had expired, else the request's."""
+    for header in response.headers.getlist("set-cookie"):
+        cookie = http.cookies.SimpleCookie(header)
+        if "Authorization" in cookie:
+            return cookie["Authorization"].value
+    return get_access_token(request)
 
 
 # Plain Routable, not CustomRoutable: ``users: null`` (auth unreachable) must
@@ -36,8 +50,11 @@ class PlatformMetricsRouter(Routable):
         },
     )
     async def get_platform_metrics(
-        self, request: Request, user: User = Depends(get_logged_admin)
+        self,
+        request: Request,
+        response: Response,
+        user: User = Depends(get_logged_admin),
     ):
         return await self.platform_metrics_service.get_metrics(
-            get_access_token(request)
+            forwarded_access_token(request, response)
         )
