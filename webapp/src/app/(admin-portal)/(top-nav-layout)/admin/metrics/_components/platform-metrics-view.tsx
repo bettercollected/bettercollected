@@ -42,7 +42,7 @@ function StatGroup({ title, description, stats, children }: { title: string; des
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
                     {stats.map((stat, index) => (
                         <div key={stat.label} className="min-w-0">
-                            <dt className="truncate text-xs font-medium text-black-600">{stat.label}</dt>
+                            <dt className="text-xs font-medium text-black-600">{stat.label}</dt>
                             <dd className={`mt-1 font-semibold tabular-nums text-black-900 ${index === 0 ? 'text-2xl' : 'text-xl'}`}>{formatCount(stat.value)}</dd>
                             {stat.hint && <dd className="mt-0.5 text-xs text-black-500">{stat.hint}</dd>}
                         </div>

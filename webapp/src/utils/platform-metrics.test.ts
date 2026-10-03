@@ -23,6 +23,7 @@ describe('formatShare', () => {
     it('is a whole percentage of the total', () => {
         expect(formatShare(1918, 2612)).toBe('73%');
         expect(formatShare(0, 10)).toBe('0%');
+        expect(formatShare(8, 2612)).toBe('<1%');
     });
 
     it('has no share of nothing', () => {

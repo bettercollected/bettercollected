@@ -23,7 +23,10 @@ export function formatCount(value: number | null | undefined): string {
 /** part of total as a whole percentage ("42%"); "—" when total is 0. */
 export function formatShare(part: number, total: number): string {
     if (!total || !Number.isFinite(part) || !Number.isFinite(total)) return '—';
-    return `${Math.round((part / total) * 100)}%`;
+    const share = (part / total) * 100;
+    // a real but tiny share must not read as none
+    if (part > 0 && share < 1) return '<1%';
+    return `${Math.round(share)}%`;
 }
 
 /** "2026-09-28" -> "28 Sep" (the date is a UTC calendar day, so no time zone shift). */
