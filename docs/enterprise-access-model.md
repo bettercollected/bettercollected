@@ -1,6 +1,6 @@
 # Enterprise access model: roles, permissions and form-level scope
 
-Status: **proposed** (design for review). It is a prerequisite for SSO/SCIM, which is Phase 0 of the enterprise work in `docs/sso-spike.md`.
+Status: **proposed** (design for review). It is a prerequisite for SSO/SCIM, which is Phase 0 of the enterprise work in [`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md).
 
 ## Decisions taken
 1. **Form-level scoping ships in v1.** Access can be granted on specific forms to users and groups. Folders come later.
@@ -81,7 +81,10 @@ A **form grant** is `(form, principal, form role, export?)`:
 - **Form role:** Editor, Reviewer or Viewer, with the content permissions of the workspace role of the same name.
 - **`export`:** optional. It adds `response.export` for Reviewers and Viewers on that form only.
 - **Elevation:** a grant may give a member more on that form than their workspace role, so a Viewer can be Reviewer on the hiring forms. It never gives workspace-level permissions.
-- **Who manages grants:** whoever has `form.share` on the form.
+- **Who manages grants:** whoever has `form.share` on the form, within two caps:
+  - **Grantor cap:** a grant can't give more on that form than the grantor holds there. An Editor can grant Editor, Reviewer or Viewer, but never workspace-level permissions.
+  - **Export is reserved:** only the Owner and Admins can grant `export`. It is the bulk-data path, so it stays with the people accountable for the workspace.
+- **Privacy officer is never elevated:** form grants don't apply to Privacy officers. A grant can never add `response.read`, `response.annotate` or `response.export` to that role, so "never reads answers" holds on every form. A Privacy officer who also needs to review answers needs a different workspace role; that is an explicit choice, and it is visible in the members list.
 
 **Member groups** are new and are not responder groups. They are named sets of workspace members, managed by hand or synced from SCIM. Responder groups remain the "who may answer" mechanism. SCIM groups may later feed both, through separate mappings.
 
@@ -104,7 +107,8 @@ Folders, and grants on folders, come later. The model already allows it: a folde
   - `workspace_forms.settings.access_mode`.
   - New `form_access_grants` and `member_groups`.
 - **Webapp:** the backend returns the user's effective permissions for the workspace, and per form where relevant. The UI shows and hides controls from those permissions instead of `selectIsAdmin`, which today only means "is owner".
-- **Tests:** a permission matrix test checks every endpoint × role × access mode against the tables above. It is the regression net for future endpoints.
+- **Respondent-facing paths are separate:** `/submissions/{id}` for the submitter, the submission-number receipt, My submissions, respondent feedback views, submitting and editing one's own response, and deletion requests by the submitter. These authorise by the submitter's identity or receipt, never through member permissions. A form's access mode therefore can't lock respondents out of their own submissions, and member grants never give anyone a respondent's view.
+- **Tests:** a permission matrix test checks every endpoint × role × access mode against the tables above, including grants. It covers the grantor cap, export grants being reserved for Owner and Admins, and a Privacy officer with a grant still being refused answers. It is the regression net for future endpoints.
 
 ## Inconsistencies this replaces (from the current-code inventory)
 
@@ -128,7 +132,7 @@ Missing access checks are handled separately in a security fix. The inconsistenc
 | d | Export permission across CSV, API/MCP and integrations; API keys get roles | keys default to their creator's role |
 | e | Permission matrix test + effective permissions API for the webapp | none |
 
-Rough size: a 3–4 days, b 3–4, c 5–7, d 2–3, e 2. That is **about 15–20 engineer-days**, which comes on top of the session-revocation and verified-domain parts of Phase 0 (`docs/sso-spike.md`).
+Rough size: a 3–4 days, b 3–4, c 5–7, d 2–3, e 2. That is **about 15–20 engineer-days**, which comes on top of the session-revocation and verified-domain parts of Phase 0 ([`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md)).
 
 ## Open questions
 1. **Default role for SSO-provisioned members without a mapped group:** Viewer (safer) or Editor (today's behaviour for invites)? Proposal: Viewer, configurable per workspace.
