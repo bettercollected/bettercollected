@@ -366,7 +366,19 @@ class FormService:
             workspace_form.settings.show_original_form = settings.show_original_form
 
         # Respondent feedback: only on forms collected here — an imported
-        # form's responses are re-imported from the provider.
+        # form's responses are re-imported from the provider. Switching it or
+        # its statuses is for workspace admins and the owner, like posting an
+        # update: it decides whether respondents get emailed.
+        if (
+            settings.respondent_feedback_enabled is not None
+            or settings.feedback_statuses is not None
+        ) and not await self._workspace_user_repo.is_user_admin_in_workspace(
+            workspace_id, user
+        ):
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                "Only workspace admins can change responding to submissions.",
+            )
         if settings.respondent_feedback_enabled:
             if workspace_form.settings.provider != "self":
                 raise HTTPException(
