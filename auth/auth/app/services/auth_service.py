@@ -14,7 +14,6 @@ from pydantic import EmailStr
 
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository
-from auth.app.schemas.user import UserDocument
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.mail_service import MailService
 from auth.app.services.platform_admins import roles_for
@@ -55,12 +54,15 @@ class AuthService:
             jwt_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
         user_info = UserInfo(**decoded_data)
+        # Only the backend's import-OAuth flow calls this, and it sends only the
+        # signed-in user's own email (the import provider's email proves
+        # nothing about who the user is, #758). So this re-issues a token for an
+        # existing account and never creates one.
         user_document = await self.user_repository.get_user_by_email(user_info.email)
         if not user_document:
-            user_document = UserDocument(
-                email=user_info.email, roles=[Roles.FORM_RESPONDER, Roles.FORM_CREATOR]
+            raise HTTPException(
+                status_code=403, content="No account for this email. Sign in first."
             )
-            user_document = await user_document.save()
         if not (user_document.first_name and user_document.last_name) and (
             user_info.first_name or user_info.last_name
         ):

@@ -7,6 +7,11 @@ from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository  # noqa: F401
 from auth.app.services.base_auth_provider import BaseAuthProvider
 from auth.app.services.platform_admins import roles_for
+from auth.app.services.provider_sign_in import (
+    ProviderSignInRefused,
+    account_for_provider_sign_in,
+    refused_state,
+)
 from auth.config import settings
 
 from common.configs.crypto import Crypto
@@ -115,17 +120,23 @@ class GoogleAuthProvider(BaseAuthProvider):
         if not user:
             return state_json
         creator = state_json.get("creator", False)
-        user_document = await _user_repository().save_user(
-            user.get("email"),
-            creator=creator,
-            first_name=user.get("given_name"),
-            last_name=user.get("family_name"),
-            profile_image=user.get("picture"),
-        )
         # oauth2 v2 userinfo says "verified_email" (OpenID Connect: "email_verified")
         verified = (
             user.get("verified_email") is True or user.get("email_verified") is True
         )
+        try:
+            user_document = await account_for_provider_sign_in(
+                _user_repository(),
+                "google",
+                user.get("email"),
+                verified,
+                creator=creator,
+                first_name=user.get("given_name"),
+                last_name=user.get("family_name"),
+                profile_image=user.get("picture"),
+            )
+        except ProviderSignInRefused as refusal:
+            return refused_state(state_json, refusal)
         user = User(
             id=str(user_document.id),
             sub=user_document.email,

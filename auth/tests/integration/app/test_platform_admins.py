@@ -71,6 +71,8 @@ def test_otp_sign_in_proves_the_email(app_runner, platform_admin):
 
 
 def test_jwt_exchange_callback_does_not_grant(app_runner, platform_admin):
+    # the callback only serves existing accounts (#758)
+    app_runner.portal.call(container.user_repository().save_user, platform_admin)
     jwt_token = container.jwt_service().encode(UserInfo(email=platform_admin))
     response = app_runner.get("auth/callback", params={"jwt_token": jwt_token})
     assert response.status_code == 200
@@ -109,16 +111,16 @@ def _google_callback(app_runner, monkeypatch, userinfo):
             "headers": [],
         }
     )
-    result = app_runner.portal.call(
+    return app_runner.portal.call(
         lambda: provider.basic_auth_callback("c", state, request=request)
     )
-    return User(**result["user"])
 
 
 def test_google_with_a_verified_email_grants(app_runner, platform_admin, monkeypatch):
-    user = _google_callback(
+    result = _google_callback(
         app_runner, monkeypatch, {"email": platform_admin, "verified_email": True}
     )
+    user = User(**result["user"])
     assert "ADMIN" in user.roles
     assert user.email_verified is True
 
@@ -126,11 +128,11 @@ def test_google_with_a_verified_email_grants(app_runner, platform_admin, monkeyp
 def test_google_with_an_unverified_email_does_not(
     app_runner, platform_admin, monkeypatch
 ):
-    user = _google_callback(
+    result = _google_callback(
         app_runner, monkeypatch, {"email": platform_admin, "verified_email": False}
     )
-    assert "ADMIN" not in user.roles
-    assert user.email_verified is False
+    # refused outright since #758: no user, so no token and no role
+    assert "user" not in result
 
 
 def test_typeform_never_grants(app_runner, platform_admin, monkeypatch):
@@ -158,6 +160,5 @@ def test_typeform_never_grants(app_runner, platform_admin, monkeypatch):
     result = app_runner.portal.call(
         lambda: TypeformAuthProvider().basic_auth_callback("c", state)
     )
-    user = User(**result["user"])
-    assert "ADMIN" not in user.roles
-    assert not user.email_verified
+    # refused outright since #758: no user, so no token and no role
+    assert "user" not in result
