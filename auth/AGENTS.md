@@ -63,7 +63,11 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - Emails (OTP, invites) go out via `mail_service.py` (SMTP / fastapi-mail); templates in `app/templates/`.
 - **Notifications** (`controllers/notifications_router.py`, `services/notification_service.py`):
   `POST /notifications/submission-update` mails a respondent that staff responded to their submission. Not a
-  relay: Bearer JWT required (the backend forwards the poster's), structured fields only (`recipient`,
+  relay: **only the backend may call it** — the `X-Internal-Key` header must equal `AUTH_INTERNAL_NOTIFY_KEY`
+  (shared with the backend, `hmac.compare_digest`; 503 while unset, 403 when missing or wrong), because a user's
+  token alone would let anyone mail any address from our domain. Also a Bearer JWT (the backend forwards the
+  poster's; it keys the burst guard), the sender name is always `ORGANIZATION_NAME` (the workspace title
+  appears only in the body), structured fields only (`recipient`,
   `form_title`, `workspace_title`, `link`; extra keys → 422), a fixed autoescaped template, single-line titles,
   and the link must be `/<handle>/submissions/<id>` on `CLIENT_URL` (also read from `API_CLIENT_URL`) or
   `CLIENT_ADMIN_URL` — custom domains are refused on purpose. A per-sender, per-process burst guard answers 429.

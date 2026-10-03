@@ -57,6 +57,9 @@ class Application(BaseSettings):
     # Comma-separated emails that are platform admins (ADMIN role), on top of
     # any ADMIN stored on the user; see app/services/platform_admins.py.
     PLATFORM_ADMIN_EMAILS: Optional[str] = ""
+    # Shared with the backend: only requests carrying it (X-Internal-Key) may
+    # trigger notification mails. Unset = notifications refused.
+    AUTH_INTERNAL_NOTIFY_KEY: Optional[str] = ""
 
     model_config = SettingsConfigDict(case_sensitive=True)
 

@@ -1,6 +1,7 @@
 """POST /notifications/submission-update: a fixed notice to a respondent that
-staff responded to their submission. Not a relay: a signed-in caller, fixed
-wording, escaped values and links to this instance's submission pages only."""
+staff responded to their submission. Not a relay: only the backend (shared
+internal key) on behalf of a signed-in caller, fixed wording and sender name,
+escaped values and links to this instance's submission pages only."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -18,11 +19,17 @@ from common.models.user import User
 URL = "notifications/submission-update"
 CLIENT = "https://forms.example.com"
 LINK = f"{CLIENT}/acme/submissions/6a0000000000000000000001"
+KEY = "internal-notify-key-for-tests"
 
 
-def bearer(user_id="5f0000000000000000000000") -> dict:
+def bearer(user_id="5f0000000000000000000000", key=KEY) -> dict:
+    """A signed-in user's token, plus the backend's internal key unless
+    ``key`` is None."""
     user = User(id=user_id, sub="staff@example.com", roles=["FORM_CREATOR"])
-    return {"Authorization": f"Bearer {container.jwt_service().encode(user)}"}
+    headers = {"Authorization": f"Bearer {container.jwt_service().encode(user)}"}
+    if key is not None:
+        headers["X-Internal-Key"] = key
+    return headers
 
 
 def notice(**overrides) -> dict:
@@ -37,6 +44,7 @@ def notice(**overrides) -> dict:
 
 @pytest.fixture(autouse=True)
 def client_host(monkeypatch):
+    monkeypatch.setattr(settings, "AUTH_INTERNAL_NOTIFY_KEY", KEY)
     monkeypatch.setattr(settings, "CLIENT_URL", CLIENT)
     monkeypatch.setattr(settings, "CLIENT_ADMIN_URL", "http://localhost:3000")
 
@@ -54,12 +62,43 @@ def sent():
 
 class TestSubmissionUpdateNotice:
     def test_requires_a_token(self, app_runner, sent):
-        assert app_runner.post(URL, json=notice()).status_code == 401
+        key_only = {"X-Internal-Key": KEY}
+        assert app_runner.post(URL, json=notice(), headers=key_only).status_code == 401
         response = app_runner.post(
-            URL, json=notice(), headers={"Authorization": "Bearer not-a-jwt"}
+            URL,
+            json=notice(),
+            headers={**key_only, "Authorization": "Bearer not-a-jwt"},
         )
         assert response.status_code == 401
         sent.assert_not_called()
+
+    def test_a_users_token_alone_is_refused(self, app_runner, sent):
+        """Any signed-in user could otherwise mail any address from this
+        instance's domain: only the backend holds the internal key."""
+        for key in (None, "", "wrong-key", KEY + "x"):
+            response = app_runner.post(URL, json=notice(), headers=bearer(key=key))
+            assert response.status_code == 403, key
+        sent.assert_not_called()
+
+    def test_refused_while_no_key_is_configured(self, app_runner, sent, monkeypatch):
+        monkeypatch.setattr(settings, "AUTH_INTERNAL_NOTIFY_KEY", "")
+        response = app_runner.post(URL, json=notice(), headers=bearer(key=""))
+        assert response.status_code == 503
+        sent.assert_not_called()
+
+    def test_the_sender_name_is_always_this_instances(self, app_runner):
+        with patch.object(
+            notification_service.MailService, "send_message", new_callable=AsyncMock
+        ), patch.object(
+            notification_service.MailService, "__init__", return_value=None
+        ) as init:
+            response = app_runner.post(
+                URL,
+                json=notice(workspace_title="PayPal Security"),
+                headers=bearer(),
+            )
+        assert response.status_code == 200, response.text
+        assert init.call_args.kwargs["organization_name"] == settings.ORGANIZATION_NAME
 
     def test_sends_a_fixed_notice(self, app_runner, sent):
         response = app_runner.post(URL, json=notice(), headers=bearer())

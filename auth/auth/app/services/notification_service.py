@@ -131,8 +131,11 @@ class NotificationService:
                 body=render_submission_update(form_title, workspace_title, link),
                 subtype="html",
             )
+            # The sender name is always this instance's: a workspace title
+            # would let anyone with a workspace pose as any sender. It appears
+            # only in the body.
             await MailService(
-                organization_name=workspace_title or settings.ORGANIZATION_NAME
+                organization_name=settings.ORGANIZATION_NAME
             ).send_message(message)
         except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
             logger.warning(f"Submission update notice not sent ({type(exc).__name__})")

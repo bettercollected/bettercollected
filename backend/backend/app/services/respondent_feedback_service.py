@@ -40,6 +40,7 @@ FEEDBACK_OFF = (
 )
 # The auth service sends the notice (its mail templates and SMTP settings).
 NOTIFY_PATH = "/notifications/submission-update"
+INTERNAL_KEY_HEADER = "X-Internal-Key"
 NOTIFY_TIMEOUT_SECONDS = 10
 
 
@@ -161,7 +162,10 @@ class RespondentFeedbackService:
                     "workspace_title": workspace.title or None,
                     "link": link,
                 },
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    INTERNAL_KEY_HEADER: settings.auth_settings.INTERNAL_NOTIFY_KEY,
+                },
                 timeout=NOTIFY_TIMEOUT_SECONDS,
             )
             return True

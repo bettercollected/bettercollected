@@ -1,12 +1,16 @@
 """Notification mails the backend sends on behalf of the signed-in user who
-caused them, with that user's access token (rules in
-``services/notification_service.py``)."""
+caused them (rules in ``services/notification_service.py``). Only the backend
+may call this: requests must carry the shared internal key
+(``AUTH_INTERNAL_NOTIFY_KEY``); a user's token alone is refused, or any
+signed-in user could mail any address from this instance's domain.
+The user's token still names who caused the notice, for the per-sender cap."""
 
+import hmac
 from http import HTTPStatus
 from typing import Optional
 
 from classy_fastapi import Routable, post
-from fastapi import Depends
+from fastapi import Depends, Header
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.background import BackgroundTasks
 
@@ -14,12 +18,31 @@ from auth.app.container import container
 from auth.app.controllers.admin_router import get_bearer_user
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
+from auth.config import settings
 from auth.app.services.notification_service import (
     NotificationService,
     is_allowed_submission_link,
     one_line,
 )
 from common.models.user import User
+
+INTERNAL_KEY_HEADER = "X-Internal-Key"
+
+
+def require_internal_key(
+    internal_key: Optional[str] = Header(None, alias=INTERNAL_KEY_HEADER),
+) -> None:
+    """The caller is this instance's backend: 503 while no key is configured
+    (fail closed), 403 for a missing or wrong key."""
+    expected = settings.AUTH_INTERNAL_NOTIFY_KEY or ""
+    if not expected:
+        raise HTTPException(
+            HTTPStatus.SERVICE_UNAVAILABLE, "Notifications are not configured."
+        )
+    if not internal_key or not hmac.compare_digest(
+        internal_key.encode(), expected.encode()
+    ):
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not allowed.")
 
 
 class SubmissionUpdateNotice(BaseModel):
@@ -46,6 +69,7 @@ class NotificationsRouter(Routable):
         self,
         notice: SubmissionUpdateNotice,
         background_tasks: BackgroundTasks,
+        _: None = Depends(require_internal_key),
         user: User = Depends(get_bearer_user),
     ):
         """Tell a respondent that staff responded to their submission. The

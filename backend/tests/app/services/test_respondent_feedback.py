@@ -485,6 +485,10 @@ async def test_email_only_for_identified_submitters_of_identity_forms(
         "/notifications/submission-update"
     )
     assert call["headers"]["Authorization"].startswith("Bearer ")
+    # only the backend may trigger notices: it proves itself with the shared key
+    assert (
+        call["headers"]["X-Internal-Key"] == settings.auth_settings.INTERNAL_NOTIFY_KEY
+    )
     assert call["json"] == {
         "recipient": testUser2.sub,
         "form_title": "Job application",
