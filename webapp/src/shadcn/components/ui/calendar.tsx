@@ -21,13 +21,17 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
                 // and spans the full width itself — justify-between then spreads
                 // its two (normal-flow) button children to the left/right edges,
                 // rather than each button being individually absolute-positioned
-                // against nav's own (content-collapsed) box.
+                // against nav's own (content-collapsed) box. month_caption comes
+                // after nav in the DOM and covers the same strip, so nav is
+                // stacked above it (z-10) or the caption swallows every click on
+                // the month arrows; the bar itself lets clicks through, only its
+                // buttons take them.
                 month: 'relative space-y-4',
                 month_caption: 'flex justify-center pt-1 items-center',
                 caption_label: 'text-sm font-medium',
-                nav: 'absolute inset-x-0 top-1 flex items-center justify-between px-1',
-                button_previous: cn('h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', 'hover:!opacity-50 disabled:cursor-not-allowed'),
-                button_next: cn('h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'),
+                nav: 'pointer-events-none absolute inset-x-0 top-1 z-10 flex items-center justify-between px-1',
+                button_previous: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', 'hover:!opacity-50 disabled:cursor-not-allowed'),
+                button_next: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'),
                 month_grid: 'w-full border-collapse space-y-1 ',
                 weekdays: 'flex',
                 weekday: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
