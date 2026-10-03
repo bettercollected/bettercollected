@@ -120,6 +120,7 @@ from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
+from backend.app.services.platform_metrics_service import PlatformMetricsService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -837,6 +838,14 @@ class AppContainer(containers.DeclarativeContainer):
     analytics_service: AnalyticsService = providers.Singleton(
         AnalyticsService,
         workspace_user_service=workspace_user_service,
+    )
+
+    platform_metrics_service: PlatformMetricsService = providers.Singleton(
+        PlatformMetricsService,
+        workspace_repo=workspace_repo,
+        workspace_form_repo=workspace_form_repo,
+        form_response_repo=form_response_repo,
+        http_client=http_client,
     )
 
     integration_service: IntegrationService = providers.Singleton(
