@@ -1,10 +1,12 @@
 import datetime
-from typing import Optional, List
+from typing import Dict, Optional, List
 
 from beanie import PydanticObjectId
+from common.enums.plan import Plans
 from common.enums.roles import Roles
 from pydantic import EmailStr
 
+from auth.app.repositories.metric_periods import iso_second, object_id_at
 from auth.app.schemas.user import UserDocument
 from common.db import write_op
 
@@ -119,6 +121,43 @@ class UserRepository:
     @write_op
     async def delete_user(self, user_id: PydanticObjectId):
         return await UserDocument.find({"_id": user_id}).delete()
+
+    # -- platform metrics (admin dashboard) ------------------------------------
+    # Users are dated by ObjectId (some documents have no created_at);
+    # last_logged_in is an ISO string, compared at second precision.
+    async def count_users(
+        self, created_since: Optional[datetime.datetime] = None
+    ) -> int:
+        query = {}
+        if created_since is not None:
+            query = {"_id": {"$gte": object_id_at(created_since)}}
+        return await UserDocument.find(query).count()
+
+    async def count_users_active_since(self, since: datetime.datetime) -> int:
+        return await UserDocument.find(
+            {"last_logged_in": {"$gte": iso_second(since)}}
+        ).count()
+
+    async def count_users_by_plan(self) -> Dict[str, int]:
+        """plan -> users, for every plan; a user without one is on the default
+        FREE plan."""
+        counts = {}
+        for plan in Plans:
+            values = [plan.value, None] if plan == Plans.FREE else [plan.value]
+            counts[plan.value] = await UserDocument.find(
+                {"plan": {"$in": values}}
+            ).count()
+        return counts
+
+    async def count_users_created_per_period(
+        self, boundaries: List[datetime.datetime]
+    ) -> List[int]:
+        """Users created in each period [boundaries[i], boundaries[i+1])."""
+        bounds = [object_id_at(b) for b in boundaries]
+        return [
+            await UserDocument.find({"_id": {"$gte": lower, "$lt": upper}}).count()
+            for lower, upper in zip(bounds[:-1], bounds[1:])
+        ]
 
     @write_op
     async def update_last_logged_in(self, user_id: PydanticObjectId):

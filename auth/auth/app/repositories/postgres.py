@@ -1,15 +1,19 @@
 """Postgres twins of the auth repositories (plans/postgres-consolidation.md §4)."""
 
 import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
 from pydantic import EmailStr
+from sqlalchemy import and_, func, select
 
+from auth.app.repositories.metric_periods import object_id_at, utc
 from auth.app.schemas.provider import Provider
 from auth.app.schemas.user import UserDocument
+from auth.db.base import SCHEMA
 from auth.db.models import ProviderRow, UserRow
 from common.db import PostgresRepositoryBase
+from common.enums.plan import Plans
 from common.enums.roles import Roles
 
 
@@ -118,6 +122,40 @@ class PostgresUserRepository(PostgresRepositoryBase):
 
     async def delete_user(self, user_id: PydanticObjectId):
         return await self.delete_by_id(user_id)
+
+    # -- platform metrics (admin dashboard) ------------------------------------
+    async def count_users(
+        self, created_since: Optional[datetime.datetime] = None
+    ) -> int:
+        if created_since is None:
+            return await self.count()
+        return await self.count(UserRow.id >= str(object_id_at(created_since)))
+
+    async def count_users_active_since(self, since: datetime.datetime) -> int:
+        # last_logged_in has no spine column; read from the document.
+        last_logged_in = getattr(func, SCHEMA).bc_ts(UserRow.doc["last_logged_in"])
+        return await self.count(last_logged_in >= utc(since))
+
+    async def count_users_by_plan(self) -> Dict[str, int]:
+        plan = func.coalesce(UserRow.plan, Plans.FREE.value)
+        counts = [func.count().filter(plan == p.value) for p in Plans]
+        async with self._session() as session:
+            row = (await session.execute(select(*counts).select_from(UserRow))).one()
+        return {p.value: n for p, n in zip(Plans, row)}
+
+    async def count_users_created_per_period(
+        self, boundaries: List[datetime.datetime]
+    ) -> List[int]:
+        bounds = [str(object_id_at(b)) for b in boundaries]
+        periods = [
+            func.count().filter(and_(UserRow.id >= lower, UserRow.id < upper))
+            for lower, upper in zip(bounds[:-1], bounds[1:])
+        ]
+        if not periods:
+            return []
+        async with self._session() as session:
+            row = (await session.execute(select(*periods).select_from(UserRow))).one()
+        return list(row)
 
     async def update_last_logged_in(self, user_id: PydanticObjectId):
         user_document = await self.one(UserRow.id == str(user_id))
