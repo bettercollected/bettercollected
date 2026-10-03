@@ -19,6 +19,7 @@ from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
@@ -79,6 +80,7 @@ class AuthService:
                     "user_id": user.id,
                     "email_verified": user.email_verified is True,
                 },
+                headers=auth_service_headers(),
                 timeout=60,
             )
             response_data["tags"] = await self.user_tags_service.get_user_tags_by_id(
@@ -100,6 +102,7 @@ class AuthService:
                     "workspace_profile_image": "",
                     "creator": True,
                 },
+                headers=auth_service_headers(),
                 timeout=180,
             )
             return {"message": "Otp sent successfully"}
@@ -114,6 +117,7 @@ class AuthService:
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",
             params={"email": login_details.email, "otp_code": login_details.otp_code},
+            headers=auth_service_headers(),
         )
         user = response_data.get("user", None)
         if user and Roles.FORM_CREATOR in user.get("roles"):
@@ -176,7 +180,9 @@ class AuthService:
         jwt_token = self.jwt_service.encode(user_info)
 
         response_data = await self.http_client.get(
-            settings.auth_settings.CALLBACK_URI, params={"jwt_token": jwt_token}
+            settings.auth_settings.CALLBACK_URI,
+            params={"jwt_token": jwt_token},
+            headers=auth_service_headers(),
         )
         user = User(**response_data)
         decrypted_data = json.loads(self.crypto.decrypt(state))
@@ -199,6 +205,7 @@ class AuthService:
                 "creator": creator,
                 "prospective_pro_user": prospective_pro_user,
             },
+            headers=auth_service_headers(),
         )
         return response_data.get("auth_url")
 
@@ -206,6 +213,7 @@ class AuthService:
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + f"/auth/{provider}/basic/callback",
             params={"code": code, "state": state},
+            headers=auth_service_headers(),
             timeout=120,
         )
         user = response_data.get("user")
@@ -253,9 +261,16 @@ class AuthService:
                 )
 
     async def delete_user_form_auth(self, user: User):
-        await AiohttpClient.get_aiohttp_client().delete(
-            settings.auth_settings.BASE_URL + "/users/" + user.id, timeout=20000
+        response = await AiohttpClient.get_aiohttp_client().delete(
+            settings.auth_settings.BASE_URL + "/users/" + user.id,
+            headers=auth_service_headers(),
+            timeout=20000,
         )
+        if response.status != HTTPStatus.OK:
+            raise HTTPException(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                content="Could not delete the user from the auth service.",
+            )
 
     async def add_workflow_to_delete_user(
         self, access_token: str, refresh_token: str, user: User
@@ -270,5 +285,6 @@ class AuthService:
 
     async def upgrade_user_to_pro(self, user: User):
         return await self.http_client.patch(
-            settings.auth_settings.BASE_URL + f"/users/{user.id}/upgrade"
+            settings.auth_settings.BASE_URL + f"/users/{user.id}/upgrade",
+            headers=auth_service_headers(),
         )

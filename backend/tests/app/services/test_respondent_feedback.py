@@ -482,8 +482,11 @@ async def test_anonymous_submission_feedback_is_read_with_the_number(
 
 
 async def test_email_only_for_identified_submitters_of_identity_forms(
-    client, workspace, form
+    client, workspace, form, monkeypatch
 ):
+    monkeypatch.setattr(
+        settings.auth_settings, "INTERNAL_NOTIFY_KEY", "backend-internal-key"
+    )
     await _enable(client, workspace, form)
     identified = await _submit(workspace, form)
     anonymised = await _submit(workspace, form, anonymize=True)
@@ -513,9 +516,7 @@ async def test_email_only_for_identified_submitters_of_identity_forms(
     )
     assert call["headers"]["Authorization"].startswith("Bearer ")
     # only the backend may trigger notices: it proves itself with the shared key
-    assert (
-        call["headers"]["X-Internal-Key"] == settings.auth_settings.INTERNAL_NOTIFY_KEY
-    )
+    assert call["headers"]["X-Internal-Key"] == "backend-internal-key"
     assert call["json"] == {
         "recipient": testUser2.sub,
         "form_title": "Job application",

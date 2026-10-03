@@ -20,6 +20,7 @@ from backend.app.models.dtos.platform_metrics_dto import AuthUserMetrics
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 from common.services.http_client import HttpClient
 
@@ -188,7 +189,7 @@ class PlatformMetricsService:
             body = await self._http_client.get(
                 settings.auth_settings.BASE_URL + "/admin/metrics",
                 params={"first_week": first_week.date().isoformat(), "weeks": WEEKS},
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers=auth_service_headers(Authorization=f"Bearer {access_token}"),
                 timeout=15,
             )
             return AuthUserMetrics.model_validate(body)

@@ -43,6 +43,7 @@ from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 # Top-level paths the webapp serves itself; a workspace with one of these
@@ -412,6 +413,7 @@ class WorkspaceService:
                 "workspace_profile_image": workspace.profile_image,
                 "creator": False,
             },
+            headers=auth_service_headers(),
             timeout=180,
         )
         return {"message": "Otp sent successfully"}

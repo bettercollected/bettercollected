@@ -38,13 +38,16 @@ class UserService:
         invitation_link = (
             settings.CLIENT_ADMIN_URL + "/" + workspace_name + "/invitation/" + token
         )
+        # an inviter without a first name (e.g. signed up by email code) is
+        # named by their email rather than failing the mail
+        inviter_name = inviter.first_name or inviter.email or ""
         template_body = {
             "workspace_title": workspace_title,
             "role": role,
             "invitation_link": invitation_link,
-            "inviter_name": inviter.first_name,
+            "inviter_name": inviter_name,
             "image_url": inviter.profile_image,
-            "image_alternative": inviter.first_name[0],
+            "image_alternative": inviter_name[:1].upper(),
         }
         message = MessageSchema(
             subject=f"{workspace_title} invitation",

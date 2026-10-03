@@ -9,7 +9,16 @@ from starlette.responses import Response
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.auth_cookie_service import set_access_token_to_response
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
+
+
+class AuthServiceUnavailable(Exception):
+    """The auth service refused or failed a session refresh."""
+
+    def __init__(self, status_code: int):
+        super().__init__(status_code)
+        self.status_code = status_code
 
 
 async def get_logged_user(request: Request, response: Response) -> User:
@@ -30,10 +39,15 @@ async def get_logged_user(request: Request, response: Response) -> User:
                         "user_id": user.id,
                         "email_verified": user.email_verified is True,
                     },
+                    headers=auth_service_headers(),
                     timeout=60,
                 )
                 if user_response.status_code == 404:
                     raise HTTPException(401, "User not found")
+                if user_response.status_code != 200:
+                    # e.g. 403/503 when AUTH_INTERNAL_NOTIFY_KEY is missing or
+                    # differs between the services: not the user's fault
+                    raise AuthServiceUnavailable(user_response.status_code)
                 user_response = user_response.json()
                 if user_response:
                     user_response["sub"] = user_response.get("email")
@@ -43,6 +57,15 @@ async def get_logged_user(request: Request, response: Response) -> User:
                     response=response,
                 )
                 return user
+        except AuthServiceUnavailable as e:
+            logging.error(
+                f"Session refresh: the auth service answered {e.status_code}; "
+                "check AUTH_INTERNAL_NOTIFY_KEY on the backend and auth services"
+            )
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                "Sign-in is temporarily unavailable.",
+            )
         except Exception as e:
             logging.error(e)
             raise HTTPException(401, "No user logged in.")

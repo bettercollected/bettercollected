@@ -1,15 +1,17 @@
 """GET /users/invite/send/mail: only this instance's backend (shared internal
 key) may have invitation mails sent."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from auth.app.services.user_service import UserService
 from auth.config import settings
+from tests.integration.conftest import INTERNAL_KEY, without_internal_key
 
 URL = "users/invite/send/mail"
-KEY = "internal-notify-key-for-tests"
+KEY = INTERNAL_KEY
 PARAMS = {
     "workspace_title": "Acme",
     "workspace_name": "acme",
@@ -18,11 +20,6 @@ PARAMS = {
     "token": "invitation-token",
     "inviter_id": "5f0000000000000000000000",
 }
-
-
-@pytest.fixture(autouse=True)
-def internal_key(monkeypatch):
-    monkeypatch.setattr(settings, "AUTH_INTERNAL_NOTIFY_KEY", KEY)
 
 
 @pytest.fixture
@@ -35,6 +32,7 @@ def sent():
 
 class TestInvitationMail:
     def test_refused_without_the_internal_key(self, app_runner, sent):
+        without_internal_key(app_runner)
         for headers in ({}, {"X-Internal-Key": ""}, {"X-Internal-Key": "wrong"}):
             response = app_runner.get(URL, params=PARAMS, headers=headers)
             assert response.status_code == 403, headers
@@ -42,7 +40,7 @@ class TestInvitationMail:
 
     def test_refused_while_no_key_is_configured(self, app_runner, sent, monkeypatch):
         monkeypatch.setattr(settings, "AUTH_INTERNAL_NOTIFY_KEY", "")
-        response = app_runner.get(URL, params=PARAMS, headers={"X-Internal-Key": ""})
+        response = without_internal_key(app_runner).get(URL, params=PARAMS)
         assert response.status_code == 503
         sent.assert_not_called()
 
@@ -51,3 +49,18 @@ class TestInvitationMail:
         assert response.status_code == 200
         sent.assert_awaited_once()
         assert sent.call_args.kwargs["email"] == "new@example.com"
+
+
+class TestInvitationMailContent:
+    @pytest.mark.asyncio
+    async def test_an_inviter_without_a_first_name_is_named_by_email(self):
+        inviter = SimpleNamespace(
+            first_name=None, email="owner@example.com", profile_image=None
+        )
+        repo = SimpleNamespace(get_user_by_id=AsyncMock(return_value=inviter))
+        with patch("auth.app.services.user_service.MailService") as mail_service:
+            mail_service.return_value.send_async_mail = AsyncMock()
+            await UserService(repo, None).send_mail_to_user_for_invitation(**PARAMS)
+        message = mail_service.return_value.send_async_mail.await_args.args[0]
+        assert message.template_body["inviter_name"] == "owner@example.com"
+        assert message.template_body["image_alternative"] == "O"

@@ -34,8 +34,9 @@ fi
 # docker-compose.deployment.yml substitutes the superuser password and the four
 # per-service role passwords, and postgres/init/01-roles-schemas.sh reads them on
 # the volume's first start. Hex only, so they are safe inside DATABASE_URL.
-# AUTH_INTERNAL_NOTIFY_KEY: shared by backend and auth so only the backend can
-# trigger notification mails (respondent feedback notices).
+# AUTH_INTERNAL_NOTIFY_KEY: shared by backend, auth and integrations-googleform;
+# the auth service's API refuses every request without it (sign-in, users,
+# billing, notification mails), so only those services can call it.
 for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD AUTH_INTERNAL_NOTIFY_KEY; do
   if ! grep -q "^${var}=" .env 2>/dev/null; then
     echo "${var}=$(openssl rand -hex 24)" >> .env

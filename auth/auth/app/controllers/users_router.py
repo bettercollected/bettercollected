@@ -3,18 +3,18 @@ from typing import List
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, delete, patch
-from fastapi import Depends, Query
+from fastapi import Query
 from pydantic import EmailStr
 from starlette.background import BackgroundTasks
 
 from auth.app.container import container
-from auth.app.controllers.internal_key import require_internal_key
+from auth.app.controllers.internal_key import INTERNAL_ONLY
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
 from auth.app.services.user_service import UserService
 
 
-@router(prefix="/users", tags=["Users"])
+@router(prefix="/users", tags=["Users"], dependencies=INTERNAL_ONLY)
 class UserRouter(Routable):
     def __init__(self, user_service=container.user_service(), *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -48,7 +48,6 @@ class UserRouter(Routable):
         token: str,
         inviter_id: str,
         background_tasks: BackgroundTasks,
-        _: None = Depends(require_internal_key),
     ):
         background_tasks.add_task(
             self.user_service.send_mail_to_user_for_invitation,

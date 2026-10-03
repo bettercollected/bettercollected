@@ -15,11 +15,12 @@ from auth.app.services.notification_service import (
 )
 from auth.config import settings
 from common.models.user import User
+from tests.integration.conftest import INTERNAL_KEY, without_internal_key
 
 URL = "notifications/submission-update"
 CLIENT = "https://forms.example.com"
 LINK = f"{CLIENT}/acme/submissions/6a0000000000000000000001"
-KEY = "internal-notify-key-for-tests"
+KEY = INTERNAL_KEY
 
 
 def bearer(user_id="5f0000000000000000000000", key=KEY) -> dict:
@@ -75,6 +76,7 @@ class TestSubmissionUpdateNotice:
     def test_a_users_token_alone_is_refused(self, app_runner, sent):
         """Any signed-in user could otherwise mail any address from this
         instance's domain: only the backend holds the internal key."""
+        without_internal_key(app_runner)
         for key in (None, "", "wrong-key", KEY + "x"):
             response = app_runner.post(URL, json=notice(), headers=bearer(key=key))
             assert response.status_code == 403, key
