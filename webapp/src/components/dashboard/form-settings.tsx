@@ -97,6 +97,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         } else {
             if (response.error.status === 409) {
                 toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });
+            } else if (response.error.status === 403 && typeof response.error.data === 'string') {
+                // e.g. a collaborator switching "Respond to submissions" (admins only)
+                toast({ description: response.error.data, variant: 'destructive' });
             } else {
                 toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             }
