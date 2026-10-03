@@ -15,6 +15,11 @@ from pymongo.errors import (
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.repositories.metric_periods import (
+    mongo_counts_per_period,
+    object_id_at,
+)
+from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.responder_group import ResponderGroupDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.db.routing import write_op
@@ -350,3 +355,51 @@ class WorkspaceFormRepository:
             {"workspace_id": workspace_id, "form_id": form_id}
         )
         return True if workspace_form is not None else False
+
+    # -- platform metrics (admin dashboard); forms are dated by ObjectId ---------
+    @staticmethod
+    def _created_since(created_since: Optional[datetime]) -> Dict[str, Any]:
+        if created_since is None:
+            return {}
+        return {"_id": {"$gte": object_id_at(created_since)}}
+
+    async def count_workspace_forms(
+        self, created_since: Optional[datetime] = None
+    ) -> int:
+        return await WorkspaceFormDocument.find(
+            self._created_since(created_since)
+        ).count()
+
+    async def count_published_workspace_forms(self) -> int:
+        """Forms with at least one published version."""
+        published = await FormVersionsDocument.distinct("form_id")
+        return await WorkspaceFormDocument.find({"form_id": {"$in": published}}).count()
+
+    async def count_workspace_forms_by_provider(self) -> Dict[Optional[str], int]:
+        """``settings.provider`` (self, google, typeform, ...) -> forms."""
+        rows = (
+            await WorkspaceFormDocument.find({})
+            .aggregate([{"$group": {"_id": "$settings.provider", "n": {"$sum": 1}}}])
+            .to_list()
+        )
+        return {row["_id"]: row["n"] for row in rows}
+
+    async def count_form_creators(
+        self, created_since: Optional[datetime] = None
+    ) -> int:
+        """Distinct users who created or imported a form still in a workspace
+        (with ``created_since``: a form created since then)."""
+        match = {"user_id": {"$nin": [None, ""]}, **self._created_since(created_since)}
+        rows = (
+            await WorkspaceFormDocument.find(match)
+            .aggregate([{"$group": {"_id": "$user_id"}}, {"$count": "n"}])
+            .to_list()
+        )
+        return rows[0]["n"] if rows else 0
+
+    async def count_workspace_forms_created_per_period(
+        self, boundaries: List[datetime]
+    ) -> List[int]:
+        return await mongo_counts_per_period(
+            WorkspaceFormDocument, "_id", [object_id_at(b) for b in boundaries]
+        )

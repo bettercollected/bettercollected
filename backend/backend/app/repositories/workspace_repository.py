@@ -1,9 +1,14 @@
+import datetime as dt
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 
 from backend.app.exceptions import HTTPException
+from backend.app.repositories.metric_periods import (
+    mongo_counts_per_period,
+    object_id_at,
+)
 from backend.app.schemas.workspace import WorkspaceDocument
 from common.base.repo import BaseRepository, T, U
 from common.enums.form_provider import FormProvider
@@ -112,6 +117,27 @@ class WorkspaceRepository(BaseRepository):
         self, owner_id: str
     ) -> WorkspaceDocument:
         return await WorkspaceDocument.find_one({"owner_id": owner_id, "default": True})
+
+    async def count_workspaces(
+        self, created_since: Optional[dt.datetime] = None
+    ) -> int:
+        """All workspaces, or those created since ``created_since`` (dated by
+        ObjectId: older documents have no ``created_at``)."""
+        query = {}
+        if created_since is not None:
+            query = {"_id": {"$gte": object_id_at(created_since)}}
+        return await WorkspaceDocument.find(query).count()
+
+    async def count_disabled_workspaces(self) -> int:
+        return await WorkspaceDocument.find({"disabled": True}).count()
+
+    async def count_workspaces_created_per_period(
+        self, boundaries: List[dt.datetime]
+    ) -> List[int]:
+        """Workspaces created in each period [boundaries[i], boundaries[i+1])."""
+        return await mongo_counts_per_period(
+            WorkspaceDocument, "_id", [object_id_at(b) for b in boundaries]
+        )
 
     @write_op
     async def delete_workspaces_with_ids(self, workspace_ids: List[PydanticObjectId]):
