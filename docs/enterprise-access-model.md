@@ -1,8 +1,8 @@
 # Enterprise access model: roles, permissions and form-level scope
 
-Status: **proposed** (design for review). It is a prerequisite for SSO/SCIM, which is Phase 0 of the enterprise work in [`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md).
+Status: **accepted** (2026-10-03; decisions and open questions confirmed by the product owner). It is a prerequisite for SSO/SCIM, which is Phase 0 of the enterprise work in [`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md).
 
-## Decisions taken
+## Decisions (confirmed)
 1. **Form-level scoping ships in v1.** Access can be granted on specific forms to users and groups. Folders come later.
 2. **The v1 workspace roles** are Owner, Admin, Editor, Reviewer, Viewer and **Privacy officer**.
 3. **Export is its own permission.** It covers every way response data leaves the product in bulk.
@@ -134,8 +134,8 @@ Missing access checks are handled separately in a security fix. The inconsistenc
 
 Rough size: a 3–4 days, b 3–4, c 5–7, d 2–3, e 2. That is **about 15–20 engineer-days**, which comes on top of the session-revocation and verified-domain parts of Phase 0 ([`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md)).
 
-## Open questions
-1. **Default role for SSO-provisioned members without a mapped group:** Viewer (safer) or Editor (today's behaviour for invites)? Proposal: Viewer, configurable per workspace.
-2. **Can a Privacy officer see the respondent email for a deletion request?** Proposal: yes. The request has to be acted on, and showing the identifier is not reading answers.
-3. **Should analytics on a restricted form be visible to members without a grant?** Proposal: no; restricted means restricted.
-4. **Should Admins be able to opt out of seeing a restricted form** (for example HR investigations)? Proposal: not in v1. The owner and admins remain the trust anchor, and the audit log records their access.
+## Resolved questions (confirmed)
+1. **Default role for SSO-provisioned members without a mapped group:** **Viewer**, configurable per workspace.
+2. **Privacy officer and respondent emails:** a Privacy officer **can** see the respondent's email on a deletion request. Acting on the request needs the identifier, and that is not reading answers.
+3. **Analytics on restricted forms:** members without a grant **cannot** see them; restricted means restricted.
+4. **Admins opting out of seeing a restricted form:** **not in v1**; revisit later. The Owner and Admins remain the trust anchor, and the audit log records their access.
