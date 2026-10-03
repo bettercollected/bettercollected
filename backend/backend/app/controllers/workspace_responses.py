@@ -4,14 +4,21 @@ from beanie import PydanticObjectId
 from classy_fastapi import delete, get, patch, post
 from common.models.user import User
 from fastapi import Depends
+from starlette.requests import Request
+from starlette.responses import Response
 from fastapi_camelcase import CamelModel
 from fastapi_pagination import Page
 
 from backend.app.container import container
+from backend.app.controllers.platform_metrics_router import forwarded_access_token
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
 from backend.app.models.dtos.form_response_dto import (
     InternalAnswersPatch,
     InternalAnswersResponse,
+)
+from backend.app.models.dtos.respondent_feedback_dto import (
+    RespondentFeedbackPost,
+    StaffFeedback,
 )
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.user_tag_enum import UserTagType
@@ -20,6 +27,9 @@ from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.flow_event_repository import FlowEventRepository
 from backend.app.router import router
 from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.respondent_feedback_service import (
+    RespondentFeedbackService,
+)
 from backend.app.services.user_service import get_logged_user
 from backend.app.utils.custom_routable import CustomRoutable
 from backend.app.utils.flow_analytics import aggregate_flow_events
@@ -46,11 +56,15 @@ class WorkspaceResponsesRouter(CustomRoutable):
         self,
         form_response_service: FormResponseService = container.form_response_service(),
         flow_event_repo: FlowEventRepository = container.flow_event_repo(),
+        respondent_feedback_service: RespondentFeedbackService = (
+            container.respondent_feedback_service()
+        ),
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._form_response_service = form_response_service
+        self._respondent_feedback_service = respondent_feedback_service
         self._flow_event_repo = flow_event_repo
 
     @get(
@@ -109,6 +123,32 @@ class WorkspaceResponsesRouter(CustomRoutable):
             answers=body.answers,
             user=user,
             expected_version=body.version,
+        )
+
+    @post(
+        "/forms/{form_id}/submissions/{submission_id}/feedback",
+        response_model=StaffFeedback,
+    )
+    async def post_respondent_feedback(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        submission_id: str,
+        body: RespondentFeedbackPost,
+        request: Request,
+        response: Response,
+        user: User = Depends(get_logged_user),
+    ):
+        """Workspace admins post an update (status and/or message) that the
+        submission's respondent sees; the respondent may be emailed a notice
+        (never the update itself). Returns the history, staff view."""
+        return await self._respondent_feedback_service.post_feedback(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=submission_id,
+            body=body,
+            user=user,
+            access_token=forwarded_access_token(request, response),
         )
 
     @post("/forms/{form_id}/flow-events")

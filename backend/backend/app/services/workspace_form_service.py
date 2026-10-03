@@ -615,6 +615,8 @@ class WorkspaceFormService:
             response,
             await self.form_response_service.all_internal_field_ids(str(form_id)),
         )
+        # Feedback is the staff's to write, never part of a submission.
+        response.respondent_feedback = None
         response.response_id = str(PydanticObjectId())
 
         workspace_form_ids = (

@@ -9,6 +9,31 @@ from pydantic import BaseModel, Field, field_validator, model_serializer
 
 HEX_COLOUR = re.compile(r"#[0-9a-fA-F]{6}")
 
+# Respondent feedback: the statuses staff can give a submission ("Selected").
+DEFAULT_FEEDBACK_STATUSES = ["Under review", "Selected", "Rejected"]
+MAX_FEEDBACK_STATUSES = 10
+MAX_FEEDBACK_STATUS_LENGTH = 40
+
+
+def normalize_feedback_statuses(statuses: List[str]) -> List[str]:
+    """Trimmed statuses; at most ``MAX_FEEDBACK_STATUSES``, each 1 to
+    ``MAX_FEEDBACK_STATUS_LENGTH`` characters, unique ignoring case."""
+    if len(statuses) > MAX_FEEDBACK_STATUSES:
+        raise ValueError(f"At most {MAX_FEEDBACK_STATUSES} statuses are allowed.")
+    cleaned: List[str] = []
+    seen = set()
+    for status in statuses:
+        status = " ".join(str(status).split())
+        if not 1 <= len(status) <= MAX_FEEDBACK_STATUS_LENGTH:
+            raise ValueError(
+                f"Each status must be 1 to {MAX_FEEDBACK_STATUS_LENGTH} characters."
+            )
+        if status.casefold() in seen:
+            raise ValueError(f"The status '{status}' is listed twice.")
+        seen.add(status.casefold())
+        cleaned.append(status)
+    return cleaned
+
 
 class WorkspaceThemeBackgroundDto(BaseModel):
     """Optional page-ground decoration for a saved theme.
@@ -198,6 +223,12 @@ class WorkspaceFormSettings(BaseModel):
     ai_insights_provider_name: Optional[str] = None
     ai_insights_enabled_by: Optional[str] = None
     ai_insights_enabled_at: Optional[dt.datetime] = None
+    # "Respond to submissions": admins post a status and/or message on a
+    # submission that its respondent sees (services/respondent_feedback.py).
+    respondent_feedback_enabled: Optional[bool] = False
+    feedback_statuses: Optional[List[str]] = Field(
+        default_factory=lambda: list(DEFAULT_FEEDBACK_STATUSES)
+    )
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):

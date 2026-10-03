@@ -198,6 +198,8 @@ workspace_settings = {
     "aiInsightsProviderName": None,
     "aiInsightsEnabledBy": None,
     "aiInsightsEnabledAt": None,
+    "respondentFeedbackEnabled": False,
+    "feedbackStatuses": ["Under review", "Selected", "Rejected"],
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}

@@ -15,6 +15,7 @@ from common.models.standard_form import (
     LogicalOperator,
     LayoutType,
     RepeatSettings,
+    RespondentFeedback,
     Theme,
     check_field_date_rules,
     check_repeating_group_structure,
@@ -24,6 +25,7 @@ from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field, model_validator
 
 from backend.app.models.dtos.consent import ConsentResponseCamelModel
+from backend.app.models.dtos.respondent_feedback_dto import RespondentFeedbackView
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
@@ -135,6 +137,12 @@ class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     consent: Optional[List[ConsentResponseCamelModel]] = None
     deletion_status: Optional[DeletionRequestStatus] = None
     anonymize: Optional[bool] = None
+    # The stored feedback history carries staff identity and ciphertext: it
+    # is never serialised. Respondents get ``feedback``; staff get
+    # SingleSubmissionResponse.feedback. (A submission carrying one has it
+    # dropped in WorkspaceFormService.submit_response.)
+    respondent_feedback: Optional[List[RespondentFeedback]] = Field(None, exclude=True)
+    feedback: Optional[RespondentFeedbackView] = None
 
 
 class FormFileResponse(BaseModel):
