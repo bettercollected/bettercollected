@@ -266,7 +266,9 @@ class AuthService:
             headers=auth_service_headers(),
             timeout=20000,
         )
-        if response.status != HTTPStatus.OK:
+        # 404: the account is already gone (a retried deletion job) — done,
+        # not an error, or the retry would fail on it forever.
+        if response.status not in (HTTPStatus.OK, HTTPStatus.NOT_FOUND):
             raise HTTPException(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 content="Could not delete the user from the auth service.",
