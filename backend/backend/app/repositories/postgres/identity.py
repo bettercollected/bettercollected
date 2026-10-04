@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.user_tag_enum import UserTagType
@@ -34,7 +35,12 @@ from backend.app.repositories.metric_periods import (
 from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.repositories.workspace_domain_repository import (
+    DomainAlreadyClaimed,
+    DomainVerifiedElsewhere,
+)
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+from backend.app.schemas.workspace_domain import DomainStatus, WorkspaceDomainDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
@@ -43,6 +49,7 @@ from backend.db.models import (
     SessionRow,
     UserTagsRow,
     WorkspaceApiKeyRow,
+    WorkspaceDomainRow,
     WorkspaceInviteRow,
     WorkspaceRow,
     WorkspaceUserRow,
@@ -427,6 +434,62 @@ class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
         self, key_hash: str
     ) -> Optional[WorkspaceAPIKeyDocument]:
         return await self.one(WorkspaceApiKeyRow.key_hash == key_hash)
+
+
+class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
+    row = WorkspaceDomainRow
+    document = WorkspaceDomainDocument
+
+    async def create(
+        self, document: WorkspaceDomainDocument
+    ) -> WorkspaceDomainDocument:
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise DomainAlreadyClaimed(document.domain)
+
+    async def save(self, document: WorkspaceDomainDocument) -> WorkspaceDomainDocument:
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise DomainVerifiedElsewhere(document.domain)
+
+    async def get(self, domain_id) -> Optional[WorkspaceDomainDocument]:
+        return await self.one(WorkspaceDomainRow.id == str(domain_id))
+
+    async def list_by_workspace(
+        self, workspace_id: PydanticObjectId
+    ) -> List[WorkspaceDomainDocument]:
+        return await self.many(
+            WorkspaceDomainRow.workspace_id == _oid(workspace_id),
+            order_by=(WorkspaceDomainRow.domain,),
+        )
+
+    async def count_by_workspace(self, workspace_id: PydanticObjectId) -> int:
+        return await self.count(WorkspaceDomainRow.workspace_id == _oid(workspace_id))
+
+    async def find_verified(self, domain: str) -> Optional[WorkspaceDomainDocument]:
+        return await self.one(WorkspaceDomainRow.verified_domain == domain)
+
+    async def list_due_for_recheck(
+        self, checked_before: datetime.datetime, limit: int
+    ) -> List[WorkspaceDomainDocument]:
+        return await self.many(
+            WorkspaceDomainRow.status == DomainStatus.VERIFIED.value,
+            WorkspaceDomainRow.last_checked_at < checked_before,
+            order_by=(WorkspaceDomainRow.last_checked_at, WorkspaceDomainRow.id),
+            limit=limit,
+        )
+
+    async def delete(self, domain_id: PydanticObjectId) -> int:
+        return await self.delete_by_id(domain_id)
+
+    async def delete_by_workspace_ids(
+        self, workspace_ids: List[PydanticObjectId]
+    ) -> int:
+        return await self.delete_where(
+            WorkspaceDomainRow.workspace_id.in_([_oid(w) for w in workspace_ids])
+        )
 
 
 class PostgresSessionRepository(PostgresRepositoryBase):

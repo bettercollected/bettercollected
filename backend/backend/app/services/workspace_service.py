@@ -42,6 +42,7 @@ from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
+from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
@@ -77,8 +78,10 @@ class WorkspaceService:
         responder_groups_service: ResponderGroupsService,
         user_tags_service: UserTagsService,
         custom_domain_service: Optional[CustomDomainService] = None,
+        workspace_domain_service: Optional[WorkspaceDomainService] = None,
     ):
         self.http_client = http_client
+        self.workspace_domain_service = workspace_domain_service
         self.custom_domain_service = custom_domain_service
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
@@ -661,6 +664,9 @@ class WorkspaceService:
         )
         for workspace_id in workspace_ids:
             self._aws_service.delete_folder_from_s3(f"private/{workspace_id}")
+        if self.workspace_domain_service is not None:
+            # a deleted workspace's verified domains are released
+            await self.workspace_domain_service.release_workspace_domains(workspace_ids)
 
         await self._workspace_repo.delete_workspaces_with_ids(workspace_ids)
 

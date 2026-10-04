@@ -73,6 +73,27 @@ class WorkspaceApiKeyRow(Base, BaseRow):
     __table_args__ = (UniqueConstraint("key_hash"), Index(None, "workspace_id"))
 
 
+class WorkspaceDomainRow(Base, BaseRow):
+    __tablename__ = "workspace_domains"
+    workspace_id = S.text("workspace_id")
+    domain = S.text("domain")
+    status = S.text("status")
+    verified_domain = S.text("verified_domain")
+    last_checked_at = S.ts("last_checked_at")
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "domain"),
+        Index(None, "domain"),
+        # a domain is verified by at most one workspace
+        Index(
+            "uq_workspace_domains_verified_domain",
+            "verified_domain",
+            unique=True,
+            postgresql_where=text("verified_domain IS NOT NULL"),
+        ),
+        Index(None, "status", "last_checked_at"),
+    )
+
+
 class BlacklistedRefreshTokenRow(Base, BaseRow):
     """No longer written or read: session revocation (``sessions``) replaced
     the refresh-token blacklist. Kept until a later release drops the table

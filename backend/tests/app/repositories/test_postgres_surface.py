@@ -62,6 +62,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresSessionRepository,
     PostgresUserTagsRepository,
     PostgresWorkspaceAPIKeyRepository,
+    PostgresWorkspaceDomainRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -78,6 +79,9 @@ from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
 )
+from backend.app.repositories.workspace_domain_repository import (
+    WorkspaceDomainRepository,
+)
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -93,6 +97,7 @@ PAIRS = [
     (WorkspaceInvitationRepo, PostgresWorkspaceInvitationRepo),
     (WorkspaceAPIKeyRepository, PostgresWorkspaceAPIKeyRepository),
     (SessionRepository, PostgresSessionRepository),
+    (WorkspaceDomainRepository, PostgresWorkspaceDomainRepository),
     (UserTagsRepository, PostgresUserTagsRepository),
     (FormRepository, PostgresFormRepository),
     (WorkspaceFormRepository, PostgresWorkspaceFormRepository),
