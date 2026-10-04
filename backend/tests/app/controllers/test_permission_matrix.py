@@ -4,15 +4,16 @@ a non-member and a disabled (admin) membership.
 
 The regression net of docs/enterprise-access-model.md: a new workspace
 endpoint gets a row here. A role is *refused* when the endpoint answers 403
-with the authorization message; any other answer means the request got past
-authorization (a 400/404/409 for the payload or resource is fine, a 500 is
-not). AI paths answer 403 ``ai_not_enabled`` to allowed roles while AI is off;
-that is not a refusal by permission.
+with the authorization message. An allowed role never gets a 403 (unless the
+row names the non-authorization 403 it expects, ``ai_not_enabled`` while AI
+is off) and never a 500; rows with ``ok`` expect that exact status. The
+``.on`` AI rows run with AI enabled and a fake provider, which refused roles
+never reach.
 """
 
 import json
 from dataclasses import dataclass, field
-from typing import Callable, Dict, FrozenSet
+from typing import Callable, Dict, FrozenSet, Optional, Tuple
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -23,15 +24,21 @@ from common.models.user import User
 from httpx import AsyncClient
 
 from backend.app.container import container
+from backend.app.models.dtos.action_dto import ActionDto
+from backend.app.models.invitation_request import InvitationRequest
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.schemas.form_import import FormImportDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
 from backend.app.services.authorization_service import (
     ALL_PERMISSIONS,
+    DISABLED_WORKSPACE_OWNER_PERMISSIONS,
     MEMBER_PERMISSIONS,
 )
 from backend.app.services.form_service import FormService
+from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
+from tests.app.controllers.test_form_ai_insights import _seed_form_and_responses
 from tests.app.controllers.data import (
     formData,
     formResponse,
@@ -83,6 +90,28 @@ class Case:
     request: Callable[[dict], dict] = field(default=lambda c: {})
     # the body a refused role gets (authorize's message unless stated)
     refused_body: str = MESSAGE_FORBIDDEN
+    # a 403 an allowed role may get that is not about permissions
+    allowed_403: Optional[str] = None
+    # the exact status an allowed role gets
+    ok: Optional[int] = None
+    # run with AI enabled for the workspace and the form, the fake provider
+    # answering with these replies
+    ai_replies: Optional[Tuple] = None
+
+
+AI_OFF = "ai_not_enabled"
+CHAT_REPLY = json.dumps({"reply": "Done.", "ops": []})
+REVIEW_REPLY = json.dumps({"summary": "Looks fine.", "findings": []})
+INSIGHTS_REPLY = json.dumps(
+    {
+        "summary": "Respondents are happy.",
+        "themes": [],
+        "actionable": [],
+        "sentiment": "Positive.",
+    }
+)
+GENERATED_FORM = {"title": "Generated", "description": "", "fields": []}
+TEMPLATE_BODY = json.dumps({"title": "Matrix template", "fields": []})
 
 
 W = "/api/v1/workspaces/{ws}"
@@ -150,8 +179,9 @@ CASES = [
     Case(
         "members.invitations.delete",
         "DELETE",
-        W + "/members/invitations/{random}",
+        W + "/members/invitations/{invitation}",
         ADMINS,
+        ok=200,
     ),
     Case("members.remove", "DELETE", W + "/members/{removable}", ADMINS),
     # --- forms
@@ -195,6 +225,14 @@ CASES = [
         lambda c: {"json": {"respondentFeedbackEnabled": True}},
     ),
     Case(
+        "forms.settings.private",
+        "PATCH",
+        F + "/settings",
+        MEMBERS,
+        lambda c: {"json": {"private": True}},
+        ok=200,
+    ),
+    Case(
         "forms.groups.add",
         "PATCH",
         F + "/groups/add",
@@ -213,7 +251,8 @@ CASES = [
         "POST",
         F + "/actions",
         MEMBERS,
-        lambda c: {"json": {"action_id": _oid()}},
+        lambda c: {"json": {"action_id": c["action"]}},
+        ok=200,
     ),
     Case(
         "forms.actions.update",
@@ -231,7 +270,39 @@ CASES = [
         MEMBERS,
         lambda c: {"params": {"workspace_id": c["ws"]}},
     ),
-    Case("templates.delete", "DELETE", W + "/template/{random}", MEMBERS),
+    Case("templates.delete", "DELETE", W + "/template/{template}", MEMBERS, ok=200),
+    Case(
+        "templates.create",
+        "POST",
+        W + "/template",
+        MEMBERS,
+        lambda c: {"data": {"template_body": TEMPLATE_BODY}},
+        ok=200,
+    ),
+    Case(
+        "templates.update",
+        "PATCH",
+        W + "/template/{template}",
+        MEMBERS,
+        lambda c: {"data": {"template_body": TEMPLATE_BODY}},
+        ok=200,
+    ),
+    Case(
+        "templates.settings",
+        "PATCH",
+        W + "/template/{template}/settings",
+        MEMBERS,
+        lambda c: {"json": {"isPublic": False}},
+        ok=200,
+    ),
+    Case("templates.import", "POST", W + "/template/{template}/import", MEMBERS),
+    Case(
+        "templates.create_form",
+        "POST",
+        W + "/template/{template}",
+        MEMBERS,
+        ok=200,
+    ),
     # --- AI on forms
     Case(
         "ai.create_form",
@@ -239,6 +310,16 @@ CASES = [
         W + "/forms/ai",
         MEMBERS,
         lambda c: {"json": {"prompt": "A survey"}},
+        allowed_403=AI_OFF,
+    ),
+    Case(
+        "ai.create_form.on",
+        "POST",
+        W + "/forms/ai",
+        MEMBERS,
+        lambda c: {"json": {"prompt": "A survey"}},
+        ok=200,
+        ai_replies=(GENERATED_FORM,),
     ),
     Case(
         "ai.chat",
@@ -246,15 +327,51 @@ CASES = [
         F + "/ai/chat",
         MEMBERS,
         lambda c: {"json": {"message": "Add a question"}},
+        allowed_403=AI_OFF,
     ),
-    Case("ai.review", "POST", F + "/ai/review", MEMBERS, lambda c: {"json": {}}),
-    Case("ai.insights.get", "GET", F + "/ai/insights", MEMBERS),
+    Case(
+        "ai.chat.on",
+        "POST",
+        F + "/ai/chat",
+        MEMBERS,
+        lambda c: {"json": {"message": "Add a question"}},
+        ok=200,
+        ai_replies=(CHAT_REPLY,),
+    ),
+    Case(
+        "ai.review",
+        "POST",
+        F + "/ai/review",
+        MEMBERS,
+        lambda c: {"json": {}},
+        allowed_403=AI_OFF,
+    ),
+    Case(
+        "ai.review.on",
+        "POST",
+        F + "/ai/review",
+        MEMBERS,
+        lambda c: {"json": {}},
+        ok=200,
+        ai_replies=(REVIEW_REPLY,),
+    ),
+    Case("ai.insights.get", "GET", F + "/ai/insights", MEMBERS, ok=200),
     Case(
         "ai.insights.generate",
         "POST",
         F + "/ai/insights",
         MEMBERS,
         lambda c: {"json": {}},
+        allowed_403=AI_OFF,
+    ),
+    Case(
+        "ai.insights.generate.on",
+        "POST",
+        F + "/ai/insights",
+        MEMBERS,
+        lambda c: {"json": {}},
+        ok=200,
+        ai_replies=(INSIGHTS_REPLY,),
     ),
     Case(
         "ai.insights.settings",
@@ -377,10 +494,19 @@ CASES = [
     ),
     # --- media library and PDF imports
     Case("media.list", "GET", W + "/media", MEMBERS),
-    Case("media.delete", "DELETE", W + "/media/{random}", MEMBERS),
+    Case("media.delete", "DELETE", W + "/media/{media}", MEMBERS, ok=200),
     Case("pdf_imports.list", "GET", W + "/form-imports", MEMBERS),
     Case("pdf_imports.ai_provider", "GET", W + "/form-imports/ai", MEMBERS),
-    Case("pdf_imports.get", "GET", W + "/form-imports/{random}", MEMBERS),
+    Case("pdf_imports.get", "GET", W + "/form-imports/{import}", MEMBERS, ok=200),
+    Case(
+        "pdf_imports.create",
+        "POST",
+        W + "/form-imports",
+        MEMBERS,
+        # refused by the upload check (not a document) after authorization
+        lambda c: {"files": {"file": ("notes.txt", b"not a document", "text/plain")}},
+        ok=400,
+    ),
 ]
 
 
@@ -438,6 +564,40 @@ async def matrix(workspace, published_form, outside_services):
     workspace_form = await container.workspace_form_repo().find_workspace_form(
         workspace.id, published_form.form_id
     )
+    media = await container.media_library_repo().add_media_in_workspace_library(
+        workspace_id=str(workspace.id),
+        media_url="https://s3/media_library/abc",
+        media_type="IMAGE",
+        media_name="logo.png",
+        s3_key="abc",
+    )
+    template = await container.workspace_form_service().duplicate_form(
+        workspace.id, published_form.form_id, testUser, is_template=True
+    )
+    form_import = await container.form_import_repo().save(
+        FormImportDocument(
+            id=PydanticObjectId(),
+            workspace_id=workspace.id,
+            form_id=published_form.form_id,
+            created_by=testUser.id,
+            file_name="form.pdf",
+            content_type="application/pdf",
+            size_bytes=1,
+            sha256="0" * 64,
+            source_key="private/x/form.pdf",
+        )
+    )
+    action = await container.action_repository().create_global_action(
+        ActionDto(name="matrix_action", action_code="", type="external"), testUser
+    )
+    invitation = (
+        await container.workspace_invitation_repo().create_workspace_invitation(
+            workspace_id=workspace.id,
+            invitation=InvitationRequest(
+                email="pending@example.com", role=WorkspaceRoles.COLLABORATOR
+            ),
+        )
+    )
     return {
         "ws": str(workspace.id),
         "name": workspace.workspace_name,
@@ -447,6 +607,11 @@ async def matrix(workspace, published_form, outside_services):
         "group": str(group.id),
         "removable": removable_user.id,
         "api_key": api_key.id,
+        "media": str(media.media_id),
+        "template": str(template.id),
+        "import": str(form_import.id),
+        "action": str(action.id),
+        "invitation": invitation.invitation_token,
         "random": _oid(),
     }
 
@@ -465,7 +630,21 @@ def _body(response):
 
 @pytest.mark.parametrize("role", ROLES)
 @pytest.mark.parametrize("case", CASES, ids=[case.name for case in CASES])
-async def test_permission_matrix(client: AsyncClient, matrix, case: Case, role: str):
+async def test_permission_matrix(
+    client: AsyncClient, matrix, monkeypatch, case: Case, role: str
+):
+    fake = None
+    if case.ai_replies is not None:
+        fake = FakeProvider()
+        fake.replies = list(case.ai_replies)
+        use_fake_provider(monkeypatch, fake)
+        workspace = await container.workspace_repo().find_by_id(
+            PydanticObjectId(matrix["ws"])
+        )
+        await enable_ai(workspace)
+        # allows insights on the form, then answers it with real questions
+        await _seed_form_and_responses(workspace.id, matrix["form"])
+
     request = case.request(matrix)
     response = await client.request(
         case.method,
@@ -473,17 +652,21 @@ async def test_permission_matrix(client: AsyncClient, matrix, case: Case, role: 
         cookies=_cookies(USERS[role]),
         **request,
     )
+    seen = f"{case.name} as {role}: {response.status_code} {response.text}"
     refused = response.status_code == 403 and _body(response) == case.refused_body
     if role in case.allowed:
         assert not refused, f"{role} was refused {case.name}"
-        assert (
-            response.status_code < 500 or response.status_code == 503
-        ), f"{case.name} as {role}: {response.status_code} {response.text}"
+        if response.status_code == 403:
+            assert case.allowed_403 and case.allowed_403 in response.text, seen
+        assert response.status_code < 500 or response.status_code == 503, seen
+        if case.ok is not None:
+            assert response.status_code == case.ok, seen
+        if fake is not None:
+            assert fake.calls, seen
     else:
-        assert refused, (
-            f"{role} was not refused {case.name}: "
-            f"{response.status_code} {response.text}"
-        )
+        assert refused, f"{role} was not refused: {seen}"
+        if fake is not None:
+            assert fake.calls == [], seen
 
 
 EXPECTED_PERMISSIONS = {
@@ -513,22 +696,55 @@ async def test_effective_permissions_need_a_signed_in_user(client: AsyncClient, 
     assert response.status_code == 401
 
 
-async def test_a_disabled_workspace_grants_nothing(client: AsyncClient, matrix):
+# What the owner of a disabled workspace still reaches, and what members don't.
+DISABLED_WORKSPACE_READS = (
+    W + "/forms",
+    F + "/submissions",
+    F + "/submissions?request_for_deletion=true",
+    W + "/all-submissions?request_for_deletion=true",
+    W + "/responders",
+    W + "/stats",
+)
+DISABLED_WORKSPACE_CHANGES = (
+    ("POST", W + "/forms", {"data": {"form_body": json.dumps(formData)}}),
+    ("PATCH", F + "/settings", {"json": {"pinned": True}}),
+    ("GET", W + "/members", {}),
+    ("PUT", W + "/ai-settings", {"json": {"enabled": False}}),
+)
+
+
+async def test_a_disabled_workspace_leaves_its_owner_read_and_privacy(
+    client: AsyncClient, matrix
+):
+    """A downgraded owner still answers deletion requests and reaches their
+    respondents' data (GDPR), and changes nothing else; other members get
+    nothing."""
     workspace = await container.workspace_repo().find_by_id(
         PydanticObjectId(matrix["ws"])
     )
     workspace.disabled = True
     await container.workspace_repo().save(workspace)
+    authorization = container.authorization_service()
+    assert (
+        await authorization.effective_permissions(testUser, matrix["ws"])
+        == DISABLED_WORKSPACE_OWNER_PERMISSIONS
+    )
+    for role in (ADMIN, COLLABORATOR):
+        assert not await authorization.effective_permissions(USERS[role], matrix["ws"])
 
-    for role in (OWNER, ADMIN, COLLABORATOR):
-        response = await client.get(
-            f"/api/v1/workspaces/{matrix['ws']}/forms/{matrix['form']}/submissions",
-            cookies=_cookies(USERS[role]),
+    for path in DISABLED_WORKSPACE_READS:
+        url = path.format(**matrix)
+        owner = await client.get(url, cookies=_cookies(testUser))
+        assert owner.status_code == 200, (url, owner.text)
+        for role in (ADMIN, COLLABORATOR):
+            member = await client.get(url, cookies=_cookies(USERS[role]))
+            assert member.status_code == 403, (role, url)
+
+    for method, path, request in DISABLED_WORKSPACE_CHANGES:
+        refused = await client.request(
+            method, path.format(**matrix), cookies=_cookies(testUser), **request
         )
-        assert response.status_code == 403, role
-        assert not await container.authorization_service().effective_permissions(
-            USERS[role], matrix["ws"]
-        )
+        assert refused.status_code == 403, (method, path, refused.text)
 
 
 def test_every_case_is_named_once():

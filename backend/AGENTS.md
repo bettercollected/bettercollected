@@ -53,7 +53,8 @@ branches. Never compare `owner_id` or roles in a service, and never call the rep
 - **Catalogue:** `models/enum/permission.py` (`workspace.manage`, `members.manage`, `form.edit`,
   `response.read`, ...). **Roles today:** the owner holds all; `ADMIN` all but `workspace.billing`;
   any active membership (`COLLABORATOR`) the Editor's content permissions plus `privacy.manage`.
-  A disabled membership or a disabled workspace grants nothing.
+  A disabled membership grants nothing; in a disabled workspace (owner downgraded) only the owner
+  keeps `form.read`, `response.read/export/delete`, `privacy.manage` and `analytics.read`.
 - **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
   gates controls with `useWorkspacePermissions().can(...)`, not `selectIsAdmin` (which means owner).
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion

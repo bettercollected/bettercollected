@@ -64,6 +64,20 @@ OWNER_PERMISSIONS: FrozenSet[Permission] = ALL_PERMISSIONS
 
 NO_PERMISSIONS: FrozenSet[Permission] = frozenset()
 
+# A disabled workspace (the owner's plan was downgraded) is read-only for its
+# owner: they still answer deletion requests and reach their respondents'
+# data (GDPR), but change nothing else. Other members get nothing.
+DISABLED_WORKSPACE_OWNER_PERMISSIONS: FrozenSet[Permission] = frozenset(
+    {
+        P.FORM_READ,
+        P.RESPONSE_READ,
+        P.RESPONSE_EXPORT,
+        P.RESPONSE_DELETE,
+        P.PRIVACY_MANAGE,
+        P.ANALYTICS_READ,
+    }
+)
+
 
 def permissions_for(roles: Iterable, is_owner: bool) -> FrozenSet[Permission]:
     """The permissions of an active membership with ``roles``."""
@@ -99,8 +113,9 @@ class AuthorizationService:
         self, user: Optional[User], workspace_id: Union[PydanticObjectId, str, None]
     ) -> FrozenSet[Permission]:
         """What ``user`` may do in the workspace. Nothing without an active
-        membership (a disabled one counts as none) or in a disabled or
-        missing workspace."""
+        membership (a disabled one counts as none) or in a missing workspace;
+        in a disabled workspace only its owner keeps read and privacy
+        permissions."""
         workspace_oid = _object_id(workspace_id)
         user_oid = _object_id(user.id) if user else None
         if workspace_oid is None or user_oid is None:
@@ -111,11 +126,12 @@ class AuthorizationService:
         if membership is None or membership.disabled:
             return NO_PERMISSIONS
         workspace = await self._workspace_repo.find_by_id(workspace_oid)
-        if workspace is None or workspace.disabled:
+        if workspace is None:
             return NO_PERMISSIONS
-        return permissions_for(
-            membership.roles, is_owner=str(workspace.owner_id) == str(user_oid)
-        )
+        is_owner = str(workspace.owner_id) == str(user_oid)
+        if workspace.disabled:
+            return DISABLED_WORKSPACE_OWNER_PERMISSIONS if is_owner else NO_PERMISSIONS
+        return permissions_for(membership.roles, is_owner=is_owner)
 
     async def has_permission(
         self,

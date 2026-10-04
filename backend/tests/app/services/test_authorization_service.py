@@ -152,3 +152,24 @@ async def test_form_scope_is_checked_after_the_permission(
             testUser1, P.FORM_EDIT, workspace.id, form_id=str(PydanticObjectId())
         )
     assert refused.value.status_code == 403
+
+
+async def test_a_disabled_workspace_is_read_and_privacy_for_its_owner(workspace):
+    """A downgraded owner keeps reading forms and responses and answering
+    deletion requests (GDPR); nothing else, and no one else."""
+    workspace.disabled = True
+    await container.workspace_repo().save(workspace)
+    authorization = container.authorization_service()
+
+    assert await authorization.effective_permissions(testUser, workspace.id) == {
+        P.FORM_READ,
+        P.RESPONSE_READ,
+        P.RESPONSE_EXPORT,
+        P.RESPONSE_DELETE,
+        P.PRIVACY_MANAGE,
+        P.ANALYTICS_READ,
+    }
+    assert not await authorization.effective_permissions(invited_user, workspace.id)
+    with pytest.raises(HTTPException) as refused:
+        await authorization.authorize(testUser, P.FORM_EDIT, workspace.id)
+    assert refused.value.status_code == 403
