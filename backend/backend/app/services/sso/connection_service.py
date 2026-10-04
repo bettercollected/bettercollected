@@ -203,7 +203,10 @@ class SsoConnectionService:
         polis: PolisAdminClient,
         resolver: Optional[Resolver] = None,
         fetch_transport=None,
+        on_default_role_changed=None,
     ):
+        # SCIM: re-apply roles of directory members without a mapped group
+        self._on_default_role_changed = on_default_role_changed
         self._authorization = authorization_service
         self._connections = connection_repo
         self._domains = domain_service
@@ -613,6 +616,8 @@ class SsoConnectionService:
                 user.id,
                 sorted(k for k in fields if k != "updated_at"),
             )
+        if "sso_default_role" in fields and self._on_default_role_changed:
+            await self._on_default_role_changed(workspace)
         revoked = None
         if request.revoke_sessions and (switching_on or workspace.sso_required):
             revoked = await self._revoke_member_sessions(workspace, user)

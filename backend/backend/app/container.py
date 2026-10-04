@@ -53,6 +53,11 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceDomainRepository,
     PostgresSsoConnectionRepository,
     PostgresSsoUsedStateRepository,
+    PostgresScimDirectoryRepository,
+    PostgresScimEventRepository,
+    PostgresScimGroupMemberRepository,
+    PostgresScimGroupRepository,
+    PostgresScimUserRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -150,10 +155,21 @@ from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
 from backend.app.repositories.sso_used_state_repository import SsoUsedStateRepository
+from backend.app.repositories.scim_repository import (
+    ScimDirectoryRepository,
+    ScimEventRepository,
+    ScimGroupMemberRepository,
+    ScimGroupRepository,
+    ScimUserRepository,
+)
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.login_service import SsoLoginService
 from backend.app.services.sso.policy import SsoPolicyService
 from backend.app.services.sso.polis_client import PolisAdminClient
+from backend.app.services.scim.directory_service import ScimDirectoryService
+from backend.app.services.scim.polis_dsync import PolisDirectoryClient
+from backend.app.services.scim.sync_service import ScimSyncService
+from backend.app.services.scim.webhook_service import ScimWebhookService
 from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
@@ -375,6 +391,66 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(SsoUsedStateRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresSsoUsedStateRepository, pg_sessionmaker
+        ),
+    )
+    scim_directory_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(ScimDirectoryRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresScimDirectoryRepository, pg_sessionmaker
+        ),
+    )
+    scim_user_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(ScimUserRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresScimUserRepository, pg_sessionmaker
+        ),
+    )
+    scim_group_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(ScimGroupRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresScimGroupRepository, pg_sessionmaker
+        ),
+    )
+    scim_group_member_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(ScimGroupMemberRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresScimGroupMemberRepository, pg_sessionmaker
+        ),
+    )
+    scim_event_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(ScimEventRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresScimEventRepository, pg_sessionmaker
         ),
     )
     workspace_api_key_repo = providers.Singleton(
@@ -685,9 +761,7 @@ class AppContainer(containers.DeclarativeContainer):
         sso_policy=sso_policy_service,
         # defined further down (it needs the session service)
         sso_release=providers.Object(
-            lambda workspace_ids: container.sso_connection_service().release_workspaces(
-                workspace_ids
-            )
+            lambda workspace_ids: _release_sso_and_scim(workspace_ids)
         ),
         http_client=http_client,
         custom_domain_service=custom_domain_service,
@@ -802,10 +876,57 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         policy=sso_policy_service,
         polis=polis_admin_client,
+        # defined further down
+        on_default_role_changed=providers.Object(
+            lambda workspace: container.scim_sync_service().recompute_workspace(
+                workspace
+            )
+        ),
+    )
+
+    scim_sync_service: ScimSyncService = providers.Singleton(
+        ScimSyncService,
+        directory_repo=scim_directory_repo,
+        user_repo=scim_user_repo,
+        group_repo=scim_group_repo,
+        member_repo=scim_group_member_repo,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        workspace_user_service=workspace_user_service,
+        domain_service=workspace_domain_service,
+        session_service=session_service,
+        http_client=http_client,
+    )
+
+    polis_directory_client: PolisDirectoryClient = providers.Singleton(
+        PolisDirectoryClient, settings=settings.sso
+    )
+
+    scim_directory_service: ScimDirectoryService = providers.Singleton(
+        ScimDirectoryService,
+        authorization_service=authorization_service,
+        directory_repo=scim_directory_repo,
+        user_repo=scim_user_repo,
+        group_repo=scim_group_repo,
+        member_repo=scim_group_member_repo,
+        workspace_repo=workspace_repo,
+        domain_service=workspace_domain_service,
+        sync_service=scim_sync_service,
+        polis=polis_directory_client,
+        crypto=crypto,
+    )
+
+    scim_webhook_service: ScimWebhookService = providers.Singleton(
+        ScimWebhookService,
+        directory_repo=scim_directory_repo,
+        event_repo=scim_event_repo,
+        sync_service=scim_sync_service,
+        crypto=crypto,
     )
 
     sso_login_service: SsoLoginService = providers.Singleton(
         SsoLoginService,
+        directory_guard=scim_sync_service,
         http_client=http_client,
         connection_repo=sso_connection_repo,
         connection_service=sso_connection_service,
@@ -838,6 +959,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         http_client=http_client,
         workspace_form_service=workspace_form_service,
+        scim_directory_repo=scim_directory_repo,
     )
 
     stripe_service: StripeService = providers.Singleton(
@@ -999,3 +1121,10 @@ class AppContainer(containers.DeclarativeContainer):
 
 
 container = AppContainer()
+
+
+async def _release_sso_and_scim(workspace_ids):
+    """A deleted workspace's SSO connections and SCIM directory, in Polis
+    (best effort) and here."""
+    await container.sso_connection_service().release_workspaces(workspace_ids)
+    await container.scim_directory_service().release_workspaces(workspace_ids)

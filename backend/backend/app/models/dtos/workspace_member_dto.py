@@ -17,6 +17,11 @@ class WorkspaceMemberDto(CamelModel):
     profile_image: Optional[str] = None
     joined: Optional[datetime] = None
     roles: Optional[List[WorkspaceRoles]] = None
+    disabled: bool = False
+    # "sso" (just in time), "scim" (the directory) or None (invited)
+    provisioned_by: Optional[str] = None
+    # the workspace's SCIM directory controls this member's role and status
+    managed_by_directory: bool = False
 
 
 class FormImporterDetails(CamelModel):

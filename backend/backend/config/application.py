@@ -21,6 +21,7 @@ from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.OpenAISettings import OpenAISettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
+from backend.config.scim_settings import SCIMSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.sso_settings import SSOSettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
@@ -73,6 +74,7 @@ class Application(BaseSettings):
     pdf_import: PdfImportSettings = PdfImportSettings()
     verified_domains: VerifiedDomainSettings = VerifiedDomainSettings()
     sso: SSOSettings = SSOSettings()
+    scim: SCIMSettings = SCIMSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

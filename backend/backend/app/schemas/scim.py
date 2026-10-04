@@ -69,9 +69,7 @@ class ScimDirectoryDocument(MongoDocument):
     last_resync_summary: Optional[Dict[str, Any]] = None
     last_resync_error: Optional[str] = None
 
-    @field_validator(
-        "rotated_at", "last_event_at", "last_resync_at", mode="after"
-    )
+    @field_validator("rotated_at", "last_event_at", "last_resync_at", mode="after")
     @classmethod
     def _zone(cls, value):
         return _utc(value)

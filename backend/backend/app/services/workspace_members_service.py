@@ -16,7 +16,10 @@ from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocumen
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.workspace_form_service import WorkspaceFormService
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.workspace_user_service import (
+    PROVISIONED_BY_SCIM,
+    WorkspaceUserService,
+)
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
@@ -35,7 +38,10 @@ class WorkspaceMembersService:
         http_client: HttpClient,
         workspace_form_service: WorkspaceFormService,
         authorization_service: AuthorizationService,
+        scim_directory_repo=None,
     ):
+        # a membership the workspace's SCIM directory manages is shown as such
+        self._scim_directories = scim_directory_repo
         self.workspace_user_service = workspace_user_service
         self.authorization_service = authorization_service
         self.workspace_invitation_repository = workspace_invitation_repo
@@ -54,6 +60,10 @@ class WorkspaceMembersService:
         users_info = await self._get_user_info_from_ids(user_ids)
         workspace_users = sorted(workspace_users, key=lambda w_user: w_user.user_id)
         users_info = sorted(users_info, key=lambda u_info: u_info.get("_id"))
+        has_directory = (
+            self._scim_directories is not None
+            and await self._scim_directories.find_by_workspace(workspace_id) is not None
+        )
         response_user_list = []
         for workspace_user, user_info in zip(workspace_users, users_info):
             user = WorkspaceMemberDto()
@@ -64,6 +74,13 @@ class WorkspaceMembersService:
             user.profile_image = user_info.get("profile_image")
             user.joined = workspace_user.created_at
             user.roles = workspace_user.roles
+            user.disabled = workspace_user.disabled
+            user.provisioned_by = workspace_user.provisioned_by
+            # TODO(access-roles, #801): the role change endpoint must refuse a
+            # membership managed by the directory (its role follows its groups)
+            user.managed_by_directory = bool(
+                has_directory and workspace_user.provisioned_by == PROVISIONED_BY_SCIM
+            )
             response_user_list.append(user)
         return response_user_list
 

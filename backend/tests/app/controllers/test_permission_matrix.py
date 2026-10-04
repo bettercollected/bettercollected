@@ -32,6 +32,7 @@ from backend.app.schemas.form_import import FormImportDocument
 from backend.app.schemas.workspace_domain import WorkspaceDomainDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
+from backend.app.services.scim.directory_service import CreateDirectoryDto
 from backend.app.services.authorization_service import (
     ALL_PERMISSIONS,
     DISABLED_WORKSPACE_OWNER_PERMISSIONS,
@@ -41,6 +42,7 @@ from backend.app.services.form_service import FormService
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from tests.app.auth_helpers import access_token
 from tests.app.sso_helpers import SAML_XML, add_connection, sso_on  # noqa: F401
+from tests.app.scim_helpers import scim_on  # noqa: F401
 from tests.app.controllers.test_form_ai_insights import _seed_form_and_responses
 from tests.app.controllers.data import (
     formData,
@@ -262,6 +264,34 @@ CASES = [
         lambda c: {"json": {"defaultRole": "COLLABORATOR"}},
         ok=200,
     ),
+    # --- SCIM directory sync: viewing needs security.manage; every change is
+    # Owner only (a directory decides who joins and with which role)
+    Case("scim.overview", "GET", W + "/scim", ADMINS, ok=200),
+    Case(
+        "scim.directory.create",
+        "POST",
+        W + "/scim/directory",
+        OWNER_ONLY,
+        lambda c: {"json": {"type": "okta-scim-v2"}},
+        ok=409,  # the matrix workspace has one already
+    ),
+    Case(
+        "scim.directory.rotate",
+        "POST",
+        W + "/scim/directory/rotate",
+        OWNER_ONLY,
+        ok=200,
+    ),
+    Case("scim.directory.delete", "DELETE", W + "/scim/directory", OWNER_ONLY, ok=204),
+    Case(
+        "scim.groups.role",
+        "PUT",
+        W + "/scim/groups/{scim_group}",
+        OWNER_ONLY,
+        lambda c: {"json": {"role": "ADMIN"}},
+        ok=200,
+    ),
+    Case("scim.resync", "POST", W + "/scim/resync", OWNER_ONLY, ok=200),
     # --- forms
     Case("forms.list", "GET", W + "/forms", MEMBERS),
     Case(
@@ -610,7 +640,7 @@ def outside_services():
 
 
 @pytest.fixture()
-async def matrix(workspace, published_form, outside_services, fake_dns, sso_on):
+async def matrix(workspace, published_form, outside_services, fake_dns, scim_on):
     workspace.is_pro = True
     await container.workspace_repo().save(workspace)
     members = container.workspace_user_repo()
@@ -695,7 +725,18 @@ async def matrix(workspace, published_form, outside_services, fake_dns, sso_on):
         )
     )
     sso_connection = await add_connection(workspace.id, enabled=False)
+    from tests.app.sso_helpers import verify_domain
+
+    await verify_domain(workspace.id)
+    await container.scim_directory_service().create(
+        workspace.id, CreateDirectoryDto(type="okta-scim-v2"), testUser
+    )
+    directory = await container.scim_directory_repo().find_by_workspace(workspace.id)
+    scim_group = await container.scim_sync_service().apply_group(
+        directory, {"id": "matrix-group", "name": "Matrix"}
+    )
     return {
+        "scim_group": str(scim_group.id),
         "ws": str(workspace.id),
         "sso_connection": str(sso_connection.id),
         "domain": str(domain.id),

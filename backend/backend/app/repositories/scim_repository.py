@@ -109,7 +109,9 @@ class ScimUserRepository:
         self, directory_id: PydanticObjectId
     ) -> List[ScimUserDocument]:
         return (
-            await ScimUserDocument.find({"directory_id": PydanticObjectId(directory_id)})
+            await ScimUserDocument.find(
+                {"directory_id": PydanticObjectId(directory_id)}
+            )
             .sort([("created_at", 1), ("_id", 1)])
             .to_list()
         )

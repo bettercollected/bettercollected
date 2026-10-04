@@ -12,6 +12,11 @@ from backend.config import settings
 from common.models.user import User
 
 
+# WorkspaceUserDocument.provisioned_by
+PROVISIONED_BY_SSO = "sso"
+PROVISIONED_BY_SCIM = "scim"
+
+
 class SeatLimitReached(Exception):
     """The workspace has no free seat for another member."""
 
@@ -69,7 +74,28 @@ class WorkspaceUserService:
         never downgraded. Raises SeatLimitReached when the workspace is
         full (callers check ``has_free_seat`` before the account is created;
         this is the last look)."""
-        existing = await self.find_member(workspace_id, user.id)
+        return await self._add_provisioned_member(
+            workspace_id, user.id, role, PROVISIONED_BY_SSO
+        )
+
+    async def add_directory_member(
+        self, workspace_id: PydanticObjectId, user_id: str, role: WorkspaceRoles
+    ) -> WorkspaceUserDocument:
+        """A membership created by the workspace's SCIM directory
+        (``provisioned_by="scim"``). Same seat rules as ``add_sso_member``; an
+        existing membership is returned unchanged (the caller decides)."""
+        return await self._add_provisioned_member(
+            workspace_id, user_id, role, PROVISIONED_BY_SCIM
+        )
+
+    async def _add_provisioned_member(
+        self,
+        workspace_id: PydanticObjectId,
+        user_id: str,
+        role: WorkspaceRoles,
+        provisioned_by: str,
+    ) -> WorkspaceUserDocument:
+        existing = await self.find_member(workspace_id, user_id)
         if existing:
             return existing
         if not await self.has_free_seat(workspace_id):
@@ -77,8 +103,9 @@ class WorkspaceUserService:
         member = await self.workspace_user_repository.save(
             WorkspaceUserDocument(
                 workspace_id=PydanticObjectId(workspace_id),
-                user_id=user.id,
+                user_id=PydanticObjectId(user_id),
                 roles=[role],
+                provisioned_by=provisioned_by,
             )
         )
         # Two sign-ins racing past the look above would both be added: count
@@ -89,7 +116,7 @@ class WorkspaceUserService:
         )
         if len(members) > settings.api_settings.ALLOWED_COLLABORATORS + 1:
             await self.workspace_user_repository.delete(
-                PydanticObjectId(workspace_id), PydanticObjectId(user.id)
+                PydanticObjectId(workspace_id), PydanticObjectId(user_id)
             )
             raise SeatLimitReached(str(workspace_id))
         return member

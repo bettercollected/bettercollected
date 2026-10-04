@@ -59,6 +59,8 @@ class RevokeReason:
     ACCOUNT_DELETED = "account_deleted"
     # the workspace started requiring single sign-on for the user's domain
     SSO_REQUIRED = "sso_required"
+    # the workspace's SCIM directory deactivated or deleted the user
+    SCIM_DEPROVISIONED = "scim_deprovisioned"
 
 
 class SessionEnded(HTTPException):

@@ -85,6 +85,8 @@ class FakeAuth:
         self.account_conflict = False
         self.calls: List[tuple] = []
         self.otp_user: Optional[dict] = None
+        # SCIM: addresses several accounts share (differing in case)
+        self.conflicting_emails: set = set()
 
     def add_account(self, email, user_id=None) -> dict:
         account = {
@@ -161,7 +163,31 @@ class FakeAuth:
                 "email_verified": True,
                 "auth_method": "sso",
             }
+        if path.endswith("/auth/sso/directory-account"):
+            email = json["email"].lower()
+            if email in self.conflicting_emails:
+                return {"user": None, "conflict": True}
+            account = self.accounts.get(email)
+            if account is None and json.get("create"):
+                account = self.add_account(email)
+            if account is None:
+                return {"user": None, "conflict": False}
+            return {
+                "user": {
+                    **{k: account[k] for k in ("id", "sub", "roles", "plan")},
+                    "email_verified": True,
+                    "auth_method": "sso",
+                },
+                "conflict": False,
+            }
         raise AssertionError(f"unexpected auth call {path}")
+
+    def directory_created_accounts(self) -> List[str]:
+        return [
+            c[2]["email"]
+            for c in self.calls
+            if c[1].endswith("/directory-account") and c[2].get("create")
+        ]
 
     def created_accounts(self) -> List[str]:
         return [c[2]["assertion"] for c in self.calls if c[1].endswith("/sso/account")]

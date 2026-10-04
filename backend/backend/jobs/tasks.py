@@ -13,6 +13,7 @@ from dataclasses import asdict
 from procrastinate import RetryStrategy
 
 from backend.app.services.user_service import user_for_deletion
+from backend.config import settings
 from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, app
 
 RUN_ACTION = "run_action"
@@ -81,6 +82,22 @@ async def import_form(context, import_id: str) -> str:
             raise
         record = await pipeline.give_up(PydanticObjectId(import_id))
     return record.status if record else "missing"
+
+
+@app.periodic(cron=settings.scim.RECONCILE_CRON, periodic_id="scim_reconcile")
+@app.task(
+    name="scim_reconcile",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="scim_reconcile",
+    retry=RetryStrategy(max_attempts=2, exponential_wait=60),
+)
+async def scim_reconcile(timestamp: int) -> str:
+    """Nightly SCIM resync of every workspace directory (docs/sso.md): pulls
+    users and groups from Polis and applies them, catching webhook events
+    that never arrived. Runs wherever the procrastinate worker runs; without
+    it, use the admin button or ``python -m backend.scim resync --all``."""
+    result = await _container().scim_directory_service().resync_all("schedule")
+    return f"{result['directories']} resynced, {result['failed']} failed"
 
 
 def run_action_deferrer(queueing_lock: str):

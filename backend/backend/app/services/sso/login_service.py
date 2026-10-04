@@ -81,6 +81,8 @@ SSO_ERROR_CODES = frozenset(
         "sso_test_not_allowed",
         "sso_session_mismatch",
         "sso_membership_disabled",
+        # the workspace's SCIM directory deactivated or deleted the user
+        "sso_deprovisioned",
     }
 )
 
@@ -179,8 +181,11 @@ class SsoLoginService:
         authorization_service: AuthorizationService,
         auth_service,
         used_state_repo=None,
+        directory_guard=None,
     ):
         self._http = http_client
+        # SCIM is authoritative (ScimSyncService.is_deprovisioned)
+        self._directory_guard = directory_guard
         self._used_states = used_state_repo
         self._connections = connection_repo
         self._connection_service = connection_service
@@ -425,6 +430,13 @@ class SsoLoginService:
                 raise _Code("sso_not_configured")
             if profile.get("account_conflict"):
                 raise _Code("sso_account_conflict")
+            if (
+                self._directory_guard is not None
+                and await self._directory_guard.is_deprovisioned(workspace.id, email)
+            ):
+                # the directory deactivated or deleted this user: no just-in-
+                # time membership and no session, whatever the IdP says
+                raise _Code("sso_deprovisioned")
             existing_id = profile.get("existing_user_id")
             member = (
                 await self._members.find_member(workspace.id, existing_id)
