@@ -16,20 +16,21 @@ from backend.app.repositories.template import FormTemplateRepository
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_form_service import WorkspaceFormService
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 from backend.config import settings
 
 
 class FormTemplateService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         form_template_repo: FormTemplateRepository,
         aws_service: AWSS3Service,
         workspace_form_service: WorkspaceFormService,
         temporal_service: TemporalService,
     ):
-        self.workspace_user_service = workspace_user_service
+        self.authorization_service = authorization_service
         self.form_template_repo = form_template_repo
         self.workspace_form_service = workspace_form_service
         self._aws_service = aws_service
@@ -46,8 +47,8 @@ class FormTemplateService:
             workspace_id = settings.default_workspace_settings.WORKSPACE_ID
             predefined_workspace = True
         else:
-            await self.workspace_user_service.check_user_has_access_in_workspace(
-                workspace_id=workspace_id, user=user
+            await self.authorization_service.authorize(
+                user, Permission.FORM_READ, workspace_id
             )
         return await self.form_template_repo.get_templates_with_creator(
             workspace_id=workspace_id, predefined_workspace=predefined_workspace, v2=v2
@@ -71,17 +72,18 @@ class FormTemplateService:
                 status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
             )
         if not template.settings.is_public:
-            await self.workspace_user_service.check_user_has_access_in_workspace(
-                workspace_id=workspace_id if workspace_id else template.workspace_id,
-                user=user,
+            await self.authorization_service.authorize(
+                user,
+                Permission.FORM_READ,
+                workspace_id if workspace_id else template.workspace_id,
             )
         return template
 
     async def import_form_template_to_workspace(
         self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
         await self.get_template_by_id(user=user, template_id=template_id)
         return await self.form_template_repo.import_template_to_workspace(
@@ -91,8 +93,8 @@ class FormTemplateService:
     async def create_form_from_template(
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
         # public templates, or private ones of a workspace the user is in
         template = await self.get_template_by_id(user=user, template_id=template_id)
@@ -111,8 +113,8 @@ class FormTemplateService:
         user: User,
         template_body: StandardFormTemplate,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
         template_body.id = PydanticObjectId()
         if logo:
@@ -141,8 +143,8 @@ class FormTemplateService:
         cover_image: UploadFile,
         user_tokens: UserTokens,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
         )
         template = await self.form_template_repo.get_template_by_id(template_id)
         if template.workspace_id != workspace_id:
@@ -187,8 +189,8 @@ class FormTemplateService:
         user: User,
         settings: StandardTemplateSetting,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
         )
         template = await self.form_template_repo.get_template_by_id(template_id)
         if template.workspace_id != workspace_id:
@@ -203,8 +205,8 @@ class FormTemplateService:
     async def delete_template(
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_DELETE, workspace_id
         )
         template = await self.form_template_repo.get_template_by_id(template_id)
         if not template:

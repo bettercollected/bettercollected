@@ -560,9 +560,10 @@ async def test_the_deletion_job_names_its_user_by_the_encrypted_request(monkeypa
         await tasks.delete_user.func(encrypted_tokens=blob, user_id="someone-else")
 
 
-async def test_the_deletion_route_takes_only_an_encrypted_request(client):
+async def test_the_deletion_route_takes_only_an_encrypted_request(client, monkeypatch):
     import json
 
+    monkeypatch.setattr(settings.temporal_settings, "api_key", "job-key-for-tests")
     tokens, _ = await sign_in()
     key = {"api-key": settings.temporal_settings.api_key}
     legacy = container.crypto().encrypt(

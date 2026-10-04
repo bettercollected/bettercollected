@@ -23,6 +23,7 @@ from pydantic.alias_generators import to_camel
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.services.ai.prompt_builder import extract_json_object
+from backend.app.models.enum.permission import Permission
 
 MAX_ENTRIES = 50
 MAX_ENTRY_CHARS = 300
@@ -109,8 +110,8 @@ class AIMemoryService:
         self, workspace_id: PydanticObjectId, user: User, enabled: bool
     ) -> bool:
         """Turn extraction from chat turns on or off for the caller."""
-        await _c().workspace_user_service().check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await _c().authorization_service().authorize(
+            user, Permission.FORM_READ, workspace_id
         )
         document = await self._get_document(workspace_id, user.id)
         if document is None:

@@ -374,26 +374,33 @@ class TestInsightsConsent:
         assert response.json()["code"] == "ai_not_enabled"
         assert fake_insights_provider.calls == []
 
-    async def test_admins_only(
+    async def test_readers_of_responses_get_them_admins_allow_them(
         self,
         client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         test_invited_user_cookies: dict[str, str],
+        test_user_cookies_1: dict[str, str],
         fake_insights_provider: FakeProvider,
     ):
+        """Insights are response.read, like the answers they summarise;
+        allowing them on a form is ai.manage (admins)."""
         await _seed_form_and_responses(workspace.id, workspace_form.form_id)
         url = _insights_url(workspace, workspace_form.form_id)
+        outsider = test_user_cookies_1
+        assert (await client.post(url, cookies=outsider, json={})).status_code == 403
+        assert (await client.get(url, cookies=outsider)).status_code == 403
+        assert fake_insights_provider.calls == []
+
         collaborator = test_invited_user_cookies
-        assert (
-            await client.post(url, cookies=collaborator, json={})
-        ).status_code == 403
-        assert (await client.get(url, cookies=collaborator)).status_code == 403
+        fake_insights_provider.replies = [json.dumps(INSIGHTS_REPLY)]
+        generated = await client.post(url, cookies=collaborator, json={})
+        assert generated.status_code == 200, generated.text
+        assert (await client.get(url, cookies=collaborator)).status_code == 200
         settings = await client.put(
             f"{url}/settings", cookies=collaborator, json={"enabled": False}
         )
         assert settings.status_code == 403
-        assert fake_insights_provider.calls == []
 
     async def test_the_setting_is_admin_only_recorded_and_needs_the_opt_in(
         self,

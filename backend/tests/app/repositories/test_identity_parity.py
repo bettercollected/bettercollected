@@ -229,6 +229,56 @@ async def test_workspace_users(sessions):
     )
 
 
+async def test_disabled_admin_membership_is_not_admin(sessions):
+    """A disabled membership grants nothing, an ADMIN role included (#770)."""
+    owner = User(id=str(PydanticObjectId()), sub="owner@example.com")
+    admin = User(id=str(PydanticObjectId()), sub="admin@example.com")
+    ws = workspace("zeta", owner.id)
+    for repo in (
+        WorkspaceRepository(),
+        PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None)),
+    ):
+        await repo.save(ws)
+    owner_row, admin_row = (
+        WorkspaceUserDocument(
+            id=PydanticObjectId(),
+            workspace_id=ws.id,
+            user_id=PydanticObjectId(user.id),
+            roles=[WorkspaceRoles.ADMIN],
+        )
+        for user in (owner, admin)
+    )
+    mongo, postgres = WorkspaceUserRepository(), PostgresWorkspaceUserRepository(
+        sessions
+    )
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("save", lambda: (owner_row,)),
+            ("save", lambda: (admin_row,)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
+            ("disable_other_users_in_workspace", lambda: (ws.id, owner_row.user_id)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, owner)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        assert await repo.is_user_admin_in_workspace(ws.id, admin) is False
+        assert await repo.is_user_admin_in_workspace(ws.id, owner) is True
+        assert await repo.has_user_access_in_workspace(ws.id, admin) is False
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("enable_all_user_in_workspace", lambda: (ws.id,)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        assert await repo.is_user_admin_in_workspace(ws.id, admin) is True
+
+
 async def test_invitations(sessions):
     ws_id = PydanticObjectId()
     mongo, postgres = WorkspaceInvitationRepo(), PostgresWorkspaceInvitationRepo(

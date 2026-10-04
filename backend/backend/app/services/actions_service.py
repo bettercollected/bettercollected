@@ -13,7 +13,8 @@ from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 
 
 class ActionService:
@@ -24,14 +25,14 @@ class ActionService:
         temporal_service: TemporalService,
         http_client: HttpClient,
         form_provider_service: FormPluginProviderService,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         form_response_service: FormResponseService,
         workspace_repo=WorkspaceRepository,
     ):
         self.action_repository = action_repository
         self.form_repo = form_repo
         self.temporal_service: TemporalService = temporal_service
-        self.workspace_user_service = workspace_user_service
+        self.authorization_service = authorization_service
         self.http_client = http_client
         self.form_provider_service = form_provider_service
         self.form_response_service = form_response_service
@@ -43,8 +44,8 @@ class ActionService:
     async def create_action(
         self, workspace_id: PydanticObjectId, action: ActionDto, user: User
     ):
-        await self.workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         created = await self.action_repository.create_action(
             workspace_id=workspace_id, action=action, user=user

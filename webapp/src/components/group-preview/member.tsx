@@ -14,8 +14,6 @@ import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { handleRegexType } from '@app/models/enums/group-regex';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
 
@@ -28,7 +26,6 @@ export default function GroupMembersTab({ group, workspace }: IGroupMemberTabPro
     const [emails, setEmails] = useState(group.emails);
     const { t } = useTranslation();
     const { toast } = useToast();
-    const isAdmin = useAppSelector(selectIsAdmin);
 
     const { openModal, closeModal } = useModal();
     const [searchQuery, setSearchQuery] = useState('');

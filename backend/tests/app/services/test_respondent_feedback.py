@@ -181,27 +181,23 @@ async def test_a_new_form_has_default_statuses_and_feedback_off(
 # ---------------------------------------------------------------------------
 
 
-async def test_only_admins_switch_it_or_its_statuses(
-    client, workspace, workspace_1, form
-):
-    """Turning feedback on decides whether respondents get emailed: like
-    posting, it is for workspace admins and the owner."""
+async def test_who_may_switch_it_or_its_statuses(client, workspace, workspace_1, form):
+    """Turning feedback on and its statuses are form settings (form.edit):
+    collaborators may, non-members may not."""
     url = _settings_url(workspace, form.form_id)
+    outsider = await client.patch(
+        url, json={"respondentFeedbackEnabled": True}, cookies=_cookies(testUser1)
+    )
+    assert outsider.status_code == 403
     for body in (
         {"respondentFeedbackEnabled": True},
-        {"respondentFeedbackEnabled": False},
         {"feedbackStatuses": ["Shortlisted"]},
+        {"respondentFeedbackEnabled": False},
     ):
         collaborator = await client.patch(
             url, json=body, cookies=_cookies(invited_user)
         )
-        assert collaborator.status_code == 403, body
-        assert "admins" in collaborator.text
-    # other settings stay open to members, as before
-    pinned = await client.patch(
-        url, json={"pinned": True}, cookies=_cookies(invited_user)
-    )
-    assert pinned.status_code == 200, pinned.text
+        assert collaborator.status_code == 200, (body, collaborator.text)
     # the owner may
     settings = await _enable(client, workspace, form, feedbackStatuses=["Shortlisted"])
     assert settings["settings"]["respondentFeedbackEnabled"] is True
@@ -215,10 +211,6 @@ async def test_who_may_post(client, workspace, workspace_1, form):
     payload = {"status": "Selected"}
 
     assert (await client.post(url, json=payload)).status_code == 401
-    # a collaborator sees feedback but may not post
-    collaborator = await client.post(url, json=payload, cookies=_cookies(invited_user))
-    assert collaborator.status_code == 403
-    assert "admins" in collaborator.text
     # the respondent is not a member
     respondent = await client.post(url, json=payload, cookies=_cookies(testUser2))
     assert respondent.status_code == 403
@@ -232,16 +224,26 @@ async def test_who_may_post(client, workspace, workspace_1, form):
 
     owner = await client.post(url, json=payload, cookies=_cookies(testUser))
     assert owner.status_code == 200, owner.text
+    # posting is response.annotate: collaborators too
+    collaborator = await client.post(
+        url, json={"message": "Thanks"}, cookies=_cookies(invited_user)
+    )
+    assert collaborator.status_code == 200, collaborator.text
     admin = await client.post(
         url, json={"message": "Welcome aboard"}, cookies=_cookies(workspace_admin)
     )
     assert admin.status_code == 200, admin.text
     body = admin.json()
-    assert [e.get("status") for e in body["entries"]] == ["Selected", None]
-    assert [e.get("message") for e in body["entries"]] == [None, "Welcome aboard"]
+    assert [e.get("status") for e in body["entries"]] == ["Selected", None, None]
+    assert [e.get("message") for e in body["entries"]] == [
+        None,
+        "Thanks",
+        "Welcome aboard",
+    ]
     assert body["entries"][0]["createdBy"] == testUser.id
-    assert body["entries"][1]["createdByEmail"] == workspace_admin.sub
-    assert body["entries"][1]["createdAt"]
+    assert body["entries"][1]["createdByEmail"] == invited_user.sub
+    assert body["entries"][2]["createdByEmail"] == workspace_admin.sub
+    assert body["entries"][2]["createdAt"]
     # a message-only update keeps the status
     assert body["currentStatus"] == "Selected"
     assert body["canPost"] is True
@@ -407,7 +409,7 @@ async def test_respondent_views_have_feedback_without_staff_identity(
     assert body["feedback"]["currentStatus"] == "Selected"
     assert body["feedback"]["entries"][1]["createdByEmail"] == workspace_admin.sub
     assert body["feedback"]["entries"][0]["message"] == SECRET
-    assert body["feedback"]["canPost"] is False  # a collaborator
+    assert body["feedback"]["canPost"] is True  # response.annotate
     assert body["response"].get("respondentFeedback") is None
 
     owner = await client.get(

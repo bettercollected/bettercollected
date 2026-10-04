@@ -43,7 +43,8 @@ from backend.app.services.ai.prompt_builder import (
     extract_json_object,
     project_form,
 )
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 
 # Context discipline: resend at most this many prior turns.
 MAX_HISTORY_MESSAGES = 20
@@ -141,13 +142,13 @@ async def persist_ops_to_form(
 class FormAIChatService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         provider_resolver: Callable,
         workspace_form_repo: WorkspaceFormRepository,
         form_repo: FormRepository,
         session_repo: FormAISessionRepository,
     ):
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
         self._session_repo = session_repo
@@ -165,9 +166,7 @@ class FormAIChatService:
         user: User,
         background_tasks: Optional[BackgroundTasks] = None,
     ) -> FormAIChatResponse:
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
 
         # The form must belong to THIS workspace — access to workspace A must
         # not allow editing workspace B's forms by id (MCP has the same rule).

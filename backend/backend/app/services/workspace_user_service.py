@@ -9,7 +9,6 @@ from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
-from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 
 
@@ -22,44 +21,7 @@ class WorkspaceUserService:
         self.workspace_user_repository = workspace_user_repository
         self.workspace_repo = workspace_repo
 
-    async def check_user_has_access_in_workspace(
-        self, workspace_id: PydanticObjectId, user: User
-    ):
-        workspace = await self.workspace_repo.find_by_id(workspace_id)
-        has_access = await self.workspace_user_repository.has_user_access_in_workspace(
-            workspace_id, user
-        )
-        if not has_access or workspace.disabled:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
-
-    async def check_user_has_access_by_workspace_name(
-        self, workspace_name: str, user: User
-    ):
-        workspace = await self.workspace_repo.find_by_name(workspace_name)
-        has_access = await self.workspace_user_repository.has_user_access_in_workspace(
-            workspace_id=workspace.id, user=user
-        )
-        if not has_access or workspace.disabled:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
-
-    async def check_is_admin_in_workspace(
-        self, workspace_id: PydanticObjectId, user: User
-    ):
-        workspace = await self.workspace_repo.find_by_id(workspace_id)
-        is_admin = await self.workspace_user_repository.is_user_admin_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
-        if not is_admin or workspace.disabled:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
-
-    async def get_users_in_workspace(self, workspace_id, user: User):
-        await self.check_is_admin_in_workspace(workspace_id=workspace_id, user=user)
+    async def get_users_in_workspace(self, workspace_id):
         return await self.workspace_user_repository.get_workspace_users(
             workspace_id=workspace_id
         )

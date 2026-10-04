@@ -52,7 +52,8 @@ from backend.app.services.internal_fields import (
     internal_field_ids,
     strip_internal_fields,
 )
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 
 MAX_RESPONSES = 200
 MAX_PROJECTION_CHARS = 60_000
@@ -298,7 +299,7 @@ def project_responses(
 class FormAIInsightsService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         provider_resolver: Callable,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
@@ -307,7 +308,7 @@ class FormAIInsightsService:
         ai_consent_service: Optional[AIConsentService] = None,
         form_response_service: Optional[FormResponseService] = None,
     ):
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
         self._form_response_service = form_response_service
         self._ai_consent = ai_consent_service
         self._provider_resolver = provider_resolver
@@ -317,12 +318,15 @@ class FormAIInsightsService:
         self._insight_repo = insight_repo
 
     async def _authorize(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User,
+        permission: Permission = Permission.RESPONSE_READ,
     ) -> tuple:
-        # Insights read respondents' answers: workspace admins only (#716).
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        # Insights summarise respondents' answers: whoever may read them.
+        # Allowing them on a form is an AI opt-in (ai.manage).
+        await self._authorization.authorize(user, permission, workspace_id)
         association = await self._workspace_form_repo.find_workspace_form(
             workspace_id, form_id
         )
@@ -344,10 +348,12 @@ class FormAIInsightsService:
         request: FormAIInsightsSettingsRequest,
         user: User,
     ) -> FormAIInsightsSettingsDto:
-        """Turn "Allow AI insights on responses" on or off (admins only).
+        """Turn "Allow AI insights on responses" on or off (ai.manage).
         Turning it on needs the workspace AI opt-in and records the provider
         the respondent notice names, who, and when."""
-        _, association = await self._authorize(workspace_id, form_id, user)
+        _, association = await self._authorize(
+            workspace_id, form_id, user, Permission.AI_MANAGE
+        )
         settings = association.settings
         if request.enabled:
             self._require_collected_here(association)

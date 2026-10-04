@@ -1,15 +1,21 @@
 from common.models.user import User
-from backend.app.services.workspace_user_service import WorkspaceUserService
+
+from backend.app.models.enum.permission import Permission
+from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.services.authorization_service import AuthorizationService
 
 
 class AnalyticsService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
+        workspace_repo: WorkspaceRepository,
     ):
-        self.workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
+        self._workspace_repo = workspace_repo
 
     async def check_user_can_view_analytics(self, workspace_name: str, user: User):
-        await self.workspace_user_service.check_user_has_access_by_workspace_name(
-            workspace_name=workspace_name, user=user
+        workspace = await self._workspace_repo.find_by_name(workspace_name)
+        await self._authorization.authorize(
+            user, Permission.ANALYTICS_READ, workspace.id if workspace else None
         )

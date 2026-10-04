@@ -9,7 +9,8 @@ import { useModal } from '@app/components/modal-views/context';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspaceThemesMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
@@ -26,7 +27,8 @@ const NEW_THEME_SEED: Omit<FormTheme, 'title'> = {
 
 export default function ThemesPage() {
     const workspace = useAppSelector(selectWorkspace);
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    const canManageWorkspace = can(WorkspacePermission.WORKSPACE_MANAGE);
     const dispatch = useAppDispatch();
     const { toast } = useToast();
     const { openModal } = useModal();
@@ -89,7 +91,7 @@ export default function ThemesPage() {
                 Palettes for your forms. Save your own to reuse brand colours across the workspace, or start from a preset — apply either from the <span className="text-black-800 font-medium">Design</span> tab in the form builder.
             </p>
 
-            {isAdmin && (
+            {canManageWorkspace && (
                 <section className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
                         <h2 className="text-black-900 text-base font-semibold">Your themes</h2>

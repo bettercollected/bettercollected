@@ -1,3 +1,5 @@
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+
 export interface INavbarItem {
     key: string;
     name: React.ReactNode;
@@ -7,8 +9,8 @@ export interface INavbarItem {
     /** Highlight only on an exact pathname match — for items whose URL is a
      *  prefix of every other route (e.g. the dashboard root). */
     exactMatch?: boolean;
-    /** Only rendered for workspace admins. */
-    adminOnly?: boolean;
+    /** Only rendered for users holding this workspace permission. */
+    permission?: WorkspacePermission;
     /** Overrides URL-based matching — for items whose active state isn't a
      *  route (e.g. Site settings, which is a view on the dashboard root). */
     isActive?: boolean;

@@ -9,6 +9,7 @@ from pydantic import EmailStr
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -162,6 +163,21 @@ class WorkspaceRouter(Routable):
         )
         return await self.workspace_service.patch_workspace(
             profile_image, banner_image, workspace_id, workspace_request, user
+        )
+
+    @get("/{workspace_id}/permissions", response_model=WorkspacePermissionsDto)
+    async def get_workspace_permissions(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> WorkspacePermissionsDto:
+        """What the caller may do in this workspace (the webapp shows and
+        hides controls from it). Empty for anyone who isn't an active member."""
+        permissions = await container.authorization_service().effective_permissions(
+            user, workspace_id
+        )
+        return WorkspacePermissionsDto(
+            permissions=sorted(permissions, key=lambda p: p.value)
         )
 
     @get("/{workspace_id}/ai-profile")

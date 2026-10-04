@@ -37,7 +37,10 @@ fi
 # AUTH_INTERNAL_NOTIFY_KEY: shared by backend, auth and integrations-googleform;
 # the auth service's API refuses every request without it (sign-in, users,
 # billing, notification mails), so only those services can call it.
-for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD AUTH_INTERNAL_NOTIFY_KEY; do
+# TEMPORAL_API_KEY: shared by the backend (TEMPORAL_API_KEY) and the Temporal
+# worker / actions-executor (API_KEY); the backend's internal job routes refuse
+# requests without it and answer 503 while it is unset.
+for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
   if ! grep -q "^${var}=" .env 2>/dev/null; then
     echo "${var}=$(openssl rand -hex 24)" >> .env
     echo "Generated a new ${var} in .env (first run)."

@@ -139,6 +139,8 @@ services:
     image: bettercollected/temporal-worker:nightly
     environment:
       TEMPORAL_SERVER_URL: temporal:7233
+      # the backend's TEMPORAL_API_KEY: its internal job routes require it
+      API_KEY: ${TEMPORAL_API_KEY:?set by deploy.sh in the root .env}
 
     env_file:
       - .env.deployment
@@ -169,6 +171,9 @@ services:
       # shared with auth and integrations-googleform: the auth service's API
       # refuses every request without it (sign-in, users, billing, mails)
       AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
+      # shared with worker (and the actions-executor, as API_KEY): the internal
+      # job routes (imports, deletions, actions) answer 503 without it
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:?set by deploy.sh in the root .env}
       # Schema migrations: deploy.sh runs them before the services roll. A stack
       # deployed without it (Docker Swarm / docker stack deploy, CI) can let each
       # service migrate its own schema at startup instead — replicas serialise on
