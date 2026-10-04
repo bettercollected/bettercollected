@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import List
+from typing import List, Union
 
 from beanie import PydanticObjectId
 
@@ -15,8 +15,11 @@ class WorkspaceUserDocument(MongoDocument):
     Attributes:
         workspace_id (PydanticObjectId): The ID of the workspace.
         userId (PydanticObjectId): The ID of the user.
-        roles (List[WorkspaceRoles]): A list of roles that the user has in the
-            workspace. Defaults to ["FORM_CREATOR"].
+        roles (List[WorkspaceRoles | str]): The member's roles. ``[]`` (the
+            default, memberships from before roles existed) is an Editor. A
+            role this code doesn't know is kept as a string and grants
+            nothing (backend.app.services.authorization_service), so a
+            membership with a newer role still loads after a rollback.
 
     Classes Attributes:
         Collection:
@@ -29,7 +32,7 @@ class WorkspaceUserDocument(MongoDocument):
 
     workspace_id: PydanticObjectId
     user_id: PydanticObjectId
-    roles: List[WorkspaceRoles] = []
+    roles: List[Union[WorkspaceRoles, str]] = []
     disabled: bool = False
 
     class Settings:
