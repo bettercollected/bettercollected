@@ -4,7 +4,7 @@ from datetime import timedelta, timezone
 from http import HTTPStatus
 
 from beanie import PydanticObjectId
-from fastapi_pagination.ext.beanie import paginate, apaginate
+from fastapi_pagination.ext.beanie import apaginate
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
