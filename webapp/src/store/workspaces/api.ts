@@ -6,7 +6,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDomainDto } from '@app/models/dtos/workspace-domain-dto';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import { CreateScimDirectoryRequest, ScimCredentialsDto, ScimGroupDto, ScimOverviewDto, ScimResyncDto } from '@app/models/dtos/workspace-scim-dto';
+import { CreateScimDirectoryRequest, ScimCredentialsDto, ScimDirectoryDto, ScimGroupDto, ScimOverviewDto, ScimResyncDto } from '@app/models/dtos/workspace-scim-dto';
 import { CreateSsoConnectionRequest, SsoConnectionDto, SsoOverviewDto, SsoSettingsDto, UpdateSsoSettingsRequest } from '@app/models/dtos/workspace-sso-dto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
@@ -643,9 +643,18 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['SCIM_TAG']
         }),
-        resyncScimDirectory: builder.mutation<ScimResyncDto, { workspace_id: string }>({
+        resyncScimDirectory: builder.mutation<ScimResyncDto, { workspace_id: string; force?: boolean }>({
             query: (request) => ({
                 url: `/workspaces/${request.workspace_id}/scim/resync`,
+                method: 'POST',
+                body: { force: !!request.force },
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SCIM_TAG']
+        }),
+        cleanupScimDirectory: builder.mutation<ScimDirectoryDto, { workspace_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/scim/directory/cleanup`,
                 method: 'POST',
                 credentials: 'include'
             }),
@@ -869,6 +878,7 @@ export const {
     useDeleteScimDirectoryMutation,
     useSetScimGroupRoleMutation,
     useResyncScimDirectoryMutation,
+    useCleanupScimDirectoryMutation,
     useClaimEmailDomainMutation,
     useVerifyEmailDomainMutation,
     useDeleteEmailDomainMutation,

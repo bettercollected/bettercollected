@@ -10,8 +10,16 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
-import { useCreateScimDirectoryMutation, useDeleteScimDirectoryMutation, useGetWorkspaceScimQuery, useResyncScimDirectoryMutation, useRotateScimTokenMutation, useSetScimGroupRoleMutation } from '@app/store/workspaces/api';
+import { useCleanupScimDirectoryMutation, useCreateScimDirectoryMutation, useDeleteScimDirectoryMutation, useGetWorkspaceScimQuery, useResyncScimDirectoryMutation, useRotateScimTokenMutation, useSetScimGroupRoleMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
+// What a failed resync (``lastResyncError``) means.
+const RESYNC_ERRORS: Record<string, string> = {
+    scim_unavailable: 'the directory service was not reachable.',
+    auth_unavailable: 'the account service was not reachable; some people were skipped.',
+    mass_deprovision_refused: 'it would have deactivated too many members at once, so nothing was changed. Check your identity provider, then resync (you can force it).',
+    resync_failed: 'something went wrong; it is retried tonight.'
+};
 
 const roleLabel = (role?: string | null) => (role ? (ROLE_LABELS[role] ?? role) : 'No role');
 
@@ -96,7 +104,14 @@ function GroupRow({ group, overview, workspaceId }: { group: ScimGroupDto; overv
     };
     return (
         <tr className="border-t border-black-100">
-            <td className="break-all py-2 pr-3 text-sm text-black-900">{group.name}</td>
+            <td className="break-all py-2 pr-3 text-sm text-black-900">
+                {group.name}
+                {group.needsReview && (
+                    <span className="ml-2 rounded bg-[#FDF3E3] px-1.5 py-0.5 text-[11px] font-medium text-[#9A5B00]" title="After the token rotation several earlier groups had this name, so its role was not carried over. Choose it again.">
+                        Check the role
+                    </span>
+                )}
+            </td>
             <td className="py-2 pr-3 text-xs text-black-600">{group.members}</td>
             <td className="py-2">
                 <select aria-label={`Role for ${group.name}`} className={cn(inputClass, 'h-8 sm:max-w-[200px]')} value={group.role ?? ''} disabled={!overview.canManage || isLoading} onChange={(e) => change(e.target.value)}>
@@ -125,6 +140,7 @@ export default function WorkspaceScimSection() {
     const [rotate, { isLoading: isRotating }] = useRotateScimTokenMutation();
     const [remove, { isLoading: isDeleting }] = useDeleteScimDirectoryMutation();
     const [resync, { isLoading: isResyncing }] = useResyncScimDirectoryMutation();
+    const [cleanup, { isLoading: isCleaning }] = useCleanupScimDirectoryMutation();
     const [credentials, setCredentials] = useState<ScimCredentialsDto | null>(null);
 
     const title = 'Directory sync (SCIM)';
@@ -161,8 +177,14 @@ export default function WorkspaceScimSection() {
         )
             return;
         const response: any = await rotate({ workspace_id: workspaceId });
-        if (response.error) toast({ description: errorMessage(response.error, 'Could not rotate the token.'), variant: 'destructive' });
-        else setCredentials(response.data);
+        if (response.error) {
+            toast({ description: errorMessage(response.error, 'Could not rotate the token.'), variant: 'destructive' });
+            return;
+        }
+        setCredentials(response.data);
+        if (response.data?.previousDirectoryDeleted === false) {
+            toast({ description: 'The previous directory could not be deleted yet, so its token may still be accepted. Retry the clean-up below.', variant: 'destructive' });
+        }
     };
 
     const doDelete = async () => {
@@ -172,10 +194,24 @@ export default function WorkspaceScimSection() {
         else toast({ description: 'Directory deleted. Members were kept.' });
     };
 
-    const doResync = async () => {
-        const response: any = await resync({ workspace_id: workspaceId });
+    const doResync = async (force = false) => {
+        const response: any = await resync({ workspace_id: workspaceId, force });
+        const refusal = response.error?.data;
+        if (!force && refusal?.code === 'mass_deprovision_refused') {
+            const { wouldDeprovision, provisioned } = refusal.summary ?? {};
+            if (window.confirm(`This resync would deactivate ${wouldDeprovision} of ${provisioned} members, more than the safety limit, so nothing was changed. Check your identity provider's assignments first. Deactivate them anyway?`)) {
+                await doResync(true);
+            }
+            return;
+        }
         if (response.error) toast({ description: errorMessage(response.error, 'Could not resync.'), variant: 'destructive' });
         else toast({ description: `Resynced ${response.data.summary.users ?? 0} users and ${response.data.summary.groups ?? 0} groups.` });
+    };
+
+    const doCleanup = async () => {
+        const response: any = await cleanup({ workspace_id: workspaceId });
+        if (response.error) toast({ description: errorMessage(response.error, 'The previous directory could not be deleted yet.'), variant: 'destructive' });
+        else toast({ description: 'The previous directory was deleted.' });
     };
 
     return (
@@ -207,13 +243,15 @@ export default function WorkspaceScimSection() {
                                 <span className="text-xs text-black-500">{directory.lastEventAt ? `Last change ${formatTime(directory.lastEventAt)} (${directory.lastEventType})` : 'No change received yet.'}</span>
                                 {directory.lastResyncAt && (
                                     <span className="text-xs text-black-500">
-                                        {directory.lastResyncError ? `Last resync failed ${formatTime(directory.lastResyncAt)}: the directory service was not reachable.` : `Last resync ${formatTime(directory.lastResyncAt)}`}
+                                        {directory.lastResyncError
+                                            ? `Last resync failed ${formatTime(directory.lastResyncAt)}: ${RESYNC_ERRORS[directory.lastResyncError] ?? RESYNC_ERRORS.resync_failed}`
+                                            : `Last resync ${formatTime(directory.lastResyncAt)}`}
                                     </span>
                                 )}
                             </div>
                             {overview.canManage && (
                                 <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                    <Button size="sm" variant="v2Button" isLoading={isResyncing} onClick={doResync} icon={<RefreshCw className="h-3.5 w-3.5" />}>
+                                    <Button size="sm" variant="v2Button" isLoading={isResyncing} onClick={() => doResync()} icon={<RefreshCw className="h-3.5 w-3.5" />}>
                                         Resync now
                                     </Button>
                                     <Button size="sm" variant="v2Button" isLoading={isRotating} onClick={doRotate}>
@@ -225,6 +263,19 @@ export default function WorkspaceScimSection() {
                                 </div>
                             )}
                         </div>
+                        {directory.previousDirectoryPendingDelete && (
+                            <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#F2D9A6] bg-[#FDF8EC] px-3 py-2 text-xs text-black-800" data-testid="scim-stale-directory">
+                                <span>The directory before the last rotation could not be deleted yet, so its old token may still be accepted. It is retried with every resync.</span>
+                                {overview.canManage && (
+                                    <Button size="sm" variant="v2Button" isLoading={isCleaning} onClick={doCleanup}>
+                                        Retry
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                        {directory.rotationGraceUntil && (
+                            <p className="text-xs text-black-600">Token rotated: until {formatTime(directory.rotationGraceUntil)} a resync deactivates nobody, while your identity provider sends everyone to the new directory.</p>
+                        )}
                         <CopyField label="SCIM base URL" value={directory.scimEndpoint} hint="The bearer token was shown when the directory was created; rotate it if you need a new one." />
                         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                             {COUNT_LABELS.map(([key, label]) => (

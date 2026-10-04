@@ -17,6 +17,7 @@ const rotateMock = vi.fn();
 const deleteMock = vi.fn();
 const roleMock = vi.fn();
 const resyncMock = vi.fn();
+const cleanupMock = vi.fn();
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
@@ -26,7 +27,8 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
         useRotateScimTokenMutation: () => [rotateMock, { isLoading: false }],
         useDeleteScimDirectoryMutation: () => [deleteMock, { isLoading: false }],
         useSetScimGroupRoleMutation: () => [roleMock, { isLoading: false }],
-        useResyncScimDirectoryMutation: () => [resyncMock, { isLoading: false }]
+        useResyncScimDirectoryMutation: () => [resyncMock, { isLoading: false }],
+        useCleanupScimDirectoryMutation: () => [cleanupMock, { isLoading: false }]
     };
 });
 
@@ -139,6 +141,35 @@ describe('WorkspaceScimSection', () => {
         expect(screen.queryByRole('button', { name: 'Rotate token' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
         expect((screen.getByLabelText('Role for Admins') as HTMLSelectElement).disabled).toBe(true);
+    });
+
+    it('asks before forcing a resync the safety stop refused', async () => {
+        query.data = overview();
+        resyncMock.mockResolvedValueOnce({ error: { status: 409, data: { code: 'mass_deprovision_refused', message: 'x', summary: { wouldDeprovision: 7, provisioned: 9, listed: 2 } } } });
+        resyncMock.mockResolvedValueOnce({ data: { directory, summary: { users: 2, groups: 0 } } });
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: 'Resync now' }));
+        await waitFor(() => expect(resyncMock).toHaveBeenCalledTimes(2));
+        expect(confirm.mock.calls[0][0]).toContain('7 of 9');
+        expect(resyncMock.mock.calls[0][0]).toEqual({ workspace_id: 'ws1', force: false });
+        expect(resyncMock.mock.calls[1][0]).toEqual({ workspace_id: 'ws1', force: true });
+        confirm.mockRestore();
+    });
+
+    it('warns that the previous token may still work and retries the clean-up', async () => {
+        query.data = overview({ directory: { ...directory, previousDirectoryPendingDelete: true } });
+        cleanupMock.mockResolvedValue({ data: directory });
+        renderSection();
+        expect(screen.getByTestId('scim-stale-directory').textContent).toContain('old token may still be accepted');
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+        await waitFor(() => expect(cleanupMock).toHaveBeenCalledWith({ workspace_id: 'ws1' }));
+    });
+
+    it('flags a group whose mapping a rotation could not carry over', () => {
+        query.data = overview({ groups: [{ id: 'g1', name: 'Staff', role: null, members: 1, needsReview: 'duplicate_name' }] });
+        renderSection();
+        expect(screen.getByText('Check the role')).toBeTruthy();
     });
 
     it('explains a deprovisioned SSO sign-in', () => {
