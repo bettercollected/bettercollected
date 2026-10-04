@@ -48,24 +48,13 @@ for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASS
 done
 
 # Single sign-on (docs/sso.md): off unless the root .env has SSO_ENABLED=true.
-# Polis's secrets are generated on every first run, SSO or not: compose checks
-# the required values of every service, the `sso` profile's included. Hex
-# only; DB_ENCRYPTION_KEY must be 32 characters.
-for var in BC_POLIS_PASSWORD SSO_POLIS_API_KEY POLIS_CLIENT_SECRET_VERIFIER POLIS_NEXTAUTH_SECRET; do
-  if ! grep -q "^${var}=" .env 2>/dev/null; then
-    echo "${var}=$(openssl rand -hex 24)" >> .env
-    echo "Generated a new ${var} in .env (first run)."
-  fi
-done
-if ! grep -q "^POLIS_DB_ENCRYPTION_KEY=" .env 2>/dev/null; then
-  echo "POLIS_DB_ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
-  echo "Generated a new POLIS_DB_ENCRYPTION_KEY in .env (first run)."
-fi
-
-# With SSO_ENABLED=true, Polis and its own Postgres run (compose profile `sso`).
-# The operator sets SSO_POLIS_URL, SSO_REDIRECT_URI and SSO_SAML_AUDIENCE in
-# the root .env (see the doc).
+# Then Polis and its own Postgres run from the overlay
+# docker-compose.sso-deployment.yml, with secrets generated here (once; hex
+# only, DB_ENCRYPTION_KEY must be 32 characters). The operator sets
+# SSO_POLIS_URL, SSO_REDIRECT_URI and SSO_SAML_AUDIENCE in the root .env.
+# Without SSO nothing here is needed or generated.
 sso_enabled=false
+compose_files=(-f "docker-compose.deployment.yml")
 if grep -q "^SSO_ENABLED=true" .env 2>/dev/null; then
   sso_enabled=true
   for var in SSO_POLIS_URL SSO_REDIRECT_URI SSO_SAML_AUDIENCE; do
@@ -74,12 +63,18 @@ if grep -q "^SSO_ENABLED=true" .env 2>/dev/null; then
       exit 1
     fi
   done
+  for var in BC_POLIS_PASSWORD SSO_POLIS_API_KEY POLIS_CLIENT_SECRET_VERIFIER POLIS_NEXTAUTH_SECRET; do
+    if ! grep -q "^${var}=" .env; then
+      echo "${var}=$(openssl rand -hex 24)" >> .env
+      echo "Generated a new ${var} in .env (first run with SSO)."
+    fi
+  done
+  if ! grep -q "^POLIS_DB_ENCRYPTION_KEY=" .env; then
+    echo "POLIS_DB_ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
+    echo "Generated a new POLIS_DB_ENCRYPTION_KEY in .env (first run with SSO)."
+  fi
+  compose_files+=(-f "docker-compose.sso-deployment.yml")
   services_to_start+=("polis-postgres" "polis")
-fi
-
-compose_files=(-f "docker-compose.deployment.yml")
-if [ "$sso_enabled" = true ]; then
-  compose_files+=(--profile sso)
 fi
 
 # Common docker function
