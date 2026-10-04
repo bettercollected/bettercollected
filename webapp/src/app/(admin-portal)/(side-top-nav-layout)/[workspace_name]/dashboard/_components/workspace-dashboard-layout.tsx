@@ -189,7 +189,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     key: 'domains',
                     name: 'Domains',
                     url: `${commonWorkspaceUrl}/domains`,
-                    adminOnly: true,
+                    permission: WorkspacePermission.SECURITY_MANAGE,
                     icon: <ShieldCheck className="h-5 w-5 stroke-2" />
                 },
                 {

@@ -641,7 +641,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     workspace_domain_service: WorkspaceDomainService = providers.Singleton(
         WorkspaceDomainService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         domain_repo=workspace_domain_repo,
     )
 

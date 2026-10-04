@@ -29,6 +29,7 @@ from backend.app.models.invitation_request import InvitationRequest
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.form_import import FormImportDocument
+from backend.app.schemas.workspace_domain import WorkspaceDomainDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
 from backend.app.services.authorization_service import (
@@ -184,6 +185,33 @@ CASES = [
         ok=200,
     ),
     Case("members.remove", "DELETE", W + "/members/{removable}", ADMINS),
+    # --- verified email domains (security.manage)
+    Case("domains.list", "GET", W + "/domains", ADMINS, ok=200),
+    Case(
+        "domains.claim",
+        "POST",
+        W + "/domains",
+        ADMINS,
+        lambda c: {"json": {"domain": "matrix-claim.org"}},
+        ok=201,
+    ),
+    Case("domains.verify", "POST", W + "/domains/{domain}/verify", ADMINS, ok=200),
+    Case("domains.delete", "DELETE", W + "/domains/{domain}", ADMINS, ok=204),
+    Case(
+        # a claim of another workspace: 404 once past the permission check
+        "domains.verify.other_workspace",
+        "POST",
+        W + "/domains/{other_domain}/verify",
+        ADMINS,
+        ok=404,
+    ),
+    Case(
+        "domains.delete.other_workspace",
+        "DELETE",
+        W + "/domains/{other_domain}",
+        ADMINS,
+        ok=404,
+    ),
     # --- forms
     Case("forms.list", "GET", W + "/forms", MEMBERS),
     Case(
@@ -532,7 +560,7 @@ def outside_services():
 
 
 @pytest.fixture()
-async def matrix(workspace, published_form, outside_services):
+async def matrix(workspace, published_form, outside_services, fake_dns):
     workspace.is_pro = True
     await container.workspace_repo().save(workspace)
     members = container.workspace_user_repo()
@@ -598,8 +626,28 @@ async def matrix(workspace, published_form, outside_services):
             ),
         )
     )
+    domain = await container.workspace_domain_repo().create(
+        WorkspaceDomainDocument(
+            id=PydanticObjectId(),
+            workspace_id=workspace.id,
+            domain="matrix-domain.org",
+            verification_token="0" * 32,
+            created_by=testUser.id,
+        )
+    )
+    other_domain = await container.workspace_domain_repo().create(
+        WorkspaceDomainDocument(
+            id=PydanticObjectId(),
+            workspace_id=PydanticObjectId(),
+            domain="matrix-elsewhere.org",
+            verification_token="1" * 32,
+            created_by=testUser1.id,
+        )
+    )
     return {
         "ws": str(workspace.id),
+        "domain": str(domain.id),
+        "other_domain": str(other_domain.id),
         "name": workspace.workspace_name,
         "form": published_form.form_id,
         "slug": workspace_form.settings.custom_url,

@@ -1,8 +1,8 @@
 'use client';
 
 import WorkspaceDomainsSection from '@app/components/workspace-domains/workspace-domains-section';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 /**
  * Verified email domains (docs/verified-domains.md): prove the workspace owns
@@ -10,9 +10,9 @@ import { useAppSelector } from '@app/store/hooks';
  * domains verified here.
  */
 export default function WorkspaceDomainsPage() {
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
 
-    if (!isAdmin) {
+    if (!can(WorkspacePermission.SECURITY_MANAGE)) {
         return (
             <div className="px-5 py-6 lg:px-10">
                 <p className="text-sm text-black-500">Only workspace admins can manage domains.</p>
