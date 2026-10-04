@@ -224,6 +224,8 @@ class AuthRoutes(Routable):
         redirect = RedirectResponse(result.redirect)
         clear_nonce_cookie(redirect)
         if isinstance(result, SsoSignIn):
+            # the browser's previous session (if any) is replaced: end it
+            await self.session_service.end_current(request, RevokeReason.REPLACED)
             await self.session_service.start(
                 result.user, redirect, request, method=result.user.auth_method
             )

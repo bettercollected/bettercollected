@@ -12,7 +12,7 @@ services:
     # 26.2.0, the version tested (as in docker-compose.deployment.yml)
     image: ${POLIS_IMAGE:-boxyhq/jackson@sha256:9165f3db9d9f5d3262f23446e860f4929f462d1d9c954af13f3bb44910c3a699}
     ports:
-      - "5225:5225"
+      - "127.0.0.1:5225:5225"
     env_file:
       - .sso-dev/polis.env
     environment:
@@ -32,9 +32,10 @@ services:
       - app
 
   mock-saml:
-    image: boxyhq/mock-saml:latest
+    # 1.4.2, the version tested
+    image: ${MOCK_SAML_IMAGE:-boxyhq/mock-saml@sha256:4e685c230dc857930d9d91750a62cf44ebe233c3c358206397e8f9f5aff8057c}
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
     env_file:
       - .sso-dev/mock-saml.env
     environment:

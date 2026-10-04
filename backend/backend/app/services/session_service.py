@@ -59,6 +59,8 @@ class RevokeReason:
     ACCOUNT_DELETED = "account_deleted"
     # the workspace started requiring single sign-on for the user's domain
     SSO_REQUIRED = "sso_required"
+    # a new sign-in in the same browser replaced it
+    REPLACED = "replaced_by_sign_in"
 
 
 class SessionEnded(HTTPException):
