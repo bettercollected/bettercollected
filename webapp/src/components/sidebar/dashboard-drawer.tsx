@@ -3,12 +3,11 @@ import React from 'react';
 
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { IDrawerProps } from '@app/models/props/navbar';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
 import WorkspaceMenuDropdown from '@Components/workspace/workspace-menu-dropdown';
 
-const Drawer = ({ navGroups, isAdmin }: any) => {
+const Drawer = ({ navGroups, can }: any) => {
     return (
         <div className="flex flex-col h-full bg-white">
             {/* Top band matches the main navbar (77px + hairline border), with
@@ -27,7 +26,7 @@ const Drawer = ({ navGroups, isAdmin }: any) => {
                             "everyone" vs "admins", which separated Site from
                             Site settings. Labels carry what dividers implied. */}
                         {navGroups?.map((group: any) => {
-                            const items = group.items.filter((item: any) => !item.adminOnly || isAdmin);
+                            const items = group.items.filter((item: any) => !item.permission || can(item.permission));
                             if (!items.length) return null;
                             return (
                                 <div key={group.label} className="pb-1">
@@ -53,11 +52,11 @@ const Drawer = ({ navGroups, isAdmin }: any) => {
 };
 
 export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle, navGroups }: IDrawerProps) {
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
 
     return (
         <MuiDrawer handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen}>
-            <Drawer navGroups={navGroups} isAdmin={isAdmin} />
+            <Drawer navGroups={navGroups} can={can} />
         </MuiDrawer>
     );
 }

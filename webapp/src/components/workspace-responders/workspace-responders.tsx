@@ -25,8 +25,8 @@ import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useGetAllRespondersGroupQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 import { isEmailInGroup } from '@app/utils/group-utils';
@@ -89,7 +89,8 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     const { addMembersOnGroup, removeMemberFromGroup } = useGroupMember();
     const { data, isLoading, isError } = useGetWorkspaceRespondersQuery(query);
     const responderGroupsQuery = useGetAllRespondersGroupQuery(workspace.id);
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    const canManageGroups = can(WorkspacePermission.MEMBERS_MANAGE);
     const { openModal } = useModal();
     const { t } = useTranslation();
 
@@ -118,17 +119,17 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                                     handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id })
                                 })
                             }
-                            className={cn('bg-brand-200 body5 !text-brand-500 group flex w-fit cursor-pointer items-center gap-2 rounded p-1 leading-none', !isAdmin && 'pointer-events-none')}
+                            className={cn('bg-brand-200 body5 !text-brand-500 group flex w-fit cursor-pointer items-center gap-2 rounded p-1 leading-none', !canManageGroups && 'pointer-events-none')}
                         >
                             <span className="body5 text-black-8000">{group.name}</span>
-                            {isAdmin && <Close className="hidden h-2 w-2 group-hover:block " />}
+                            {canManageGroups && <Close className="hidden h-2 w-2 group-hover:block " />}
                         </div>
                     );
                 return null;
             })}
-            {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && isAdmin && AddButton()}
-            {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails?.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
-            {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && isAdmin && (
+            {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && canManageGroups && AddButton()}
+            {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails?.includes(email)).length === 0 && !canManageGroups && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
+            {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && canManageGroups && (
                 <ResponderGroupDropdown
                     email={email}
                     groups={responderGroupsQuery.data}

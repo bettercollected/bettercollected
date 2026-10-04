@@ -23,6 +23,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { INavGroup, INavbarItem } from '@app/models/props/navbar';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -112,7 +113,8 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     // address-bar gear) — this entry opens that view directly.
                     name: 'Site settings',
                     url: `${commonWorkspaceUrl}/site-settings`,
-                    adminOnly: true,
+                    // saved through the workspace PATCH: the owner only, for now
+                    permission: WorkspacePermission.WORKSPACE_BILLING,
                     // Not a route — active while its view is open on the root.
                     isActive: pathname === commonWorkspaceUrl && settingsViewOpen,
                     icon: <Settings className="h-5 w-5 stroke-2" />,
@@ -130,7 +132,8 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     ),
                     icon: <Globe />,
                     url: `${commonWorkspaceUrl}/custom-domain`,
-                    adminOnly: true,
+                    // setting the domain is the workspace PATCH (owner only, for now)
+                    permission: WorkspacePermission.WORKSPACE_BILLING,
                     onClick: () => {
                         if (workspace?.isPro) {
                             router.push(`${commonWorkspaceUrl}/custom-domain`);
@@ -148,11 +151,11 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     key: 'themes',
                     name: 'Themes',
                     url: `${commonWorkspaceUrl}/themes`,
-                    adminOnly: true,
+                    permission: WorkspacePermission.WORKSPACE_MANAGE,
                     icon: <Palette className="h-5 w-5 stroke-2" />
                 },
                 {
-                    // Not adminOnly: members see whether AI is on and set
+                    // For every member: they see whether AI is on and set
                     // their own "Learn my preferences"; only admins change
                     // the workspace opt-in (#715).
                     key: 'ai-settings',
@@ -164,11 +167,11 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     key: 'ai-profile',
                     name: 'AI profile',
                     url: `${commonWorkspaceUrl}/ai-profile`,
-                    adminOnly: true,
+                    permission: WorkspacePermission.AI_MANAGE,
                     icon: <Sparkles className="h-5 w-5 stroke-2" />
                 },
                 {
-                    // Per-user, deliberately NOT adminOnly — every creator can
+                    // Per-user, deliberately for every member — every creator can
                     // see and edit what the AI remembers about them (trust).
                     key: 'ai-memory',
                     name: 'AI Memory',
@@ -179,14 +182,14 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     key: 'api-keys',
                     name: 'API keys',
                     url: `${commonWorkspaceUrl}/api-keys`,
-                    adminOnly: true,
+                    permission: WorkspacePermission.SECURITY_MANAGE,
                     icon: <KeyRound className="h-5 w-5 stroke-2" />
                 },
                 {
                     key: 'members',
                     name: t(members.default),
                     url: `${commonWorkspaceUrl}/members`,
-                    adminOnly: true,
+                    permission: WorkspacePermission.MEMBERS_MANAGE,
                     icon: <MembersIcon />
                 }
             ]

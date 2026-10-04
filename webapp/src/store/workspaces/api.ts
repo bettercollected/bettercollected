@@ -5,6 +5,7 @@ import { AnswerDto, InternalAnswerMeta, StaffFeedback, StandardFormDto, Standard
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
@@ -469,6 +470,15 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['AI_PROFILE_TAG']
         }),
+        // The caller's effective permissions in a workspace (empty for a
+        // non-member). Kept a while: many controls read it.
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission> }, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/permissions`,
+                method: 'GET'
+            }),
+            keepUnusedDataFor: 300
+        }),
         getAISettings: builder.query<WorkspaceAISettings, string>({
             query: (workspaceId) => ({
                 url: `/workspaces/${workspaceId}/ai-settings`,
@@ -697,6 +707,7 @@ export const {
     useGetAIProfileQuery,
     useUpdateAIProfileMutation,
     useGetAISettingsQuery,
+    useGetWorkspacePermissionsQuery,
     useUpdateAISettingsMutation,
     useUpdateAIMemorySettingsMutation,
     useGetAIMemoryQuery,

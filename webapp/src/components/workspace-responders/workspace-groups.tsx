@@ -17,8 +17,8 @@ import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useDeleteResponderGroupMutation, useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
@@ -33,7 +33,9 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
 
     const router = useRouter();
 
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+
+    const canManageGroups = can(WorkspacePermission.MEMBERS_MANAGE);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const [trigger] = useDeleteResponderGroupMutation();
 
@@ -130,7 +132,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                         </div>
                         <p className="body4 text-black-700 mt-2">{t(groupConstant.description)}</p>
                     </div>
-                    {isAdmin && (
+                    {canManageGroups && (
                         <Button
                             variant="ghost"
                             className="w-fit"

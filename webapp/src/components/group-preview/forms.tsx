@@ -11,7 +11,6 @@ import { groupConstant } from '@app/constants/locales/group';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Button } from '@app/shadcn/components/ui/button';
-import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import SearchInput from '@Components/common/search-input';
@@ -23,7 +22,6 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
-    const isAdmin = useAppSelector(selectIsAdmin);
 
     const handleCardClick = (form: any) => {
         router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
