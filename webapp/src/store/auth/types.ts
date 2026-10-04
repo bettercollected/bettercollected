@@ -12,6 +12,8 @@ export interface AuthSession {
     lastRefreshedAt?: string;
     expiresAt?: string;
     userAgent?: string;
+    // "sso" for a single sign-on session
+    method?: string | null;
     current: boolean;
 }
 

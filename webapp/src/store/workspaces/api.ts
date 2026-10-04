@@ -6,8 +6,9 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDomainDto } from '@app/models/dtos/workspace-domain-dto';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { CreateSsoConnectionRequest, SsoConnectionDto, SsoOverviewDto, SsoSettingsDto, UpdateSsoSettingsRequest } from '@app/models/dtos/workspace-sso-dto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
@@ -53,7 +54,7 @@ export const WORKSPACE_PERMISSIONS_TAG = 'WORKSPACE_PERMISSIONS_TAG';
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', WORKSPACE_PERMISSIONS_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', 'SSO_TAG', WORKSPACE_PERMISSIONS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -590,6 +591,48 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['EMAIL_DOMAINS_TAG']
         }),
+        // Single sign-on (docs/sso.md); owner/admins only (security.manage).
+        getWorkspaceSso: builder.query<SsoOverviewDto, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/sso`,
+                method: 'GET'
+            }),
+            providesTags: ['SSO_TAG']
+        }),
+        createSsoConnection: builder.mutation<SsoConnectionDto, { workspace_id: string; body: CreateSsoConnectionRequest }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/sso/connections`,
+                method: 'POST',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SSO_TAG']
+        }),
+        setSsoConnectionEnabled: builder.mutation<SsoConnectionDto, { workspace_id: string; connection_id: string; enabled: boolean }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/sso/connections/${request.connection_id}/${request.enabled ? 'enable' : 'disable'}`,
+                method: 'POST',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SSO_TAG']
+        }),
+        deleteSsoConnection: builder.mutation<void, { workspace_id: string; connection_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/sso/connections/${request.connection_id}`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SSO_TAG']
+        }),
+        updateSsoSettings: builder.mutation<SsoSettingsDto, { workspace_id: string; body: UpdateSsoSettingsRequest }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/sso/settings`,
+                method: 'PUT',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SSO_TAG']
+        }),
         patchWorkspaceThemes: builder.mutation<any, any>({
             // Replaces the workspace's saved custom form themes (full-list PATCH).
             query: (request) => ({
@@ -755,6 +798,11 @@ export const {
     useCreateAPIKeyMutation,
     useRevokeAPIKeyMutation,
     useGetEmailDomainsQuery,
+    useGetWorkspaceSsoQuery,
+    useCreateSsoConnectionMutation,
+    useSetSsoConnectionEnabledMutation,
+    useDeleteSsoConnectionMutation,
+    useUpdateSsoSettingsMutation,
     useClaimEmailDomainMutation,
     useVerifyEmailDomainMutation,
     useDeleteEmailDomainMutation,

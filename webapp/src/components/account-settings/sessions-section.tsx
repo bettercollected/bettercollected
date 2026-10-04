@@ -82,6 +82,7 @@ export default function SessionsSection() {
                             <div className="min-w-0">
                                 <p className="text-black-800 text-[13px] leading-relaxed">
                                     {describeUserAgent(session.userAgent)}
+                                    {session.method === 'sso' && <span className="text-black-500"> · Single sign-on</span>}
                                     {session.current && <span className="text-black-500"> · This browser</span>}
                                 </p>
                                 <p className="text-black-400 text-[10.5px]">
