@@ -15,7 +15,7 @@ import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
-import { BookOpen, KeyRound, Palette, Settings, Sparkles, Trash2 } from 'lucide-react';
+import { BookOpen, KeyRound, Palette, Settings, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { useWorkspaceSettingsView } from '@app/store/jotai/workspace-settings-view';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';
@@ -184,6 +184,13 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     url: `${commonWorkspaceUrl}/api-keys`,
                     permission: WorkspacePermission.SECURITY_MANAGE,
                     icon: <KeyRound className="h-5 w-5 stroke-2" />
+                },
+                {
+                    key: 'domains',
+                    name: 'Domains',
+                    url: `${commonWorkspaceUrl}/domains`,
+                    adminOnly: true,
+                    icon: <ShieldCheck className="h-5 w-5 stroke-2" />
                 },
                 {
                     key: 'members',

@@ -178,6 +178,17 @@ edits (422), skipping rules whose other question is unanswered or hidden by logi
 accepted within one day either side of UTC (the server can't know the respondent's zone), and on an edit
 "today" is the submission day.
 
+**Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
+Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
+`_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:
+`services/workspace_domain_service.py` (one access check, `_authorize`, to become `security.manage`),
+`services/domains/names.py` (IDNA + Public Suffix List via `publicsuffixlist`; refuses public suffixes,
+free-mail and reserved domains, incl. `PLATFORM_ADMIN_EMAILS` domains) and `services/domains/dns_txt.py`
+(dnspython, no cache). A domain is verified by at most one workspace: the partial unique index on
+`verified_domain` in both stores decides races. A verified domain whose record disappears keeps its owner
+(`verification_lost_at` after N failed re-checks, never transferred). SSO must only trust
+`domain_owner` / `is_domain_verified_for`. Tests never resolve real names (`tests/app/domain_helpers.py`).
+
 ## Seed scripts
 
 `backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment

@@ -25,6 +25,7 @@ from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
 from backend.config.UmamiSettings import UmamiSettings
+from backend.config.verified_domain_settings import VerifiedDomainSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -69,6 +70,7 @@ class Application(BaseSettings):
     brevo_settings: BrevoSettings = BrevoSettings()
     umami_settings: UmamiSettings = UmamiSettings()
     pdf_import: PdfImportSettings = PdfImportSettings()
+    verified_domains: VerifiedDomainSettings = VerifiedDomainSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 
