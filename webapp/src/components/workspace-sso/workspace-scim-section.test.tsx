@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ssoErrorMessage } from '@app/lib/sso';
 import type { ScimOverviewDto } from '@app/models/dtos/workspace-scim-dto';
+import '@app/shared/hocs/i18n-provider';
 import { store } from '@app/store/store';
 
 import WorkspaceScimSection from './workspace-scim-section';
@@ -170,6 +171,18 @@ describe('WorkspaceScimSection', () => {
         query.data = overview({ groups: [{ id: 'g1', name: 'Staff', role: null, members: 1, needsReview: 'duplicate_name' }] });
         renderSection();
         expect(screen.getByText('Check the role')).toBeTruthy();
+    });
+
+    it('says when members deactivated by the directory stay deactivated after a delete', async () => {
+        query.data = overview();
+        deleteMock.mockResolvedValue({ data: { reEnabled: 1, leftDisabled: 2 } });
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        await waitFor(() => expect(toastMock).toHaveBeenCalled());
+        expect(confirm.mock.calls[0][0]).toContain('enabled again where a seat is free');
+        expect(toastMock.mock.calls[0][0].description).toContain('2 deactivated by it stay deactivated');
+        confirm.mockRestore();
     });
 
     it('explains a deprovisioned SSO sign-in', () => {

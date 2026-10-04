@@ -626,7 +626,7 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['SCIM_TAG']
         }),
-        deleteScimDirectory: builder.mutation<void, { workspace_id: string }>({
+        deleteScimDirectory: builder.mutation<{ reEnabled: number; leftDisabled: number }, { workspace_id: string }>({
             query: (request) => ({
                 url: `/workspaces/${request.workspace_id}/scim/directory`,
                 method: 'DELETE',
