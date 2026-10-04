@@ -10,6 +10,11 @@ updates:
       webapp-minor-and-patch:
         update-types: ["minor", "patch"]
     labels: ["dependencies", "webapp"]
+    ignore:
+      # Types follow the Node runtime major (webapp/Dockerfile, .nvmrc);
+      # bump them together with the runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # Python services (uv)
   - package-ecosystem: "uv"
