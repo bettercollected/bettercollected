@@ -11,36 +11,12 @@ from httpx import AsyncClient
 
 from backend.app.container import container
 from backend.app.schemas.workspace import WorkspaceDocument
-from backend.app.services.custom_domain_service import CustomDomainService
-from backend.config.custom_domain import CustomDomainSettings
+from tests.app.custom_domain.conftest import SECRET
 from tests.app.custom_domain.fake import FakeClient, domain_dict, signed_event
 
 pytestmark = pytest.mark.asyncio
 
 WORKSPACES = "/api/v1/workspaces"
-SECRET = "whsec_test"
-
-
-@pytest.fixture
-def fake_client():
-    """Point the workspace service at an in-memory custom-domain service."""
-    client = FakeClient()
-    service = CustomDomainService(
-        CustomDomainSettings(
-            api_url="https://domains.example.net",
-            api_credential="cd_test",
-            application_id="app-1",
-            webhook_secrets=SECRET,
-        ),
-        client,
-    )
-    workspace_service = container.workspace_service()
-    previous = workspace_service.custom_domain_service
-    workspace_service.custom_domain_service = service
-    container.custom_domain_service.override(service)
-    yield client
-    workspace_service.custom_domain_service = previous
-    container.custom_domain_service.reset_override()
 
 
 async def test_register_replace_and_delete(
@@ -102,7 +78,8 @@ async def test_register_replace_and_delete(
     assert stored.custom_domain == "new.customer.example"
     assert stored.custom_domain_id == second_id
     origins = container.allowed_origins_repo()
-    assert await origins.find_by_origin("https://new.customer.example")
+    # the replacement is not verified yet, so it is not an allowed origin either
+    assert not await origins.find_by_origin("https://new.customer.example")
     assert not await origins.find_by_origin("https://third.customer.example")
     assert not await origins.find_by_origin("https://forms.customer.example")
 

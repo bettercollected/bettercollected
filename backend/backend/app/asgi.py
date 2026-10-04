@@ -27,6 +27,7 @@ from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.services.internal_auth import log_if_internal_key_missing
+from backend.app.services.custom_domain_origins import prune_unverified_origins
 from backend.app.services.umami_client import provision_umami_website
 from backend.app.utils import AiohttpClient
 from scripts.seed_flow_templates import seed_flow_templates
@@ -93,6 +94,25 @@ async def lifespan(app: FastAPI):
                     logger.info(f"Seeded flow templates: {', '.join(result['seeded'])}")
             except Exception:
                 logger.exception("Flow-template seeding failed; continuing startup.")
+
+    # Only verified custom domains are allowed origins; bring the stored origins
+    # in line with that on every boot (idempotent, never blocks startup).
+    try:
+        pruned = await prune_unverified_origins(
+            container.allowed_origins_repo(), container.workspace_repo()
+        )
+        if pruned["removed"]:
+            logger.info(
+                f"Removed {len(pruned['removed'])} allowed origins of unverified "
+                "custom domains"
+            )
+        if pruned["orphans"]:
+            logger.warning(
+                f"{len(pruned['orphans'])} allowed origins match no workspace; review "
+                "them with `python -m backend.custom_domain prune-origins --dry-run`"
+            )
+    except Exception:
+        logger.exception("Pruning allowed origins failed; continuing startup.")
 
     # The MCP session manager must be running for the mounted /mcp app to
     # serve requests (streamable-HTTP transport requirement). It runs in its
