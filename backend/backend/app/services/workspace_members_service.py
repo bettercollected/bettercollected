@@ -3,7 +3,6 @@ from datetime import timedelta
 from http import HTTPStatus
 
 from beanie import PydanticObjectId
-from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
