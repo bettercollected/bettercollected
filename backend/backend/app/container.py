@@ -51,6 +51,8 @@ from backend.app.repositories.postgres.identity import (
     PostgresUserTagsRepository,
     PostgresWorkspaceAPIKeyRepository,
     PostgresWorkspaceDomainRepository,
+    PostgresSsoConnectionRepository,
+    PostgresSsoUsedStateRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -146,6 +148,12 @@ from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
+from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
+from backend.app.repositories.sso_used_state_repository import SsoUsedStateRepository
+from backend.app.services.sso.connection_service import SsoConnectionService
+from backend.app.services.sso.login_service import SsoLoginService
+from backend.app.services.sso.policy import SsoPolicyService
+from backend.app.services.sso.polis_client import PolisAdminClient
 from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
@@ -343,6 +351,30 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(WorkspaceDomainRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceDomainRepository, pg_sessionmaker
+        ),
+    )
+    sso_connection_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(SsoConnectionRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresSsoConnectionRepository, pg_sessionmaker
+        ),
+    )
+    sso_used_state_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(SsoUsedStateRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresSsoUsedStateRepository, pg_sessionmaker
         ),
     )
     workspace_api_key_repo = providers.Singleton(
@@ -640,8 +672,23 @@ class AppContainer(containers.DeclarativeContainer):
         domain_repo=workspace_domain_repo,
     )
 
+    sso_policy_service: SsoPolicyService = providers.Singleton(
+        SsoPolicyService,
+        workspace_repo=workspace_repo,
+        domain_service=workspace_domain_service,
+        connection_repo=sso_connection_repo,
+        http_client=http_client,
+    )
+
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
+        sso_policy=sso_policy_service,
+        # defined further down (it needs the session service)
+        sso_release=providers.Object(
+            lambda workspace_ids: container.sso_connection_service().release_workspaces(
+                workspace_ids
+            )
+        ),
         http_client=http_client,
         custom_domain_service=custom_domain_service,
         workspace_repo=workspace_repo,
@@ -723,7 +770,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     session_service: SessionService = providers.Singleton(
-        SessionService, session_repo=session_repo
+        SessionService, session_repo=session_repo, sso_policy=sso_policy_service
     )
 
     auth_service: AuthService = providers.Singleton(
@@ -738,6 +785,36 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
         session_service=session_service,
         allowed_origins_repo=allowed_origins_repo,
+        sso_policy=sso_policy_service,
+    )
+
+    polis_admin_client: PolisAdminClient = providers.Singleton(
+        PolisAdminClient, settings=settings.sso
+    )
+
+    sso_connection_service: SsoConnectionService = providers.Singleton(
+        SsoConnectionService,
+        authorization_service=authorization_service,
+        connection_repo=sso_connection_repo,
+        domain_service=workspace_domain_service,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        session_service=session_service,
+        policy=sso_policy_service,
+        polis=polis_admin_client,
+    )
+
+    sso_login_service: SsoLoginService = providers.Singleton(
+        SsoLoginService,
+        http_client=http_client,
+        connection_repo=sso_connection_repo,
+        connection_service=sso_connection_service,
+        domain_service=workspace_domain_service,
+        workspace_repo=workspace_repo,
+        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
+        auth_service=auth_service,
+        used_state_repo=sso_used_state_repo,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(

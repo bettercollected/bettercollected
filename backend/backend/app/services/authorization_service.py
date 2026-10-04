@@ -28,6 +28,9 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 
 P = Permission
 
+# common.models.user.User.session_scope of a respondent-only session
+RESPONDENT_SCOPE = "respondent"
+
 ALL_PERMISSIONS: FrozenSet[Permission] = frozenset(Permission)
 
 # docs/enterprise-access-model.md §2. Each role grants its own set and
@@ -160,6 +163,11 @@ class AuthorizationService:
         user_oid = _object_id(user.id) if user else None
         if workspace_oid is None or user_oid is None:
             return NO_PERMISSIONS
+        if getattr(user, "session_scope", None) == RESPONDENT_SCOPE:
+            # a respondent-scoped session (an email code for an address whose
+            # domain requires SSO elsewhere) only answers forms: it holds no
+            # workspace permission anywhere, the user's own workspaces included
+            return NO_PERMISSIONS
         membership = await self._workspace_user_repo.find_workspace_user(
             workspace_oid, user_oid
         )
@@ -205,6 +213,29 @@ class AuthorizationService:
             workspace_id, form_id
         ):
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
+
+    async def is_owner(
+        self, user: Optional[User], workspace_id: Union[PydanticObjectId, str, None]
+    ) -> bool:
+        """Whether ``user`` is the owner of an available workspace, with a
+        full (not respondent-scoped) session and an active membership."""
+        perms = await self.effective_permissions(user, workspace_id)
+        if perms != OWNER_PERMISSIONS:
+            return False
+        workspace = await self._workspace_repo.find_by_id(_object_id(workspace_id))
+        return workspace is not None and str(workspace.owner_id) == str(user.id)
+
+    async def require_owner(
+        self,
+        user: Optional[User],
+        workspace_id: Union[PydanticObjectId, str, None],
+        message: str = MESSAGE_FORBIDDEN,
+    ) -> None:
+        """403 unless ``user`` owns the workspace. For decisions no role may
+        take, like single sign-on configuration: it controls every account on
+        the workspace's verified domains, the owner's own included."""
+        if not await self.is_owner(user, workspace_id):
+            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=message)
 
     async def _form_in_workspace(self, workspace_id, form_id) -> bool:
         return bool(

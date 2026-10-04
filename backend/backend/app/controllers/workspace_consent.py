@@ -12,6 +12,8 @@ from backend.app.services.workspace_consent_service import WorkspaceConsentServi
 from common.models.user import User
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="/{workspace_id}/consent",
     tags=["Workspace Consent"],
@@ -39,7 +41,7 @@ class WorkspaceConsent(Routable):
         response_model=List[ConsentCamelModel],
     )
     async def get_workspace_consents(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
     ):
         return await self.workspace_consent_service.get_workspace_consents(
             workspace_id=workspace_id, user=user
@@ -53,7 +55,7 @@ class WorkspaceConsent(Routable):
         self,
         workspace_id: PydanticObjectId,
         consent: ConsentCamelModel,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.workspace_consent_service.create_workspace_consent(
             workspace_id=workspace_id, consent=consent, user=user

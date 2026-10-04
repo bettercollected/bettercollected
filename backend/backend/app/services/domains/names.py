@@ -190,6 +190,11 @@ def _covered(ascii_name: str, domains: Iterable[str]) -> bool:
     return any(ascii_name == d or ascii_name.endswith("." + d) for d in domains)
 
 
+def covered_by(ascii_name: str, domains: Iterable[str]) -> bool:
+    """``ascii_name`` is one of ``domains`` or a sub-domain of one."""
+    return _covered(ascii_name, domains)
+
+
 def claimable_domain(raw: str, reserved: Iterable[str] = ()) -> str:
     """Canonical form of a domain a workspace may claim, or DomainRefused."""
     name = canonical_domain(raw)

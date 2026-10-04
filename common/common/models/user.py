@@ -68,6 +68,16 @@ class User(BaseModel):
     # The server-side session the tokens belong to (the backend's
     # ``sessions``); refreshing checks it, so revoking it ends the session.
     sid: Optional[str] = None
+    # How the session signed in ("sso" for enterprise single sign-on; None for
+    # OTP and the OAuth providers). An SSO session's email is verified, but
+    # never grants the platform-admin role (docs/sso.md).
+    auth_method: Optional[str] = None
+    # "respondent": a session limited to answering forms of one workspace
+    # (``scope_workspace_id``), e.g. an email-code sign-in for an address
+    # whose domain requires single sign-on elsewhere. It holds no workspace
+    # permissions and no platform-admin role (backend authorization_service).
+    session_scope: Optional[str] = None
+    scope_workspace_id: Optional[str] = None
 
     def is_admin(self):
         """

@@ -27,6 +27,8 @@ from backend.app.services.user_service import (
 from backend.app.services.workspace_form_service import WorkspaceFormService
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="",
     tags=["Form Templates"],
@@ -55,7 +57,7 @@ class FormTemplateRouter(Routable):
         self,
         v2: Optional[bool] = False,
         workspace_id: Optional[PydanticObjectId] = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         form_templates = await self.form_template_service.get_templates(
             v2, workspace_id, user
@@ -95,7 +97,7 @@ class FormTemplateRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
         access_token=Depends(get_access_token),
         refresh_token=Depends(get_refresh_token),
     ):
@@ -119,7 +121,7 @@ class FormTemplateRouter(Routable):
         template_body: str = Form(),
         logo: UploadFile = None,
         cover_image: UploadFile = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         template = json.loads(template_body)
         response = await self.form_template_service.create_new_template(
@@ -139,7 +141,7 @@ class FormTemplateRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         template_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         response = await self.form_template_service.import_form_template_to_workspace(
             workspace_id, user, template_id
@@ -154,7 +156,7 @@ class FormTemplateRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         template_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         response = await self.form_template_service.create_form_from_template(
             workspace_id=workspace_id, template_id=template_id, user=user
@@ -172,7 +174,7 @@ class FormTemplateRouter(Routable):
         logo: UploadFile = None,
         cover_image: UploadFile = None,
         template_body: str = Form(),
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
         access_token=Depends(get_access_token),
         refresh_token=Depends(get_refresh_token),
     ):
@@ -199,7 +201,7 @@ class FormTemplateRouter(Routable):
         workspace_id: PydanticObjectId,
         template_id: PydanticObjectId,
         settings: StandardTemplateSettingsCamelModel,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.form_template_service.update_template_settings(
             workspace_id=workspace_id,
@@ -213,7 +215,7 @@ class FormTemplateRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         template_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         response = await self.form_template_service.delete_template(
             workspace_id=workspace_id, template_id=template_id, user=user

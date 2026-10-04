@@ -32,6 +32,13 @@ class SessionDocument(MongoDocument):
     expires_at: dt.datetime
     # proven at sign-in (see common.models.user.User.email_verified)
     email_verified: bool = False
+    # how the session signed in: "sso" (enterprise single sign-on) or None
+    # (OTP, Google). An SSO session never grants the platform-admin role.
+    method: Optional[str] = None
+    # "respondent": limited to answering forms of ``scope_workspace_id``; it
+    # grants no workspace permissions (common.models.user.User.session_scope)
+    scope: Optional[str] = None
+    scope_workspace_id: Optional[str] = None
     user_agent: Optional[str] = None
     revoked_at: Optional[dt.datetime] = None
     revoke_reason: Optional[str] = None

@@ -13,9 +13,12 @@ RUN yarn install --prod --frozen-lockfile
 FROM prod AS builder
 ARG NEXT_PUBLIC_API_ENDPOINT_HOST
 ARG NEXT_PUBLIC_NODE_ENV="production"
+# single sign-on UI (docs/sso.md); build-time, off unless "true"
+ARG NEXT_PUBLIC_ENABLE_SSO="false"
 
 ENV NEXT_PUBLIC_API_ENDPOINT_HOST=$NEXT_PUBLIC_API_ENDPOINT_HOST \
-    NEXT_PUBLIC_NODE_ENV=$NEXT_PUBLIC_NODE_ENV
+    NEXT_PUBLIC_NODE_ENV=$NEXT_PUBLIC_NODE_ENV \
+    NEXT_PUBLIC_ENABLE_SSO=$NEXT_PUBLIC_ENABLE_SSO
 
 RUN yarn install --frozen-lockfile
 COPY --chown=node:node ./webapp .

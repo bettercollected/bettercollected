@@ -182,6 +182,15 @@ services:
       # PDF form import: documents are only opened by the isolated document-sandbox
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
+      # Single sign-on (docs/sso.md): off unless SSO_ENABLED=true in the root
+      # .env; deploy.sh then adds docker-compose.sso-deployment.yml (Polis and
+      # its networks). All SSO_* values come from the root .env.
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_POLIS_URL: ${SSO_POLIS_URL:-}
+      SSO_POLIS_INTERNAL_URL: http://polis:5225
+      SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
+      SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
+      SSO_SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:-}
     env_file:
       - .env.deployment
     volumes:
@@ -254,6 +263,12 @@ services:
       # PDF form import: documents are only opened by the isolated document-sandbox
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
+      # deleting a user's workspaces also deletes their SSO connections in Polis
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_POLIS_URL: ${SSO_POLIS_URL:-}
+      SSO_POLIS_INTERNAL_URL: http://polis:5225
+      SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
+      SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
     env_file:
       - .env.deployment
     volumes:
@@ -278,6 +293,12 @@ services:
       # every route but /ready and POST /stripe/webhooks requires it
       AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
+      # Single sign-on (docs/sso.md): auth runs the OAuth code exchange with
+      # Polis; it never needs the Polis admin API key.
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_POLIS_URL: ${SSO_POLIS_URL:-}
+      SSO_POLIS_INTERNAL_URL: http://polis:5225
+      SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -360,4 +381,3 @@ services:
       timeout: 5s
       retries: 20
       start_period: 15s
-

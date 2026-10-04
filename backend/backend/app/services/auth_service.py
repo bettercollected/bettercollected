@@ -21,7 +21,12 @@ from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.login_redirect import safe_redirect
-from backend.app.services.session_service import RevokeReason, SessionService
+from backend.app.services.session_service import (
+    RevokeReason,
+    SessionService,
+    platform_admin_proof,
+    session_roles,
+)
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
@@ -31,6 +36,10 @@ from backend.app.utils import AiohttpClient
 from backend.config import settings
 
 _LOGIN_ERROR_CODE = re.compile(r"^[a-z_]{1,64}$")
+
+
+def _is_object_id(value: Optional[str]) -> bool:
+    return isinstance(value, str) and bool(re.fullmatch(r"[0-9a-f]{24}", value))
 
 
 def _same_email(a: Optional[str], b: Optional[str]) -> bool:
@@ -66,6 +75,7 @@ class AuthService:
         user_tags_service: UserTagsService,
         session_service: SessionService = None,
         allowed_origins_repo=None,
+        sso_policy=None,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -77,6 +87,8 @@ class AuthService:
         self.user_tags_service = user_tags_service
         self.session_service = session_service
         self.allowed_origins_repo = allowed_origins_repo
+        # SSO-required domains refuse email codes and Google (docs/sso.md)
+        self.sso_policy = sso_policy
 
     async def safe_login_redirect(
         self, url: Optional[str], default_path: str = "/"
@@ -95,7 +107,9 @@ class AuthService:
                 settings.auth_settings.BASE_URL + "/auth/status",
                 params={
                     "user_id": user.id,
-                    "email_verified": user.email_verified is True,
+                    "email_verified": platform_admin_proof(
+                        user.email_verified, user.auth_method, user.session_scope
+                    ),
                 },
                 headers=auth_service_headers(),
                 timeout=60,
@@ -110,6 +124,8 @@ class AuthService:
             )
 
     async def send_otp_for_creator(self, receiver_email: EmailStr):
+        if self.sso_policy is not None:
+            await self.sso_policy.check_code_sign_in(receiver_email)
         try:
             await self.http_client.get(
                 settings.auth_settings.BASE_URL + "/auth/otp/send",
@@ -129,14 +145,37 @@ class AuthService:
             )
 
     async def validate_otp(
-        self, login_details: UserLoginWithOTP, prospective_pro_user: bool
+        self,
+        login_details: UserLoginWithOTP,
+        prospective_pro_user: bool,
+        workspace_id: Optional[str] = None,
     ):
+        """The signed-in user, ``session_scope`` set to "respondent" when the
+        address's domain requires single sign-on in another workspace than
+        ``workspace_id`` (the workspace whose forms the code was asked for):
+        such a session only answers forms (docs/sso.md)."""
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",
             params={"email": login_details.email, "otp_code": login_details.otp_code},
             headers=auth_service_headers(),
         )
         user = response_data.get("user", None)
+        if user and self.sso_policy is not None:
+            # the owner of an SSO-required workspace keeps the code (break-glass)
+            scope = await self.sso_policy.code_sign_in_scope(
+                login_details.email,
+                user_id=User(**user).id,
+                workspace_id=workspace_id if _is_object_id(workspace_id) else None,
+            )
+            if scope:
+                # respondent-only: no creator side effects, no workspace
+                return User(
+                    **{
+                        **user,
+                        "session_scope": scope,
+                        "scope_workspace_id": str(workspace_id),
+                    }
+                )
         if user and Roles.FORM_CREATOR in user.get("roles"):
             await self.user_tags_service.add_user_tag(
                 user_id=User(**user).id, tag=UserTagType.NEW_USER
@@ -200,19 +239,35 @@ class AuthService:
         response_data = await self.http_client.get(
             settings.auth_settings.CALLBACK_URI,
             # the email is the session's own (checked above), so the session's
-            # claim carries over: a platform admin keeps ADMIN
+            # claim carries over: a platform admin keeps ADMIN (never through
+            # an SSO session)
             params={
                 "jwt_token": jwt_token,
-                "email_verified": signed_in.email_verified is True,
+                "email_verified": platform_admin_proof(
+                    signed_in.email_verified,
+                    signed_in.auth_method,
+                    signed_in.session_scope,
+                ),
             },
             headers=auth_service_headers(),
         )
+        response_data = {
+            **response_data,
+            "roles": session_roles(
+                response_data.get("roles"),
+                signed_in.auth_method,
+                signed_in.session_scope,
+            ),
+        }
         user = User(
             **{
                 **response_data,
                 "email_verified": signed_in.email_verified is True,
                 # the same session continues: only the access token is re-issued
                 "sid": signed_in.sid,
+                "auth_method": signed_in.auth_method,
+                "session_scope": signed_in.session_scope,
+                "scope_workspace_id": signed_in.scope_workspace_id,
             }
         )
         decrypted_data = json.loads(self.crypto.decrypt(state))
@@ -251,6 +306,13 @@ class AuthService:
             timeout=120,
         )
         user = response_data.get("user")
+        if user and self.sso_policy is not None:
+            refusal = await self.sso_policy.check_provider_sign_in(user.get("sub"))
+            if refusal:
+                # an SSO-required domain: no session, back to the login page
+                # (auth may already have created the account)
+                user = None
+                response_data = {**response_data, "user": None, "error": refusal}
         if user and Roles.FORM_CREATOR in user.get("roles"):
             await self.user_tags_service.add_user_tag(
                 user_id=user.get("id"), tag=UserTagType.NEW_USER

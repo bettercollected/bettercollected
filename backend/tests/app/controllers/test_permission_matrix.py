@@ -45,6 +45,12 @@ from backend.app.services.authorization_service import (
 from backend.app.services.form_service import FormService
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from tests.app.auth_helpers import access_token
+from tests.app.sso_helpers import (  # noqa: F401
+    SAML_XML,
+    add_connection,
+    sso_on,
+    verify_domain,
+)
 from tests.app.controllers.test_form_ai_insights import _seed_form_and_responses
 from tests.app.controllers.data import (
     formData,
@@ -319,6 +325,54 @@ CASES = [
         W + "/domains/{other_domain}",
         P.SECURITY_MANAGE,
         ok=404,
+    ),
+    # --- single sign-on: viewing and testing need security.manage; changing
+    # the configuration is Owner only (an Admin must not point the domain at
+    # an identity provider they control)
+    Case("sso.overview", "GET", W + "/sso", ADMINS, ok=200),
+    Case(
+        "sso.connections.create",
+        "POST",
+        W + "/sso/connections",
+        OWNER_ONLY,
+        lambda c: {"json": {"type": "saml", "metadataXml": SAML_XML}},
+        ok=201,
+    ),
+    Case(
+        "sso.connections.enable",
+        "POST",
+        W + "/sso/connections/{sso_connection}/enable",
+        OWNER_ONLY,
+        ok=200,
+    ),
+    Case(
+        "sso.connections.disable",
+        "POST",
+        W + "/sso/connections/{sso_connection}/disable",
+        OWNER_ONLY,
+        ok=200,
+    ),
+    Case(
+        "sso.connections.delete",
+        "DELETE",
+        W + "/sso/connections/{sso_connection}",
+        OWNER_ONLY,
+        ok=204,
+    ),
+    Case(
+        "sso.connections.test",
+        "GET",
+        W + "/sso/connections/{sso_connection}/test",
+        ADMINS,
+        ok=307,
+    ),
+    Case(
+        "sso.settings",
+        "PUT",
+        W + "/sso/settings",
+        OWNER_ONLY,
+        lambda c: {"json": {"defaultRole": "COLLABORATOR"}},
+        ok=200,
     ),
     # --- forms
     Case("forms.list", "GET", W + "/forms", P.FORM_READ),
@@ -683,7 +737,7 @@ def outside_services():
 
 
 @pytest.fixture()
-async def matrix(workspace, published_form, outside_services, fake_dns):
+async def matrix(workspace, published_form, outside_services, fake_dns, sso_on):
     workspace.is_pro = True
     await container.workspace_repo().save(workspace)
     members = container.workspace_user_repo()
@@ -773,8 +827,12 @@ async def matrix(workspace, published_form, outside_services, fake_dns):
             created_by=testUser1.id,
         )
     )
+    # creating an SSO connection needs a verified domain
+    await verify_domain(workspace.id, "matrix-sso.org")
+    sso_connection = await add_connection(workspace.id, enabled=False)
     return {
         "ws": str(workspace.id),
+        "sso_connection": str(sso_connection.id),
         "domain": str(domain.id),
         "other_domain": str(other_domain.id),
         "name": workspace.workspace_name,

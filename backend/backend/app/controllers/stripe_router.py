@@ -9,6 +9,8 @@ from backend.app.services.stripe_service import StripeService
 from backend.app.services.user_service import get_logged_user
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="/stripe",
     tags=["Stripe"],
@@ -38,7 +40,7 @@ class StripeRoutes(Routable):
     async def checkout(
         self,
         price_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         redirect_url = await self.stripe_service.create_checkout_session(user, price_id)
         return RedirectResponse(redirect_url)
@@ -49,7 +51,7 @@ class StripeRoutes(Routable):
             503: {"message": "Requested Source not available."},
         },
     )
-    async def customer_portal(self, user: User = Depends(get_logged_user)):
+    async def customer_portal(self, user: User = Depends(get_full_user)):
         redirect_url = await self.stripe_service.create_portal_session(user)
         return RedirectResponse(redirect_url)
 

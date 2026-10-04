@@ -25,12 +25,23 @@ from backend.app.services.auth_cookie_service import (
 from backend.app.services.auth_service import AuthService
 from backend.app.services.feedback_service import UserFeedbackService
 from backend.app.services.session_service import (
+    OTP_METHOD,
     AuthServiceUnavailable,
     RevokeReason,
     SessionService,
 )
+from backend.app.services.sso.login_service import (
+    NONCE_COOKIE,
+    SsoLoginService,
+    SsoRefused,
+    SsoSignIn,
+    clear_nonce_cookie,
+    set_nonce_cookie,
+)
 from backend.app.services.user_service import (
+    get_full_user,
     get_logged_user,
+    get_user_if_logged_in,
     get_user_to_delete,
 )
 from backend.config import settings
@@ -56,6 +67,7 @@ class AuthRoutes(Routable):
         auth_service=container.auth_service(),
         user_feedback_service=container.user_feedback_service(),
         session_service=container.session_service(),
+        sso_login_service=container.sso_login_service(),
         *args,
         **kwargs
     ):
@@ -63,6 +75,7 @@ class AuthRoutes(Routable):
         self.auth_service: AuthService = auth_service
         self.session_service: SessionService = session_service
         self.user_feedback_service: UserFeedbackService = user_feedback_service
+        self.sso_login_service: SsoLoginService = sso_login_service
 
     @get(
         "/status",
@@ -92,11 +105,23 @@ class AuthRoutes(Routable):
         request: Request,
         response: Response,
         prospective_pro_user: Optional[bool] = False,
+        workspace_id: Optional[str] = None,
     ):
+        """``workspace_id``: the workspace whose forms the code was asked for
+        (respondent sign-in); see docs/sso.md for what it changes."""
         user = await self.auth_service.validate_otp(
-            login_details, prospective_pro_user=prospective_pro_user
+            login_details,
+            prospective_pro_user=prospective_pro_user,
+            workspace_id=workspace_id,
         )
-        await self.session_service.start(user, response, request)
+        await self.session_service.start(
+            user,
+            response,
+            request,
+            method=OTP_METHOD,
+            scope=user.session_scope,
+            scope_workspace_id=user.scope_workspace_id,
+        )
         return "Logged In successfully"
 
     @post(
@@ -155,6 +180,57 @@ class AuthRoutes(Routable):
         )
         return {"revoked": revoked}
 
+    @get("/sso/login")
+    async def _sso_login(self, request: Request, email: str = ""):
+        """Single sign-on (docs/sso.md): send the browser to the identity
+        provider of the workspace that verified the work email's domain, or
+        back to the login page with ``sso_error=<code>``."""
+        try:
+            url, nonce = await self.sso_login_service.login_url(
+                email[:320], request.headers.get("referer")
+            )
+        except SsoRefused as refused:
+            return RedirectResponse(refused.redirect)
+        redirect = RedirectResponse(url)
+        # ties the callback to this browser (login CSRF)
+        set_nonce_cookie(redirect, nonce)
+        return redirect
+
+    @get("/sso/callback")
+    async def _sso_callback(
+        self,
+        request: Request,
+        response: Response,
+        code: Optional[str] = None,
+        state: Optional[str] = None,
+        error: Optional[str] = None,
+    ):
+        """Where Polis returns the browser (the connections' only redirect
+        URL). Signs in with a session like every other provider, or records
+        a connection test; refusals carry a fixed code only."""
+        signed_in = await get_user_if_logged_in(request, response)
+        try:
+            result = await self.sso_login_service.complete(
+                code,
+                state,
+                idp_error=bool(error),
+                signed_in=signed_in,
+                nonce=request.cookies.get(NONCE_COOKIE),
+            )
+        except SsoRefused as refused:
+            redirect = RedirectResponse(refused.redirect)
+            clear_nonce_cookie(redirect)
+            return redirect
+        redirect = RedirectResponse(result.redirect)
+        clear_nonce_cookie(redirect)
+        if isinstance(result, SsoSignIn):
+            # the browser's previous session (if any) is replaced: end it
+            await self.session_service.end_current(request, RevokeReason.REPLACED)
+            await self.session_service.start(
+                result.user, redirect, request, method=result.user.auth_method
+            )
+        return redirect
+
     @get(
         "/{provider_name}/oauth",
     )
@@ -162,7 +238,7 @@ class AuthRoutes(Routable):
         self,
         provider_name: FormProvider,
         request: Request,
-        user=Depends(get_logged_user),
+        user=Depends(get_full_user),
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(
@@ -179,7 +255,7 @@ class AuthRoutes(Routable):
         provider_name: str = None,
         state: str = None,
         code: str = None,
-        user=Depends(get_logged_user),
+        user=Depends(get_full_user),
     ):
         if not state or not code:
             return {"message": "You cancelled the authorization request."}
@@ -254,7 +330,9 @@ class AuthRoutes(Routable):
         )
         response = RedirectResponse(client_referer_url)
         if user:
-            await self.session_service.start(User(**user), response, request)
+            await self.session_service.start(
+                User(**user), response, request, method=provider_name
+            )
         return response
 
     @get(

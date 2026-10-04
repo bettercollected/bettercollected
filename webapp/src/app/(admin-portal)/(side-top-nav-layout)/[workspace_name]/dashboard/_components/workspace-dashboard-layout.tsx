@@ -15,7 +15,7 @@ import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
-import { BookOpen, KeyRound, Palette, Settings, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import { BookOpen, KeyRound, LockKeyhole, Palette, Settings, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { useWorkspaceSettingsView } from '@app/store/jotai/workspace-settings-view';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';
@@ -24,6 +24,7 @@ import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { ssoEnabled } from '@app/lib/sso';
 import { INavGroup, INavbarItem } from '@app/models/props/navbar';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -195,6 +196,17 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     permission: WorkspacePermission.SECURITY_MANAGE,
                     icon: <ShieldCheck className="h-5 w-5 stroke-2" />
                 },
+                ...(ssoEnabled
+                    ? [
+                          {
+                              key: 'sso',
+                              name: 'Single sign-on',
+                              url: `${commonWorkspaceUrl}/sso`,
+                              permission: WorkspacePermission.SECURITY_MANAGE,
+                              icon: <LockKeyhole className="h-5 w-5 stroke-2" />
+                          }
+                      ]
+                    : []),
                 {
                     key: 'members',
                     name: t(members.default),

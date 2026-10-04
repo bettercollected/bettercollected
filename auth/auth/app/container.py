@@ -12,6 +12,7 @@ from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.auth_service import AuthService
 from auth.app.services.notification_service import NotificationService
+from auth.app.services.sso_service import SsoService
 from auth.app.services.stripe_service import StripeService
 from auth.app.services.user_service import UserService
 from auth.config import settings
@@ -101,6 +102,10 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     notification_service: NotificationService = providers.Singleton(NotificationService)
+
+    sso_service: SsoService = providers.Singleton(
+        SsoService, user_repository=user_repository
+    )
 
 
 container = AppContainer()

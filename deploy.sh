@@ -47,6 +47,36 @@ for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASS
   fi
 done
 
+# Single sign-on (docs/sso.md): off unless the root .env has SSO_ENABLED=true.
+# Then Polis and its own Postgres run from the overlay
+# docker-compose.sso-deployment.yml, with secrets generated here (once; hex
+# only, DB_ENCRYPTION_KEY must be 32 characters). The operator sets
+# SSO_POLIS_URL, SSO_REDIRECT_URI and SSO_SAML_AUDIENCE in the root .env.
+# Without SSO nothing here is needed or generated.
+sso_enabled=false
+compose_files=(-f "docker-compose.deployment.yml")
+if grep -q "^SSO_ENABLED=true" .env 2>/dev/null; then
+  sso_enabled=true
+  for var in SSO_POLIS_URL SSO_REDIRECT_URI SSO_SAML_AUDIENCE; do
+    if ! grep -q "^${var}=." .env; then
+      echo "SSO_ENABLED=true needs ${var} in .env (see docs/sso.md)." >&2
+      exit 1
+    fi
+  done
+  for var in BC_POLIS_PASSWORD SSO_POLIS_API_KEY POLIS_CLIENT_SECRET_VERIFIER POLIS_NEXTAUTH_SECRET; do
+    if ! grep -q "^${var}=" .env; then
+      echo "${var}=$(openssl rand -hex 24)" >> .env
+      echo "Generated a new ${var} in .env (first run with SSO)."
+    fi
+  done
+  if ! grep -q "^POLIS_DB_ENCRYPTION_KEY=" .env; then
+    echo "POLIS_DB_ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
+    echo "Generated a new POLIS_DB_ENCRYPTION_KEY in .env (first run with SSO)."
+  fi
+  compose_files+=(-f "docker-compose.sso-deployment.yml")
+  services_to_start+=("polis-postgres" "polis")
+fi
+
 # Common docker function
 function dockerup() {
   typeform_flag=false
@@ -81,11 +111,11 @@ function dockerup() {
   if [ "$googleform_flag" = true ]; then
     "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps integrations-googleform alembic -c /api/integrations/google/alembic.ini upgrade head
   fi
-  GOOGLE_ENABLED="$googleform_flag" TYPEFORM_ENABLED="$typeform_flag" "$docker_compose_cmd" -f "docker-compose.deployment.yml" up --build -d "$@"
+  GOOGLE_ENABLED="$googleform_flag" TYPEFORM_ENABLED="$typeform_flag" "$docker_compose_cmd" "${compose_files[@]}" up --build -d "$@"
 }
 
 function dockerdown() {
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" down
+  "$docker_compose_cmd" "${compose_files[@]}" down
 }
 
 if [ "$user_preference" == both ]; then

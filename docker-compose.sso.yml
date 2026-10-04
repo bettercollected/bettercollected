@@ -1,0 +1,48 @@
+# Local development of single sign-on (docs/sso.md):
+#   Ory Polis (formerly BoxyHQ SAML Jackson) on http://localhost:5225
+#   Mock SAML identity provider              on http://localhost:4000
+# Don't run this file directly: scripts/sso-dev-setup.sh generates the
+# throwaway keys/secrets in .sso-dev/ (gitignored), creates the `polis`
+# database in app-postgres and starts both containers. Connections are then
+# created in the app (workspace settings -> Single sign-on) or through its API.
+# Polis joins the network of docker-compose.local.yml to reach app-postgres.
+# Production runs Polis from docker-compose.deployment.yml (profile `sso`).
+services:
+  polis:
+    # 26.2.0, the version tested (as in docker-compose.deployment.yml)
+    image: ${POLIS_IMAGE:-boxyhq/jackson@sha256:9165f3db9d9f5d3262f23446e860f4929f462d1d9c954af13f3bb44910c3a699}
+    ports:
+      - "127.0.0.1:5225:5225"
+    env_file:
+      - .sso-dev/polis.env
+    environment:
+      EXTERNAL_URL: http://localhost:5225
+      NEXTAUTH_URL: http://localhost:5225
+      DB_ENGINE: sql
+      DB_TYPE: postgres
+      # SP-initiated only; IdP-initiated logins are refused (see the doc).
+      IDP_ENABLED: "false"
+      # Exact redirect_uri match (scheme, host, port and path).
+      OPENID_REDIRECT_EXACT_MATCH: "true"
+      # the backend's SSO_SAML_AUDIENCE
+      SAML_AUDIENCE: https://saml.bettercollected.local
+      BOXYHQ_NO_ANALYTICS: "1"
+      DO_NOT_TRACK: "1"
+    networks:
+      - app
+
+  mock-saml:
+    # 1.4.2, the version tested
+    image: ${MOCK_SAML_IMAGE:-boxyhq/mock-saml@sha256:4e685c230dc857930d9d91750a62cf44ebe233c3c358206397e8f9f5aff8057c}
+    ports:
+      - "127.0.0.1:4000:4000"
+    env_file:
+      - .sso-dev/mock-saml.env
+    environment:
+      APP_URL: http://localhost:4000
+      ENTITY_ID: https://mock-saml.bettercollected.local/entityid
+
+networks:
+  app:
+    name: bettercollected_default
+    external: true

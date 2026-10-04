@@ -10,6 +10,8 @@ from backend.app.services.integration_service import IntegrationService
 from backend.app.services.user_service import get_logged_user
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="/integration",
     tags=["Integration"],
@@ -37,7 +39,7 @@ class IntegrationRouter(Routable):
         self,
         integration_type: FormIntegrationType,
         request: Request,
-        user=Depends(get_logged_user),
+        user=Depends(get_full_user),
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.integration_service.get_oauth_url(
@@ -50,7 +52,7 @@ class IntegrationRouter(Routable):
         self,
         integration_type: FormIntegrationType,
         callback_data: IntegrationCallBackDto,
-        user=Depends(get_logged_user),
+        user=Depends(get_full_user),
     ):
         state = callback_data.state
         code = callback_data.code

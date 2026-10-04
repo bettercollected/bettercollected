@@ -14,6 +14,8 @@ from backend.app.container import container
 from typing import Optional
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="",
     tags=["Form Analytics"],
@@ -57,7 +59,7 @@ class FormAnalyticsRouter(Routable):
         country: Optional[str] = None,
         region: Optional[str] = None,
         city: Optional[str] = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
             workspace_name=workspace_name, user=user
@@ -114,7 +116,7 @@ class FormAnalyticsRouter(Routable):
         country: Optional[str] = None,
         region: Optional[str] = None,
         city: Optional[str] = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
             workspace_name=workspace_name, user=user
@@ -173,7 +175,7 @@ class FormAnalyticsRouter(Routable):
         language: Optional[str] = None,
         event: Optional[str] = None,
         limit: Optional[int] = 500,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
             workspace_name=workspace_name, user=user

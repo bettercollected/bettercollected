@@ -56,7 +56,10 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
 
         const data = {
             body: { email, otp_code: otp },
-            params: { prospective_pro_user: Boolean(fromProPlan) }
+            // the workspace whose forms the code was asked for: an address
+            // whose domain requires SSO elsewhere gets a respondent-only
+            // session here (docs/sso.md)
+            params: { prospective_pro_user: Boolean(fromProPlan), ...(workspace_id ? { workspace_id } : {}) }
         };
         const res = await postVerifyOtp(data);
 

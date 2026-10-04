@@ -12,6 +12,8 @@ from backend.app.services.user_tags_service import UserTagsService
 from common.models.user import User
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="/user/tags",
     tags=["User Tags"],
@@ -33,7 +35,7 @@ class UserTagsRoutes(Routable):
     )
     async def get_user_tags(
         self,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         if not user.is_admin():
             raise ForbiddenException()
@@ -46,7 +48,7 @@ class UserTagsRoutes(Routable):
             401: {"description": "Authorization token is missing."},
         },
     )
-    async def get_user_tags_details(self, user: User = Depends(get_logged_user)):
+    async def get_user_tags_details(self, user: User = Depends(get_full_user)):
         if not user.is_admin():
             raise ForbiddenException()
         return await self.user_tags_service.get_user_tags_details()

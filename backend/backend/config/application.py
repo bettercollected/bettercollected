@@ -22,6 +22,7 @@ from backend.config.OpenAISettings import OpenAISettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
 from backend.config.sentry_setting import SentrySettings
+from backend.config.sso_settings import SSOSettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
 from backend.config.UmamiSettings import UmamiSettings
@@ -71,6 +72,7 @@ class Application(BaseSettings):
     umami_settings: UmamiSettings = UmamiSettings()
     pdf_import: PdfImportSettings = PdfImportSettings()
     verified_domains: VerifiedDomainSettings = VerifiedDomainSettings()
+    sso: SSOSettings = SSOSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

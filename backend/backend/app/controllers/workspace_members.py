@@ -24,6 +24,8 @@ def generate_invitation_token() -> str:
     """Generates a secure token for workspace invitations."""
     return secrets.token_urlsafe(32)  
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="/workspaces/{workspace_id}/members",
     tags=["Workspace Members and Invitations"],
@@ -49,7 +51,7 @@ class WorkspaceMembersRouter(Routable):
         response_model=List[WorkspaceMemberDto],
     )
     async def get_workspace_members(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
     ):
         return await self.workspace_members_service.get_workspace_members(
             workspace_id=workspace_id, user=user
@@ -62,7 +64,7 @@ class WorkspaceMembersRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         user_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.workspace_members_service.delete_workspace_member(
             workspace_id=workspace_id, user_id=user_id, user=user
@@ -102,7 +104,7 @@ class WorkspaceMembersRouter(Routable):
     async def get_workspace_invitations(
         self,
         workspace_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.workspace_members_service.get_workspace_invitations(
             workspace_id=workspace_id, user=user
@@ -115,7 +117,7 @@ class WorkspaceMembersRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         invitation: InvitationRequest,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.workspace_members_service.create_invitation_request(
             workspace_id=workspace_id, invitation=invitation, user=user
@@ -129,7 +131,7 @@ class WorkspaceMembersRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         invitation_token: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.workspace_members_service.get_workspace_invitation_by_token(
             workspace_id=workspace_id, user=user, invitation_token=invitation_token
@@ -142,7 +144,7 @@ class WorkspaceMembersRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         invitation_token: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return (
             await self.workspace_members_service.delete_workspace_invitation_by_token(
@@ -158,7 +160,7 @@ class WorkspaceMembersRouter(Routable):
         workspace_id: PydanticObjectId,
         invitation_token: str,
         response_status: InvitationResponse,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.workspace_members_service.process_invitation_request(
             workspace_id=workspace_id,
@@ -174,7 +176,7 @@ class WorkspaceMembersRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         invitation_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         invitation = await self.workspace_members_service.get_workspace_invitation_by_token(
             workspace_id=workspace_id, user=user, invitation_token=invitation_id

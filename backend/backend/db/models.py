@@ -94,6 +94,24 @@ class WorkspaceDomainRow(Base, BaseRow):
     )
 
 
+class SsoConnectionRow(Base, BaseRow):
+    __tablename__ = "sso_connections"
+    workspace_id = S.text("workspace_id")
+    status = S.text("status")
+    polis_client_id = S.text("polis_client_id")
+    __table_args__ = (
+        Index(None, "workspace_id", "status"),
+        UniqueConstraint("polis_client_id"),
+    )
+
+
+class SsoUsedStateRow(Base, BaseRow):
+    __tablename__ = "sso_used_states"
+    nonce_hash = S.text("nonce_hash")
+    expires_at = S.ts("expires_at")
+    __table_args__ = (UniqueConstraint("nonce_hash"), Index(None, "expires_at"))
+
+
 class BlacklistedRefreshTokenRow(Base, BaseRow):
     """No longer written or read: session revocation (``sessions``) replaced
     the refresh-token blacklist. Kept until a later release drops the table

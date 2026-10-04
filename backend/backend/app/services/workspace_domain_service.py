@@ -37,7 +37,9 @@ from backend.app.schemas.workspace_domain import DomainStatus, WorkspaceDomainDo
 from backend.app.services.domains import dns_txt
 from backend.app.services.domains.names import (
     DomainRefused,
+    canonical_domain,
     claimable_domain,
+    covered_by,
     display_domain,
     domain_of,
 )
@@ -74,6 +76,16 @@ class WorkspaceDomainDto(_CamelModel):
     last_check_error: Optional[str] = None
     failed_checks: int = 0
     verification_lost_at: Optional[dt.datetime] = None
+
+
+def _reserved_now(name: str) -> bool:
+    reserved = []
+    for domain in settings.verified_domains.reserved_domains:
+        try:
+            reserved.append(canonical_domain(domain))
+        except DomainRefused:
+            continue
+    return covered_by(name, reserved)
 
 
 def _now() -> dt.datetime:
@@ -189,6 +201,39 @@ class WorkspaceDomainService:
         address's domain for an email). Sub-domains are separate domains."""
         owner = await self.domain_owner(email_or_domain)
         return owner is not None and owner == PydanticObjectId(workspace_id)
+
+    async def sso_domain_claim(
+        self, email_or_domain: str
+    ) -> Optional[WorkspaceDomainDocument]:
+        """The verified claim single sign-on may use for this address's
+        domain, or None. Stricter than ``domain_owner``: a domain whose
+        verification was lost (``verification_lost_at``) is never used, and
+        neither is one that is reserved now (``VERIFIED_DOMAINS_RESERVED``,
+        the platform admins' domains), even if it was verified before it
+        became reserved."""
+        name = domain_of(email_or_domain)
+        if name is None or _reserved_now(name):
+            return None
+        claim = await self._domain_repo.find_verified(name)
+        if (
+            claim is None
+            or claim.status != DomainStatus.VERIFIED
+            or claim.verification_lost_at is not None
+        ):
+            return None
+        return claim
+
+    async def sso_domains(self, workspace_id: PydanticObjectId) -> List[str]:
+        """The workspace's domains single sign-on applies to (verified, not
+        lost, not reserved), in their ASCII form."""
+        return [
+            claim.domain
+            for claim in await self._domain_repo.list_by_workspace(workspace_id)
+            if claim.status == DomainStatus.VERIFIED
+            and claim.verified_domain == claim.domain
+            and claim.verification_lost_at is None
+            and not _reserved_now(claim.domain)
+        ]
 
     # -- for a periodic job ---------------------------------------------------
     async def recheck_verified_domains(self, limit: int = 100) -> Dict[str, int]:

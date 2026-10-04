@@ -32,7 +32,14 @@ from backend.app.repositories.metric_periods import (
     object_id_at,
     postgres_counts_per_period,
 )
+from backend.app.repositories.sso_connection_repository import SsoConnectionExists
+from backend.app.repositories.sso_used_state_repository import StateAlreadyUsed
+from backend.app.schemas.sso_used_state import SsoUsedStateDocument
 from backend.app.schemas.session import SessionDocument
+from backend.app.schemas.sso_connection import (
+    SsoConnectionDocument,
+    SsoConnectionStatus,
+)
 from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.repositories.workspace_domain_repository import (
@@ -47,6 +54,8 @@ from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.db.base import SCHEMA
 from backend.db.models import (
     SessionRow,
+    SsoConnectionRow,
+    SsoUsedStateRow,
     UserTagsRow,
     WorkspaceApiKeyRow,
     WorkspaceDomainRow,
@@ -520,6 +529,102 @@ class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
         return await self.delete_where(
             WorkspaceDomainRow.workspace_id.in_([_oid(w) for w in workspace_ids])
         )
+
+
+class PostgresSsoConnectionRepository(PostgresRepositoryBase):
+    row = SsoConnectionRow
+    document = SsoConnectionDocument
+
+    async def create(self, document: SsoConnectionDocument) -> SsoConnectionDocument:
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise SsoConnectionExists(document.polis_client_id)
+
+    async def save(self, document: SsoConnectionDocument) -> SsoConnectionDocument:
+        return await self.upsert(document)
+
+    async def get(self, connection_id) -> Optional[SsoConnectionDocument]:
+        return await self.one(SsoConnectionRow.id == str(connection_id))
+
+    async def find_by_polis_client_id(
+        self, client_id: str
+    ) -> Optional[SsoConnectionDocument]:
+        return await self.one(SsoConnectionRow.polis_client_id == client_id)
+
+    async def list_by_workspace(
+        self, workspace_id: PydanticObjectId
+    ) -> List[SsoConnectionDocument]:
+        return await self.many(SsoConnectionRow.workspace_id == _oid(workspace_id))
+
+    async def count_by_workspace(self, workspace_id: PydanticObjectId) -> int:
+        return await self.count(SsoConnectionRow.workspace_id == _oid(workspace_id))
+
+    async def _enabled(self, workspace_id) -> List[SsoConnectionDocument]:
+        enabled = await self.many(
+            SsoConnectionRow.workspace_id == _oid(workspace_id),
+            SsoConnectionRow.status == SsoConnectionStatus.ENABLED.value,
+        )
+        # latest enabled first, like the Mongo sort (enabled_at is not a spine
+        # column; a workspace has at most a handful of connections)
+        return sorted(
+            enabled,
+            key=lambda c: (
+                c.enabled_at or datetime.datetime.min.replace(tzinfo=timezone.utc),
+                str(c.id),
+            ),
+            reverse=True,
+        )
+
+    async def find_enabled(
+        self, workspace_id: PydanticObjectId
+    ) -> Optional[SsoConnectionDocument]:
+        enabled = await self._enabled(workspace_id)
+        return enabled[0] if enabled else None
+
+    async def disable_others(
+        self,
+        workspace_id: PydanticObjectId,
+        keep_id: PydanticObjectId,
+        disabled_by: str,
+        now: datetime.datetime,
+    ) -> int:
+        changed = 0
+        for connection in await self._enabled(workspace_id):
+            if str(connection.id) == str(keep_id):
+                continue
+            connection.status = SsoConnectionStatus.DISABLED
+            connection.disabled_at = now
+            connection.disabled_by = disabled_by
+            connection.updated_at = now
+            await self.upsert(connection)
+            changed += 1
+        return changed
+
+    async def delete(self, connection_id: PydanticObjectId) -> int:
+        return await self.delete_by_id(connection_id)
+
+    async def delete_by_workspace_ids(
+        self, workspace_ids: List[PydanticObjectId]
+    ) -> int:
+        return await self.delete_where(
+            SsoConnectionRow.workspace_id.in_([_oid(w) for w in workspace_ids])
+        )
+
+
+class PostgresSsoUsedStateRepository(PostgresRepositoryBase):
+    row = SsoUsedStateRow
+    document = SsoUsedStateDocument
+
+    async def claim(
+        self, document: SsoUsedStateDocument, now: datetime.datetime
+    ) -> SsoUsedStateDocument:
+        # no TTL index here: expired records go on each claim
+        await self.delete_where(SsoUsedStateRow.expires_at <= now)
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise StateAlreadyUsed(document.nonce_hash)
 
 
 class PostgresSessionRepository(PostgresRepositoryBase):
