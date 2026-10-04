@@ -880,5 +880,47 @@
     "REMOVE": "Logo verwijderen"
   },
   "HAVE_NOT_IMPORTED_OR_CREATED": "Je hebt geen formulier geïmporteerd of aangemaakt.",
-  "CREATE_OR_IMPORT": "Maak of importeer je eerste privacyvriendelijke formulier."
+  "CREATE_OR_IMPORT": "Maak of importeer je eerste privacyvriendelijke formulier.",
+  "WORKSPACE_ROLES": {
+    "OWNER": {
+      "NAME": "Eigenaar",
+      "DESCRIPTION": "Kan alles, ook facturering. Elke werkruimte heeft één eigenaar."
+    },
+    "ADMIN": {
+      "NAME": "Beheerder",
+      "DESCRIPTION": "Beheert de werkruimte, de leden en instellingen, en alle formulieren en reacties."
+    },
+    "EDITOR": {
+      "NAME": "Bewerker",
+      "DESCRIPTION": "Maakt en bewerkt formulieren, en leest, exporteert en verwijdert reacties."
+    },
+    "REVIEWER": {
+      "NAME": "Beoordelaar",
+      "DESCRIPTION": "Leest reacties, vult interne velden in en stuurt updates, maar wijzigt geen formulieren."
+    },
+    "VIEWER": {
+      "NAME": "Kijker",
+      "DESCRIPTION": "Leest formulieren en reacties, en wijzigt niets."
+    },
+    "PRIVACY_OFFICER": {
+      "NAME": "Privacyfunctionaris",
+      "DESCRIPTION": "Behandelt verwijderverzoeken, toestemming en bewaartermijnen zonder antwoorden te lezen."
+    },
+    "UNKNOWN": "Onbekende rol"
+  },
+  "MEMBER_ROLES": {
+    "ROLE_CHANGED": "Rol gewijzigd.",
+    "ROLE_CHANGE_FAILED": "De rol kon niet worden gewijzigd.",
+    "TRANSFER_OWNERSHIP": "Eigendom overdragen",
+    "TRANSFER_TITLE": "Eigendom overdragen aan {{name}}?",
+    "TRANSFER_DESCRIPTION": "Zij worden eigenaar, met facturering en alle andere rechten. Jij blijft in de werkruimte als beheerder, en alleen de nieuwe eigenaar kan het terug overdragen.",
+    "TRANSFER_DONE": "Eigendom overgedragen.",
+    "TRANSFER_FAILED": "Het eigendom kon niet worden overgedragen.",
+    "TRANSFER_ONLY_ADMINS": "Eigendom kan alleen naar een beheerder. Maak diegene eerst beheerder.",
+    "TRANSFER_PERSONAL": "Je persoonlijke werkruimte kan niet worden overgedragen.",
+    "TRANSFER_PAID": "Een werkruimte met een betaald abonnement kan niet worden overgedragen, omdat het abonnement via jouw account wordt gefactureerd.",
+    "CANCEL": "Annuleren",
+    "NO_ACCESS": "Je hebt geen toegang tot deze pagina.",
+    "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. Je kunt het later wijzigen."
+  }
 }

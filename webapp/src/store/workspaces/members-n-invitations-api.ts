@@ -76,6 +76,21 @@ export const membersNInvitationsApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_INVITATIONS_TAG]
         }),
+        updateWorkspaceMemberRole: builder.mutation<WorkspaceMembersDto, { workspaceId: string; userId: string; role: string }>({
+            query: ({ workspaceId, userId, role }) => ({
+                url: `/${workspaceId}/members/${userId}`,
+                method: 'PATCH',
+                body: { role }
+            }),
+            invalidatesTags: [WORKSPACE_MEMBERS_TAG]
+        }),
+        transferWorkspaceOwnership: builder.mutation<{ message: string; ownerId: string }, { workspaceId: string; userId: string }>({
+            query: ({ workspaceId, userId }) => ({
+                url: `/${workspaceId}/members/${userId}/transfer-ownership`,
+                method: 'POST'
+            }),
+            invalidatesTags: [WORKSPACE_MEMBERS_TAG]
+        }),
         resendWorkspaceInvitation: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/${request.workspaceId}/members/invitations/${request.invitationToken}/resend`,
@@ -103,5 +118,7 @@ export const {
     useInviteToWorkspaceMutation,
     useDeleteWorkspaceMemberMutation,
     useDeleteWorkspaceInvitationMutation,
-    useResendWorkspaceInvitationMutation // Export the resend mutation
+    useResendWorkspaceInvitationMutation, // Export the resend mutation
+    useUpdateWorkspaceMemberRoleMutation,
+    useTransferWorkspaceOwnershipMutation
 } = membersNInvitationsApi;

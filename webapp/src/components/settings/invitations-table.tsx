@@ -13,6 +13,7 @@ import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceInvitationDto } from '@app/models/dtos/workspace-member-dto';
+import { WorkspaceRole, roleLocale, toWorkspaceRole } from '@app/models/enums/workspace-role';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -39,12 +40,13 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
             <p className="body2"> {t(members.pendingRequests.empty)}</p>
         </div>
     );
-    const handleInvitation = async ({ email }: { email: string }) => {
+    const handleInvitation = async ({ email, role }: { email: string; role?: string }) => {
         try {
             await trigger({
                 workspaceId: workspace.id,
                 body: {
-                    role: 'COLLABORATOR',
+                    // the role it was sent with (stored as COLLABORATOR for an Editor)
+                    role: toWorkspaceRole(role) ?? WorkspaceRole.EDITOR,
                     email: email
                 }
             });
@@ -54,13 +56,13 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         }
     };
 
-    const Status = ({ status, email }: { status: string; email: string }) => {
+    const Status = ({ status, email, role }: { status: string; email: string; role?: string }) => {
         return (
             <div className="flex items-center gap-5">
                 <StatusBadge status={status} />
                 {status.toLowerCase() === 'expired' && (
                     <div className="truncate">
-                        <span className="body4 !text-brand-500 cursor-pointer" onClick={() => handleInvitation({ email })}>
+                        <span className="body4 !text-brand-500 cursor-pointer" onClick={() => handleInvitation({ email, role })}>
                             Resend Invitation
                         </span>
                     </div>
@@ -94,11 +96,25 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         },
 
         {
+            name: t(members.role),
+            selector: (invitation: WorkspaceInvitationDto) => {
+                const role = toWorkspaceRole(invitation.role);
+                return role ? t(roleLocale(role).name) : '';
+            },
+            style: {
+                color: '#3A465A',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                fontSize: '16px'
+            }
+        },
+        {
             name: t(localesCommon.status),
             selector: (invitation: WorkspaceInvitationDto) =>
                 Status({
                     status: invitation.invitationStatus,
-                    email: invitation.email
+                    email: invitation.email,
+                    role: invitation.role
                 }),
             style: {
                 color: '#3A465A',
