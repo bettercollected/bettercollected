@@ -37,6 +37,8 @@ class WorkspaceInvitationRepo:
             )
             existing_invitation.created_at = datetime.datetime.now(timezone.utc)
             existing_invitation.invitation_token = secrets.token_hex(16)
+            # inviting again may change the role
+            existing_invitation.role = invitation.role
         else:
             existing_invitation = WorkspaceUserInvitesDocument(
                 workspace_id=workspace_id,
