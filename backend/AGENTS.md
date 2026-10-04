@@ -443,6 +443,8 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 
 - **CORS is dynamic** (`DynamicCORSMiddleware`) driven by the `allowed_origins` Mongo collection — a new host must be
   seeded there (see root docs / `seed-data.js`) or requests are blocked.
+  A workspace's custom domain is added only while it is verified (`services/custom_domain_origins.py`, the one
+  place that adds or removes those origins) and stale ones are pruned at startup.
 - Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and Mongo client and init Beanie — respect that
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`
