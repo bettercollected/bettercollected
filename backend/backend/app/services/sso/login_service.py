@@ -48,7 +48,6 @@ from backend.app.models.enum.permission import Permission
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.services.authorization_service import AuthorizationService
-from backend.app.services.domains.names import domain_of
 from backend.app.services.auth_cookie_service import set_cookie
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.login_redirect import origin_of
@@ -341,7 +340,12 @@ class SsoLoginService:
             error_code = _error_code(error)
             context = _error_context(error)
             if context.get("p") == PURPOSE_TEST:
-                await self._record_test_failure(context, error_code)
+                # recorded only for this browser's own, unused test started by
+                # an admin who still may (a replayed state records nothing)
+                if await self._check_nonce(
+                    context, nonce
+                ) is None and await self._may_test(context, signed_in):
+                    await self._record_test_failure(context, error_code)
                 raise SsoRefused(
                     error_code, await self._test_result(context, error_code)
                 )
@@ -479,12 +483,7 @@ class SsoLoginService:
             raise SsoRefused(
                 "sso_seat_limit", await self._login_error(referer, "sso_seat_limit")
             )
-        logger.info(
-            "SSO sign-in of user {} to workspace {} (domain {})",
-            user.id,
-            workspace.id,
-            domain_of(email),
-        )
+        logger.info("SSO sign-in of user {} to workspace {}", user.id, workspace.id)
         page = await self._safe(referer, "/login")
         return SsoSignIn(
             user=user,
@@ -516,6 +515,16 @@ class SsoLoginService:
             )
         await self._connection_service.record_test(connection, signed_in.id, None)
         return SsoTestDone(redirect=await self._test_result(context, "ok"))
+
+    async def _may_test(self, context: dict, signed_in: Optional[User]) -> bool:
+        """The admin who started the test, still allowed to manage SSO."""
+        return (
+            signed_in is not None
+            and str(signed_in.id) == context.get("u")
+            and await self._authorization.has_permission(
+                signed_in, Permission.SECURITY_MANAGE, context.get("ws")
+            )
+        )
 
     async def _record_test_failure(self, context: dict, code: str) -> None:
         connection = await self._connections.get(context.get("c"))

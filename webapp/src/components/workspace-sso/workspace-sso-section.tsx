@@ -153,7 +153,15 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage }: { c
     );
 }
 
-function AddConnectionForm({ workspaceId, onDone }: { workspaceId: string; onDone: () => void }) {
+function DomainsLink({ workspaceName }: { workspaceName?: string }) {
+    return (
+        <Link className="text-brand-500 underline" href={`/${workspaceName}/dashboard/domains`}>
+            Verify your organisation&apos;s domain
+        </Link>
+    );
+}
+
+function AddConnectionForm({ workspaceId, workspaceName, onDone }: { workspaceId: string; workspaceName?: string; onDone: () => void }) {
     const { toast } = useToast();
     const [create, { isLoading }] = useCreateSsoConnectionMutation();
     const [type, setType] = useState<SsoConnectionType>('saml');
@@ -165,10 +173,12 @@ function AddConnectionForm({ workspaceId, onDone }: { workspaceId: string; onDon
     const [clientId, setClientId] = useState('');
     const [clientSecret, setClientSecret] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [needsDomain, setNeedsDomain] = useState(false);
 
     const submit = async (event: FormEvent) => {
         event.preventDefault();
         setError(null);
+        setNeedsDomain(false);
         const body =
             type === 'saml'
                 ? { type, name: name.trim() || undefined, ...(source === 'url' ? { metadataUrl: metadataUrl.trim() } : { metadataXml: metadataXml.trim() }) }
@@ -176,6 +186,7 @@ function AddConnectionForm({ workspaceId, onDone }: { workspaceId: string; onDon
         const response: any = await create({ workspace_id: workspaceId, body });
         if (response.error) {
             setError(errorMessage(response.error, 'Could not create the connection.'));
+            setNeedsDomain(response.error?.data?.code === 'sso_domain_required');
             return;
         }
         setClientSecret('');
@@ -244,6 +255,12 @@ function AddConnectionForm({ workspaceId, onDone }: { workspaceId: string; onDon
             {error && (
                 <p role="alert" className="text-xs text-[#C43D3D]">
                     {error}
+                    {needsDomain && (
+                        <>
+                            {' '}
+                            <DomainsLink workspaceName={workspaceName} />.
+                        </>
+                    )}
                 </p>
             )}
             <div className="flex gap-2">
@@ -430,8 +447,12 @@ export default function WorkspaceSsoSection() {
                         ))}
                     </ul>
                 )}
-                {!overview.canManage ? null : adding ? (
-                    <AddConnectionForm workspaceId={workspaceId} onDone={() => setAdding(false)} />
+                {!overview.canManage ? null : overview.domains.length === 0 ? (
+                    <p className="rounded-md border border-dashed border-black-200 px-3 py-3 text-xs text-black-600">
+                        A connection needs a verified email domain. <DomainsLink workspaceName={workspace?.workspaceName} /> first.
+                    </p>
+                ) : adding ? (
+                    <AddConnectionForm workspaceId={workspaceId} workspaceName={workspace?.workspaceName} onDone={() => setAdding(false)} />
                 ) : overview.connections.length < overview.maxConnections ? (
                     <div>
                         <Button size="sm" variant={overview.connections.length ? 'v2Button' : 'primary'} onClick={() => setAdding(true)}>

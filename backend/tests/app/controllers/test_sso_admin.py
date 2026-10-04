@@ -29,6 +29,12 @@ from tests.app.sso_helpers import (  # noqa: F401 — fixtures
 W = "/api/v1/workspaces/{ws}/sso"
 
 
+@pytest.fixture()
+async def domain_verified(workspace):
+    """A connection can only be created with a verified SSO domain."""
+    return await verify_domain(workspace.id, "connections-sso.org")
+
+
 def _cookies(user: User) -> dict:
     token = access_token(user)
     return {"Authorization": token, "RefreshToken": token}
@@ -71,6 +77,7 @@ async def test_overview_when_sso_is_off(client, workspace):
 
 
 # -- create -------------------------------------------------------------------
+@pytest.mark.usefixtures("domain_verified")
 async def test_create_a_saml_connection_from_xml(client, workspace, sso_on):
     polis, _ = sso_on
     reply = await client.post(
@@ -88,6 +95,7 @@ async def test_create_a_saml_connection_from_xml(client, workspace, sso_on):
     assert stored[0].polis_tenant == str(workspace.id)
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_create_a_saml_connection_from_a_public_url(client, workspace, sso_on):
     polis, _ = sso_on
     reply = await client.post(
@@ -102,6 +110,7 @@ async def test_create_a_saml_connection_from_a_public_url(client, workspace, sso
     assert reply.json()["metadataUrl"] == METADATA_URL
 
 
+@pytest.mark.usefixtures("domain_verified")
 @pytest.mark.parametrize(
     "metadata_url,code",
     [
@@ -126,6 +135,7 @@ async def test_ssrf_metadata_urls_are_refused_before_polis(
     assert polis.calls == []
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_a_name_resolving_privately_is_refused(
     client, workspace, sso_on, monkeypatch
 ):
@@ -149,6 +159,7 @@ async def test_a_name_resolving_privately_is_refused(
     assert polis.calls == []
 
 
+@pytest.mark.usefixtures("domain_verified")
 @pytest.mark.parametrize(
     "body,code",
     [
@@ -172,6 +183,7 @@ async def test_incomplete_requests_are_refused(client, workspace, sso_on, body, 
     assert reply.json()["code"] == code
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_create_an_oidc_connection_keeps_the_secret_out(
     client, workspace, sso_on
 ):
@@ -194,6 +206,7 @@ async def test_create_an_oidc_connection_keeps_the_secret_out(
     assert polis.calls[0][0] == "create_oidc"
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_a_polis_refusal_is_a_clear_error(client, workspace, sso_on):
     polis, _ = sso_on
     polis.fail = PolisError(
@@ -214,6 +227,7 @@ async def test_a_polis_refusal_is_a_clear_error(client, workspace, sso_on):
     assert reply.status_code == 503
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_the_connection_count_is_capped(client, workspace, sso_on, monkeypatch):
     monkeypatch.setattr(settings.sso, "MAX_CONNECTIONS_PER_WORKSPACE", 1)
     await add_connection(workspace.id)
@@ -547,6 +561,7 @@ async def test_members_and_outsiders_are_refused(client, workspace, sso_on, user
 
 
 # -- review fixes: guarded fetches ---------------------------------------------
+@pytest.mark.usefixtures("domain_verified")
 async def test_a_redirect_to_a_private_address_is_refused(client, workspace, sso_on):
     polis, _ = sso_on
     polis.web.pages[METADATA_URL] = (
@@ -564,6 +579,7 @@ async def test_a_redirect_to_a_private_address_is_refused(client, workspace, sso
     assert polis.calls == []
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_a_public_redirect_hop_is_followed(client, workspace, sso_on):
     polis, _ = sso_on
     moved = "https://cdn.acme-sso.org/metadata.xml"
@@ -578,6 +594,7 @@ async def test_a_public_redirect_hop_is_followed(client, workspace, sso_on):
     assert polis.web.requested == [METADATA_URL, moved]
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_too_many_redirects_are_refused(client, workspace, sso_on):
     polis, _ = sso_on
     polis.web.pages[METADATA_URL] = (302, "", {"location": METADATA_URL})
@@ -598,6 +615,7 @@ def _oidc(secret="s3cret"):
     }
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_oidc_hands_polis_the_checked_endpoints(client, workspace, sso_on):
     polis, _ = sso_on
     reply = await client.post(
@@ -617,6 +635,7 @@ async def test_oidc_hands_polis_the_checked_endpoints(client, workspace, sso_on)
     }
 
 
+@pytest.mark.usefixtures("domain_verified")
 @pytest.mark.parametrize(
     "override,code",
     [
@@ -643,6 +662,7 @@ async def test_oidc_endpoints_must_be_public_https(
     assert polis.calls == []
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_a_test_rechecks_the_oidc_endpoints(
     client, workspace, sso_on, monkeypatch
 ):
@@ -718,6 +738,7 @@ async def test_an_untested_connection_cannot_be_enabled(client, workspace, sso_o
     )
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_a_changed_configuration_must_be_tested_again(client, workspace, sso_on):
     polis, _ = sso_on
     first = await client.post(
@@ -740,6 +761,7 @@ async def test_a_changed_configuration_must_be_tested_again(client, workspace, s
     assert not stored.is_tested and stored.last_test_error == "config_changed"
 
 
+@pytest.mark.usefixtures("domain_verified")
 async def test_a_squatted_entity_id_suggests_support(client, workspace, sso_on):
     polis, _ = sso_on
     polis.fail = PolisError(

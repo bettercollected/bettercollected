@@ -311,6 +311,15 @@ class SsoConnectionService:
     ) -> SsoConnectionDto:
         await self._authorize_owner(workspace_id, user)
         self._require_available()
+        if not await self._domains.sso_domains(workspace_id):
+            # a connection without a verified domain could only squat the
+            # IdP's entity ID in Polis (one workspace per entity ID)
+            raise _refused(
+                HTTPStatus.CONFLICT,
+                "sso_domain_required",
+                "Verify your organisation's email domain under Domains before "
+                "you add a single sign-on connection.",
+            )
         if (
             await self._connections.count_by_workspace(workspace_id)
             >= settings.sso.MAX_CONNECTIONS_PER_WORKSPACE
