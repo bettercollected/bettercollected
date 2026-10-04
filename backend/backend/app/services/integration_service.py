@@ -11,9 +11,10 @@ from cryptography.fernet import InvalidToken
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.form_integration import FormIntegrationType
+from backend.app.models.enum.permission import Permission
 from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.repositories.form_repository import FormRepository
@@ -29,12 +30,12 @@ class IntegrationService:
         integration_action_service: IntegrationActionService,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+        authorization_service: AuthorizationService,
         action_repository: ActionRepository,
     ):
         self._crypto = crypto
         self._workspace_form_repo = workspace_form_repo
-        self._workspace_user_repo = workspace_user_repo
+        self._authorization = authorization_service
         self._action_repository = action_repository
         self.integration__provider_factory = IntegrationProviderFactory(
             form_provider_service,
@@ -86,8 +87,8 @@ class IntegrationService:
         for (
             workspace_id
         ) in await self._workspace_form_repo.get_workspace_ids_for_form_id(form_id):
-            if await self._workspace_user_repo.has_user_access_in_workspace(
-                workspace_id, user
+            if await self._authorization.has_permission(
+                user, Permission.FORM_EDIT, workspace_id
             ):
                 return
         raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)

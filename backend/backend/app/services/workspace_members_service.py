@@ -8,11 +8,13 @@ from fastapi_pagination.ext.beanie import paginate
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
 from backend.app.models.enum.invitation_response import InvitationResponse
+from backend.app.models.enum.permission import Permission
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.internal_auth import auth_service_headers
@@ -32,16 +34,21 @@ class WorkspaceMembersService:
         workspace_repo: WorkspaceRepository,
         http_client: HttpClient,
         workspace_form_service: WorkspaceFormService,
+        authorization_service: AuthorizationService,
     ):
         self.workspace_user_service = workspace_user_service
+        self.authorization_service = authorization_service
         self.workspace_invitation_repository = workspace_invitation_repo
         self.workspace_repo = workspace_repo
         self.http_client = http_client
         self.workspace_form_service = workspace_form_service
 
     async def get_workspace_members(self, workspace_id: PydanticObjectId, user: User):
+        await self.authorization_service.authorize(
+            user, Permission.MEMBERS_MANAGE, workspace_id
+        )
         workspace_users = await self.workspace_user_service.get_users_in_workspace(
-            workspace_id=workspace_id, user=user
+            workspace_id=workspace_id
         )
         user_ids = [user.user_id for user in workspace_users]
         users_info = await self._get_user_info_from_ids(user_ids)
@@ -63,8 +70,8 @@ class WorkspaceMembersService:
     async def create_invitation_request(
         self, workspace_id: PydanticObjectId, invitation: InvitationRequest, user: User
     ):
-        await self.workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.MEMBERS_MANAGE, workspace_id
         )
 
         workspace = await self.workspace_repo.get_or_404(workspace_id)
@@ -92,8 +99,9 @@ class WorkspaceMembersService:
     async def get_workspace_invitations(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        # Like the members list: who is invited is for those who manage members.
+        await self.authorization_service.authorize(
+            user, Permission.MEMBERS_MANAGE, workspace_id
         )
         member_invitations = (
             await self.workspace_invitation_repository.get_workspace_invitations(
@@ -105,13 +113,9 @@ class WorkspaceMembersService:
     async def get_workspace_invitation_by_token(
         self, workspace_id: PydanticObjectId, user: User, invitation_token: str
     ):
-        try:
-            await self.workspace_user_service.check_is_admin_in_workspace(
-                workspace_id, user
-            )
-            is_admin = True
-        except HTTPException:
-            is_admin = False
+        is_admin = await self.authorization_service.has_permission(
+            user, Permission.MEMBERS_MANAGE, workspace_id
+        )
         invitation = await self.workspace_invitation_repository.get_workspace_invitation_by_token(
             workspace_id=workspace_id, invitation_token=invitation_token
         )
@@ -188,9 +192,16 @@ class WorkspaceMembersService:
         return response_data.get("users_info")
 
     async def delete_workspace_member(self, workspace_id, user_id, user):
-        await self.workspace_user_service.check_is_admin_in_workspace(
-            workspace_id, user
+        await self.authorization_service.authorize(
+            user, Permission.MEMBERS_MANAGE, workspace_id
         )
+        workspace = await self.workspace_repo.find_by_id(workspace_id)
+        if workspace and str(workspace.owner_id) == str(user_id):
+            # Ownership can be transferred, never removed.
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="The workspace owner can't be removed.",
+            )
         form_ids_imported_by_user = (
             await self.workspace_form_service.get_form_ids_imported_by_user(
                 workspace_id, user_id
@@ -213,8 +224,8 @@ class WorkspaceMembersService:
     async def delete_workspace_invitation_by_token(
         self, workspace_id, user, invitation_token
     ):
-        await self.workspace_user_service.check_is_admin_in_workspace(
-            workspace_id, user
+        await self.authorization_service.authorize(
+            user, Permission.MEMBERS_MANAGE, workspace_id
         )
         await self.workspace_invitation_repository.delete_invitation_by_token_if_pending_state(
             invitation_token

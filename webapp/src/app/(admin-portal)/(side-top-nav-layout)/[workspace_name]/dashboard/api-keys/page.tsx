@@ -7,7 +7,8 @@ import { Check, Copy, KeyRound } from 'lucide-react';
 import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateAPIKeyMutation, useGetAPIKeysQuery, useRevokeAPIKeyMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -56,10 +57,11 @@ function CopyButton({ value, label }: { value: string; label: string }) {
  */
 export default function APIKeysPage() {
     const workspace = useAppSelector(selectWorkspace);
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    const canManageKeys = can(WorkspacePermission.SECURITY_MANAGE);
     const { toast } = useToast();
 
-    const { data: keys = [], isLoading } = useGetAPIKeysQuery(workspace?.id, { skip: !workspace?.id || !isAdmin });
+    const { data: keys = [], isLoading } = useGetAPIKeysQuery(workspace?.id, { skip: !workspace?.id || !canManageKeys });
     const [createKey, { isLoading: isCreating }] = useCreateAPIKeyMutation();
     const [revokeKey] = useRevokeAPIKeyMutation();
 
@@ -99,7 +101,7 @@ export default function APIKeysPage() {
         }
     };
 
-    if (!isAdmin) {
+    if (!canManageKeys) {
         return (
             <div className="px-5 py-6 lg:px-10">
                 <p className="text-black-500 text-sm">Only workspace admins can manage API keys.</p>

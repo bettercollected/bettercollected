@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAIProfileQuery, useUpdateAIProfileMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -34,7 +35,8 @@ const SECTIONS: Array<{ key: 'about' | 'guidelines' | 'compliance'; label: strin
 
 export default function AIProfilePage() {
     const workspace = useAppSelector(selectWorkspace);
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    const canManageAI = can(WorkspacePermission.AI_MANAGE);
     const { toast } = useToast();
 
     const { data, isLoading } = useGetAIProfileQuery(workspace?.id, { skip: !workspace?.id });
@@ -85,7 +87,7 @@ export default function AIProfilePage() {
                         maxLength={MAX_SECTION_CHARS}
                         value={draft[section.key]}
                         placeholder={section.placeholder}
-                        disabled={!isAdmin || isLoading}
+                        disabled={!canManageAI || isLoading}
                         onChange={(e) => {
                             setDraft({ ...draft, [section.key]: e.target.value });
                             setDirty(true);
@@ -95,7 +97,7 @@ export default function AIProfilePage() {
                 </div>
             ))}
 
-            {isAdmin ? (
+            {canManageAI ? (
                 <div className="flex items-center gap-4">
                     <Button size="medium" variant="primary" isLoading={isSaving} disabled={!dirty} onClick={handleSave}>
                         Save profile

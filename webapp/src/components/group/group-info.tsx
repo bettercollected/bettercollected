@@ -8,8 +8,8 @@ import { placeHolder } from '@app/constants/locales/placeholder';
 import { GroupInfoDto } from '@app/models/dtos/groups';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { Textarea } from '@app/shadcn/components/ui/textarea';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 
 interface IGroupInfoProps {
@@ -19,7 +19,8 @@ interface IGroupInfoProps {
 
 export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
     const { t } = useTranslation();
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    const canManageGroups = can(WorkspacePermission.MEMBERS_MANAGE);
     return (
         <div>
             {/*<p className="body1">{t(groupConstant.basicInformation)}</p>*/}
@@ -27,9 +28,9 @@ export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
             </p>
-            <AppInput className='w-full' disabled={!isAdmin} value={groupInfo.name} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
+            <AppInput className='w-full' disabled={!canManageGroups} value={groupInfo.name} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
             <p className="h4-new leading-none mt-8 !font-medium mb-2">{t(localesCommon.description)}</p>
-            <Textarea disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} onChange={handleInput} className='bg-white rounded-md ring-none' />
+            <Textarea disabled={!canManageGroups} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} onChange={handleInput} className='bg-white rounded-md ring-none' />
         </div>
     );
 }

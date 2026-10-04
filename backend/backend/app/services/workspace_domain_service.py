@@ -41,7 +41,8 @@ from backend.app.services.domains.names import (
     display_domain,
     domain_of,
 )
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.models.enum.permission import Permission
+from backend.app.services.authorization_service import AuthorizationService
 from backend.config import settings
 
 # check outcome stored when another workspace holds the domain verified
@@ -86,11 +87,11 @@ def _refused(status: HTTPStatus, code: str, message: str) -> HTTPException:
 class WorkspaceDomainService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         domain_repo: WorkspaceDomainRepository,
         resolver_factory: Optional[Callable] = None,
     ):
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
         self._domain_repo = domain_repo
         self._resolver_factory = resolver_factory or self._default_resolver
 
@@ -100,12 +101,10 @@ class WorkspaceDomainService:
         return dns_txt.make_resolver(config.DNS_TIMEOUT_S, config.nameservers)
 
     async def _authorize(self, workspace_id: PydanticObjectId, user: User) -> None:
-        """The one access check for managing domains: Owner or Admin (403
-        otherwise, members and outsiders alike). Becomes
-        ``authorize(user, "security.manage", workspace_id)`` with the
-        permission service (docs/enterprise-access-model.md)."""
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        """The one access check for managing domains: security.manage
+        (Owner or Admin; 403 otherwise, members and outsiders alike)."""
+        await self._authorization.authorize(
+            user, Permission.SECURITY_MANAGE, workspace_id
         )
 
     # -- management (Owner/Admin) ---------------------------------------------

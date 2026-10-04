@@ -16,6 +16,8 @@ from common.models.user import User
 class PostgresActionRepository(PostgresRepositoryBase):
     row = ActionRow
     document = ActionDocument
+    # create_action_in_workspace_from_action (replayed)
+    document_rows = {WorkspaceActionsDocument: WorkspaceActionRow}
 
     def __init__(self, session_factory, crypto: Crypto):
         super().__init__(session_factory)

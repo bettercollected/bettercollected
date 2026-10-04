@@ -41,6 +41,27 @@ backend/
   `services/` class; do all Mongo access through a `repositories/` class. Wire new services/repos in `container.py`.
 - Never query Beanie directly from a controller.
 
+## Authorization (workspace permissions)
+
+Every workspace-scoped access decision goes through `services/authorization_service.py`
+(docs/enterprise-access-model.md). Services name the permission an action needs —
+`authorize(user, Permission.X, workspace_id, form_id=None)` raises 403 (then 404 when `form_id` is
+not a form of that workspace), `has_permission(...)` returns a bool for "staff view or public view"
+branches. Never compare `owner_id` or roles in a service, and never call the repository's
+`has_user_access_in_workspace` / `is_user_admin_in_workspace` for access.
+
+- **Catalogue:** `models/enum/permission.py` (`workspace.manage`, `members.manage`, `form.edit`,
+  `response.read`, ...). **Roles today:** the owner holds all; `ADMIN` all but `workspace.billing`;
+  any active membership (`COLLABORATOR`) the Editor's content permissions plus `privacy.manage`.
+  A disabled membership grants nothing; in a disabled workspace (owner downgraded) only the owner
+  keeps `form.read`, `response.read/export/delete`, `privacy.manage` and `analytics.read`.
+- **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
+  gates controls with `useWorkspacePermissions().can(...)`, not `selectIsAdmin` (which means owner).
+- **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
+  requests) authorise by the submitter's identity, not through permissions. Platform admin
+  (`get_logged_admin`) is separate.
+- **Tests:** a new workspace endpoint gets a row in `tests/app/controllers/test_permission_matrix.py`.
+
 ## Adding a route
 
 Routers are registered in [backend/app/router.py](backend/app/router.py) via the `@router(...)` decorator
@@ -110,7 +131,7 @@ client-side (webapp `src/utils/answer-piping.ts`); the backend only stores the p
 **Internal fields** (`StandardFormField.internal`, "for office use only"): staff fill them in on each submission
 afterwards; values live in `StandardFormResponse.internal_answers` (encrypted like `answers`, decrypted in
 `decrypt_form_response`) with `internal_answers_meta` recording who changed each one and when
-(`PATCH /workspaces/{id}/forms/{form_id}/submissions/{response_id}/internal-answers`, any active workspace member).
+(`PATCH /workspaces/{id}/forms/{form_id}/submissions/{response_id}/internal-answers`, `response.annotate`).
 Rules live in `services/internal_fields.py`: every form payload served to a non-member goes through
 `strip_internal_fields`, every respondent-facing response through `strip_internal_answers`, respondent submissions
 never store internal values (they are dropped, not rejected, so a field made internal mid-fill doesn't fail
@@ -121,8 +142,8 @@ same two strip helpers.
 
 **Respondent feedback** ("Respond to submissions"): a form built here opts in with
 `WorkspaceFormSettings.respondent_feedback_enabled` and lists its `feedback_statuses` (≤ 10, 1–40 chars,
-unique ignoring case; `normalize_feedback_statuses`). Workspace admins and the owner (active membership +
-`is_user_admin_in_workspace`) post `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/feedback`
+unique ignoring case; `normalize_feedback_statuses`; switching either is `form.edit`). Members with
+`response.annotate` post `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/feedback`
 (`{status?, message?}`, at least one; a status outside the form's list → 422). Entries are appended to
 `StandardFormResponse.respondent_feedback` (`add_respondent_feedback`, `replay=True`), message encrypted like
 `answers` and decrypted in `decrypt_form_response`. `StandardFormResponseCamelModel.respondent_feedback` is
@@ -251,8 +272,8 @@ documents) goes to an AI provider until the workspace has opted in. Code:
 - **Response insights (#716)** also need the form's own "Allow AI insights on
   responses" (`WorkspaceFormSettings.ai_insights_*`: enabled, the provider id and
   name the respondent notice shows, who and when;
-  `PUT …/forms/{id}/ai/insights/settings`, admins only, needs the workspace
-  opt-in to turn on) and are admins-only to run or read. While on, the respondent
+  `PUT …/forms/{id}/ai/insights/settings`, `ai.manage`, needs the workspace
+  opt-in to turn on); running and reading them is `response.read`. While on, the respondent
   form's trust strip names the provider. Only forms collected here
   (`settings.provider == "self"`) qualify: an imported form's respondents
   answered on Google Forms / Typeform and never saw the notice, so the setting

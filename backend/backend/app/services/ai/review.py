@@ -31,7 +31,8 @@ from backend.app.services.ai.prompt_builder import (
     extract_json_object,
     project_form,
 )
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 
 # Baseline checks that apply to every form, before any org-specific rules.
 # Kept in the prompt (not code) deliberately: the checks reason about intent
@@ -153,12 +154,12 @@ def _coerce_finding(raw: Dict[str, Any]) -> Optional[ReviewFinding]:
 class FormAIReviewService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         provider_resolver: Callable,
         workspace_form_repo: WorkspaceFormRepository,
         form_repo: FormRepository,
     ):
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
         self._provider_resolver = provider_resolver
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
@@ -166,9 +167,8 @@ class FormAIReviewService:
     async def _load_form(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
     ) -> FormDocument:
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        # Reviewing and fixing are part of building the form.
+        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         # The form must belong to THIS workspace (same rule as chat and MCP).
         association = await self._workspace_form_repo.find_workspace_form(
             workspace_id, form_id

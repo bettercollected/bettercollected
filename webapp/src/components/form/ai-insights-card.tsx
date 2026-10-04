@@ -6,7 +6,8 @@ import { RefreshCw, Sparkles } from 'lucide-react';
 
 import { AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
 import { Button } from '@app/shadcn/components/ui/button';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGenerateAIInsightsMutation, useGetAIInsightsQuery, useUpdateAIInsightsSettingsMutation } from '@app/store/redux/form-api';
@@ -35,17 +36,20 @@ interface Insight {
 /**
  * AI summary of a form's responses (plan §2 'response summaries', P3).
  * Needs the workspace AI opt-in (#715) and the form's own "Allow AI insights
- * on responses" (#716, admins only): while that is on, respondents see a
- * notice naming the provider, and only responses submitted afterwards are
- * analysed. The AI reads answer content ONLY when an admin clicks Summarize;
- * free-text answers are sent as written, and the copy says so.
+ * on responses" (#716, ai.manage: admins): while that is on, respondents see
+ * a notice naming the provider, and only responses submitted afterwards are
+ * analysed. Running and reading summaries is response.read, like the answers
+ * they summarise. The AI reads answer content ONLY when someone clicks
+ * Summarize; free-text answers are sent as written, and the copy says so.
  */
 export default function AIInsightsCard() {
     const dispatch = useAppDispatch();
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
-    const isAdmin = useAppSelector(selectIsAdmin);
-    const { data: cached } = useGetAIInsightsQuery({ workspaceId: workspace?.id, formId: form?.formId }, { skip: !workspace?.id || !form?.formId || !isAdmin });
+    const { can } = useWorkspacePermissions();
+    const canReadResponses = can(WorkspacePermission.RESPONSE_READ);
+    const canManageAI = can(WorkspacePermission.AI_MANAGE);
+    const { data: cached } = useGetAIInsightsQuery({ workspaceId: workspace?.id, formId: form?.formId }, { skip: !workspace?.id || !form?.formId || !canReadResponses });
     const [generate, { isLoading: isGenerating }] = useGenerateAIInsightsMutation();
     const [updateSettings, { isLoading: isUpdating }] = useUpdateAIInsightsSettingsMutation();
     const [fresh, setFresh] = useState<Insight | null>(null);
@@ -103,14 +107,14 @@ export default function AIInsightsCard() {
         );
     }
 
-    if (!isAdmin) {
+    if (!canReadResponses) {
         return (
             <div className="mb-6 flex flex-col gap-2 rounded-lg border border-black-200 bg-white p-5">
                 <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-brand-500" />
                     <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
                 </div>
-                <p className="text-[13px] text-black-600">Only workspace admins can run AI summaries of responses.</p>
+                <p className="text-[13px] text-black-600">Only members who can read this form&apos;s responses can run AI summaries of them.</p>
             </div>
         );
     }
@@ -139,9 +143,13 @@ export default function AIInsightsCard() {
                         already collected are not analysed.
                     </p>
                     {error && <p className="text-xs text-[#7A2E2E]">{error}</p>}
-                    <Button size="sm" variant="v2Button" isLoading={isUpdating} onClick={() => setAllowed(true)}>
-                        Allow AI insights on responses
-                    </Button>
+                    {canManageAI ? (
+                        <Button size="sm" variant="v2Button" isLoading={isUpdating} onClick={() => setAllowed(true)}>
+                            Allow AI insights on responses
+                        </Button>
+                    ) : (
+                        <p className="text-xs text-black-500">A workspace admin can allow them for this form.</p>
+                    )}
                 </div>
             ) : !insight ? (
                 <div className="flex flex-col items-start gap-2.5">
@@ -156,9 +164,11 @@ export default function AIInsightsCard() {
                         <Button size="sm" variant="v2Button" isLoading={isGenerating} disabled={!aiEnabled} onClick={handleGenerate}>
                             Summarize responses
                         </Button>
-                        <button type="button" disabled={isUpdating} onClick={() => setAllowed(false)} className="text-xs text-black-500 underline decoration-dotted underline-offset-2 hover:text-black-800">
-                            Stop allowing AI insights
-                        </button>
+                        {canManageAI && (
+                            <button type="button" disabled={isUpdating} onClick={() => setAllowed(false)} className="text-xs text-black-500 underline decoration-dotted underline-offset-2 hover:text-black-800">
+                                Stop allowing AI insights
+                            </button>
+                        )}
                     </div>
                 </div>
             ) : (
