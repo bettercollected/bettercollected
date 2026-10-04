@@ -14,7 +14,7 @@ from pydantic import EmailStr
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.models.dataclasses.user_tokens import UserDeletion
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
@@ -277,9 +277,7 @@ class AuthService:
         await self.delete_credentials_from_integrations(user=user)
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
         await self.delete_user_form_auth(user=user)
-        await self.session_service.revoke_all_for_user(
-            user.id, RevokeReason.ACCOUNT_DELETED
-        )
+        await self.session_service.delete_all_for_user(user.id)
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
@@ -315,17 +313,14 @@ class AuthService:
                 content="Could not delete the user from the auth service.",
             )
 
-    async def add_workflow_to_delete_user(
-        self, access_token: str, refresh_token: str, user: User
-    ):
+    async def add_workflow_to_delete_user(self, user: User):
         await event_logger_service.send_event(
             event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub
         )
         started = await self.temporal_service.start_user_deletion_workflow(
-            UserTokens(access_token=access_token, refresh_token=refresh_token),
-            user_id=user.id,
+            UserDeletion(user_id=user.id, email=user.sub)
         )
-        # signed out everywhere now; the job authenticates with the API key
+        # signed out everywhere now; the job names the user itself
         await self.session_service.revoke_all_for_user(
             user.id, RevokeReason.ACCOUNT_DELETED
         )

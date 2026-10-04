@@ -423,11 +423,15 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   needs the session live and unexpired and auth's `/auth/status` to know the user (404 revokes the session); a failed
   refresh is `SessionEnded` (401, the handler clears both cookies). Only `POST /auth/refresh` rotates the refresh
   token (new `jti`, same `sid`): server-side rendering forwards cookies and drops `Set-Cookie`, so the implicit refresh
-  must not. The jti a rotation replaced is accepted for `AUTH_REFRESH_REUSE_GRACE_SECONDS` (60) and answered with the
-  current one; any other old jti is a replay and revokes the session. Re-issuing tokens inside a session (plan
+  must not. The jti a rotation replaced gets an access token only (never a refresh token) for
+  `AUTH_REFRESH_REUSE_GRACE_SECONDS` (60); any other old jti is a replay and revokes the session. Every
+  refresh that does not rotate re-checks the session after asking auth (`touch` must match a live row). Re-issuing tokens inside a session (plan
   change, import OAuth) only sets a new access token for the same `sid`. Revocation: `GET /auth/logout`,
-  `GET/DELETE /auth/sessions[/{sid}]`, `SessionService.revoke_all_for_user` (account deletion; the hook for
-  deprovisioning). Tokens without `sid` (before sessions) are refused: those users sign in once more. The
+  `GET/DELETE /auth/sessions[/{sid}]`, `SessionService.revoke_all_for_user` (requesting account deletion; the
+  hook for deprovisioning); the deletion itself deletes the rows. Expired rows go through a Mongo TTL index on
+  `expires_at` and `delete_expired` on the list/revoke-all paths (there is no periodic job). The user-deletion job
+  names its user by an encrypted `UserDeletion` (user id + email), never by a stored token; `DELETE /auth/user`
+  (Temporal) needs the API key and that request in `X-User-Deletion`. Tokens without `sid` (before sessions) are refused: those users sign in once more. The
   `blacklisted_refresh_tokens` table is unused and kept until a later release drops it. After sign-in the redirect
   goes only to this instance's origins (`services/login_redirect.py`: `API_CLIENT_URL` + `allowed_origins`).
 - **Jobs:** `services/temporal_service.py` starts the three background jobs — user deletion, scheduled response

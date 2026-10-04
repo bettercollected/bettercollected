@@ -8,13 +8,11 @@ consumer of the ``actions`` queue.
 
 from __future__ import annotations
 
-import json
 from dataclasses import asdict
 
 from procrastinate import RetryStrategy
 
-from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.services.user_service import get_user_from_token
+from backend.app.services.user_service import user_for_deletion
 from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, app
 
 RUN_ACTION = "run_action"
@@ -32,14 +30,15 @@ def _container():
     retry=RetryStrategy(max_attempts=4, exponential_wait=2),
 )
 async def delete_user(encrypted_tokens: str, user_id: str) -> str:
-    """The user's workspaces, forms, integrations and auth record — what the
-    Temporal `delete_user` activity did via DELETE /auth/user with the user's
-    own tokens; the tokens travel encrypted exactly as before. They only name
-    the user (signature checked, not expiry: the job may run after the access
-    token expired); the deletion revokes the user's sessions."""
+    """The user's workspaces, forms, integrations, auth record and
+    sessions — what the Temporal `delete_user` activity does via
+    DELETE /auth/user. ``encrypted_tokens`` (historical name) is the
+    encrypted ``UserDeletion`` naming the account; no token is involved, so the
+    job works however long ago the user signed out."""
     container = _container()
-    tokens = UserTokens(**json.loads(container.crypto().decrypt(encrypted_tokens)))
-    user = get_user_from_token(tokens.access_token, verify_exp=False)
+    user = user_for_deletion(encrypted_tokens)
+    if user.id != user_id:
+        raise ValueError("deletion request does not match the job's user")
     await container.auth_service().delete_user(user=user)
     return "User Deleted Successfully"
 

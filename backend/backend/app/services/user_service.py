@@ -1,13 +1,15 @@
+import hmac
+import json
 import logging
 from http import HTTPStatus
 
-import jwt
 from fastapi import Depends
 from common.models.user import User
 from starlette.requests import Request
 from starlette.responses import Response
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dataclasses.user_tokens import UserDeletion
 from backend.app.services.auth_cookie_service import delete_token_cookie
 from backend.app.services.session_service import (
     AuthServiceUnavailable,
@@ -49,26 +51,14 @@ async def get_logged_user(request: Request, response: Response) -> User:
 
 
 def get_api_key(request: Request, response: Response) -> str:
-    if request.headers.get("api-key") != settings.temporal_settings.api_key:
+    given = (request.headers.get("api-key") or "").encode()
+    if not hmac.compare_digest(given, settings.temporal_settings.api_key.encode()):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             content="You are not allowed to perform this action.",
         )
 
     return request.headers.get("api_key")
-
-
-def get_user_from_token(token: str, *, verify_exp: bool = True) -> User:
-    """The user a token this backend signed names (any token type, no session
-    check): for server-side jobs holding a user's stored tokens."""
-    jwt_response = jwt.decode(
-        token,
-        key=settings.auth_settings.JWT_SECRET,
-        algorithms=["HS256"],
-        options={"verify_exp": verify_exp},
-    )
-    user = User(**jwt_response)
-    return user
 
 
 async def get_user_if_logged_in(request: Request, response: Response) -> User | None:
@@ -101,14 +91,31 @@ async def get_logged_admin(request: Request, response: Response):
         raise HTTPException(403, "You are not authorized to perform this action.")
 
 
-def get_user_for_internal_job(
+USER_DELETION_HEADER = "X-User-Deletion"
+
+
+def user_for_deletion(encrypted: str) -> User:
+    """Whose account a deletion job deletes: the :class:`UserDeletion` the
+    backend encrypted when the deletion was requested (authenticated
+    encryption with the backend's key, so nobody else can mint one). Requests
+    queued before this format (stored tokens) are refused."""
+    from backend.app.container import (
+        container,
+    )  # at call time: container imports this module
+
+    data = json.loads(container.crypto().decrypt(encrypted))
+    deletion = UserDeletion(user_id=data["user_id"], email=data["email"])
+    if not deletion.user_id or not deletion.email:
+        raise ValueError("incomplete deletion request")
+    return User(id=deletion.user_id, sub=deletion.email)
+
+
+def get_user_to_delete(
     request: Request, response: Response, api_key: str = Depends(get_api_key)
 ) -> User:
-    """For server-side jobs (the user-deletion workflow) that call with the
-    temporal API key and the user's tokens stored when the job was queued: the
-    signature is checked, not the expiry or the session, which the job may
-    outlive (the deletion request itself revokes the user's sessions)."""
+    """For the Temporal deletion workflow: the API key, plus the encrypted
+    deletion request it was started with in ``X-User-Deletion``."""
     try:
-        return get_user_from_token(get_access_token(request), verify_exp=False)
+        return user_for_deletion(request.headers.get(USER_DELETION_HEADER) or "")
     except Exception:
-        raise HTTPException(401, "No user logged in.")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid deletion request.")

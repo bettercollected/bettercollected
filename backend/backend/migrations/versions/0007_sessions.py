@@ -50,6 +50,7 @@ def upgrade() -> None:
         _text("user_id"),
         _text("refresh_jti"),
         _ts("revoked_at"),
+        _ts("expires_at"),
         sa.Column("id", sa.Text(), nullable=False),
         sa.Column("created_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("updated_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
@@ -75,8 +76,16 @@ def upgrade() -> None:
         unique=False,
         schema=SCHEMA,
     )
+    op.create_index(
+        op.f("ix_app_sessions_expires_at"),
+        TABLE,
+        ["expires_at"],
+        unique=False,
+        schema=SCHEMA,
+    )
 
 
 def downgrade() -> None:
+    op.drop_index(op.f("ix_app_sessions_expires_at"), table_name=TABLE, schema=SCHEMA)
     op.drop_index(op.f("ix_app_sessions_user_id"), table_name=TABLE, schema=SCHEMA)
     op.drop_table(TABLE, schema=SCHEMA)

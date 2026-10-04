@@ -592,6 +592,12 @@ class PostgresSessionRepository(PostgresRepositoryBase):
             )
         )
 
+    async def delete_expired(self, now: datetime.datetime) -> int:
+        return await self.delete_where(SessionRow.expires_at <= now)
+
+    async def delete_all_for_user(self, user_id: str) -> int:
+        return await self.delete_where(SessionRow.user_id == user_id)
+
     async def revoke_all_for_user(
         self,
         user_id: str,

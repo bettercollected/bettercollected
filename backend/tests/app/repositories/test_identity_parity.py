@@ -405,6 +405,14 @@ async def test_sessions(sessions):
             ("list_active_by_user", lambda: (user,)),
             ("list_active_by_user", lambda: (other,)),
             ("get", lambda: (str(a.id),)),
+            # expiry sweep: c expires 30 days after t0
+            ("delete_expired", lambda: (t0,)),
+            ("delete_expired", lambda: (t0 + dt.timedelta(days=31),)),
+            ("get", lambda: (str(c.id),)),
+            ("save", lambda: (session(other, "e1", 4),)),
+            ("delete_all_for_user", lambda: (other,)),
+            ("delete_all_for_user", lambda: (other,)),
+            ("list_active_by_user", lambda: (other,)),
         ],
     )
 

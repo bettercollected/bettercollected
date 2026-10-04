@@ -3,6 +3,7 @@ from typing import Optional
 
 from beanie import Indexed
 from pydantic import field_validator
+from pymongo import IndexModel
 from typing_extensions import Annotated
 
 from backend.app.handlers.database import entity
@@ -48,3 +49,7 @@ class SessionDocument(MongoDocument):
     class Settings:
         # native dates (no ISO-string encoders): expiry and revocation compare them
         name = "sessions"
+        # Mongo drops a session once its refresh token has expired; the
+        # Postgres twin deletes expired rows on the list/revoke paths
+        # (``SessionRepository.delete_expired``).
+        indexes = [IndexModel([("expires_at", 1)], expireAfterSeconds=0)]

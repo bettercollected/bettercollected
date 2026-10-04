@@ -10,10 +10,10 @@ within one access-token lifetime.
 Refresh tokens rotate on ``POST /auth/refresh`` (new ``jti``, same ``sid``). The
 implicit refresh inside ``get_logged_user`` does not rotate: server-side
 rendering forwards the browser's cookies and drops the response's
-``Set-Cookie``, so a rotation there would never reach the browser. A refresh
-token whose ``jti`` is neither the session's current one nor the one it
-replaced within the grace period is a replay of a stolen token: the session is
-revoked.
+``Set-Cookie``, so a rotation there would never reach the browser. The token
+a rotation replaced still gets an access token (never a refresh token) during
+the grace period; any other ``jti`` is a replay of a stolen token and revokes
+the session.
 
 Tokens without ``sid`` (issued before sessions existed) are refused, so those
 users sign in once more.
@@ -195,31 +195,37 @@ class SessionService:
             raise SessionEnded()
 
         user = await self._current_user(session)
+        now = utcnow()
+
+        rotated = None
+        if rotate and current:
+            rotated = await self.session_repo.rotate(
+                sid,
+                jti,
+                new_jti(),
+                now,
+                now
+                + dt.timedelta(days=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS),
+            )
+        # Not rotated (implicit refresh, a token in its grace period, or a
+        # parallel request rotated first): the session must still be live —
+        # it may have been revoked while auth was asked.
+        if rotated is None and not await self.session_repo.touch(sid, now):
+            raise SessionEnded()
+
         token = set_access_token_to_response(user, response)
         # forwarded by the plugin proxy instead of the expired cookie
         request.state.access_token = token
-
-        if not rotate:
-            await self.session_repo.touch(sid, now)
-            return user
-
-        refresh_jti, expires_at = session.refresh_jti, aware(session.expires_at)
-        if current:
-            expires_at = now + dt.timedelta(
-                days=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS
+        if rotated is not None:
+            # Only a rotation hands out a refresh token. A token in its grace
+            # period gets an access token alone, never the current refresh
+            # token, so a stolen old token cannot ride on a rotation.
+            set_refresh_token_to_response(
+                user,
+                response,
+                jti=rotated.refresh_jti,
+                expires_at=aware(rotated.expires_at),
             )
-            rotated = await self.session_repo.rotate(
-                sid, jti, new_jti(), now, expires_at
-            )
-            if rotated is None:
-                # a parallel request rotated (or revoked) it first
-                rotated = await self.session_repo.get(sid)
-                if rotated is None or rotated.revoked_at is not None:
-                    raise SessionEnded()
-            refresh_jti, expires_at = rotated.refresh_jti, aware(rotated.expires_at)
-        set_refresh_token_to_response(
-            user, response, jti=refresh_jti, expires_at=expires_at
-        )
         return user
 
     @staticmethod
@@ -287,14 +293,24 @@ class SessionService:
     async def revoke_all_for_user(
         self, user_id: str, reason: str, except_sid: Optional[str] = None
     ) -> int:
-        """Logout everywhere (but ``except_sid``); also used when the account
-        is deleted. Takes effect at each session's next refresh."""
+        """Logout everywhere (but ``except_sid``); also used when deletion of
+        the account is requested. Takes effect at each session's next
+        refresh."""
+        now = utcnow()
+        await self.session_repo.delete_expired(now)
         return await self.session_repo.revoke_all_for_user(
-            user_id, reason, utcnow(), except_session_id=except_sid
+            user_id, reason, now, except_session_id=except_sid
         )
+
+    async def delete_all_for_user(self, user_id: str) -> int:
+        """The account is gone: its sessions are deleted, not just revoked."""
+        return await self.session_repo.delete_all_for_user(user_id)
 
     async def list_for_user(self, user_id: str) -> List[SessionDocument]:
         now = utcnow()
+        # no periodic job exists: expired sessions are swept here (Mongo also
+        # has a TTL index on expires_at)
+        await self.session_repo.delete_expired(now)
         return [
             s
             for s in await self.session_repo.list_active_by_user(user_id)

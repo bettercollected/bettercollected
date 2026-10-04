@@ -75,7 +75,8 @@ class SessionRepository:
         result = await SessionDocument.find_one(
             {"_id": oid, "revoked_at": None}
         ).update({"$set": {"last_refreshed_at": now, "updated_at": now}})
-        return result.modified_count if result else 0
+        # matched, not modified: a touch within the same millisecond counts
+        return result.matched_count if result else 0
 
     @write_op
     async def revoke(self, session_id: str, reason: str, now: dt.datetime) -> int:
@@ -89,6 +90,16 @@ class SessionRepository:
             {"$set": {"revoked_at": now, "revoke_reason": reason, "updated_at": now}}
         )
         return result.modified_count if result else 0
+
+    @write_op
+    async def delete_expired(self, now: dt.datetime) -> int:
+        result = await SessionDocument.find({"expires_at": {"$lte": now}}).delete()
+        return result.deleted_count if result else 0
+
+    @write_op
+    async def delete_all_for_user(self, user_id: str) -> int:
+        result = await SessionDocument.find({"user_id": user_id}).delete()
+        return result.deleted_count if result else 0
 
     @write_op
     async def revoke_all_for_user(

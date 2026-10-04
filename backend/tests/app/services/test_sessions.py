@@ -24,7 +24,6 @@ from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.session_service import RevokeReason, SessionEnded
 from backend.app.services.user_service import (
     get_logged_user,
-    get_user_for_internal_job,
     get_user_if_logged_in,
 )
 from backend.config import settings
@@ -205,9 +204,12 @@ async def test_explicit_refresh_rotates_the_refresh_token(client):
     assert claims(issued(again, "RefreshToken"))["jti"] not in (old, rotated["jti"])
 
 
-async def test_a_just_rotated_token_is_accepted_during_the_grace_period(client):
-    """Two tabs refreshing at once: the loser gets the current token, not a
-    revocation."""
+async def test_a_just_rotated_token_gets_only_an_access_token_in_the_grace_period(
+    client,
+):
+    """Two tabs refreshing at once: the loser is not revoked, but it gets an
+    access token alone, never the current refresh token (a stolen old token
+    must not ride on the owner's rotation)."""
     tokens, sid = await sign_in()
     first = await client.post("/api/v1/auth/refresh", cookies=tokens)
     assert first.status_code == 200
@@ -217,7 +219,30 @@ async def test_a_just_rotated_token_is_accepted_during_the_grace_period(client):
     assert racing.status_code == 200
     session = await stored(sid)
     assert session.revoked_at is None
-    assert claims(issued(racing, "RefreshToken"))["jti"] == session.refresh_jti
+    issued_now = set_cookies(racing)
+    assert "RefreshToken" not in issued_now
+    assert claims(issued_now["Authorization"][0])["sid"] == sid
+    # the session's current token is still only the one the winner got
+    assert claims(issued(first, "RefreshToken"))["jti"] == session.refresh_jti
+
+
+async def test_a_session_revoked_while_auth_is_asked_gets_no_token(monkeypatch):
+    tokens, sid = await sign_in()
+    service = container.session_service()
+    current_user = service._current_user
+
+    async def revoke_meanwhile(session):
+        user = await current_user(session)
+        await service.revoke(sid, testUser.id, RevokeReason.LOGOUT_EVERYWHERE)
+        return user
+
+    monkeypatch.setattr(service, "_current_user", revoke_meanwhile)
+    response = Response()
+    with pytest.raises(SessionEnded):
+        await get_logged_user(
+            request_with(**expired_access(tokens["RefreshToken"])), response
+        )
+    assert set_cookies(response) == {}
 
 
 async def test_replaying_a_rotated_refresh_token_revokes_the_session(
@@ -450,51 +475,131 @@ async def test_logout_everywhere_ends_every_session_at_its_next_refresh():
             )
 
 
-async def test_requesting_account_deletion_signs_out_everywhere(monkeypatch):
-    tokens, sid = await sign_in()
-    _, elsewhere = await sign_in()
+@pytest.fixture
+def queued_deletions(monkeypatch):
+    """The deletion requests the service queues (Temporal/procrastinate)."""
+    queued = []
     service = container.auth_service()
-    monkeypatch.setattr(
-        service.temporal_service,
-        "start_user_deletion_workflow",
-        AsyncMock(return_value="Job Started"),
-    )
+
+    async def start(deletion):
+        queued.append(deletion)
+        return "Job Started"
+
+    monkeypatch.setattr(service.temporal_service, "start_user_deletion_workflow", start)
     monkeypatch.setattr(
         "backend.app.services.auth_service.event_logger_service",
         SimpleNamespace(send_event=AsyncMock()),
     )
+    return queued
 
-    await service.add_workflow_to_delete_user(
-        access_token=tokens["Authorization"],
-        refresh_token=tokens["RefreshToken"],
-        user=testUser,
-    )
+
+async def test_requesting_account_deletion_signs_out_everywhere(queued_deletions):
+    tokens, sid = await sign_in()
+    _, elsewhere = await sign_in()
+
+    await container.auth_service().add_workflow_to_delete_user(user=testUser)
 
     for revoked in (sid, elsewhere):
         assert (await stored(revoked)).revoke_reason == RevokeReason.ACCOUNT_DELETED
+    (deletion,) = queued_deletions
+    assert (deletion.user_id, deletion.email) == (testUser.id, testUser.sub)
 
 
-async def test_the_deletion_job_still_names_its_user_after_sign_out(monkeypatch):
-    """The workflow calls DELETE /auth/user with the API key and the tokens
-    stored at request time: their session is revoked and the access token may
-    have expired, the user is still identified."""
+async def test_account_deletion_works_with_only_the_refresh_cookie(
+    client, queued_deletions
+):
+    """More than 15 minutes after the last request the access cookie is gone:
+    the deletion is still queued, naming the user (no token is stored)."""
     tokens, sid = await sign_in()
-    await container.session_service().revoke_all_for_user(
-        testUser.id, RevokeReason.ACCOUNT_DELETED
+    reply = await client.post(
+        "/api/v1/auth/user/delete/workflow",
+        cookies={"RefreshToken": tokens["RefreshToken"]},
+        json={"reasonForDeletion": "testing"},
     )
-    expired = jwt.encode(
-        {**claims(tokens["Authorization"]), "exp": 1},
-        settings.auth_settings.JWT_SECRET,
-        algorithm="HS256",
+    assert reply.status_code == 200, reply.text
+    (deletion,) = queued_deletions
+    assert deletion.user_id == testUser.id and deletion.email == testUser.sub
+    assert (await stored(sid)).revoked_at is not None
+
+
+async def test_the_deletion_job_names_its_user_by_the_encrypted_request(monkeypatch):
+    """The procrastinate job (and the Temporal route) take the user from the
+    request the backend encrypted, so they work after every session is gone;
+    and the deletion deletes the session rows."""
+    import json
+    from dataclasses import asdict
+
+    from backend.app.models.dataclasses.user_tokens import UserDeletion
+    from backend.jobs import tasks
+
+    _, sid = await sign_in()
+    deleted = []
+    service = container.auth_service()
+    monkeypatch.setattr(
+        service, "delete_credentials_from_integrations", AsyncMock()
     )
-    user = get_user_for_internal_job(
-        request_with(Authorization=expired), Response(), api_key="k"
+    monkeypatch.setattr(service, "delete_user_form_auth", AsyncMock())
+
+    async def delete_workspaces(user):
+        deleted.append(user)
+
+    monkeypatch.setattr(
+        service.workspace_service,
+        "delete_workspaces_of_user_with_forms",
+        delete_workspaces,
     )
-    assert user.id == testUser.id
-    with pytest.raises(HTTPException):
-        get_user_for_internal_job(
-            request_with(Authorization="forged"), Response(), api_key="k"
+    blob = container.crypto().encrypt(
+        json.dumps(asdict(UserDeletion(user_id=testUser.id, email=testUser.sub)))
+    )
+
+    await tasks.delete_user.func(encrypted_tokens=blob, user_id=testUser.id)
+
+    assert [(u.id, u.sub) for u in deleted] == [(testUser.id, testUser.sub)]
+    assert await stored(sid) is None  # deleted, not just revoked
+    with pytest.raises(ValueError):
+        await tasks.delete_user.func(encrypted_tokens=blob, user_id="someone-else")
+
+
+async def test_the_deletion_route_takes_only_an_encrypted_request(client):
+    import json
+
+    tokens, _ = await sign_in()
+    key = {"api-key": settings.temporal_settings.api_key}
+    legacy = container.crypto().encrypt(
+        json.dumps(
+            {
+                "access_token": tokens["Authorization"],
+                "refresh_token": tokens["RefreshToken"],
+            }
         )
+    )
+    for headers in (
+        key,  # no request
+        {**key, "X-User-Deletion": "forged"},
+        {**key, "X-User-Deletion": tokens["RefreshToken"]},
+        {**key, "X-User-Deletion": legacy},  # stored tokens: refused
+    ):
+        reply = await client.delete(
+            "/api/v1/auth/user", headers=headers, cookies=tokens
+        )
+        assert reply.status_code == 400, headers
+    wrong_key = await client.delete(
+        "/api/v1/auth/user", headers={"api-key": "nope"}, cookies=tokens
+    )
+    assert wrong_key.status_code == 403
+
+
+async def test_expired_sessions_are_swept():
+    _, old = await sign_in()
+    _, live = await sign_in()
+    session = await stored(old)
+    session.expires_at = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
+    await container.session_repo().save(session)
+
+    listed = await container.session_service().list_for_user(testUser.id)
+
+    assert [str(s.id) for s in listed] == [live]
+    assert await stored(old) is None
 
 
 # -- what rides on a refreshed request -----------------------------------------

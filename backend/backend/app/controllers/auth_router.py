@@ -31,9 +31,7 @@ from backend.app.services.session_service import (
 )
 from backend.app.services.user_service import (
     get_logged_user,
-    get_access_token,
-    get_refresh_token,
-    get_user_for_internal_job,
+    get_user_to_delete,
 )
 from backend.config import settings
 from backend.app.models.enum.form_integration import FormIntegrationType
@@ -272,10 +270,11 @@ class AuthRoutes(Routable):
     )
     async def delete_user(
         self,
-        user: User = Depends(get_user_for_internal_job),
+        user: User = Depends(get_user_to_delete),
     ):
-        # called by the deletion workflow (API key + the user's stored tokens);
-        # deleting the account also revokes all of its sessions
+        # called by the deletion workflow: the API key and the encrypted
+        # deletion request it was started with; deleting the account also
+        # deletes all of its sessions
         await self.auth_service.delete_user(user=user)
         return "User Deleted Successfully"
 
@@ -286,13 +285,9 @@ class AuthRoutes(Routable):
         self,
         response: Response,
         user_feedback: UserFeedbackDto,
-        access_token=Depends(get_access_token),
-        refresh_token=Depends(get_refresh_token),
         user: User = Depends(get_logged_user),
     ):
         await self.user_feedback_service.save_user_feedback(user_feedback=user_feedback)
-        resp = await self.auth_service.add_workflow_to_delete_user(
-            access_token=access_token, refresh_token=refresh_token, user=user
-        )
+        resp = await self.auth_service.add_workflow_to_delete_user(user=user)
         delete_token_cookie(response)
         return resp
