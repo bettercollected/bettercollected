@@ -6086,10 +6086,10 @@ next-qrcode@^2.5.1:
   dependencies:
     qrcode "^1.5.3"
 
-next-seo@^5.5.0:
-  version "5.15.0"
-  resolved "https://registry.yarnpkg.com/next-seo/-/next-seo-5.15.0.tgz#b1a90508599774982909ea44803323c6fb7b50f4"
-  integrity sha512-LGbcY91yDKGMb7YI+28n3g+RuChUkt6pXNpa8FkfKkEmNiJkeRDEXTnnjVtwT9FmMhG6NH8qwHTelGrlYm9rgg==
+next-seo@^7.3.0:
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/next-seo/-/next-seo-7.3.0.tgz#bd85ae2d0dfd04f83dabba682f98f16202cd4695"
+  integrity sha512-j8tO4dZRBcl2jQjVSXVQmnkUHRE3czl+0Bu4Oeo3Ttwfj8yQOS6k4Esd+tPOMCZ0KhTUwQoWnGGGPBoHcCHyqg==
 
 next-themes@^0.4.6:
   version "0.4.6"
