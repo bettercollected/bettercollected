@@ -60,7 +60,10 @@ from backend.app.repositories.workspace_domain_repository import (
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_domain import DomainStatus, WorkspaceDomainDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
-from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.app.schemas.workspace_user import (
+    DISABLED_BY_PLAN,
+    WorkspaceUserDocument,
+)
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.db.base import SCHEMA
 from backend.db.models import (
@@ -336,20 +339,40 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
     async def save(self, workspace_user: WorkspaceUserDocument):
         return await self.upsert(workspace_user)
 
+    async def add_if_absent(
+        self, workspace_user: WorkspaceUserDocument
+    ) -> WorkspaceUserDocument:
+        existing = await self.find_workspace_user(
+            workspace_user.workspace_id, workspace_user.user_id
+        )
+        if existing is not None and str(existing.id) != str(workspace_user.id):
+            return existing
+        try:
+            return await self.upsert(workspace_user)
+        except IntegrityError:
+            existing = await self.find_workspace_user(
+                workspace_user.workspace_id, workspace_user.user_id
+            )
+            if existing is None:
+                raise
+            return existing
+
     async def disable_other_users_in_workspace(
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
         for workspace_user in await self.get_workspace_users(workspace_id):
-            if workspace_user.user_id != user_id:
-                workspace_user.disabled = True
+            if workspace_user.user_id != user_id and workspace_user.disable_for(
+                DISABLED_BY_PLAN
+            ):
                 await self.upsert(workspace_user)
 
     async def enable_all_user_in_workspace(self, workspace_id: PydanticObjectId):
-        workspace_users = await self.get_workspace_users(workspace_id)
-        for workspace_user in workspace_users:
-            workspace_user.disabled = False
-        await self.upsert_many(workspace_users)
-        return len(workspace_users)
+        enabled = 0
+        for workspace_user in await self.get_workspace_users(workspace_id):
+            if workspace_user.enable_for(DISABLED_BY_PLAN):
+                await self.upsert(workspace_user)
+                enabled += 1
+        return enabled
 
     async def delete(self, workspace_id, user_id):
         workspace_user = await self.find_workspace_user(workspace_id, user_id)

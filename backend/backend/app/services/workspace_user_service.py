@@ -61,15 +61,25 @@ class WorkspaceUserService:
         workspace_user = WorkspaceUserDocument(
             workspace_id=workspace_id, user_id=user.id, roles=[role]
         )
-        return await self.workspace_user_repository.save(workspace_user)
+        # a racing writer's membership wins; this one is not added twice
+        return await self.workspace_user_repository.add_if_absent(workspace_user)
+
+    async def active_member_count(self, workspace_id: PydanticObjectId) -> int:
+        """Members holding a seat: a disabled membership frees its seat (an
+        invitation, a first SSO sign-in and the SCIM directory all count
+        this way)."""
+        workspace_users = await self.workspace_user_repository.get_workspace_users(
+            workspace_id=PydanticObjectId(workspace_id)
+        )
+        return sum(1 for member in workspace_users if not member.disabled)
 
     async def has_free_seat(self, workspace_id: PydanticObjectId) -> bool:
         """Whether one more member fits under ``API_ALLOWED_COLLABORATORS``
-        (the same count an accepted invitation is checked against)."""
-        workspace_users = await self.workspace_user_repository.get_workspace_users(
-            workspace_id=workspace_id
+        (the owner plus that many members), counting active memberships."""
+        return (
+            await self.active_member_count(workspace_id)
+            <= settings.api_settings.ALLOWED_COLLABORATORS
         )
-        return len(workspace_users) <= settings.api_settings.ALLOWED_COLLABORATORS
 
     async def find_member(self, workspace_id: PydanticObjectId, user_id: str):
         return await self.workspace_user_repository.find_workspace_user(
@@ -111,21 +121,24 @@ class WorkspaceUserService:
             return existing
         if not await self.has_free_seat(workspace_id):
             raise SeatLimitReached(str(workspace_id))
-        member = await self.workspace_user_repository.save(
-            WorkspaceUserDocument(
-                workspace_id=PydanticObjectId(workspace_id),
-                user_id=PydanticObjectId(user_id),
-                roles=[role],
-                provisioned_by=provisioned_by,
-            )
+        document = WorkspaceUserDocument(
+            id=PydanticObjectId(),
+            workspace_id=PydanticObjectId(workspace_id),
+            user_id=PydanticObjectId(user_id),
+            roles=[role],
+            provisioned_by=provisioned_by,
         )
+        member = await self.workspace_user_repository.add_if_absent(document)
+        if str(member.id) != str(document.id):
+            # the same user was added meanwhile (unique index): that one stays
+            return member
         # Two sign-ins racing past the look above would both be added: count
         # again after the write and give the seat back when over the cap (in
         # a tight race both may give it back: refusing is the safe side).
-        members = await self.workspace_user_repository.get_workspace_users(
-            workspace_id=PydanticObjectId(workspace_id)
-        )
-        if len(members) > settings.api_settings.ALLOWED_COLLABORATORS + 1:
+        if (
+            await self.active_member_count(workspace_id)
+            > settings.api_settings.ALLOWED_COLLABORATORS + 1
+        ):
             await self.workspace_user_repository.delete(
                 PydanticObjectId(workspace_id), PydanticObjectId(user_id)
             )

@@ -7,6 +7,10 @@ from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.configs.mongo_document import MongoDocument
 
 
+DISABLED_BY_PLAN = "plan"
+DISABLED_BY_DIRECTORY = "directory"
+
+
 class WorkspaceUserDocument(MongoDocument):
     """
     WorkspaceUsers is a subclass of MongoDocument. It represents a
@@ -39,6 +43,36 @@ class WorkspaceUserDocument(MongoDocument):
     # A "scim" membership's role and status follow the directory while the
     # workspace has one (docs/sso.md, "Directory sync"); None = by hand.
     provisioned_by: Optional[str] = None
+    # Why the membership is disabled: "plan" (the owner's plan was
+    # downgraded), "directory" (the SCIM directory deactivated the user).
+    # Each path lifts only its own reason; the membership is enabled again
+    # once none is left. A disabled membership from before this field has
+    # none recorded and counts as "plan" (the only path that disabled
+    # members then).
+    disabled_reasons: List[str] = []
+
+    def disable_for(self, reason: str) -> bool:
+        """Disable for ``reason``; whether anything changed."""
+        changed = not self.disabled or reason not in self.disabled_reasons
+        if reason not in self.disabled_reasons:
+            self.disabled_reasons = [*self.disabled_reasons, reason]
+        self.disabled = True
+        return changed
+
+    def enable_for(self, reason: str) -> bool:
+        """Lift ``reason``: enabled once no other reason is left. Whether
+        anything changed. A membership disabled for other reasons only stays
+        as it is."""
+        if not self.disabled:
+            return False
+        reasons = list(self.disabled_reasons)
+        if reason in reasons:
+            reasons.remove(reason)
+        elif reasons or reason != DISABLED_BY_PLAN:
+            return False
+        self.disabled_reasons = reasons
+        self.disabled = bool(reasons)
+        return True
 
     class Settings:
         name = "workspace_users"
