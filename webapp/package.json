@@ -61,7 +61,7 @@
         "elastic-apm-node": "^4.18.0",
         "file-type": "^22.1.1",
         "framer-motion": "^7.2.1",
-        "html-react-parser": "^5.1.8",
+        "html-react-parser": "^6.1.8",
         "html2canvas": "^1.4.1",
         "i18next": "^26.4.2",
         "iframe-resizer-react": "^1.1.0",
