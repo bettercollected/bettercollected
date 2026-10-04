@@ -924,6 +924,7 @@
     "TRANSFER_PAID": "A workspace on a paid plan can't be transferred, because the plan is billed to your account.",
     "CANCEL": "Cancel",
     "NO_ACCESS": "You don't have access to this page.",
-    "INVITE_DESCRIPTION": "Choose what they can do in this workspace. You can change it later."
+    "INVITE_DESCRIPTION": "Choose what they can do in this workspace. You can change it later.",
+    "DELETED_ACCOUNT": "Deleted account"
   }
 }

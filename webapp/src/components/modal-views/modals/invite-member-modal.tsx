@@ -58,7 +58,9 @@ export default function InviteMemberModal() {
                 setInvitationMail('');
                 toast({ description: t(toastMessage.invitationSent).toString() });
             } else if (response.error) {
-                toast({ description: t(toastMessage.failedToSentEmail).toString(), variant: 'destructive' });
+                // e.g. 409: already a member, change their role instead
+                const detail = response.error?.data;
+                toast({ description: typeof detail === 'string' ? detail : t(toastMessage.failedToSentEmail).toString(), variant: 'destructive' });
             }
         }
 

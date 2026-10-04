@@ -502,7 +502,12 @@ class TestInvitationMail:
         monkeypatch.setattr(
             settings.auth_settings, "INTERNAL_NOTIFY_KEY", "backend-internal-key"
         )
-        sent = AsyncMock(return_value="Mail sent successfully!!")
+        async def auth_service(url, **kwargs):
+            if url.endswith("/users"):  # is the invitee already a member?
+                return {"users_info": []}
+            return "Mail sent successfully!!"
+
+        sent = AsyncMock(side_effect=auth_service)
         with patch("common.services.http_client.HttpClient.get", sent):
             response = await client.post(
                 f"{_url(workspace)}/members/invitations",

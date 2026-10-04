@@ -921,6 +921,7 @@
     "TRANSFER_PAID": "Een werkruimte met een betaald abonnement kan niet worden overgedragen, omdat het abonnement via jouw account wordt gefactureerd.",
     "CANCEL": "Annuleren",
     "NO_ACCESS": "Je hebt geen toegang tot deze pagina.",
-    "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. Je kunt het later wijzigen."
+    "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. Je kunt het later wijzigen.",
+    "DELETED_ACCOUNT": "Verwijderd account"
   }
 }

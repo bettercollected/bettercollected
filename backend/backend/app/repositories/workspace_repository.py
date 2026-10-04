@@ -3,6 +3,7 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
+from beanie.odm.queries.update import UpdateResponse
 
 from backend.app.exceptions import HTTPException
 from backend.app.repositories.metric_periods import (
@@ -80,6 +81,20 @@ class WorkspaceRepository(BaseRepository):
         self, workspace: WorkspaceDocument, fields: Dict[str, Any]
     ) -> None:
         await workspace.update({"$set": fields})
+
+    @write_op(replay=True)
+    async def set_owner_if(
+        self, workspace_id: PydanticObjectId, expected_owner_id: str, new_owner_id: str
+    ) -> Optional[WorkspaceDocument]:
+        """Set ``owner_id`` to ``new_owner_id`` only while it is still
+        ``expected_owner_id`` (one conditional update). Returns the stored
+        workspace, or None when the owner had already changed."""
+        return await WorkspaceDocument.find_one(
+            {"_id": PydanticObjectId(workspace_id), "owner_id": str(expected_owner_id)}
+        ).update(
+            {"$set": {"owner_id": str(new_owner_id)}},
+            response_type=UpdateResponse.NEW_DOCUMENT,
+        )
 
     async def get_workspace_by_query(self, query: str):
         workspace = await WorkspaceDocument.find_one(

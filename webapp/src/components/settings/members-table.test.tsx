@@ -90,6 +90,15 @@ describe('MembersTable', () => {
         expect(screen.queryByText('Open menu')).toBeNull();
     });
 
+    it('lists a deleted account by id only, without a role picker', () => {
+        access.permissions = ADMIN_PERMISSIONS;
+        renderWith(<MembersTable data={[{ ...member('gone', 'EDITOR'), email: null, firstName: null, accountDeleted: true }]} />);
+
+        expect(screen.getByTestId('member-deleted-gone').textContent).toBe('MEMBER_ROLES.DELETED_ACCOUNT');
+        expect(screen.queryByRole('combobox')).toBeNull();
+        expect(screen.getByTestId('member-role-gone').textContent).toBe('WORKSPACE_ROLES.EDITOR.NAME');
+    });
+
     it('shows an unknown role as unknown', () => {
         access.permissions = VIEWER_PERMISSIONS;
         renderWith(<MembersTable data={[member('future', null, ['SOMETHING_NEW'])]} />);

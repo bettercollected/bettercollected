@@ -12,5 +12,6 @@ export const memberRoles = {
     cancel: 'MEMBER_ROLES.CANCEL',
     noAccess: 'MEMBER_ROLES.NO_ACCESS',
     inviteDescription: 'MEMBER_ROLES.INVITE_DESCRIPTION',
-    unknownRole: 'WORKSPACE_ROLES.UNKNOWN'
+    unknownRole: 'WORKSPACE_ROLES.UNKNOWN',
+    deletedAccount: 'MEMBER_ROLES.DELETED_ACCOUNT'
 };

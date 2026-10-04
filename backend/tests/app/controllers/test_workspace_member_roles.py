@@ -88,6 +88,38 @@ async def test_the_members_list_shows_each_role(
     assert roles[invited_user.id] == ("EDITOR", ["EDITOR"])
 
 
+async def test_a_deleted_account_never_lends_its_row_to_someone_else(
+    client: AsyncClient, members
+):
+    """The auth service leaves out accounts it no longer has; every other
+    member keeps their own name and email, and the missing one is listed by
+    id only, marked as deleted."""
+
+    async def users(*args, **kwargs):
+        ids = [str(i) for i in kwargs["params"]["user_ids"]]
+        return {
+            "users_info": [
+                {"_id": i, "email": f"{i}@example.com"}
+                for i in ids
+                if i != admin.id  # this account was deleted
+            ]
+        }
+
+    with patch("common.services.http_client.HttpClient.get", side_effect=users):
+        response = await client.get(
+            _members_url(members.id), cookies=_cookies(testUser)
+        )
+
+    assert response.status_code == 200, response.text
+    listed = {m["id"]: m for m in response.json()}
+    assert listed[admin.id]["accountDeleted"] is True
+    assert listed[admin.id]["email"] is None
+    assert listed[admin.id]["role"] == "ADMIN"
+    for member in (testUser, viewer, invited_user):
+        assert listed[member.id]["email"] == f"{member.id}@example.com"
+        assert not listed[member.id]["accountDeleted"]
+
+
 @pytest.mark.parametrize(
     "role, stored",
     [
@@ -217,7 +249,8 @@ async def test_an_invitation_carries_its_role_into_the_membership(
         cookies=_cookies(admin),
     )
     assert created.status_code == 200, created.text
-    assert created.json()["role"] == stored
+    # reported as the API names it, whatever the stored spelling
+    assert created.json()["role"] == listed
     mail = auth_service.call_args_list[-1].kwargs["params"]
     assert mail["role"] in {"Reviewer", "Privacy officer", "Editor"}
 
@@ -236,6 +269,90 @@ async def test_an_invitation_carries_its_role_into_the_membership(
     )
     assert accepted.status_code == 200, accepted.text
     assert await _stored_roles(members.id, newcomer) == [stored]
+
+
+async def test_inviting_an_existing_member_is_refused(
+    client: AsyncClient, members
+):
+    async def users(*args, **kwargs):
+        ids = [str(i) for i in (kwargs.get("params") or {}).get("user_ids", [])]
+        return {"users_info": [{"_id": i, "email": f"{i}@example.com"} for i in ids]}
+
+    with patch("common.services.http_client.HttpClient.get", side_effect=users):
+        response = await client.post(
+            f"{_members_url(members.id)}/invitations",
+            json={"email": f"{viewer.id}@example.com", "role": "EDITOR"},
+            cookies=_cookies(admin),
+        )
+
+    assert response.status_code == 409
+    assert "already a member" in response.text
+    assert await _stored_roles(members.id, viewer) == [WorkspaceRoles.VIEWER]
+
+
+@pytest.mark.parametrize("inviter_now", ["removed", "editor"])
+async def test_accepting_rechecks_the_inviter(
+    client: AsyncClient, members, auth_service, inviter_now
+):
+    """An Admin's invitation stops working once they no longer manage
+    members (or no longer hold the role they gave)."""
+    newcomer = User(id=str(PydanticObjectId()), sub="late@example.com")
+    created = await client.post(
+        f"{_members_url(members.id)}/invitations",
+        json={"email": newcomer.sub, "role": "ADMIN"},
+        cookies=_cookies(admin),
+    )
+    assert created.status_code == 200, created.text
+    token = created.json()["invitation_token"]
+
+    repo = container.workspace_user_repo()
+    if inviter_now == "removed":
+        await repo.delete(members.id, admin.id)
+    else:
+        membership = await repo.find_workspace_user(
+            members.id, PydanticObjectId(admin.id)
+        )
+        membership.roles = [WorkspaceRoles.COLLABORATOR]
+        await repo.save(membership)
+
+    accepted = await client.post(
+        f"{_members_url(members.id)}/invitations/{token}",
+        params={"response_status": "ACCEPTED"},
+        cookies=_cookies(newcomer),
+    )
+
+    assert accepted.status_code == 403
+    assert "invite you again" in accepted.text
+    assert await repo.find_workspace_user(
+        members.id, PydanticObjectId(newcomer.id)
+    ) is None
+
+
+async def test_an_invitation_with_an_unknown_role_loads_and_grants_nothing(
+    client: AsyncClient, members
+):
+    """A role from a newer release still loads (rollback safety)."""
+    invitation = await container.workspace_invitation_repo().create_workspace_invitation(
+        members.id,
+        InvitationRequest(email="future@example.com", role=WorkspaceRoles.VIEWER),
+    )
+    invitation.role = "SOMETHING_NEW"
+    await container.workspace_invitation_repo().save(invitation)
+
+    stored = await container.workspace_invitation_repo().get_workspace_invitation_by_token(
+        workspace_id=members.id, invitation_token=invitation.invitation_token
+    )
+    assert stored.role == "SOMETHING_NEW"
+    future = User(id=str(PydanticObjectId()), sub="future@example.com")
+    accepted = await client.post(
+        f"{_members_url(members.id)}/invitations/{invitation.invitation_token}",
+        params={"response_status": "ACCEPTED"},
+        cookies=_cookies(future),
+    )
+    assert accepted.status_code == 200, accepted.text
+    assert not await container.authorization_service().effective_permissions(
+        future, members.id
+    )
 
 
 async def test_inviting_again_changes_the_role(client: AsyncClient, members):
@@ -310,6 +427,49 @@ async def test_the_owner_transfers_to_an_admin_and_becomes_an_admin(
         await authorization.effective_permissions(testUser, workspace.id)
         == EDITOR_PERMISSIONS
     )
+
+
+async def test_a_transfer_is_conditional_on_the_current_owner(team_workspace):
+    repo = container.workspace_repo()
+    # someone else is no longer the owner: nothing changes
+    assert await repo.set_owner_if(team_workspace.id, viewer.id, admin.id) is None
+    workspace = await repo.find_by_id(team_workspace.id)
+    assert str(workspace.owner_id) == testUser.id
+
+    moved = await repo.set_owner_if(team_workspace.id, testUser.id, admin.id)
+    assert str(moved.owner_id) == admin.id
+    # a second transfer from the same (now former) owner can't land
+    assert await repo.set_owner_if(team_workspace.id, testUser.id, viewer.id) is None
+    workspace = await repo.find_by_id(team_workspace.id)
+    assert str(workspace.owner_id) == admin.id
+
+
+async def test_a_transfer_is_undone_when_the_target_stops_being_an_admin(
+    client: AsyncClient, team_workspace, monkeypatch
+):
+    """The target is demoted between the check and the owner change: the
+    change is undone and the caller stays the owner."""
+    service = container.workspace_members_service()
+    users = service.workspace_user_service
+    real_find = users.find_workspace_user
+    calls = {"target": 0}
+
+    async def find(workspace_id, user_id):
+        membership = await real_find(workspace_id, user_id)
+        if str(user_id) == admin.id:
+            calls["target"] += 1
+            if calls["target"] > 1 and membership is not None:
+                membership.roles = [WorkspaceRoles.VIEWER]  # demoted meanwhile
+        return membership
+
+    monkeypatch.setattr(users, "find_workspace_user", find)
+    response = await client.post(
+        _transfer_url(team_workspace.id, admin), cookies=_cookies(testUser)
+    )
+
+    assert response.status_code == 409
+    workspace = await container.workspace_repo().find_by_id(team_workspace.id)
+    assert str(workspace.owner_id) == testUser.id
 
 
 async def test_only_the_owner_transfers(client: AsyncClient, team_workspace):

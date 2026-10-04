@@ -31,7 +31,8 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
     const role = memberRole(member);
     const isOwner = role === WorkspaceRole.OWNER || workspace?.ownerId === member.id;
     // The owner's role and one's own never change; the backend refuses both.
-    const editable = can(WorkspacePermission.MEMBERS_MANAGE) && !isOwner && member.id !== auth?.id;
+    // a deleted account keeps its role row but there is no one to change it for
+    const editable = can(WorkspacePermission.MEMBERS_MANAGE) && !isOwner && member.id !== auth?.id && !member.accountDeleted;
 
     if (!editable) {
         const shown = isOwner ? WorkspaceRole.OWNER : role;
@@ -64,7 +65,14 @@ export default function MembersTable({ data }: any) {
 
     const dataTableResponseColumns: any = [
         {
-            selector: (member: any) => <UserDetails user={member} />,
+            selector: (member: any) =>
+                member.accountDeleted ? (
+                    <span className="body3 text-black-600" data-testid={`member-deleted-${member.id}`}>
+                        {t(memberRoles.deletedAccount)}
+                    </span>
+                ) : (
+                    <UserDetails user={member} />
+                ),
             name: t(members.member),
             minWidth: '300px',
             style: {
