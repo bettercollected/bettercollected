@@ -64,7 +64,10 @@ branches. Never compare `owner_id` or roles in a service, and never call the rep
   the owner's or one's own, never above the caller's own permissions); invitations carry a role;
   `POST .../members/{user_id}/transfer-ownership` (`workspace.billing`) hands the workspace to an
   active Admin, refused for a default workspace or a paid one (billing hangs off the owner's
-  account) — `services/workspace_members_service.py`.
+  account) — `services/workspace_members_service.py`. A Privacy officer also deletes a response
+  with a *pending* deletion request (`privacy.manage`) and never holds the answer permissions,
+  whatever other role they have. MCP/API-key calls also require the key's creator to hold the
+  scope's permission at call time (`mcp/server.py` `SCOPE_PERMISSIONS`).
 - **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
   gates controls with `useWorkspacePermissions().can(...)`, not `selectIsAdmin` (which means owner).
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
