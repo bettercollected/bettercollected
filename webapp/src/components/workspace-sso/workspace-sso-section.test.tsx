@@ -63,6 +63,7 @@ const overview = (overrides: Partial<SsoOverviewDto> = {}): SsoOverviewDto => ({
     connections: [connection()],
     settings: { ssoRequired: false, defaultRole: 'COLLABORATOR', assignableRoles: ['COLLABORATOR'], ownerBreakGlass: true },
     maxConnections: 5,
+    canManage: true,
     ...overrides
 });
 
@@ -129,6 +130,22 @@ describe('WorkspaceSsoSection', () => {
                 body: { type: 'oidc', name: undefined, discoveryUrl: 'https://login.acme.com/.well-known/openid-configuration', clientId: 'bc', clientSecret: 's3cret' }
             })
         );
+    });
+
+    it('shows an admin the settings read-only, with testing', () => {
+        query.data = overview({ canManage: false, connections: [connection({ status: 'disabled' })] });
+        renderSection();
+        expect(screen.getByText(/Only the workspace owner can change single sign-on/)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Add connection' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Require single sign-on' })).toBeNull();
+        expect(screen.getByRole('button', { name: 'Test connection' })).toBeTruthy();
+    });
+
+    it('cannot enable an untested connection', () => {
+        query.data = overview({ connections: [connection({ status: 'disabled', tested: false, testedAt: null })] });
+        renderSection();
+        expect((screen.getByRole('button', { name: 'Enable' }) as HTMLButtonElement).disabled).toBe(true);
     });
 
     it('explains a test result from the URL', () => {

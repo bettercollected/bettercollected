@@ -82,7 +82,7 @@ function Section({ title, description, children }: { title: string; description?
     );
 }
 
-function ConnectionCard({ connection, workspaceId, ssoRequired }: { connection: SsoConnectionDto; workspaceId: string; ssoRequired: boolean }) {
+function ConnectionCard({ connection, workspaceId, ssoRequired, canManage }: { connection: SsoConnectionDto; workspaceId: string; ssoRequired: boolean; canManage: boolean }) {
     const { toast } = useToast();
     const [setEnabled, { isLoading: isToggling }] = useSetSsoConnectionEnabledMutation();
     const [deleteConnection, { isLoading: isDeleting }] = useDeleteSsoConnectionMutation();
@@ -129,12 +129,23 @@ function ConnectionCard({ connection, workspaceId, ssoRequired }: { connection: 
                     <Button size="sm" variant="v2Button" onClick={test}>
                         Test connection
                     </Button>
-                    <Button size="sm" variant={enabled ? 'v2Button' : 'primary'} isLoading={isToggling} disabled={locked} onClick={toggle} title={locked ? 'Turn off “Require single sign-on” first' : undefined}>
-                        {enabled ? 'Disable' : 'Enable'}
-                    </Button>
-                    <Button size="sm" variant="dangerGhost" isLoading={isDeleting} disabled={locked} onClick={remove} aria-label={`Delete ${connection.name}`}>
-                        Delete
-                    </Button>
+                    {canManage && (
+                        <>
+                            <Button
+                                size="sm"
+                                variant={enabled ? 'v2Button' : 'primary'}
+                                isLoading={isToggling}
+                                disabled={locked || (!enabled && !connection.tested)}
+                                onClick={toggle}
+                                title={locked ? 'Turn off “Require single sign-on” first' : !enabled && !connection.tested ? 'Test the connection successfully first' : undefined}
+                            >
+                                {enabled ? 'Disable' : 'Enable'}
+                            </Button>
+                            <Button size="sm" variant="dangerGhost" isLoading={isDeleting} disabled={locked} onClick={remove} aria-label={`Delete ${connection.name}`}>
+                                Delete
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
         </li>
@@ -250,7 +261,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
     const { toast } = useToast();
     const [update, { isLoading }] = useUpdateSsoSettingsMutation();
     const [revokeSessions, setRevokeSessions] = useState(true);
-    const { settings, connections, domains } = overview;
+    const { settings, connections, domains, canManage } = overview;
     const enabled = connections.find((c) => c.status === 'enabled');
     const canRequire = !!enabled && enabled.tested && domains.length > 0;
     const domainList = domains.join(', ');
@@ -276,7 +287,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
             <div className="flex flex-col gap-4 rounded-lg border border-black-200 bg-white p-4">
                 <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
                     Role for new members
-                    <select className={cn(inputClass, 'sm:max-w-[240px]')} value={settings.defaultRole} disabled={isLoading} onChange={(e) => save({ defaultRole: e.target.value })}>
+                    <select className={cn(inputClass, 'sm:max-w-[240px]')} value={settings.defaultRole} disabled={isLoading || !canManage} onChange={(e) => save({ defaultRole: e.target.value })}>
                         {settings.assignableRoles.map((role) => (
                             <option key={role} value={role}>
                                 {ROLE_LABELS[role] ?? role}
@@ -294,7 +305,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                                 Addresses on these domains can then only sign in through your identity provider: sign-in codes by email and Google are refused, here and on every workspace.
                             </span>
                         </div>
-                        {settings.ssoRequired ? (
+                        {!canManage ? null : settings.ssoRequired ? (
                             <Button size="sm" variant="v2Button" isLoading={isLoading} onClick={() => save({ ssoRequired: false })}>
                                 Stop requiring
                             </Button>
@@ -308,6 +319,8 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                         <p className="flex items-center gap-2 text-xs text-[#0E8A5F]">
                             <CircleCheck className="h-4 w-4" /> Required since {formatTime(settings.ssoRequiredChangedAt)}.
                         </p>
+                    ) : !canManage ? (
+                        <p className="text-xs text-black-500">Not required.</p>
                     ) : canRequire ? (
                         <label className="flex items-start gap-2 text-xs text-black-700">
                             <input type="checkbox" className="mt-0.5" checked={revokeSessions} onChange={(e) => setRevokeSessions(e.target.checked)} />
@@ -362,6 +375,12 @@ export default function WorkspaceSsoSection() {
 
     return (
         <div className="flex flex-col gap-8">
+            {!overview.canManage && (
+                <div role="note" className="flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                    <span>Only the workspace owner can change single sign-on: a connection decides who every address on your verified domains is, the owner&apos;s included. You can view the settings and test a connection.</span>
+                </div>
+            )}
             {testResult && (
                 <div role="status" className={cn('flex items-start gap-2 rounded-md border p-3 text-xs leading-relaxed', ok ? 'border-[#BFE5D2] bg-[#E7F6EE] text-[#0B6B4A]' : 'border-[#F3D1D1] bg-[#FBEFEF] text-[#9E2F2F]')}>
                     {ok ? <CircleCheck className="mt-0.5 h-4 w-4 shrink-0" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}
@@ -402,15 +421,15 @@ export default function WorkspaceSsoSection() {
                 </Section>
             )}
 
-            <Section title="Connections" description="One connection signs members in at a time: enabling one disables the others. Test a connection before you enable it.">
+            <Section title="Connections" description="One connection signs members in at a time: enabling one disables the others. A connection can only be enabled after a successful test.">
                 {overview.connections.length > 0 && (
                     <ul className="flex flex-col gap-3">
                         {overview.connections.map((connection) => (
-                            <ConnectionCard key={connection.id} connection={connection} workspaceId={workspaceId} ssoRequired={overview.settings.ssoRequired} />
+                            <ConnectionCard key={connection.id} connection={connection} workspaceId={workspaceId} ssoRequired={overview.settings.ssoRequired} canManage={overview.canManage} />
                         ))}
                     </ul>
                 )}
-                {adding ? (
+                {!overview.canManage ? null : adding ? (
                     <AddConnectionForm workspaceId={workspaceId} onDone={() => setAdding(false)} />
                 ) : overview.connections.length < overview.maxConnections ? (
                     <div>

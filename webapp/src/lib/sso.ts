@@ -13,6 +13,8 @@ export const ssoErrorMessages: Record<string, string> = {
     sso_seat_limit: 'This workspace has no free seats for another member. Ask a workspace admin to free a seat.',
     sso_account_conflict: 'More than one account uses this email address. Contact support to have them merged.',
     sso_tenant_mismatch: 'Single sign-on failed. Please try again.',
+    sso_session_mismatch: 'This sign-in was started in another browser or was already used. Please start again.',
+    sso_membership_disabled: 'Your membership of this workspace is disabled. Ask a workspace admin.',
     sso_expired: 'The sign-in took too long. Please try again.',
     sso_failed: 'Single sign-on failed. Please try again.'
 };
@@ -28,6 +30,7 @@ export const ssoTestMessages: Record<string, string> = {
     sso_email_domain_not_allowed: 'Your identity provider signed you in with an address that is not on one of this workspace’s verified domains. Check the email attribute your identity provider sends, or verify that domain.',
     sso_tenant_mismatch: 'The identity provider answered for another connection. Try again; if it keeps happening, delete and re-create the connection.',
     sso_test_not_allowed: 'Only the admin who started the test can complete it. Start the test again while signed in.',
+    sso_session_mismatch: 'The test was started in another browser or was already used. Start it again.',
     sso_workspace_unavailable: 'This workspace is not available.',
     sso_expired: 'The test took too long. Please try again.',
     sso_failed: 'The identity provider did not complete the sign-in. Check the connection details at your identity provider and try again.'

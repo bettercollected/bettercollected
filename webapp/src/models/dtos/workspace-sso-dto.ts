@@ -44,6 +44,8 @@ export interface SsoOverviewDto {
     connections: SsoConnectionDto[];
     settings: SsoSettingsDto;
     maxConnections: number;
+    // the caller may change the configuration (the workspace owner only)
+    canManage: boolean;
 }
 
 export interface CreateSsoConnectionRequest {

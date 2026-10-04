@@ -24,5 +24,6 @@ export interface VerifyOtp {
     };
     params: {
         prospective_pro_user?: boolean;
+        workspace_id?: string;
     };
 }
