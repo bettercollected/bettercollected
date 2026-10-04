@@ -1,4 +1,5 @@
 import datetime
+import re
 from typing import Dict, Optional, List
 
 from beanie import PydanticObjectId
@@ -17,6 +18,13 @@ class UserRepository:
 
     async def get_user_by_email(self, email: str) -> UserDocument:
         return await UserDocument.find_one(UserDocument.email == email)
+
+    async def find_users_by_email_ci(self, email: str) -> List[UserDocument]:
+        """Accounts whose email equals ``email`` ignoring case (single
+        sign-on's lookup; the other sign-ins still match exactly)."""
+        return await UserDocument.find(
+            {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}
+        ).to_list()
 
     async def get_user_by_stripe_payment_id(
         self, stripe_payment_id: str

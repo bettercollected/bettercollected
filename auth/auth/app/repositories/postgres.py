@@ -27,6 +27,9 @@ class PostgresUserRepository(PostgresRepositoryBase):
     async def get_user_by_email(self, email: str) -> UserDocument:
         return await self.one(UserRow.email == email)
 
+    async def find_users_by_email_ci(self, email: str) -> List[UserDocument]:
+        return await self.many(func.lower(UserRow.email) == email.lower())
+
     async def get_user_by_stripe_payment_id(
         self, stripe_payment_id: str
     ) -> UserDocument:

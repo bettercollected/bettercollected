@@ -74,8 +74,17 @@ async def test_users(stores):
             ("get_user_by_email", lambda: ("b@example.com",)),
             ("get_users_by_emails", lambda: (["a@example.com", "b@example.com", "z"],)),
             ("get_user_by_stripe_customer_id", lambda: ("cus_none",)),
+            # single sign-on's case-insensitive lookup (regex-escaped in Mongo)
+            ("save_user", lambda: ("Mixed.Case+1@Example.com", "M")),
+            ("find_users_by_email_ci", lambda: ("mixed.case+1@example.com",)),
+            ("find_users_by_email_ci", lambda: ("MIXED.CASE+1@EXAMPLE.COM",)),
+            ("find_users_by_email_ci", lambda: ("mixedXcase+1@example.com",)),
+            ("find_users_by_email_ci", lambda: ("nobody@example.com",)),
         ],
     )
+    for repo in (mongo, postgres):
+        found = await repo.find_users_by_email_ci("mixed.case+1@EXAMPLE.com")
+        assert [u.email for u in found] == ["Mixed.Case+1@Example.com"]
     a = [await repo.get_user_by_email("a@example.com") for repo in (mongo, postgres)]
     for repo, user in zip((mongo, postgres), a):
         await repo.clear_user_otp(user)
