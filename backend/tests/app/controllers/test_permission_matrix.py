@@ -210,7 +210,13 @@ F = W + "/forms/{form}"
 
 CASES = [
     # --- workspace settings
-    Case("workspace.patch", "PATCH", W, P.WORKSPACE_MANAGE, lambda c: {"data": {"title": "x"}}),
+    Case(
+        "workspace.patch",
+        "PATCH",
+        W,
+        P.WORKSPACE_MANAGE,
+        lambda c: {"data": {"title": "x"}},
+    ),
     Case(
         "workspace.theme_presets",
         "PATCH",
@@ -218,10 +224,23 @@ CASES = [
         P.WORKSPACE_MANAGE,
         lambda c: {"json": []},
     ),
-    Case("workspace.custom_domain.delete", "DELETE", W + "/custom-domain", P.WORKSPACE_MANAGE),
-    Case("workspace.custom_domain.verify", "GET", W + "/verify-domain", P.WORKSPACE_MANAGE),
     Case(
-        "workspace.custom_domain.recheck", "POST", W + "/custom-domain/recheck", P.WORKSPACE_MANAGE
+        "workspace.custom_domain.delete",
+        "DELETE",
+        W + "/custom-domain",
+        P.WORKSPACE_MANAGE,
+    ),
+    Case(
+        "workspace.custom_domain.verify",
+        "GET",
+        W + "/verify-domain",
+        P.WORKSPACE_MANAGE,
+    ),
+    Case(
+        "workspace.custom_domain.recheck",
+        "POST",
+        W + "/custom-domain/recheck",
+        P.WORKSPACE_MANAGE,
     ),
     Case("workspace.stats", "GET", W + "/stats", P.ANALYTICS_READ),
     # --- AI settings, profile, keys
@@ -259,7 +278,9 @@ CASES = [
     Case("api_keys.revoke", "DELETE", W + "/api-keys/{api_key}", P.SECURITY_MANAGE),
     # --- members and invitations
     Case("members.list", "GET", W + "/members", P.MEMBERS_MANAGE),
-    Case("members.invitations.list", "GET", W + "/members/invitations", P.MEMBERS_MANAGE),
+    Case(
+        "members.invitations.list", "GET", W + "/members/invitations", P.MEMBERS_MANAGE
+    ),
     Case(
         "members.invitations.create",
         "POST",
@@ -311,8 +332,16 @@ CASES = [
         lambda c: {"json": {"domain": "matrix-claim.org"}},
         ok=201,
     ),
-    Case("domains.verify", "POST", W + "/domains/{domain}/verify", P.SECURITY_MANAGE, ok=200),
-    Case("domains.delete", "DELETE", W + "/domains/{domain}", P.SECURITY_MANAGE, ok=204),
+    Case(
+        "domains.verify",
+        "POST",
+        W + "/domains/{domain}/verify",
+        P.SECURITY_MANAGE,
+        ok=200,
+    ),
+    Case(
+        "domains.delete", "DELETE", W + "/domains/{domain}", P.SECURITY_MANAGE, ok=204
+    ),
     Case(
         # a claim of another workspace: 404 once past the permission check
         "domains.verify.other_workspace",
@@ -394,7 +423,14 @@ CASES = [
         OWNER_ONLY,
         ok=200,
     ),
-    Case("scim.directory.delete", "DELETE", W + "/scim/directory", OWNER_ONLY, ok=204),
+    Case("scim.directory.delete", "DELETE", W + "/scim/directory", OWNER_ONLY, ok=200),
+    Case(
+        "scim.directory.cleanup",
+        "POST",
+        W + "/scim/directory/cleanup",
+        OWNER_ONLY,
+        ok=200,
+    ),
     Case(
         "scim.groups.role",
         "PUT",
@@ -490,7 +526,9 @@ CASES = [
         P.FORM_READ,
         lambda c: {"params": {"workspace_id": c["ws"]}},
     ),
-    Case("templates.delete", "DELETE", W + "/template/{template}", P.FORM_DELETE, ok=200),
+    Case(
+        "templates.delete", "DELETE", W + "/template/{template}", P.FORM_DELETE, ok=200
+    ),
     Case(
         "templates.create",
         "POST",
@@ -711,9 +749,19 @@ CASES = [
         P.MEMBERS_MANAGE,
         lambda c: {"json": ["a@example.com"]},
     ),
-    Case("groups.delete", "DELETE", "/api/v1/{ws}/responder-groups/{group}", P.MEMBERS_MANAGE),
+    Case(
+        "groups.delete",
+        "DELETE",
+        "/api/v1/{ws}/responder-groups/{group}",
+        P.MEMBERS_MANAGE,
+    ),
     # --- consent catalog
-    Case("consent.list", "GET", "/api/v1/{ws}/consent", EDITORS | ROLES_WITH[P.PRIVACY_MANAGE]),
+    Case(
+        "consent.list",
+        "GET",
+        "/api/v1/{ws}/consent",
+        EDITORS | ROLES_WITH[P.PRIVACY_MANAGE],
+    ),
     Case(
         "consent.create",
         "POST",

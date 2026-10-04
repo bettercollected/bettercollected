@@ -2,7 +2,7 @@
 twins are in ``postgres/identity.py``."""
 
 import datetime as dt
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from pymongo.errors import DuplicateKeyError
@@ -47,6 +47,18 @@ class ScimDirectoryRepository:
     @write_op
     async def save(self, document: ScimDirectoryDocument) -> ScimDirectoryDocument:
         return await document.save()
+
+    @write_op
+    async def update_fields(
+        self, directory_id: PydanticObjectId, fields: Dict[str, Any]
+    ) -> int:
+        """Set only ``fields`` (status: last event, resync outcome), so a
+        writer holding an older copy never puts back what a rotation
+        changed (the Polis id, the secret)."""
+        result = await ScimDirectoryDocument.find_one(
+            {"_id": PydanticObjectId(directory_id)}
+        ).update({"$set": fields})
+        return 1 if result else 0
 
     async def get(self, directory_id) -> Optional[ScimDirectoryDocument]:
         object_id = _object_id(directory_id)

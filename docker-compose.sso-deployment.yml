@@ -80,6 +80,9 @@ services:
   jobs-worker:
     environment:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:?set by deploy.sh in the root .env}
+      # the nightly SCIM resync runs here and needs directory sync to be
+      # configured, exactly as on the backend
+      SCIM_WEBHOOK_URL: ${SCIM_WEBHOOK_URL:-http://backend:8000/api/v1/scim/webhook}
     networks:
       - default
       - sso

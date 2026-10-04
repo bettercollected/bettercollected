@@ -177,12 +177,16 @@ class ScimWebhookService:
         return WebhookReply(200, {"applied": applied, "duplicates": duplicates})
 
     async def _touch(self, directory: ScimDirectoryDocument, event_type: str) -> None:
-        fresh = await self._directories.get(directory.id) or directory
+        # only these fields: a rotation meanwhile must keep its new secret
         now = dt.datetime.now(dt.timezone.utc)
-        fresh.last_event_at = now
-        fresh.last_event_type = event_type[:64]
-        fresh.updated_at = now
-        await self._directories.save(fresh)
+        await self._directories.update_fields(
+            directory.id,
+            {
+                "last_event_at": now,
+                "last_event_type": event_type[:64],
+                "updated_at": now,
+            },
+        )
 
     async def apply(self, directory: ScimDirectoryDocument, event: Dict[str, Any]):
         kind = event.get("event")

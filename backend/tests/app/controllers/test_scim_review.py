@@ -304,7 +304,7 @@ async def test_legacy_disabled_memberships_count_as_plan(workspace):
 
 
 # -- seats: a disabled membership frees its seat -------------------------------
-async def test_a_disabled_membership_frees_its_seat(
+async def test_a_directory_disabled_membership_frees_its_seat(
     client, workspace, directory, scim_on, monkeypatch
 ):
     polis, auth = scim_on
@@ -313,7 +313,13 @@ async def test_a_disabled_membership_frees_its_seat(
     service = container.workspace_user_service()
     assert not await service.has_free_seat(workspace.id)
     collaborator = await member_of(workspace.id, invited_user.id)
+    # disabled by the plan: it keeps its seat (an upgrade re-enables it)
     collaborator.disable_for("plan")
+    await container.workspace_user_repo().save(collaborator)
+    assert not await service.has_free_seat(workspace.id)
+    # disabled by the directory only: the seat is free
+    collaborator.enable_for("plan")
+    collaborator.disable_for("directory")
     await container.workspace_user_repo().save(collaborator)
     assert await service.has_free_seat(workspace.id)
 
@@ -328,7 +334,7 @@ async def test_a_disabled_membership_frees_its_seat(
         polis,
         event(directory, "user.updated", user_data("u0", person(0), active=False)),
     )
-    collaborator.enable_for("plan")
+    collaborator.enable_for("directory")
     await container.workspace_user_repo().save(collaborator)
     await deliver(
         client,
@@ -587,3 +593,158 @@ async def test_identical_events_in_one_batch_are_both_applied(
     same = event(directory, "user.created", user_data("u1", JANE))
     reply = await deliver(client, directory, polis, [same, same])
     assert reply.json() == {"applied": 2, "duplicates": 0}
+
+
+# -- review: legacy rows, seats on upgrade, targeted writes, size, delete --------
+def _legacy(workspace_id, user_id=None) -> WorkspaceUserDocument:
+    """A membership a plan downgrade disabled before reasons were recorded."""
+    return WorkspaceUserDocument(
+        id=PydanticObjectId(),
+        workspace_id=PydanticObjectId(workspace_id),
+        user_id=PydanticObjectId(user_id) if user_id else PydanticObjectId(),
+        roles=[WorkspaceRoles.VIEWER],
+        disabled=True,
+    )
+
+
+def test_a_legacy_row_keeps_the_plans_reason():
+    legacy = _legacy(PydanticObjectId())
+    assert legacy.holds_seat
+    legacy.disable_for("directory")
+    assert legacy.disabled_reasons == ["plan", "directory"]
+    legacy.enable_for("directory")
+    assert legacy.disabled and legacy.disabled_reasons == ["plan"]
+    assert legacy.holds_seat
+
+
+async def test_a_legacy_row_in_both_stores(clean_postgres):
+    from backend.app.repositories.postgres.identity import (
+        PostgresWorkspaceUserRepository,
+    )
+    from backend.app.repositories.workspace_user_repository import (
+        WorkspaceUserRepository,
+    )
+
+    workspace_id = PydanticObjectId()
+    for repo in (
+        WorkspaceUserRepository(),
+        PostgresWorkspaceUserRepository(container.pg_sessionmaker()),
+    ):
+        legacy = await repo.add_if_absent(_legacy(workspace_id))
+        stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
+        assert stored.disabled and stored.disabled_reasons == []
+        stored.disable_for("directory")
+        await repo.save(stored)
+        stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
+        stored.enable_for("directory")
+        await repo.save(stored)
+        stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
+        assert stored.disabled and stored.disabled_reasons == ["plan"]
+        await repo.delete(workspace_id, legacy.user_id)
+
+
+async def test_the_directory_does_not_re_enable_a_legacy_plan_disable(
+    client, workspace, directory, scim_on
+):
+    polis, auth = scim_on
+    manual = auth.add_account(JANE)
+    await container.workspace_user_repo().save(_legacy(workspace.id, manual["id"]))
+    for active in (True, False, True):
+        await deliver(
+            client,
+            directory,
+            polis,
+            event(directory, "user.updated", user_data("u1", JANE, active=active)),
+        )
+    member = await member_of(workspace.id, manual["id"])
+    assert member.disabled and member.disabled_reasons == ["plan"]
+
+
+async def test_an_invite_over_the_cap_is_refused_while_downgraded(
+    workspace, monkeypatch
+):
+    """Downgrade, invite, upgrade: plan-disabled members keep their seat, so
+    the upgrade can't leave the workspace over the cap."""
+    from backend.app.exceptions import HTTPException
+
+    monkeypatch.setattr(settings.api_settings, "ALLOWED_COLLABORATORS", 1)
+    workspace.default = True
+    await container.workspace_repo().save(workspace)
+    service = container.workspace_user_service()
+    await container.workspace_service().downgrade_user_workspace(testUser.id)
+    assert (await member_of(workspace.id, invited_user.id)).disabled
+
+    newcomer = User(id=str(PydanticObjectId()), sub="newcomer@example.com")
+    with pytest.raises(HTTPException):
+        await service.add_user_to_workspace_with_role(
+            workspace.id, newcomer, WorkspaceRoles.VIEWER
+        )
+    await container.workspace_service().upgrade_user_workspace(testUser.id)
+    assert await service.active_member_count(workspace.id) == 2  # owner + 1
+
+
+async def test_status_writes_never_undo_a_rotation(
+    client, workspace, directory, scim_on
+):
+    """``_touch`` and the resync outcome set their own fields only: a copy
+    read before a rotation can't put back the old Polis id or secret."""
+    polis, auth = scim_on
+    stale = await _directory(workspace)
+    await client.post(url(workspace, "/directory/rotate"), cookies=OWNER)
+    await container.scim_webhook_service()._touch(stale, "user.created")
+    await container.scim_directory_service().resync_directory(stale, "test")
+    fresh = await _directory(workspace)
+    assert fresh.polis_directory_id == "dir-2"
+    assert container.crypto().decrypt(fresh.webhook_secret) == polis.secret("dir-2")
+    assert fresh.last_event_type == "user.created" and fresh.last_resync_at
+
+
+async def test_a_chunked_body_over_the_cap_is_refused(
+    client, workspace, directory, scim_on, monkeypatch
+):
+    polis, auth = scim_on
+    monkeypatch.setattr(settings.scim, "MAX_WEBHOOK_BYTES", 1000)
+
+    async def chunks():
+        for _ in range(20):
+            yield b"x" * 100
+
+    reply = await client.post(
+        f"/api/v1/scim/webhook/{directory.id}",
+        content=chunks(),
+        headers={"BoxyHQ-Signature": "t=1,s=" + "0" * 64},
+    )
+    assert reply.status_code == 413
+    assert reply.json()["code"] == "too_large"
+
+
+async def test_deleting_the_directory_lifts_its_deactivations(
+    client, workspace, directory, scim_on, monkeypatch, seats
+):
+    polis, auth = scim_on
+    await _provision(client, directory, polis, 3)
+    ids = [auth.accounts[person(n)]["id"] for n in range(3)]
+    for n in range(3):
+        await deliver(
+            client,
+            directory,
+            polis,
+            event(
+                directory, "user.updated", user_data(f"u{n}", person(n), active=False)
+            ),
+        )
+    # one is also disabled by the plan
+    plan_too = await member_of(workspace.id, ids[2])
+    plan_too.disable_for("plan")
+    await container.workspace_user_repo().save(plan_too)
+    # one seat left: owner + collaborator + the plan-disabled one hold seats
+    monkeypatch.setattr(settings.api_settings, "ALLOWED_COLLABORATORS", 3)
+
+    reply = await client.delete(url(workspace, "/directory"), cookies=OWNER)
+
+    assert reply.status_code == 200, reply.text
+    assert reply.json() == {"reEnabled": 1, "leftDisabled": 1}
+    states = [await member_of(workspace.id, i) for i in ids]
+    assert not states[0].disabled and states[0].disabled_reasons == []
+    assert states[1].disabled and states[1].disabled_reasons == ["seat_limit"]
+    assert states[2].disabled and states[2].disabled_reasons == ["plan"]

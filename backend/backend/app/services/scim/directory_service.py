@@ -167,6 +167,13 @@ class DirectoryOverviewDto(_CamelModel):
     can_manage: bool = False
 
 
+class DirectoryDeletedDto(_CamelModel):
+    # members the directory had deactivated, enabled again
+    re_enabled: int = 0
+    # ... left disabled because no seat was free
+    left_disabled: int = 0
+
+
 class ResyncRequestDto(_CamelModel):
     # deprovision even when it is more than the safety threshold
     force: bool = False
@@ -441,9 +448,10 @@ class ScimDirectoryService:
                 await self._groups.save(group)
         deleted = await self._delete_in_polis(old_polis_id)
         if not deleted:
-            directory = await self._directories.get(directory.id) or directory
             directory.stale_polis_directory_id = old_polis_id
-            await self._directories.save(directory)
+            await self._directories.update_fields(
+                directory.id, {"stale_polis_directory_id": old_polis_id}
+            )
         logger.info(
             "SCIM directory {} of workspace {} rotated by {}",
             directory.id,
@@ -474,10 +482,9 @@ class ScimDirectoryService:
             return True
         if not await self._delete_in_polis(directory.stale_polis_directory_id):
             return False
-        fresh = await self._directories.get(directory.id) or directory
-        fresh.stale_polis_directory_id = None
-        fresh.updated_at = _now()
-        await self._directories.save(fresh)
+        await self._directories.update_fields(
+            directory.id, {"stale_polis_directory_id": None, "updated_at": _now()}
+        )
         return True
 
     async def cleanup(self, workspace_id, user: User) -> DirectoryDto:
@@ -493,9 +500,11 @@ class ScimDirectoryService:
             )
         return DirectoryDto.of(await self._directory(workspace_id))
 
-    async def delete(self, workspace_id, user: User) -> None:
-        """Stop syncing. Members stay as they are (an admin decides), and so
-        do their accounts and forms."""
+    async def delete(self, workspace_id, user: User) -> "DirectoryDeletedDto":
+        """Stop syncing. Members stay (an admin decides), and so do their
+        accounts and forms. The directory's own deactivations are lifted:
+        such a member is enabled again when no other reason holds them and a
+        seat is free; otherwise they stay disabled (``seat_limit``)."""
         await self._authorize_owner(workspace_id, user)
         directory = await self._directory(workspace_id)
         if settings.sso.is_configured:
@@ -505,12 +514,17 @@ class ScimDirectoryService:
                 raise _polis_error(error)
             await self._retry_stale(directory)
         await self._forget(directory)
+        enabled, left = await self._sync.release_directory_disables(workspace_id)
         logger.info(
-            "SCIM directory {} of workspace {} deleted by {}",
+            "SCIM directory {} of workspace {} deleted by {}: {} re-enabled, "
+            "{} left disabled for lack of a seat",
             directory.id,
             workspace_id,
             user.id,
+            enabled,
+            left,
         )
+        return DirectoryDeletedDto(re_enabled=enabled, left_disabled=left)
 
     async def _forget(self, directory: ScimDirectoryDocument) -> None:
         await self._members.delete_by_directory(directory.id)
@@ -627,14 +641,15 @@ class ScimDirectoryService:
                 refused.listed,
             )
         now = _now()
-        fresh = await self._directories.get(directory.id) or directory
-        fresh.last_resync_at = now
-        fresh.last_resync_by = by
-        fresh.last_resync_error = error
+        fields = {
+            "last_resync_at": now,
+            "last_resync_by": by,
+            "last_resync_error": error,
+            "updated_at": now,
+        }
         if summary:
-            fresh.last_resync_summary = summary
-        fresh.updated_at = now
-        await self._directories.save(fresh)
+            fields["last_resync_summary"] = summary
+        await self._directories.update_fields(directory.id, fields)
         logger.info(
             "SCIM directory {} resynced by {}: {} {}",
             directory.id,
@@ -671,11 +686,14 @@ class ScimDirectoryService:
 
     async def _record_failure(self, directory, by: str, code: str) -> None:
         try:
-            fresh = await self._directories.get(directory.id) or directory
-            fresh.last_resync_at = _now()
-            fresh.last_resync_by = by
-            fresh.last_resync_error = code
-            await self._directories.save(fresh)
+            await self._directories.update_fields(
+                directory.id,
+                {
+                    "last_resync_at": _now(),
+                    "last_resync_by": by,
+                    "last_resync_error": code,
+                },
+            )
         except Exception:  # noqa: BLE001 — best effort
             logger.error("SCIM directory {}: failure not recorded", directory.id)
 

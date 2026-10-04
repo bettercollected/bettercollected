@@ -679,6 +679,26 @@ class PostgresScimDirectoryRepository(PostgresRepositoryBase):
     async def save(self, document: ScimDirectoryDocument) -> ScimDirectoryDocument:
         return await self.upsert(document)
 
+    async def update_fields(
+        self, directory_id: PydanticObjectId, fields: Dict[str, Any]
+    ) -> int:
+        """The row is locked while ``fields`` are set on what is stored."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(ScimDirectoryRow.doc)
+                    .where(ScimDirectoryRow.id == str(directory_id))
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return 0
+            stored = from_row_doc(ScimDirectoryDocument, doc)
+            for name, value in fields.items():
+                setattr(stored, name, value)
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return 1
+
     async def get(self, directory_id) -> Optional[ScimDirectoryDocument]:
         return await self.one(ScimDirectoryRow.id == str(directory_id))
 

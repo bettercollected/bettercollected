@@ -44,7 +44,10 @@ from backend.app.repositories.scim_repository import (
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-from backend.app.schemas.workspace_user import DISABLED_BY_DIRECTORY
+from backend.app.schemas.workspace_user import (
+    DISABLED_BY_DIRECTORY,
+    DISABLED_BY_SEAT_LIMIT,
+)
 from backend.app.schemas.scim import (
     ScimDirectoryDocument,
     ScimGroupDocument,
@@ -588,6 +591,33 @@ class ScimSyncService:
             await self._members.remove(group.id, record.id)
         workspace = await self._workspace_repo.find_by_id(directory.workspace_id)
         await self.recompute([record], workspace)
+
+    # -- deleting the directory -----------------------------------------------
+    async def release_directory_disables(self, workspace_id) -> Tuple[int, int]:
+        """The directory is going away: lift its deactivations in the
+        workspace. A membership disabled for another reason too (the plan)
+        stays disabled; one disabled only by the directory is re-enabled when
+        a seat is free, else it stays disabled with the reason ``seat_limit``.
+        Returns (re-enabled, left disabled for lack of a seat)."""
+        enabled = left = 0
+        members = await self._workspace_users.get_workspace_users(
+            workspace_id=PydanticObjectId(workspace_id)
+        )
+        for membership in members:
+            if DISABLED_BY_DIRECTORY not in membership.disabled_reasons:
+                continue
+            if membership.disabled_reasons == [DISABLED_BY_DIRECTORY]:
+                if await self._workspace_user_service.has_free_seat(workspace_id):
+                    membership.enable_for(DISABLED_BY_DIRECTORY)
+                    enabled += 1
+                else:
+                    membership.disabled_reasons = [DISABLED_BY_SEAT_LIMIT]
+                    left += 1
+            else:
+                membership.enable_for(DISABLED_BY_DIRECTORY)
+            membership.updated_at = _now()
+            await self._workspace_users.save(membership)
+        return enabled, left
 
     # -- the SSO guard --------------------------------------------------------
     async def is_deprovisioned(self, workspace_id, email: str) -> bool:

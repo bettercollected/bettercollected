@@ -248,7 +248,8 @@ async def test_delete_stops_syncing_and_keeps_members(
         event(directory, "user.created", user_data("u1", JANE)),
     )
     reply = await client.delete(url(workspace, "/directory"), cookies=OWNER)
-    assert reply.status_code == 204
+    assert reply.status_code == 200
+    assert reply.json() == {"reEnabled": 0, "leftDisabled": 0}
     assert ("delete", "dir-1") in polis.calls
     assert await container.scim_directory_repo().find_by_workspace(workspace.id) is None
     assert await container.scim_user_repo().list_by_directory(directory.id) == []

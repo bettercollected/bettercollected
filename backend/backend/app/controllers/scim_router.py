@@ -12,6 +12,7 @@ from backend.app.router import router
 from backend.app.services.scim.directory_service import (
     CreateDirectoryDto,
     DirectoryCredentialsDto,
+    DirectoryDeletedDto,
     DirectoryDto,
     DirectoryOverviewDto,
     GroupDto,
@@ -66,12 +67,13 @@ class WorkspaceScimRouter(Routable):
     ) -> DirectoryCredentialsDto:
         return await container.scim_directory_service().rotate(workspace_id, user)
 
-    @delete("/{workspace_id}/scim/directory", status_code=HTTPStatus.NO_CONTENT)
+    @delete("/{workspace_id}/scim/directory")
     async def delete_directory(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
-    ) -> Response:
-        await container.scim_directory_service().delete(workspace_id, user)
-        return Response(status_code=HTTPStatus.NO_CONTENT)
+    ) -> DirectoryDeletedDto:
+        """Members stay; the directory's deactivations are lifted where a
+        seat is free."""
+        return await container.scim_directory_service().delete(workspace_id, user)
 
     @put("/{workspace_id}/scim/groups/{group_id}")
     async def set_group_role(
@@ -110,6 +112,21 @@ class WorkspaceScimRouter(Routable):
         return await container.scim_directory_service().cleanup(workspace_id, user)
 
 
+async def read_capped(request: Request, limit: int) -> Optional[bytes]:
+    """The body, read with a running cap: None once it passes ``limit``
+    bytes, whatever Content-Length says (chunked bodies have none)."""
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > limit:
+        return None
+    chunks, size = [], 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > limit:
+            return None
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 @router(prefix="/scim", tags=["Directory sync webhook"])
 class ScimWebhookRouter(Routable):
     """Polis's signed directory events. No session or key: the
@@ -124,14 +141,9 @@ class ScimWebhookRouter(Routable):
         },
     )
     async def webhook(self, directory_id: str, request: Request):
-        declared = request.headers.get("content-length")
-        if (
-            declared
-            and declared.isdigit()
-            and (int(declared) > settings.scim.MAX_WEBHOOK_BYTES)
-        ):
+        body = await read_capped(request, settings.scim.MAX_WEBHOOK_BYTES)
+        if body is None:
             return JSONResponse({"code": "too_large"}, status_code=413)
-        body = await request.body()
         reply = await container.scim_webhook_service().receive(
             directory_id, request.headers, body
         )
