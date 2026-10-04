@@ -69,6 +69,8 @@ async def test_sso_connections(sessions):
             ("create", lambda: (off,)),
             ("create", lambda: (elsewhere,)),
             ("get", lambda: (old.id,)),
+            ("find_by_polis_client_id", lambda: ("c-new",)),
+            ("find_by_polis_client_id", lambda: ("nope",)),
             ("get", lambda: (PydanticObjectId(),)),
             ("get", lambda: ("not-an-id",)),
             ("list_by_workspace", lambda: (ws,)),
@@ -99,3 +101,37 @@ async def test_one_record_per_polis_connection(sessions):
         lambda: mongo.create(connection(ws, "same-client")),
         lambda: postgres.create(connection(ws, "same-client")),
     )
+
+
+async def test_used_states_are_accepted_once(sessions):
+    from backend.app.repositories.postgres.identity import (
+        PostgresSsoUsedStateRepository,
+    )
+    from backend.app.repositories.sso_used_state_repository import (
+        SsoUsedStateRepository,
+        StateAlreadyUsed,
+    )
+    from backend.app.schemas.sso_used_state import SsoUsedStateDocument
+
+    mongo, postgres = SsoUsedStateRepository(), PostgresSsoUsedStateRepository(sessions)
+    now = _at(0)
+
+    def state(nonce, minutes=20):
+        return SsoUsedStateDocument(
+            id=PydanticObjectId(),
+            nonce_hash=nonce,
+            expires_at=now + dt.timedelta(minutes=minutes),
+        )
+
+    for repo in (mongo, postgres):
+        await repo.claim(state("n1"), now)
+        await repo.claim(state("n2"), now)
+    await both_raise(
+        StateAlreadyUsed,
+        lambda: mongo.claim(state("n1"), now),
+        lambda: postgres.claim(state("n1"), now),
+    )
+    # an expired record no longer blocks (Postgres deletes it on claim; Mongo's
+    # TTL index does it in the background, not tested here)
+    await postgres.claim(state("old", minutes=-1), now)
+    await postgres.claim(state("old"), now)

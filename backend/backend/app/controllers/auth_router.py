@@ -25,14 +25,18 @@ from backend.app.services.auth_cookie_service import (
 from backend.app.services.auth_service import AuthService
 from backend.app.services.feedback_service import UserFeedbackService
 from backend.app.services.session_service import (
+    OTP_METHOD,
     AuthServiceUnavailable,
     RevokeReason,
     SessionService,
 )
 from backend.app.services.sso.login_service import (
+    NONCE_COOKIE,
     SsoLoginService,
     SsoRefused,
     SsoSignIn,
+    clear_nonce_cookie,
+    set_nonce_cookie,
 )
 from backend.app.services.user_service import (
     get_logged_user,
@@ -100,11 +104,23 @@ class AuthRoutes(Routable):
         request: Request,
         response: Response,
         prospective_pro_user: Optional[bool] = False,
+        workspace_id: Optional[str] = None,
     ):
+        """``workspace_id``: the workspace whose forms the code was asked for
+        (respondent sign-in); see docs/sso.md for what it changes."""
         user = await self.auth_service.validate_otp(
-            login_details, prospective_pro_user=prospective_pro_user
+            login_details,
+            prospective_pro_user=prospective_pro_user,
+            workspace_id=workspace_id,
         )
-        await self.session_service.start(user, response, request)
+        await self.session_service.start(
+            user,
+            response,
+            request,
+            method=OTP_METHOD,
+            scope=user.session_scope,
+            scope_workspace_id=user.scope_workspace_id,
+        )
         return "Logged In successfully"
 
     @post(
@@ -169,12 +185,15 @@ class AuthRoutes(Routable):
         provider of the workspace that verified the work email's domain, or
         back to the login page with ``sso_error=<code>``."""
         try:
-            url = await self.sso_login_service.login_url(
+            url, nonce = await self.sso_login_service.login_url(
                 email[:320], request.headers.get("referer")
             )
         except SsoRefused as refused:
             return RedirectResponse(refused.redirect)
-        return RedirectResponse(url)
+        redirect = RedirectResponse(url)
+        # ties the callback to this browser (login CSRF)
+        set_nonce_cookie(redirect, nonce)
+        return redirect
 
     @get("/sso/callback")
     async def _sso_callback(
@@ -191,11 +210,18 @@ class AuthRoutes(Routable):
         signed_in = await get_user_if_logged_in(request, response)
         try:
             result = await self.sso_login_service.complete(
-                code, state, idp_error=bool(error), signed_in=signed_in
+                code,
+                state,
+                idp_error=bool(error),
+                signed_in=signed_in,
+                nonce=request.cookies.get(NONCE_COOKIE),
             )
         except SsoRefused as refused:
-            return RedirectResponse(refused.redirect)
+            redirect = RedirectResponse(refused.redirect)
+            clear_nonce_cookie(redirect)
+            return redirect
         redirect = RedirectResponse(result.redirect)
+        clear_nonce_cookie(redirect)
         if isinstance(result, SsoSignIn):
             await self.session_service.start(
                 result.user, redirect, request, method=result.user.auth_method
@@ -301,7 +327,9 @@ class AuthRoutes(Routable):
         )
         response = RedirectResponse(client_referer_url)
         if user:
-            await self.session_service.start(User(**user), response, request)
+            await self.session_service.start(
+                User(**user), response, request, method=provider_name
+            )
         return response
 
     @get(

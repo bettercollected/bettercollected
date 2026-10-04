@@ -52,6 +52,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceAPIKeyRepository,
     PostgresWorkspaceDomainRepository,
     PostgresSsoConnectionRepository,
+    PostgresSsoUsedStateRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -148,6 +149,7 @@ from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
+from backend.app.repositories.sso_used_state_repository import SsoUsedStateRepository
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.login_service import SsoLoginService
 from backend.app.services.sso.policy import SsoPolicyService
@@ -361,6 +363,18 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(SsoConnectionRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresSsoConnectionRepository, pg_sessionmaker
+        ),
+    )
+    sso_used_state_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(SsoUsedStateRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresSsoUsedStateRepository, pg_sessionmaker
         ),
     )
     workspace_api_key_repo = providers.Singleton(
@@ -756,7 +770,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     session_service: SessionService = providers.Singleton(
-        SessionService, session_repo=session_repo
+        SessionService, session_repo=session_repo, sso_policy=sso_policy_service
     )
 
     auth_service: AuthService = providers.Singleton(
@@ -800,6 +814,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         authorization_service=authorization_service,
         auth_service=auth_service,
+        used_state_repo=sso_used_state_repo,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(

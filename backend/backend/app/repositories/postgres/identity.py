@@ -33,6 +33,8 @@ from backend.app.repositories.metric_periods import (
     postgres_counts_per_period,
 )
 from backend.app.repositories.sso_connection_repository import SsoConnectionExists
+from backend.app.repositories.sso_used_state_repository import StateAlreadyUsed
+from backend.app.schemas.sso_used_state import SsoUsedStateDocument
 from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.sso_connection import (
     SsoConnectionDocument,
@@ -53,6 +55,7 @@ from backend.db.base import SCHEMA
 from backend.db.models import (
     SessionRow,
     SsoConnectionRow,
+    SsoUsedStateRow,
     UserTagsRow,
     WorkspaceApiKeyRow,
     WorkspaceDomainRow,
@@ -515,6 +518,11 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
     async def get(self, connection_id) -> Optional[SsoConnectionDocument]:
         return await self.one(SsoConnectionRow.id == str(connection_id))
 
+    async def find_by_polis_client_id(
+        self, client_id: str
+    ) -> Optional[SsoConnectionDocument]:
+        return await self.one(SsoConnectionRow.polis_client_id == client_id)
+
     async def list_by_workspace(
         self, workspace_id: PydanticObjectId
     ) -> List[SsoConnectionDocument]:
@@ -573,6 +581,21 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
         return await self.delete_where(
             SsoConnectionRow.workspace_id.in_([_oid(w) for w in workspace_ids])
         )
+
+
+class PostgresSsoUsedStateRepository(PostgresRepositoryBase):
+    row = SsoUsedStateRow
+    document = SsoUsedStateDocument
+
+    async def claim(
+        self, document: SsoUsedStateDocument, now: datetime.datetime
+    ) -> SsoUsedStateDocument:
+        # no TTL index here: expired records go on each claim
+        await self.delete_where(SsoUsedStateRow.expires_at <= now)
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise StateAlreadyUsed(document.nonce_hash)
 
 
 class PostgresSessionRepository(PostgresRepositoryBase):

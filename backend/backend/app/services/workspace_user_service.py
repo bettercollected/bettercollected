@@ -74,13 +74,25 @@ class WorkspaceUserService:
             return existing
         if not await self.has_free_seat(workspace_id):
             raise SeatLimitReached(str(workspace_id))
-        return await self.workspace_user_repository.save(
+        member = await self.workspace_user_repository.save(
             WorkspaceUserDocument(
                 workspace_id=PydanticObjectId(workspace_id),
                 user_id=user.id,
                 roles=[role],
             )
         )
+        # Two sign-ins racing past the look above would both be added: count
+        # again after the write and give the seat back when over the cap (in
+        # a tight race both may give it back: refusing is the safe side).
+        members = await self.workspace_user_repository.get_workspace_users(
+            workspace_id=PydanticObjectId(workspace_id)
+        )
+        if len(members) > settings.api_settings.ALLOWED_COLLABORATORS + 1:
+            await self.workspace_user_repository.delete(
+                PydanticObjectId(workspace_id), PydanticObjectId(user.id)
+            )
+            raise SeatLimitReached(str(workspace_id))
+        return member
 
     async def get_mine_workspaces(self, user_id: str):
         workspace_users = await self.workspace_user_repository.get_mine_workspaces(

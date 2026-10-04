@@ -17,17 +17,26 @@ OAuth code flow with Polis and owns the accounts:
    default role (never downgrading an existing membership), and the caller
    starts a session.
 
+Login CSRF: starting a sign-in sets a short-lived HttpOnly cookie with a
+random nonce whose hash travels in the encrypted state; the callback needs
+the same browser's cookie, and each nonce is accepted once
+(``sso_used_states``). Redirects to the dashboard quote the workspace handle
+as one path segment on an allow-listed origin.
+
 Errors go back to the login page as ``?sso_error=<code>``, codes from
 ``SSO_ERROR_CODES`` only. A "Test connection" sign-in (``purpose=test``)
 runs the same checks for an admin, records the outcome on the connection and
 never signs anyone in or creates an account.
 """
 
+import datetime as dt
+import hashlib
 import json
+import secrets
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any, Dict, Optional
-from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from beanie import PydanticObjectId
 from common.exceptions.http import HTTPException as CommonHTTPException
@@ -40,7 +49,9 @@ from backend.app.repositories.sso_connection_repository import SsoConnectionRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.domains.names import domain_of
+from backend.app.services.auth_cookie_service import set_cookie
 from backend.app.services.internal_auth import auth_service_headers
+from backend.app.services.login_redirect import origin_of
 from backend.app.services.session_service import SSO_METHOD
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.policy import default_sso_role
@@ -68,8 +79,51 @@ SSO_ERROR_CODES = frozenset(
         "sso_seat_limit",
         "sso_account_conflict",
         "sso_test_not_allowed",
+        "sso_session_mismatch",
+        "sso_membership_disabled",
     }
 )
+
+# the cookie that ties a callback to the browser that started the sign-in
+NONCE_COOKIE = "SsoNonce"
+NONCE_MAX_AGE_SECONDS = 600
+
+
+def nonce_hash(nonce: Optional[str]) -> str:
+    return hashlib.sha256((nonce or "").encode("utf-8")).hexdigest()
+
+
+def _nonce_cookie_path() -> str:
+    # sent to the callback only
+    return settings.api_settings.ROOT_PATH.rstrip("/") + "/auth/sso"
+
+
+def set_nonce_cookie(response, nonce: str) -> None:
+    """Short-lived, HttpOnly, SameSite=Lax (sent on the IdP's top-level
+    redirect back to the callback, not on cross-site subrequests)."""
+    set_cookie(
+        response,
+        NONCE_COOKIE,
+        nonce,
+        max_age=NONCE_MAX_AGE_SECONDS,
+        path=_nonce_cookie_path(),
+        secure="localhost" not in settings.api_settings.HOST,
+        httponly=True,
+        samesite="lax",
+    )
+
+
+def clear_nonce_cookie(response) -> None:
+    set_cookie(
+        response,
+        NONCE_COOKIE,
+        "",
+        max_age=0,
+        path=_nonce_cookie_path(),
+        secure="localhost" not in settings.api_settings.HOST,
+        httponly=True,
+        samesite="lax",
+    )
 
 
 class SsoRefused(Exception):
@@ -124,8 +178,10 @@ class SsoLoginService:
         workspace_user_service: WorkspaceUserService,
         authorization_service: AuthorizationService,
         auth_service,
+        used_state_repo=None,
     ):
         self._http = http_client
+        self._used_states = used_state_repo
         self._connections = connection_repo
         self._connection_service = connection_service
         self._domains = domain_service
@@ -146,6 +202,15 @@ class SsoLoginService:
             page, "sso_error", code if code in SSO_ERROR_CODES else "sso_failed"
         )
 
+    async def _workspace_page(self, page: str, workspace, suffix: str) -> str:
+        """``/<handle>/dashboard/<suffix>`` on ``page``'s (allow-listed)
+        origin. The handle is quoted as one path segment, so a handle like
+        ``//evil.com`` cannot change the host, and the result goes through
+        the allow-list once more."""
+        origin = origin_of(page) or origin_of(settings.api_settings.CLIENT_URL)
+        handle = quote(str(workspace.workspace_name or ""), safe="")
+        return await self._safe(f"{origin}/{handle}/dashboard/{suffix}", "/login")
+
     async def _test_result(self, context: Dict[str, Any], result: str) -> str:
         workspace = None
         try:
@@ -156,13 +221,14 @@ class SsoLoginService:
             workspace = None
         base = await self._safe(context.get("r"), "/")
         if workspace is not None:
-            base = urljoin(base, f"/{workspace.workspace_name}/dashboard/sso")
+            base = await self._workspace_page(base, workspace, "sso")
         return with_param(base, "sso_test", result)
 
     # -- start ----------------------------------------------------------------
-    async def login_url(self, email: str, referer: Optional[str]) -> str:
-        """Where to send the browser for ``email``: the identity provider, or
-        back to the login page with ``sso_error``."""
+    async def login_url(self, email: str, referer: Optional[str]):
+        """(url, nonce): where to send the browser for ``email`` (the identity
+        provider), and the nonce the caller sets as the NONCE_COOKIE; or
+        SsoRefused back to the login page with ``sso_error``."""
         referer = await self._safe(referer, "/login")
         if not settings.sso.is_configured:
             raise SsoRefused(
@@ -190,7 +256,9 @@ class SsoLoginService:
             "c": str(connection.id),
             "r": referer,
         }
-        return await self._authorize_url(connection, email, context, referer)
+        nonce = secrets.token_urlsafe(32)
+        context["n"] = nonce_hash(nonce)
+        return await self._authorize_url(connection, email, context, referer), nonce
 
     async def test_url(
         self,
@@ -198,9 +266,10 @@ class SsoLoginService:
         connection_id: str,
         user: User,
         referer: Optional[str],
-    ) -> str:
-        """Start a "Test connection" sign-in (security.manage). Works for a
-        disabled connection too: testing comes before enabling."""
+    ):
+        """(url, nonce): start a "Test connection" sign-in (security.manage:
+        it never signs anyone in). Works for a disabled connection too:
+        testing comes before enabling."""
         connection = await self._connection_service.connection_for_test(
             workspace_id, connection_id, user
         )
@@ -212,7 +281,9 @@ class SsoLoginService:
             "u": str(user.id),
             "r": referer,
         }
-        return await self._authorize_url(connection, None, context, referer)
+        nonce = secrets.token_urlsafe(32)
+        context["n"] = nonce_hash(nonce)
+        return await self._authorize_url(connection, None, context, referer), nonce
 
     async def _authorize_url(self, connection, email, context, referer) -> str:
         params = {
@@ -242,9 +313,11 @@ class SsoLoginService:
         state: Optional[str],
         idp_error: bool,
         signed_in: Optional[User],
+        nonce: Optional[str] = None,
     ):
-        """Finish a sign-in or a test. Returns SsoSignIn (start a session) or
-        SsoTestDone; raises SsoRefused."""
+        """Finish a sign-in or a test. ``nonce``: the NONCE_COOKIE of the
+        browser. Returns SsoSignIn (start a session) or SsoTestDone; raises
+        SsoRefused."""
         if not state:
             raise SsoRefused("sso_failed", await self._login_error(None, "sso_failed"))
         params = {"state": state}
@@ -273,9 +346,49 @@ class SsoLoginService:
 
         context = profile.get("context") if isinstance(profile, dict) else None
         context = context if isinstance(context, dict) else {}
+        refusal = await self._check_nonce(context, nonce)
+        if refusal:
+            if context.get("p") == PURPOSE_TEST:
+                raise SsoRefused(refusal, await self._test_result(context, refusal))
+            raise SsoRefused(
+                refusal, await self._login_error(context.get("r"), refusal)
+            )
         if context.get("p") == PURPOSE_TEST:
             return await self._finish_test(profile, context, signed_in)
         return await self._finish_login(profile, context)
+
+    async def _check_nonce(self, context: dict, nonce: Optional[str]):
+        """None when this browser started the sign-in and its nonce was not
+        used before; else the refusal code (login CSRF, replay)."""
+        expected = context.get("n")
+        if (
+            not nonce
+            or not isinstance(expected, str)
+            or not secrets.compare_digest(nonce_hash(nonce), expected)
+        ):
+            logger.info("SSO callback refused: no matching nonce cookie")
+            return "sso_session_mismatch"
+        if self._used_states is not None:
+            from backend.app.repositories.sso_used_state_repository import (
+                StateAlreadyUsed,
+            )
+            from backend.app.schemas.sso_used_state import SsoUsedStateDocument
+
+            now = dt.datetime.now(dt.timezone.utc)
+            try:
+                await self._used_states.claim(
+                    SsoUsedStateDocument(
+                        id=PydanticObjectId(),
+                        nonce_hash=expected,
+                        expires_at=now
+                        + dt.timedelta(seconds=NONCE_MAX_AGE_SECONDS * 2),
+                    ),
+                    now,
+                )
+            except StateAlreadyUsed:
+                logger.info("SSO callback refused: state already used")
+                return "sso_session_mismatch"
+        return None
 
     async def _checked(self, profile: dict, context: dict):
         """The connection, workspace and domain checks a sign-in and a test
@@ -318,6 +431,9 @@ class SsoLoginService:
                 if existing_id
                 else None
             )
+            if member is not None and member.disabled:
+                # a disabled membership stays disabled: no session for it
+                raise _Code("sso_membership_disabled")
             # the seat cap is checked before an account exists (shortcut 2)
             if member is None and not await self._members.has_free_seat(workspace.id):
                 raise _Code("sso_seat_limit")
@@ -360,7 +476,7 @@ class SsoLoginService:
         page = await self._safe(referer, "/login")
         return SsoSignIn(
             user=user,
-            redirect=urljoin(page, f"/{workspace.workspace_name}/dashboard/forms"),
+            redirect=await self._workspace_page(page, workspace, "forms"),
         )
 
     async def _finish_test(

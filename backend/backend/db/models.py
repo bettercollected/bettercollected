@@ -105,6 +105,13 @@ class SsoConnectionRow(Base, BaseRow):
     )
 
 
+class SsoUsedStateRow(Base, BaseRow):
+    __tablename__ = "sso_used_states"
+    nonce_hash = S.text("nonce_hash")
+    expires_at = S.ts("expires_at")
+    __table_args__ = (UniqueConstraint("nonce_hash"), Index(None, "expires_at"))
+
+
 class BlacklistedRefreshTokenRow(Base, BaseRow):
     """No longer written or read: session revocation (``sessions``) replaced
     the refresh-token blacklist. Kept until a later release drops the table

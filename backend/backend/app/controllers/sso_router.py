@@ -15,7 +15,7 @@ from backend.app.services.sso.connection_service import (
     SsoSettingsDto,
     UpdateSsoSettingsDto,
 )
-from backend.app.services.sso.login_service import SsoRefused
+from backend.app.services.sso.login_service import SsoRefused, set_nonce_cookie
 from backend.app.services.user_service import get_logged_user
 
 
@@ -29,7 +29,8 @@ from backend.app.services.user_service import get_logged_user
 )
 class WorkspaceSsoRouter(Routable):
     """Single sign-on connections and settings of a workspace (docs/sso.md).
-    Every route needs ``security.manage`` (Owner, Admin)."""
+    Viewing and testing need ``security.manage`` (Owner, Admin); everything
+    that changes the configuration is Owner only."""
 
     @get("/{workspace_id}/sso")
     async def overview(
@@ -104,12 +105,14 @@ class WorkspaceSsoRouter(Routable):
         """Browser navigation: sign in at the identity provider once; the
         outcome comes back to the SSO settings page as ``sso_test=``."""
         try:
-            url = await container.sso_login_service().test_url(
+            url, nonce = await container.sso_login_service().test_url(
                 workspace_id, connection_id, user, request.headers.get("referer")
             )
         except SsoRefused as refused:
             return RedirectResponse(refused.redirect)
-        return RedirectResponse(url)
+        redirect = RedirectResponse(url)
+        set_nonce_cookie(redirect, nonce)
+        return redirect
 
     @put("/{workspace_id}/sso/settings")
     async def update_settings(
