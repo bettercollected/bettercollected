@@ -141,6 +141,7 @@ from backend.app.services.pdf_import.storage import S3ObjectStore
 from backend.app.services.pdf_import_service import PdfImportService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
@@ -431,6 +432,14 @@ class AppContainer(containers.DeclarativeContainer):
             pg_sessionmaker,
             responder_groups_repository,
         ),
+    )
+
+    # Every workspace-scoped access decision (services call authorize()).
+    authorization_service: AuthorizationService = providers.Singleton(
+        AuthorizationService,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        workspace_form_repo=workspace_form_repo,
     )
 
     integration_action_service: IntegrationActionService = providers.Singleton(
