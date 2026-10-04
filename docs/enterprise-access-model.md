@@ -1,6 +1,6 @@
 # Enterprise access model: roles, permissions and form-level scope
 
-Status: **accepted** (2026-10-03; decisions and open questions confirmed by the product owner). It is a prerequisite for SSO/SCIM, which is Phase 0 of the enterprise work in [`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md).
+Status: **accepted** (2026-10-03; decisions and open questions confirmed by the product owner). Rollout: steps a and b are implemented (see *Rollout*); c to e are not. It is a prerequisite for SSO/SCIM, which is Phase 0 of the enterprise work in [`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md).
 
 ## Decisions (confirmed)
 1. **Form-level scoping ships in v1.** Access can be granted on specific forms to users and groups. Folders come later.
@@ -103,7 +103,7 @@ Folders, and grants on folders, come later. The model already allows it: a folde
 ## Enforcement
 - One authorisation service, `authorize(user, permission, workspace_id, form_id=None)`, plus a listing filter for "forms this user can see". Services call these; controllers and repositories don't decide access.
 - **Storage** (expand-only; Mongo collection plus Postgres twin each, following the persistence rules):
-  - `workspace_users.roles` gains `OWNER`, `EDITOR`, `REVIEWER`, `VIEWER` and `PRIVACY_OFFICER`. `COLLABORATOR` is read as `EDITOR` until it has been migrated.
+  - `workspace_users.roles` gains `EDITOR`, `REVIEWER`, `VIEWER` and `PRIVACY_OFFICER`. The owner is not a stored role: it is `workspaces.owner_id` with an active membership. `COLLABORATOR` is read as `EDITOR`, and an Editor is still *stored* as `COLLABORATOR` (see step b below).
   - `workspace_forms.settings.access_mode`.
   - New `form_access_grants` and `member_groups`.
 - **Webapp:** the backend returns the user's effective permissions for the workspace, and per form where relevant. The UI shows and hides controls from those permissions instead of `selectIsAdmin`, which today only means "is owner".
@@ -131,6 +131,13 @@ Missing access checks are handled separately in a security fix. The inconsistenc
 | c | Member groups, form grants, restricted access mode, listing filter; hidden → restricted migration | yes, for forms marked hidden (documented) |
 | d | Export permission across CSV, API/MCP and integrations; API keys get roles | keys default to their creator's role |
 | e | Permission matrix test + effective permissions API for the webapp | none |
+
+### Step b as implemented
+- **Roles:** each role grants exactly its §2 column; a membership's permissions are the union over its roles. An empty role list (memberships from before roles existed, the schema default) is an Editor, as it always behaved. A role the code doesn't know grants nothing, and such a membership still loads (`roles` accepts unknown strings), so a later release's roles don't break this one.
+- **Behaviour changes:** collaborators (Editors) lose `privacy.manage`: deletion requests, the responders list and its tags, the consent catalog and filing a deletion request for someone else move to Owner, Admin and Privacy officer. The consent catalog stays readable with `form.edit` (form builders pick from it). The workspace PATCH (name, handle, images, custom domain, policies) moves from owner-only to `workspace.manage`, so Admins can now change it.
+- **Role change:** `PATCH /workspaces/{id}/members/{user_id}` `{role}` needs `members.manage`. The owner's role and one's own are never changed, and no one gives a role with more permissions than their own; `OWNER` is not a role (Admins can't promote anyone above Admin). Invitations take a role (Admin, Editor, Reviewer, Viewer, Privacy officer) and inviting again updates it. The members list reports each member's `role` (`OWNER` for the owner).
+- **Owner transfer:** `POST /workspaces/{id}/members/{user_id}/transfer-ownership` needs `workspace.billing` (the owner). The new owner must be an active Admin; the old owner stays an Admin. The new `owner_id` is written first, then the old owner is demoted, so a failure in between never leaves the workspace without an owner (not a transaction; the remaining race is noted in the code). **Refused** for a personal (default) workspace and for one on a paid plan: the plan is the owner's (`User.plan`, their subscription), upgrades and downgrades find workspaces by `owner_id`, and sign-in recreates a personal workspace for an account that owns none. As billing stands, every non-default workspace is created on a paid plan (and disabled when the plan lapses), so transfer is in practice refused until plans are billed per workspace.
+- **No data migration:** existing `COLLABORATOR` rows are not rewritten; `COLLABORATOR` stays the stored spelling of Editor indefinitely, and the API reports `EDITOR`. That needs no dual-store rewrite and keeps every existing membership readable by the previous release on a rollback. Memberships given one of the new roles are not readable by a release before step b, so roll back only after setting them back to `COLLABORATOR`.
 
 Rough size: a 3–4 days, b 3–4, c 5–7, d 2–3, e 2. That is **about 15–20 engineer-days**, which comes on top of the session-revocation and verified-domain parts of Phase 0 ([`docs/sso-spike.md` on the `spike/sso-polis` branch](https://github.com/bettercollected/bettercollected/blob/spike/sso-polis/docs/sso-spike.md)).
 
