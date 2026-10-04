@@ -1,50 +1,60 @@
+import hmac
+import json
 import logging
 from http import HTTPStatus
 
-import httpx
-import jwt
+from fastapi import Depends
 from common.models.user import User
 from starlette.requests import Request
 from starlette.responses import Response
 
 from backend.app.exceptions import HTTPException
-from backend.app.services.auth_cookie_service import set_access_token_to_response
+from backend.app.models.dataclasses.user_tokens import UserDeletion
+from backend.app.services.auth_cookie_service import delete_token_cookie
+from backend.app.services.internal_job_key import require_job_api_key
+from backend.app.services.session_service import (
+    AuthServiceUnavailable,
+    SessionEnded,
+    user_from_access_token,
+)
 from backend.config import settings
 
 
 async def get_logged_user(request: Request, response: Response) -> User:
-    token = get_access_token(request)
+    """The signed-in user. A live access token is trusted as is; otherwise the
+    session is refreshed (see ``session_service``), which fails with 401 and
+    cleared cookies when the session was revoked or has ended."""
+    user = user_from_access_token(get_access_token(request))
+    if user is not None:
+        return user
+    from backend.app.container import (
+        container,
+    )  # at call time: container imports this module
+
     try:
-        return get_user_from_token(token)
-    # TODO : Handle specific exceptions
+        return await container.session_service().refresh(
+            request, response, rotate=False
+        )
+    except HTTPException:
+        raise
+    except AuthServiceUnavailable as e:
+        logging.error(
+            f"Session refresh: the auth service answered {e.status_code}; "
+            "check AUTH_INTERNAL_NOTIFY_KEY on the backend and auth services"
+        )
+        raise HTTPException(
+            HTTPStatus.SERVICE_UNAVAILABLE,
+            "Sign-in is temporarily unavailable.",
+        )
     except Exception as e:
-        refresh_token = get_refresh_token(request)
-        try:
-            user = get_user_from_token(refresh_token)
-            await check_if_refresh_token_is_blacklisted(refresh_token)
-            async with httpx.AsyncClient() as http_client:
-                user_response = await http_client.get(
-                    settings.auth_settings.BASE_URL + "/auth/status",
-                    params={"user_id": user.id},
-                    timeout=60,
-                )
-                if user_response.status_code == 404:
-                    raise HTTPException(401, "User not found")
-                user_response = user_response.json()
-                if user_response:
-                    user_response["sub"] = user_response.get("email")
-                set_access_token_to_response(
-                    user=User(**user_response) if user_response else user,
-                    response=response,
-                )
-                return user
-        except Exception as e:
-            logging.error(e)
-            raise HTTPException(401, "No user logged in.")
+        logging.error(e)
+        raise HTTPException(401, "No user logged in.")
 
 
 def get_api_key(request: Request, response: Response) -> str:
-    if request.headers.get("api-key") != settings.temporal_settings.api_key:
+    expected = require_job_api_key()  # 503 while not configured
+    given = (request.headers.get("api-key") or "").encode()
+    if not hmac.compare_digest(given, expected.encode()):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             content="You are not allowed to perform this action.",
@@ -53,19 +63,12 @@ def get_api_key(request: Request, response: Response) -> str:
     return request.headers.get("api_key")
 
 
-def get_user_from_token(token: str) -> User:
-    jwt_response = jwt.decode(
-        token,
-        key=settings.auth_settings.JWT_SECRET,
-        algorithms=["HS256"],
-    )
-    user = User(**jwt_response)
-    return user
-
-
 async def get_user_if_logged_in(request: Request, response: Response) -> User | None:
     try:
         return await get_logged_user(request=request, response=response)
+    except SessionEnded:
+        delete_token_cookie(response)
+        return None
     except HTTPException:
         return None
 
@@ -90,28 +93,31 @@ async def get_logged_admin(request: Request, response: Response):
         raise HTTPException(403, "You are not authorized to perform this action.")
 
 
-async def check_if_refresh_token_is_blacklisted(token: str):
-    jwt_response = jwt.decode(
-        token,
-        key=settings.auth_settings.JWT_SECRET,
-        algorithms=["HS256"],
-    )
-    from backend.app.container import container  # at call time: container imports this module
-
-    blacklisted = await container.blacklisted_refresh_token_repo().find_by_token(token)
-    if blacklisted:
-        raise HTTPException(401, "Invalid JWT")
+USER_DELETION_HEADER = "X-User-Deletion"
 
 
-async def add_refresh_token_to_blacklist(request: Request):
-    refresh_token = get_refresh_token(request)
-    jwt_response = jwt.decode(
-        refresh_token,
-        key=settings.auth_settings.JWT_SECRET,
-        algorithms=["HS256"],
-    )
-    from backend.app.container import container  # at call time: container imports this module
+def user_for_deletion(encrypted: str) -> User:
+    """Whose account a deletion job deletes: the :class:`UserDeletion` the
+    backend encrypted when the deletion was requested (authenticated
+    encryption with the backend's key, so nobody else can mint one). Requests
+    queued before this format (stored tokens) are refused."""
+    from backend.app.container import (
+        container,
+    )  # at call time: container imports this module
 
-    await container.blacklisted_refresh_token_repo().add(
-        token=refresh_token, expiry=jwt_response.get("exp")
-    )
+    data = json.loads(container.crypto().decrypt(encrypted))
+    deletion = UserDeletion(user_id=data["user_id"], email=data["email"])
+    if not deletion.user_id or not deletion.email:
+        raise ValueError("incomplete deletion request")
+    return User(id=deletion.user_id, sub=deletion.email)
+
+
+def get_user_to_delete(
+    request: Request, response: Response, api_key: str = Depends(get_api_key)
+) -> User:
+    """For the Temporal deletion workflow: the API key, plus the encrypted
+    deletion request it was started with in ``X-User-Deletion``."""
+    try:
+        return user_for_deletion(request.headers.get(USER_DELETION_HEADER) or "")
+    except Exception:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid deletion request.")

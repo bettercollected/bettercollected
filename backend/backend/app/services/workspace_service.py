@@ -16,6 +16,7 @@ from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
@@ -26,9 +27,9 @@ from backend.app.models.workspace import (
 from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.custom_domain_service import (
     CustomDomainService,
@@ -37,13 +38,35 @@ from backend.app.services.custom_domain_service import (
     domain_payload,
     unregistered_payload,
 )
+from backend.app.services.custom_domain_origins import (
+    remove_custom_domain_origin,
+    sync_custom_domain_origin,
+)
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
+from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
+
+# Top-level paths the webapp serves itself; a workspace with one of these
+# handles would be shadowed by (or shadow) that route — `/admin/metrics` is the
+# platform admin dashboard.
+RESERVED_WORKSPACE_NAMES = frozenset({"submissions", "forms", "templates", "admin"})
+
+
+def is_reserved_workspace_name(workspace_name: str) -> bool:
+    return workspace_name.strip().lower() in RESERVED_WORKSPACE_NAMES
+
+
+def raise_if_reserved_workspace_name(workspace_name: str) -> None:
+    if is_reserved_workspace_name(workspace_name):
+        raise HTTPException(
+            HTTPStatus.CONFLICT, content="This workspace handle is reserved."
+        )
 
 
 class WorkspaceService:
@@ -59,9 +82,13 @@ class WorkspaceService:
         form_response_service: FormResponseService,
         responder_groups_service: ResponderGroupsService,
         user_tags_service: UserTagsService,
+        authorization_service: AuthorizationService,
         custom_domain_service: Optional[CustomDomainService] = None,
+        workspace_domain_service: Optional[WorkspaceDomainService] = None,
     ):
+        self._authorization = authorization_service
         self.http_client = http_client
+        self.workspace_domain_service = workspace_domain_service
         self.custom_domain_service = custom_domain_service
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
@@ -81,16 +108,12 @@ class WorkspaceService:
 
     async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
-        if user:
-            try:
-                await self._workspace_user_service.check_user_has_access_in_workspace(
-                    workspace_id=workspace.id, user=user
-                )
-                return WorkspaceResponseDto(
-                    **workspace.model_dump(mode="json"), dashboard_access=True
-                )
-            except HTTPException:
-                pass
+        if user and await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace.id
+        ):
+            return WorkspaceResponseDto(
+                **workspace.model_dump(mode="json"), dashboard_access=True
+            )
         return WorkspaceResponseDto(**workspace.model_dump(mode="json"))
 
     async def create_non_default_workspace(
@@ -114,6 +137,7 @@ class WorkspaceService:
                 status_code=HTTPStatus.CONFLICT, content="Cannot add more workspaces"
             )
         if workspace_name:
+            raise_if_reserved_workspace_name(workspace_name)
             existing_workspace_with_name = await self._workspace_repo.find_by_name(
                 workspace_name
             )
@@ -155,16 +179,16 @@ class WorkspaceService:
         workspace_patch: WorkspaceRequestDtoCamel,
         user: User,
     ):
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        # Name, handle, images, custom domain and policies. The owner only, as
+        # before (#765): the access model gives this to workspace.manage
+        # (Owner and Admin), which is left to the roles step. Until then it
+        # needs the one permission only the owner holds.
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_BILLING, workspace_id
         )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
         )
-        if not str(workspace_document.owner_id) == user.id:
-            return HTTPException(
-                HTTPStatus.FORBIDDEN, "You are not authorized to perform this action."
-            )
 
         workspace_document = await self.upload_images_of_workspace(
             workspace_document=workspace_document,
@@ -176,6 +200,7 @@ class WorkspaceService:
             workspace_patch.workspace_name
             and workspace_patch.workspace_name != workspace_document.workspace_name
         ):
+            raise_if_reserved_workspace_name(workspace_patch.workspace_name)
             exists_by_handle = await self._workspace_repo.find_by_name(
                 workspace_patch.workspace_name
             )
@@ -216,9 +241,12 @@ class WorkspaceService:
                         workspace_document, workspace_patch.custom_domain
                     )
                     # CORS follows a successful registration: a refused hostname
-                    # is never allowed and the working one keeps its origin
+                    # is never allowed and the working one keeps its origin; the
+                    # new one is allowed only once it is verified
                     await self._swap_allowed_origin(
-                        workspace_document.custom_domain, workspace_patch.custom_domain
+                        workspace_document.custom_domain,
+                        workspace_patch.custom_domain,
+                        bool(workspace_document.custom_domain_verified),
                     )
                     await self.user_tags_service.add_user_tag(
                         user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED
@@ -273,8 +301,8 @@ class WorkspaceService:
         The list is small and owned by one settings surface, so replacing it
         wholesale keeps create/rename/delete a single round-trip each.
         """
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         if len(custom_themes) > 20:
             raise HTTPException(
@@ -303,11 +331,14 @@ class WorkspaceService:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
+        )
+        await remove_custom_domain_origin(
+            self._allowed_origins_repo, workspace_document.custom_domain
         )
         if self._custom_domain_enabled:
             domain_id = workspace_document.custom_domain_id
@@ -331,7 +362,7 @@ class WorkspaceService:
                 old_domain=workspace_document.custom_domain
             )
         workspace_document.custom_domain = ""
-        await DynamicCORSMiddleware.force_refresh_origins()
+        workspace_document.custom_domain_verified = False
         saved_workspace = await self._workspace_repo.save(workspace_document)
         return WorkspaceResponseDto(**saved_workspace.model_dump(mode="json"))
 
@@ -361,8 +392,7 @@ class WorkspaceService:
     async def check_if_workspace_handle_is_unique(
         self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
     ):
-        predefined_workspace_name = ["submissions", "forms", "templates"]
-        if workspace_name in predefined_workspace_name:
+        if is_reserved_workspace_name(workspace_name):
             return False
         existing_workspace = await self._workspace_repo.find_by_name(workspace_name)
         if workspace_id is not None:
@@ -395,13 +425,14 @@ class WorkspaceService:
                 "workspace_profile_image": workspace.profile_image,
                 "creator": False,
             },
+            headers=auth_service_headers(),
             timeout=180,
         )
         return {"message": "Otp sent successfully"}
 
     async def get_workspace_stats(self, workspace_id: PydanticObjectId, user: User):
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.ANALYTICS_READ, workspace_id
         )
         form_ids = await self.workspace_form_service.get_form_ids_in_workspace(
             workspace_id=workspace_id
@@ -491,6 +522,9 @@ class WorkspaceService:
             await self.update_https_server_for_certificate(
                 old_domain=workspace_document.custom_domain, new_domain=hostname
             )
+            if workspace_document.custom_domain != hostname:
+                # a new hostname starts unverified until the verify check passes
+                workspace_document.custom_domain_verified = False
             return
         previous_id = workspace_document.custom_domain_id
         # One nonce per registration attempt, kept until the call succeeds: a
@@ -520,13 +554,11 @@ class WorkspaceService:
                 )
 
     async def _swap_allowed_origin(
-        self, previous: Optional[str], hostname: str
+        self, previous: Optional[str], hostname: str, verified: bool
     ) -> None:
         if previous and previous != hostname:
-            await self._allowed_origins_repo.delete_by_origin("https://" + previous)
-        if not await self._allowed_origins_repo.find_by_origin("https://" + hostname):
-            await self._allowed_origins_repo.add("https://" + hostname)
-        await DynamicCORSMiddleware.force_refresh_origins()
+            await remove_custom_domain_origin(self._allowed_origins_repo, previous)
+        await sync_custom_domain_origin(self._allowed_origins_repo, hostname, verified)
 
     async def recheck_workspace_domain(
         self, workspace_id: PydanticObjectId, user: User
@@ -534,14 +566,20 @@ class WorkspaceService:
         """Bring the next lifecycle check forward (rate limited by the service)."""
         workspace = await self._require_custom_domain_admin(workspace_id, user)
         domain = await self.custom_domain_service.recheck(workspace.custom_domain_id)
-        await self._workspace_repo.set_fields(workspace, domain_fields(domain))
+        fields = domain_fields(domain)
+        await self._workspace_repo.set_fields(workspace, fields)
+        await sync_custom_domain_origin(
+            self._allowed_origins_repo,
+            workspace.custom_domain,
+            fields["custom_domain_verified"],
+        )
         return domain_payload(domain)
 
     async def _require_custom_domain_admin(
         self, workspace_id: PydanticObjectId, user: User
     ) -> WorkspaceDocument:
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         if (
@@ -579,22 +617,21 @@ class WorkspaceService:
                 "custom_domain_status": "deleting",
                 "custom_domain_updated_at": event.created_at,
             }
-            if workspace.custom_domain:
-                await self._allowed_origins_repo.delete_by_origin(
-                    "https://" + workspace.custom_domain
-                )
-                await DynamicCORSMiddleware.force_refresh_origins()
+            await remove_custom_domain_origin(
+                self._allowed_origins_repo, workspace.custom_domain
+            )
         else:
             fields = domain_fields(event.domain)
             fields["custom_domain_updated_at"] = max(
                 event.created_at, event.domain.updated_at or event.created_at
             )
         await self._workspace_repo.set_fields(workspace, fields)
-        if fields.get("custom_domain_verified") and workspace.custom_domain:
-            origin = "https://" + workspace.custom_domain
-            if not await self._allowed_origins_repo.find_by_origin(origin):
-                await self._allowed_origins_repo.add(origin)
-                await DynamicCORSMiddleware.force_refresh_origins()
+        if event.type != "domain.deleted":
+            await sync_custom_domain_origin(
+                self._allowed_origins_repo,
+                workspace.custom_domain,
+                bool(fields.get("custom_domain_verified")),
+            )
         return "applied"
 
     async def upload_images_of_workspace(
@@ -627,7 +664,9 @@ class WorkspaceService:
 
     async def delete_workspaces_of_user_with_forms(self, user: User):
         workspaces = await self.get_mine_workspaces(user=user)
-        workspaces = filter(lambda workspace: workspace.owner_id == user.id, workspaces)
+        workspaces = [
+            workspace for workspace in workspaces if workspace.owner_id == user.id
+        ]
         workspace_ids = [workspace.id for workspace in workspaces]
         form_ids = await self.workspace_form_service.get_form_ids_in_workspaces_and_imported_by_user(
             workspace_ids, user
@@ -642,12 +681,19 @@ class WorkspaceService:
         )
         for workspace_id in workspace_ids:
             self._aws_service.delete_folder_from_s3(f"private/{workspace_id}")
+        if self.workspace_domain_service is not None:
+            # a deleted workspace's verified domains are released
+            await self.workspace_domain_service.release_workspace_domains(workspace_ids)
 
+        for workspace in workspaces:
+            await remove_custom_domain_origin(
+                self._allowed_origins_repo, workspace.custom_domain
+            )
         await self._workspace_repo.delete_workspaces_with_ids(workspace_ids)
 
     async def verify_workspace_domain(self, workspace_id, user):
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         if (
@@ -668,7 +714,13 @@ class WorkspaceService:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, content="Custom domain not found."
                 )
-            await self._workspace_repo.set_fields(workspace, domain_fields(domain))
+            fields = domain_fields(domain)
+            await self._workspace_repo.set_fields(workspace, fields)
+            await sync_custom_domain_origin(
+                self._allowed_origins_repo,
+                workspace.custom_domain,
+                fields["custom_domain_verified"],
+            )
             return domain_payload(domain)
         try:
             response = await self.http_client.get(
@@ -681,6 +733,9 @@ class WorkspaceService:
                 verified = True
             await self._workspace_repo.set_fields(
                 workspace, {"custom_domain_verified": verified}
+            )
+            await sync_custom_domain_origin(
+                self._allowed_origins_repo, workspace.custom_domain, verified
             )
             return {**response, "provider": "legacy"}
         except Exception as e:

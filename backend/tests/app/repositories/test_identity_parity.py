@@ -18,17 +18,15 @@ from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.repositories.action_repository import ActionRepository
-from backend.app.repositories.blacklisted_refresh_token_repository import (
-    BlacklistedRefreshTokenRepository,
-)
 from backend.app.repositories.postgres.identity import (
-    PostgresBlacklistedRefreshTokenRepository,
+    PostgresSessionRepository,
     PostgresUserTagsRepository,
     PostgresWorkspaceAPIKeyRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
 )
+from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
@@ -37,6 +35,7 @@ from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitati
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.action_document import WorkspaceActionsDocument
+from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
@@ -230,6 +229,56 @@ async def test_workspace_users(sessions):
     )
 
 
+async def test_disabled_admin_membership_is_not_admin(sessions):
+    """A disabled membership grants nothing, an ADMIN role included (#770)."""
+    owner = User(id=str(PydanticObjectId()), sub="owner@example.com")
+    admin = User(id=str(PydanticObjectId()), sub="admin@example.com")
+    ws = workspace("zeta", owner.id)
+    for repo in (
+        WorkspaceRepository(),
+        PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None)),
+    ):
+        await repo.save(ws)
+    owner_row, admin_row = (
+        WorkspaceUserDocument(
+            id=PydanticObjectId(),
+            workspace_id=ws.id,
+            user_id=PydanticObjectId(user.id),
+            roles=[WorkspaceRoles.ADMIN],
+        )
+        for user in (owner, admin)
+    )
+    mongo, postgres = WorkspaceUserRepository(), PostgresWorkspaceUserRepository(
+        sessions
+    )
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("save", lambda: (owner_row,)),
+            ("save", lambda: (admin_row,)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
+            ("disable_other_users_in_workspace", lambda: (ws.id, owner_row.user_id)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, owner)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        assert await repo.is_user_admin_in_workspace(ws.id, admin) is False
+        assert await repo.is_user_admin_in_workspace(ws.id, owner) is True
+        assert await repo.has_user_access_in_workspace(ws.id, admin) is False
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("enable_all_user_in_workspace", lambda: (ws.id,)),
+            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        assert await repo.is_user_admin_in_workspace(ws.id, admin) is True
+
+
 async def test_invitations(sessions):
     ws_id = PydanticObjectId()
     mongo, postgres = WorkspaceInvitationRepo(), PostgresWorkspaceInvitationRepo(
@@ -355,16 +404,65 @@ async def test_api_keys(sessions):
     )
 
 
-async def test_blacklisted_tokens(sessions):
-    expiry = dt.datetime(2030, 1, 1, tzinfo=dt.timezone.utc)
+async def test_sessions(sessions):
+    t0 = dt.datetime(2030, 1, 1, 12, 0, tzinfo=dt.timezone.utc)
+    later = t0 + dt.timedelta(minutes=5)
+    user, other = str(PydanticObjectId()), str(PydanticObjectId())
+
+    def session(user_id, jti, minutes):
+        at = t0 + dt.timedelta(minutes=minutes)
+        return SessionDocument(
+            id=PydanticObjectId(),
+            user_id=user_id,
+            refresh_jti=jti,
+            last_refreshed_at=at,
+            expires_at=t0 + dt.timedelta(days=30),
+            email_verified=True,
+            user_agent="Firefox",
+            created_at=at,
+            updated_at=at,
+        )
+
+    a, b, c = session(user, "a1", 0), session(user, "b1", 1), session(other, "c1", 2)
     await parity(
-        BlacklistedRefreshTokenRepository(),
-        PostgresBlacklistedRefreshTokenRepository(sessions),
+        SessionRepository(),
+        PostgresSessionRepository(sessions),
         [
-            ("find_by_token", lambda: ("t1",)),
-            ("add", lambda: ("t1", expiry)),
-            ("find_by_token", lambda: ("t1",)),
-            ("find_by_token", lambda: ("t2",)),
+            ("save", lambda: (a,)),
+            ("save", lambda: (b,)),
+            ("save", lambda: (c,)),
+            ("get", lambda: (str(a.id),)),
+            ("get", lambda: ("not-an-id",)),
+            ("get", lambda: (str(PydanticObjectId()),)),
+            ("list_active_by_user", lambda: (user,)),
+            # compare-and-set: only the current jti rotates
+            ("rotate", lambda: (str(a.id), "a1", "a2", later, later)),
+            ("rotate", lambda: (str(a.id), "a1", "a3", later, later)),
+            ("rotate", lambda: ("not-an-id", "a1", "a3", later, later)),
+            ("get", lambda: (str(a.id),)),
+            ("touch", lambda: (str(b.id), later)),
+            ("touch", lambda: (str(PydanticObjectId()), later)),
+            ("revoke", lambda: (str(b.id), "logout", later)),
+            ("revoke", lambda: (str(b.id), "logout", later)),  # already revoked
+            ("rotate", lambda: (str(b.id), "b1", "b2", later, later)),  # revoked
+            ("touch", lambda: (str(b.id), later)),
+            ("get", lambda: (str(b.id),)),
+            ("list_active_by_user", lambda: (user,)),
+            ("save", lambda: (session(user, "d1", 3),)),
+            ("revoke_all_for_user", lambda: (user, "logout_everywhere", later, str(a.id))),
+            ("list_active_by_user", lambda: (user,)),
+            ("revoke_all_for_user", lambda: (user, "account_deleted", later)),
+            ("list_active_by_user", lambda: (user,)),
+            ("list_active_by_user", lambda: (other,)),
+            ("get", lambda: (str(a.id),)),
+            # expiry sweep: c expires 30 days after t0
+            ("delete_expired", lambda: (t0,)),
+            ("delete_expired", lambda: (t0 + dt.timedelta(days=31),)),
+            ("get", lambda: (str(c.id),)),
+            ("save", lambda: (session(other, "e1", 4),)),
+            ("delete_all_for_user", lambda: (other,)),
+            ("delete_all_for_user", lambda: (other,)),
+            ("list_active_by_user", lambda: (other,)),
         ],
     )
 

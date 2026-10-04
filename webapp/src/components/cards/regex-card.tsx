@@ -9,8 +9,8 @@ import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { handleRegexType } from '@app/models/enums/group-regex';
 import { Button } from '@app/shadcn/components/ui/button';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { isEmptyString } from '@app/utils/string-utils';
 
 
@@ -22,7 +22,8 @@ interface IRegexCardProps {
 export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
     const { t } = useTranslation();
     const { openModal } = useModal();
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    const canManageGroups = can(WorkspacePermission.MEMBERS_MANAGE);
 
     return (
         <div>
@@ -37,7 +38,7 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                             Eg: johndoe@<span className=" underline underline-offset-[6px]">yourdomain.any</span>
                         </p>
                     </div>
-                    {regex?.length === 0 && isAdmin && (
+                    {regex?.length === 0 && canManageGroups && (
                         <Button variant="ghost" onClick={() => openModal('ADD_REGEX', { handleRegex: handleRegex })}>
                             <Plus className="h-4 w-4 mr-2" />
                             {t(buttonConstant.addRegex)}
@@ -51,7 +52,7 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                             <p className="!text-black-800 truncate">
                                 {regex}
                             </p>
-                            {isAdmin && (
+                            {canManageGroups && (
                                 <span onClick={() => handleRegex(regex, handleRegexType.REMOVE)} className="text-red-500 cursor-pointer">
                                     {t(localesCommon.remove)}
                                 </span>

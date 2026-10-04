@@ -34,7 +34,13 @@ fi
 # docker-compose.deployment.yml substitutes the superuser password and the four
 # per-service role passwords, and postgres/init/01-roles-schemas.sh reads them on
 # the volume's first start. Hex only, so they are safe inside DATABASE_URL.
-for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD; do
+# AUTH_INTERNAL_NOTIFY_KEY: shared by backend, auth and integrations-googleform;
+# the auth service's API refuses every request without it (sign-in, users,
+# billing, notification mails), so only those services can call it.
+# TEMPORAL_API_KEY: shared by the backend (TEMPORAL_API_KEY) and the Temporal
+# worker / actions-executor (API_KEY); the backend's internal job routes refuse
+# requests without it and answer 503 while it is unset.
+for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
   if ! grep -q "^${var}=" .env 2>/dev/null; then
     echo "${var}=$(openssl rand -hex 24)" >> .env
     echo "Generated a new ${var} in .env (first run)."
@@ -59,11 +65,13 @@ function dockerup() {
     fi
   done
 
-  # Schema migrations run once, here, before the services roll — never from
-  # application startup, where several replicas would race each other
+  # Schema migrations run once, here, before the services roll
   # (plans/postgres-consolidation.md). Each service owns one schema and its own
   # Alembic history; `run --rm --no-deps` executes inside the freshly pulled
-  # image with the same DATABASE_URL the service will use.
+  # image with the same DATABASE_URL the service will use. Services check the
+  # revision at startup and refuse to serve on a stale schema; with
+  # DB_AUTO_MIGRATE=true they would migrate themselves (advisory-locked), which
+  # finds nothing left to do after this step.
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" pull -q backend auth $([ "$googleform_flag" = true ] && echo integrations-googleform)
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" up -d --wait app-postgres
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head

@@ -17,6 +17,7 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.utils import AiohttpClient
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 
@@ -193,6 +194,7 @@ class FormSchedular:
             response = await AiohttpClient.get_aiohttp_client().get(
                 f"{settings.auth_settings.BASE_URL}/users",
                 params={"user_ids": user_ids},
+                headers=auth_service_headers(),
             )
             return await response.json()
         except (ServerDisconnectedError, ClientConnectorError, gaierror, TimeoutError):

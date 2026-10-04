@@ -1,10 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { AnswerDto, InternalAnswerMeta, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { AnswerDto, InternalAnswerMeta, StaffFeedback, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
+import { WorkspaceDomainDto } from '@app/models/dtos/workspace-domain-dto';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
@@ -33,9 +35,25 @@ interface ImportFormQueryInterface {
     };
 }
 
+/** The workspace's AI consent (backend services/ai/consent.py). */
+export interface WorkspaceAISettings {
+    enabled: boolean;
+    provider?: string | null;
+    providerName?: string | null;
+    enabledBy?: string | null;
+    enabledAt?: string | null;
+    defaultProvider: string;
+    defaultProviderName: string;
+    providers: Array<{ id: string; name: string; configured: boolean }>;
+    canManage: boolean;
+    learnPreferences: boolean;
+}
+
+export const WORKSPACE_PERMISSIONS_TAG = 'WORKSPACE_PERMISSIONS_TAG';
+
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG'],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', WORKSPACE_PERMISSIONS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -342,6 +360,16 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [SUBMISSION_TAG]
         }),
+        // Workspace admins post an update (status and/or message) that the
+        // submission's respondent sees. Returns the history, staff view.
+        postRespondentFeedback: builder.mutation<StaffFeedback, { workspaceId: string; formId: string; responseId: string; status?: string | null; message?: string | null }>({
+            query: ({ workspaceId, formId, responseId, status, message }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${responseId}/feedback`,
+                method: 'POST',
+                body: { status: status || null, message: message || null }
+            }),
+            invalidatesTags: [SUBMISSION_TAG]
+        }),
         getWorkspaceStats: builder.query<WorkspaceStatsDto, string>({
             query: (id) => ({
                 url: `/workspaces/${id}/stats`,
@@ -445,6 +473,42 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['AI_PROFILE_TAG']
         }),
+        // The caller's effective permissions in a workspace (empty for a
+        // non-member). Kept a while: many controls read it. The user id is
+        // part of the cache key only, so one user never reads another's.
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission> }, { workspaceId: string; userId: string }>({
+            query: ({ workspaceId }) => ({
+                url: `/workspaces/${workspaceId}/permissions`,
+                method: 'GET'
+            }),
+            keepUnusedDataFor: 300,
+            providesTags: [WORKSPACE_PERMISSIONS_TAG]
+        }),
+        getAISettings: builder.query<WorkspaceAISettings, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/ai-settings`,
+                method: 'GET'
+            }),
+            providesTags: ['AI_SETTINGS_TAG']
+        }),
+        updateAISettings: builder.mutation<WorkspaceAISettings, { workspace_id: string; body: { enabled: boolean; provider?: string } }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-settings`,
+                method: 'PUT',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_SETTINGS_TAG']
+        }),
+        updateAIMemorySettings: builder.mutation<{ learnPreferences: boolean }, { workspace_id: string; body: { learnPreferences: boolean } }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-memory/settings`,
+                method: 'PUT',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_SETTINGS_TAG']
+        }),
         getAIMemory: builder.query<any, string>({
             query: (workspaceId) => ({
                 url: `/workspaces/${workspaceId}/ai-memory`,
@@ -492,6 +556,39 @@ export const workspacesApi = createApi({
                 credentials: 'include'
             }),
             invalidatesTags: ['API_KEYS_TAG']
+        }),
+        // Verified email domains (docs/verified-domains.md); owner/admins only.
+        getEmailDomains: builder.query<Array<WorkspaceDomainDto>, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/domains`,
+                method: 'GET'
+            }),
+            providesTags: ['EMAIL_DOMAINS_TAG']
+        }),
+        claimEmailDomain: builder.mutation<WorkspaceDomainDto, { workspace_id: string; domain: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/domains`,
+                method: 'POST',
+                body: { domain: request.domain },
+                credentials: 'include'
+            }),
+            invalidatesTags: ['EMAIL_DOMAINS_TAG']
+        }),
+        verifyEmailDomain: builder.mutation<WorkspaceDomainDto, { workspace_id: string; domain_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/domains/${request.domain_id}/verify`,
+                method: 'POST',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['EMAIL_DOMAINS_TAG']
+        }),
+        deleteEmailDomain: builder.mutation<void, { workspace_id: string; domain_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/domains/${request.domain_id}`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['EMAIL_DOMAINS_TAG']
         }),
         patchWorkspaceThemes: builder.mutation<any, any>({
             // Replaces the workspace's saved custom form themes (full-list PATCH).
@@ -647,12 +744,20 @@ export const {
     usePatchWorkspaceThemesMutation,
     useGetAIProfileQuery,
     useUpdateAIProfileMutation,
+    useGetAISettingsQuery,
+    useGetWorkspacePermissionsQuery,
+    useUpdateAISettingsMutation,
+    useUpdateAIMemorySettingsMutation,
     useGetAIMemoryQuery,
     useAddAIMemoryEntryMutation,
     useDeleteAIMemoryEntryMutation,
     useGetAPIKeysQuery,
     useCreateAPIKeyMutation,
     useRevokeAPIKeyMutation,
+    useGetEmailDomainsQuery,
+    useClaimEmailDomainMutation,
+    useVerifyEmailDomainMutation,
+    useDeleteEmailDomainMutation,
     useDuplicateFormMutation,
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,
@@ -676,5 +781,6 @@ export const {
     useLazyGetFormAllSubmissionsQuery,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,
-    useUpdateInternalAnswersMutation
+    useUpdateInternalAnswersMutation,
+    usePostRespondentFeedbackMutation
 } = workspacesApi;

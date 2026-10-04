@@ -5,6 +5,7 @@ from backend.app.models.dtos.user_tags_dto import UserTagsDetailsDto
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.utils import AiohttpClient
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 
@@ -28,7 +29,9 @@ class UserTagsService:
         user_ids = [str(item.user_id) for item in user_tags_list]
         query_params = {"user_ids": user_ids}
         response = await AiohttpClient.get_aiohttp_client().get(
-            f"{settings.auth_settings.BASE_URL}/users", params=query_params
+            f"{settings.auth_settings.BASE_URL}/users",
+            params=query_params,
+            headers=auth_service_headers(),
         )
 
         json_response = await response.json()

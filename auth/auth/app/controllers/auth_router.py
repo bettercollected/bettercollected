@@ -1,9 +1,11 @@
 """Auth controller implementation."""
+
 import logging
 
 from beanie import PydanticObjectId
 
 from auth.app.container import container
+from auth.app.controllers.internal_key import INTERNAL_ONLY
 from auth.app.router import router
 from auth.app.services.auth_service import AuthService
 
@@ -21,7 +23,7 @@ from starlette.requests import Request
 log = logging.getLogger(__name__)
 
 
-@router(prefix="/auth")
+@router(prefix="/auth", dependencies=INTERNAL_ONLY)
 class AuthRoutes(Routable):
     def __init__(
         self, auth_service: AuthService = container.auth_service(), *args, **kwargs
@@ -30,8 +32,10 @@ class AuthRoutes(Routable):
         self.auth_service = auth_service
 
     @get("/status")
-    async def _get_user_status(self, user_id: PydanticObjectId):
-        return await self.auth_service.get_user_status(user_id)
+    async def _get_user_status(
+        self, user_id: PydanticObjectId, email_verified: bool = False
+    ):
+        return await self.auth_service.get_user_status(user_id, email_verified)
 
     @get("/otp/send")
     async def _send_otp_to_email(
@@ -58,7 +62,11 @@ class AuthRoutes(Routable):
 
     @get("/{provider_name}/basic")
     async def _basic_auth(
-        self, provider_name: str, client_referer_url, creator: bool = False, prospective_pro_user: bool =False
+        self,
+        provider_name: str,
+        client_referer_url,
+        creator: bool = False,
+        prospective_pro_user: bool = False,
     ):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider_name, client_referer_url, creator, prospective_pro_user
@@ -75,5 +83,9 @@ class AuthRoutes(Routable):
         return basic_auth_url
 
     @get("/callback")
-    async def _auth_callback(self, jwt_token: str) -> User:
-        return await self.auth_service.handle_auth_callback(jwt_token)
+    async def _auth_callback(
+        self, jwt_token: str, email_verified: bool = False
+    ) -> User:
+        """``email_verified``: the signed-in session's claim; the backend only
+        exchanges that session's own email here (#763)."""
+        return await self.auth_service.handle_auth_callback(jwt_token, email_verified)

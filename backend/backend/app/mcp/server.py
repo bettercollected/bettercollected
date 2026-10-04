@@ -200,11 +200,18 @@ async def create_form_with_ai(prompt: str) -> str:
     key = _key("forms:write")
     from backend.app.container import container
 
-    form = await container.openai_service().create_form_with_ai(
-        workspace_id=key.workspace_id,
-        create_form_ai=CreateFormWithAI(prompt=prompt),
-        user=_acting_user(key),
-    )
+    try:
+        form = await container.openai_service().create_form_with_ai(
+            workspace_id=key.workspace_id,
+            create_form_ai=CreateFormWithAI(prompt=prompt),
+            user=_acting_user(key),
+        )
+    except HTTPException as e:
+        # e.g. 403 ai_not_enabled: tell the client why, in words
+        content = e.content
+        message = content.get("message") if isinstance(content, dict) else content
+        await _audit("create_form_with_ai", False, str(message or ""))
+        raise ValueError(str(message or "Could not create the form")) from e
     await _audit("create_form_with_ai", True, form.form_id)
     return json.dumps({"formId": form.form_id, "title": form.title, "published": False})
 

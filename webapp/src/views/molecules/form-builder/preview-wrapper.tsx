@@ -106,6 +106,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                                 retention={standardForm?.settings?.retentionText}
                                 privacyUrl={standardForm?.settings?.privacyPolicyUrl}
                                 poweredBy={!standardForm?.settings?.disableBranding}
+                                aiProviderName={standardForm?.settings?.aiInsightsEnabled ? standardForm?.settings?.aiInsightsProviderName : null}
                             />
                         </div>
                     </div>

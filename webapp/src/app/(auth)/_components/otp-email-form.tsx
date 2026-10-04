@@ -26,6 +26,11 @@ interface OtpEmailFormProps {
 
 const providers: Array<string> = ["google"];
 
+const loginProviderNames = new Map<string, string>([
+    ['google', 'Google'],
+    ['typeform', 'Typeform']
+]);
+
 export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
     const { t } = useTranslation();
     const { toast } = useToast();
@@ -36,6 +41,11 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
     const type = searchParams?.get('type');
     const isCreator = type !== 'responder';
     const workspace_id = searchParams?.get('workspace_id');
+    // Set by the backend when a provider sign-in was refused (#758). Anyone can
+    // craft these params, so only known codes and provider names are shown.
+    const loginError = searchParams?.get('login_error');
+    const loginProvider = loginProviderNames.get(searchParams?.get('login_provider') ?? '') ?? 'Your sign-in provider';
+    const loginErrorMessage = loginError === 'unverified_email' ? `${loginProvider} couldn't confirm that this email address is yours, so we didn't sign you in. Sign in with a code sent to your email instead.` : null;
     const constants = {
         welcomeBack: t(signInScreen.welcomeBack),
         signUp: t(signUpScreen.signUp),
@@ -66,6 +76,11 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
 
     return (
         <form className={`w-full ${isModal ? 'mt-16' : ''}`} onSubmit={handleEmailInputForCreator}>
+            {loginErrorMessage && (
+                <p role="alert" className="body4 mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 !text-red-700">
+                    {loginErrorMessage}
+                </p>
+            )}
             <div className="flex flex-col gap-3">
                 <span className="h4">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
                 {isModal ? (

@@ -945,6 +945,22 @@ class InternalAnswerMeta(BaseModel):
     updated_at: Optional[dt.datetime] = None
 
 
+class RespondentFeedback(BaseModel):
+    """One update staff posted on a submission for its respondent: a status
+    from the form's list and/or a message. Kept as append-only history.
+
+    ``message`` is encrypted at rest like ``answers`` (bytes once stored);
+    ``created_by`` / ``created_by_email`` are staff identity and never reach
+    the respondent."""
+
+    id: Optional[str] = None
+    status: Optional[str] = None
+    message: Optional[bytes | str] = None
+    created_at: Optional[dt.datetime] = None
+    created_by: Optional[str] = None
+    created_by_email: Optional[str] = None
+
+
 class ResponseState(BaseModel):
     global_state: Optional[Dict[str, Any]] = Field({})
     processor_state: Optional[Dict[PydanticObjectId, Dict[str, Any]]] = Field({})
@@ -979,6 +995,9 @@ class StandardFormResponse(BaseModel):
     # bumped on every save, which only succeeds against the version the
     # editor read (None = never edited = 0).
     internal_answers_version: Optional[int] = None
+    # Staff updates for the respondent ("Selected", "We need one more
+    # document"), oldest first; appended only, never edited.
+    respondent_feedback: Optional[List[RespondentFeedback]] = None
     form_version: Optional[int] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None

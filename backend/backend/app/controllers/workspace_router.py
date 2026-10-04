@@ -9,6 +9,7 @@ from pydantic import EmailStr
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -20,6 +21,11 @@ from backend.app.services.ai.api_keys import (
     APIKeyDto,
     CreateAPIKeyDto,
     CreatedAPIKeyDto,
+)
+from backend.app.services.ai.consent import (
+    LearnPreferencesDto,
+    UpdateWorkspaceAISettingsDto,
+    WorkspaceAISettingsDto,
 )
 from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
@@ -159,6 +165,21 @@ class WorkspaceRouter(Routable):
             profile_image, banner_image, workspace_id, workspace_request, user
         )
 
+    @get("/{workspace_id}/permissions", response_model=WorkspacePermissionsDto)
+    async def get_workspace_permissions(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> WorkspacePermissionsDto:
+        """What the caller may do in this workspace (the webapp shows and
+        hides controls from it). Empty for anyone who isn't an active member."""
+        permissions = await container.authorization_service().effective_permissions(
+            user, workspace_id
+        )
+        return WorkspacePermissionsDto(
+            permissions=sorted(permissions, key=lambda p: p.value)
+        )
+
     @get("/{workspace_id}/ai-profile")
     async def get_ai_profile(
         self,
@@ -179,6 +200,42 @@ class WorkspaceRouter(Routable):
         return await container.ai_profile_service().update_profile(
             workspace_id, profile, user
         )
+
+    @get("/{workspace_id}/ai-settings")
+    async def get_ai_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> WorkspaceAISettingsDto:
+        """Whether AI features are on for this workspace, which provider they
+        use, and the caller's own "Learn my preferences" setting."""
+        return await container.ai_consent_service().get_settings(workspace_id, user)
+
+    @put("/{workspace_id}/ai-settings")
+    async def update_ai_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        request: UpdateWorkspaceAISettingsDto,
+        user: User = Depends(get_logged_user),
+    ) -> WorkspaceAISettingsDto:
+        """Turn AI features on (for one provider) or off. Admins only;
+        recorded with who and when."""
+        return await container.ai_consent_service().update_settings(
+            workspace_id, request, user
+        )
+
+    @put("/{workspace_id}/ai-memory/settings")
+    async def update_ai_memory_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        request: LearnPreferencesDto,
+        user: User = Depends(get_logged_user),
+    ) -> LearnPreferencesDto:
+        """The caller's "Learn my preferences" setting (default off)."""
+        enabled = await container.ai_memory_service().set_learn_preferences(
+            workspace_id, user, request.learn_preferences
+        )
+        return LearnPreferencesDto(learn_preferences=enabled)
 
     @get("/{workspace_id}/api-keys")
     async def list_api_keys(

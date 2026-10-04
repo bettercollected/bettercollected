@@ -16,6 +16,7 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from tests.app.controllers.data import (
     formData_2,
     invitation_request,
+    invited_user,
     testUser,
     user_info,
 )
@@ -95,7 +96,7 @@ class TestWorkspaceMember:
         test_user_cookies: dict[str, str],
         mock_get_user_info,
     ):
-        delete_url = f"{workspace_member_url}/{testUser.id}"
+        delete_url = f"{workspace_member_url}/{invited_user.id}"
 
         with mock_get_user_info:
             delete_workspace_member = await client.delete(
@@ -106,6 +107,24 @@ class TestWorkspaceMember:
         actual_response = delete_workspace_member.json()
         assert actual_response == expected_response
 
+    async def test_the_owner_cannot_be_removed(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_member_url: str,
+        test_user_cookies: dict[str, str],
+        mock_get_user_info,
+    ):
+        with mock_get_user_info:
+            response = await client.delete(
+                f"{workspace_member_url}/{testUser.id}", cookies=test_user_cookies
+            )
+
+        assert response.status_code == 403
+        assert await container.workspace_user_repo().find_workspace_user(
+            workspace.id, PydanticObjectId(testUser.id)
+        )
+
     async def test_delete_member_deletes_form_and_user(
         self,
         client: AsyncClient,
@@ -115,19 +134,19 @@ class TestWorkspaceMember:
         test_user_cookies: dict[str, str],
         mock_get_user_info,
     ):
-        delete_url = f"{workspace_member_url}/{testUser.id}"
-        await container.workspace_form_service().create_form(
-            workspace.id, StandardForm(**formData_2), testUser
+        delete_url = f"{workspace_member_url}/{invited_user.id}"
+        members_form = await container.workspace_form_service().create_form(
+            workspace.id, StandardForm(**formData_2), invited_user
         )
 
         with mock_get_user_info:
             await client.delete(delete_url, cookies=test_user_cookies)
 
         expected_form = await container.workspace_form_repo().find_workspace_form(
-            workspace.id, workspace_form.form_id
+            workspace.id, members_form.form_id
         )
         expected_user = await container.workspace_user_repo().find_workspace_user(
-            workspace.id, PydanticObjectId(testUser.id)
+            workspace.id, PydanticObjectId(invited_user.id)
         )
         actual_user_and_form = None
         assert actual_user_and_form == expected_user == expected_form

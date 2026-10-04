@@ -1,17 +1,21 @@
+import React, { FormEvent, useState } from 'react';
+
+import { useRouter } from 'next-nprogress-bar';
+import Image from 'next/image';
+
+import { ChevronDown } from 'lucide-react';
+import styled from 'styled-components';
+
+import { AIOptIn, useWorkspaceAI } from '@app/components/ai/ai-consent';
+import { defaultForm } from '@app/constants/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { defaultForm } from '@app/constants/form';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ChevronDown } from 'lucide-react';
-import { useRouter } from 'next-nprogress-bar';
-import Image from 'next/image';
-import React, { FormEvent, useState } from 'react';
-import styled from 'styled-components';
 
 const GenerateButton = styled(Button)`
     background: linear-gradient(89.94deg, #00a9fe 1.64%, #8f6aff 99.95%);
@@ -63,10 +67,13 @@ export default function StartWithAi() {
     const [createV2Form, { isLoading }] = useCreateV2FormMutation();
     const [isGenerationStarted, setIsGenerationStarted] = useState(false);
     const authState = useAppSelector(selectAuth);
+    // Workspace AI opt-in (#715)
+    const { settings: aiSettings, enabled: aiEnabled, providerName } = useWorkspaceAI();
 
     const router = useRouter();
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (!aiEnabled || !prompt.trim()) return;
         setIsGenerationStarted(true);
         // Ratified 2026-07-09: one conversational surface for create and edit.
         // Create a blank draft, hand the prompt to the builder's AI tab, and
@@ -94,20 +101,21 @@ export default function StartWithAi() {
                     <Image width={60} height={60} style={{ objectFit: 'cover' }} className="rounded-lg" src="/gifs/loading.gif" alt="Loading" />
                 </div>
                 <div className="mt-10 font-semibold">Opening your draft</div>
-                <div className="text-black-700 mt-2 text-xs">The assistant will build it with you in the editor</div>
+                <div className="mt-2 text-xs text-black-700">Your prompt waits in the editor&apos;s assistant until you press send</div>
             </div>
         );
     }
 
     return (
         <form onSubmit={handleSubmit}>
-            <div className="p2-new border-b-black-300 border-b p-4 ">Start with AI</div>
+            <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
             <div className="flex flex-col gap-4 px-10 py-6">
                 <div className="tex-black-800 text-normal font-medium">Create a new form with AI</div>
-                <div className="bg-black-200 prompt-input-wrapper rounded-lg p-[1px]">
+                {aiSettings && !aiEnabled && <AIOptIn feature="Start with AI" sends="your prompt, the workspace AI profile and your AI memory" />}
+                <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">
                     <div className="rounded-lg bg-white">
                         <textarea
-                            className=" placeholder-black-500 w-full rounded-lg border-none  text-sm"
+                            className="w-full rounded-lg border-none text-sm placeholder-black-500"
                             style={{
                                 resize: 'none'
                             }}
@@ -124,11 +132,11 @@ export default function StartWithAi() {
                     <div>
                         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
                             <CollapsibleTrigger asChild>
-                                <div className="text-black-700 mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium">
+                                <div className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-black-700">
                                     Examples <ChevronDown />
                                 </div>
                             </CollapsibleTrigger>
-                            <CollapsibleContent className={cn(' flex flex-col gap-2 transition-all duration-300', isOpen ? 'h-auto' : 'h-0')}>
+                            <CollapsibleContent className={cn('flex flex-col gap-2 transition-all duration-300', isOpen ? 'h-auto' : 'h-0')}>
                                 {examples.map((example: string) => {
                                     return (
                                         <GradiantBorderDiv
@@ -138,20 +146,25 @@ export default function StartWithAi() {
                                                 setIsOpen(false);
                                             }}
                                         >
-                                            <div className="bg-black-200 text-black-600 hover:text-black-800 cursor-pointer rounded-lg p-4 text-sm">{example}</div>
+                                            <div className="cursor-pointer rounded-lg bg-black-200 p-4 text-sm text-black-600 hover:text-black-800">{example}</div>
                                         </GradiantBorderDiv>
                                     );
                                 })}
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit">
+                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
                         <div className="z-10 flex items-center gap-2">
                             <AIIcon className="transition-all group-hover:scale-125" />
                             Generate
                         </div>
                     </GenerateButton>
                 </div>
+                {aiEnabled && (
+                    <p className="text-xs leading-relaxed text-black-600">
+                        Nothing is sent yet. Generate opens a blank draft with your prompt in the editor&apos;s assistant; when you press send there, your prompt, the workspace AI profile and your AI memory go to {providerName}.
+                    </p>
+                )}
             </div>
         </form>
     );

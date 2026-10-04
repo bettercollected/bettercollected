@@ -41,6 +41,27 @@ backend/
   `services/` class; do all Mongo access through a `repositories/` class. Wire new services/repos in `container.py`.
 - Never query Beanie directly from a controller.
 
+## Authorization (workspace permissions)
+
+Every workspace-scoped access decision goes through `services/authorization_service.py`
+(docs/enterprise-access-model.md). Services name the permission an action needs —
+`authorize(user, Permission.X, workspace_id, form_id=None)` raises 403 (then 404 when `form_id` is
+not a form of that workspace), `has_permission(...)` returns a bool for "staff view or public view"
+branches. Never compare `owner_id` or roles in a service, and never call the repository's
+`has_user_access_in_workspace` / `is_user_admin_in_workspace` for access.
+
+- **Catalogue:** `models/enum/permission.py` (`workspace.manage`, `members.manage`, `form.edit`,
+  `response.read`, ...). **Roles today:** the owner holds all; `ADMIN` all but `workspace.billing`;
+  any active membership (`COLLABORATOR`) the Editor's content permissions plus `privacy.manage`.
+  A disabled membership grants nothing; in a disabled workspace (owner downgraded) only the owner
+  keeps `form.read`, `response.read/export/delete`, `privacy.manage` and `analytics.read`.
+- **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
+  gates controls with `useWorkspacePermissions().can(...)`, not `selectIsAdmin` (which means owner).
+- **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
+  requests) authorise by the submitter's identity, not through permissions. Platform admin
+  (`get_logged_admin`) is separate.
+- **Tests:** a new workspace endpoint gets a row in `tests/app/controllers/test_permission_matrix.py`.
+
 ## Adding a route
 
 Routers are registered in [backend/app/router.py](backend/app/router.py) via the `@router(...)` decorator
@@ -68,6 +89,18 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
 - **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
   (query only spine columns; add one + an Alembic revision under `backend/migrations/` when a query needs a new
   field). Migrations run as the service role (`bc_app`), never as the superuser.
+- **Schema check at startup** (`common/db/schema_guard.py`, wired in `backend/db/startup.py`; auth and google pass
+  their own `MigrationTarget` in their `asgi.py`): when any group reads/writes Postgres the service refuses to start
+  unless its schema is at the code's Alembic head (and, for the backend, procrastinate's `jobs` tables exist when a job
+  kind is on Postgres). All-Mongo flags skip it. `deploy.sh` migrates explicitly; `DB_AUTO_MIGRATE=true` (default
+  off) makes each service run `alembic upgrade head` in-process at startup instead, serialised across replicas by a
+  per-schema Postgres advisory lock (a waiting replica gives up after `DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS`, default
+  300; the migration's own DDL waits at most 60s for a table lock). A new revision has to ship with the code that
+  needs it. A database migrated *past* the image (a rollback) only logs a warning and starts, so **migrations must
+  be expand-only**: never drop or rename what the previous release still uses in the same release that stops using
+  it. They also run in one transaction, so no `CREATE INDEX CONCURRENTLY` / `autocommit_block` — ship that as a
+  manual step. Tests: `common/tests/test_schema_guard.py`,
+  `tests/app/db/test_auto_migrate.py` (real throw-away database initialised by `postgres/init`).
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.
@@ -98,7 +131,7 @@ client-side (webapp `src/utils/answer-piping.ts`); the backend only stores the p
 **Internal fields** (`StandardFormField.internal`, "for office use only"): staff fill them in on each submission
 afterwards; values live in `StandardFormResponse.internal_answers` (encrypted like `answers`, decrypted in
 `decrypt_form_response`) with `internal_answers_meta` recording who changed each one and when
-(`PATCH /workspaces/{id}/forms/{form_id}/submissions/{response_id}/internal-answers`, any active workspace member).
+(`PATCH /workspaces/{id}/forms/{form_id}/submissions/{response_id}/internal-answers`, `response.annotate`).
 Rules live in `services/internal_fields.py`: every form payload served to a non-member goes through
 `strip_internal_fields`, every respondent-facing response through `strip_internal_answers`, respondent submissions
 never store internal values (they are dropped, not rejected, so a field made internal mid-fill doesn't fail
@@ -106,6 +139,22 @@ anyone's submission), on-submit actions get the stripped form, and logic (visibi
 AI ops both refuse it). `validations.required` on an internal field is stored but not enforced (there is no
 staff-side "complete" state yet). A new endpoint that returns a form or a response to respondents must use the
 same two strip helpers.
+
+**Respondent feedback** ("Respond to submissions"): a form built here opts in with
+`WorkspaceFormSettings.respondent_feedback_enabled` and lists its `feedback_statuses` (≤ 10, 1–40 chars,
+unique ignoring case; `normalize_feedback_statuses`; switching either is `form.edit`). Members with
+`response.annotate` post `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/feedback`
+(`{status?, message?}`, at least one; a status outside the form's list → 422). Entries are appended to
+`StandardFormResponse.respondent_feedback` (`add_respondent_feedback`, `replay=True`), message encrypted like
+`answers` and decrypted in `decrypt_form_response`. `StandardFormResponseCamelModel.respondent_feedback` is
+`exclude=True`: the stored list (staff identity, ciphertext) is never serialised. Members get
+`SingleSubmissionResponse.feedback` (who posted each); respondents get `response.feedback` through
+`present_to_respondent` (`services/respondent_feedback.py`): the workspace title as author, never staff — on
+their submission page, the by-uuid receipt and, as `currentStatus` only, "my submissions". A new update emails
+a notice (never the update) through auth's `POST /notifications/submission-update` with the poster's token,
+only when the form requires a verified identity and the submitter is identified; a mail failure is logged and
+never fails the update. The link is always `API_CLIENT_URL/<workspace_name>/submissions/<response_id>` (auth
+accepts only its configured hosts, so never a custom domain).
 
 **Repeating groups:** a `group` field with `properties.repeat` (`RepeatSettings`: min/max items ≤ 50,
 item label/title, `export_layout`) in `common/models/standard_form.py`; the model rejects nested groups and
@@ -128,6 +177,17 @@ edits (422), skipping rules whose other question is unanswered or hidden by logi
 `utils/date-rules.ts` — keep the two in step. Dates are compared as `YYYY-MM-DD` strings; "today" is
 accepted within one day either side of UTC (the server can't know the respondent's zone), and on an edit
 "today" is the submission day.
+
+**Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
+Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
+`_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:
+`services/workspace_domain_service.py` (one access check, `_authorize`, to become `security.manage`),
+`services/domains/names.py` (IDNA + Public Suffix List via `publicsuffixlist`; refuses public suffixes,
+free-mail and reserved domains, incl. `PLATFORM_ADMIN_EMAILS` domains) and `services/domains/dns_txt.py`
+(dnspython, no cache). A domain is verified by at most one workspace: the partial unique index on
+`verified_domain` in both stores decides races. A verified domain whose record disappears keeps its owner
+(`verification_lost_at` after N failed re-checks, never transferred). SSO must only trust
+`domain_owner` / `is_domain_verified_for`. Tests never resolve real names (`tests/app/domain_helpers.py`).
 
 ## Seed scripts
 
@@ -187,6 +247,54 @@ and architecture.
   docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
   `.env.deployment`.
 
+## AI consent (#715)
+
+No user content (form content, prompts, the AI profile, memory, responses, uploaded
+documents) goes to an AI provider until the workspace has opted in. Code:
+`services/ai/consent.py`, enforced through `OpenAIService.provider_for_workspace`.
+
+- **Workspace setting:** `ai_enabled` on the workspace document (default off; a
+  missing value counts as off, so existing workspaces start with AI off), with
+  `ai_provider` (the one provider consent was granted for), `ai_enabled_by`/`_at`
+  and `ai_disabled_by`/`_at`. `GET/PUT /workspaces/{id}/ai-settings`; only admins
+  change it, and only for a provider configured on the instance.
+- **One choke point:** every AI path gets its provider from
+  `provider_for_workspace(workspace_id, requested)`, which raises 403
+  `{"code": "ai_not_enabled", "message": ...}` while AI is off and always returns
+  the consented provider (a client-chosen `provider` is ignored unless it is that
+  one). Call it **after** the membership check and **before** loading the AI
+  profile, memory or responses. Never call `_get_provider` from a feature: it is
+  the raw lookup (tests replace it with a fake).
+- **Memory extraction** after a chat turn also needs the user's own "Learn my
+  preferences" (`UserAIPreferenceMemoryDocument.learn_preferences`, default off,
+  `PUT /workspaces/{id}/ai-memory/settings`); `extract_from_turn` re-checks both.
+- **PDF import** needs the per-upload `ai_consent` on top (see below).
+- **Response insights (#716)** also need the form's own "Allow AI insights on
+  responses" (`WorkspaceFormSettings.ai_insights_*`: enabled, the provider id and
+  name the respondent notice shows, who and when;
+  `PUT …/forms/{id}/ai/insights/settings`, `ai.manage`, needs the workspace
+  opt-in to turn on); running and reading them is `response.read`. While on, the respondent
+  form's trust strip names the provider. Only forms collected here
+  (`settings.provider == "self"`) qualify: an imported form's respondents
+  answered on Google Forms / Typeform and never saw the notice, so the setting
+  and generate both refuse it, and only `provider == "self"` responses are ever
+  analysed. Only responses with `created_at` at or
+  after `ai_insights_enabled_at` are analysed (turning it off and on again moves
+  that moment), and a workspace provider other than the one the notice named
+  (id and resolved name, so a changed `COMPAT_BASE_URL` host counts) is
+  refused (403 `ai_insights_not_enabled`) until the form setting is renewed. The
+  projection redacts email/phone answers and leaves out internal fields and their
+  answers (internal in the draft or any published version,
+  `all_internal_field_ids(..., every_version=True)`); free-text answers are sent
+  as written, and the UI says so.
+- **MCP API keys with `responses:read`** hand full, unredacted answers to an
+  external AI client: creating one requires `acknowledgeUnredactedResponses`,
+  stored as `responses_read_acknowledged_by`/`_at` on the key.
+- **Tests** never call a real provider: `tests/app/ai_helpers.py` has a counting
+  `FakeProvider`, `use_fake_provider` (replaces only the raw lookup, so the opt-in
+  check still runs) and `enable_ai(workspace)`. A new AI path needs a test that it
+  answers 403 `ai_not_enabled` with zero provider calls while AI is off.
+
 ## PDF form import (in progress)
 
 `POST /workspaces/{id}/form-imports` (multipart `file`) turns an uploaded PDF or
@@ -244,11 +352,12 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.
-- **AI needs consent per import:** nothing from an uploaded document (page text,
-  layout text, page images) goes to an AI provider unless the uploader sent
-  `ai_consent=true` with that upload (stored with `ai_consent_at`/`_by`). Without it
-  `_structure` passes no provider and only the deterministic structuring runs. The
-  workspace AI opt-in (#715) will be required on top of it.
+- **AI needs two consents per import:** nothing from an uploaded document (page
+  text, layout text, page images) goes to an AI provider unless the workspace has
+  AI enabled (see "AI consent" below) **and** the uploader sent `ai_consent=true`
+  with that upload (stored with `ai_consent_at`/`_by`). With either missing
+  `_structure` passes no provider, only the deterministic structuring runs, and
+  `report.notes` names what is missing.
 - **Answers on filled-in forms never become questions:** words inside answer
   boxes, on answer lines and in table answer cells (`structuring.value_words`)
   are left out of the model prompt, of labels/options and of the heuristic. A box
@@ -322,12 +431,39 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 
 ## Cross-service integration points
 
-- **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; refresh-token
-  blacklist in Mongo; cookies via `auth_cookie_service.py`.
+- **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; sessions in
+  `services/session_service.py` (below); cookies via `auth_cookie_service.py`. The auth service's API is internal-only (#766): every
+  call to `settings.auth_settings.BASE_URL`/`CALLBACK_URI` passes `headers=auth_service_headers(...)`
+  (`services/internal_auth.py`, the shared `AUTH_INTERNAL_NOTIFY_KEY`); `tests/app/services/test_auth_call_sites.py`
+  fails on a call without it. Never add the key to a shared client — it also calls third parties.
+- **Sessions** (`services/session_service.py`, `sessions` collection, identity group): every sign-in
+  (`SessionService.start`: OTP, Google/Typeform basic sign-in) creates a session whose id is the tokens' `sid`.
+  Tokens carry `typ` (`access`/`refresh`); an access token is accepted without a database read only with `typ=access`
+  and a `sid`, so `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` (default 15; never the old 43200) bounds how long a revoked
+  session keeps working. The refresh path (`get_logged_user` when the access token expired, and `POST /auth/refresh`)
+  needs the session live and unexpired and auth's `/auth/status` to know the user (404 revokes the session); a failed
+  refresh is `SessionEnded` (401, the handler clears both cookies). Only `POST /auth/refresh` rotates the refresh
+  token (new `jti`, same `sid`): server-side rendering forwards cookies and drops `Set-Cookie`, so the implicit refresh
+  must not. The jti a rotation replaced gets an access token only (never a refresh token) for
+  `AUTH_REFRESH_REUSE_GRACE_SECONDS` (60); any other old jti is a replay and revokes the session. Every
+  refresh that does not rotate re-checks the session after asking auth (`touch` must match a live row). Re-issuing tokens inside a session (plan
+  change, import OAuth) only sets a new access token for the same `sid`. Revocation: `GET /auth/logout`,
+  `GET/DELETE /auth/sessions[/{sid}]`, `SessionService.revoke_all_for_user` (requesting account deletion; the
+  hook for deprovisioning); the deletion itself deletes the rows. Expired rows go through a Mongo TTL index on
+  `expires_at` and `delete_expired` on the list/revoke-all paths (there is no periodic job). The user-deletion job
+  names its user by an encrypted `UserDeletion` (user id + email), never by a stored token; `DELETE /auth/user`
+  (Temporal) needs the API key and that request in `X-User-Deletion`. Tokens without `sid` (before sessions) are refused: those users sign in once more. The
+  `blacklisted_refresh_tokens` table is unused and kept until a later release drops it. After sign-in the redirect
+  goes only to this instance's origins (`services/login_redirect.py`: `API_CLIENT_URL` + `allowed_origins`).
 - **Jobs:** `services/temporal_service.py` starts the three background jobs — user deletion, scheduled response
   deletion (at the response's expiration), action-code execution — on Temporal (default) or, per job kind via
   `JOBS_BACKEND__<job>=postgres`, as procrastinate jobs (`backend/jobs/tasks.py`; `run_action` is deferred by name and
   executed by `temporal/actions-executor`). See plans/postgres-consolidation.md §7.
+  The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
+  `DELETE /auth/user`) with the `api-key` header, checked by `get_api_key` (`user_service.py`) against
+  `TEMPORAL_API_KEY` (`services/internal_job_key.py`): **503** while it is unset, empty or the old
+  `random_api_key`, **403** when wrong, constant-time compare. A new worker-only route takes
+  `Depends(get_api_key)`; tests in `tests/app/controllers/test_internal_job_key.py`.
 - **Provider plugins:** `core/plugins/{google,typeform}.py` behind `plugin_proxy_service.py` — forwards standardized
   requests to the external provider microservices (:8003 / :8002).
 - **Third-party services:** `aws_service.py` (S3), `stripe_service.py`, `openai_service.py` (prompts/AI form gen),
@@ -343,6 +479,7 @@ DATABASE_URL=postgresql+asyncpg://bettercollected:bettercollected@localhost:5432
 DB_WRITE_MODE=dual ... uv run pytest
 DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ... uv run pytest
 uv run alembic -c alembic.ini upgrade head   # as the service role (bc_app), see backend/.env.example
+DB_AUTO_MIGRATE=true ./run.sh                # or: migrate app + jobs schemas at startup (advisory-locked)
 python -m backend.jobs.worker                # procrastinate worker (JOBS_BACKEND=postgres)
 ```
 Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
@@ -351,6 +488,8 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 
 - **CORS is dynamic** (`DynamicCORSMiddleware`) driven by the `allowed_origins` Mongo collection — a new host must be
   seeded there (see root docs / `seed-data.js`) or requests are blocked.
+  A workspace's custom domain is added only while it is verified (`services/custom_domain_origins.py`, the one
+  place that adds or removes those origins) and stale ones are pruned at startup.
 - Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and Mongo client and init Beanie — respect that
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`

@@ -10,9 +10,6 @@ import inspect
 import pytest
 
 from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
-from backend.app.repositories.blacklisted_refresh_token_repository import (
-    BlacklistedRefreshTokenRepository,
-)
 from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
@@ -62,9 +59,10 @@ from backend.app.repositories.workspace_responders_repository import (
     WorkspaceRespondersRepository,
 )
 from backend.app.repositories.postgres.identity import (
-    PostgresBlacklistedRefreshTokenRepository,
+    PostgresSessionRepository,
     PostgresUserTagsRepository,
     PostgresWorkspaceAPIKeyRepository,
+    PostgresWorkspaceDomainRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -75,10 +73,14 @@ from backend.app.repositories.postgres.refdata import (
     PostgresFormPluginProviderRepository,
     PostgresUserFeedbackRepo,
 )
+from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.user_feedback import UserFeedbackRepo
 from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
+)
+from backend.app.repositories.workspace_domain_repository import (
+    WorkspaceDomainRepository,
 )
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
@@ -94,7 +96,8 @@ PAIRS = [
     (WorkspaceUserRepository, PostgresWorkspaceUserRepository),
     (WorkspaceInvitationRepo, PostgresWorkspaceInvitationRepo),
     (WorkspaceAPIKeyRepository, PostgresWorkspaceAPIKeyRepository),
-    (BlacklistedRefreshTokenRepository, PostgresBlacklistedRefreshTokenRepository),
+    (SessionRepository, PostgresSessionRepository),
+    (WorkspaceDomainRepository, PostgresWorkspaceDomainRepository),
     (UserTagsRepository, PostgresUserTagsRepository),
     (FormRepository, PostgresFormRepository),
     (WorkspaceFormRepository, PostgresWorkspaceFormRepository),

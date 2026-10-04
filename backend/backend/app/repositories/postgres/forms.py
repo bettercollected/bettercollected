@@ -34,6 +34,10 @@ from backend.app.models.template import StandardFormTemplate, StandardTemplateSe
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
 from backend.app.repositories.form_import_repository import check_import_limits
+from backend.app.repositories.metric_periods import (
+    object_id_at,
+    postgres_counts_per_period,
+)
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.media_library import MediaLibraryDocument
@@ -412,6 +416,15 @@ class PostgresFormRepository(PostgresRepositoryBase):
             order_by=(FormVersionRow.version.desc(), FormVersionRow.id),
         )
 
+    async def get_versions_of_form(self, form_id: PydanticObjectId):
+        """Every published version of a form, oldest first."""
+        return await self.many(
+            FormVersionRow.form_id == _oid(form_id),
+            order_by=(FormVersionRow.version, FormVersionRow.id),
+            row=FormVersionRow,
+            document=FormVersionsDocument,
+        )
+
     async def get_form_by_by_version(
         self, form_id: PydanticObjectId, version: FormVersion | int
     ):
@@ -716,6 +729,56 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
     ):
         workspace_form = await self.find_workspace_form(workspace_id, form_id)
         return True if workspace_form is not None else False
+
+    # -- platform metrics (admin dashboard); forms are dated by ObjectId ---------
+    @staticmethod
+    def _created_since(created_since: Optional[datetime]) -> list:
+        if created_since is None:
+            return []
+        return [WorkspaceFormRow.id >= str(object_id_at(created_since))]
+
+    async def count_workspace_forms(
+        self, created_since: Optional[datetime] = None
+    ) -> int:
+        return await self.count(*self._created_since(created_since))
+
+    async def count_published_workspace_forms(self) -> int:
+        return await self.count(
+            exists().where(FormVersionRow.form_id == WorkspaceFormRow.form_id)
+        )
+
+    async def count_workspace_forms_by_provider(self) -> Dict[Optional[str], int]:
+        provider = _text(self._settings()["provider"])
+        async with self._session() as session:
+            rows = (
+                await session.execute(
+                    select(provider, func.count())
+                    .select_from(WorkspaceFormRow)
+                    .group_by(provider)
+                )
+            ).all()
+        return {name: n for name, n in rows}
+
+    async def count_form_creators(
+        self, created_since: Optional[datetime] = None
+    ) -> int:
+        async with self._session() as session:
+            return (
+                await session.execute(
+                    select(func.count(WorkspaceFormRow.user_id.distinct())).where(
+                        WorkspaceFormRow.user_id.is_not(None),
+                        WorkspaceFormRow.user_id != "",
+                        *self._created_since(created_since),
+                    )
+                )
+            ).scalar_one()
+
+    async def count_workspace_forms_created_per_period(
+        self, boundaries: List[datetime]
+    ) -> List[int]:
+        return await postgres_counts_per_period(
+            self, WorkspaceFormRow.id, [str(object_id_at(b)) for b in boundaries]
+        )
 
 
 class PostgresWorkspaceConsentRepo(PostgresRepositoryBase):

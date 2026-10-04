@@ -14,8 +14,8 @@ from auth.config.stripe import StripeSettings
 from auth.config.typeform_settings import TypeformSettings
 from auth.version import __version__
 from dotenv import load_dotenv
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -48,6 +48,20 @@ class Application(BaseSettings):
     AUTH_JWT_SECRET: str
     AUTH_AES_HEX_KEY: str
     CLIENT_ADMIN_URL: Optional[str] = "http://localhost:3000"
+    # The respondent-facing (forms) host. Read from API_CLIENT_URL too, the
+    # backend's name for it, so one shared env file sets both. Notification
+    # mails only link to this host or CLIENT_ADMIN_URL.
+    CLIENT_URL: Optional[str] = Field(
+        "", validation_alias=AliasChoices("CLIENT_URL", "API_CLIENT_URL")
+    )
+    # Comma-separated emails that are platform admins (ADMIN role), on top of
+    # any ADMIN stored on the user; see app/services/platform_admins.py.
+    PLATFORM_ADMIN_EMAILS: Optional[str] = ""
+    # Shared with the backend (and integrations/google): every route except
+    # /ready and POST /stripe/webhooks needs it in X-Internal-Key
+    # (controllers/internal_key.py). Named after the first route it guarded;
+    # kept for compatibility. Unset = those routes answer 503.
+    AUTH_INTERNAL_NOTIFY_KEY: Optional[str] = ""
 
     model_config = SettingsConfigDict(case_sensitive=True)
 

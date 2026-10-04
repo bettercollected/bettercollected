@@ -400,16 +400,24 @@ class CountingProvider:
 
 
 async def _import_with(client, workspace, cookies, no_real_ai_provider, **form):
+    """Import with the real workspace opt-in check (provider_for_workspace) and
+    only the raw provider lookup behind it replaced by a counting fake."""
+    from tests.app.ai_helpers import use_fake_provider
+
     provider = CountingProvider()
-    no_real_ai_provider._provider_resolver = lambda: provider
-    response = await client.post(
-        url(workspace),
-        cookies=cookies,
-        files={"file": ("form.pdf", documents.form_pdf(), "application/pdf")},
-        data=form,
+    no_real_ai_provider._provider_resolver = (
+        container.openai_service().provider_for_workspace
     )
-    assert response.status_code == 202, response.text
-    done = await finished(client, workspace, cookies, response.json()["id"])
+    with pytest.MonkeyPatch.context() as patch:
+        use_fake_provider(patch, provider)
+        response = await client.post(
+            url(workspace),
+            cookies=cookies,
+            files={"file": ("form.pdf", documents.form_pdf(), "application/pdf")},
+            data=form,
+        )
+        assert response.status_code == 202, response.text
+        done = await finished(client, workspace, cookies, response.json()["id"])
     assert done["status"] == ImportStatus.COMPLETED, done
     return done, provider
 
@@ -417,25 +425,61 @@ async def _import_with(client, workspace, cookies, no_real_ai_provider, **form):
 async def test_without_consent_nothing_goes_to_the_ai_provider(
     client, workspace, test_user_cookies, store, no_real_ai_provider
 ):
+    from tests.app.ai_helpers import enable_ai
+
+    await enable_ai(workspace)
     for form in ({}, {"ai_consent": "false"}):
         done, provider = await _import_with(
             client, workspace, test_user_cookies, no_real_ai_provider, **form
         )
         assert provider.calls == 0
         assert done["aiConsent"] is False
-        assert "AI structuring not used: no consent" in done["report"]["notes"]
+        assert (
+            "AI structuring not used: no consent for this import"
+            in done["report"]["notes"]
+        )
         record = await container.form_import_repo().get(done["id"])
         assert record.ai_consent is False and record.ai_consent_at is None
 
 
-async def test_with_consent_the_ai_provider_reads_the_pages(
+async def test_without_the_workspace_opt_in_nothing_goes_to_the_ai_provider(
     client, workspace, test_user_cookies, store, no_real_ai_provider
 ):
+    """The uploader's consent alone is not enough (#715): AI is off for the
+    workspace by default, so no provider call and the report says why."""
+    done, provider = await _import_with(
+        client, workspace, test_user_cookies, no_real_ai_provider, ai_consent="true"
+    )
+    assert provider.calls == 0
+    assert done["aiConsent"] is True
+    assert (
+        "AI structuring not used: AI is not enabled for this workspace"
+        in done["report"]["notes"]
+    )
+    done, provider = await _import_with(
+        client, workspace, test_user_cookies, no_real_ai_provider
+    )
+    assert provider.calls == 0
+    assert (
+        "AI structuring not used: AI is not enabled for this workspace; "
+        "no consent for this import" in done["report"]["notes"]
+    )
+
+
+async def test_with_both_consents_the_ai_provider_reads_the_pages(
+    client, workspace, test_user_cookies, store, no_real_ai_provider
+):
+    from tests.app.ai_helpers import enable_ai
+
+    await enable_ai(workspace)
     done, provider = await _import_with(
         client, workspace, test_user_cookies, no_real_ai_provider, ai_consent="true"
     )
     assert provider.calls >= 1
     assert done["aiConsent"] is True
+    assert not any(
+        "AI structuring not used" in note for note in done["report"].get("notes", [])
+    )
     record = await container.form_import_repo().get(done["id"])
     assert record.ai_consent is True and record.ai_consent_at is not None
     assert record.ai_consent_by
@@ -637,13 +681,22 @@ async def test_the_upload_screen_learns_the_ai_provider_without_sending_anything
     from backend.config import settings
 
     calls = []
-    no_real_ai_provider._provider_resolver = lambda: calls.append(1)
+    no_real_ai_provider._provider_resolver = lambda *_: calls.append(1)
     previous = (settings.ai.DEFAULT_PROVIDER, settings.open_ai.API_KEY)
     try:
         settings.ai.DEFAULT_PROVIDER, settings.open_ai.API_KEY = "openai", "sk-test"
         info = await client.get(f"{url(workspace)}/ai", cookies=test_user_cookies)
         assert info.status_code == 200, info.text
-        assert info.json() == {"provider": "OpenAI", "available": True}
+        assert info.json() == {
+            "provider": "OpenAI",
+            "available": True,
+            "enabled": False,
+        }
+        from tests.app.ai_helpers import enable_ai
+
+        await enable_ai(workspace)
+        info = await client.get(f"{url(workspace)}/ai", cookies=test_user_cookies)
+        assert info.json()["enabled"] is True
         settings.open_ai.API_KEY = ""
         info = await client.get(f"{url(workspace)}/ai", cookies=test_user_cookies)
         assert info.json()["available"] is False

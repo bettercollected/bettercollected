@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 
 import { useRouter } from 'next-nprogress-bar';
 
+import { AIOptIn } from '@app/components/ai/ai-consent';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@app/shadcn/components/ui/dialog';
 import { useGetPdfImportAiQuery, useStartPdfImportMutation } from '@app/store/redux/pdf-import-api';
@@ -24,7 +25,9 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
     const [error, setError] = useState<string | null>(null);
     const [dragging, setDragging] = useState(false);
     const [startImport, { isLoading }] = useStartPdfImportMutation();
-    const { data: ai } = useGetPdfImportAiQuery({ workspaceId }, { skip: !open || !workspaceId });
+    const { data: ai, refetch: refetchAi } = useGetPdfImportAiQuery({ workspaceId }, { skip: !open || !workspaceId });
+    // both the workspace opt-in (#715) and this upload's tick are needed
+    const aiUsable = !!ai?.available && !!ai?.enabled;
     // unchecked by default: nothing goes to the AI provider without a tick
     const [aiConsent, setAiConsent] = useState(false);
 
@@ -37,7 +40,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
 
     const submit = async () => {
         if (!file) return;
-        const result: any = await startImport({ workspaceId, file, aiConsent: aiConsent && !!ai?.available });
+        const result: any = await startImport({ workspaceId, file, aiConsent: aiConsent && aiUsable });
         if (result.data?.id) {
             onOpenChange(false);
             router.push(`/${workspaceName}/dashboard/forms/import/${result.data.id}`);
@@ -83,7 +86,12 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                 </button>
                 <input ref={input} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
                 {error && <p className="text-sm text-red-600">{error}</p>}
-                {ai?.available ? (
+                {ai?.available && !ai?.enabled ? (
+                    <div className="flex flex-col gap-2">
+                        <AIOptIn feature="PDF import" sends="the page text and page images of a file, only when you also agree for that upload" onEnabled={() => refetchAi()} compact />
+                        <p className="text-xs text-black-600">Until then, the import uses the built-in reader only. The draft may need more manual review.</p>
+                    </div>
+                ) : aiUsable ? (
                     <div className="rounded-md border border-black-200 p-3">
                         <label className="flex cursor-pointer items-start gap-2 text-sm text-black-800">
                             <input type="checkbox" className="mt-0.5" checked={aiConsent} onChange={(e) => setAiConsent(e.target.checked)} />

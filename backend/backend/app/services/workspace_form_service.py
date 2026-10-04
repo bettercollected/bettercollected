@@ -58,9 +58,10 @@ from backend.app.services.repeating_groups import (
 )
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.utils import AiohttpClient
 from backend.app.utils.hash import hash_string
+from backend.app.models.enum.permission import Permission
 from backend.config import settings
 
 crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
@@ -71,7 +72,7 @@ class WorkspaceFormService:
         self,
         form_provider_service: FormPluginProviderService,
         plugin_proxy_service: PluginProxyService,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         form_service: FormService,
         workspace_form_repository: WorkspaceFormRepository,
         form_repo: FormRepository,
@@ -91,7 +92,7 @@ class WorkspaceFormService:
         # import records of PDF imports go with their forms
         self._pdf_import_repo = pdf_import_repo
         self.plugin_proxy_service = plugin_proxy_service
-        self.workspace_user_service = workspace_user_service
+        self.authorization_service = authorization_service
         self.form_service = form_service
         self.workspace_form_repository = workspace_form_repository
         self._form_repo = form_repo
@@ -123,8 +124,8 @@ class WorkspaceFormService:
         user: User,
         request: Request,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id, user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
 
         await self.workspace_form_repository.check_is_form_imported_in_other_workspace(
@@ -229,9 +230,10 @@ class WorkspaceFormService:
     async def delete_form_from_workspace(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_DELETE, workspace_id
         )
+        await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self._delete_form(workspace_id, form_id)
 
     async def delete_draft_form(self, workspace_id: PydanticObjectId, form_id: str):
@@ -297,9 +299,10 @@ class WorkspaceFormService:
         group_ids: List[PydanticObjectId],
         user: User,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
         )
+        await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self.responder_groups_service.add_groups_to_form(
             form_id=form_id, group_ids=group_ids
         )
@@ -311,9 +314,10 @@ class WorkspaceFormService:
         group_id: PydanticObjectId,
         user: User,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
         )
+        await self.check_form_exists_in_workspace(workspace_id, form_id)
         await self.responder_groups_service.remove_group_from_form(
             form_id=form_id, group_id=group_id
         )
@@ -349,8 +353,8 @@ class WorkspaceFormService:
         logo: UploadFile = None,
         cover_image: UploadFile = None,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
@@ -414,21 +418,18 @@ class WorkspaceFormService:
         logo: UploadFile = None,
         cover_image: UploadFile = None,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
-        workspace_forms = (
-            await self.workspace_form_repository.get_workspace_forms_form_ids(
-                [str(form_id)]
-            )
+        workspace_form = await self.workspace_form_repository.find_workspace_form(
+            workspace_id, str(form_id)
         )
-        if (len(workspace_forms)) == 0:
+        if not workspace_form:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
-        workspace_form = workspace_forms[0]
         if form.settings:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
@@ -615,6 +616,8 @@ class WorkspaceFormService:
             response,
             await self.form_response_service.all_internal_field_ids(str(form_id)),
         )
+        # Feedback is the staff's to write, never part of a submission.
+        response.respondent_feedback = None
         response.response_id = str(PydanticObjectId())
 
         workspace_form_ids = (
@@ -628,6 +631,23 @@ class WorkspaceFormService:
         if not workspace_form_ids:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+        # "Require verified identity" was enforced only by the webapp; a form
+        # that asks for it refuses submissions without a signed-in respondent.
+        workspace_form = (
+            await self.workspace_form_repository.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=str(form_id)
+            )
+        )
+        if (
+            workspace_form
+            and workspace_form.settings
+            and workspace_form.settings.require_verified_identity
+            and not user
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                content="Sign in to respond to this form.",
             )
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         latest_version_of_form = await self.form_service.get_latest_version_of_form(
@@ -652,12 +672,16 @@ class WorkspaceFormService:
         # "anonymously submitted" while dataOwnerIdentifier still recorded the
         # signed-in email. Anonymous responses keep only a one-way hash so the
         # responder can still find and delete their own submission.
+        # Who submitted comes only from the signed-in user, never from the
+        # request body: a body could otherwise name someone else, who would
+        # then see the response as theirs and get its update notices.
+        response.dataOwnerIdentifier = None
+        response.anonymous_identity = None
         if bool(getattr(response, "anonymize", False)):
-            response.dataOwnerIdentifier = None
             response.respondent_email = None
             if user:
                 response.anonymous_identity = hash_string(user.sub)
-        elif not response.dataOwnerIdentifier and user:
+        elif user:
             response.dataOwnerIdentifier = user.sub
 
         form_response = await self.form_response_service.submit_form_response(
@@ -687,9 +711,13 @@ class WorkspaceFormService:
         response_id: str,
         user: User,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.RESPONSE_DELETE, workspace_id
         )
+        if not await self.workspace_form_repository.find_workspace_form(
+            workspace_id, str(form_id)
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
         return await self.form_response_service.delete_form_response(
             form_id=form_id, response_id=response_id, workspace_id=workspace_id
         )
@@ -697,9 +725,10 @@ class WorkspaceFormService:
     async def publish_form(
         self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
         )
+        await self.check_form_exists_in_workspace(workspace_id, str(form_id))
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         return await self.form_service.publish_form(form_id=form_id)
 
@@ -752,8 +781,8 @@ class WorkspaceFormService:
         is_template: bool = False,
         user_tokens: UserTokens = None,
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
         workspace_form = (
             await self.workspace_form_repository.get_workspace_form_in_workspace(
@@ -810,11 +839,11 @@ class WorkspaceFormService:
         add_action_to_form_params: AddActionToFormDto,
         user: User,
     ):
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
+        )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
-        )
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
         )
         action = await self.action_service.get_action_by_id(
             action_id=add_action_to_form_params.action_id
@@ -841,11 +870,11 @@ class WorkspaceFormService:
         trigger: Trigger,
         user: User,
     ):
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
+        )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
-        )
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
         )
         return await self.form_service.remove_action_from_form(
             form_id=form_id, action_id=action_id, trigger=trigger
@@ -858,11 +887,11 @@ class WorkspaceFormService:
         update_action_dto: UpdateActionInFormDto,
         user: User,
     ):
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
+        )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
-        )
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
         )
         await self.form_service.update_state_of_action_in_form(
             form_id=form_id, update_action_dto=update_action_dto

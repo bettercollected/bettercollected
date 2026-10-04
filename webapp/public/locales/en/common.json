@@ -562,7 +562,8 @@
     "BILLING": "Billing",
     "LOGOUT": "Logout",
     "MY_DASHBOARD": "My Dashboard",
-    "ACCOUNT_SETTINGS": "Account Settings"
+    "ACCOUNT_SETTINGS": "Account Settings",
+    "PLATFORM_METRICS": "Platform metrics"
   },
   "PUBLIC": "Public",
   "READ_MORE": "Read more",

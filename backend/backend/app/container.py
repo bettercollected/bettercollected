@@ -47,9 +47,10 @@ from backend.app.repositories.postgres.forms import (
     PostgresWorkspaceFormRepository,
 )
 from backend.app.repositories.postgres.identity import (
-    PostgresBlacklistedRefreshTokenRepository,
+    PostgresSessionRepository,
     PostgresUserTagsRepository,
     PostgresWorkspaceAPIKeyRepository,
+    PostgresWorkspaceDomainRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -70,10 +71,11 @@ from backend.app.repositories.workspace_ai_profile_repository import (
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
 )
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
-from backend.app.repositories.blacklisted_refresh_token_repository import (
-    BlacklistedRefreshTokenRepository,
+from backend.app.repositories.workspace_domain_repository import (
+    WorkspaceDomainRepository,
 )
+from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
+from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
@@ -101,6 +103,7 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
 from backend.app.services.auth_service import AuthService
+from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.coupon_service import CouponService
 from backend.app.services.feedback_service import UserFeedbackService
@@ -111,6 +114,7 @@ from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
+from backend.app.services.ai.consent import AIConsentService
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.insights import FormAIInsightsService
@@ -119,6 +123,10 @@ from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
+from backend.app.services.platform_metrics_service import PlatformMetricsService
+from backend.app.services.respondent_feedback_service import (
+    RespondentFeedbackService,
+)
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -136,6 +144,8 @@ from backend.app.services.pdf_import.storage import S3ObjectStore
 from backend.app.services.pdf_import_service import PdfImportService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
@@ -250,21 +260,17 @@ class AppContainer(containers.DeclarativeContainer):
         ),
         mongo=providers.Singleton(AllowedOriginsRepository),
     )
-    blacklisted_refresh_token_repo: BlacklistedRefreshTokenRepository = (
-        providers.Singleton(
-            RoutingRepository,
-            group="identity",
-            flags=flags,
-            on_mirror_failure=outbox_recorder,
-            mirror_timeout_s=mirror_timeout_s,
-            metrics=routing_metrics,
-            mongo=providers.Singleton(BlacklistedRefreshTokenRepository),
-            postgres=providers.Singleton(
-                postgres_repository,
-                PostgresBlacklistedRefreshTokenRepository,
-                pg_sessionmaker,
-            ),
-        )
+    session_repo: SessionRepository = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(SessionRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresSessionRepository, pg_sessionmaker
+        ),
     )
 
     flow_event_repo: FlowEventRepository = providers.Singleton(
@@ -325,6 +331,18 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(FormImportRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFormImportRepository, pg_sessionmaker
+        ),
+    )
+    workspace_domain_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(WorkspaceDomainRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresWorkspaceDomainRepository, pg_sessionmaker
         ),
     )
     workspace_api_key_repo = providers.Singleton(
@@ -428,6 +446,14 @@ class AppContainer(containers.DeclarativeContainer):
         ),
     )
 
+    # Every workspace-scoped access decision (services call authorize()).
+    authorization_service: AuthorizationService = providers.Singleton(
+        AuthorizationService,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        workspace_form_repo=workspace_form_repo,
+    )
+
     integration_action_service: IntegrationActionService = providers.Singleton(
         IntegrationActionService, form_repo=form_repo
     )
@@ -482,7 +508,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_service: FormService = providers.Singleton(
         FormService,
-        workspace_user_repo=workspace_user_repo,
+        authorization_service=authorization_service,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
@@ -496,8 +522,19 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_repo=form_response_repo,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
-        workspace_user_repo=workspace_user_repo,
+        authorization_service=authorization_service,
         aws_service=aws_service,
+        workspace_repo=workspace_repo,
+    )
+
+    respondent_feedback_service: RespondentFeedbackService = providers.Singleton(
+        RespondentFeedbackService,
+        form_response_repo=form_response_repo,
+        form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
+        authorization_service=authorization_service,
+        workspace_repo=workspace_repo,
+        http_client=http_client,
     )
 
     workspace_user_service: WorkspaceUserService = providers.Singleton(
@@ -526,7 +563,7 @@ class AppContainer(containers.DeclarativeContainer):
     responder_groups_service = providers.Singleton(
         ResponderGroupsService,
         responder_groups_repo=responder_groups_repository,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_service=form_service,
     )
 
@@ -535,7 +572,7 @@ class AppContainer(containers.DeclarativeContainer):
         action_repository=action_repository,
         form_repo=form_repo,
         temporal_service=temporal_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         http_client=http_client,
         form_provider_service=form_provider_service,
         form_response_service=form_response_service,
@@ -546,7 +583,7 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceFormService,
         form_provider_service=form_provider_service,
         plugin_proxy_service=plugin_proxy_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_service=form_service,
         workspace_form_repository=workspace_form_repo,
         form_repo=form_repo,
@@ -571,10 +608,13 @@ class AppContainer(containers.DeclarativeContainer):
         repo=form_import_repo,
         store=pdf_import_store,
         settings=settings.pdf_import,
-        # the instance's default AI provider (AI_DEFAULT_PROVIDER), looked up per
-        # run: openai_service is defined further down this container
+        # workspace id -> the consented AI provider, through the same opt-in
+        # check as every other AI path (openai_service is defined further
+        # down this container, so it is looked up per run)
         provider_resolver=providers.Object(
-            lambda: container.openai_service()._get_provider(None)
+            lambda workspace_id: container.openai_service().provider_for_workspace(
+                workspace_id
+            )
         ),
         form_repo=form_repo,
         workspace_form_service=workspace_form_service,
@@ -585,13 +625,19 @@ class AppContainer(containers.DeclarativeContainer):
         store=pdf_import_store,
         pipeline=pdf_import_pipeline,
         workspace_form_service=workspace_form_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         settings=settings.pdf_import,
         flags=flags,
     )
 
     custom_domain_service: CustomDomainService = providers.Singleton(
         CustomDomainService, settings=settings.custom_domain
+    )
+
+    workspace_domain_service: WorkspaceDomainService = providers.Singleton(
+        WorkspaceDomainService,
+        authorization_service=authorization_service,
+        domain_repo=workspace_domain_repo,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
@@ -603,15 +649,17 @@ class AppContainer(containers.DeclarativeContainer):
         allowed_origins_repo=allowed_origins_repo,
         aws_service=aws_service,
         workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
+        workspace_domain_service=workspace_domain_service,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(
         AIProfileService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         profile_repo=workspace_ai_profile_repo,
     )
 
@@ -619,49 +667,63 @@ class AppContainer(containers.DeclarativeContainer):
 
     api_key_service: APIKeyService = providers.Singleton(
         APIKeyService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         api_key_repo=workspace_api_key_repo,
+    )
+
+    ai_consent_service: AIConsentService = providers.Singleton(
+        AIConsentService,
+        workspace_repo=workspace_repo,
+        authorization_service=authorization_service,
     )
 
     openai_service: OpenAIService = providers.Singleton(
         OpenAIService,
         workspace_service=workspace_service,
         workspace_form_service=workspace_form_service,
+        authorization_service=authorization_service,
+        ai_consent_service=ai_consent_service,
     )
 
     form_ai_chat_service: FormAIChatService = providers.Singleton(
         FormAIChatService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         session_repo=form_ai_session_repo,
         # Bound late so the resolver sees openai_service's registry (incl. the
         # OpenAI-compatible provider when configured).
         provider_resolver=providers.Callable(
-            lambda svc: svc._get_provider, openai_service
+            lambda svc: svc.provider_for_workspace, openai_service
         ),
     )
 
     form_ai_review_service: FormAIReviewService = providers.Singleton(
         FormAIReviewService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         provider_resolver=providers.Callable(
-            lambda svc: svc._get_provider, openai_service
+            lambda svc: svc.provider_for_workspace, openai_service
         ),
     )
 
     form_ai_insights_service: FormAIInsightsService = providers.Singleton(
         FormAIInsightsService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         form_response_repo=form_response_repo,
         insight_repo=form_ai_insight_repo,
         provider_resolver=providers.Callable(
-            lambda svc: svc._get_provider, openai_service
+            lambda svc: svc.provider_for_workspace, openai_service
         ),
+        ai_consent_service=ai_consent_service,
+        form_response_service=form_response_service,
+    )
+
+    session_service: SessionService = providers.Singleton(
+        SessionService, session_repo=session_repo
     )
 
     auth_service: AuthService = providers.Singleton(
@@ -674,6 +736,8 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
         crypto=crypto,
         user_tags_service=user_tags_service,
+        session_service=session_service,
+        allowed_origins_repo=allowed_origins_repo,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
@@ -692,6 +756,7 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_members_service: WorkspaceMembersService = providers.Singleton(
         WorkspaceMembersService,
         workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_invitation_repo=workspace_invitation_repo,
         workspace_repo=workspace_repo,
         http_client=http_client,
@@ -722,7 +787,7 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_responders_service = providers.Singleton(
         WorkspaceRespondersService,
         workspace_responders_repo=workspace_responders_repo,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_response_service=form_response_service,
     )
     workspace_consent_repo = providers.Singleton(
@@ -740,7 +805,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     workspace_consent_service = providers.Singleton(
         WorkspaceConsentService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_consent_repo=workspace_consent_repo,
     )
 
@@ -762,7 +827,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_template_service = providers.Singleton(
         FormTemplateService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_template_repo=form_template_repo,
         workspace_form_service=workspace_form_service,
         aws_service=aws_service,
@@ -816,13 +881,23 @@ class AppContainer(containers.DeclarativeContainer):
         MediaLibraryService,
         media_library_repo=media_library_repo,
         aws_service=aws_service,
+        authorization_service=authorization_service,
     )
 
     umami_client: UmamiClient = providers.Singleton(UmamiClient)
 
     analytics_service: AnalyticsService = providers.Singleton(
         AnalyticsService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
+        workspace_repo=workspace_repo,
+    )
+
+    platform_metrics_service: PlatformMetricsService = providers.Singleton(
+        PlatformMetricsService,
+        workspace_repo=workspace_repo,
+        workspace_form_repo=workspace_form_repo,
+        form_response_repo=form_response_repo,
+        http_client=http_client,
     )
 
     integration_service: IntegrationService = providers.Singleton(
@@ -832,6 +907,9 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         integration_action_service=integration_action_service,
         form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
+        authorization_service=authorization_service,
+        action_repository=action_repository,
     )
 
     form_actions_service: FormActionsService = providers.Singleton(

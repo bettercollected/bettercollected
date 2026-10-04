@@ -8,12 +8,13 @@ from pydantic import EmailStr
 from starlette.background import BackgroundTasks
 
 from auth.app.container import container
+from auth.app.controllers.internal_key import INTERNAL_ONLY
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
 from auth.app.services.user_service import UserService
 
 
-@router(prefix="/users", tags=["Users"])
+@router(prefix="/users", tags=["Users"], dependencies=INTERNAL_ONLY)
 class UserRouter(Routable):
     def __init__(self, user_service=container.user_service(), *args, **kwargs):
         super().__init__(*args, **kwargs)

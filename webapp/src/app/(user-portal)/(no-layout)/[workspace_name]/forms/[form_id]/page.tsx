@@ -161,6 +161,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                         privacyUrl={data?.settings?.privacyPolicyUrl}
                         portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
                         poweredBy={!data?.settings?.disableBranding}
+                        aiProviderName={data?.settings?.aiInsightsEnabled ? data?.settings?.aiInsightsProviderName : null}
                     />
                 </div>
             )}

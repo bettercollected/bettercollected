@@ -8,6 +8,7 @@ from common.models.standard_form import StandardForm
 from fastapi_pagination import Page, Params
 from fastapi_pagination.api import set_page, set_params
 
+from tests.app.auth_helpers import access_token
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
@@ -114,7 +115,7 @@ async def respondent_response(workspace, internal_form):
 
 
 def _cookies(user):
-    token = container.jwt_service().encode(user)
+    token = access_token(user)
     return {"Authorization": token, "RefreshToken": token}
 
 

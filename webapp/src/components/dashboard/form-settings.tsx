@@ -40,6 +40,7 @@ import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import getFormShareURL from '@app/utils/form-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
+import FeedbackStatusesEditor from '@Components/dashboard/feedback-statuses-editor';
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -96,6 +97,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         } else {
             if (response.error.status === 409) {
                 toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });
+            } else if (response.error.status === 403 && typeof response.error.data === 'string') {
+                // e.g. a collaborator switching "Respond to submissions" (admins only)
+                toast({ description: response.error.data, variant: 'destructive' });
             } else {
                 toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             }
@@ -354,6 +358,25 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     onCheckedChange={(checked) => {
                                         onAllowResponseEditingChange(checked, form);
                                     }}
+                                />
+                            </SettingRow>
+                        )}
+                        {form?.settings?.provider === 'self' && (
+                            <SettingRow
+                                title="Respond to submissions"
+                                description={
+                                    form?.settings?.requireVerifiedIdentity
+                                        ? 'Workspace admins can give each submission a status and a message that its respondent sees. Respondents get an email that there is an update.'
+                                        : 'Workspace admins can give each submission a status and a message that its respondent sees with their submission number. Turn on "Require verified identity" to also email them when there is an update.'
+                                }
+                                hint={form?.settings?.respondentFeedbackEnabled ? <FeedbackStatusesEditor key={form.formId} statuses={form?.settings?.feedbackStatuses} onSave={(feedbackStatuses) => patchSettings({ feedbackStatuses }, form)} /> : undefined}
+                            >
+                                <Switch
+                                    data-umami-event="Respond To Submissions Switch"
+                                    data-umami-event-email={auth.email}
+                                    data-testid="respondent-feedback-switch"
+                                    checked={!!form?.settings?.respondentFeedbackEnabled}
+                                    onCheckedChange={() => patchSettings({ respondentFeedbackEnabled: !form?.settings?.respondentFeedbackEnabled }, form)}
                                 />
                             </SettingRow>
                         )}

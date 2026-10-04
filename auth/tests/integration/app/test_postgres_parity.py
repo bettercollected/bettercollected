@@ -5,6 +5,8 @@ real test database. Each step runs on both; results are compared with the
 volatile fields stripped.
 """
 
+import datetime as dt
+import os
 from typing import Any
 
 import pytest
@@ -20,8 +22,10 @@ from auth.app.repositories.postgres import (
 from auth.app.repositories.provider_repository import ProviderRepository
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.schemas.provider import Provider
+from auth.app.schemas.user import UserDocument
 from auth.app.services.database_service import init_db
 from common.db.routing import normalise_result
+from common.enums.plan import Plans
 from common.exceptions import NotFoundError
 
 pytestmark = pytest.mark.asyncio
@@ -109,3 +113,55 @@ async def test_providers(stores):
     for repo in (mongo, postgres):
         with pytest.raises(NotFoundError):
             await repo.get_provider("nope")
+
+
+async def test_user_metrics(stores):
+    """The platform-metrics counts: users dated by ObjectId, activity by
+    last_logged_in (an ISO string in Mongo), a missing plan counted as FREE."""
+    mongo, postgres = UserRepository(), PostgresUserRepository(stores)
+    now = dt.datetime(2026, 3, 18, 12, tzinfo=dt.timezone.utc)
+    weeks = [dt.datetime(2026, 3, d, tzinfo=dt.timezone.utc) for d in (2, 9, 16, 23)]
+
+    def user(email, created, last_logged_in=None, plan=Plans.FREE):
+        stamp = PydanticObjectId.from_datetime(created).binary[:4]
+        return UserDocument(
+            id=PydanticObjectId(stamp + os.urandom(8)),
+            email=email,
+            last_logged_in=last_logged_in,
+            plan=plan,
+        )
+
+    users = [
+        user(
+            "old@example.com", now - dt.timedelta(days=90), now - dt.timedelta(days=2)
+        ),
+        user("pro@example.com", weeks[1], now - dt.timedelta(days=40), Plans.PRO),
+        user("new@example.com", now - dt.timedelta(hours=3), now.replace(tzinfo=None)),
+        user("noplan@example.com", now - dt.timedelta(days=12), plan=None),
+    ]
+    for document in users:
+        await document.model_copy(deep=True).insert()
+        await postgres.upsert(document)
+
+    since = now - dt.timedelta(days=30)
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("count_users", lambda: ()),
+            ("count_users", lambda: (since,)),
+            ("count_users_active_since", lambda: (since,)),
+            ("count_users_by_plan", lambda: ()),
+            ("count_users_created_per_period", lambda: (weeks,)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        assert await repo.count_users() == 4
+        assert await repo.count_users(since) == 3
+        assert await repo.count_users_active_since(since) == 2
+        assert await repo.count_users_by_plan() == {"FREE": 3, "PRO": 1}
+        assert await repo.count_users_created_per_period(weeks) == [1, 1, 1]
+    # every plan is listed, also one nobody is on
+    for repo in (mongo, postgres):
+        await repo.delete_user(users[1].id)
+        assert await repo.count_users_by_plan() == {"FREE": 3, "PRO": 0}

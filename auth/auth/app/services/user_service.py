@@ -1,5 +1,6 @@
 import asyncio
-from typing import List
+import datetime as dt
+from typing import Any, Dict, List
 
 from beanie import PydanticObjectId
 from common.enums.plan import Plans
@@ -37,13 +38,16 @@ class UserService:
         invitation_link = (
             settings.CLIENT_ADMIN_URL + "/" + workspace_name + "/invitation/" + token
         )
+        # an inviter without a first name (e.g. signed up by email code) is
+        # named by their email rather than failing the mail
+        inviter_name = inviter.first_name or inviter.email or ""
         template_body = {
             "workspace_title": workspace_title,
             "role": role,
             "invitation_link": invitation_link,
-            "inviter_name": inviter.first_name,
+            "inviter_name": inviter_name,
             "image_url": inviter.profile_image,
-            "image_alternative": inviter.first_name[0],
+            "image_alternative": inviter_name[:1].upper(),
         }
         message = MessageSchema(
             subject=f"{workspace_title} invitation",
@@ -71,6 +75,32 @@ class UserService:
         user = await self.user_repo.get_user_by_id(user_id=user_id)
         user.plan = Plans.PRO
         return await user.save()
+
+    async def get_platform_user_metrics(
+        self, first_week: dt.date, weeks: int
+    ) -> Dict[str, Any]:
+        """User counts for the platform metrics dashboard — aggregates only.
+        ``weekly_new`` has one entry per week from ``first_week`` (UTC), the
+        weeks the backend charts its own series for."""
+        now = dt.datetime.now(dt.timezone.utc)
+        last_30_days = now - dt.timedelta(days=30)
+        start = dt.datetime.combine(first_week, dt.time(), tzinfo=dt.timezone.utc)
+        boundaries = [start + dt.timedelta(weeks=i) for i in range(weeks + 1)]
+        weekly = await self.user_repo.count_users_created_per_period(boundaries)
+        return {
+            "total": await self.user_repo.count_users(),
+            "new_last_30_days": await self.user_repo.count_users(
+                created_since=last_30_days
+            ),
+            "active_last_30_days": await self.user_repo.count_users_active_since(
+                last_30_days
+            ),
+            "by_plan": await self.user_repo.count_users_by_plan(),
+            "weekly_new": [
+                {"week_start": boundary.date().isoformat(), "count": count}
+                for boundary, count in zip(boundaries, weekly)
+            ],
+        }
 
 
 def run_sync(func, *args, **kwargs):

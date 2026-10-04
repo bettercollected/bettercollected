@@ -13,6 +13,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 
+from backend.app.services.ai.consent import AIConsentService, ai_not_enabled
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
@@ -28,6 +29,7 @@ from backend.app.services.openai_provider import OpenAIFormProvider
 from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_service import WorkspaceService
+from backend.app.models.enum.permission import Permission
 
 _DEFAULT_LAYOUT = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
 
@@ -37,8 +39,12 @@ class OpenAIService:
         self,
         workspace_service: WorkspaceService,
         workspace_form_service: WorkspaceFormService,
+        authorization_service=None,
+        ai_consent_service: Optional[AIConsentService] = None,
     ):
         self.workspace_service: WorkspaceService = workspace_service
+        self.authorization_service = authorization_service
+        self.ai_consent_service = ai_consent_service
         self.workspace_form_service: WorkspaceFormService = workspace_form_service
         self._unsplash = UnsplashService()
         self._providers: Dict[AIProvider, AIFormProvider] = {
@@ -65,28 +71,52 @@ class OpenAIService:
             )
         return impl
 
+    async def provider_for_workspace(
+        self, workspace_id: PydanticObjectId, requested: Optional[str] = None
+    ) -> AIFormProvider:
+        """The one way to get an AI provider (#715): 403 ``ai_not_enabled``
+        unless the workspace opted in, and always the provider it consented
+        to. A client-chosen provider other than that one is ignored."""
+        consented = await self.ai_consent_service.require_enabled(workspace_id)
+        # ``requested`` is honoured only when it is the consented provider,
+        # which is the one returned below either way.
+        try:
+            provider = AIProvider(consented)
+        except ValueError:
+            provider = None
+        if provider is None or provider not in self._providers:
+            raise ai_not_enabled(
+                "The AI provider this workspace consented to is not available. "
+                "A workspace admin needs to turn AI on again."
+            )
+        return self._get_provider(provider)
+
     async def create_form_with_ai(
         self,
         workspace_id: PydanticObjectId,
         create_form_ai: CreateFormWithAI,
         user: User,
     ):
-        workspace = await self.workspace_service.get_workspace_by_id(
-            workspace_id=workspace_id
+        # Membership and the workspace's AI opt-in first (#717): nothing is
+        # loaded into a prompt or sent to a provider before both pass.
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
-        if not workspace:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, content="Workspace not found"
-            )
+        provider = await self.provider_for_workspace(
+            workspace_id, create_form_ai.provider
+        )
 
         try:
-            provider = self._get_provider(create_form_ai.provider)
             # Ground the request in the workspace's AI profile (org guidelines /
             # compliance) — plan §2.1/§2.3. Provider-agnostic: prepended to the
             # user turn.
             profile = await AIProfileService.get_profile_for_prompt(workspace_id)
-            memory_entries = await AIMemoryService.get_entries_for_prompt(workspace_id, user.id)
-            grounded_prompt = compose_generation_prompt(create_form_ai.prompt, profile, memory_entries)
+            memory_entries = await AIMemoryService.get_entries_for_prompt(
+                workspace_id, user.id
+            )
+            grounded_prompt = compose_generation_prompt(
+                create_form_ai.prompt, profile, memory_entries
+            )
             openai_form = await provider.generate_form(grounded_prompt)
 
             form = await self.workspace_form_service.create_form(

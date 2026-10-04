@@ -10,7 +10,11 @@ from common.base.repo import BaseRepository
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
 from common.enums.form_provider import FormProvider
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.standard_form import (
+    RespondentFeedback,
+    StandardFormResponse,
+    StandardFormResponseAnswer,
+)
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
@@ -21,6 +25,10 @@ from backend.app.models.filter_queries.form_responses import FormResponseFilterQ
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
+)
+from backend.app.repositories.metric_periods import (
+    iso_second,
+    mongo_counts_per_period,
 )
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
@@ -232,6 +240,47 @@ class FormResponseRepository(BaseRepository):
 
     async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
         return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).count()
+
+    # -- platform metrics (admin dashboard) ------------------------------------
+    # Responses with ``answers`` (deletion-only stubs have none), dated by
+    # ``created_at``: the submission time, also for imported responses.
+    async def count_responses(
+        self, submitted_since: Optional[dt.datetime] = None
+    ) -> int:
+        query: Dict[str, Any] = {"answers": {"$exists": True}}
+        if submitted_since is not None:
+            query["created_at"] = {"$gte": iso_second(submitted_since)}
+        return await FormResponseDocument.find(query).count()
+
+    async def count_anonymous_responses(self) -> int:
+        """Responses that name no data owner (no ``dataOwnerIdentifier``)."""
+        return await FormResponseDocument.find(
+            {"answers": {"$exists": True}, "dataOwnerIdentifier": {"$in": [None, ""]}}
+        ).count()
+
+    async def count_identified_responders(self) -> int:
+        """Distinct ``dataOwnerIdentifier`` values; never returns them."""
+        rows = (
+            await FormResponseDocument.find(
+                {
+                    "answers": {"$exists": True},
+                    "dataOwnerIdentifier": {"$nin": [None, ""]},
+                }
+            )
+            .aggregate([{"$group": {"_id": "$dataOwnerIdentifier"}}, {"$count": "n"}])
+            .to_list()
+        )
+        return rows[0]["n"] if rows else 0
+
+    async def count_responses_per_period(
+        self, boundaries: List[dt.datetime]
+    ) -> List[int]:
+        return await mongo_counts_per_period(
+            FormResponseDocument,
+            "created_at",
+            [iso_second(b) for b in boundaries],
+            match={"answers": {"$exists": True}},
+        )
 
     async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
         success_deletion_request = (
@@ -495,6 +544,26 @@ class FormResponseRepository(BaseRepository):
                     )
                 }
             },
+            response_type=UpdateResponse.NEW_DOCUMENT,
+        )
+
+    @write_op(replay=True)
+    async def add_respondent_feedback(
+        self, response_id: str, entry: RespondentFeedback
+    ) -> Optional[FormResponseDocument]:
+        """Append one feedback entry (its message already encrypted) to a
+        response's history, touching nothing else. Returns the stored
+        document, or None when the response is gone."""
+        encoded = to_bson_dict(
+            FormResponseDocument(response_id=response_id, respondent_feedback=[entry])
+        )["respondent_feedback"][0]
+        # ``$push`` refuses a null field, which every response saved before
+        # this feature carries: make it an empty list first.
+        await FormResponseDocument.find_one(
+            {"response_id": response_id, "respondent_feedback": None}
+        ).update({"$set": {"respondent_feedback": []}})
+        return await FormResponseDocument.find_one({"response_id": response_id}).update(
+            {"$push": {"respondent_feedback": encoded}},
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
 

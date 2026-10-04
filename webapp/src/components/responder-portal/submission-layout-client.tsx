@@ -11,6 +11,8 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
+import RespondentFeedbackSection from './respondent-feedback-section';
 import { useSubmissionContext } from './submission-context';
 
 /**
@@ -122,6 +124,23 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                         )}
                         {!!response?.deletionStatus && <span className="rounded bg-[#FBF3E4] px-2 py-0.5 text-xs font-medium text-[#B26B00]">Deletion requested</span>}
                     </div>
+
+                    {/* The organisation's updates on this submission: the
+                        respondent's view, or the team's panel for members. */}
+                    <RespondentFeedbackSection feedback={response?.feedback} workspaceTitle={workspace?.title} />
+                    {form?.feedback && workspace?.id && (
+                        <div className="mt-6">
+                            <RespondentFeedbackPanel
+                                key={response?.responseId}
+                                workspaceId={workspace.id}
+                                formId={form?.form?.formId}
+                                responseId={response?.responseId}
+                                feedback={form.feedback}
+                                enabled={!!form?.form?.settings?.respondentFeedbackEnabled}
+                                statuses={form?.form?.settings?.feedbackStatuses ?? []}
+                            />
+                        </div>
+                    )}
 
                     <div className="border-b-black-200 mt-6 flex space-x-1 overflow-x-auto border-b pb-0">
                         {tabs.map((tab) => {

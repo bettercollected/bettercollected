@@ -12,7 +12,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.types.coupon_code import CouponCode
 from backend.app.router import router
 from backend.app.schemas.coupon_codes import CouponCodeDocument
-from backend.app.services.auth_cookie_service import set_tokens_to_response
+from backend.app.services.auth_cookie_service import set_access_token_to_response
 from backend.app.services.coupon_service import CouponService
 from backend.app.services.user_service import get_logged_admin, get_logged_user
 from backend.config import settings
@@ -52,7 +52,8 @@ class CouponController(Routable):
             )
         await self.coupon_service.redeem_coupon(coupon_code=coupon_code, user=user)
         user.plan = Plans.PRO
-        set_tokens_to_response(user=user, response=response)
+        # the plan claim lives in the access token; same session
+        set_access_token_to_response(user=user, response=response)
         return "Code Redeem Successful"
 
     @post("")

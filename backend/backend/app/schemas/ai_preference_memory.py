@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.configs.mongo_document import MongoDocument
@@ -24,6 +24,10 @@ class UserAIPreferenceMemoryDocument(MongoDocument):
     user_id: str
     # [{"id": str, "text": str, "at": iso8601, "source": "extracted"|"manual"}]
     entries: List[Dict[str, Any]] = []
+    # "Learn my preferences" (#715): extraction after chat turns runs only
+    # when the user turned this on (default off); manual entries don't need it.
+    learn_preferences: bool = False
+    learn_preferences_at: Optional[dt.datetime] = None
 
     class Settings:
         name = "ai_preference_memories"

@@ -2,6 +2,8 @@
 kind to procrastinate, and what the job bodies do when a worker runs them.
 Uses procrastinate's in-memory connector — no queue database needed."""
 
+import json
+
 import datetime as dt
 from dataclasses import asdict
 
@@ -10,7 +12,7 @@ from beanie import PydanticObjectId
 from procrastinate.testing import InMemoryConnector
 
 from backend.app.container import container
-from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.models.dataclasses.user_tokens import UserDeletion
 from backend.app.services.temporal_service import TemporalService
 from backend.jobs import tasks
 from backend.jobs.app import (
@@ -80,19 +82,19 @@ async def test_response_deletion_is_scheduled_at_expiration_and_cancellable(
     await svc.delete_response_delete_schedule("r1")  # nothing to cancel is fine
 
 
-async def test_user_deletion_is_deferred_once_with_encrypted_tokens(memory_jobs):
+async def test_user_deletion_is_deferred_once_with_an_encrypted_request(memory_jobs):
     svc = service({"JOBS_BACKEND__delete_user": "postgres"})
-    tokens = UserTokens(access_token="access-token-secret", refresh_token="refresh-token-secret")
-    assert await svc.start_user_deletion_workflow(tokens, "u1") == "Job Started"
-    assert (
-        await svc.start_user_deletion_workflow(tokens, "u1") is None
-    )  # already queued
+    deletion = UserDeletion(user_id="u1", email="someone-secret@example.com")
+    assert await svc.start_user_deletion_workflow(deletion) == "Job Started"
+    assert await svc.start_user_deletion_workflow(deletion) is None  # already queued
     (job,) = memory_jobs.jobs.values()
     assert job["task_name"] == "delete_user" and job["args"]["user_id"] == "u1"
-    assert (
-        "access-token-secret" not in job["args"]["encrypted_tokens"]
-    )  # travels encrypted, as with Temporal
-    assert container.crypto().decrypt(job["args"]["encrypted_tokens"])
+    # travels encrypted, as with Temporal
+    assert "someone-secret" not in job["args"]["encrypted_tokens"]
+    assert json.loads(container.crypto().decrypt(job["args"]["encrypted_tokens"])) == {
+        "user_id": "u1",
+        "email": "someone-secret@example.com",
+    }
 
 
 async def test_run_action_is_deferred_by_name_to_the_actions_queue(memory_jobs):

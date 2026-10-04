@@ -6,6 +6,7 @@ import logging
 import auth
 import sentry_sdk
 from auth.app.container import container
+from auth.app.controllers.internal_key import log_if_internal_key_missing
 from auth.app.exceptions import (
     HTTPException,
     http_exception_handler,
@@ -13,7 +14,8 @@ from auth.app.exceptions import (
 from auth.app.exceptions.http import not_found_error_handler
 from auth.app.router import root_api_router
 from auth.app.services.database_service import close_db, init_db
-from common.db import check_postgres_at_startup, dispose_engine
+from auth.db.base import SCHEMA
+from common.db import MigrationTarget, check_postgres_at_startup, dispose_engine
 from auth.config import settings
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
@@ -25,6 +27,10 @@ from common.exceptions import NotFoundError
 
 log = logging.getLogger(__name__)
 
+# The auth schema's Alembic history: checked (and with DB_AUTO_MIGRATE=true,
+# applied) at startup whenever a group is on Postgres.
+MIGRATIONS = MigrationTarget.for_package(auth, SCHEMA, service="auth")
+
 
 async def on_startup():
     """Define FastAPI startup event handler.
@@ -34,13 +40,16 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
+    log_if_internal_key_missing()
     database_client = container.database_client()
     await init_db(database_client)
     log.info(
         "persistence flags: %s",
         json.dumps(container.flags().describe(["auth"]), sort_keys=True),
     )
-    await check_postgres_at_startup(container.flags(), container.pg_engine())
+    await check_postgres_at_startup(
+        container.flags(), container.pg_engine(), MIGRATIONS
+    )
 
 
 async def on_shutdown():

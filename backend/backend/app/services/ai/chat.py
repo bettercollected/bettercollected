@@ -43,7 +43,8 @@ from backend.app.services.ai.prompt_builder import (
     extract_json_object,
     project_form,
 )
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 
 # Context discipline: resend at most this many prior turns.
 MAX_HISTORY_MESSAGES = 20
@@ -141,18 +142,20 @@ async def persist_ops_to_form(
 class FormAIChatService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         provider_resolver: Callable,
         workspace_form_repo: WorkspaceFormRepository,
         form_repo: FormRepository,
         session_repo: FormAISessionRepository,
     ):
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
         self._session_repo = session_repo
         # Injected so tests (and future per-workspace BYO keys) swap providers
-        # without touching this flow. Signature: (provider_name|None) -> provider.
+        # without touching this flow. Signature:
+        # async (workspace_id, provider_name|None) -> provider, 403 when the
+        # workspace has not opted in to AI.
         self._provider_resolver = provider_resolver
 
     async def chat_edit(
@@ -163,9 +166,7 @@ class FormAIChatService:
         user: User,
         background_tasks: Optional[BackgroundTasks] = None,
     ) -> FormAIChatResponse:
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
 
         # The form must belong to THIS workspace — access to workspace A must
         # not allow editing workspace B's forms by id (MCP has the same rule).
@@ -201,6 +202,10 @@ class FormAIChatService:
                 workspace_id=workspace_id, form_id=form_id, user_id=user.id, messages=[]
             )
 
+        # The workspace's AI opt-in (#715), before anything is loaded into a
+        # prompt: 403 ai_not_enabled when it is off.
+        provider = await self._provider_resolver(workspace_id, request.provider)
+
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
         memory_entries = await AIMemoryService.get_entries_for_prompt(
@@ -216,7 +221,6 @@ class FormAIChatService:
         ]
         messages = history + [{"role": "user", "content": request.message}]
 
-        provider = self._provider_resolver(request.provider)
         raw_reply = await provider.chat(system, messages)
 
         try:
@@ -252,7 +256,9 @@ class FormAIChatService:
         # path. Async background tasks run on the MAIN loop (single-loop
         # pymongo client — see the OTP lesson), and extraction failures are
         # swallowed inside the service.
-        if background_tasks is not None:
+        if background_tasks is not None and await AIMemoryService.learns_preferences(
+            workspace_id, user.id
+        ):
             background_tasks.add_task(
                 AIMemoryService().extract_from_turn,
                 provider,

@@ -5,7 +5,7 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Sequence, Set
 
 from beanie import PydanticObjectId
-from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
+from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import (
     InternalAnswerMeta,
     StandardFormResponse,
@@ -24,21 +24,24 @@ from backend.app.models.dtos.form_response_dto import (
     SingleSubmissionResponse,
 )
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.respondent_feedback_dto import StaffFeedback
 from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
     StandardFormFieldCamelModel,
     StandardFormResponseCamelModel,
 )
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.internal_fields import (
     fields_by_id,
@@ -47,6 +50,14 @@ from backend.app.services.internal_fields import (
     strip_internal_answers,
     strip_internal_fields,
     validate_internal_answer,
+)
+from backend.app.services.respondent_feedback import (
+    current_status,
+    decrypt_feedback,
+    emails_respondent,
+    feedback_entries,
+    present_to_respondent,
+    staff_feedback,
 )
 from backend.app.utils.hash import hash_string
 
@@ -70,14 +81,16 @@ class FormResponseService:
         form_response_repo: FormResponseRepository,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+        authorization_service: AuthorizationService,
         aws_service: AWSS3Service,
+        workspace_repo: WorkspaceRepository,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
-        self._workspace_user_repo = workspace_user_repo
+        self._authorization = authorization_service
         self._aws_service = aws_service
+        self._workspace_repo = workspace_repo
 
     async def get_all_workspace_responses(
         self,
@@ -88,12 +101,17 @@ class FormResponseService:
         user: User,
         data_subjects: bool = None,
     ):
-        if not await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        ):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
+        # Deletion requests and the data subjects (responders) are the privacy
+        # programme; the answers themselves are response.read.
+        await self._authorization.authorize(
+            user,
+            (
+                Permission.PRIVACY_MANAGE
+                if data_subjects or request_for_deletion
+                else Permission.RESPONSE_READ
+            ),
+            workspace_id,
+        )
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id
         )
@@ -122,9 +140,12 @@ class FormResponseService:
         user_responses = await self._form_response_repo.get_user_submissions(
             form_ids=form_ids, user=user, request_for_deletion=request_for_deletion
         )
-        # A respondent's own listing never carries staff-entered values.
+        # A respondent's own listing never carries staff-entered values; of
+        # the feedback only the current status (no staff identity).
         for item in user_responses.items:
             strip_internal_answers(item)
+            if not request_for_deletion:
+                present_to_respondent(item, None, enabled=False, with_entries=False)
         if not request_for_deletion:
             return self.decrypt_response_page(
                 workspace_id=workspace_id, responses_page=user_responses
@@ -140,12 +161,15 @@ class FormResponseService:
         sort: SortRequest,
         user: User,
     ):
-        if not await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id, user
-        ):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
+        await self._authorization.authorize(
+            user,
+            (
+                Permission.PRIVACY_MANAGE
+                if request_for_deletion
+                else Permission.RESPONSE_READ
+            ),
+            workspace_id,
+        )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
                 workspace_id, form_id
@@ -176,15 +200,24 @@ class FormResponseService:
             return response_page
         return form_responses
 
+    async def check_member_and_form_in_workspace(
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
+    ):
+        """Aggregate flow analytics: 403 without analytics.read, 404 unless
+        the form belongs to the workspace."""
+        await self._authorization.authorize(
+            user, Permission.ANALYTICS_READ, workspace_id, form_id=form_id
+        )
+
     async def get_workspace_form_all_submissions(
         self, form_id: str, workspace_id: PydanticObjectId, user: User
     ):
-        if not await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id, user
-        ):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
+        # Every response of the form, unpaginated: the CSV download and the
+        # flow view's per-response insights. Export gets its own permission
+        # with the rest of the bulk paths.
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_READ, workspace_id
+        )
         # Scope the form to the workspace as well: without this the caller could
         # name any workspace they belong to and read another workspace's form.
         workspace_form = (
@@ -204,8 +237,10 @@ class FormResponseService:
     async def get_workspace_submission(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
-        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id, user
+        # Staff read any response of the workspace; otherwise this is the
+        # respondent's own submission (checked by identity below).
+        is_admin = await self._authorization.has_permission(
+            user, Permission.RESPONSE_READ, workspace_id
         )
         response = await self._form_response_repo.get_response(response_id)
         if not response:
@@ -259,6 +294,26 @@ class FormResponseService:
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
         )
+        staff_view = None
+        if is_admin:
+            entries = feedback_entries(decrypted_response)  # decrypted above
+            staff_view = StaffFeedback(
+                entries=staff_feedback(entries),
+                current_status=current_status(entries),
+                can_post=bool(workspace_form.settings.respondent_feedback_enabled)
+                and await self._authorization.has_permission(
+                    user, Permission.RESPONSE_ANNOTATE, workspace_id
+                ),
+                notifies_respondent=emails_respondent(
+                    workspace_form.settings, response
+                ),
+            )
+        else:
+            present_to_respondent(
+                decrypted_response,
+                await self._workspace_title(workspace_id),
+                enabled=bool(workspace_form.settings.respondent_feedback_enabled),
+            )
         for key, decrypted_answer in decrypted_response.answers.items():
             decrypted_answer = (
                 decrypted_answer.model_dump(mode="json")
@@ -279,16 +334,30 @@ class FormResponseService:
             form=form,
             response=decrypted_response,
             internal_fields=staff_internal_fields,
+            feedback=staff_view,
         )
+
+    async def _workspace_title(self, workspace_id: PydanticObjectId) -> Optional[str]:
+        """The organisation's name, shown to respondents as the author of
+        feedback in place of the staff member who posted it."""
+        workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
+        # not the handle: a default workspace is named after its owner's id
+        return (workspace.title or None) if workspace else None
 
     async def request_for_response_deletion(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
-        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id, user
+        # Staff may file one for any response; otherwise only its respondent.
+        is_admin = await self._authorization.has_permission(
+            user, Permission.PRIVACY_MANAGE, workspace_id
         )
         # TODO : Handle case for multiple form import by other user
         response = await self._form_response_repo.get_response(response_id)
+        # Membership only counts for responses to this workspace's forms.
+        if not response or not await self._workspace_form_repo.find_workspace_form(
+            workspace_id, response.form_id
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Response not found in workspace")
 
         # Anonymous responses carry no dataOwnerIdentifier — their owner is
         # recognisable only by the anonymous identity hash. Without this check
@@ -399,6 +468,10 @@ class FormResponseService:
                     data=response.internal_answers,
                 )
             )
+        if getattr(response, "respondent_feedback", None):
+            response.respondent_feedback = decrypt_feedback(
+                workspace_id, response.form_id, response.respondent_feedback
+            )
         return response
 
     async def submit_form_response(
@@ -472,14 +545,22 @@ class FormResponseService:
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
         )
+        respondent_response = StandardFormResponseCamelModel(
+            **decrypted_response.model_dump(mode="json")
+        )
+        # Feedback is the respondent's to read here, like the answers: with
+        # the workspace as the author, never the staff member.
+        present_to_respondent(
+            respondent_response,
+            await self._workspace_title(workspace_id),
+            enabled=bool(workspace_form.settings.respondent_feedback_enabled),
+        )
 
         return {
             "form": strip_internal_fields(
                 StandardFormCamelModel(**form.model_dump(mode="json"))
             ),
-            "response": StandardFormResponseCamelModel(
-                **decrypted_response.model_dump(mode="json")
-            ),
+            "response": respondent_response,
         }
 
     async def request_for_response_deletion_by_uuid(
@@ -516,14 +597,25 @@ class FormResponseService:
             form = await self._form_repo.get_form_document_by_id(str(form_id))
         return internal_fields(form) if form else []
 
-    async def all_internal_field_ids(self, form_id: str) -> Set[str]:
+    async def all_internal_field_ids(
+        self, form_id: str, every_version: bool = False
+    ) -> Set[str]:
         """Ids that are internal in the draft or the latest published version
         — used to refuse respondent input for them whichever version the
-        respondent was served."""
+        respondent was served.
+
+        ``every_version`` adds every older published version too, for readers
+        of stored answers (AI insights): an answer to a field that was
+        internal when it was given stays staff-only even if the field is
+        public now."""
         ids: Set[str] = set()
-        latest = await self._form_repo.get_latest_version_of_form(form_id)
+        versions = (
+            await self._form_repo.get_versions_of_form(form_id)
+            if every_version
+            else [await self._form_repo.get_latest_version_of_form(form_id)]
+        )
         draft = await self._form_repo.get_form_document_by_id(str(form_id))
-        for form in (latest, draft):
+        for form in (*versions, draft):
             if form is not None:
                 ids |= internal_field_ids(form)
         return ids
@@ -539,8 +631,7 @@ class FormResponseService:
     ) -> InternalAnswersResponse:
         """Staff fill in / edit / clear internal answers on one submission.
 
-        Any active workspace member may do this — the same access that lets
-        them edit the form itself. Each changed answer records who changed
+        Needs response.annotate (any active member today). Each changed answer records who changed
         it and when. Each answer is checked against its field's type and
         options (422 otherwise).
 
@@ -549,10 +640,9 @@ class FormResponseService:
         if nobody saved in between (409 with the current state otherwise).
         Without it, the read-modify-write below is still conditional on the
         version it read, so two simultaneous saves never lose one."""
-        if not await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id, user
-        ):
-            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_ANNOTATE, workspace_id
+        )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
                 workspace_id, form_id

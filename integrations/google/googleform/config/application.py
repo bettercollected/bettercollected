@@ -53,6 +53,9 @@ class Application(BaseSettings):
 
     AUTH_JWT_SECRET: str
     AUTH_SERVER_URL: str = "http://auth:8000/api/v1"
+    # Shared with the backend and the auth service (same value everywhere):
+    # the auth service refuses requests without it (X-Internal-Key).
+    AUTH_INTERNAL_NOTIFY_KEY: str = ""
     AUTH_AES_HEX_KEY: str = ""
 
     GOOGLE_CLIENT_TYPE: str = "web"

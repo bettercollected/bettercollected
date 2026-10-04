@@ -36,7 +36,7 @@ from backend.app.models.dataclasses.export_to_csv import ExportCSVParams
 from backend.app.models.dataclasses.import_form_params import ImportFormParams
 from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
 from backend.app.models.dataclasses.save_preview_params import SavePreviewParams
-from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.models.dataclasses.user_tokens import UserDeletion
 from backend.app.models.dtos.action_dto import ActionResponse
 from backend.app.models.workspace import WorkspaceRequestWithActionDto
 from backend.app.schemas.standard_form_response import FormResponseDocument
@@ -96,8 +96,11 @@ class TemporalService:
                     content="Cannot connect to temporal server",
                 )
 
-    async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):
-        encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
+    async def start_user_deletion_workflow(self, deletion: UserDeletion):
+        # the argument keeps its historical name (queued jobs, the workflow);
+        # it carries no tokens any more, only whose account to delete
+        user_id = deletion.user_id
+        encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(deletion)))
         if self._on_postgres("delete_user"):
             try:
                 await tasks.delete_user.configure(

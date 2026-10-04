@@ -27,6 +27,7 @@ from backend.app.services.pdf_import.compile import clean_label
 from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.intake import inspect_upload
 from backend.app.services.pdf_import.storage import source_key
+from backend.app.models.enum.permission import Permission
 from common.db.flags import JobsBackend
 from common.models.standard_form import StandardForm
 from common.models.user import User
@@ -47,7 +48,7 @@ class PdfImportService:
         store,
         pipeline,
         workspace_form_service,
-        workspace_user_service,
+        authorization_service,
         settings,
         flags=None,
     ):
@@ -55,7 +56,7 @@ class PdfImportService:
         self._store = store
         self._pipeline = pipeline
         self._workspace_forms = workspace_form_service
-        self._workspace_users = workspace_user_service
+        self._authorization = authorization_service
         self._settings = settings
         self._flags = flags
         self._running: Set[asyncio.Task] = set()
@@ -72,9 +73,7 @@ class PdfImportService:
         user: User,
         ai_consent: bool = False,
     ) -> FormImportDocument:
-        await self._workspace_users.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
         try:
             upload = inspect_upload(data, file_name, self._settings.MAX_BYTES)
         except DocumentRefused as refused:
@@ -196,9 +195,7 @@ class PdfImportService:
     async def get(
         self, workspace_id: PydanticObjectId, import_id: PydanticObjectId, user: User
     ) -> FormImportDocument:
-        await self._workspace_users.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
         record = await self._repo.get(import_id)
         if record is None or record.workspace_id != workspace_id:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Import not found.")
@@ -215,9 +212,7 @@ class PdfImportService:
         return record
 
     async def list(self, workspace_id: PydanticObjectId, user: User):
-        await self._workspace_users.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
         return await self._repo.list_by_workspace(workspace_id)
 
     async def delete_for_forms(self, form_ids) -> None:
@@ -228,21 +223,26 @@ class PdfImportService:
 
     async def ai_provider(self, workspace_id, user) -> dict:
         """The provider page text and images would go to with consent: its
-        public name and whether this instance has it configured."""
-        from backend.config import settings
-
-        await self._workspace_users.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        public name, whether this instance has it configured, and whether the
+        workspace has opted in to AI (#715). Without the opt-in it names the
+        instance default, which is what an admin would be asked to allow."""
+        from backend.app.container import container
+        from backend.app.services.ai.consent import (
+            default_provider,
+            provider_configured,
+            provider_name,
         )
-        default = (settings.ai.DEFAULT_PROVIDER or "openai").lower()
-        if default == "google":
-            name, available = "Google Gemini", bool(settings.google_ai.API_KEY)
-        elif default == "compatible":
-            name = "this instance's own AI model"
-            available = bool(settings.ai.COMPAT_BASE_URL and settings.ai.COMPAT_MODEL)
-        else:
-            name, available = "OpenAI", bool(settings.open_ai.API_KEY)
-        return {"provider": name, "available": available}
+
+        await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
+        consented = await container.ai_consent_service().consented_provider(
+            workspace_id
+        )
+        provider = consented or default_provider()
+        return {
+            "provider": provider_name(provider),
+            "available": provider_configured(provider),
+            "enabled": consented is not None,
+        }
 
     async def page_image(self, workspace_id, import_id, number: int, user) -> bytes:
         """A rendered page, for the review screen (members of the workspace only)."""

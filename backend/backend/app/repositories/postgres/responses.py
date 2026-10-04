@@ -26,6 +26,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
+from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
 from backend.app.repositories.postgres.forms import _fold, _oid, _sort_terms, _text
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
@@ -59,7 +60,11 @@ from common.db import (
     to_bson_dict,
 )
 from common.db.beanie_bridge import row_values
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.standard_form import (
+    RespondentFeedback,
+    StandardFormResponse,
+    StandardFormResponseAnswer,
+)
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from camel_converter import to_camel, to_snake
@@ -357,6 +362,44 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
         return await self.count(FormResponseRow.form_id.in_(form_ids))
 
+    # -- platform metrics (admin dashboard) ------------------------------------
+    @staticmethod
+    def _with_answers():
+        return FormResponseRow.doc.has_key("answers")
+
+    async def count_responses(
+        self, submitted_since: Optional[dt.datetime] = None
+    ) -> int:
+        where = [self._with_answers()]
+        if submitted_since is not None:
+            where.append(FormResponseRow.created_at >= utc(submitted_since))
+        return await self.count(*where)
+
+    async def count_anonymous_responses(self) -> int:
+        owner = FormResponseRow.data_owner_identifier
+        return await self.count(self._with_answers(), or_(owner.is_(None), owner == ""))
+
+    async def count_identified_responders(self) -> int:
+        owner = FormResponseRow.data_owner_identifier
+        async with self._session() as session:
+            return (
+                await session.execute(
+                    select(func.count(owner.distinct())).where(
+                        self._with_answers(), owner.is_not(None), owner != ""
+                    )
+                )
+            ).scalar_one()
+
+    async def count_responses_per_period(
+        self, boundaries: List[dt.datetime]
+    ) -> List[int]:
+        return await postgres_counts_per_period(
+            self,
+            FormResponseRow.created_at,
+            [utc(b) for b in boundaries],
+            self._with_answers(),
+        )
+
     async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
         dr = ResponseDeletionRequestRow
         in_forms = dr.form_id.in_(form_ids)
@@ -620,6 +663,28 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             stored.internal_answers = response.internal_answers
             stored.internal_answers_meta = response.internal_answers_meta
             stored.internal_answers_version = response.internal_answers_version
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
+
+    async def add_respondent_feedback(
+        self, response_id: str, entry: RespondentFeedback
+    ) -> Optional[FormResponseDocument]:
+        """Twin of the Mongo ``$push``: the row is locked while the entry is
+        appended to the stored history."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(FormResponseRow.doc)
+                    .where(FormResponseRow.response_id == response_id)
+                    .order_by(FormResponseRow.created_at, FormResponseRow.id)
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            stored = from_row_doc(FormResponseDocument, doc)
+            stored.respondent_feedback = [*(stored.respondent_feedback or []), entry]
             await session.execute(self._upsert_statement(row_values(stored)))
         return stored
 

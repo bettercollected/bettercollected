@@ -17,7 +17,8 @@ class DynamicCORSMiddleware(CORSMiddleware):
     _cache_refreshed_at: datetime.datetime = datetime.datetime.min.replace(
         tzinfo=datetime.timezone.utc
     )
-    _cache_ttl_seconds: float = 60 * 60
+    # a change in another worker or replica reaches this one within the TTL
+    _cache_ttl_seconds: float = 60
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http":

@@ -22,6 +22,11 @@ export interface TrustLayerProps {
      * underneath this one). Off when the form's disableBranding setting is on.
      */
     poweredBy?: boolean;
+    /**
+     * Set when the form allows AI insights on responses (#716): the AI
+     * provider responses may be sent to, named to the respondent.
+     */
+    aiProviderName?: string | null;
 }
 
 /**
@@ -32,7 +37,7 @@ export interface TrustLayerProps {
  *
  * Presentational only: pass in data (see the wired usage on the fill page).
  */
-export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention, portalUrl, poweredBy }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention, portalUrl, poweredBy, aiProviderName }: TrustLayerProps) {
     const items: React.ReactNode[] = [];
 
     if (ownerName) {
@@ -66,6 +71,13 @@ export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl,
             <a key="privacy" href={privacyUrl} target="_blank" rel="noopener noreferrer" className="text-brand-500 pointer-events-auto hover:underline">
                 How your data is used
             </a>
+        );
+    }
+    if (aiProviderName) {
+        items.push(
+            <span key="ai" className="text-black-700">
+                Responses may be analysed by an AI provider ({aiProviderName})
+            </span>
         );
     }
     // Deletion is a right responders always have (post-submission); when we know

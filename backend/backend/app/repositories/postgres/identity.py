@@ -22,23 +22,34 @@ from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.invitation_request import InvitationRequest
-from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
+from backend.app.repositories.metric_periods import (
+    object_id_at,
+    postgres_counts_per_period,
+)
+from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.repositories.workspace_domain_repository import (
+    DomainAlreadyClaimed,
+    DomainVerifiedElsewhere,
+)
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+from backend.app.schemas.workspace_domain import DomainStatus, WorkspaceDomainDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.db.base import SCHEMA
 from backend.db.models import (
-    BlacklistedRefreshTokenRow,
+    SessionRow,
     UserTagsRow,
     WorkspaceApiKeyRow,
+    WorkspaceDomainRow,
     WorkspaceInviteRow,
     WorkspaceRow,
     WorkspaceUserRow,
@@ -48,6 +59,7 @@ from common.db import (
     PostgresRepositoryBase,
     from_canonical_document,
     from_row_doc,
+    row_values,
     to_bson_dict,
 )
 from common.enums.workspace_invitation_status import InvitationStatus
@@ -170,6 +182,23 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
             WorkspaceRow.owner_id == owner_id, WorkspaceRow.is_default.is_(True)
         )
 
+    async def count_workspaces(
+        self, created_since: Optional[datetime.datetime] = None
+    ) -> int:
+        if created_since is None:
+            return await self.count()
+        return await self.count(WorkspaceRow.id >= str(object_id_at(created_since)))
+
+    async def count_disabled_workspaces(self) -> int:
+        return await self.count(WorkspaceRow.disabled.is_(True))
+
+    async def count_workspaces_created_per_period(
+        self, boundaries: List[datetime.datetime]
+    ) -> List[int]:
+        return await postgres_counts_per_period(
+            self, WorkspaceRow.id, [str(object_id_at(b)) for b in boundaries]
+        )
+
     async def delete_workspaces_with_ids(self, workspace_ids: List[PydanticObjectId]):
         return await self.delete_where(
             WorkspaceRow.id.in_([_oid(i) for i in workspace_ids])
@@ -238,6 +267,7 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
         return (
             True
             if workspace_user
+            and not workspace_user.disabled
             and (
                 WorkspaceRoles.ADMIN in workspace_user.roles
                 or workspace.owner_id == user.id
@@ -407,15 +437,179 @@ class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
         return await self.one(WorkspaceApiKeyRow.key_hash == key_hash)
 
 
-class PostgresBlacklistedRefreshTokenRepository(PostgresRepositoryBase):
-    row = BlacklistedRefreshTokenRow
-    document = BlackListedRefreshTokens
+class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
+    row = WorkspaceDomainRow
+    document = WorkspaceDomainDocument
 
-    async def find_by_token(self, token: str) -> Optional[BlackListedRefreshTokens]:
-        return await self.one(BlacklistedRefreshTokenRow.token == token)
+    async def create(
+        self, document: WorkspaceDomainDocument
+    ) -> WorkspaceDomainDocument:
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise DomainAlreadyClaimed(document.domain)
 
-    async def add(self, token: str, expiry) -> BlackListedRefreshTokens:
-        return await self.upsert(BlackListedRefreshTokens(token=token, expiry=expiry))
+    async def save(self, document: WorkspaceDomainDocument) -> WorkspaceDomainDocument:
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise DomainVerifiedElsewhere(document.domain)
+
+    async def get(self, domain_id) -> Optional[WorkspaceDomainDocument]:
+        return await self.one(WorkspaceDomainRow.id == str(domain_id))
+
+    async def list_by_workspace(
+        self, workspace_id: PydanticObjectId
+    ) -> List[WorkspaceDomainDocument]:
+        return await self.many(
+            WorkspaceDomainRow.workspace_id == _oid(workspace_id),
+            order_by=(WorkspaceDomainRow.domain,),
+        )
+
+    async def count_by_workspace(self, workspace_id: PydanticObjectId) -> int:
+        return await self.count(WorkspaceDomainRow.workspace_id == _oid(workspace_id))
+
+    async def find_verified(self, domain: str) -> Optional[WorkspaceDomainDocument]:
+        return await self.one(WorkspaceDomainRow.verified_domain == domain)
+
+    async def list_due_for_recheck(
+        self, checked_before: datetime.datetime, limit: int
+    ) -> List[WorkspaceDomainDocument]:
+        return await self.many(
+            WorkspaceDomainRow.status == DomainStatus.VERIFIED.value,
+            WorkspaceDomainRow.last_checked_at < checked_before,
+            order_by=(WorkspaceDomainRow.last_checked_at, WorkspaceDomainRow.id),
+            limit=limit,
+        )
+
+    async def delete(self, domain_id: PydanticObjectId) -> int:
+        return await self.delete_by_id(domain_id)
+
+    async def delete_by_workspace_ids(
+        self, workspace_ids: List[PydanticObjectId]
+    ) -> int:
+        return await self.delete_where(
+            WorkspaceDomainRow.workspace_id.in_([_oid(w) for w in workspace_ids])
+        )
+
+
+class PostgresSessionRepository(PostgresRepositoryBase):
+    row = SessionRow
+    document = SessionDocument
+
+    async def save(self, document: SessionDocument) -> SessionDocument:
+        return await self.upsert(document)
+
+    async def get(self, session_id: str) -> Optional[SessionDocument]:
+        try:
+            session_id = str(PydanticObjectId(session_id))
+        except Exception:  # noqa: BLE001 — not an ObjectId: no such session
+            return None
+        return await self.one(SessionRow.id == session_id)
+
+    async def list_active_by_user(self, user_id: str) -> List[SessionDocument]:
+        return await self.many(
+            SessionRow.user_id == user_id,
+            SessionRow.revoked_at.is_(None),
+            order_by=(SessionRow.created_at.desc(), SessionRow.id.desc()),
+        )
+
+    async def _update_live(self, change, *where) -> List[SessionDocument]:
+        """Lock the live sessions matching ``where``, apply ``change`` to each
+        and store them, in one transaction (the twin of a conditional
+        ``$set``)."""
+        async with self._session() as session, session.begin():
+            docs = (
+                (
+                    await session.execute(
+                        select(SessionRow.doc)
+                        .where(SessionRow.revoked_at.is_(None), *where)
+                        .order_by(SessionRow.created_at, SessionRow.id)
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            stored = []
+            for doc in docs:
+                document = from_row_doc(SessionDocument, doc)
+                change(document)
+                await session.execute(self._upsert_statement(row_values(document)))
+                stored.append(document)
+        return stored
+
+    async def rotate(
+        self,
+        session_id: str,
+        expected_jti: str,
+        new_jti: str,
+        now: datetime.datetime,
+        expires_at: datetime.datetime,
+    ) -> Optional[SessionDocument]:
+        if await self.get(session_id) is None:
+            return None
+
+        def change(document: SessionDocument) -> None:
+            document.previous_refresh_jti = document.refresh_jti
+            document.refresh_jti = new_jti
+            document.rotated_at = now
+            document.last_refreshed_at = now
+            document.expires_at = expires_at
+            document.updated_at = now
+
+        stored = await self._update_live(
+            change,
+            SessionRow.id == str(session_id),
+            SessionRow.refresh_jti == expected_jti,
+        )
+        return stored[0] if stored else None
+
+    async def touch(self, session_id: str, now: datetime.datetime) -> int:
+        if await self.get(session_id) is None:
+            return 0
+
+        def change(document: SessionDocument) -> None:
+            document.last_refreshed_at = now
+            document.updated_at = now
+
+        return len(await self._update_live(change, SessionRow.id == str(session_id)))
+
+    @staticmethod
+    def _revoker(reason: str, now: datetime.datetime):
+        def change(document: SessionDocument) -> None:
+            document.revoked_at = now
+            document.revoke_reason = reason
+            document.updated_at = now
+
+        return change
+
+    async def revoke(self, session_id: str, reason: str, now: datetime.datetime) -> int:
+        if await self.get(session_id) is None:
+            return 0
+        return len(
+            await self._update_live(
+                self._revoker(reason, now), SessionRow.id == str(session_id)
+            )
+        )
+
+    async def delete_expired(self, now: datetime.datetime) -> int:
+        return await self.delete_where(SessionRow.expires_at <= now)
+
+    async def delete_all_for_user(self, user_id: str) -> int:
+        return await self.delete_where(SessionRow.user_id == user_id)
+
+    async def revoke_all_for_user(
+        self,
+        user_id: str,
+        reason: str,
+        now: datetime.datetime,
+        except_session_id: Optional[str] = None,
+    ) -> int:
+        where = [SessionRow.user_id == user_id]
+        if except_session_id:
+            where.append(SessionRow.id != str(except_session_id))
+        return len(await self._update_live(self._revoker(reason, now), *where))
 
 
 class PostgresUserTagsRepository(PostgresRepositoryBase):

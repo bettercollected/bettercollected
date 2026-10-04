@@ -33,25 +33,27 @@ from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
 from backend.app.models.enum.form_integration import FormActionType, FormIntegrationType
+from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import strip_internal_fields
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
+from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 
 class FormService:
     def __init__(
         self,
-        workspace_user_repo: WorkspaceUserRepository,
+        authorization_service: AuthorizationService,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
         user_tags_service: UserTagsService,
@@ -59,7 +61,7 @@ class FormService:
         http_client: HttpClient,
         integration_provider: IntegrationProviderFactory,
     ):
-        self._workspace_user_repo = workspace_user_repo
+        self._authorization = authorization_service
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
         self.user_tags_service = user_tags_service
@@ -75,10 +77,9 @@ class FormService:
         pinned_only: bool,
         user: User,
     ) -> Page[FormDtoCamelModel]:
-        has_access_to_workspace = (
-            await self._workspace_user_repo.has_user_access_in_workspace(
-                workspace_id=workspace_id, user=user
-            )
+        # Members get the dashboard listing; everyone else the public one.
+        has_access_to_workspace = await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace_id
         )
         if not published and not has_access_to_workspace:
             raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
@@ -132,6 +133,7 @@ class FormService:
             response = await AiohttpClient.get_aiohttp_client().get(
                 f"{settings.auth_settings.BASE_URL}/users",
                 params={"user_ids": user_ids},
+                headers=auth_service_headers(),
             )
             return await response.json()
         except (ServerDisconnectedError, TimeoutError):
@@ -151,8 +153,8 @@ class FormService:
             query=query,
             published=published,
         )
-        if not await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        if not await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace_id
         ):
             for form in forms:
                 strip_internal_fields(form)
@@ -181,8 +183,9 @@ class FormService:
         published: bool = False,
         draft: bool = False,
     ):
-        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        # Members see the form as staff; respondents and the public don't.
+        is_admin = await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace_id
         )
         form = await self._get_form_by_id(
             workspace_id=workspace_id,
@@ -324,6 +327,12 @@ class FormService:
         await self._form_repo.save_form_version(form_version_document)
         return await self._form_repo.save_form(form_document)
 
+    async def check_form_in_workspace(self, workspace_id: PydanticObjectId, form_id):
+        if not await self._workspace_form_repo.find_workspace_form(
+            workspace_id, str(form_id)
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
+
     async def patch_settings_in_workspace_form(
         self,
         workspace_id: PydanticObjectId,
@@ -331,12 +340,15 @@ class FormService:
         settings: SettingsPatchDto,
         user: User,
     ):
-        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        if settings.hidden is not None or settings.private is not None:
+            # who may see and answer the form
+            await self._authorization.authorize(
+                user, Permission.FORM_SHARE, workspace_id
+            )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
-                workspace_id=workspace_id, query=form_id, is_admin=is_admin
+                workspace_id=workspace_id, query=form_id, is_admin=True
             )
         )
         if not workspace_form:
@@ -364,6 +376,24 @@ class FormService:
 
         if settings.show_original_form is not None:
             workspace_form.settings.show_original_form = settings.show_original_form
+
+        # Respondent feedback: only on forms collected here — an imported
+        # form's responses are re-imported from the provider. Switching it or
+        # its statuses is a form setting (form.edit); posting is
+        # response.annotate.
+        if settings.respondent_feedback_enabled:
+            if workspace_form.settings.provider != "self":
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST,
+                    "Responding to submissions is only available for forms "
+                    "built in BetterCollected.",
+                )
+        if settings.respondent_feedback_enabled is not None:
+            workspace_form.settings.respondent_feedback_enabled = (
+                settings.respondent_feedback_enabled
+            )
+        if settings.feedback_statuses is not None:
+            workspace_form.settings.feedback_statuses = settings.feedback_statuses
 
         # Trust-layer content — empty string clears a value.
         if settings.privacy_policy_url is not None:
@@ -454,8 +484,9 @@ class FormService:
         version: str | int,
         user: User,
     ):
-        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        # Members see the form as staff; respondents and the public don't.
+        is_admin = await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace_id
         )
         form = await self._get_form_by_version(
             workspace_id, form_id, version, user, is_admin

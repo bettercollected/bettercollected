@@ -29,13 +29,23 @@ class PluginProxyService:
             query_params = dict(request.query_params)
             if extra_params:
                 query_params.update(extra_params)
+            headers, cookies = request.headers, request.cookies
+            fresh_access_token = getattr(request.state, "access_token", None)
+            if fresh_access_token:
+                # the session was refreshed for this request: forward the new
+                # access token, not the expired one (the Cookie header would
+                # win over ``cookies``, so it is rebuilt from them)
+                headers = {
+                    k: v for k, v in request.headers.items() if k.lower() != "cookie"
+                }
+                cookies = {**request.cookies, "Authorization": fresh_access_token}
             response = await self.http_client.request(
                 method=method if method else request.method,
                 url=url,
                 json=data,
                 params=query_params,
-                headers=request.headers,
-                cookies=request.cookies,
+                headers=headers,
+                cookies=cookies,
                 timeout=60,
             )
 

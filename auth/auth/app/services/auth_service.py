@@ -14,9 +14,9 @@ from pydantic import EmailStr
 
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository
-from auth.app.schemas.user import UserDocument
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.mail_service import MailService
+from auth.app.services.platform_admins import roles_for
 from auth.config import settings
 
 
@@ -31,10 +31,15 @@ class AuthService:
         self.user_repository = user_repository
         self.http_client = http_client
 
-    async def get_user_status(self, user_id: PydanticObjectId):
+    async def get_user_status(
+        self, user_id: PydanticObjectId, email_verified: bool = False
+    ):
+        """``email_verified``: the refreshing session's claim (the backend reads
+        it from the user's signed refresh token)."""
         user = await self.user_repository.get_user_by_id(user_id)
         await self.user_repository.update_last_logged_in(user_id=user_id)
-        return UserResponseDto(**user.dict())
+        roles = roles_for(user.email, user.roles, verified=email_verified)
+        return UserResponseDto(**{**user.dict(), "roles": roles})
 
     @staticmethod
     def get_logged_user(jwt_token: str) -> User:
@@ -44,17 +49,22 @@ class AuthService:
         user = User(**jwt_response)
         return user
 
-    async def handle_auth_callback(self, jwt_token: str) -> User:
+    async def handle_auth_callback(
+        self, jwt_token: str, email_verified: bool = False
+    ) -> User:
         decoded_data = jwt.decode(
             jwt_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
         user_info = UserInfo(**decoded_data)
+        # Only the backend's import-OAuth flow calls this, and it sends only the
+        # signed-in user's own email (the import provider's email proves
+        # nothing about who the user is, #758). So this re-issues a token for an
+        # existing account and never creates one.
         user_document = await self.user_repository.get_user_by_email(user_info.email)
         if not user_document:
-            user_document = UserDocument(
-                email=user_info.email, roles=[Roles.FORM_RESPONDER, Roles.FORM_CREATOR]
+            raise HTTPException(
+                status_code=403, content="No account for this email. Sign in first."
             )
-            user_document = await user_document.save()
         if not (user_document.first_name and user_document.last_name) and (
             user_info.first_name or user_info.last_name
         ):
@@ -67,11 +77,17 @@ class AuthService:
                 user_info.last_name if user_info.last_name else user_document.last_name
             )
             user_document = await user_document.save()
+        # The re-issued token continues the backend's signed-in session for the
+        # same email, so it keeps that session's proof of the email (and what
+        # it grants, like a config-named platform admin's ADMIN).
         return User(
             id=str(user_document.id),
             sub=user_document.email,
-            roles=user_document.roles,
+            roles=roles_for(
+                user_document.email, user_document.roles, verified=email_verified
+            ),
             plan=user_document.plan,
+            email_verified=email_verified,
         )
 
     async def get_basic_auth_url(
@@ -110,7 +126,8 @@ class AuthService:
                     id=str(user.id),
                     sub=user.email,
                     plan=user.plan,
-                    roles=user.roles,
+                    roles=roles_for(user.email, user.roles, verified=True),
+                    email_verified=True,
                 )
             else:
                 raise HTTPException(status_code=404, content="Error user not found.")

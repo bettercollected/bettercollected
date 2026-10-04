@@ -1,5 +1,5 @@
 import { Close } from '@app/components/icons/close';
-import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { FieldTypes, StaffFeedback, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -14,6 +14,7 @@ import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getInternalFields } from '@app/utils/internal-fields';
 import InternalFieldsPanel from '@Components/form/internal-fields-panel';
+import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { getItemAnswer } from '@app/utils/response-export';
 import DeleteIcon from '@Components/icons/delete';
@@ -34,9 +35,12 @@ interface IViewResponseFullModalView {
     // The form's current internal ("office use") fields, from the submission
     // endpoint (members only). Falls back to the ones on `form`.
     internalFields?: StandardFormFieldDto[];
+    // The team's updates to the respondent (members only), from the same
+    // endpoint; the form's settings say whether posting is on.
+    feedback?: StaffFeedback | null;
 }
 
-const ViewResponseFullModalView = ({ response, formFields, form, formId, workspaceId, internalFields }: IViewResponseFullModalView) => {
+const ViewResponseFullModalView = ({ response, formFields, form, formId, workspaceId, internalFields, feedback }: IViewResponseFullModalView) => {
     const staffFields = internalFields ?? getInternalFields(form);
     const { toast } = useToast();
     const { closeModal } = useFullScreenModal();
@@ -63,6 +67,19 @@ const ViewResponseFullModalView = ({ response, formFields, form, formId, workspa
             <Separator />
             <div className="h-[90vh] overflow-y-auto">
                 <IndividualFormResponse formFields={formFields} response={response} form={form} />
+                {feedback && (
+                    <div className="px-4 pb-4">
+                        <RespondentFeedbackPanel
+                            key={response.responseId}
+                            workspaceId={workspaceId}
+                            formId={formId}
+                            responseId={response.responseId}
+                            feedback={feedback}
+                            enabled={!!form?.settings?.respondentFeedbackEnabled}
+                            statuses={form?.settings?.feedbackStatuses ?? []}
+                        />
+                    </div>
+                )}
                 {staffFields.length > 0 && (
                     <div className="px-4 pb-8">
                         <InternalFieldsPanel key={response.responseId} fields={staffFields} response={response} formId={formId} workspaceId={workspaceId} />
