@@ -39,6 +39,7 @@ from backend.app.services.sso.login_service import (
     set_nonce_cookie,
 )
 from backend.app.services.user_service import (
+    get_full_user,
     get_logged_user,
     get_user_if_logged_in,
     get_user_to_delete,
@@ -235,7 +236,7 @@ class AuthRoutes(Routable):
         self,
         provider_name: FormProvider,
         request: Request,
-        user=Depends(get_logged_user),
+        user=Depends(get_full_user),
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(
@@ -252,7 +253,7 @@ class AuthRoutes(Routable):
         provider_name: str = None,
         state: str = None,
         code: str = None,
-        user=Depends(get_logged_user),
+        user=Depends(get_full_user),
     ):
         if not state or not code:
             return {"message": "You cancelled the authorization request."}

@@ -15,6 +15,8 @@ from backend.app.services.workspace_domain_service import (
 )
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="/workspaces",
     tags=["Workspace domains"],
@@ -31,7 +33,7 @@ class WorkspaceDomainsRouter(Routable):
     async def list_domains(
         self,
         workspace_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> List[WorkspaceDomainDto]:
         return await container.workspace_domain_service().list_domains(
             workspace_id, user
@@ -49,7 +51,7 @@ class WorkspaceDomainsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         request: ClaimDomainDto,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> WorkspaceDomainDto:
         return await container.workspace_domain_service().claim_domain(
             workspace_id, request, user
@@ -63,7 +65,7 @@ class WorkspaceDomainsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         domain_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> WorkspaceDomainDto:
         """Check the TXT record now; the outcome is in ``status`` and
         ``lastCheckError``."""
@@ -80,7 +82,7 @@ class WorkspaceDomainsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         domain_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> Response:
         await container.workspace_domain_service().delete_domain(
             workspace_id, domain_id, user

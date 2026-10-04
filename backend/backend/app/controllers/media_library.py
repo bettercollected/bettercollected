@@ -16,6 +16,8 @@ from backend.app.services.user_service import get_logged_user
 from starlette.requests import Request
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(prefix="/workspaces/{workspace_id}/media", tags=["Media Library"])
 class MediaLibrary(Routable):
 
@@ -30,7 +32,7 @@ class MediaLibrary(Routable):
         self,
         workspace_id: str,
         media_query: str = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.media_library_service.get_medias_in_workspace_by_workspace_id(
             workspace_id, media_query, user
@@ -42,7 +44,7 @@ class MediaLibrary(Routable):
         workspace_id: str,
         request: Request,
         file: UploadFile = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         media = await self.media_library_service.add_media_in_workspace_library(
             workspace_id=workspace_id,
@@ -58,7 +60,7 @@ class MediaLibrary(Routable):
         self,
         workspace_id: str,
         media_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.media_library_service.delete_media_from_library_of_workspace(
             workspace_id=workspace_id, media_id=media_id, user=user

@@ -18,6 +18,8 @@ from backend.app.services.user_service import get_logged_admin, get_logged_user
 from backend.config import settings
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(prefix="/coupons", tags=["Coupons"])
 class CouponController(Routable):
     def __init__(
@@ -43,7 +45,7 @@ class CouponController(Routable):
         self,
         coupon_code: CouponCode,
         response: Response,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         if not settings.coupon_settings.ENABLED:
             raise HTTPException(

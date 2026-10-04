@@ -29,6 +29,7 @@ from backend.app.services.ai.consent import (
 )
 from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
+from backend.app.services.user_service import get_full_user
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_service import WorkspaceService
 
@@ -80,7 +81,7 @@ class WorkspaceRouter(Routable):
         workspace_name=Form(None),
         profile_image: UploadFile = None,
         banner_image: UploadFile = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         return await self.workspace_service.create_non_default_workspace(
             title=title,

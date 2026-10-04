@@ -14,6 +14,8 @@ from backend.app.services.actions_service import ActionService
 from backend.app.services.user_service import get_logged_user, get_logged_admin
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="",
     tags=["Actions"],
@@ -36,7 +38,7 @@ class ActionRouter(Routable):
 
     # @post("/workspaces/{workspace_id}/actions", response_model=ActionResponse)
     # async def create_action(self, workspace_id: PydanticObjectId,
-    #                         action: ActionDto, user: User = Depends(get_logged_user)):
+    #                         action: ActionDto, user: User = Depends(get_full_user)):
     #     action = await self.action_service.create_action(workspace_id=workspace_id, action=action, user=user)
     #     return ActionResponse(**action.model_dump(mode='json'))
 
@@ -53,13 +55,13 @@ class ActionRouter(Routable):
         "/actions",
         response_model=List[ActionResponse],
     )
-    async def get_all_actions(self, user: User = Depends(get_logged_user)):
+    async def get_all_actions(self, user: User = Depends(get_full_user)):
         actions = await self.action_service.get_all_actions()
         return [ActionResponse(**action.model_dump(mode='json')) for action in actions]
 
     @get("/actions/{action_id}", response_model=ActionResponse)
     async def get_action_by_id(
-        self, action_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, action_id: PydanticObjectId, user: User = Depends(get_full_user)
     ):
         action = await self.action_service.get_action_by_id(action_id=action_id)
         if not action:

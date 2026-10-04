@@ -85,8 +85,31 @@ def get_refresh_token(request: Request) -> str:
     return refresh_token
 
 
-async def get_logged_admin(request: Request, response: Response):
+RESPONDENT_SESSION = "respondent_session"
+
+
+async def get_full_user(request: Request, response: Response) -> User:
+    """The signed-in user, refusing a respondent-scoped session (docs/sso.md):
+    an email-code sign-in for an address whose domain requires single
+    sign-on elsewhere only answers forms and manages the user's own
+    respondent data (submissions, deletion requests, the account). Every
+    route beyond that (dashboard, workspaces, imports, billing, templates,
+    API keys) depends on this instead of ``get_logged_user``."""
     user = await get_logged_user(request, response)
+    if user.session_scope == "respondent":
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            {
+                "code": RESPONDENT_SESSION,
+                "message": "This sign-in only lets you answer forms. Your "
+                "organisation requires single sign-on for everything else.",
+            },
+        )
+    return user
+
+
+async def get_logged_admin(request: Request, response: Response):
+    user = await get_full_user(request, response)
     if user.is_admin():
         return user
     else:

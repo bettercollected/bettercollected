@@ -389,6 +389,116 @@ async def test_a_code_on_another_workspace_gives_a_respondent_session_only(
     assert fake_status.seen[-1]["email_verified"] is False
 
 
+async def _respondent_cookies(client, required, other_workspace):
+    auth = container.sso_login_service()._http
+    bob = auth.add_account("bob@" + DOMAIN)
+    auth.otp_user = {**bob, "email_verified": True}
+    reply = await client.post(
+        "/api/v1/auth/otp/validate",
+        params={"workspace_id": str(other_workspace.id)},
+        json={"email": "bob@" + DOMAIN, "otp_code": "X"},
+    )
+    assert reply.status_code == 200, reply.text
+    return {
+        "Authorization": reply.cookies.get("Authorization"),
+        "RefreshToken": reply.cookies.get("RefreshToken"),
+    }
+
+
+def _refused_as_respondent(reply):
+    assert reply.status_code == 403, reply.text
+    assert reply.json()["code"] == "respondent_session", reply.text
+
+
+async def test_a_respondent_session_cannot_create_a_workspace(
+    client, required, other_workspace
+):
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    reply = await client.post(
+        "/api/v1/workspaces", data={"title": "Mine"}, cookies=cookies
+    )
+    _refused_as_respondent(reply)
+
+
+async def test_a_respondent_session_gets_no_dashboard_access(
+    client, required, other_workspace
+):
+    workspace = required
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    # listing is harmless, but never with dashboard access
+    mine = await client.get("/api/v1/workspaces/mine", cookies=cookies)
+    assert mine.status_code == 200
+    assert not any(w.get("dashboardAccess") for w in mine.json())
+    for ws in (workspace, other_workspace):
+        reply = await client.get(
+            "/api/v1/workspaces",
+            params={"workspace_name": ws.workspace_name},
+            cookies=cookies,
+        )
+        assert reply.status_code == 200 and not reply.json().get("dashboardAccess")
+
+
+async def test_a_respondent_session_cannot_create_api_keys(
+    client, required, other_workspace
+):
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    reply = await client.post(
+        f"/api/v1/workspaces/{other_workspace.id}/api-keys",
+        json={"name": "k", "scopes": ["forms:read"]},
+        cookies=cookies,
+    )
+    assert reply.status_code == 403
+
+
+async def test_a_respondent_session_cannot_start_an_import_oauth(
+    client, required, other_workspace
+):
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    _refused_as_respondent(
+        await client.get("/api/v1/auth/google/oauth", cookies=cookies)
+    )
+    _refused_as_respondent(
+        await client.get(
+            "/api/v1/auth/google/oauth/callback",
+            params={"code": "c", "state": "s"},
+            cookies=cookies,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        ("GET", "/api/v1/user/tags/details"),
+        ("POST", "/api/v1/actions"),
+        ("GET", "/api/v1/stripe/session/create/checkout"),
+        ("GET", "/api/v1/admin/metrics"),
+        ("POST", "/api/v1/coupons/redeem/X"),
+    ],
+)
+async def test_a_respondent_session_is_refused_beyond_forms(
+    client, required, other_workspace, method, path
+):
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    reply = await client.request(method, path, cookies=cookies)
+    assert reply.status_code in (403, 404, 405, 422), reply.text
+    if reply.status_code == 403:
+        assert "respondent" in reply.text or "not authorized" in reply.text
+
+
+async def test_a_respondent_session_keeps_its_own_respondent_paths(
+    client, required, other_workspace, fake_status
+):
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    fake_status.email = "bob@" + DOMAIN
+    sessions = await client.get("/api/v1/auth/sessions", cookies=cookies)
+    assert sessions.status_code == 200 and sessions.json()[0]["scope"] == "respondent"
+    reply = await client.get(
+        f"/api/v1/workspaces/{other_workspace.id}/submissions", cookies=cookies
+    )
+    assert reply.status_code != 403 or "respondent_session" not in reply.text
+
+
 async def test_without_sso_required_a_code_is_a_full_session(
     client, sso_workspace, other_workspace_plain
 ):

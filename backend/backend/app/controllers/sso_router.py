@@ -19,6 +19,8 @@ from backend.app.services.sso.login_service import SsoRefused, set_nonce_cookie
 from backend.app.services.user_service import get_logged_user
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(
     prefix="/workspaces",
     tags=["Workspace single sign-on"],
@@ -34,7 +36,7 @@ class WorkspaceSsoRouter(Routable):
 
     @get("/{workspace_id}/sso")
     async def overview(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
     ) -> SsoOverviewDto:
         return await container.sso_connection_service().overview(workspace_id, user)
 
@@ -51,7 +53,7 @@ class WorkspaceSsoRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         request: CreateSsoConnectionDto,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> SsoConnectionDto:
         return await container.sso_connection_service().create_connection(
             workspace_id, request, user
@@ -62,7 +64,7 @@ class WorkspaceSsoRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         connection_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> SsoConnectionDto:
         return await container.sso_connection_service().enable_connection(
             workspace_id, connection_id, user
@@ -73,7 +75,7 @@ class WorkspaceSsoRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         connection_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> SsoConnectionDto:
         return await container.sso_connection_service().disable_connection(
             workspace_id, connection_id, user
@@ -87,7 +89,7 @@ class WorkspaceSsoRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         connection_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> Response:
         await container.sso_connection_service().delete_connection(
             workspace_id, connection_id, user
@@ -100,7 +102,7 @@ class WorkspaceSsoRouter(Routable):
         workspace_id: PydanticObjectId,
         connection_id: str,
         request: Request,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         """Browser navigation: sign in at the identity provider once; the
         outcome comes back to the SSO settings page as ``sso_test=``."""
@@ -119,7 +121,7 @@ class WorkspaceSsoRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         request: UpdateSsoSettingsDto,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ) -> SsoSettingsDto:
         return await container.sso_connection_service().update_settings(
             workspace_id, request, user

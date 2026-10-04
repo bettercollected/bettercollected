@@ -16,6 +16,8 @@ from backend.app.services.user_service import get_logged_user
 from backend.config import settings
 
 
+from backend.app.services.user_service import get_full_user  # noqa: E402
+
 @router(prefix="/suggest-price", tags=["Price Suggestion"])
 class PriceSuggestionController(Routable):
     def __init__(
@@ -32,7 +34,7 @@ class PriceSuggestionController(Routable):
         self,
         suggested_price: PriceSuggestionRequest,
         response: Response,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_full_user),
     ):
         if not settings.ENABLE_SUGGEST_PRICE:
             raise HTTPException(
