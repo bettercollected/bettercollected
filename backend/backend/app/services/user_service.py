@@ -26,13 +26,15 @@ async def get_logged_user(request: Request, response: Response) -> User:
     cleared cookies when the session was revoked or has ended."""
     user = user_from_access_token(get_access_token(request))
     if user is not None:
+        if not await _in_scope(request, user):
+            raise HTTPException(HTTPStatus.UNAUTHORIZED, "Sign in to this workspace.")
         return user
     from backend.app.container import (
         container,
     )  # at call time: container imports this module
 
     try:
-        return await container.session_service().refresh(
+        user = await container.session_service().refresh(
             request, response, rotate=False
         )
     except HTTPException:
@@ -49,6 +51,9 @@ async def get_logged_user(request: Request, response: Response) -> User:
     except Exception as e:
         logging.error(e)
         raise HTTPException(401, "No user logged in.")
+    if not await _in_scope(request, user):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Sign in to this workspace.")
+    return user
 
 
 def get_api_key(request: Request, response: Response) -> str:
@@ -69,8 +74,35 @@ async def get_user_if_logged_in(request: Request, response: Response) -> User | 
     except SessionEnded:
         delete_token_cookie(response)
         return None
-    except HTTPException:
+    except HTTPException as error:
+        if _is_sso_required(error):
+            raise
         return None
+
+
+def _is_sso_required(error: HTTPException) -> bool:
+    content = getattr(error, "content", None)
+    return isinstance(content, dict) and content.get("code") == "sso_required"
+
+
+async def _in_scope(request: Request, user: User) -> bool:
+    """A respondent-scoped session (docs/sso.md) acts only on the workspace it
+    was made for. On another workspace's routes it counts as not signed in,
+    and is refused (sso_required) on the workspace that requires single
+    sign-on for its address."""
+    if user.session_scope != "respondent":
+        return True
+    workspace_id = request.path_params.get("workspace_id")
+    if workspace_id is None or str(workspace_id) == str(user.scope_workspace_id):
+        return True
+    from backend.app.container import container
+    from backend.app.services.sso.policy import sso_required_error
+    from backend.app.services.domains.names import domain_of
+
+    requiring = await container.sso_policy_service().requiring_workspace(user.sub)
+    if requiring is not None and str(requiring.id) == str(workspace_id):
+        raise sso_required_error(domain_of(user.sub) or "")
+    return False
 
 
 def get_access_token(request: Request) -> str:

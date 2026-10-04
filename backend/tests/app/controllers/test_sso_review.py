@@ -22,6 +22,7 @@ from backend.config import settings
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser
 from tests.app.sso_helpers import (  # noqa: F401 — fixtures
+    SAML_XML,
     DOMAIN,
     LOGIN_PAGE,
     add_connection,
@@ -360,12 +361,16 @@ async def test_a_code_on_another_workspace_gives_a_respondent_session_only(
         "Authorization": reply.cookies.get("Authorization"),
         "RefreshToken": reply.cookies.get("RefreshToken"),
     }
-    # no workspace permission anywhere, not even where bob is an admin
-    for ws in (workspace.id, other_workspace.id):
-        perms = await client.get(
-            f"/api/v1/workspaces/{ws}/permissions", cookies=cookies
-        )
-        assert perms.status_code == 200 and perms.json()["permissions"] == []
+    # no workspace permission where it was made for...
+    perms = await client.get(
+        f"/api/v1/workspaces/{other_workspace.id}/permissions", cookies=cookies
+    )
+    assert perms.status_code == 200 and perms.json()["permissions"] == []
+    # ...and refused on the SSO workspace, even though bob is an admin there
+    perms = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/permissions", cookies=cookies
+    )
+    assert perms.status_code == 403 and perms.json()["code"] == "sso_required"
     reply = await client.get(f"/api/v1/workspaces/{workspace.id}/sso", cookies=cookies)
     assert reply.status_code == 403
     reply = await client.get(
@@ -521,3 +526,129 @@ async def other_workspace_plain(sso_workspace):
             title="Plain", workspace_name="plain-ws", owner_id=str(PydanticObjectId())
         )
     )
+
+
+# -- respondent scope is one workspace ------------------------------------------
+async def test_a_respondent_session_is_refused_on_the_sso_workspaces_forms(
+    client, required, other_workspace
+):
+    """Made on another organisation's form, it must not act as a respondent on
+    the SSO workspace's own forms (they require SSO for this address)."""
+    workspace = required
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    for path in ("/submissions", "/forms/some-form", "/permissions"):
+        reply = await client.get(
+            f"/api/v1/workspaces/{workspace.id}{path}", cookies=cookies
+        )
+        assert reply.status_code == 403, (path, reply.text)
+        assert reply.json()["code"] == "sso_required"
+
+
+async def test_a_respondent_session_is_not_signed_in_on_a_third_workspace(
+    client, required, other_workspace
+):
+    third = await container.workspace_repo().save(
+        WorkspaceDocument(
+            title="Third", workspace_name="third-ws", owner_id=str(PydanticObjectId())
+        )
+    )
+    cookies = await _respondent_cookies(client, required, other_workspace)
+    reply = await client.get(
+        f"/api/v1/workspaces/{third.id}/permissions", cookies=cookies
+    )
+    assert reply.status_code == 401, reply.text
+    # where it was made for, it is signed in
+    reply = await client.get(
+        f"/api/v1/workspaces/{other_workspace.id}/permissions", cookies=cookies
+    )
+    assert reply.status_code == 200, reply.text
+
+
+async def test_a_respondent_session_is_anonymous_on_optional_sign_in_routes(
+    client, required, other_workspace
+):
+    from starlette.requests import Request
+
+    from backend.app.exceptions import HTTPException
+    from backend.app.services.user_service import get_user_if_logged_in
+
+    third = await container.workspace_repo().save(
+        WorkspaceDocument(
+            title="Third", workspace_name="third-ws2", owner_id=str(PydanticObjectId())
+        )
+    )
+    cookies = await _respondent_cookies(client, required, other_workspace)
+
+    def request_for(ws):
+        cookie = "; ".join(f"{k}={v}" for k, v in cookies.items())
+        return Request(
+            {
+                "type": "http",
+                "headers": [(b"cookie", cookie.encode())],
+                "path_params": {"workspace_id": str(ws)},
+            }
+        )
+
+    assert await get_user_if_logged_in(request_for(third.id), Response()) is None
+    user = await get_user_if_logged_in(request_for(other_workspace.id), Response())
+    assert user is not None and user.session_scope == "respondent"
+    with pytest.raises(HTTPException) as refused:
+        await get_user_if_logged_in(request_for(required.id), Response())
+    assert refused.value.content["code"] == "sso_required"
+
+
+# -- connections need a verified domain ----------------------------------------
+async def test_a_connection_needs_a_verified_domain(client, workspace, sso_on):
+    polis, _ = sso_on
+    reply = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/sso/connections",
+        json={"type": "saml", "metadataXml": SAML_XML},
+        cookies=_cookies(testUser),
+    )
+    assert reply.status_code == 409 and reply.json()["code"] == "sso_domain_required"
+    assert "Domains" in reply.json()["message"]
+    assert polis.calls == []  # nothing reaches Polis: no entity ID squatting
+
+
+# -- tests: failures recorded only for the admin's own test ---------------------
+async def test_a_replayed_failed_test_records_nothing(client, workspace, sso_on):
+    from tests.app.controllers.data import testUser1
+
+    await verify_domain(workspace.id)
+    connection = await add_connection(workspace.id, enabled=False, tested=True)
+    started = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/sso/connections/{connection.id}/test",
+        cookies=_cookies(testUser),
+    )
+    state = state_of(started.headers["location"])
+    nonce = client.cookies.get("SsoNonce")
+    client.cookies.clear()
+    # an IdP error replayed elsewhere: no nonce, not the admin
+    reply = await client.get(
+        CALLBACK, params={"error": "x", "state": state}, cookies=_cookies(testUser1)
+    )
+    assert query_of(reply.headers["location"])["sso_test"] == "sso_failed"
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.is_tested and stored.last_test_error is None
+    # the admin's own failing test is recorded
+    client.cookies.set("SsoNonce", nonce, path="/api/v1/auth/sso")
+    await client.get(
+        CALLBACK, params={"error": "x", "state": state}, cookies=_cookies(testUser)
+    )
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.last_test_error == "sso_failed"
+
+
+# -- a new SSO sign-in ends the browser's previous session ----------------------
+async def test_the_previous_session_is_revoked(client, sso_workspace, fake_status):
+    old_user = User(id=str(PydanticObjectId()), sub="old@elsewhere-corp.org")
+    old_refresh = await _refresh_token(old_user, method="otp")
+    assert len(await container.session_service().list_for_user(old_user.id)) == 1
+    started = await start(client)
+    reply = await client.get(
+        CALLBACK,
+        params={"code": "c", "state": state_of(started.headers["location"])},
+        cookies={"RefreshToken": old_refresh},
+    )
+    assert "Authorization" in reply.cookies, reply.text
+    assert await container.session_service().list_for_user(old_user.id) == []
