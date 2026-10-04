@@ -17,7 +17,14 @@ class WorkspaceConsentService:
         self._authorization = authorization_service
 
     async def get_workspace_consents(self, workspace_id: PydanticObjectId, user: User):
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        # The catalog is what form builders pick from (form.edit) and what
+        # the privacy programme maintains (privacy.manage).
+        if not await self._authorization.has_permission(
+            user, Permission.PRIVACY_MANAGE, workspace_id
+        ):
+            await self._authorization.authorize(
+                user, Permission.FORM_EDIT, workspace_id
+            )
         return await self._workspace_consent_repo.get_workspace_consents(
             workspace_id=workspace_id
         )

@@ -451,9 +451,10 @@ class TestResponsesAcrossWorkspaces:
 
 
 class TestWorkspacePatch:
-    async def test_admin_who_is_not_the_owner_is_refused(
+    async def test_an_admin_patches_the_workspace(
         self, client: AsyncClient, workspace, test_user_cookies_1
     ):
+        """workspace.manage: Owner and Admin (owner-only before step b)."""
         await container.workspace_user_repo().save(
             WorkspaceUserDocument(
                 workspace_id=workspace.id,
@@ -464,6 +465,19 @@ class TestWorkspacePatch:
 
         response = await client.patch(
             _url(workspace), cookies=test_user_cookies_1, data={"title": "Renamed"}
+        )
+
+        assert response.status_code == 200, response.text
+        saved = await container.workspace_repo().get_or_404(workspace.id)
+        assert saved.title == "Renamed"
+
+    async def test_an_editor_is_refused(
+        self, client: AsyncClient, workspace, test_invited_user_cookies
+    ):
+        response = await client.patch(
+            _url(workspace),
+            cookies=test_invited_user_cookies,
+            data={"title": "Renamed"},
         )
 
         assert response.status_code == 403
@@ -488,7 +502,12 @@ class TestInvitationMail:
         monkeypatch.setattr(
             settings.auth_settings, "INTERNAL_NOTIFY_KEY", "backend-internal-key"
         )
-        sent = AsyncMock(return_value="Mail sent successfully!!")
+        async def auth_service(url, **kwargs):
+            if url.endswith("/users"):  # is the invitee already a member?
+                return {"users_info": []}
+            return "Mail sent successfully!!"
+
+        sent = AsyncMock(side_effect=auth_service)
         with patch("common.services.http_client.HttpClient.get", sent):
             response = await client.post(
                 f"{_url(workspace)}/members/invitations",

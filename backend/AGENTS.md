@@ -51,10 +51,23 @@ branches. Never compare `owner_id` or roles in a service, and never call the rep
 `has_user_access_in_workspace` / `is_user_admin_in_workspace` for access.
 
 - **Catalogue:** `models/enum/permission.py` (`workspace.manage`, `members.manage`, `form.edit`,
-  `response.read`, ...). **Roles today:** the owner holds all; `ADMIN` all but `workspace.billing`;
-  any active membership (`COLLABORATOR`) the Editor's content permissions plus `privacy.manage`.
+  `response.read`, ...). **Roles** (`models/enum/workspace_roles.py`, mapped in
+  `ROLE_PERMISSIONS`, the doc's §2 table): the owner (`owner_id` with an active membership) holds
+  all; `ADMIN` all but `workspace.billing`; `EDITOR` forms and responses; `REVIEWER` read and
+  annotate; `VIEWER` read; `PRIVACY_OFFICER` `form.read`, `privacy.manage`, `analytics.read`,
+  `audit.read` and never `response.read/annotate/export`. Each role grants only its own set.
+  `COLLABORATOR` is the stored spelling of `EDITOR` (never rewritten; write `stored_role(...)`, report
+  `canonical_role(...)`); `roles: []` (legacy) is an Editor; an unknown role grants nothing.
   A disabled membership grants nothing; in a disabled workspace (owner downgraded) only the owner
   keeps `form.read`, `response.read/export/delete`, `privacy.manage` and `analytics.read`.
+- **Members:** `PATCH /workspaces/{id}/members/{user_id}` changes a role (`members.manage`; never
+  the owner's or one's own, never above the caller's own permissions); invitations carry a role;
+  `POST .../members/{user_id}/transfer-ownership` (`workspace.billing`) hands the workspace to an
+  active Admin, refused for a default workspace or a paid one (billing hangs off the owner's
+  account) — `services/workspace_members_service.py`. A Privacy officer also deletes a response
+  with a *pending* deletion request (`privacy.manage`) and never holds the answer permissions,
+  whatever other role they have. MCP/API-key calls also require the key's creator to hold the
+  scope's permission at call time (`mcp/server.py` `SCOPE_PERMISSIONS`).
 - **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
   gates controls with `useWorkspacePermissions().can(...)`, not `selectIsAdmin` (which means owner).
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion

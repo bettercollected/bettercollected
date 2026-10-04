@@ -883,5 +883,48 @@
     "REMOVE": "Remove Logo"
   },
   "HAVE_NOT_IMPORTED_OR_CREATED": "You haven’t imported or created any form",
-  "CREATE_OR_IMPORT": "Create or import your first privacy friendly form."
+  "CREATE_OR_IMPORT": "Create or import your first privacy friendly form.",
+  "WORKSPACE_ROLES": {
+    "OWNER": {
+      "NAME": "Owner",
+      "DESCRIPTION": "Can do everything, including billing. Each workspace has one owner."
+    },
+    "ADMIN": {
+      "NAME": "Admin",
+      "DESCRIPTION": "Manages the workspace, its members and settings, and all forms and responses."
+    },
+    "EDITOR": {
+      "NAME": "Editor",
+      "DESCRIPTION": "Creates and edits forms, and reads, exports and deletes responses."
+    },
+    "REVIEWER": {
+      "NAME": "Reviewer",
+      "DESCRIPTION": "Reads responses, fills in internal fields and sends updates, but can't change forms."
+    },
+    "VIEWER": {
+      "NAME": "Viewer",
+      "DESCRIPTION": "Reads forms and responses, and changes nothing."
+    },
+    "PRIVACY_OFFICER": {
+      "NAME": "Privacy officer",
+      "DESCRIPTION": "Handles deletion requests, consent and retention without reading any answers."
+    },
+    "UNKNOWN": "Unknown role"
+  },
+  "MEMBER_ROLES": {
+    "ROLE_CHANGED": "Role changed.",
+    "ROLE_CHANGE_FAILED": "Couldn't change the role.",
+    "TRANSFER_OWNERSHIP": "Transfer ownership",
+    "TRANSFER_TITLE": "Transfer ownership to {{name}}?",
+    "TRANSFER_DESCRIPTION": "They become the owner, with billing and every other permission. You stay in the workspace as an Admin, and only the new owner can transfer it back.",
+    "TRANSFER_DONE": "Ownership transferred.",
+    "TRANSFER_FAILED": "Couldn't transfer ownership.",
+    "TRANSFER_ONLY_ADMINS": "Ownership can only go to an Admin. Make them an Admin first.",
+    "TRANSFER_PERSONAL": "Your personal workspace can't be transferred.",
+    "TRANSFER_PAID": "A workspace on a paid plan can't be transferred, because the plan is billed to your account.",
+    "CANCEL": "Cancel",
+    "NO_ACCESS": "You don't have access to this page.",
+    "INVITE_DESCRIPTION": "Choose what they can do in this workspace. You can change it later.",
+    "DELETED_ACCOUNT": "Deleted account"
+  }
 }

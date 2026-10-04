@@ -5,10 +5,16 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useRouter } from 'next/navigation';
 
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+
 export default function NewFormButton() {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const auth = useAppSelector(selectAuth);
+    const { can } = useWorkspacePermissions();
+    // Reviewers, Viewers and Privacy officers don't create forms.
+    if (!can(WorkspacePermission.FORM_CREATE)) return null;
     return (
         <Button
             data-umami-event="New Form button"

@@ -46,7 +46,7 @@ describe("RespondentFeedbackPanel (the team's view)", () => {
         expect(screen.getByText('Welcome')).toBeDefined();
         expect(screen.getByText(/staff@example.com/)).toBeDefined();
         expect(screen.queryByRole('button', { name: 'Send update' })).toBeNull();
-        expect(screen.getByText(/Only workspace admins/)).toBeDefined();
+        expect(screen.getByText(/can read updates but not send them/)).toBeDefined();
     });
 
     it('lets admins send a status and a message, and says whether the respondent is emailed', async () => {

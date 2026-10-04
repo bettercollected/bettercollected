@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import FormIntegrations from '@app/components/form/integrations';
 import { useModal } from '@app/components/modal-views/context';
+import { memberRoles } from '@app/constants/locales/member-roles';
 import { formPage } from '@app/constants/locales/form-page';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -21,6 +24,12 @@ export default function FormSettings() {
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
     const { openModal } = useModal();
+    const { can, isLoading } = useWorkspacePermissions();
+
+    // Settings change the form (form.edit); the tab is hidden without it.
+    if (!isLoading && !can(WorkspacePermission.FORM_EDIT)) {
+        return <p className="body4 text-black-700 py-6">{t(memberRoles.noAccess)}</p>;
+    }
 
     const showIntegrations = form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && form?.isPublished;
 
@@ -44,6 +53,7 @@ export default function FormSettings() {
                 </section>
             )}
 
+            {can(WorkspacePermission.FORM_DELETE) && (
             <section className="flex flex-col gap-2">
                 <SectionHeader>Danger zone</SectionHeader>
                 <div className="flex items-start justify-between gap-6 rounded-lg border border-[#E5B9B9] p-5">
@@ -64,6 +74,7 @@ export default function FormSettings() {
                     </Button>
                 </div>
             </section>
+            )}
         </div>
     );
 }

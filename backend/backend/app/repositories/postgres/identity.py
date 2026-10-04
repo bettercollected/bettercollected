@@ -148,6 +148,28 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
                 setattr(target, leaf, value)
         await self.upsert(workspace)
 
+    async def set_owner_if(
+        self, workspace_id: PydanticObjectId, expected_owner_id: str, new_owner_id: str
+    ) -> Optional[WorkspaceDocument]:
+        """Twin of the Mongo conditional ``$set``: the row is locked while the
+        owner is compared and replaced."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceRow.doc)
+                    .where(WorkspaceRow.id == _oid(workspace_id))
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            stored = from_row_doc(WorkspaceDocument, doc)
+            if str(stored.owner_id) != str(expected_owner_id):
+                return None
+            stored.owner_id = str(new_owner_id)
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
+
     async def get_workspace_by_query(self, query: str):
         disabled = WorkspaceRow.doc["custom_domain_disabled"]
         workspace = await self.one(
@@ -342,7 +364,10 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
         )
 
     async def create_workspace_invitation(
-        self, workspace_id: PydanticObjectId, invitation: InvitationRequest
+        self,
+        workspace_id: PydanticObjectId,
+        invitation: InvitationRequest,
+        invited_by: Optional[str] = None,
     ):
         existing_invitation = await self._find(workspace_id, invitation.email)
         if existing_invitation:
@@ -352,11 +377,15 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
             )
             existing_invitation.created_at = datetime.datetime.now(timezone.utc)
             existing_invitation.invitation_token = secrets.token_hex(16)
+            # inviting again may change the role
+            existing_invitation.role = invitation.role
+            existing_invitation.invited_by = invited_by
         else:
             existing_invitation = WorkspaceUserInvitesDocument(
                 workspace_id=workspace_id,
                 email=invitation.email,
                 role=invitation.role,
+                invited_by=invited_by,
                 invitation_token=secrets.token_hex(16),
                 expiry=get_expiry_epoch_after(time_delta=timedelta(days=7)),
             )

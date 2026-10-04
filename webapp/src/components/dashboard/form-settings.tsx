@@ -31,7 +31,9 @@ import { formPage } from '@app/constants/locales/form-page';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
+import { selectAuth } from '@app/store/auth/slice';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
@@ -182,7 +184,10 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     };
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    // the owner holds the plan (workspace.billing), so the Pro upsell is theirs
+    const isAdmin = can(WorkspacePermission.WORKSPACE_BILLING);
+    const canEditForm = can(WorkspacePermission.FORM_EDIT);
     const auth = useAppSelector(selectAuth);
 
     const closeFormChecked = !!form?.settings?.formCloseDate && moment.utc().isAfter(moment.utc(form?.settings?.formCloseDate));
@@ -301,8 +306,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </div>
                         </div>
                         <div className="flex flex-col gap-16 pt-10">
-                            <FormLinkUpdateView isCustomDomain={false} link={getFormShareURL(form, workspace, true)} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
-                            {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={getFormShareURL(form, workspace)} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
+                            <FormLinkUpdateView isCustomDomain={false} link={getFormShareURL(form, workspace, true)} isDisable={(!isProPlan && !isAdmin) || !canEditForm} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
+                            {isCustomDomain && <FormLinkUpdateView isDisable={!canEditForm} isCustomDomain={isCustomDomain} link={getFormShareURL(form, workspace)} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
                         </div>
                     </FormSettingsCard>
                 );
