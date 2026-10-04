@@ -1,74 +1,51 @@
 import logging
 from http import HTTPStatus
 
-import httpx
 import jwt
+from fastapi import Depends
 from common.models.user import User
 from starlette.requests import Request
 from starlette.responses import Response
 
 from backend.app.exceptions import HTTPException
-from backend.app.services.auth_cookie_service import set_access_token_to_response
-from backend.app.services.internal_auth import auth_service_headers
+from backend.app.services.auth_cookie_service import delete_token_cookie
+from backend.app.services.session_service import (
+    AuthServiceUnavailable,
+    SessionEnded,
+    user_from_access_token,
+)
 from backend.config import settings
 
 
-class AuthServiceUnavailable(Exception):
-    """The auth service refused or failed a session refresh."""
-
-    def __init__(self, status_code: int):
-        super().__init__(status_code)
-        self.status_code = status_code
-
-
 async def get_logged_user(request: Request, response: Response) -> User:
-    token = get_access_token(request)
+    """The signed-in user. A live access token is trusted as is; otherwise the
+    session is refreshed (see ``session_service``), which fails with 401 and
+    cleared cookies when the session was revoked or has ended."""
+    user = user_from_access_token(get_access_token(request))
+    if user is not None:
+        return user
+    from backend.app.container import (
+        container,
+    )  # at call time: container imports this module
+
     try:
-        return get_user_from_token(token)
-    # TODO : Handle specific exceptions
+        return await container.session_service().refresh(
+            request, response, rotate=False
+        )
+    except HTTPException:
+        raise
+    except AuthServiceUnavailable as e:
+        logging.error(
+            f"Session refresh: the auth service answered {e.status_code}; "
+            "check AUTH_INTERNAL_NOTIFY_KEY on the backend and auth services"
+        )
+        raise HTTPException(
+            HTTPStatus.SERVICE_UNAVAILABLE,
+            "Sign-in is temporarily unavailable.",
+        )
     except Exception as e:
-        refresh_token = get_refresh_token(request)
-        try:
-            user = get_user_from_token(refresh_token)
-            await check_if_refresh_token_is_blacklisted(refresh_token)
-            async with httpx.AsyncClient() as http_client:
-                user_response = await http_client.get(
-                    settings.auth_settings.BASE_URL + "/auth/status",
-                    # the session's own claim, from the signed refresh token
-                    params={
-                        "user_id": user.id,
-                        "email_verified": user.email_verified is True,
-                    },
-                    headers=auth_service_headers(),
-                    timeout=60,
-                )
-                if user_response.status_code == 404:
-                    raise HTTPException(401, "User not found")
-                if user_response.status_code != 200:
-                    # e.g. 403/503 when AUTH_INTERNAL_NOTIFY_KEY is missing or
-                    # differs between the services: not the user's fault
-                    raise AuthServiceUnavailable(user_response.status_code)
-                user_response = user_response.json()
-                if user_response:
-                    user_response["sub"] = user_response.get("email")
-                    user_response["email_verified"] = user.email_verified is True
-                set_access_token_to_response(
-                    user=User(**user_response) if user_response else user,
-                    response=response,
-                )
-                return user
-        except AuthServiceUnavailable as e:
-            logging.error(
-                f"Session refresh: the auth service answered {e.status_code}; "
-                "check AUTH_INTERNAL_NOTIFY_KEY on the backend and auth services"
-            )
-            raise HTTPException(
-                HTTPStatus.SERVICE_UNAVAILABLE,
-                "Sign-in is temporarily unavailable.",
-            )
-        except Exception as e:
-            logging.error(e)
-            raise HTTPException(401, "No user logged in.")
+        logging.error(e)
+        raise HTTPException(401, "No user logged in.")
 
 
 def get_api_key(request: Request, response: Response) -> str:
@@ -81,11 +58,14 @@ def get_api_key(request: Request, response: Response) -> str:
     return request.headers.get("api_key")
 
 
-def get_user_from_token(token: str) -> User:
+def get_user_from_token(token: str, *, verify_exp: bool = True) -> User:
+    """The user a token this backend signed names (any token type, no session
+    check): for server-side jobs holding a user's stored tokens."""
     jwt_response = jwt.decode(
         token,
         key=settings.auth_settings.JWT_SECRET,
         algorithms=["HS256"],
+        options={"verify_exp": verify_exp},
     )
     user = User(**jwt_response)
     return user
@@ -94,6 +74,9 @@ def get_user_from_token(token: str) -> User:
 async def get_user_if_logged_in(request: Request, response: Response) -> User | None:
     try:
         return await get_logged_user(request=request, response=response)
+    except SessionEnded:
+        delete_token_cookie(response)
+        return None
     except HTTPException:
         return None
 
@@ -118,32 +101,14 @@ async def get_logged_admin(request: Request, response: Response):
         raise HTTPException(403, "You are not authorized to perform this action.")
 
 
-async def check_if_refresh_token_is_blacklisted(token: str):
-    jwt_response = jwt.decode(
-        token,
-        key=settings.auth_settings.JWT_SECRET,
-        algorithms=["HS256"],
-    )
-    from backend.app.container import (
-        container,
-    )  # at call time: container imports this module
-
-    blacklisted = await container.blacklisted_refresh_token_repo().find_by_token(token)
-    if blacklisted:
-        raise HTTPException(401, "Invalid JWT")
-
-
-async def add_refresh_token_to_blacklist(request: Request):
-    refresh_token = get_refresh_token(request)
-    jwt_response = jwt.decode(
-        refresh_token,
-        key=settings.auth_settings.JWT_SECRET,
-        algorithms=["HS256"],
-    )
-    from backend.app.container import (
-        container,
-    )  # at call time: container imports this module
-
-    await container.blacklisted_refresh_token_repo().add(
-        token=refresh_token, expiry=jwt_response.get("exp")
-    )
+def get_user_for_internal_job(
+    request: Request, response: Response, api_key: str = Depends(get_api_key)
+) -> User:
+    """For server-side jobs (the user-deletion workflow) that call with the
+    temporal API key and the user's tokens stored when the job was queued: the
+    signature is checked, not the expiry or the session, which the job may
+    outlive (the deletion request itself revokes the user's sessions)."""
+    try:
+        return get_user_from_token(get_access_token(request), verify_exp=False)
+    except Exception:
+        raise HTTPException(401, "No user logged in.")

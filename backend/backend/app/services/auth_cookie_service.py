@@ -10,49 +10,64 @@ from starlette.responses import Response
 from backend.config import settings
 
 
-# TODO move this to auth server
-def set_token_to_response(
-    user: User, expiry_after: timedelta, cookie_key: str, response: Response
-):
-    expiry = get_expiry_epoch_after(expiry_after)
-    token = jwt.encode(
-        {
-            "id": user.id,
-            "sub": user.sub,
-            "roles": user.roles,
-            "plan": user.plan,
-            # proven at sign-in; auth grants config-named platform admins only then
-            "email_verified": user.email_verified is True,
-            "exp": expiry,
-            "jti": str(uuid.uuid4()),
-        },
-        settings.auth_settings.JWT_SECRET,
-        algorithm="HS256",
+ACCESS_TOKEN_COOKIE = "Authorization"
+REFRESH_TOKEN_COOKIE = "RefreshToken"
+# ``typ`` claim: an access token is never accepted as a refresh token and the
+# other way round (both are httpOnly cookies signed with the same secret).
+ACCESS = "access"
+REFRESH = "refresh"
+
+
+def new_jti() -> str:
+    return str(uuid.uuid4())
+
+
+def _encode(user: User, *, typ: str, exp: int, jti: str) -> str:
+    claims = {
+        "id": user.id,
+        "sub": user.sub,
+        "roles": user.roles,
+        "plan": user.plan,
+        # proven at sign-in; auth grants config-named platform admins only then
+        "email_verified": user.email_verified is True,
+        "exp": exp,
+        "jti": jti,
+        "typ": typ,
+    }
+    if user.sid:
+        claims["sid"] = user.sid
+    return jwt.encode(claims, settings.auth_settings.JWT_SECRET, algorithm="HS256")
+
+
+def access_token_for(user: User) -> str:
+    expiry = timedelta(minutes=settings.auth_settings.ACCESS_TOKEN_EXPIRY_IN_MINUTES)
+    return _encode(
+        user, typ=ACCESS, exp=get_expiry_epoch_after(expiry), jti=new_jti()
     )
-    set_token_cookie(response, cookie_key, token, expiry_after.total_seconds())
 
 
-def set_access_token_to_response(user: User, response: Response):
-    set_token_to_response(
-        user,
-        timedelta(minutes=settings.auth_settings.ACCESS_TOKEN_EXPIRY_IN_MINUTES),
-        "Authorization",
+def set_access_token_to_response(user: User, response: Response) -> str:
+    """A fresh access token for ``user``'s session (``user.sid``); returns it."""
+    token = access_token_for(user)
+    set_token_cookie(
         response,
+        ACCESS_TOKEN_COOKIE,
+        token,
+        settings.auth_settings.ACCESS_TOKEN_EXPIRY_IN_MINUTES * 60,
     )
+    return token
 
 
-def set_refresh_token_to_response(user: User, response: Response):
-    set_token_to_response(
-        user,
-        timedelta(days=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS),
-        "RefreshToken",
-        response,
-    )
-
-
-def set_tokens_to_response(user: User, response: Response):
-    set_access_token_to_response(user=user, response=response)
-    set_refresh_token_to_response(user=user, response=response)
+def set_refresh_token_to_response(
+    user: User, response: Response, *, jti: str, expires_at: datetime
+) -> str:
+    """The session's refresh token: ``jti`` must be the one the session
+    record holds as current, ``expires_at`` its expiry."""
+    exp = calendar.timegm(expires_at.astimezone(timezone.utc).utctimetuple())
+    token = _encode(user, typ=REFRESH, exp=exp, jti=jti)
+    max_age = max(0, exp - get_expiry_epoch_after())
+    set_token_cookie(response, REFRESH_TOKEN_COOKIE, token, max_age)
+    return token
 
 
 def get_expiry_epoch_after(time_delta: timedelta = timedelta()):
@@ -143,7 +158,7 @@ def delete_token_cookie(response: Response):
     )
     delete_cookie(
         response=response,
-        key="Authorization",
+        key=ACCESS_TOKEN_COOKIE,
         domain=domain,
         httponly=True,
         secure=should_be_secure,
@@ -151,7 +166,7 @@ def delete_token_cookie(response: Response):
     )
     delete_cookie(
         response=response,
-        key="RefreshToken",
+        key=REFRESH_TOKEN_COOKIE,
         domain=domain,
         httponly=True,
         secure=should_be_secure,

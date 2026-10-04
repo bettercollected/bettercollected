@@ -31,7 +31,7 @@ from backend.app.repositories.metric_periods import (
     object_id_at,
     postgres_counts_per_period,
 )
-from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
+from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
@@ -40,7 +40,7 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.db.base import SCHEMA
 from backend.db.models import (
-    BlacklistedRefreshTokenRow,
+    SessionRow,
     UserTagsRow,
     WorkspaceApiKeyRow,
     WorkspaceInviteRow,
@@ -52,6 +52,7 @@ from common.db import (
     PostgresRepositoryBase,
     from_canonical_document,
     from_row_doc,
+    row_values,
     to_bson_dict,
 )
 from common.enums.workspace_invitation_status import InvitationStatus
@@ -428,15 +429,117 @@ class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
         return await self.one(WorkspaceApiKeyRow.key_hash == key_hash)
 
 
-class PostgresBlacklistedRefreshTokenRepository(PostgresRepositoryBase):
-    row = BlacklistedRefreshTokenRow
-    document = BlackListedRefreshTokens
+class PostgresSessionRepository(PostgresRepositoryBase):
+    row = SessionRow
+    document = SessionDocument
 
-    async def find_by_token(self, token: str) -> Optional[BlackListedRefreshTokens]:
-        return await self.one(BlacklistedRefreshTokenRow.token == token)
+    async def save(self, document: SessionDocument) -> SessionDocument:
+        return await self.upsert(document)
 
-    async def add(self, token: str, expiry) -> BlackListedRefreshTokens:
-        return await self.upsert(BlackListedRefreshTokens(token=token, expiry=expiry))
+    async def get(self, session_id: str) -> Optional[SessionDocument]:
+        try:
+            session_id = str(PydanticObjectId(session_id))
+        except Exception:  # noqa: BLE001 — not an ObjectId: no such session
+            return None
+        return await self.one(SessionRow.id == session_id)
+
+    async def list_active_by_user(self, user_id: str) -> List[SessionDocument]:
+        return await self.many(
+            SessionRow.user_id == user_id,
+            SessionRow.revoked_at.is_(None),
+            order_by=(SessionRow.created_at.desc(), SessionRow.id.desc()),
+        )
+
+    async def _update_live(self, change, *where) -> List[SessionDocument]:
+        """Lock the live sessions matching ``where``, apply ``change`` to each
+        and store them, in one transaction (the twin of a conditional
+        ``$set``)."""
+        async with self._session() as session, session.begin():
+            docs = (
+                (
+                    await session.execute(
+                        select(SessionRow.doc)
+                        .where(SessionRow.revoked_at.is_(None), *where)
+                        .order_by(SessionRow.created_at, SessionRow.id)
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            stored = []
+            for doc in docs:
+                document = from_row_doc(SessionDocument, doc)
+                change(document)
+                await session.execute(self._upsert_statement(row_values(document)))
+                stored.append(document)
+        return stored
+
+    async def rotate(
+        self,
+        session_id: str,
+        expected_jti: str,
+        new_jti: str,
+        now: datetime.datetime,
+        expires_at: datetime.datetime,
+    ) -> Optional[SessionDocument]:
+        if await self.get(session_id) is None:
+            return None
+
+        def change(document: SessionDocument) -> None:
+            document.previous_refresh_jti = document.refresh_jti
+            document.refresh_jti = new_jti
+            document.rotated_at = now
+            document.last_refreshed_at = now
+            document.expires_at = expires_at
+            document.updated_at = now
+
+        stored = await self._update_live(
+            change,
+            SessionRow.id == str(session_id),
+            SessionRow.refresh_jti == expected_jti,
+        )
+        return stored[0] if stored else None
+
+    async def touch(self, session_id: str, now: datetime.datetime) -> int:
+        if await self.get(session_id) is None:
+            return 0
+
+        def change(document: SessionDocument) -> None:
+            document.last_refreshed_at = now
+            document.updated_at = now
+
+        return len(await self._update_live(change, SessionRow.id == str(session_id)))
+
+    @staticmethod
+    def _revoker(reason: str, now: datetime.datetime):
+        def change(document: SessionDocument) -> None:
+            document.revoked_at = now
+            document.revoke_reason = reason
+            document.updated_at = now
+
+        return change
+
+    async def revoke(self, session_id: str, reason: str, now: datetime.datetime) -> int:
+        if await self.get(session_id) is None:
+            return 0
+        return len(
+            await self._update_live(
+                self._revoker(reason, now), SessionRow.id == str(session_id)
+            )
+        )
+
+    async def revoke_all_for_user(
+        self,
+        user_id: str,
+        reason: str,
+        now: datetime.datetime,
+        except_session_id: Optional[str] = None,
+    ) -> int:
+        where = [SessionRow.user_id == user_id]
+        if except_session_id:
+            where.append(SessionRow.id != str(except_session_id))
+        return len(await self._update_live(self._revoker(reason, now), *where))
 
 
 class PostgresUserTagsRepository(PostgresRepositoryBase):

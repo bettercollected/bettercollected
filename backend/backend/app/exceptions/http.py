@@ -72,8 +72,14 @@ async def http_exception_handler(request: Request, exception: HTTPException):
             kwargs from custom HTTPException.
 
     """
-    return JSONResponse(
+    response = JSONResponse(
         status_code=exception.status_code,
         content=exception.content,
         headers=exception.headers,
     )
+    if getattr(exception, "clear_session_cookies", False):
+        # the session ended (revoked, expired, legacy token): drop its cookies
+        from backend.app.services.auth_cookie_service import delete_token_cookie
+
+        delete_token_cookie(response)
+    return response

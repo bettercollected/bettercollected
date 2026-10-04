@@ -127,8 +127,9 @@ yarn storybook      # component explorer on :6006
 - **Multi-host routing.** The webapp serves three logical hosts (admin `:3000`, client `:3001/{workspace_handle}`,
   custom domain `:3002`) behind nginx; `allowed_origins` in Mongo controls CORS. Custom-domain and workspace routing
   are load-bearing — see [docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md).
-- **Auth is cookie-based** with a mutex-guarded silent refresh-token flow ([webapp/src/store/customFetchBase.ts](webapp/src/store/customFetchBase.ts)).
-  Blacklisted refresh tokens are stored in Mongo. Don't move auth to header/localStorage tokens without understanding this.
+- **Auth is cookie-based** on revocable server-side sessions (backend `services/session_service.py`, `sessions`
+  collection): short access tokens checked without a database read, refresh checked against the session (see
+  [backend/AGENTS.md](backend/AGENTS.md)). Don't move auth to header/localStorage tokens without understanding this.
 - **Long/durable work goes to Temporal**, not inline request handlers: imports, response/user deletion (the privacy
   promise), CSV export, preview screenshots, action-code execution. Add such work as a workflow, not a blocking call.
 - **Encryption.** OAuth credentials and secrets are encrypted with Tink / AES keysets (`MASTER_ENCRYPTION_KEYSET`,

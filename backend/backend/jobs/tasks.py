@@ -11,12 +11,10 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 
-import jwt
 from procrastinate import RetryStrategy
 
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.services.user_service import get_user_from_token
-from backend.config import settings
 from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, app
 
 RUN_ACTION = "run_action"
@@ -36,19 +34,13 @@ def _container():
 async def delete_user(encrypted_tokens: str, user_id: str) -> str:
     """The user's workspaces, forms, integrations and auth record — what the
     Temporal `delete_user` activity did via DELETE /auth/user with the user's
-    own tokens; the tokens travel encrypted exactly as before."""
+    own tokens; the tokens travel encrypted exactly as before. They only name
+    the user (signature checked, not expiry: the job may run after the access
+    token expired); the deletion revokes the user's sessions."""
     container = _container()
     tokens = UserTokens(**json.loads(container.crypto().decrypt(encrypted_tokens)))
-    user = get_user_from_token(tokens.access_token)
+    user = get_user_from_token(tokens.access_token, verify_exp=False)
     await container.auth_service().delete_user(user=user)
-    claims = jwt.decode(
-        tokens.refresh_token,
-        key=settings.auth_settings.JWT_SECRET,
-        algorithms=["HS256"],
-    )
-    await container.blacklisted_refresh_token_repo().add(
-        token=tokens.refresh_token, expiry=claims.get("exp")
-    )
     return "User Deleted Successfully"
 
 

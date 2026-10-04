@@ -1,7 +1,7 @@
 """Platform admins named by PLATFORM_ADMIN_EMAILS get the ADMIN role in their
 tokens (added at token time, never stored), and only on sign-ins that proved
-the email: OTP, or Google reporting it verified. Never Typeform, never the
-/callback JWT exchange, never an unverified session's refresh."""
+the email: OTP, or Google reporting it verified. Never Typeform, never an
+unverified session's refresh or /callback JWT exchange."""
 
 import calendar
 import datetime as dt
@@ -77,6 +77,24 @@ def test_jwt_exchange_callback_does_not_grant(app_runner, platform_admin):
     response = app_runner.get("auth/callback", params={"jwt_token": jwt_token})
     assert response.status_code == 200
     assert "ADMIN" not in User(**response.json()).roles
+    assert User(**response.json()).email_verified is not True
+
+
+def test_jwt_exchange_callback_keeps_a_verified_sessions_claim(
+    app_runner, platform_admin
+):
+    """The backend re-issues the signed-in session's token after an import
+    OAuth (same email, #763) and passes that session's claim: a platform admin
+    keeps ADMIN instead of losing it until the next sign-in."""
+    app_runner.portal.call(container.user_repository().save_user, platform_admin)
+    jwt_token = container.jwt_service().encode(UserInfo(email=platform_admin))
+    response = app_runner.get(
+        "auth/callback", params={"jwt_token": jwt_token, "email_verified": True}
+    )
+    assert response.status_code == 200
+    user = User(**response.json())
+    assert "ADMIN" in user.roles
+    assert user.email_verified is True
 
 
 def test_status_grants_only_for_a_verified_session(app_runner, platform_admin):
