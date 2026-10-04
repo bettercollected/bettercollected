@@ -208,7 +208,7 @@ The SCIM base URL shown to admins is `SSO_POLIS_URL/api/scim/v2.0/<directory id>
 
 **The webhook.** Polis posts over the internal `sso` network, so nothing about it has to be public. It is still safe to expose (behind `api.example.org` it is `/api/v1/scim/webhook/<id>`): it is authenticated by the signature alone, and the URL Polis gets always comes from `SCIM_WEBHOOK_URL`, never from a request. If you run Polis outside compose, point `SCIM_WEBHOOK_URL` at an address Polis can reach.
 
-**The nightly resync** runs on the procrastinate jobs worker (`python -m backend.jobs.worker`, the `jobs-worker` compose service), wherever it runs. Without it, use the "Resync now" button, or the CLI from `backend/`:
+**The nightly resync** runs on the procrastinate jobs worker (`python -m backend.jobs.worker`, the `jobs-worker` compose service), wherever it runs; it needs the same `SSO_*` settings and `SCIM_WEBHOOK_URL` as the backend (the SSO overlay sets both). Without it, use the "Resync now" button, or the CLI from `backend/`:
 
 ```bash
 uv run python -m backend.scim resync --workspace <workspace id>
@@ -248,7 +248,7 @@ Settings → **Single sign-on** → **Directory sync (SCIM)**. Owner and Admins 
 | `group.created`, `group.updated` | The group is recorded or renamed (its mapping follows its id) |
 | `group.user_added`, `group.user_removed`, `group.deleted` | Group membership is updated and the member's role recomputed |
 | Address not on a verified domain | Ignored and listed as a failure ("not on one of this workspace's verified domains") |
-| No free seat (`API_ALLOWED_COLLABORATORS`) | Nothing is created (no account, no membership) and it is listed as a failure; the next change or a resync retries. Disabled memberships hold no seat (for invitations and SSO too), so re-enabling one also needs a free seat |
+| No free seat (`API_ALLOWED_COLLABORATORS`) | Nothing is created (no account, no membership) and it is listed as a failure; the next change or a resync retries. A membership disabled **only by the directory** holds no seat (for invitations and SSO too), so re-enabling it needs a free seat; one disabled by a plan downgrade keeps its seat (an upgrade re-enables it without a check, so the cap must hold it) |
 | The auth service is unreachable | Nothing is decided for that user: the webhook answers 503 (Polis retries), a resync skips them and records `auth_unavailable` |
 | The workspace owner | Never changed (not disabled, no role change), listed as "left alone" |
 | A member invited by hand | Their role is never changed by the directory ("left alone"); a deactivation does disable them (on a verified domain), and a re-activation lifts it |
@@ -260,7 +260,7 @@ Settings → **Single sign-on** → **Directory sync (SCIM)**. Owner and Admins 
 
 **Rotate token.** Polis cannot change a directory's token, so rotating replaces the directory: a new **base URL and token** (shown once), and the old directory is deleted, so its token stops working. If Polis can't delete it right then, the reply and the page say the old token may still be accepted, with a **Retry** button; every resync retries too. Enter both at the identity provider; it sends its users and groups again. Users are matched by email; groups by Polis id where it is unchanged, else by name when exactly one previous group had that name (its mapping carries over). Several previous groups sharing a name carry nothing over: the new group starts unmapped and is flagged "Check the role" (a name is not proof enough to hand out a role, Admin least of all). **Grace:** for `SCIM_ROTATION_GRACE_HOURS` (24) after a rotation, resyncs deactivate nobody and remove no group, while the identity provider re-pushes; after that the usual rules (and the safety stop) apply. Users the directory had deactivated stay refused for SSO across the rotation.
 
-**Delete.** Syncing stops: members stay with their role and status (an admin decides what to do with them), and the directory's records are removed. Remove the SCIM app at the identity provider too.
+**Delete.** Syncing stops: members stay with their role, and the directory's records are removed. The directory's own deactivations are lifted: someone it deactivated is enabled again when no other reason holds them and a seat is free; without a free seat they stay disabled (reason `seat_limit`), and the reply (`{reEnabled, leftDisabled}`) and the page say how many. A member also disabled by the plan stays disabled. Remove the SCIM app at the identity provider too.
 
 **Status.** The section shows the last change received, the last resync, counts (active, deactivated, failed, left alone) and the people that need attention, with the reason.
 
@@ -282,15 +282,15 @@ Under `/api/v1/workspaces/{workspace_id}/scim`; viewing needs `security.manage`,
 | POST | `/directory` | **Owner.** 201 `{directory, scimEndpoint, bearerToken}` (the token only here). 409 `sso_domain_required`, `scim_directory_exists`; 422 `invalid_directory_type`; 404 `scim_disabled`; 503 `scim_unavailable` |
 | POST | `/directory/rotate` | **Owner.** `{directory, scimEndpoint, bearerToken, previousDirectoryDeleted}` |
 | POST | `/directory/cleanup` | **Owner.** Retries deleting the previous Polis directory; 503 `scim_unavailable` while it can't |
-| DELETE | `/directory` | **Owner.** 204; members stay |
+| DELETE | `/directory` | **Owner.** `{reEnabled, leftDisabled}`; members stay |
 | PUT | `/groups/{group_id}` | **Owner.** `{role}` (a workspace role or null). 422 `invalid_role` |
 | POST | `/resync` | **Owner.** Body `{force?}`. `{directory, summary}`; 409 `mass_deprovision_refused` with `summary {wouldDeprovision, provisioned, listed}` (nothing changed); 503 `scim_unavailable`, `auth_unavailable` |
 
-`POST /api/v1/scim/webhook/{directory_id}`: Polis only (signature). 200 `{applied, duplicates}`; 401, 403, 400, 413, 503 as above. Auth's internal `POST /auth/sso/directory-account` finds or creates the account.
+`POST /api/v1/scim/webhook/{directory_id}`: Polis only (signature). 200 `{applied, duplicates}`; 401, 403, 400, 503 as above; 413 above `SCIM_MAX_WEBHOOK_BYTES`, counted while the body is read (chunked bodies included). Auth's internal `POST /auth/sso/directory-account` finds or creates the account.
 
 ### Storage
 
-Identity group, each a Mongo collection with its Postgres twin (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: Mongo TTL index, the twin deletes expired rows on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none) and `disabled_reasons` (`plan`, `directory`): each path lifts only its own reason, so an upgrade doesn't re-enable someone the directory deactivated and the directory doesn't re-enable someone a downgrade disabled (a disabled membership from before has none recorded and counts as `plan`). Revision `0011` makes (`workspace_id`, `user_id`) unique in `workspace_users` (see "Duplicate memberships"). Deleting a workspace deletes its directory here and in Polis.
+Identity group, each a Mongo collection with its Postgres twin (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: Mongo TTL index, the twin deletes expired rows on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none) and `disabled_reasons` (`plan`, `directory`, `seat_limit`): each path lifts only its own reason, so an upgrade doesn't re-enable someone the directory deactivated and the directory doesn't re-enable someone a downgrade disabled (a disabled membership from before has none recorded and counts as `plan`; disabling it for another reason records `plan` first, so the directory can never re-enable it). The directory's status fields (last event, resync outcome, pending clean-up) are written field by field, never by saving the whole record, so they can't undo a concurrent rotation. Revision `0011` makes (`workspace_id`, `user_id`) unique in `workspace_users` (see "Duplicate memberships"). Deleting a workspace deletes its directory here and in Polis.
 
 ### Troubleshooting
 
