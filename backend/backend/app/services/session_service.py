@@ -118,15 +118,38 @@ def user_from_access_token(token: Optional[str]) -> Optional[User]:
 
 
 SSO_METHOD = "sso"
+OTP_METHOD = "otp"
+RESPONDENT_SCOPE = "respondent"
+PLATFORM_ADMIN_ROLE = "ADMIN"
+RESPONDENT_ROLE = "FORM_RESPONDER"
 
 
-def platform_admin_proof(email_verified: Optional[bool], auth_method=None) -> bool:
+def platform_admin_proof(
+    email_verified: Optional[bool], auth_method=None, scope: Optional[str] = None
+) -> bool:
     """What the backend tells auth about a session's email when auth decides
     the platform-admin grant (``email_verified`` of ``/auth/status`` and
     ``/auth/callback``): the email was proven at sign-in, and not by single
     sign-on. An SSO session's address is vouched for by a customer's identity
-    provider, which must never control the platform-admin role (docs/sso.md)."""
-    return email_verified is True and auth_method != SSO_METHOD
+    provider, which must never control the platform-admin role (docs/sso.md).
+    A respondent-scoped session never gets it either."""
+    return (
+        email_verified is True
+        and auth_method != SSO_METHOD
+        and scope != RESPONDENT_SCOPE
+    )
+
+
+def session_roles(roles, auth_method=None, scope: Optional[str] = None) -> list:
+    """The roles a session's tokens carry. An SSO session never has the
+    platform-admin role, not even one stored on the account; a
+    respondent-scoped session is a respondent only."""
+    roles = list(roles or [])
+    if scope == RESPONDENT_SCOPE:
+        return [RESPONDENT_ROLE]
+    if auth_method == SSO_METHOD:
+        return [r for r in roles if r != PLATFORM_ADMIN_ROLE]
+    return roles
 
 
 def auth_http_client():
@@ -135,8 +158,10 @@ def auth_http_client():
 
 
 class SessionService:
-    def __init__(self, session_repo):
+    def __init__(self, session_repo, sso_policy=None):
         self.session_repo = session_repo
+        # ends non-SSO sessions on SSO-required domains at refresh (docs/sso.md)
+        self.sso_policy = sso_policy
 
     # -- sign-in -----------------------------------------------------------
     async def start(
@@ -145,10 +170,14 @@ class SessionService:
         response: Response,
         request: Optional[Request] = None,
         method: Optional[str] = None,
+        scope: Optional[str] = None,
+        scope_workspace_id: Optional[str] = None,
     ) -> User:
         """A new session for a user who just signed in; sets both cookies and
         returns the user as the tokens describe them (with ``sid``).
-        ``method``: how they signed in ("sso"), None for OTP and Google."""
+        ``method``: how they signed in ("sso", "otp", "google").
+        ``scope``: "respondent" for a session limited to answering the forms
+        of ``scope_workspace_id``."""
         method = method or user.auth_method
         now = utcnow()
         expires_at = now + dt.timedelta(
@@ -163,6 +192,8 @@ class SessionService:
             expires_at=expires_at,
             email_verified=user.email_verified is True,
             method=method,
+            scope=scope,
+            scope_workspace_id=str(scope_workspace_id) if scope else None,
             user_agent=user_agent[:USER_AGENT_MAX] if user_agent else None,
             created_at=now,
             updated_at=now,
@@ -173,6 +204,9 @@ class SessionService:
                 "sid": str(session.id),
                 "email_verified": session.email_verified,
                 "auth_method": method,
+                "session_scope": scope,
+                "scope_workspace_id": session.scope_workspace_id,
+                "roles": session_roles(user.roles, method, scope),
             }
         )
         set_access_token_to_response(user, response)
@@ -220,6 +254,14 @@ class SessionService:
             raise SessionEnded()
 
         user = await self._current_user(session)
+        if self.sso_policy is not None and await self.sso_policy.session_must_end(
+            user.sub, session, user.id
+        ):
+            # the address's domain now requires single sign-on (docs/sso.md)
+            await self.session_repo.revoke(sid, RevokeReason.SSO_REQUIRED, utcnow())
+            raise SessionEnded(
+                "Your organisation requires single sign-on. Please sign in with SSO."
+            )
         now = utcnow()
 
         rotated = None
@@ -274,7 +316,7 @@ class SessionService:
                 params={
                     "user_id": session.user_id,
                     "email_verified": platform_admin_proof(
-                        session.email_verified, session.method
+                        session.email_verified, session.method, session.scope
                     ),
                 },
                 headers=auth_service_headers(),
@@ -298,6 +340,9 @@ class SessionService:
                 "email_verified": session.email_verified is True,
                 "sid": str(session.id),
                 "auth_method": session.method,
+                "session_scope": session.scope,
+                "scope_workspace_id": session.scope_workspace_id,
+                "roles": session_roles(body.get("roles"), session.method, session.scope),
             }
         )
 

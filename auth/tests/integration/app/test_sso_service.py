@@ -346,6 +346,18 @@ def test_account_never_grants_the_platform_admin_role(monkeypatch):
     assert "ADMIN" not in user.roles
 
 
+def test_account_strips_a_stored_admin_role():
+    users = FakeUsers()
+    users.users.append(
+        FakeUsers._doc(
+            "root@example.com", 50, ("FORM_RESPONDER", "FORM_CREATOR", "ADMIN")
+        )
+    )
+    svc = service(users, FakePolis(profile("root@example.com")))
+    user = asyncio.run(svc.account(_assertion(svc)))
+    assert "ADMIN" not in user.roles and "FORM_CREATOR" in user.roles
+
+
 def test_account_refuses_a_forged_or_expired_assertion(monkeypatch):
     svc = service(FakeUsers(), FakePolis(profile("jane@example.com")))
     forged = sso_module.crypto.encrypt(json.dumps({"email": "x@example.com"}))

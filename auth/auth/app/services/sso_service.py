@@ -41,6 +41,7 @@ from cryptography.fernet import InvalidToken
 from email_validator import EmailNotValidError, validate_email
 
 from auth.app.exceptions import HTTPException
+from common.enums.roles import Roles
 from auth.app.services.platform_admins import roles_for
 from auth.app.services.provider_sign_in import account_for_provider_sign_in
 from auth.config import settings
@@ -319,9 +320,16 @@ class SsoService:
         return User(
             id=str(user_document.id),
             sub=user_document.email,
-            # verified=False: an identity provider never grants the
-            # platform-admin role (PLATFORM_ADMIN_EMAILS); a stored ADMIN stays
-            roles=roles_for(user_document.email, user_document.roles, verified=False),
+            # An identity provider never grants the platform-admin role: not
+            # from PLATFORM_ADMIN_EMAILS (verified=False) and not one stored
+            # on the account either (the backend strips it on refresh too).
+            roles=[
+                role
+                for role in roles_for(
+                    user_document.email, user_document.roles, verified=False
+                )
+                if role != Roles.ADMIN.value
+            ],
             plan=user_document.plan,
             email_verified=True,
             auth_method=AUTH_METHOD,

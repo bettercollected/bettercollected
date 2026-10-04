@@ -11,7 +11,17 @@ members could not sign in with SSO either, so nothing is refused.
 so a broken identity provider cannot lock everyone out of the workspace.
 Google sign-in stays refused for the owner too: the code proves the owner's
 mailbox; a Google account on the same address is a second path we don't
-need. See docs/sso.md.
+need.
+
+**Respondents:** the requirement covers the dashboard and the workspace's
+own forms. On *another* workspace's forms such an address may still verify
+itself with an email code, but only into a respondent-scoped session (no
+workspace permissions, no creator or admin role).
+
+**Refresh:** while the requirement holds, a session for an address on those
+domains that did not sign in with SSO ends at its next refresh, member or
+not, except the owner's email-code sessions and respondent-scoped ones.
+See docs/sso.md.
 """
 
 from http import HTTPStatus
@@ -27,6 +37,11 @@ from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.domains.names import display_domain, domain_of
 from backend.app.services.internal_auth import auth_service_headers
+from backend.app.services.session_service import (
+    OTP_METHOD,
+    RESPONDENT_SCOPE,
+    SSO_METHOD,
+)
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.config import settings
 
@@ -97,22 +112,58 @@ class SsoPolicyService:
     async def check_code_sign_in(
         self, email: str, user_id: Optional[str] = None
     ) -> None:
-        """Refuse an email-code sign-in (sending or checking the code) for an
+        """Refuse a full email-code sign-in (the dashboard) for an
         SSO-required address, unless it is the workspace owner's
         (break-glass). ``user_id``: the account, once known."""
+        await self.code_sign_in_scope(email, user_id=user_id)
+
+    async def code_sign_in_scope(
+        self,
+        email: str,
+        user_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+    ) -> Optional[str]:
+        """What an email-code sign-in for ``email`` may become: None for a
+        full session, ``respondent`` for a session limited to answering the
+        forms of ``workspace_id`` (another workspace than the one requiring
+        SSO). Raises 403 ``sso_required`` otherwise. The workspace owner keeps
+        full email-code sign-in (break-glass)."""
         workspace = await self.requiring_workspace(email)
         if workspace is None:
-            return
+            return None
         if user_id is not None:
-            if str(workspace.owner_id) == str(user_id):
-                logger.info(
-                    "SSO break-glass: the owner of workspace {} signed in with an email code",
-                    workspace.id,
-                )
-                return
-        elif await self._is_owner_email(workspace, email):
-            return
+            is_owner = str(workspace.owner_id) == str(user_id)
+        else:
+            is_owner = await self._is_owner_email(workspace, email)
+        if is_owner:
+            logger.info(
+                "SSO break-glass: the owner of workspace {} used an email code",
+                workspace.id,
+            )
+            return None
+        if workspace_id and str(workspace_id) != str(workspace.id):
+            return RESPONDENT_SCOPE
         raise sso_required_error(domain_of(email) or "")
+
+    async def session_must_end(self, email: str, session, user_id: str) -> bool:
+        """Whether a session has to end at refresh because its address's
+        domain requires single sign-on: any session that did not sign in
+        with SSO, except the owner's email-code sessions (break-glass) and
+        respondent-scoped sessions."""
+        if session.method == SSO_METHOD or session.scope == RESPONDENT_SCOPE:
+            return False
+        workspace = await self.requiring_workspace(email or "")
+        if workspace is None:
+            return False
+        if session.method == OTP_METHOD and str(workspace.owner_id) == str(user_id):
+            return False
+        logger.info(
+            "SSO required in workspace {}: a {} session of user {} ended at refresh",
+            workspace.id,
+            session.method or "pre-SSO",
+            user_id,
+        )
+        return True
 
     async def check_provider_sign_in(self, email: str) -> Optional[str]:
         """``sso_required`` when a Google (or other provider) sign-in for

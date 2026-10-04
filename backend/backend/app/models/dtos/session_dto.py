@@ -16,6 +16,8 @@ class SessionDto(CamelModel):
     user_agent: Optional[str] = None
     # "sso" for a single sign-on session, None otherwise
     method: Optional[str] = None
+    # "respondent" for a session limited to answering one workspace's forms
+    scope: Optional[str] = None
     current: bool = False
 
     @classmethod
@@ -27,5 +29,6 @@ class SessionDto(CamelModel):
             expires_at=session.expires_at,
             user_agent=session.user_agent,
             method=session.method,
+            scope=session.scope,
             current=str(session.id) == current_sid,
         )

@@ -25,6 +25,7 @@ from backend.app.services.session_service import (
     RevokeReason,
     SessionService,
     platform_admin_proof,
+    session_roles,
 )
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
@@ -35,6 +36,10 @@ from backend.app.utils import AiohttpClient
 from backend.config import settings
 
 _LOGIN_ERROR_CODE = re.compile(r"^[a-z_]{1,64}$")
+
+
+def _is_object_id(value: Optional[str]) -> bool:
+    return isinstance(value, str) and bool(re.fullmatch(r"[0-9a-f]{24}", value))
 
 
 def _same_email(a: Optional[str], b: Optional[str]) -> bool:
@@ -103,7 +108,7 @@ class AuthService:
                 params={
                     "user_id": user.id,
                     "email_verified": platform_admin_proof(
-                        user.email_verified, user.auth_method
+                        user.email_verified, user.auth_method, user.session_scope
                     ),
                 },
                 headers=auth_service_headers(),
@@ -140,8 +145,15 @@ class AuthService:
             )
 
     async def validate_otp(
-        self, login_details: UserLoginWithOTP, prospective_pro_user: bool
+        self,
+        login_details: UserLoginWithOTP,
+        prospective_pro_user: bool,
+        workspace_id: Optional[str] = None,
     ):
+        """The signed-in user, ``session_scope`` set to "respondent" when the
+        address's domain requires single sign-on in another workspace than
+        ``workspace_id`` (the workspace whose forms the code was asked for):
+        such a session only answers forms (docs/sso.md)."""
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",
             params={"email": login_details.email, "otp_code": login_details.otp_code},
@@ -150,9 +162,20 @@ class AuthService:
         user = response_data.get("user", None)
         if user and self.sso_policy is not None:
             # the owner of an SSO-required workspace keeps the code (break-glass)
-            await self.sso_policy.check_code_sign_in(
-                login_details.email, user_id=User(**user).id
+            scope = await self.sso_policy.code_sign_in_scope(
+                login_details.email,
+                user_id=User(**user).id,
+                workspace_id=workspace_id if _is_object_id(workspace_id) else None,
             )
+            if scope:
+                # respondent-only: no creator side effects, no workspace
+                return User(
+                    **{
+                        **user,
+                        "session_scope": scope,
+                        "scope_workspace_id": str(workspace_id),
+                    }
+                )
         if user and Roles.FORM_CREATOR in user.get("roles"):
             await self.user_tags_service.add_user_tag(
                 user_id=User(**user).id, tag=UserTagType.NEW_USER
@@ -221,11 +244,21 @@ class AuthService:
             params={
                 "jwt_token": jwt_token,
                 "email_verified": platform_admin_proof(
-                    signed_in.email_verified, signed_in.auth_method
+                    signed_in.email_verified,
+                    signed_in.auth_method,
+                    signed_in.session_scope,
                 ),
             },
             headers=auth_service_headers(),
         )
+        response_data = {
+            **response_data,
+            "roles": session_roles(
+                response_data.get("roles"),
+                signed_in.auth_method,
+                signed_in.session_scope,
+            ),
+        }
         user = User(
             **{
                 **response_data,
@@ -233,6 +266,8 @@ class AuthService:
                 # the same session continues: only the access token is re-issued
                 "sid": signed_in.sid,
                 "auth_method": signed_in.auth_method,
+                "session_scope": signed_in.session_scope,
+                "scope_workspace_id": signed_in.scope_workspace_id,
             }
         )
         decrypted_data = json.loads(self.crypto.decrypt(state))

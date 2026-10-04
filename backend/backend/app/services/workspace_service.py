@@ -424,7 +424,11 @@ class WorkspaceService:
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         if self._sso_policy is not None:
-            await self._sso_policy.check_code_sign_in(receiver_email)
+            # refused on the SSO workspace's own pages; elsewhere the code
+            # only gives a respondent-scoped session (docs/sso.md)
+            await self._sso_policy.code_sign_in_scope(
+                receiver_email, workspace_id=str(workspace_id)
+            )
         await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/send",
             params={
