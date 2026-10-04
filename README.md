@@ -104,14 +104,24 @@ third-party service ever sees responder data:
 checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
 auth, MongoDB (+ seed data), Temporal + workers, nginx (`:3001`/`:3002`), and
 [Umami](https://umami.is) analytics (`:3003`, default login `admin`/`umami` —
-change it). On first run it also generates a random `UMAMI_APP_SECRET` into a
-gitignored root `.env`. The backend auto-provisions the Umami website on
+change it). On first run it also generates a random `UMAMI_APP_SECRET`, the
+application database passwords and the keys the services use to call each
+other (`AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`) into a gitignored root
+`.env`; keep that file. The backend auto-provisions the Umami website on
 startup, so analytics needs no manual setup.
 
 Configuration lives in [`.env.deployment`](.env.deployment). **The tracked
 defaults (including secrets) are for local evaluation only — generate fresh
 secrets before exposing an instance to the internet**, and put TLS or a
 reverse proxy in front of it yourself.
+
+**Upgrading an existing instance:** the backend's internal job routes (used by
+the Temporal workers) no longer have a default key. Re-run `./deploy.sh`: it
+adds `TEMPORAL_API_KEY` to the root `.env` and passes it to the backend and the
+worker. If you deploy without `deploy.sh`, set the same random value as
+`TEMPORAL_API_KEY` on the backend and as `API_KEY` on the Temporal worker and
+the actions-executor; until then imports, scheduled deletions and form actions
+fail with 503 and the services log an error at startup.
 
 ### CI deployments
 

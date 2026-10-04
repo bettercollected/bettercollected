@@ -132,7 +132,11 @@ temporal server start-dev            # serves on :7233
 (cd temporal/worker && uv sync && uv run python main.py)
 ```
 
-Set `TEMPORAL_SERVER_URL` in the relevant `.env` files.
+Set `TEMPORAL_SERVER_URL` in the relevant `.env` files, and one shared key for
+the backend's internal job routes: `TEMPORAL_API_KEY` in `backend/.env` and the
+same value as `API_KEY` in `temporal/worker/.env` and
+`temporal/actions-executor/.env` (e.g. `openssl rand -hex 24`). Without it
+those routes answer 503 and the services log an error at startup.
 
 ## Logging in locally
 

@@ -580,6 +580,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- The backend's internal job routes (called by the Temporal worker and the
+  actions-executor with the `api-key` header) require a configured key: an
+  unset, empty or `random_api_key` value is no longer accepted, the routes
+  answer 503 until one is set, and the backend and both workers log an error
+  at startup. The key is compared in constant time, and the settings no longer
+  ship a default. **Upgrade:** `deploy.sh` generates `TEMPORAL_API_KEY` into
+  the root `.env` and `docker-compose.deployment.yml` passes it to the backend
+  and the worker; other deployments set the same value as `TEMPORAL_API_KEY`
+  (backend) and `API_KEY` (worker, actions-executor).
 - Removed committed Stripe/Sentry secrets from `auth/.env.example` (placeholders
   now). **Note:** these values still exist in git history and should be rotated
   and scrubbed before/at public release — see `SECURITY.md`.
