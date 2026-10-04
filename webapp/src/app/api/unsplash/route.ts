@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { createApi } from 'unsplash-js';
 
 const unsplashAccessKey = process.env.UNSPLASH_ACCESS_KEY || '';
@@ -20,14 +21,16 @@ export async function GET(request: Request) {
     try {
         const unsplash = createApi({ accessKey: unsplashAccessKey });
 
-        const photos = await unsplash.search
-            .getPhotos({
-                page: parseInt(page, 10),
-                perPage: parseInt(perPage, 10),
-                query: query || '',
-                orientation: 'landscape'
-            })
-            .then((response) => response.response);
+        const { data: photos } = await unsplash.GET('/search/photos', {
+            params: {
+                query: {
+                    page: parseInt(page, 10),
+                    per_page: parseInt(perPage, 10),
+                    query,
+                    orientation: 'landscape'
+                }
+            }
+        });
 
         if (!photos) {
             return NextResponse.json({ message: 'No photos found' }, { status: 404 });
