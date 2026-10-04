@@ -260,6 +260,15 @@ CASES = [
         lambda c: {"json": {"email": "new@example.com", "role": "COLLABORATOR"}},
     ),
     Case(
+        # an Admin may invite another Admin (not above their own role)
+        "members.invitations.create.admin",
+        "POST",
+        W + "/members/invitations",
+        P.MEMBERS_MANAGE,
+        lambda c: {"json": {"email": "new-admin@example.com", "role": "ADMIN"}},
+        ok=200,
+    ),
+    Case(
         "members.invitations.delete",
         "DELETE",
         W + "/members/invitations/{invitation}",
@@ -517,6 +526,13 @@ CASES = [
         lambda c: {"params": {"request_for_deletion": True}},
     ),
     Case("responses.form.all", "GET", F + "/all-submissions", P.RESPONSE_READ),
+    Case(
+        "responses.form.export",
+        "GET",
+        F + "/all-submissions/export",
+        P.RESPONSE_EXPORT,
+        ok=200,
+    ),
     Case("responses.workspace", "GET", W + "/all-submissions", P.RESPONSE_READ),
     Case(
         "responses.workspace.deletion_requests",
@@ -533,6 +549,14 @@ CASES = [
         refused_body=NOT_AUTHORIZED,
     ),
     Case("responses.delete", "DELETE", F + "/response/{response}", P.RESPONSE_DELETE),
+    Case(
+        # completing a pending deletion request is also the privacy programme
+        "responses.delete.pending_request",
+        "DELETE",
+        F + "/response/{requested}",
+        ROLES_WITH[P.RESPONSE_DELETE] | ROLES_WITH[P.PRIVACY_MANAGE],
+        ok=200,
+    ),
     Case(
         "responses.internal_answers",
         "PATCH",
@@ -678,6 +702,16 @@ async def matrix(workspace, published_form, outside_services, fake_dns):
         StandardFormResponse(**formResponse),
         testUser2,
     )
+    requested = await container.workspace_form_service().submit_response(
+        workspace.id,
+        published_form.form_id,
+        StandardFormResponse(**formResponse),
+        testUser2,
+    )
+    responses = container.form_response_repo()
+    await responses.add_deletion_request(
+        await responses.get_response(requested.response_id), requested.response_id
+    )
     group = await container.responder_groups_service().create_group(
         workspace.id, "Matrix", ["a@example.com"], testUser, None, "", None
     )
@@ -747,6 +781,7 @@ async def matrix(workspace, published_form, outside_services, fake_dns):
         "form": published_form.form_id,
         "slug": workspace_form.settings.custom_url,
         "response": response.response_id,
+        "requested": requested.response_id,
         "group": str(group.id),
         "removable": removable_user.id,
         "new_owner": admin_user.id,
