@@ -1,4 +1,4 @@
-"""python -m backend.custom_domain {export-reference-map,adopt,subscribe,sweep}
+"""python -m backend.custom_domain {export-reference-map,adopt,subscribe,sweep,prune-origins}
 
 Operator steps for moving BetterCollected's custom domains to the
 custom-domain service (docs/custom-domain.md):
@@ -15,6 +15,11 @@ custom-domain service (docs/custom-domain.md):
   sweep                 delete domains in the service that no workspace
                         references any more (replacements whose old domain
                         could not be deleted at the time).
+  prune-origins [--dry-run] [--orphans --keep ORIGIN ...]
+                        remove allowed origins of custom domains that are not
+                        verified (also run on every backend startup). With
+                        --orphans, also origins that match no workspace, except
+                        the client app's origin and each --keep ORIGIN.
 """
 
 import argparse
@@ -29,7 +34,11 @@ from pymongo import AsyncMongoClient
 
 from backend.app.container import container
 from backend.app.handlers.database import init_db
-from backend.app.services.custom_domain_service import domain_fields
+from backend.app.services.custom_domain_origins import (
+    prune_unverified_origins,
+    sync_custom_domain_origin,
+)
+from backend.app.services.custom_domain_service import READY, domain_fields
 from backend.config import settings
 
 DOMAIN_FILTER = {
@@ -92,6 +101,11 @@ async def adopt(dry_run: bool) -> int:
         counts["adopted"] += 1
         if not dry_run:
             await repo.set_fields(workspace, domain_fields(domain))
+            await sync_custom_domain_origin(
+                container.allowed_origins_repo(),
+                workspace.custom_domain,
+                domain.status == READY,
+            )
     print(json.dumps(counts))
     await client.close()
     return 0 if not (counts["hostname_mismatch"] or counts["unknown_workspace"]) else 1
@@ -127,6 +141,33 @@ async def sweep(dry_run: bool) -> int:
     return 0
 
 
+async def prune_origins(dry_run: bool, orphans: bool, keep: list) -> int:
+    client = await _open()
+    result = await prune_unverified_origins(
+        container.allowed_origins_repo(),
+        container.workspace_repo(),
+        include_orphans=orphans,
+        keep=keep,
+        dry_run=dry_run,
+    )
+    for origin in result["removed"]:
+        print(f"  {'would remove' if dry_run else 'removed'} {origin}")
+    for origin in result["orphans"]:
+        if origin not in result["removed"]:
+            print(f"  orphan (kept) {origin}")
+    print(
+        json.dumps(
+            {
+                "removed": len(result["removed"]),
+                "orphans": len(result["orphans"]),
+                "dry_run": dry_run,
+            }
+        )
+    )
+    await client.close()
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="python -m backend.custom_domain")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -141,7 +182,24 @@ def main(argv=None) -> int:
     )
     p = sub.add_parser("sweep")
     p.add_argument("--dry-run", action="store_true")
+    p = sub.add_parser("prune-origins")
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument(
+        "--orphans",
+        action="store_true",
+        help="also remove origins that match no workspace's custom domain",
+    )
+    p.add_argument(
+        "--keep",
+        action="append",
+        default=[],
+        metavar="ORIGIN",
+        help="an origin --orphans must not remove (repeatable)",
+    )
     args = parser.parse_args(argv)
+    if args.command == "prune-origins":
+        # works with or without the custom-domain service
+        return asyncio.run(prune_origins(args.dry_run, args.orphans, args.keep))
     if args.command != "export-reference-map" and not settings.custom_domain.enabled:
         print(
             "CUSTOM_DOMAIN_API_URL and CUSTOM_DOMAIN_API_CREDENTIAL are not set",

@@ -53,9 +53,11 @@ wrapper `CustomDomainService` (`backend/app/services/custom_domain_service.py`):
 | Status page (`GET /workspaces/{id}/verify-domain`) | `get_domain` | refreshed |
 | "Check again" (`POST /workspaces/{id}/custom-domain/recheck`) | `request_recheck`; a 429 returns `retry_after` | refreshed |
 | Remove (`DELETE /workspaces/{id}/custom-domain`) | `delete_domain` | all cleared |
-| Webhooks (`POST /custom-domain/webhooks`) | signature verified with `CUSTOM_DOMAIN_WEBHOOK_SECRETS`; stale and duplicate deliveries ignored | status, checks, verified; CORS origin added on `ready` |
+| Webhooks (`POST /custom-domain/webhooks`) | signature verified with `CUSTOM_DOMAIN_WEBHOOK_SECRETS`; stale and duplicate deliveries ignored | status, checks, verified; CORS origin added on `ready`, removed otherwise |
 
-`custom_domain_verified` is derived: `status == ready`. The settings page
+`custom_domain_verified` is derived: `status == ready`. A custom domain is an
+allowed CORS origin only while it is verified (on either path); setting or
+changing a domain does not add it. The settings page
 shows the two DNS records (TXT for ownership, CNAME to the application's edge
 target) exactly as the service returns them, the four checks with their
 messages, and the status.
@@ -163,6 +165,12 @@ asks the customer to set it again.
 `python -m backend.custom_domain sweep --dry-run` lists domains in the
 service that no workspace references (a replacement whose old domain could
 not be deleted at the time); without `--dry-run` it deletes them.
+
+`python -m backend.custom_domain prune-origins --dry-run` lists allowed
+origins of custom domains that are not verified; without `--dry-run` it
+removes them. The backend also does this on every startup. Origins that match
+no workspace are only listed; `--orphans` removes them too, keeping the
+client app's origin (`API_CLIENT_URL`) and every `--keep ORIGIN`.
 
 ## Rollback
 
