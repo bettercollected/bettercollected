@@ -10,6 +10,8 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { InternalAnswersState, useUpdateInternalAnswersMutation } from '@app/store/workspaces/api';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { buildInternalAnswer, conflictingInternalFields, InternalInputValue, internalAnswerChanged, internalAnswerToInput } from '@app/utils/internal-fields';
 import { fieldText, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
@@ -90,6 +92,9 @@ function InternalFieldInput({ field, value, onChange }: { field: StandardFormFie
 export default function InternalFieldsPanel({ fields, response, formId, workspaceId }: InternalFieldsPanelProps) {
     const { toast } = useToast();
     const [updateInternalAnswers, { isLoading }] = useUpdateInternalAnswersMutation();
+    // Viewers read the values; filling them in is response.annotate.
+    const { can } = useWorkspacePermissions();
+    const canAnnotate = can(WorkspacePermission.RESPONSE_ANNOTATE);
 
     const [stored, setStored] = useState<Record<string, AnswerDto>>(response?.internalAnswers ?? {});
     const [meta, setMeta] = useState<Record<string, InternalAnswerMeta>>(response?.internalAnswersMeta ?? {});
@@ -160,6 +165,7 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
                 </span>
                 <span className="text-black-600 text-xs">Respondents never see these fields or their values.</span>
             </div>
+            <fieldset disabled={!canAnnotate} className="flex flex-col gap-4">
             {fields.map((field) => {
                 const fieldMeta = meta[field.id];
                 return (
@@ -181,12 +187,15 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
                     </div>
                 );
             })}
+            </fieldset>
+            {canAnnotate && (
             <div className="flex items-center justify-between gap-2">
                 <span className="text-black-500 text-[11px]">{missingRequired.length > 0 ? `${missingRequired.length} required field${missingRequired.length > 1 ? 's' : ''} still empty` : ''}</span>
                 <Button variant="primary" size="sm" isLoading={isLoading} disabled={changedFields.length === 0 || isLoading} onClick={save}>
                     Save
                 </Button>
             </div>
+            )}
         </section>
     );
 }

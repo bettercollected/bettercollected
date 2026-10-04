@@ -13,6 +13,8 @@ import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getInternalFields } from '@app/utils/internal-fields';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import InternalFieldsPanel from '@Components/form/internal-fields-panel';
 import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
@@ -234,6 +236,7 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
     const { closeModal } = useFullScreenModal();
     const { openModal: openConfirmModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
+    const { can } = useWorkspacePermissions();
 
     // Deleting is permanent, so it goes through the DELETE_RESPONSE confirm.
     // Only one modal layer renders at a time (full-screen wins), so the drawer
@@ -242,6 +245,8 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
         closeModal();
         openConfirmModal('DELETE_RESPONSE', { workspace, formId, responseId });
     };
+    // the menu's only action is response.delete (Editors and up)
+    if (!can(WorkspacePermission.RESPONSE_DELETE)) return null;
     return (
         <Popover>
             <PopoverTrigger>

@@ -18,6 +18,8 @@ import { formConstant } from '@app/constants/locales/form';
 import { formPage } from '@app/constants/locales/form-page';
 import TopNavLayout from '@app/layouts/top-navbar-layout';
 import { useBreakpoint, useIsMobile } from '@app/lib/hooks/use-breakpoint';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
@@ -50,6 +52,10 @@ export default function FormDashboardLayoutClient({
 
     const isMobile = useIsMobile();
     const isFormOpen = validateFormOpen(reduxStoreForm?.settings?.formCloseDate);
+    const { can } = useWorkspacePermissions();
+    const canEditForm = can(WorkspacePermission.FORM_EDIT);
+    const canReadResponses = can(WorkspacePermission.RESPONSE_READ);
+    const canManagePrivacy = can(WorkspacePermission.PRIVACY_MANAGE);
 
     // Initial load set form
     useEffect(() => {
@@ -72,20 +78,27 @@ export default function FormDashboardLayoutClient({
         const tabs: Array<{ title: string; path: string; count?: number; matches: string[] }> = [{ title: t(formConstant.preview), path: 'preview', matches: ['preview'] }];
 
         if (form?.isPublished) {
-            tabs.push({
-                title: 'Responses',
-                path: 'responses',
-                count: form.responses ?? 0,
-                matches: ['responses', 'deletion-requests']
-            });
+            if (canReadResponses) {
+                tabs.push({
+                    title: 'Responses',
+                    path: 'responses',
+                    count: form.responses ?? 0,
+                    matches: ['responses', 'deletion-requests']
+                });
+            } else if (canManagePrivacy) {
+                // a Privacy officer handles deletion requests, never answers
+                tabs.push({ title: t(formConstant.deletionRequests), path: 'deletion-requests', matches: ['deletion-requests'] });
+            }
             if (isFormOpen) {
                 tabs.push({ title: 'Analytics', path: 'analytics', matches: ['analytics'] });
                 tabs.push({ title: 'Share', path: 'links', matches: ['links'] });
             }
         }
-        tabs.push({ title: t(localesCommon.settings), path: 'settings', matches: ['settings', 'visibility', 'integrations'] });
+        if (canEditForm) {
+            tabs.push({ title: t(localesCommon.settings), path: 'settings', matches: ['settings', 'visibility', 'integrations'] });
+        }
         return tabs;
-    }, [form, t, isFormOpen]);
+    }, [form, t, isFormOpen, canEditForm, canReadResponses, canManagePrivacy]);
 
     const handleBackClick = () => {
         router.push(`/${workspace?.workspaceName}/dashboard/forms`);
@@ -138,7 +151,7 @@ export default function FormDashboardLayoutClient({
                                 {isMobile ? <h1 className="hp3-new">{formTitle}</h1> : <h1 className="h2-new">{formTitle}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
-                                {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
+                                {canEditForm && form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <Button
                                         icon={<Edit2 className="h-5 w-5" />}
                                         variant="v2Button"
@@ -200,7 +213,7 @@ export default function FormDashboardLayoutClient({
                                         </Button>
                                     </PrivateFormButtonWrapper>
                                 ) : (
-                                    <PublishButton refresh />
+                                    canEditForm && <PublishButton refresh />
                                 )}
                             </div>
                         </div>

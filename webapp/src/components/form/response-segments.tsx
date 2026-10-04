@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { cn } from '@app/shadcn/util/lib';
@@ -16,12 +18,16 @@ export default function ResponseSegments() {
     const pathname = usePathname();
     const params = useParams();
     const form = useAppSelector(selectForm);
+    const { can } = useWorkspacePermissions();
 
     const base = `/${params?.workspace_name}/dashboard/forms/${params?.form_id}`;
+    // answers are response.read, deletion requests privacy.manage
     const segments = [
-        { label: 'All responses', count: form?.responses ?? 0, href: `${base}/responses`, active: !!pathname?.endsWith('/responses') },
-        { label: 'Deletion requests', count: (form as any)?.deletionRequests ?? 0, href: `${base}/deletion-requests`, active: !!pathname?.endsWith('/deletion-requests') }
-    ];
+        can(WorkspacePermission.RESPONSE_READ) && { label: 'All responses', count: form?.responses ?? 0, href: `${base}/responses`, active: !!pathname?.endsWith('/responses') },
+        can(WorkspacePermission.PRIVACY_MANAGE) && { label: 'Deletion requests', count: (form as any)?.deletionRequests ?? 0, href: `${base}/deletion-requests`, active: !!pathname?.endsWith('/deletion-requests') }
+    ].filter(Boolean) as Array<{ label: string; count: number; href: string; active: boolean }>;
+
+    if (segments.length < 2) return null;
 
     return (
         <div className="border-black-300 mb-6 inline-flex rounded-lg border bg-white p-0.5">

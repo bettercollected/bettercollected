@@ -28,6 +28,8 @@ import { getFormFields } from '@app/utils/form-builder-block-utils';
 import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
@@ -44,6 +46,7 @@ interface IWorkspaceFormCardProps {
 export default function WorkspaceFormCard({ form, hasCustomDomain, group, workspace, isResponderPortal = false, className = '', showPinned = true, showVisibility = true }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     const router = useRouter();
+    const { can } = useWorkspacePermissions();
     const { t } = useTranslation();
     const { deleteFormFromGroup } = useGroupForm();
 
@@ -187,7 +190,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 {t('BUTTON.SHARE')}
                             </Button>
                         )}
-                        {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
+                        {can(WorkspacePermission.FORM_EDIT) && form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                             <Button
                                 onClick={(event: any) => {
                                     event.preventDefault();

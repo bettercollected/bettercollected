@@ -63,12 +63,15 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
             key: 'responders',
             name: t(localesCommon.respondersAndGroups),
             url: `${commonWorkspaceUrl}/responders-groups`,
+            // responders are privacy.manage, responder groups form.edit
+            anyPermission: [WorkspacePermission.PRIVACY_MANAGE, WorkspacePermission.FORM_EDIT],
             icon: <ResponderIcon />
         },
         {
             key: 'deletion_requests',
             name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
+            permission: WorkspacePermission.PRIVACY_MANAGE,
             icon: <Trash2 className="stroke-2" />
         }
     ];
@@ -113,8 +116,8 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     // address-bar gear) — this entry opens that view directly.
                     name: 'Site settings',
                     url: `${commonWorkspaceUrl}/site-settings`,
-                    // saved through the workspace PATCH: the owner only, for now
-                    permission: WorkspacePermission.WORKSPACE_BILLING,
+                    // saved through the workspace PATCH (workspace.manage)
+                    permission: WorkspacePermission.WORKSPACE_MANAGE,
                     // Not a route — active while its view is open on the root.
                     isActive: pathname === commonWorkspaceUrl && settingsViewOpen,
                     icon: <Settings className="h-5 w-5 stroke-2" />,
@@ -132,8 +135,8 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     ),
                     icon: <Globe />,
                     url: `${commonWorkspaceUrl}/custom-domain`,
-                    // setting the domain is the workspace PATCH (owner only, for now)
-                    permission: WorkspacePermission.WORKSPACE_BILLING,
+                    // setting the domain is the workspace PATCH (workspace.manage)
+                    permission: WorkspacePermission.WORKSPACE_MANAGE,
                     onClick: () => {
                         if (workspace?.isPro) {
                             router.push(`${commonWorkspaceUrl}/custom-domain`);
