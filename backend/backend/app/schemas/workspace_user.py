@@ -9,6 +9,9 @@ from common.configs.mongo_document import MongoDocument
 
 DISABLED_BY_PLAN = "plan"
 DISABLED_BY_DIRECTORY = "directory"
+# the directory was deleted while this member was deactivated by it, and no
+# seat was free to re-enable them
+DISABLED_BY_SEAT_LIMIT = "seat_limit"
 
 
 class WorkspaceUserDocument(MongoDocument):
@@ -53,11 +56,24 @@ class WorkspaceUserDocument(MongoDocument):
 
     def disable_for(self, reason: str) -> bool:
         """Disable for ``reason``; whether anything changed."""
+        if self.disabled and not self.disabled_reasons:
+            # a legacy disabled row: the plan disabled it, keep that reason
+            self.disabled_reasons = [DISABLED_BY_PLAN]
         changed = not self.disabled or reason not in self.disabled_reasons
         if reason not in self.disabled_reasons:
             self.disabled_reasons = [*self.disabled_reasons, reason]
         self.disabled = True
         return changed
+
+    @property
+    def holds_seat(self) -> bool:
+        """Whether it counts toward the seat cap: every membership but one
+        disabled only by the directory (a plan-disabled member comes back on
+        upgrade without a seat check, so it keeps its seat; a legacy disabled
+        row counts as plan)."""
+        if not self.disabled or not self.disabled_reasons:
+            return True
+        return DISABLED_BY_PLAN in self.disabled_reasons
 
     def enable_for(self, reason: str) -> bool:
         """Lift ``reason``: enabled once no other reason is left. Whether

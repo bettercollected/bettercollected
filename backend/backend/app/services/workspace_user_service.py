@@ -65,13 +65,14 @@ class WorkspaceUserService:
         return await self.workspace_user_repository.add_if_absent(workspace_user)
 
     async def active_member_count(self, workspace_id: PydanticObjectId) -> int:
-        """Members holding a seat: a disabled membership frees its seat (an
-        invitation, a first SSO sign-in and the SCIM directory all count
-        this way)."""
+        """Members holding a seat: all but those disabled only by the SCIM
+        directory (``WorkspaceUserDocument.holds_seat``). An invitation, a
+        first SSO sign-in, the SCIM directory and the recount after an insert
+        all count this way."""
         workspace_users = await self.workspace_user_repository.get_workspace_users(
             workspace_id=PydanticObjectId(workspace_id)
         )
-        return sum(1 for member in workspace_users if not member.disabled)
+        return sum(1 for member in workspace_users if member.holds_seat)
 
     async def has_free_seat(self, workspace_id: PydanticObjectId) -> bool:
         """Whether one more member fits under ``API_ALLOWED_COLLABORATORS``
