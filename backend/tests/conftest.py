@@ -157,6 +157,29 @@ async def _truncate_postgres() -> None:
             await conn.execute(text(f"DELETE FROM {name}"))
 
 
+async def _clear_mongo(db) -> None:
+    """Empty every collection that holds documents.
+
+    Like the Postgres reset: a delete_many on each of the ~35 collections cost
+    a round trip apiece on every test, although a test touches only a few. One
+    aggregation (each collection's first document, tagged with its name, via
+    $unionWith) finds the non-empty ones, and only those are cleared.
+    """
+    names = await db.list_collection_names(filter={"type": "collection"})
+    if not names:
+        return
+
+    def first_of(name: str) -> list:
+        return [{"$limit": 1}, {"$project": {"_id": 0, "c": {"$literal": name}}}]
+
+    pipeline = first_of(names[0]) + [
+        {"$unionWith": {"coll": name, "pipeline": first_of(name)}} for name in names[1:]
+    ]
+    cursor = await db[names[0]].aggregate(pipeline)
+    for name in [doc["c"] async for doc in cursor]:
+        await db[name].delete_many({})
+
+
 def _drop_test_db() -> None:
     """Drop the test database using a synchronous pymongo client.
 
@@ -216,9 +239,7 @@ async def _clean_db(_initialized_app):
     Clearing documents (rather than dropping the database) keeps the indexes and
     collections created by the one-time init, so per-test setup stays cheap.
     """
-    db = container.database_client()[TEST_MONGO_DB]
-    for name in await db.list_collection_names():
-        await db[name].delete_many({})
+    await _clear_mongo(container.database_client()[TEST_MONGO_DB])
     if _postgres_configured() and container.flags().requires_postgres():
         await _truncate_postgres()
     yield
