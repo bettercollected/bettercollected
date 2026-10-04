@@ -6,6 +6,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
+import { WORKSPACE_PERMISSIONS_TAG, workspacesApi } from '@app/store/workspaces/api';
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
@@ -29,6 +30,8 @@ export default function LogoutView(props: any) {
                 else router.push('/login');
             }
             dispatch(setAuth(initialAuthState));
+            // the next user must not see this user's permissions
+            dispatch(workspacesApi.util.invalidateTags([WORKSPACE_PERMISSIONS_TAG]));
             closeModal();
         });
     };

@@ -48,9 +48,11 @@ export interface WorkspaceAISettings {
     learnPreferences: boolean;
 }
 
+export const WORKSPACE_PERMISSIONS_TAG = 'WORKSPACE_PERMISSIONS_TAG';
+
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG'],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', WORKSPACE_PERMISSIONS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -471,13 +473,15 @@ export const workspacesApi = createApi({
             invalidatesTags: ['AI_PROFILE_TAG']
         }),
         // The caller's effective permissions in a workspace (empty for a
-        // non-member). Kept a while: many controls read it.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission> }, string>({
-            query: (workspaceId) => ({
+        // non-member). Kept a while: many controls read it. The user id is
+        // part of the cache key only, so one user never reads another's.
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission> }, { workspaceId: string; userId: string }>({
+            query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'
             }),
-            keepUnusedDataFor: 300
+            keepUnusedDataFor: 300,
+            providesTags: [WORKSPACE_PERMISSIONS_TAG]
         }),
         getAISettings: builder.query<WorkspaceAISettings, string>({
             query: (workspaceId) => ({
