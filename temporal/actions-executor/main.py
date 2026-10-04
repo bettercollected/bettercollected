@@ -7,7 +7,7 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from activities.run_action_code import run_action_code
-from settings.application import settings
+from settings.application import log_if_api_key_missing, settings
 from workflows.run_action_code import RunActionCode
 
 
@@ -37,6 +37,7 @@ async def main():
 
 
 if __name__ == "__main__":
+    log_if_api_key_missing()
     # JOBS_BACKEND=postgres: consume the procrastinate `actions` queue instead
     # of Temporal (plans/postgres-consolidation.md §7). Temporal stays default.
     if os.environ.get("JOBS_BACKEND", "temporal").lower() == "postgres":

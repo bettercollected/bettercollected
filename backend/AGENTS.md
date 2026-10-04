@@ -440,6 +440,11 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   deletion (at the response's expiration), action-code execution — on Temporal (default) or, per job kind via
   `JOBS_BACKEND__<job>=postgres`, as procrastinate jobs (`backend/jobs/tasks.py`; `run_action` is deferred by name and
   executed by `temporal/actions-executor`). See plans/postgres-consolidation.md §7.
+  The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
+  `DELETE /auth/user`) with the `api-key` header, checked by `get_api_key` (`user_service.py`) against
+  `TEMPORAL_API_KEY` (`services/internal_job_key.py`): **503** while it is unset, empty or the old
+  `random_api_key`, **403** when wrong, constant-time compare. A new worker-only route takes
+  `Depends(get_api_key)`; tests in `tests/app/controllers/test_internal_job_key.py`.
 - **Provider plugins:** `core/plugins/{google,typeform}.py` behind `plugin_proxy_service.py` — forwards standardized
   requests to the external provider microservices (:8003 / :8002).
 - **Third-party services:** `aws_service.py` (S3), `stripe_service.py`, `openai_service.py` (prompts/AI form gen),

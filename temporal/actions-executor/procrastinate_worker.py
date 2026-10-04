@@ -55,4 +55,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    from settings.application import log_if_api_key_missing
+
+    log_if_api_key_missing()
     asyncio.run(main())
