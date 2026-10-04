@@ -7075,10 +7075,10 @@ react-cookie@^8.0.1:
     hoist-non-react-statics "^3.3.2"
     universal-cookie "^8.0.0"
 
-react-country-dropdown@^1.1.0:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/react-country-dropdown/-/react-country-dropdown-1.1.1.tgz#3dd80160d3b954792dd13fa0b17e5a3c072c333e"
-  integrity sha512-UHFW3Ne3Fo9Rm1yWNn7p61xqrIb29WMjmsymeJ063z6hcZWAajw/oQR+l5ZcefAvt0H69eQuwpYPgJg6BndtLQ==
+react-country-dropdown@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/react-country-dropdown/-/react-country-dropdown-3.0.0.tgz#23842ea02fecc795965872ee5b80ff8da5cf035d"
+  integrity sha512-nToFDvj3O17gt4rmQVDOn/KQGmBVcYrWjxD6YszUchRj2DzKx9dq4LUVE4xHpDQZeBjwr1J7wtu0Y/iUcg72gw==
 
 react-csv@^2.2.2:
   version "2.2.2"

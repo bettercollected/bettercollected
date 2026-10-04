@@ -87,7 +87,7 @@
         "react-chartjs-2": "^5.2.0",
         "react-contenteditable": "^3.3.7",
         "react-cookie": "^8.0.1",
-        "react-country-dropdown": "^1.1.0",
+        "react-country-dropdown": "^3.0.0",
         "react-csv": "^2.2.2",
         "react-data-table-component": "^8.10.0",
         "react-day-picker": "10.0.1",
