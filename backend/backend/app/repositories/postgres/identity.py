@@ -34,6 +34,17 @@ from backend.app.repositories.metric_periods import (
 )
 from backend.app.repositories.sso_connection_repository import SsoConnectionExists
 from backend.app.repositories.sso_used_state_repository import StateAlreadyUsed
+from backend.app.repositories.scim_repository import (
+    ScimDirectoryExists,
+    ScimEventSeen,
+)
+from backend.app.schemas.scim import (
+    ScimDirectoryDocument,
+    ScimEventDocument,
+    ScimGroupDocument,
+    ScimGroupMemberDocument,
+    ScimUserDocument,
+)
 from backend.app.schemas.sso_used_state import SsoUsedStateDocument
 from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.sso_connection import (
@@ -53,6 +64,11 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.db.base import SCHEMA
 from backend.db.models import (
+    ScimDirectoryRow,
+    ScimEventRow,
+    ScimGroupMemberRow,
+    ScimGroupRow,
+    ScimUserRow,
     SessionRow,
     SsoConnectionRow,
     SsoUsedStateRow,
@@ -596,6 +612,165 @@ class PostgresSsoUsedStateRepository(PostgresRepositoryBase):
             return await self.upsert(document)
         except IntegrityError:
             raise StateAlreadyUsed(document.nonce_hash)
+
+
+class PostgresScimDirectoryRepository(PostgresRepositoryBase):
+    row = ScimDirectoryRow
+    document = ScimDirectoryDocument
+
+    async def create(self, document: ScimDirectoryDocument) -> ScimDirectoryDocument:
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise ScimDirectoryExists(str(document.workspace_id))
+
+    async def save(self, document: ScimDirectoryDocument) -> ScimDirectoryDocument:
+        return await self.upsert(document)
+
+    async def get(self, directory_id) -> Optional[ScimDirectoryDocument]:
+        return await self.one(ScimDirectoryRow.id == str(directory_id))
+
+    async def find_by_workspace(
+        self, workspace_id: PydanticObjectId
+    ) -> Optional[ScimDirectoryDocument]:
+        return await self.one(ScimDirectoryRow.workspace_id == _oid(workspace_id))
+
+    async def list_all(self) -> List[ScimDirectoryDocument]:
+        return await self.many(order_by=(ScimDirectoryRow.id,))
+
+    async def delete(self, directory_id: PydanticObjectId) -> int:
+        return await self.delete_by_id(directory_id)
+
+
+class PostgresScimUserRepository(PostgresRepositoryBase):
+    row = ScimUserRow
+    document = ScimUserDocument
+
+    async def save(self, document: ScimUserDocument) -> ScimUserDocument:
+        return await self.upsert(document)
+
+    async def get(self, scim_user_id) -> Optional[ScimUserDocument]:
+        return await self.one(ScimUserRow.id == str(scim_user_id))
+
+    async def find(
+        self, directory_id: PydanticObjectId, polis_user_id: str
+    ) -> Optional[ScimUserDocument]:
+        return await self.one(
+            ScimUserRow.directory_id == _oid(directory_id),
+            ScimUserRow.polis_user_id == polis_user_id,
+        )
+
+    async def find_by_email(
+        self, workspace_id: PydanticObjectId, email: str
+    ) -> List[ScimUserDocument]:
+        return await self.many(
+            ScimUserRow.workspace_id == _oid(workspace_id), ScimUserRow.email == email
+        )
+
+    async def list_by_directory(
+        self, directory_id: PydanticObjectId
+    ) -> List[ScimUserDocument]:
+        return await self.many(ScimUserRow.directory_id == _oid(directory_id))
+
+    async def list_by_ids(self, ids: List[PydanticObjectId]) -> List[ScimUserDocument]:
+        if not ids:
+            return []
+        return await self.many(ScimUserRow.id.in_([_oid(i) for i in ids]))
+
+    async def delete_by_directory(self, directory_id: PydanticObjectId) -> int:
+        return await self.delete_where(ScimUserRow.directory_id == _oid(directory_id))
+
+
+class PostgresScimGroupRepository(PostgresRepositoryBase):
+    row = ScimGroupRow
+    document = ScimGroupDocument
+
+    async def save(self, document: ScimGroupDocument) -> ScimGroupDocument:
+        return await self.upsert(document)
+
+    async def get(self, group_id) -> Optional[ScimGroupDocument]:
+        return await self.one(ScimGroupRow.id == str(group_id))
+
+    async def find(
+        self, directory_id: PydanticObjectId, polis_group_id: str
+    ) -> Optional[ScimGroupDocument]:
+        return await self.one(
+            ScimGroupRow.directory_id == _oid(directory_id),
+            ScimGroupRow.polis_group_id == polis_group_id,
+        )
+
+    async def list_by_directory(
+        self, directory_id: PydanticObjectId
+    ) -> List[ScimGroupDocument]:
+        return await self.many(ScimGroupRow.directory_id == _oid(directory_id))
+
+    async def delete(self, group_id: PydanticObjectId) -> int:
+        return await self.delete_by_id(group_id)
+
+    async def delete_by_directory(self, directory_id: PydanticObjectId) -> int:
+        return await self.delete_where(ScimGroupRow.directory_id == _oid(directory_id))
+
+
+class PostgresScimGroupMemberRepository(PostgresRepositoryBase):
+    row = ScimGroupMemberRow
+    document = ScimGroupMemberDocument
+
+    async def add(self, document: ScimGroupMemberDocument) -> ScimGroupMemberDocument:
+        return await self.upsert(document)
+
+    async def remove(
+        self, group_id: PydanticObjectId, scim_user_id: PydanticObjectId
+    ) -> int:
+        return await self.delete_where(
+            ScimGroupMemberRow.group_id == _oid(group_id),
+            ScimGroupMemberRow.scim_user_id == _oid(scim_user_id),
+        )
+
+    async def list_by_user(
+        self, scim_user_id: PydanticObjectId
+    ) -> List[ScimGroupMemberDocument]:
+        return await self.many(ScimGroupMemberRow.scim_user_id == _oid(scim_user_id))
+
+    async def list_by_group(
+        self, group_id: PydanticObjectId
+    ) -> List[ScimGroupMemberDocument]:
+        return await self.many(ScimGroupMemberRow.group_id == _oid(group_id))
+
+    async def list_by_directory(
+        self, directory_id: PydanticObjectId
+    ) -> List[ScimGroupMemberDocument]:
+        return await self.many(ScimGroupMemberRow.directory_id == _oid(directory_id))
+
+    async def delete_by_group(self, group_id: PydanticObjectId) -> int:
+        return await self.delete_where(ScimGroupMemberRow.group_id == _oid(group_id))
+
+    async def delete_by_user(self, scim_user_id: PydanticObjectId) -> int:
+        return await self.delete_where(
+            ScimGroupMemberRow.scim_user_id == _oid(scim_user_id)
+        )
+
+    async def delete_by_directory(self, directory_id: PydanticObjectId) -> int:
+        return await self.delete_where(
+            ScimGroupMemberRow.directory_id == _oid(directory_id)
+        )
+
+
+class PostgresScimEventRepository(PostgresRepositoryBase):
+    row = ScimEventRow
+    document = ScimEventDocument
+
+    async def claim(
+        self, document: ScimEventDocument, now: datetime.datetime
+    ) -> ScimEventDocument:
+        # no TTL index here: expired records go on each claim
+        await self.delete_where(ScimEventRow.expires_at <= now)
+        try:
+            return await self.upsert(document)
+        except IntegrityError:
+            raise ScimEventSeen(document.event_key)
+
+    async def release(self, event_key: str) -> int:
+        return await self.delete_where(ScimEventRow.event_key == event_key)
 
 
 class PostgresSessionRepository(PostgresRepositoryBase):

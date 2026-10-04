@@ -112,6 +112,54 @@ class SsoUsedStateRow(Base, BaseRow):
     __table_args__ = (UniqueConstraint("nonce_hash"), Index(None, "expires_at"))
 
 
+class ScimDirectoryRow(Base, BaseRow):
+    __tablename__ = "scim_directories"
+    workspace_id = S.text("workspace_id")
+    polis_directory_id = S.text("polis_directory_id")
+    __table_args__ = (
+        UniqueConstraint("workspace_id"),
+        UniqueConstraint("polis_directory_id"),
+    )
+
+
+class ScimUserRow(Base, BaseRow):
+    __tablename__ = "scim_users"
+    directory_id = S.text("directory_id")
+    workspace_id = S.text("workspace_id")
+    polis_user_id = S.text("polis_user_id")
+    email = S.text("email")
+    __table_args__ = (
+        UniqueConstraint("directory_id", "polis_user_id"),
+        Index(None, "workspace_id", "email"),
+    )
+
+
+class ScimGroupRow(Base, BaseRow):
+    __tablename__ = "scim_groups"
+    directory_id = S.text("directory_id")
+    polis_group_id = S.text("polis_group_id")
+    __table_args__ = (UniqueConstraint("directory_id", "polis_group_id"),)
+
+
+class ScimGroupMemberRow(Base, BaseRow):
+    __tablename__ = "scim_group_members"
+    directory_id = S.text("directory_id")
+    group_id = S.text("group_id")
+    scim_user_id = S.text("scim_user_id")
+    __table_args__ = (
+        Index(None, "group_id"),
+        Index(None, "scim_user_id"),
+        Index(None, "directory_id"),
+    )
+
+
+class ScimEventRow(Base, BaseRow):
+    __tablename__ = "scim_events"
+    event_key = S.text("event_key")
+    expires_at = S.ts("expires_at")
+    __table_args__ = (UniqueConstraint("event_key"), Index(None, "expires_at"))
+
+
 class BlacklistedRefreshTokenRow(Base, BaseRow):
     """No longer written or read: session revocation (``sessions``) replaced
     the refresh-token blacklist. Kept until a later release drops the table

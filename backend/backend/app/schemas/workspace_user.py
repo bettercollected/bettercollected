@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 
@@ -31,6 +31,11 @@ class WorkspaceUserDocument(MongoDocument):
     user_id: PydanticObjectId
     roles: List[WorkspaceRoles] = []
     disabled: bool = False
+    # who created the membership when not an invitation: "sso" (a first
+    # single sign-on, just in time) or "scim" (the workspace's directory).
+    # A "scim" membership's role and status follow the directory while the
+    # workspace has one (docs/sso.md, "Directory sync"); None = by hand.
+    provisioned_by: Optional[str] = None
 
     class Settings:
         name = "workspace_users"
