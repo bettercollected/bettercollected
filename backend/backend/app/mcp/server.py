@@ -12,7 +12,7 @@ Tools deliberately reuse the same services/pipelines as the product —
 import datetime as dt
 import json
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
@@ -62,12 +62,14 @@ mcp = FastMCP(
 # What the key's creator must still hold, right now, for each scope: a key
 # never does more than the person who made it currently may (a removed,
 # disabled or demoted creator makes the key refuse).
-SCOPE_PERMISSIONS: Dict[str, Permission] = {
-    "forms:read": Permission.FORM_READ,
-    "forms:write": Permission.FORM_EDIT,
-    "responses:read": Permission.RESPONSE_READ,
-    "deletion_requests:read": Permission.PRIVACY_MANAGE,
-    "deletion_requests:write": Permission.PRIVACY_MANAGE,
+# A bulk read of answers through the API is an export, so responses:read
+# needs response.export as well as response.read (doc §4).
+SCOPE_PERMISSIONS: Dict[str, Tuple[Permission, ...]] = {
+    "forms:read": (Permission.FORM_READ,),
+    "forms:write": (Permission.FORM_EDIT,),
+    "responses:read": (Permission.RESPONSE_READ, Permission.RESPONSE_EXPORT),
+    "deletion_requests:read": (Permission.PRIVACY_MANAGE,),
+    "deletion_requests:write": (Permission.PRIVACY_MANAGE,),
 }
 
 
@@ -81,12 +83,14 @@ async def _key(scope: str) -> WorkspaceAPIKeyDocument:
         # Our HTTPException carries the message in `content`, which str() drops
         # — re-raise as ValueError so the MCP client sees why it was denied.
         raise ValueError(str(e.content)) from e
-    if not await _c().authorization_service().has_permission(
-        _acting_user(key), SCOPE_PERMISSIONS[scope], key.workspace_id
-    ):
+    held = await _c().authorization_service().effective_permissions(
+        _acting_user(key), key.workspace_id
+    )
+    missing = [p.value for p in SCOPE_PERMISSIONS[scope] if p not in held]
+    if missing:
         raise ValueError(
             "Forbidden: the person who created this API key no longer has "
-            f"'{SCOPE_PERMISSIONS[scope].value}' in this workspace."
+            f"{', '.join(repr(p) for p in missing)} in this workspace."
         )
     return key
 
