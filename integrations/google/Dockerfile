@@ -18,7 +18,7 @@ COPY ./common ./common
 COPY ./integrations/google ./integrations/google
 WORKDIR $PYSETUP_PATH
 
-RUN uv sync --no-dev --no-editable
+RUN uv sync --locked --no-dev --no-editable
 
 EXPOSE 8000/tcp
 
