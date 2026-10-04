@@ -4,6 +4,7 @@ import environments from '@app/configs/environments';
 import { AnswerDto, InternalAnswerMeta, StaffFeedback, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
+import { WorkspaceDomainDto } from '@app/models/dtos/workspace-domain-dto';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
@@ -49,7 +50,7 @@ export interface WorkspaceAISettings {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG'],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG'],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -542,6 +543,39 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['API_KEYS_TAG']
         }),
+        // Verified email domains (docs/verified-domains.md); owner/admins only.
+        getEmailDomains: builder.query<Array<WorkspaceDomainDto>, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/domains`,
+                method: 'GET'
+            }),
+            providesTags: ['EMAIL_DOMAINS_TAG']
+        }),
+        claimEmailDomain: builder.mutation<WorkspaceDomainDto, { workspace_id: string; domain: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/domains`,
+                method: 'POST',
+                body: { domain: request.domain },
+                credentials: 'include'
+            }),
+            invalidatesTags: ['EMAIL_DOMAINS_TAG']
+        }),
+        verifyEmailDomain: builder.mutation<WorkspaceDomainDto, { workspace_id: string; domain_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/domains/${request.domain_id}/verify`,
+                method: 'POST',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['EMAIL_DOMAINS_TAG']
+        }),
+        deleteEmailDomain: builder.mutation<void, { workspace_id: string; domain_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/domains/${request.domain_id}`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['EMAIL_DOMAINS_TAG']
+        }),
         patchWorkspaceThemes: builder.mutation<any, any>({
             // Replaces the workspace's saved custom form themes (full-list PATCH).
             query: (request) => ({
@@ -705,6 +739,10 @@ export const {
     useGetAPIKeysQuery,
     useCreateAPIKeyMutation,
     useRevokeAPIKeyMutation,
+    useGetEmailDomainsQuery,
+    useClaimEmailDomainMutation,
+    useVerifyEmailDomainMutation,
+    useDeleteEmailDomainMutation,
     useDuplicateFormMutation,
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,
