@@ -223,3 +223,40 @@ class TestSessionRefresh:
         with pytest.raises(HTTPException) as refused:
             await get_logged_user(_expired_session_request(), Response())
         assert refused.value.status_code == 503
+
+
+class TestDeleteUserFromAuth:
+    """A retried deletion job must finish when the account is already gone."""
+
+    class FakeSession:
+        def __init__(self, status):
+            self.status = status
+            self.calls = []
+
+        async def delete(self, url, headers=None, **kwargs):
+            self.calls.append({"url": url, "headers": headers})
+            return type("Reply", (), {"status": self.status})()
+
+    async def _delete(self, status):
+        session = self.FakeSession(status)
+        with patch(
+            "backend.app.services.auth_service.AiohttpClient.get_aiohttp_client",
+            return_value=session,
+        ):
+            await container.auth_service().delete_user_form_auth(testUser)
+        return session
+
+    async def test_deleted(self, monkeypatch):
+        monkeypatch.setattr(settings.auth_settings, "INTERNAL_NOTIFY_KEY", "k")
+        session = await self._delete(200)
+        (call,) = session.calls
+        assert call["url"].endswith(f"/users/{testUser.id}")
+        assert call["headers"]["X-Internal-Key"] == "k"
+
+    async def test_already_gone_counts_as_done(self):
+        await self._delete(404)
+
+    async def test_other_failures_raise(self):
+        for status in (403, 500, 503):
+            with pytest.raises(HTTPException):
+                await self._delete(status)

@@ -64,3 +64,22 @@ class TestInvitationMailContent:
         message = mail_service.return_value.send_async_mail.await_args.args[0]
         assert message.template_body["inviter_name"] == "owner@example.com"
         assert message.template_body["image_alternative"] == "O"
+
+
+class TestDeleteUser:
+    """A retried deletion job sees 404 for an account that is already gone."""
+
+    def test_deletes_an_existing_user_then_404s(self, app_runner):
+        from auth.app.container import container
+
+        user = app_runner.portal.call(
+            container.user_repository().save_user, "to-delete@example.com"
+        )
+        first = app_runner.delete(f"users/{user.id}")
+        assert first.status_code == 200, first.text
+        again = app_runner.delete(f"users/{user.id}")
+        assert again.status_code == 404, again.text
+
+    def test_a_missing_user_is_404_not_a_crash(self, app_runner):
+        response = app_runner.delete("users/5f00000000000000000000ff")
+        assert response.status_code == 404, response.text
