@@ -182,6 +182,15 @@ services:
       # PDF form import: documents are only opened by the isolated document-sandbox
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
+      # Single sign-on (docs/sso.md): off unless SSO_ENABLED=true in the root
+      # .env, which also turns on the `polis` service in deploy.sh. All SSO_*
+      # values come from the root .env; deploy.sh generates SSO_POLIS_API_KEY.
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_POLIS_URL: ${SSO_POLIS_URL:-}
+      SSO_POLIS_INTERNAL_URL: http://polis:5225
+      SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
+      SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
+      SSO_SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:-}
     env_file:
       - .env.deployment
     volumes:
@@ -278,6 +287,12 @@ services:
       # every route but /ready and POST /stripe/webhooks requires it
       AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
+      # Single sign-on (docs/sso.md): auth runs the OAuth code exchange with
+      # Polis; it never needs the Polis admin API key.
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_POLIS_URL: ${SSO_POLIS_URL:-}
+      SSO_POLIS_INTERNAL_URL: http://polis:5225
+      SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -308,6 +323,44 @@ services:
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
     env_file:
       - .env.deployment
+    depends_on:
+      app-postgres:
+        condition: service_healthy
+
+  # Enterprise single sign-on (docs/sso.md): Ory Polis (formerly BoxyHQ SAML
+  # Jackson) turns customers' SAML/OIDC identity providers into one OAuth code
+  # flow. Off by default: only started with the `sso` profile, which deploy.sh
+  # adds when SSO_ENABLED=true in the root .env. deploy.sh also generates its
+  # secrets and creates its own database (`polis`) and role (`bc_polis`) in
+  # app-postgres. Bound to localhost: publish only /api/oauth/* and
+  # /.well-known/* through your TLS reverse proxy at SSO_POLIS_URL, never the
+  # admin API (/api/v1/*) or the admin UI.
+  polis:
+    image: ${POLIS_IMAGE:-boxyhq/jackson:latest}
+    profiles: ["sso"]
+    restart: unless-stopped
+    environment:
+      EXTERNAL_URL: ${SSO_POLIS_URL:-}
+      NEXTAUTH_URL: ${SSO_POLIS_URL:-}
+      DB_ENGINE: sql
+      DB_TYPE: postgres
+      DB_URL: postgres://bc_polis:${BC_POLIS_PASSWORD:-}@app-postgres:5432/polis
+      # encrypts Polis's stored connections (IdP metadata, OIDC client secrets)
+      DB_ENCRYPTION_KEY: ${POLIS_DB_ENCRYPTION_KEY:-}
+      # the backend's SSO_POLIS_API_KEY
+      JACKSON_API_KEYS: ${SSO_POLIS_API_KEY:-}
+      # never the default "dummy": shared by every tenant without PKCE
+      CLIENT_SECRET_VERIFIER: ${POLIS_CLIENT_SECRET_VERIFIER:-}
+      NEXTAUTH_SECRET: ${POLIS_NEXTAUTH_SECRET:-}
+      # SP-initiated sign-in only; IdP-initiated logins are refused
+      IDP_ENABLED: "false"
+      # redirect_uri must equal the connection's (scheme, host, port and path)
+      OPENID_REDIRECT_EXACT_MATCH: "true"
+      SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:-}
+      BOXYHQ_NO_ANALYTICS: "1"
+      DO_NOT_TRACK: "1"
+    ports:
+      - '127.0.0.1:5225:5225'
     depends_on:
       app-postgres:
         condition: service_healthy
