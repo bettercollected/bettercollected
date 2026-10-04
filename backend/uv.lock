@@ -414,7 +414,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "idna", specifier = ">=3.20" },
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "mcp", specifier = ">=1.28.1" },
+    { name = "mcp", specifier = ">=1.28.1,<2" },
     { name = "openai", specifier = ">=3.22.1" },
     { name = "pdfplumber", specifier = ">=0.11" },
     { name = "pillow", specifier = ">=11" },
