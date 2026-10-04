@@ -1,5 +1,5 @@
-"""The permission catalogue, today's role mapping and the authorization
-service's rules (docs/enterprise-access-model.md, step a)."""
+"""The permission catalogue, the workspace roles and the authorization
+service's rules (docs/enterprise-access-model.md, steps a and b)."""
 
 import pytest
 from beanie import PydanticObjectId
@@ -13,7 +13,6 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.authorization_service import (
     ALL_PERMISSIONS,
     EDITOR_PERMISSIONS,
-    MEMBER_PERMISSIONS,
     permissions_for,
 )
 from tests.app.controllers.data import invited_user, testUser, testUser1
@@ -56,9 +55,37 @@ def test_an_admin_holds_everything_but_billing():
     )
 
 
-def test_a_collaborator_is_the_editor_plus_todays_privacy_work():
+# The doc's §2 table, written out independently of the service's constants.
+ROLE_TABLE = {
+    "EDITOR": {
+        P.FORM_CREATE,
+        P.FORM_READ,
+        P.FORM_EDIT,
+        P.FORM_DELETE,
+        P.FORM_SHARE,
+        P.RESPONSE_READ,
+        P.RESPONSE_ANNOTATE,
+        P.RESPONSE_EXPORT,
+        P.RESPONSE_DELETE,
+        P.ANALYTICS_READ,
+    },
+    "REVIEWER": {P.FORM_READ, P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.ANALYTICS_READ},
+    "VIEWER": {P.FORM_READ, P.RESPONSE_READ, P.ANALYTICS_READ},
+    "PRIVACY_OFFICER": {P.FORM_READ, P.PRIVACY_MANAGE, P.ANALYTICS_READ, P.AUDIT_READ},
+}
+
+
+@pytest.mark.parametrize("role", sorted(ROLE_TABLE))
+def test_each_role_grants_exactly_its_documented_set(role):
+    assert permissions_for([role], is_owner=False) == ROLE_TABLE[role]
+    assert permissions_for([WorkspaceRoles(role)], is_owner=False) == ROLE_TABLE[role]
+
+
+def test_a_collaborator_is_an_editor_without_privacy_manage():
+    """COLLABORATOR is read as EDITOR; since step b it no longer carries
+    privacy.manage."""
     granted = permissions_for([WorkspaceRoles.COLLABORATOR], is_owner=False)
-    assert granted == EDITOR_PERMISSIONS | {P.PRIVACY_MANAGE}
+    assert granted == EDITOR_PERMISSIONS == ROLE_TABLE["EDITOR"]
     for workspace_level in (
         P.WORKSPACE_MANAGE,
         P.WORKSPACE_BILLING,
@@ -66,14 +93,61 @@ def test_a_collaborator_is_the_editor_plus_todays_privacy_work():
         P.SECURITY_MANAGE,
         P.AI_MANAGE,
         P.AUDIT_READ,
+        P.PRIVACY_MANAGE,
     ):
         assert workspace_level not in granted
 
 
-@pytest.mark.parametrize("roles", [[], ["FORM_CREATOR"], None])
-def test_any_active_membership_is_a_member(roles):
-    """Today every active membership has member access, whatever its roles."""
-    assert permissions_for(roles, is_owner=False) == MEMBER_PERMISSIONS
+def test_the_privacy_officer_never_reads_answers():
+    granted = permissions_for([WorkspaceRoles.PRIVACY_OFFICER], is_owner=False)
+    for answers in (P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT):
+        assert answers not in granted
+
+
+@pytest.mark.parametrize("roles", [[], None])
+def test_a_legacy_membership_without_roles_is_an_editor(roles):
+    """``roles: []`` is the schema default, from before roles existed; such
+    memberships always had full content access."""
+    assert permissions_for(roles, is_owner=False) == EDITOR_PERMISSIONS
+
+
+@pytest.mark.parametrize("roles", [["FORM_CREATOR"], ["OWNER"], ["SOMETHING_NEW"]])
+def test_an_unknown_role_grants_nothing(roles):
+    assert permissions_for(roles, is_owner=False) == frozenset()
+
+
+def test_roles_add_up_and_unknown_ones_add_nothing():
+    assert permissions_for(["VIEWER", "FORM_CREATOR"], is_owner=False) == (
+        ROLE_TABLE["VIEWER"]
+    )
+    assert permissions_for(["VIEWER", "REVIEWER"], is_owner=False) == (
+        ROLE_TABLE["REVIEWER"]
+    )
+
+
+@pytest.mark.parametrize("other", ["ADMIN", "EDITOR", "REVIEWER", "VIEWER", "COLLABORATOR"])
+def test_a_privacy_officer_never_reads_answers_whatever_else_they_hold(other):
+    granted = permissions_for(["PRIVACY_OFFICER", other], is_owner=False)
+    assert granted.isdisjoint(
+        {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT}
+    )
+    assert P.PRIVACY_MANAGE in granted
+
+
+async def test_a_membership_with_an_unknown_role_loads_and_holds_nothing(workspace):
+    """A role from a newer release (or legacy data) doesn't break loading."""
+    member = User(id=str(PydanticObjectId()), sub="future@example.com")
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace.id, user_id=member.id, roles=["SOMETHING_NEW"]
+        )
+    )
+    stored = await container.workspace_user_repo().find_workspace_user(
+        workspace.id, PydanticObjectId(member.id)
+    )
+    assert stored.roles == ["SOMETHING_NEW"]
+    authorization = container.authorization_service()
+    assert not await authorization.effective_permissions(member, workspace.id)
 
 
 async def test_no_user_or_bad_ids_hold_nothing(workspace):

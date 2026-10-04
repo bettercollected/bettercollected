@@ -9,7 +9,7 @@ import globalConstants from '@app/constants/global';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery, useLazyGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery, useLazyExportFormSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import EmptyResponseIcon from '@Components/icons/expty-response-icon';
 import { DownloadIcon } from 'lucide-react';
@@ -18,6 +18,8 @@ import ResponsesTable from './responses-table';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
 import { buildResponsesExport, exportFileName, tableToCsv } from '@app/utils/response-export';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 function downloadCsv(csv: string, fileName: string) {
     // BOM so spreadsheet apps read UTF-8 names correctly.
@@ -51,7 +53,9 @@ export default function FormResponsesTable({ props }: any) {
     }, [page]);
 
     const { data, isLoading } = useGetFormsSubmissionsQuery(query);
-    const [trigger, { isLoading: csvLoading }] = useLazyGetFormAllSubmissionsQuery();
+    const { can } = useWorkspacePermissions();
+    const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
+    const [trigger, { isLoading: csvLoading }] = useLazyExportFormSubmissionsQuery();
 
     const handleSearch = (event: any) => {
         if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
@@ -63,6 +67,8 @@ export default function FormResponsesTable({ props }: any) {
 
     const handleClickExportCSV = () => {
         trigger({ formId: form.formId, workspaceId: workspace?.id }).then((result) => {
+            // never a header-only file for a refused export
+            if (result.isError) return;
             // One row per submission; repeating groups become columns per item,
             // or (large groups) a CSV of their own with one row per item.
             const { main, groupTables } = buildResponsesExport(form, (result.data ?? []) as Array<StandardFormResponseDto>);
@@ -90,7 +96,7 @@ export default function FormResponsesTable({ props }: any) {
                     ) : (
                         <></>
                     )}
-                    {isSubmission && (
+                    {isSubmission && canExport && (
                         <Button data-umami-event="Export CSV Button" data-umami-event-email={auth.email} isLoading={csvLoading} variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleClickExportCSV} className={''}>
                             Export CSV
                         </Button>

@@ -32,6 +32,12 @@ updates:
       python-minor-and-patch:
         update-types: ["minor", "patch"]
     labels: ["dependencies", "python"]
+    ignore:
+      # mcp 2.x renames FastMCP to MCPServer and changes the server APIs
+      # (backend/backend/app/mcp/server.py). Backend pins mcp<2; the v2
+      # migration is planned separately. Minor and patch updates still flow.
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"

@@ -12,6 +12,10 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { inviteCollaborator } from '@app/constants/locales/invite-collaborators';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import RoleSelect from '@app/components/member/role-select';
+import { memberRoles } from '@app/constants/locales/member-roles';
+import { members } from '@app/constants/locales/members';
+import { WorkspaceRole, roleLocale } from '@app/models/enums/workspace-role';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -23,6 +27,7 @@ export default function InviteMemberModal() {
 
     const { t } = useTranslation();
     const [invitationMail, setInvitationMail] = useState('');
+    const [role, setRole] = useState<WorkspaceRole>(WorkspaceRole.EDITOR);
     const workspaceMember = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
 
     const { closeModal } = useModal();
@@ -44,7 +49,7 @@ export default function InviteMemberModal() {
             const response: any = await trigger({
                 workspaceId: workspace.id,
                 body: {
-                    role: 'COLLABORATOR',
+                    role,
                     email: invitationMail
                 }
             });
@@ -53,7 +58,9 @@ export default function InviteMemberModal() {
                 setInvitationMail('');
                 toast({ description: t(toastMessage.invitationSent).toString() });
             } else if (response.error) {
-                toast({ description: t(toastMessage.failedToSentEmail).toString(), variant: 'destructive' });
+                // e.g. 409: already a member, change their role instead
+                const detail = response.error?.data;
+                toast({ description: typeof detail === 'string' ? detail : t(toastMessage.failedToSentEmail).toString(), variant: 'destructive' });
             }
         }
 
@@ -77,6 +84,10 @@ export default function InviteMemberModal() {
                         setInvitationMail(event.target.value);
                     }}
                 />
+                <div className="text-black-700 mb-2 mt-4 text-sm font-medium">{t(members.role)}</div>
+                <RoleSelect value={role} onChange={setRole} disabled={isLoading} ariaLabel={t(members.role)} className="h-10 w-full bg-white" />
+                <div className="text-black-600 mt-2 text-xs leading-relaxed">{t(roleLocale(role).description)}</div>
+                <div className="text-black-500 mt-1 text-xs leading-relaxed">{t(memberRoles.inviteDescription)}</div>
                 <div className="mt-4 flex w-full flex-col justify-end">
                     <Button size="medium" disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}

@@ -2,9 +2,12 @@
 
 import cn from 'classnames';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import React from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 import { groupConstant } from '@app/constants/locales/group';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -19,19 +22,31 @@ interface RespondersGroupsLayoutClientProps {
 export default function RespondersGroupsLayoutClient({ children, workspaceName }: RespondersGroupsLayoutClientProps) {
     const { t } = useTranslation();
     const pathname = usePathname();
+    const router = useRouter();
+    const { can, isLoading } = useWorkspacePermissions();
+    // Responders (data subjects) are the privacy programme; responder groups
+    // belong to whoever edits forms.
+    const canSeeResponders = can(WorkspacePermission.PRIVACY_MANAGE);
+    const canSeeGroups = can(WorkspacePermission.FORM_EDIT);
 
     const tabs = [
-        {
+        canSeeResponders && {
             icon: <ResponderIcon className="w-5 h-5" />,
             title: t(workspaceConstant.allResponders),
             path: 'all-responders'
         },
-        {
+        canSeeGroups && {
             icon: <UserMore className="w-5 h-5" />,
             title: t(groupConstant.groups),
             path: 'groups'
         }
-    ];
+    ].filter(Boolean) as Array<{ icon: React.ReactNode; title: string; path: string }>;
+
+    useEffect(() => {
+        if (!isLoading && !canSeeResponders && canSeeGroups && pathname?.endsWith('all-responders')) {
+            router.replace(`/${workspaceName}/dashboard/responders-groups/groups`);
+        }
+    }, [isLoading, canSeeResponders, canSeeGroups, pathname, router, workspaceName]);
 
     return (
         <div className="flex flex-col">

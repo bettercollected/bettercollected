@@ -292,6 +292,13 @@ export const workspacesApi = createApi({
                 method: 'GET'
             })
         }),
+        // The CSV download: the same responses behind response.export.
+        exportFormSubmissions: builder.query<Array<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/all-submissions/export`,
+                method: 'GET'
+            })
+        }),
         getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspaceId}/submissions`,
@@ -827,6 +834,7 @@ export const {
     useRequestWorkspaceSubmissionDeletionByUUIDMutation,
     useGetFormAllSubmissionsQuery,
     useLazyGetFormAllSubmissionsQuery,
+    useLazyExportFormSubmissionsQuery,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,
     useUpdateInternalAnswersMutation,

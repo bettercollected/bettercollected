@@ -26,6 +26,8 @@ import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import AddMember from '@Components/icons/add-member';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -41,7 +43,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const { toast } = useToast();
 
     const [open, setOpen] = useState(false);
-    const { data } = useGetAllRespondersGroupQuery(workspace.id);
+    const { can } = useWorkspacePermissions();
+    const canEdit = can(WorkspacePermission.FORM_EDIT);
+    const canCreate = can(WorkspacePermission.FORM_CREATE);
+    const canDelete = can(WorkspacePermission.FORM_DELETE);
+    const { data } = useGetAllRespondersGroupQuery(workspace.id, { skip: !canEdit });
 
     const [_, copyToClipboard] = useCopyToClipboard();
 
@@ -249,7 +255,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 onInteractOutside={() => setOpen(false)}
             >
                 <ul className="list-none m-0 p-0 flex flex-col">
-                    {form?.isPublished && isFormOpen && (
+                    {canEdit && form?.isPublished && isFormOpen && (
                         <div className="w-full">
                             {!!form?.settings?.private || !!form?.settings?.hidden ? (
                                 <Tooltip label={t(toolTipConstant.visibility)} side="top">
@@ -261,12 +267,12 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         </div>
                     )}
                     {menuItemOpen}
-                    {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && !isMobile && menuItemEdit}
+                    {canEdit && form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && !isMobile && menuItemEdit}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
-                    {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
+                    {canEdit && form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemGenerateQR}
-                    {form?.settings?.provider === 'self' && menuItemDuplicate}
-                    {menuItemDelete}
+                    {canCreate && form?.settings?.provider === 'self' && menuItemDuplicate}
+                    {canDelete && menuItemDelete}
                 </ul>
             </PopoverContent>
         </Popover>

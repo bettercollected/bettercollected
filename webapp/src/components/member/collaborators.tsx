@@ -8,7 +8,10 @@ import { Plus } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
 import { inviteCollaborator } from '@app/constants/locales/invite-collaborators';
+import { memberRoles } from '@app/constants/locales/member-roles';
 import { members } from '@app/constants/locales/members';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 
@@ -18,21 +21,26 @@ import Loader from '../ui/loader';
 
 export default function Collaborators() {
     const workspace = useAppSelector((state) => state.workspace);
-    const { data, isLoading } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
+    const { can, isLoading: permissionsLoading } = useWorkspacePermissions();
+    const canManageMembers = can(WorkspacePermission.MEMBERS_MANAGE);
+    const { data, isLoading } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id }, { skip: !workspace?.id || !canManageMembers });
     const { t } = useTranslation();
     const { openModal } = useModal();
-    if (isLoading) {
+    if (isLoading || permissionsLoading) {
         return (
             <div className=" w-full py-10 flex justify-center">
                 <Loader />
             </div>
         );
     }
+    if (!canManageMembers) {
+        return <p className="body4 py-10 text-black-700">{t(memberRoles.noAccess)}</p>;
+    }
     return (
         <div className="flex flex-col gap-4 ">
             <div className="flex justify-between flex-row">
                 <p className="body1 ">
-                    {t(members.collaborators.default)} ({data?.length})
+                    {t(members.collaborators.default)} ({data?.length ?? 0})
                 </p>
                 <Button
                     variant="ghost"

@@ -11,6 +11,8 @@ export interface INavbarItem {
     exactMatch?: boolean;
     /** Only rendered for users holding this workspace permission. */
     permission?: WorkspacePermission;
+    /** Only rendered for users holding at least one of these. */
+    anyPermission?: Array<WorkspacePermission>;
     /** Overrides URL-based matching — for items whose active state isn't a
      *  route (e.g. Site settings, which is a view on the dashboard root). */
     isActive?: boolean;

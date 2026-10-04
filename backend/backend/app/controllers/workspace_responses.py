@@ -10,6 +10,7 @@ from fastapi_camelcase import CamelModel
 from fastapi_pagination import Page
 
 from backend.app.container import container
+from backend.app.models.enum.permission import Permission
 from backend.app.controllers.platform_metrics_router import forwarded_access_token
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
 from backend.app.models.dtos.form_response_dto import (
@@ -95,12 +96,28 @@ class WorkspaceResponsesRouter(CustomRoutable):
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
+        """Every response of the form, for the flow view (response.read)."""
         responses = (
             await self._form_response_service.get_workspace_form_all_submissions(
                 form_id, workspace_id, user
             )
         )
         return responses
+
+    @get(
+        "/forms/{form_id}/all-submissions/export",
+        response_model=List[StandardFormResponseCamelModel],
+    )
+    async def export_workspace_form_submissions(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        """Every response of the form for the CSV download (response.export)."""
+        return await self._form_response_service.get_workspace_form_all_submissions(
+            form_id, workspace_id, user, permission=Permission.RESPONSE_EXPORT
+        )
 
     @patch(
         "/forms/{form_id}/submissions/{submission_id}/internal-answers",

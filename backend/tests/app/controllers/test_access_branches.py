@@ -168,14 +168,15 @@ async def test_dashboard_access_is_for_members(client: AsyncClient, workspace):
 async def test_staff_may_file_a_deletion_request_for_any_response(
     client: AsyncClient, workspace, form
 ):
-    """The staff branch of request_for_response_deletion: privacy.manage."""
+    """The staff branch of request_for_response_deletion: privacy.manage
+    (Owner, Admin, Privacy officer; an Editor no longer since step b)."""
     response = await _submit(workspace, form, testUser2)
     url = f"/api/v1/workspaces/{workspace.id}/submissions/{response.response_id}"
 
-    for user in (testUser1, disabled_admin):
+    for user in (testUser1, disabled_admin, invited_user):
         refused = await client.delete(url, cookies=_cookies(user))
         assert refused.status_code == 403, user.sub
-    filed = await client.delete(url, cookies=_cookies(invited_user))
+    filed = await client.delete(url, cookies=_cookies(admin_user))
     assert filed.status_code == 200, filed.text
     assert await container.form_response_repo().find_deletion_request_by_response_id(
         response.response_id

@@ -185,12 +185,11 @@ class WorkspaceService:
         workspace_patch: WorkspaceRequestDtoCamel,
         user: User,
     ):
-        # Name, handle, images, custom domain and policies. The owner only, as
-        # before (#765): the access model gives this to workspace.manage
-        # (Owner and Admin), which is left to the roles step. Until then it
-        # needs the one permission only the owner holds.
+        # Name, handle, images, custom domain and policies: workspace.manage
+        # (Owner and Admin, docs/enterprise-access-model.md §1). Owner-only
+        # before the roles step.
         await self._authorization.authorize(
-            user, Permission.WORKSPACE_BILLING, workspace_id
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id

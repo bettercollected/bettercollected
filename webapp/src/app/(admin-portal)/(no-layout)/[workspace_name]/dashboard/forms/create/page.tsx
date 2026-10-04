@@ -14,6 +14,8 @@ import { useModal } from '@app/components/modal-views/context';
 import ImportPdfDialog from '@app/components/pdf-import/import-pdf-dialog';
 import { defaultForm } from '@app/constants/form';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { selectAuth } from '@app/store/auth/slice';
@@ -44,17 +46,26 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const { openDialogModal } = useDialogModal();
     const isMobile = useIsMobile();
     const authState = useAppSelector(selectAuth);
+    const { can, isLoading: permissionsLoading } = useWorkspacePermissions();
+    const canCreate = can(WorkspacePermission.FORM_CREATE);
+
+    // Reviewers, Viewers and Privacy officers don't create forms.
+    useEffect(() => {
+        if (!permissionsLoading && workspace?.id && !canCreate) {
+            router.replace(`/${workspace?.workspaceName}/dashboard/forms`);
+        }
+    }, [permissionsLoading, canCreate, workspace?.id, workspace?.workspaceName, router]);
 
     const showModal = searchParams.modal;
     const [pdfImportOpen, setPdfImportOpen] = React.useState(false);
 
     useEffect(() => {
-        if (showModal === 'true') {
+        if (showModal === 'true' && canCreate) {
             openModal('IMPORT_FORMS', { nonClosable: true });
         }
-    }, [showModal]);
+    }, [showModal, canCreate]);
 
-    const { data: templates } = useGetTemplatesQuery({ v2: true });
+    const { data: templates } = useGetTemplatesQuery({ v2: true }, { skip: !canCreate });
 
     const [createFormFrmTemplate] = useCreateFormFromTemplateMutation();
 
