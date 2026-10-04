@@ -189,6 +189,15 @@ class Workspace(WorkspaceRequestDto):
     ai_enabled_at: Optional[dt.datetime] = None
     ai_disabled_by: Optional[str] = None
     ai_disabled_at: Optional[dt.datetime] = None
+    # Single sign-on (docs/sso.md). ``sso_required``: members of the
+    # workspace's verified domains must sign in with SSO (OTP and Google are
+    # refused; the owner keeps OTP as break-glass). ``sso_default_role``: the
+    # role a first SSO sign-in gets (None: the default, see
+    # services/sso/policy.py). Changed through /workspaces/{id}/sso/settings.
+    sso_required: Optional[bool] = False
+    sso_required_changed_by: Optional[str] = None
+    sso_required_changed_at: Optional[dt.datetime] = None
+    sso_default_role: Optional[str] = None
 
 
 class WorkspaceFormSettings(BaseModel):

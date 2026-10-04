@@ -85,8 +85,14 @@ class WorkspaceService:
         authorization_service: AuthorizationService,
         custom_domain_service: Optional[CustomDomainService] = None,
         workspace_domain_service: Optional[WorkspaceDomainService] = None,
+        sso_policy=None,
+        sso_release=None,
     ):
         self._authorization = authorization_service
+        # single sign-on: refuses email codes for SSO-required domains, and
+        # removes a deleted workspace's connections (docs/sso.md)
+        self._sso_policy = sso_policy
+        self._sso_release = sso_release
         self.http_client = http_client
         self.workspace_domain_service = workspace_domain_service
         self.custom_domain_service = custom_domain_service
@@ -417,6 +423,8 @@ class WorkspaceService:
         self, workspace_id: PydanticObjectId, receiver_email: EmailStr
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
+        if self._sso_policy is not None:
+            await self._sso_policy.check_code_sign_in(receiver_email)
         await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/send",
             params={
@@ -684,6 +692,8 @@ class WorkspaceService:
         if self.workspace_domain_service is not None:
             # a deleted workspace's verified domains are released
             await self.workspace_domain_service.release_workspace_domains(workspace_ids)
+        if self._sso_release is not None:
+            await self._sso_release(workspace_ids)
 
         for workspace in workspaces:
             await remove_custom_domain_origin(

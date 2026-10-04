@@ -29,8 +29,14 @@ from backend.app.services.session_service import (
     RevokeReason,
     SessionService,
 )
+from backend.app.services.sso.login_service import (
+    SsoLoginService,
+    SsoRefused,
+    SsoSignIn,
+)
 from backend.app.services.user_service import (
     get_logged_user,
+    get_user_if_logged_in,
     get_user_to_delete,
 )
 from backend.config import settings
@@ -56,6 +62,7 @@ class AuthRoutes(Routable):
         auth_service=container.auth_service(),
         user_feedback_service=container.user_feedback_service(),
         session_service=container.session_service(),
+        sso_login_service=container.sso_login_service(),
         *args,
         **kwargs
     ):
@@ -63,6 +70,7 @@ class AuthRoutes(Routable):
         self.auth_service: AuthService = auth_service
         self.session_service: SessionService = session_service
         self.user_feedback_service: UserFeedbackService = user_feedback_service
+        self.sso_login_service: SsoLoginService = sso_login_service
 
     @get(
         "/status",
@@ -154,6 +162,45 @@ class AuthRoutes(Routable):
             user.id, RevokeReason.LOGOUT_EVERYWHERE, except_sid=user.sid
         )
         return {"revoked": revoked}
+
+    @get("/sso/login")
+    async def _sso_login(self, request: Request, email: str = ""):
+        """Single sign-on (docs/sso.md): send the browser to the identity
+        provider of the workspace that verified the work email's domain, or
+        back to the login page with ``sso_error=<code>``."""
+        try:
+            url = await self.sso_login_service.login_url(
+                email[:320], request.headers.get("referer")
+            )
+        except SsoRefused as refused:
+            return RedirectResponse(refused.redirect)
+        return RedirectResponse(url)
+
+    @get("/sso/callback")
+    async def _sso_callback(
+        self,
+        request: Request,
+        response: Response,
+        code: Optional[str] = None,
+        state: Optional[str] = None,
+        error: Optional[str] = None,
+    ):
+        """Where Polis returns the browser (the connections' only redirect
+        URL). Signs in with a session like every other provider, or records
+        a connection test; refusals carry a fixed code only."""
+        signed_in = await get_user_if_logged_in(request, response)
+        try:
+            result = await self.sso_login_service.complete(
+                code, state, idp_error=bool(error), signed_in=signed_in
+            )
+        except SsoRefused as refused:
+            return RedirectResponse(refused.redirect)
+        redirect = RedirectResponse(result.redirect)
+        if isinstance(result, SsoSignIn):
+            await self.session_service.start(
+                result.user, redirect, request, method=result.user.auth_method
+            )
+        return redirect
 
     @get(
         "/{provider_name}/oauth",
