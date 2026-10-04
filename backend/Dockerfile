@@ -16,7 +16,7 @@ COPY ./common ./common
 
 WORKDIR /api/backend
 # Install dependencies using uv
-RUN /uv/bin/uv sync --no-dev
+RUN /uv/bin/uv sync --locked --no-dev
 
 # Socket directory for the isolated document sandbox (docker-compose.deployment.yml
 # "document-sandbox"): owned by the unprivileged user it runs as, so a fresh

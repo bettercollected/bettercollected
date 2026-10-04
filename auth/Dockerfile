@@ -16,7 +16,7 @@ COPY ./common ./common
 
 WORKDIR /api/auth
 # Install dependencies using uv
-RUN /uv/bin/uv sync --no-dev
+RUN /uv/bin/uv sync --locked --no-dev
 
 EXPOSE 8000/tcp
 
