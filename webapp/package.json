@@ -63,7 +63,7 @@
         "html-react-parser": "^6.1.8",
         "html2canvas": "^1.4.1",
         "i18next": "^26.4.2",
-        "iframe-resizer-react": "^1.1.0",
+        "iframe-resizer-react": "^5.1.5",
         "immer": "^11.1.18",
         "jotai": "^3.0.0",
         "libphonenumber-js": "^1.13.14",
