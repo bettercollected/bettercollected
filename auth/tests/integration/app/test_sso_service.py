@@ -418,3 +418,68 @@ def test_account_route_creates_the_account(app_runner, monkeypatch):
     body = reply.json()
     assert body["sub"] == "route@example.com"
     assert body["email_verified"] is True and body["auth_method"] == "sso"
+
+
+# -- directory sync (SCIM) ----------------------------------------------------
+def test_directory_account_looks_up_without_creating():
+    users = FakeUsers("Bob@Example.com")
+    svc = service(users)
+
+    found = asyncio.run(svc.directory_account("bob@example.com", create=False))
+    missing = asyncio.run(svc.directory_account("new@example.com", create=False))
+
+    assert found["user"].id == users.users[0].id and found["conflict"] is False
+    assert missing == {"user": None, "conflict": False}
+    assert users.saved == []
+
+
+def test_directory_account_creates_a_verified_account_without_admin(monkeypatch):
+    monkeypatch.setattr(settings, "PLATFORM_ADMIN_EMAILS", "root@example.com")
+    users = FakeUsers()
+    svc = service(users)
+    reply = asyncio.run(
+        svc.directory_account(
+            "Root@Example.com", create=True, first_name="Ro", last_name="Ot"
+        )
+    )
+    user = reply["user"]
+    assert user.sub == "root@example.com" and user.email_verified is True
+    assert "ADMIN" not in user.roles and "FORM_CREATOR" in user.roles
+    assert users.saved[0][1]["first_name"] == "Ro"
+
+
+def test_directory_account_reports_a_case_conflict():
+    users = FakeUsers("Jane@Example.com", "JANE@example.com")
+    svc = service(users)
+    reply = asyncio.run(svc.directory_account("jane@example.com", create=True))
+    assert reply == {"user": None, "conflict": True}
+    assert users.saved == []
+
+
+@pytest.mark.parametrize("email", ["", "not-an-email", "a b@example.com"])
+def test_directory_account_refuses_bad_emails(email):
+    with pytest.raises(HTTPException) as excinfo:
+        asyncio.run(service().directory_account(email, create=True))
+    assert content(excinfo)["code"] == "invalid_email"
+
+
+def test_directory_account_needs_sso():
+    with pytest.raises(HTTPException) as excinfo:
+        asyncio.run(
+            service(ENABLED=False).directory_account("a@example.com", create=True)
+        )
+    assert content(excinfo)["code"] == "sso_disabled"
+
+
+def test_directory_account_route_needs_the_internal_key(app_runner, monkeypatch):
+    from tests.integration.conftest import without_internal_key
+
+    monkeypatch.setattr(settings, "sso_settings", make_settings())
+    body = {"email": "scim-route@example.com", "create": False}
+    reply = app_runner.post("/auth/sso/directory-account", json=body)
+    assert reply.status_code == 200, reply.text
+    assert reply.json() == {"user": None, "conflict": False}
+    reply = without_internal_key(app_runner).post(
+        "/auth/sso/directory-account", json=body
+    )
+    assert reply.status_code == 403
