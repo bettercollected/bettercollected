@@ -711,9 +711,22 @@ class WorkspaceFormService:
         response_id: str,
         user: User,
     ):
-        await self.authorization_service.authorize(
+        if not await self.authorization_service.has_permission(
             user, Permission.RESPONSE_DELETE, workspace_id
-        )
+        ):
+            # Completing a respondent's pending deletion request is the
+            # privacy programme (privacy.manage): a Privacy officer does it
+            # without ever reading the answers. Any other delete needs
+            # response.delete.
+            await self.authorization_service.authorize(
+                user, Permission.PRIVACY_MANAGE, workspace_id
+            )
+            if not await self.form_response_service.has_pending_deletion_request(
+                str(form_id), response_id
+            ):
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+                )
         if not await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)
         ):

@@ -21,6 +21,8 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 const responseTableStyles = {
     ...dataTableCustomStyles,
@@ -56,6 +58,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
 
     const user = useAppSelector(selectAuth);
     const workspace = useAppSelector(selectWorkspace);
+    const { can } = useWorkspacePermissions();
+    const canReadResponses = can(WorkspacePermission.RESPONSE_READ);
+    // Completing a pending deletion request is also privacy.manage (a
+    // Privacy officer deletes without reading the answers).
+    const canDeleteResponses = can(WorkspacePermission.RESPONSE_DELETE) || can(WorkspacePermission.PRIVACY_MANAGE);
     const googleFormHostUrl = 'https://docs.google.com/';
     const typeFormHostUrl = 'https://admin.typeform.com/';
     const handlePageChange = (e: any, page: number) => {
@@ -68,6 +75,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 workspace_id: workspace?.id ?? '',
                 submission_id: response.responseId
             }).then((result: any) => {
+                // refused (403) or gone: nothing to open
+                if (!result?.data?.response) return;
                 openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields, feedback: result.data.feedback });
             });
         }
@@ -130,8 +139,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         if (status.toLowerCase() !== 'pending' || !isSelf) return <></>;
 
         if (requestForDeletion && response.provider === 'self') {
+            // A Privacy officer completes the request without seeing its
+            // answers (no response.read).
             return (
                 <div className="flex items-center gap-1">
+                    {canReadResponses && (
                     <Button
                         variant="ghost"
                         className="!px-2"
@@ -140,15 +152,19 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                                 workspace_id: workspace?.id ?? '',
                                 submission_id: response.responseId
                             }).then((result: any) => {
+                                if (!result?.data?.response) return;
                                 openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields, feedback: result.data.feedback });
                             });
                         }}
                     >
                         View
                     </Button>
+                    )}
+                    {canDeleteResponses && (
                     <Button variant="dangerGhost" className="!px-2" onClick={() => openConfirmModal('DELETE_RESPONSE', { workspace, formId: response.formId, responseId: response.responseId })}>
                         Delete response
                     </Button>
+                    )}
                 </div>
             );
         }

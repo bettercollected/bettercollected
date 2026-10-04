@@ -110,7 +110,7 @@ export default function RespondentFeedbackPanel({ workspaceId, formId, responseI
                     </div>
                 </div>
             )}
-            {enabled && !canPost && <span className="text-[11px] text-black-500">Only workspace admins can send updates.</span>}
+            {enabled && !canPost && <span className="text-[11px] text-black-500">Your role can read updates but not send them.</span>}
         </section>
     );
 }

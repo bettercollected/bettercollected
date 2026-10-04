@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 
@@ -34,6 +34,16 @@ class WorkspaceUserService:
         return await self.workspace_user_repository.get_workspace_users(
             workspace_id=workspace_id
         )
+
+    async def find_workspace_user(
+        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+    ) -> Optional[WorkspaceUserDocument]:
+        return await self.workspace_user_repository.find_workspace_user(
+            PydanticObjectId(workspace_id), PydanticObjectId(user_id)
+        )
+
+    async def save_workspace_user(self, workspace_user: WorkspaceUserDocument):
+        return await self.workspace_user_repository.save(workspace_user)
 
     async def add_user_to_workspace_with_role(
         self, workspace_id: PydanticObjectId, user: User, role: WorkspaceRoles

@@ -26,7 +26,7 @@ const Drawer = ({ navGroups, can }: any) => {
                             "everyone" vs "admins", which separated Site from
                             Site settings. Labels carry what dividers implied. */}
                         {navGroups?.map((group: any) => {
-                            const items = group.items.filter((item: any) => !item.permission || can(item.permission));
+                            const items = group.items.filter((item: any) => (!item.permission || can(item.permission)) && (!item.anyPermission || item.anyPermission.some((permission: any) => can(permission))));
                             if (!items.length) return null;
                             return (
                                 <div key={group.label} className="pb-1">

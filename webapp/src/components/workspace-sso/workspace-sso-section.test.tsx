@@ -61,7 +61,7 @@ const overview = (overrides: Partial<SsoOverviewDto> = {}): SsoOverviewDto => ({
     },
     domains: ['acme.com'],
     connections: [connection()],
-    settings: { ssoRequired: false, defaultRole: 'COLLABORATOR', assignableRoles: ['COLLABORATOR'], ownerBreakGlass: true },
+    settings: { ssoRequired: false, defaultRole: 'VIEWER', assignableRoles: ['EDITOR', 'REVIEWER', 'VIEWER'], ownerBreakGlass: true },
     maxConnections: 5,
     canManage: true,
     ...overrides

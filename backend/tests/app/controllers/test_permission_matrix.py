@@ -1,6 +1,12 @@
 """Permission matrix: each workspace endpoint that goes through
-``AuthorizationService.authorize`` against the owner, an admin, a collaborator,
-a non-member and a disabled (admin) membership.
+``AuthorizationService.authorize`` against every workspace role (owner, admin,
+editor, reviewer, viewer, privacy officer), a legacy collaborator, a legacy
+membership without roles, a membership with an unknown role, a non-member and
+a disabled (admin) membership.
+
+Each row names the permission it needs; the roles allowed are those the doc's
+§2 table gives that permission (``ROLES_WITH`` below, written out from the doc,
+not imported from the service).
 
 The regression net of docs/enterprise-access-model.md: a new workspace
 endpoint gets a row here. A role is *refused* when the endpoint answers 403
@@ -36,7 +42,6 @@ from backend.app.services.scim.directory_service import CreateDirectoryDto
 from backend.app.services.authorization_service import (
     ALL_PERMISSIONS,
     DISABLED_WORKSPACE_OWNER_PERMISSIONS,
-    MEMBER_PERMISSIONS,
 )
 from backend.app.services.form_service import FormService
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
@@ -58,31 +63,105 @@ from tests.app.controllers.data import (
     testUser2,
 )
 
-OWNER, ADMIN, COLLABORATOR, NON_MEMBER, DISABLED = (
+OWNER, ADMIN, EDITOR, REVIEWER, VIEWER, PRIVACY = (
     "owner",
     "admin",
+    "editor",
+    "reviewer",
+    "viewer",
+    "privacy_officer",
+)
+COLLABORATOR, NO_ROLES, UNKNOWN_ROLE, NON_MEMBER, DISABLED = (
     "collaborator",
+    "legacy_no_roles",
+    "unknown_role",
     "non_member",
     "disabled_member",
 )
-ROLES = (OWNER, ADMIN, COLLABORATOR, NON_MEMBER, DISABLED)
+ROLES = (
+    OWNER,
+    ADMIN,
+    EDITOR,
+    REVIEWER,
+    VIEWER,
+    PRIVACY,
+    COLLABORATOR,
+    NO_ROLES,
+    UNKNOWN_ROLE,
+    NON_MEMBER,
+    DISABLED,
+)
 
-admin_user = User(id=str(PydanticObjectId()), sub="matrix-admin@example.com")
+
+def _user(name: str) -> User:
+    return User(id=str(PydanticObjectId()), sub=f"matrix-{name}@example.com")
+
+
+admin_user = _user("admin")
+editor_user = _user("editor")
+reviewer_user = _user("reviewer")
+viewer_user = _user("viewer")
+privacy_user = _user("privacy")
+no_roles_user = _user("no-roles")
+unknown_role_user = _user("unknown-role")
 # an ADMIN whose membership is disabled (a downgraded owner's workspace): #770
-disabled_user = User(id=str(PydanticObjectId()), sub="matrix-disabled@example.com")
-removable_user = User(id=str(PydanticObjectId()), sub="matrix-removable@example.com")
+disabled_user = _user("disabled")
+removable_user = _user("removable")
 
 USERS: Dict[str, User] = {
     OWNER: testUser,
     ADMIN: admin_user,
-    COLLABORATOR: invited_user,
+    EDITOR: editor_user,
+    REVIEWER: reviewer_user,
+    VIEWER: viewer_user,
+    PRIVACY: privacy_user,
+    COLLABORATOR: invited_user,  # the fixture's COLLABORATOR membership
+    NO_ROLES: no_roles_user,
+    UNKNOWN_ROLE: unknown_role_user,
     NON_MEMBER: testUser1,
     DISABLED: disabled_user,
 }
 
-MEMBERS = frozenset({OWNER, ADMIN, COLLABORATOR})
+# (user, stored roles, disabled) seeded besides the owner and the collaborator
+SEEDED_MEMBERSHIPS = (
+    (admin_user, [WorkspaceRoles.ADMIN], False),
+    (editor_user, [WorkspaceRoles.EDITOR], False),
+    (reviewer_user, [WorkspaceRoles.REVIEWER], False),
+    (viewer_user, [WorkspaceRoles.VIEWER], False),
+    (privacy_user, [WorkspaceRoles.PRIVACY_OFFICER], False),
+    (no_roles_user, [], False),
+    (unknown_role_user, ["FORM_CREATOR"], False),
+    (disabled_user, [WorkspaceRoles.ADMIN], True),
+    (removable_user, [WorkspaceRoles.COLLABORATOR], False),
+)
+
+P = Permission
+# Editors: the Editor role, its legacy spelling and a membership without roles
+EDITORS = frozenset({OWNER, ADMIN, EDITOR, COLLABORATOR, NO_ROLES})
 ADMINS = frozenset({OWNER, ADMIN})
 OWNER_ONLY = frozenset({OWNER})
+MEMBERS = EDITORS | {REVIEWER, VIEWER, PRIVACY}
+
+# docs/enterprise-access-model.md §2, column by column
+ROLES_WITH: Dict[Permission, FrozenSet[str]] = {
+    P.WORKSPACE_BILLING: OWNER_ONLY,
+    P.WORKSPACE_MANAGE: ADMINS,
+    P.MEMBERS_MANAGE: ADMINS,
+    P.SECURITY_MANAGE: ADMINS,
+    P.AI_MANAGE: ADMINS,
+    P.AUDIT_READ: ADMINS | {PRIVACY},
+    P.FORM_CREATE: EDITORS,
+    P.FORM_READ: MEMBERS,
+    P.FORM_EDIT: EDITORS,
+    P.FORM_DELETE: EDITORS,
+    P.FORM_SHARE: EDITORS,
+    P.RESPONSE_READ: EDITORS | {REVIEWER, VIEWER},
+    P.RESPONSE_ANNOTATE: EDITORS | {REVIEWER},
+    P.RESPONSE_EXPORT: EDITORS,
+    P.RESPONSE_DELETE: EDITORS,
+    P.PRIVACY_MANAGE: ADMINS | {PRIVACY},
+    P.ANALYTICS_READ: MEMBERS,
+}
 
 NOT_AUTHORIZED = "You are not authorized to perform this action."
 
@@ -96,7 +175,9 @@ class Case:
     name: str
     method: str
     path: str  # formatted with the context: {ws} {form} {response} {group} ...
-    allowed: FrozenSet[str]
+    # the permission the endpoint needs, or the roles allowed when no single
+    # permission decides it
+    allowed: "Permission | FrozenSet[str]"
     request: Callable[[dict], dict] = field(default=lambda c: {})
     # the body a refused role gets (authorize's message unless stated)
     refused_body: str = MESSAGE_FORBIDDEN
@@ -129,96 +210,122 @@ F = W + "/forms/{form}"
 
 CASES = [
     # --- workspace settings
-    Case("workspace.patch", "PATCH", W, OWNER_ONLY, lambda c: {"data": {"title": "x"}}),
+    Case("workspace.patch", "PATCH", W, P.WORKSPACE_MANAGE, lambda c: {"data": {"title": "x"}}),
     Case(
         "workspace.theme_presets",
         "PATCH",
         W + "/theme-presets",
-        ADMINS,
+        P.WORKSPACE_MANAGE,
         lambda c: {"json": []},
     ),
-    Case("workspace.custom_domain.delete", "DELETE", W + "/custom-domain", ADMINS),
-    Case("workspace.custom_domain.verify", "GET", W + "/verify-domain", ADMINS),
+    Case("workspace.custom_domain.delete", "DELETE", W + "/custom-domain", P.WORKSPACE_MANAGE),
+    Case("workspace.custom_domain.verify", "GET", W + "/verify-domain", P.WORKSPACE_MANAGE),
     Case(
-        "workspace.custom_domain.recheck", "POST", W + "/custom-domain/recheck", ADMINS
+        "workspace.custom_domain.recheck", "POST", W + "/custom-domain/recheck", P.WORKSPACE_MANAGE
     ),
-    Case("workspace.stats", "GET", W + "/stats", MEMBERS),
+    Case("workspace.stats", "GET", W + "/stats", P.ANALYTICS_READ),
     # --- AI settings, profile, keys
-    Case("ai.settings.get", "GET", W + "/ai-settings", MEMBERS),
+    Case("ai.settings.get", "GET", W + "/ai-settings", P.FORM_READ),
     Case(
         "ai.settings.put",
         "PUT",
         W + "/ai-settings",
-        ADMINS,
+        P.AI_MANAGE,
         lambda c: {"json": {"enabled": False}},
     ),
-    Case("ai.profile.get", "GET", W + "/ai-profile", MEMBERS),
+    Case("ai.profile.get", "GET", W + "/ai-profile", P.FORM_READ),
     Case(
         "ai.profile.put",
         "PUT",
         W + "/ai-profile",
-        ADMINS,
+        P.AI_MANAGE,
         lambda c: {"json": {"about": "Org"}},
     ),
     Case(
         "ai.memory.settings",
         "PUT",
         W + "/ai-memory/settings",
-        MEMBERS,
+        P.FORM_READ,
         lambda c: {"json": {"learnPreferences": False}},
     ),
-    Case("api_keys.list", "GET", W + "/api-keys", ADMINS),
+    Case("api_keys.list", "GET", W + "/api-keys", P.SECURITY_MANAGE),
     Case(
         "api_keys.create",
         "POST",
         W + "/api-keys",
-        ADMINS,
+        P.SECURITY_MANAGE,
         lambda c: {"json": {"name": "matrix", "scopes": ["forms:read"]}},
     ),
-    Case("api_keys.revoke", "DELETE", W + "/api-keys/{api_key}", ADMINS),
+    Case("api_keys.revoke", "DELETE", W + "/api-keys/{api_key}", P.SECURITY_MANAGE),
     # --- members and invitations
-    Case("members.list", "GET", W + "/members", ADMINS),
-    Case("members.invitations.list", "GET", W + "/members/invitations", ADMINS),
+    Case("members.list", "GET", W + "/members", P.MEMBERS_MANAGE),
+    Case("members.invitations.list", "GET", W + "/members/invitations", P.MEMBERS_MANAGE),
     Case(
         "members.invitations.create",
         "POST",
         W + "/members/invitations",
-        ADMINS,
+        P.MEMBERS_MANAGE,
         lambda c: {"json": {"email": "new@example.com", "role": "COLLABORATOR"}},
+    ),
+    Case(
+        # an Admin may invite another Admin (not above their own role)
+        "members.invitations.create.admin",
+        "POST",
+        W + "/members/invitations",
+        P.MEMBERS_MANAGE,
+        lambda c: {"json": {"email": "new-admin@example.com", "role": "ADMIN"}},
+        ok=200,
     ),
     Case(
         "members.invitations.delete",
         "DELETE",
         W + "/members/invitations/{invitation}",
-        ADMINS,
+        P.MEMBERS_MANAGE,
         ok=200,
     ),
-    Case("members.remove", "DELETE", W + "/members/{removable}", ADMINS),
+    Case("members.remove", "DELETE", W + "/members/{removable}", P.MEMBERS_MANAGE),
+    Case(
+        "members.role",
+        "PATCH",
+        W + "/members/{removable}",
+        P.MEMBERS_MANAGE,
+        lambda c: {"json": {"role": "VIEWER"}},
+        ok=200,
+    ),
+    Case(
+        # past the permission check the matrix workspace (personal, paid)
+        # is refused for its billing
+        "members.transfer_ownership",
+        "POST",
+        W + "/members/{new_owner}/transfer-ownership",
+        P.WORKSPACE_BILLING,
+        ok=409,
+    ),
     # --- verified email domains (security.manage)
-    Case("domains.list", "GET", W + "/domains", ADMINS, ok=200),
+    Case("domains.list", "GET", W + "/domains", P.SECURITY_MANAGE, ok=200),
     Case(
         "domains.claim",
         "POST",
         W + "/domains",
-        ADMINS,
+        P.SECURITY_MANAGE,
         lambda c: {"json": {"domain": "matrix-claim.org"}},
         ok=201,
     ),
-    Case("domains.verify", "POST", W + "/domains/{domain}/verify", ADMINS, ok=200),
-    Case("domains.delete", "DELETE", W + "/domains/{domain}", ADMINS, ok=204),
+    Case("domains.verify", "POST", W + "/domains/{domain}/verify", P.SECURITY_MANAGE, ok=200),
+    Case("domains.delete", "DELETE", W + "/domains/{domain}", P.SECURITY_MANAGE, ok=204),
     Case(
         # a claim of another workspace: 404 once past the permission check
         "domains.verify.other_workspace",
         "POST",
         W + "/domains/{other_domain}/verify",
-        ADMINS,
+        P.SECURITY_MANAGE,
         ok=404,
     ),
     Case(
         "domains.delete.other_workspace",
         "DELETE",
         W + "/domains/{other_domain}",
-        ADMINS,
+        P.SECURITY_MANAGE,
         ok=404,
     ),
     # --- single sign-on: viewing and testing need security.manage; changing
@@ -298,50 +405,50 @@ CASES = [
     ),
     Case("scim.resync", "POST", W + "/scim/resync", OWNER_ONLY, ok=200),
     # --- forms
-    Case("forms.list", "GET", W + "/forms", MEMBERS),
+    Case("forms.list", "GET", W + "/forms", P.FORM_READ),
     Case(
         "forms.create",
         "POST",
         W + "/forms",
-        MEMBERS,
+        P.FORM_CREATE,
         lambda c: {"data": {"form_body": json.dumps(formData)}},
     ),
     Case(
         "forms.update",
         "PATCH",
         F,
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"data": {"form_body": json.dumps(formData)}},
     ),
-    Case("forms.duplicate", "POST", F + "/duplicate", MEMBERS),
-    Case("forms.publish", "POST", F + "/publish", MEMBERS),
-    Case("forms.delete", "DELETE", F, MEMBERS),
+    Case("forms.duplicate", "POST", F + "/duplicate", P.FORM_CREATE),
+    Case("forms.publish", "POST", F + "/publish", P.FORM_EDIT),
+    Case("forms.delete", "DELETE", F, P.FORM_DELETE),
     Case(
         "forms.settings",
         "PATCH",
         F + "/settings",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"pinned": True}},
     ),
     Case(
         "forms.settings.hidden",
         "PATCH",
         F + "/settings",
-        MEMBERS,
+        P.FORM_SHARE,
         lambda c: {"json": {"hidden": True}},
     ),
     Case(
         "forms.settings.feedback",
         "PATCH",
         F + "/settings",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"respondentFeedbackEnabled": True}},
     ),
     Case(
         "forms.settings.private",
         "PATCH",
         F + "/settings",
-        MEMBERS,
+        P.FORM_SHARE,
         lambda c: {"json": {"private": True}},
         ok=200,
     ),
@@ -349,21 +456,21 @@ CASES = [
         "forms.groups.add",
         "PATCH",
         F + "/groups/add",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"group_ids": [c["group"]]}},
     ),
     Case(
         "forms.groups.remove",
         "DELETE",
         F + "/groups",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"params": {"group_id": c["group"]}},
     ),
     Case(
         "forms.actions.add",
         "POST",
         F + "/actions",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"action_id": c["action"]}},
         ok=200,
     ),
@@ -371,24 +478,24 @@ CASES = [
         "forms.actions.update",
         "PATCH",
         F + "/actions",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"actionId": _oid(), "updateType": "enable"}},
     ),
-    Case("forms.actions.remove", "DELETE", F + "/actions/{random}", MEMBERS),
-    Case("forms.as_template", "POST", W + "/form/{form}/template", MEMBERS),
+    Case("forms.actions.remove", "DELETE", F + "/actions/{random}", P.FORM_EDIT),
+    Case("forms.as_template", "POST", W + "/form/{form}/template", P.FORM_CREATE),
     Case(
         "templates.list",
         "GET",
         "/api/v1/templates",
-        MEMBERS,
+        P.FORM_READ,
         lambda c: {"params": {"workspace_id": c["ws"]}},
     ),
-    Case("templates.delete", "DELETE", W + "/template/{template}", MEMBERS, ok=200),
+    Case("templates.delete", "DELETE", W + "/template/{template}", P.FORM_DELETE, ok=200),
     Case(
         "templates.create",
         "POST",
         W + "/template",
-        MEMBERS,
+        P.FORM_CREATE,
         lambda c: {"data": {"template_body": TEMPLATE_BODY}},
         ok=200,
     ),
@@ -396,7 +503,7 @@ CASES = [
         "templates.update",
         "PATCH",
         W + "/template/{template}",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"data": {"template_body": TEMPLATE_BODY}},
         ok=200,
     ),
@@ -404,16 +511,16 @@ CASES = [
         "templates.settings",
         "PATCH",
         W + "/template/{template}/settings",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"isPublic": False}},
         ok=200,
     ),
-    Case("templates.import", "POST", W + "/template/{template}/import", MEMBERS),
+    Case("templates.import", "POST", W + "/template/{template}/import", P.FORM_CREATE),
     Case(
         "templates.create_form",
         "POST",
         W + "/template/{template}",
-        MEMBERS,
+        P.FORM_CREATE,
         ok=200,
     ),
     # --- AI on forms
@@ -421,7 +528,7 @@ CASES = [
         "ai.create_form",
         "POST",
         W + "/forms/ai",
-        MEMBERS,
+        P.FORM_CREATE,
         lambda c: {"json": {"prompt": "A survey"}},
         allowed_403=AI_OFF,
     ),
@@ -429,7 +536,7 @@ CASES = [
         "ai.create_form.on",
         "POST",
         W + "/forms/ai",
-        MEMBERS,
+        P.FORM_CREATE,
         lambda c: {"json": {"prompt": "A survey"}},
         ok=200,
         ai_replies=(GENERATED_FORM,),
@@ -438,7 +545,7 @@ CASES = [
         "ai.chat",
         "POST",
         F + "/ai/chat",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"message": "Add a question"}},
         allowed_403=AI_OFF,
     ),
@@ -446,7 +553,7 @@ CASES = [
         "ai.chat.on",
         "POST",
         F + "/ai/chat",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {"message": "Add a question"}},
         ok=200,
         ai_replies=(CHAT_REPLY,),
@@ -455,7 +562,7 @@ CASES = [
         "ai.review",
         "POST",
         F + "/ai/review",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {}},
         allowed_403=AI_OFF,
     ),
@@ -463,17 +570,17 @@ CASES = [
         "ai.review.on",
         "POST",
         F + "/ai/review",
-        MEMBERS,
+        P.FORM_EDIT,
         lambda c: {"json": {}},
         ok=200,
         ai_replies=(REVIEW_REPLY,),
     ),
-    Case("ai.insights.get", "GET", F + "/ai/insights", MEMBERS, ok=200),
+    Case("ai.insights.get", "GET", F + "/ai/insights", P.RESPONSE_READ, ok=200),
     Case(
         "ai.insights.generate",
         "POST",
         F + "/ai/insights",
-        MEMBERS,
+        P.RESPONSE_READ,
         lambda c: {"json": {}},
         allowed_403=AI_OFF,
     ),
@@ -481,7 +588,7 @@ CASES = [
         "ai.insights.generate.on",
         "POST",
         F + "/ai/insights",
-        MEMBERS,
+        P.RESPONSE_READ,
         lambda c: {"json": {}},
         ok=200,
         ai_replies=(INSIGHTS_REPLY,),
@@ -490,113 +597,128 @@ CASES = [
         "ai.insights.settings",
         "PUT",
         F + "/ai/insights/settings",
-        ADMINS,
+        P.AI_MANAGE,
         lambda c: {"json": {"enabled": False}},
     ),
     # --- responses
-    Case("responses.form", "GET", F + "/submissions", MEMBERS),
+    Case("responses.form", "GET", F + "/submissions", P.RESPONSE_READ),
     Case(
         "responses.form.deletion_requests",
         "GET",
         F + "/submissions",
-        MEMBERS,
+        P.PRIVACY_MANAGE,
         lambda c: {"params": {"request_for_deletion": True}},
     ),
-    Case("responses.form.all", "GET", F + "/all-submissions", MEMBERS),
-    Case("responses.workspace", "GET", W + "/all-submissions", MEMBERS),
+    Case("responses.form.all", "GET", F + "/all-submissions", P.RESPONSE_READ),
+    Case(
+        "responses.form.export",
+        "GET",
+        F + "/all-submissions/export",
+        P.RESPONSE_EXPORT,
+        ok=200,
+    ),
+    Case("responses.workspace", "GET", W + "/all-submissions", P.RESPONSE_READ),
     Case(
         "responses.workspace.deletion_requests",
         "GET",
         W + "/all-submissions",
-        MEMBERS,
+        P.PRIVACY_MANAGE,
         lambda c: {"params": {"request_for_deletion": True}},
     ),
     Case(
         "responses.one",
         "GET",
         W + "/submissions/{response}",
-        MEMBERS,
+        P.RESPONSE_READ,
         refused_body=NOT_AUTHORIZED,
     ),
-    Case("responses.delete", "DELETE", F + "/response/{response}", MEMBERS),
+    Case("responses.delete", "DELETE", F + "/response/{response}", P.RESPONSE_DELETE),
+    Case(
+        # completing a pending deletion request is also the privacy programme
+        "responses.delete.pending_request",
+        "DELETE",
+        F + "/response/{requested}",
+        ROLES_WITH[P.RESPONSE_DELETE] | ROLES_WITH[P.PRIVACY_MANAGE],
+        ok=200,
+    ),
     Case(
         "responses.internal_answers",
         "PATCH",
         F + "/submissions/{response}/internal-answers",
-        MEMBERS,
+        P.RESPONSE_ANNOTATE,
         lambda c: {"json": {"answers": {"not-a-field": None}}},
     ),
     Case(
         "responses.feedback",
         "POST",
         F + "/submissions/{response}/feedback",
-        MEMBERS,
+        P.RESPONSE_ANNOTATE,
         lambda c: {"json": {"message": "Thanks"}},
     ),
-    Case("responses.flow_analytics", "GET", F + "/flow-analytics", MEMBERS),
+    Case("responses.flow_analytics", "GET", F + "/flow-analytics", P.ANALYTICS_READ),
     Case(
         "analytics.umami_stats",
         "GET",
         "/api/v1/{name}/forms/{slug}/stats",
-        MEMBERS,
+        P.ANALYTICS_READ,
         lambda c: {"params": {"start_at": 1, "end_at": 2}},
     ),
     # --- responders (data subjects) and their tags
-    Case("responders.list", "GET", W + "/responders", MEMBERS),
-    Case("responders.tags.list", "GET", W + "/responders/tags", MEMBERS),
+    Case("responders.list", "GET", W + "/responders", P.PRIVACY_MANAGE),
+    Case("responders.tags.list", "GET", W + "/responders/tags", P.PRIVACY_MANAGE),
     Case(
         "responders.tags.create",
         "POST",
         W + "/responders/tags",
-        MEMBERS,
+        P.PRIVACY_MANAGE,
         lambda c: {"json": {"title": "vip"}},
     ),
     Case(
         "responders.patch",
         "PATCH",
         W + "/responders",
-        MEMBERS,
+        P.PRIVACY_MANAGE,
         lambda c: {"params": {"email": testUser2.sub}, "json": {"tags": [_oid()]}},
     ),
     # --- responder groups
-    Case("groups.list", "GET", "/api/v1/{ws}/responder-groups", MEMBERS),
-    Case("groups.get", "GET", "/api/v1/{ws}/responder-groups/{group}", MEMBERS),
+    Case("groups.list", "GET", "/api/v1/{ws}/responder-groups", P.FORM_EDIT),
+    Case("groups.get", "GET", "/api/v1/{ws}/responder-groups/{group}", P.FORM_EDIT),
     Case(
         "groups.create",
         "POST",
         "/api/v1/{ws}/responder-groups",
-        ADMINS,
+        P.MEMBERS_MANAGE,
         lambda c: {"params": {"name": "New group"}},
     ),
     Case(
         "groups.update",
         "PATCH",
         "/api/v1/{ws}/responder-groups/{group}",
-        ADMINS,
+        P.MEMBERS_MANAGE,
         lambda c: {"params": {"name": "Renamed"}},
     ),
     Case(
         "groups.emails.add",
         "PATCH",
         "/api/v1/{ws}/responder-groups/{group}/emails",
-        ADMINS,
+        P.MEMBERS_MANAGE,
         lambda c: {"json": ["b@example.com"]},
     ),
     Case(
         "groups.emails.remove",
         "DELETE",
         "/api/v1/{ws}/responder-groups/{group}/emails",
-        ADMINS,
+        P.MEMBERS_MANAGE,
         lambda c: {"json": ["a@example.com"]},
     ),
-    Case("groups.delete", "DELETE", "/api/v1/{ws}/responder-groups/{group}", ADMINS),
+    Case("groups.delete", "DELETE", "/api/v1/{ws}/responder-groups/{group}", P.MEMBERS_MANAGE),
     # --- consent catalog
-    Case("consent.list", "GET", "/api/v1/{ws}/consent", MEMBERS),
+    Case("consent.list", "GET", "/api/v1/{ws}/consent", EDITORS | ROLES_WITH[P.PRIVACY_MANAGE]),
     Case(
         "consent.create",
         "POST",
         "/api/v1/{ws}/consent",
-        MEMBERS,
+        P.PRIVACY_MANAGE,
         lambda c: {
             "json": {
                 "title": "Marketing",
@@ -606,16 +728,16 @@ CASES = [
         },
     ),
     # --- media library and PDF imports
-    Case("media.list", "GET", W + "/media", MEMBERS),
-    Case("media.delete", "DELETE", W + "/media/{media}", MEMBERS, ok=200),
-    Case("pdf_imports.list", "GET", W + "/form-imports", MEMBERS),
-    Case("pdf_imports.ai_provider", "GET", W + "/form-imports/ai", MEMBERS),
-    Case("pdf_imports.get", "GET", W + "/form-imports/{import}", MEMBERS, ok=200),
+    Case("media.list", "GET", W + "/media", P.FORM_EDIT),
+    Case("media.delete", "DELETE", W + "/media/{media}", P.FORM_EDIT, ok=200),
+    Case("pdf_imports.list", "GET", W + "/form-imports", P.FORM_CREATE),
+    Case("pdf_imports.ai_provider", "GET", W + "/form-imports/ai", P.FORM_CREATE),
+    Case("pdf_imports.get", "GET", W + "/form-imports/{import}", P.FORM_CREATE, ok=200),
     Case(
         "pdf_imports.create",
         "POST",
         W + "/form-imports",
-        MEMBERS,
+        P.FORM_CREATE,
         # refused by the upload check (not a document) after authorization
         lambda c: {"files": {"file": ("notes.txt", b"not a document", "text/plain")}},
         ok=400,
@@ -649,11 +771,7 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
     workspace.is_pro = True
     await container.workspace_repo().save(workspace)
     members = container.workspace_user_repo()
-    for user, roles, disabled in (
-        (admin_user, [WorkspaceRoles.ADMIN], False),
-        (disabled_user, [WorkspaceRoles.ADMIN], True),
-        (removable_user, [WorkspaceRoles.COLLABORATOR], False),
-    ):
+    for user, roles, disabled in SEEDED_MEMBERSHIPS:
         await members.save(
             WorkspaceUserDocument(
                 workspace_id=workspace.id,
@@ -667,6 +785,16 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
         published_form.form_id,
         StandardFormResponse(**formResponse),
         testUser2,
+    )
+    requested = await container.workspace_form_service().submit_response(
+        workspace.id,
+        published_form.form_id,
+        StandardFormResponse(**formResponse),
+        testUser2,
+    )
+    responses = container.form_response_repo()
+    await responses.add_deletion_request(
+        await responses.get_response(requested.response_id), requested.response_id
     )
     group = await container.responder_groups_service().create_group(
         workspace.id, "Matrix", ["a@example.com"], testUser, None, "", None
@@ -750,8 +878,10 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
         "form": published_form.form_id,
         "slug": workspace_form.settings.custom_url,
         "response": response.response_id,
+        "requested": requested.response_id,
         "group": str(group.id),
         "removable": removable_user.id,
+        "new_owner": admin_user.id,
         "api_key": api_key.id,
         "media": str(media.media_id),
         "template": str(template.id),
@@ -772,6 +902,12 @@ def _body(response):
         return response.json()
     except ValueError:
         return response.text
+
+
+def _allowed(case: Case) -> FrozenSet[str]:
+    if isinstance(case.allowed, Permission):
+        return ROLES_WITH[case.allowed]
+    return case.allowed
 
 
 @pytest.mark.parametrize("role", ROLES)
@@ -800,7 +936,7 @@ async def test_permission_matrix(
     )
     seen = f"{case.name} as {role}: {response.status_code} {response.text}"
     refused = response.status_code == 403 and _body(response) == case.refused_body
-    if role in case.allowed:
+    if role in _allowed(case):
         assert not refused, f"{role} was refused {case.name}"
         if response.status_code == 403:
             assert case.allowed_403 and case.allowed_403 in response.text, seen
@@ -816,12 +952,27 @@ async def test_permission_matrix(
 
 
 EXPECTED_PERMISSIONS = {
-    OWNER: ALL_PERMISSIONS,
-    ADMIN: ALL_PERMISSIONS - {Permission.WORKSPACE_BILLING},
-    COLLABORATOR: MEMBER_PERMISSIONS,
-    NON_MEMBER: frozenset(),
-    DISABLED: frozenset(),
+    role: frozenset(p for p, roles in ROLES_WITH.items() if role in roles)
+    for role in ROLES
 }
+
+
+def test_the_expected_table_is_the_documented_one():
+    assert EXPECTED_PERMISSIONS[OWNER] == ALL_PERMISSIONS
+    assert EXPECTED_PERMISSIONS[ADMIN] == ALL_PERMISSIONS - {P.WORKSPACE_BILLING}
+    assert EXPECTED_PERMISSIONS[COLLABORATOR] == EXPECTED_PERMISSIONS[EDITOR]
+    assert EXPECTED_PERMISSIONS[NO_ROLES] == EXPECTED_PERMISSIONS[EDITOR]
+    assert P.PRIVACY_MANAGE not in EXPECTED_PERMISSIONS[EDITOR]
+    assert EXPECTED_PERMISSIONS[PRIVACY].isdisjoint(
+        {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT}
+    )
+    for nothing in (UNKNOWN_ROLE, NON_MEMBER, DISABLED):
+        assert EXPECTED_PERMISSIONS[nothing] == frozenset()
+
+
+def test_every_permission_row_names_a_permission_or_roles():
+    for case in CASES:
+        assert isinstance(case.allowed, (Permission, frozenset)), case.name
 
 
 @pytest.mark.parametrize("role", ROLES)

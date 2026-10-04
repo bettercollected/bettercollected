@@ -3,18 +3,29 @@ from datetime import timedelta
 from http import HTTPStatus
 
 from beanie import PydanticObjectId
-from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.enum.permission import Permission
+from backend.app.models.enum.workspace_roles import (
+    ASSIGNABLE_ROLES,
+    ROLE_LABELS,
+    WorkspaceRoles,
+    canonical_role,
+    canonical_roles,
+    primary_role,
+    stored_role,
+)
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
-from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.authorization_service import (
+    AuthorizationService,
+    role_permissions,
+)
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import (
     PROVISIONED_BY_SCIM,
@@ -49,35 +60,53 @@ class WorkspaceMembersService:
         self.http_client = http_client
         self.workspace_form_service = workspace_form_service
 
+    async def _has_directory(self, workspace_id) -> bool:
+        """The workspace has a SCIM directory (docs/sso.md, "Directory sync")."""
+        return (
+            self._scim_directories is not None
+            and await self._scim_directories.find_by_workspace(workspace_id) is not None
+        )
+
     async def get_workspace_members(self, workspace_id: PydanticObjectId, user: User):
         await self.authorization_service.authorize(
             user, Permission.MEMBERS_MANAGE, workspace_id
         )
+        workspace = await self.workspace_repo.find_by_id(workspace_id)
+        owner_id = workspace.owner_id if workspace else None
         workspace_users = await self.workspace_user_service.get_users_in_workspace(
             workspace_id=workspace_id
         )
         user_ids = [user.user_id for user in workspace_users]
-        users_info = await self._get_user_info_from_ids(user_ids)
-        workspace_users = sorted(workspace_users, key=lambda w_user: w_user.user_id)
-        users_info = sorted(users_info, key=lambda u_info: u_info.get("_id"))
-        has_directory = (
-            self._scim_directories is not None
-            and await self._scim_directories.find_by_workspace(workspace_id) is not None
-        )
+        # Joined by user id: the auth service leaves out accounts it no longer
+        # has, so pairing two sorted lists would put one person's name on
+        # another's membership (and role changes on the wrong person).
+        users_by_id = {
+            str(info.get("_id")): info
+            for info in (await self._get_user_info_from_ids(user_ids) or [])
+            if info and info.get("_id") is not None
+        }
+        has_directory = await self._has_directory(workspace_id)
         response_user_list = []
-        for workspace_user, user_info in zip(workspace_users, users_info):
+        for workspace_user in sorted(workspace_users, key=lambda m: str(m.user_id)):
+            user_info = users_by_id.get(str(workspace_user.user_id))
             user = WorkspaceMemberDto()
             user.id = str(workspace_user.user_id)
-            user.first_name = user_info.get("first_name")
-            user.last_name = user_info.get("last_name")
-            user.email = user_info.get("email")
-            user.profile_image = user_info.get("profile_image")
+            if user_info is None:
+                # a deleted account: listed by id only, clearly marked
+                user.account_deleted = True
+            else:
+                user.first_name = user_info.get("first_name")
+                user.last_name = user_info.get("last_name")
+                user.email = user_info.get("email")
+                user.profile_image = user_info.get("profile_image")
             user.joined = workspace_user.created_at
-            user.roles = workspace_user.roles
+            user.roles = canonical_roles(workspace_user.roles)
+            user.role = primary_role(
+                workspace_user.roles,
+                is_owner=str(workspace_user.user_id) == str(owner_id),
+            )
             user.disabled = workspace_user.disabled
             user.provisioned_by = workspace_user.provisioned_by
-            # TODO(access-roles, #801): the role change endpoint must refuse a
-            # membership managed by the directory (its role follows its groups)
             user.managed_by_directory = bool(
                 has_directory and workspace_user.provisioned_by == PROVISIONED_BY_SCIM
             )
@@ -90,12 +119,18 @@ class WorkspaceMembersService:
         await self.authorization_service.authorize(
             user, Permission.MEMBERS_MANAGE, workspace_id
         )
+        role = await self._assignable_role(workspace_id, invitation.role, user)
 
         workspace = await self.workspace_repo.get_or_404(workspace_id)
+        await self._refuse_existing_member(workspace_id, invitation.email)
 
         workspace_invitation = (
             await self.workspace_invitation_repository.create_workspace_invitation(
-                workspace_id=workspace_id, invitation=invitation
+                workspace_id=workspace_id,
+                invitation=InvitationRequest(
+                    email=invitation.email, role=stored_role(role)
+                ),
+                invited_by=str(user.id),
             )
         )
         await self.http_client.get(
@@ -103,7 +138,7 @@ class WorkspaceMembersService:
             params={
                 "workspace_title": workspace.title,
                 "workspace_name": workspace.workspace_name,
-                "role": invitation.role.title(),
+                "role": ROLE_LABELS[role],
                 "email": invitation.email,
                 "inviter_id": user.id,
                 "token": workspace_invitation.invitation_token,
@@ -111,7 +146,27 @@ class WorkspaceMembersService:
             headers=auth_service_headers(),
             timeout=60,
         )
-        return workspace_invitation
+        # stored as COLLABORATOR for an Editor; reported as EDITOR
+        return workspace_invitation.model_copy(update={"role": role})
+
+    async def _refuse_existing_member(self, workspace_id, email: str) -> None:
+        """Inviting someone who is already a member would reset their
+        accepted invitation to pending; their role is changed instead."""
+        memberships = await self.workspace_user_service.get_users_in_workspace(
+            workspace_id=workspace_id
+        )
+        if not memberships:
+            return
+        users_info = await self._get_user_info_from_ids(
+            [membership.user_id for membership in memberships]
+        )
+        for info in users_info or []:
+            if info and info.get("email") and self.compare_emails(info["email"], email):
+                raise HTTPException(
+                    status_code=HTTPStatus.CONFLICT,
+                    content="This person is already a member; change their role "
+                    "instead.",
+                )
 
     async def get_workspace_invitations(
         self, workspace_id: PydanticObjectId, user: User
@@ -188,6 +243,9 @@ class WorkspaceMembersService:
             )
 
         if response_status == InvitationResponse.ACCEPTED:
+            await self._refuse_if_inviter_lost_the_role(
+                workspace_id, invitation_request
+            )
             invitation_request.invitation_status = InvitationStatus.ACCEPTED
             await self.workspace_user_service.add_user_to_workspace_with_role(
                 workspace_id=workspace_id, user=user, role=invitation_request.role
@@ -197,6 +255,26 @@ class WorkspaceMembersService:
             invitation_request.invitation_status = InvitationStatus.DECLINED
         await self.workspace_invitation_repository.save(invitation_request)
         return "Request Processed Successfully."
+
+    async def _refuse_if_inviter_lost_the_role(self, workspace_id, invitation) -> None:
+        """An invitation is only as good as its sender: accepting it re-checks
+        that they still manage members and still hold every permission of the
+        role they gave. Invitations sent before this was recorded carry no
+        sender and are not re-checked."""
+        if not invitation.invited_by:
+            return
+        inviter = User(id=str(invitation.invited_by), sub="invitation-sender")
+        held = await self.authorization_service.effective_permissions(
+            inviter, workspace_id
+        )
+        if Permission.MEMBERS_MANAGE not in held or not (
+            role_permissions(invitation.role) <= held
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="The person who invited you can no longer give this role. "
+                "Ask a workspace admin to invite you again.",
+            )
 
     async def _get_user_info_from_ids(
         self, user_ids: List[PydanticObjectId]
@@ -248,3 +326,184 @@ class WorkspaceMembersService:
             invitation_token
         )
         return {"message": "Invitation deleted successfully."}
+
+    async def _assignable_role(
+        self, workspace_id: PydanticObjectId, role, user: User
+    ) -> WorkspaceRoles:
+        """``role`` as a role ``user`` may give a member: one of the
+        assignable roles (never the owner, which is transferred), and never
+        more than ``user`` holds (so an Admin can't promote anyone above
+        Admin)."""
+        known = canonical_role(role)
+        if known not in ASSIGNABLE_ROLES:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content="Choose Admin, Editor, Reviewer, Viewer or Privacy officer.",
+            )
+        held = await self.authorization_service.effective_permissions(
+            user, workspace_id
+        )
+        if not role_permissions(known) <= held:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="You can't give a role with more access than your own.",
+            )
+        return known
+
+    async def update_member_role(
+        self,
+        workspace_id: PydanticObjectId,
+        member_id: PydanticObjectId,
+        role: WorkspaceRoles,
+        user: User,
+    ) -> WorkspaceMemberDto:
+        """Give a member another role. Needs members.manage; the owner's role
+        never changes (ownership is transferred instead) and no one changes
+        their own role."""
+        await self.authorization_service.authorize(
+            user, Permission.MEMBERS_MANAGE, workspace_id
+        )
+        if str(member_id) == str(user.id):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="You can't change your own role.",
+            )
+        workspace = await self.workspace_repo.get_or_404(workspace_id)
+        if str(workspace.owner_id) == str(member_id):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="The owner's role can't be changed. Transfer ownership instead.",
+            )
+        new_role = await self._assignable_role(workspace_id, role, user)
+        membership = await self.workspace_user_service.find_workspace_user(
+            workspace_id, member_id
+        )
+        if membership is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Member not found."
+            )
+        if (
+            membership.provisioned_by == PROVISIONED_BY_SCIM
+            and await self._has_directory(workspace_id)
+        ):
+            # the directory decides: its group mapping would undo this
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content={
+                    "code": "managed_by_directory",
+                    "message": "This member's role comes from your directory's "
+                    "groups. Change it at your identity provider or in the "
+                    "group mapping.",
+                },
+            )
+        membership.roles = [stored_role(new_role)]
+        await self.workspace_user_service.save_workspace_user(membership)
+        return WorkspaceMemberDto(
+            id=str(member_id),
+            roles=canonical_roles(membership.roles),
+            role=primary_role(membership.roles),
+            disabled=membership.disabled,
+        )
+
+    async def transfer_ownership(
+        self,
+        workspace_id: PydanticObjectId,
+        new_owner_id: PydanticObjectId,
+        user: User,
+    ):
+        """Make an active Admin the owner; the old owner stays as an Admin.
+
+        Needs workspace.billing (the owner only). Refused for a personal
+        (default) workspace and for one on a paid plan: both are tied to the
+        owner's account, not to the workspace (``_refuse_untransferable``).
+        """
+        await self.authorization_service.authorize(
+            user, Permission.WORKSPACE_BILLING, workspace_id
+        )
+        if str(new_owner_id) == str(user.id):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content="You already own this workspace.",
+            )
+        workspace = await self.workspace_repo.get_or_404(workspace_id)
+        self._refuse_untransferable(workspace)
+        new_owner = await self.workspace_user_service.find_workspace_user(
+            workspace_id, new_owner_id
+        )
+        if not self._is_active_admin(new_owner):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content="Ownership can only go to an active Admin of this "
+                "workspace. Make them an Admin first.",
+            )
+        old_owner = await self.workspace_user_service.find_workspace_user(
+            workspace_id, PydanticObjectId(user.id)
+        )
+        # The new owner is written first, then the old one is demoted, so a
+        # failure in between leaves an owner and an extra Admin, never a
+        # workspace without an owner. The owner change is one conditional
+        # update (only while the caller still owns the workspace), so two
+        # transfers can't both land. The target's membership lives in another
+        # collection, so it is checked again right after and the change is
+        # undone (conditionally) if they stopped being an active Admin in
+        # between; a change landing after that re-check is not caught.
+        changed = await self.workspace_repo.set_owner_if(
+            workspace.id, str(user.id), str(new_owner_id)
+        )
+        if changed is None:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content="The workspace's owner changed meanwhile. Reload and try again.",
+            )
+        if not self._is_active_admin(
+            await self.workspace_user_service.find_workspace_user(
+                workspace_id, new_owner_id
+            )
+        ):
+            await self.workspace_repo.set_owner_if(
+                workspace.id, str(new_owner_id), str(user.id)
+            )
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content="They stopped being an active Admin meanwhile. Ownership "
+                "was not transferred.",
+            )
+        if old_owner is not None:
+            old_owner.roles = [WorkspaceRoles.ADMIN]
+            await self.workspace_user_service.save_workspace_user(old_owner)
+        return {"message": "Ownership transferred.", "ownerId": str(new_owner_id)}
+
+    @staticmethod
+    def _is_active_admin(membership) -> bool:
+        return (
+            membership is not None
+            and not membership.disabled
+            and WorkspaceRoles.ADMIN
+            in {canonical_role(role) for role in membership.roles}
+        )
+
+    @staticmethod
+    def _refuse_untransferable(workspace) -> None:
+        """Billing and the personal workspace hang off the owner's account.
+
+        - A plan belongs to the owner (``User.plan``, their Stripe
+          subscription in the auth service). Upgrades and downgrades find
+          the workspaces to change by ``owner_id``, so a paid workspace given
+          to someone else would keep its paid features with no one paying,
+          and the old owner's later downgrade would no longer reach it.
+        - The default workspace is each account's personal one: sign-in
+          recreates it (named after the user id) when the account owns none,
+          which would collide with the transferred one.
+        """
+        if workspace.default:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content="This is the owner's personal workspace, which can't "
+                "be transferred.",
+            )
+        if workspace.is_pro:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content="This workspace is on a paid plan billed to the owner's "
+                "account, so its ownership can't be transferred.",
+            )

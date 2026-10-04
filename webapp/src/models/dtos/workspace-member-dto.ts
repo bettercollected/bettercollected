@@ -3,10 +3,14 @@ export interface WorkspaceMembersDto {
     firstName: string;
     lastName: string;
     roles: Array<string>;
+    // OWNER, ADMIN, EDITOR, REVIEWER, VIEWER or PRIVACY_OFFICER
+    role?: string | null;
+    disabled?: boolean | null;
+    // the account no longer exists: listed by id only
+    accountDeleted?: boolean | null;
     joined: string;
     email: string;
     profileImage?: string;
-    disabled?: boolean;
     // 'sso' (just in time), 'scim' (the directory) or null (invited)
     provisionedBy?: string | null;
     // the workspace's SCIM directory controls this member's role and status

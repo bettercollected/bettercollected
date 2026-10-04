@@ -31,12 +31,12 @@ license = { text = "no" }
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "alembic>=1.19.0",
+    "alembic>=1.20.0",
     "asyncpg>=0.30.0",
-    "beanie>=2.1.0",
-    "cryptography>=50.0.0",
-    "sqlalchemy[asyncio]>=2.0.40",
-    "tink>=1.14.0",
+    "beanie>=2.2.0",
+    "cryptography>=50.0.2",
+    "sqlalchemy[asyncio]>=2.0.54",
+    "tink>=1.16.1",
 ]
 classifiers = [
     "Intended Audience :: Developers",

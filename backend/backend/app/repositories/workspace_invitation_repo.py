@@ -2,9 +2,10 @@ import datetime
 import secrets
 from datetime import timedelta, timezone
 from http import HTTPStatus
+from typing import Optional
 
 from beanie import PydanticObjectId
-from fastapi_pagination.ext.beanie import paginate, apaginate
+from fastapi_pagination.ext.beanie import apaginate
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
@@ -25,7 +26,10 @@ class WorkspaceInvitationRepo:
 
     @write_op(replay=True)
     async def create_workspace_invitation(
-        self, workspace_id: PydanticObjectId, invitation: InvitationRequest
+        self,
+        workspace_id: PydanticObjectId,
+        invitation: InvitationRequest,
+        invited_by: Optional[str] = None,
     ):
         existing_invitation = await WorkspaceUserInvitesDocument.find_one(
             {"workspace_id": workspace_id, "email": invitation.email}
@@ -37,11 +41,15 @@ class WorkspaceInvitationRepo:
             )
             existing_invitation.created_at = datetime.datetime.now(timezone.utc)
             existing_invitation.invitation_token = secrets.token_hex(16)
+            # inviting again may change the role
+            existing_invitation.role = invitation.role
+            existing_invitation.invited_by = invited_by
         else:
             existing_invitation = WorkspaceUserInvitesDocument(
                 workspace_id=workspace_id,
                 email=invitation.email,
                 role=invitation.role,
+                invited_by=invited_by,
                 invitation_token=secrets.token_hex(16),
                 expiry=get_expiry_epoch_after(time_delta=timedelta(days=7)),
             )

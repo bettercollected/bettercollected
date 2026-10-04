@@ -1,12 +1,13 @@
 from typing import Any, List
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, get, post, delete
+from classy_fastapi import Routable, get, patch, post, delete
 from fastapi import Depends, HTTPException
 from fastapi_pagination import Page
 from backend.app.container import container
 from backend.app.models.dtos.workspace_member_dto import (
     WorkspaceMemberDto,
     WorkspaceInvitationDto,
+    UpdateMemberRoleRequest,
 )
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
@@ -67,6 +68,33 @@ class WorkspaceMembersRouter(Routable):
     ):
         return await self.workspace_members_service.delete_workspace_member(
             workspace_id=workspace_id, user_id=user_id, user=user
+        )
+
+    @patch("/{user_id}", response_model=WorkspaceMemberDto)
+    async def update_workspace_member_role(
+        self,
+        workspace_id: PydanticObjectId,
+        user_id: PydanticObjectId,
+        body: UpdateMemberRoleRequest,
+        user: User = Depends(get_logged_user),
+    ):
+        """Change a member's role (members.manage). Not the owner's, and not
+        one's own."""
+        return await self.workspace_members_service.update_member_role(
+            workspace_id=workspace_id, member_id=user_id, role=body.role, user=user
+        )
+
+    @post("/{user_id}/transfer-ownership")
+    async def transfer_workspace_ownership(
+        self,
+        workspace_id: PydanticObjectId,
+        user_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        """The owner hands the workspace to an active Admin and becomes an
+        Admin (workspace.billing)."""
+        return await self.workspace_members_service.transfer_ownership(
+            workspace_id=workspace_id, new_owner_id=user_id, user=user
         )
 
     @get(

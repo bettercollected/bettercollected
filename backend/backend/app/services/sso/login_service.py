@@ -45,6 +45,7 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
+from backend.app.models.enum.workspace_roles import stored_role
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.services.authorization_service import AuthorizationService
@@ -475,7 +476,7 @@ class SsoLoginService:
         user = User(**{**reply, "auth_method": SSO_METHOD, "email_verified": True})
         try:
             await self._members.add_sso_member(
-                workspace.id, user, default_sso_role(workspace)
+                workspace.id, user, stored_role(default_sso_role(workspace))
             )
         except SeatLimitReached:
             # filled up between the look and the write: the account exists,

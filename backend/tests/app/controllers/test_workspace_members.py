@@ -1,4 +1,5 @@
 import secrets
+from unittest.mock import patch
 from typing import Any, Coroutine
 
 import pytest
@@ -62,11 +63,16 @@ class TestWorkspaceMember:
             "user_id": testUser.id,
             "email": user_info.get("users_info")[0].get("email"),
         }
+        owner_info = {**user_info["users_info"][0], "_id": testUser.id}
 
-        with mock_get_user_info:
+        async def users(*args, **kwargs):
+            return {"users_info": [owner_info]}
+
+        with patch("common.services.http_client.HttpClient.get", side_effect=users):
             members = await client.get(workspace_member_url, cookies=test_user_cookies)
 
-        members_info = members.json()[0]
+        # matched by user id, not by position
+        (members_info,) = [m for m in members.json() if m["id"] == testUser.id]
         expected_response = expected_members_info
         actual_response = {
             "user_id": members_info.get("id"),

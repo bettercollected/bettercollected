@@ -1,6 +1,6 @@
 import calendar
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Union
 
 from beanie import PydanticObjectId
 from common.configs.mongo_document import MongoDocument
@@ -52,7 +52,11 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     workspace_id: PydanticObjectId
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
-    role: Optional[WorkspaceRoles] = WorkspaceRoles.COLLABORATOR
+    # A role this code doesn't know loads as a string and grants nothing
+    # once accepted (like workspace_users.roles).
+    role: Optional[Union[WorkspaceRoles, str]] = WorkspaceRoles.COLLABORATOR
+    # who sent it: accepting re-checks that they may still give the role
+    invited_by: Optional[str] = None
     expiry: int
     invitation_token: str
 
