@@ -42,13 +42,14 @@ from backend.app.services.scim.polis_dsync import (
     scim_endpoint,
     scim_secret,
 )
-from backend.app.services.scim.roles import is_mappable, mappable_roles
+from backend.app.services.scim.roles import mappable_roles, to_mappable
 from backend.app.services.scim.sync_service import (
     REASON_MESSAGES,
     ScimSyncService,
     SyncCounts,
 )
 from backend.app.services.sso.polis_client import PolisError, PolisUnavailable
+from backend.app.models.enum.workspace_roles import canonical_role
 from backend.app.services.sso.policy import default_sso_role
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.config import settings
@@ -248,7 +249,10 @@ class ScimDirectoryService:
             types=[
                 DirectoryTypeDto(type=t, label=l) for t, l in DIRECTORY_TYPES.items()
             ],
-            default_role=default_sso_role(workspace).value,
+            default_role=(
+                canonical_role(default_sso_role(workspace))
+                or default_sso_role(workspace)
+            ).value,
             mappable_roles=mappable_roles(),
             can_manage=await self._authorization.is_owner(user, workspace_id),
         )
@@ -463,8 +467,8 @@ class ScimDirectoryService:
         group = await self._groups.get(group_id)
         if group is None or group.directory_id != directory.id:
             raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such group.")
-        role = request.role or None
-        if role is not None and not is_mappable(role):
+        role = to_mappable(request.role) if request.role else None
+        if request.role and role is None:
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 "invalid_role",

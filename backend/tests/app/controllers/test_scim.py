@@ -11,7 +11,7 @@ from beanie import PydanticObjectId
 from common.models.user import User
 
 from backend.app.container import container
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import WorkspaceRoles, canonical_roles
 from backend.app.schemas.scim import ScimUserState
 from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -276,7 +276,7 @@ async def test_user_created_provisions_a_member(client, workspace, directory, sc
     account = auth.accounts[JANE]
     member = await member_of(workspace.id, account["id"])
     assert member.provisioned_by == "scim" and not member.disabled
-    assert member.roles == [WorkspaceRoles.COLLABORATOR]  # the default SSO role
+    assert member.roles == [WorkspaceRoles.VIEWER]  # the default SSO role
     record = await _record(directory, "u1")
     assert record.state == ScimUserState.PROVISIONED and record.user_id == account["id"]
     fresh = await container.scim_directory_repo().get(directory.id)
@@ -636,10 +636,17 @@ async def _add(
 
 
 def test_roles_come_from_the_enum_and_the_highest_wins():
-    assert "ADMIN" in mappable_roles() and "OWNER" not in mappable_roles()
-    assert set(mappable_roles()) == {r.value for r in WorkspaceRoles}
-    assert highest_role(["COLLABORATOR", "ADMIN"]) == "ADMIN"
-    assert highest_role(["COLLABORATOR", None, "OWNER", "nonsense"]) == "COLLABORATOR"
+    assert mappable_roles() == [
+        "ADMIN",
+        "EDITOR",
+        "REVIEWER",
+        "VIEWER",
+        "PRIVACY_OFFICER",
+    ]
+    assert highest_role(["VIEWER", "ADMIN"]) == "ADMIN"
+    assert highest_role(["REVIEWER", "COLLABORATOR"]) == "EDITOR"
+    assert highest_role(["PRIVACY_OFFICER", "VIEWER"]) == "VIEWER"
+    assert highest_role([None, "OWNER", "nonsense", "REVIEWER"]) == "REVIEWER"
     assert highest_role([]) is None
 
 
@@ -671,7 +678,7 @@ async def test_group_mapping_highest_role_wins_and_recomputes(
     assert reply.status_code == 200 and reply.json()["role"] == "ADMIN"
     reply = await client.put(
         url(workspace, f"/groups/{groups['Staff']['id']}"),
-        json={"role": "COLLABORATOR"},
+        json={"role": "REVIEWER"},
         cookies=OWNER,
     )
     assert reply.status_code == 200
@@ -683,8 +690,9 @@ async def test_group_mapping_highest_role_wins_and_recomputes(
         event(directory, "user.created", user_data("u1", JANE)),
     )
     jane = auth.accounts[JANE]["id"]
+    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.VIEWER]
     await _add(client, directory, polis, "u1", JANE, "g-s", "Staff")
-    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.COLLABORATOR]
+    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.REVIEWER]
     await _add(client, directory, polis, "u1", JANE, "g-a", "Admins")
     assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.ADMIN]
 
@@ -710,7 +718,7 @@ async def test_group_mapping_highest_role_wins_and_recomputes(
         "Administrators",
         kind="group.user_removed",
     )
-    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.COLLABORATOR]
+    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.REVIEWER]
 
     # remapping a group recomputes its members at once
     await _add(client, directory, polis, "u1", JANE, "g-a", "Administrators")
@@ -719,7 +727,7 @@ async def test_group_mapping_highest_role_wins_and_recomputes(
         json={"role": None},
         cookies=OWNER,
     )
-    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.COLLABORATOR]
+    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.REVIEWER]
     await client.put(
         url(workspace, f"/groups/{groups['Admins']['id']}"),
         json={"role": "ADMIN"},
@@ -734,19 +742,13 @@ async def test_group_mapping_highest_role_wins_and_recomputes(
         polis,
         event(directory, "group.deleted", group_data("g-a", "Administrators")),
     )
-    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.COLLABORATOR]
+    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.REVIEWER]
 
 
 async def test_unmapped_members_follow_the_default_role(
-    client, workspace, directory, scim_on, monkeypatch
+    client, workspace, directory, scim_on
 ):
     polis, auth = scim_on
-    # a second assignable default role (Viewer once #801 lands)
-    for module in ("policy", "connection_service"):
-        monkeypatch.setattr(
-            f"backend.app.services.sso.{module}.assignable_sso_roles",
-            lambda: ["COLLABORATOR", "ADMIN"],
-        )
     await deliver(
         client,
         directory,
@@ -754,14 +756,42 @@ async def test_unmapped_members_follow_the_default_role(
         event(directory, "user.created", user_data("u1", JANE)),
     )
     jane = auth.accounts[JANE]["id"]
+    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.VIEWER]
     await add_connection(workspace.id)
     reply = await client.put(
         f"/api/v1/workspaces/{workspace.id}/sso/settings",
-        json={"defaultRole": "ADMIN"},
+        json={"defaultRole": "EDITOR"},
         cookies=OWNER,
     )
     assert reply.status_code == 200, reply.text
-    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.ADMIN]
+    # an Editor is stored as COLLABORATOR, like the role picker stores it
+    member = await member_of(workspace.id, jane)
+    assert canonical_roles(member.roles) == ["EDITOR"]
+
+
+async def test_the_role_of_a_directory_member_is_not_changed_by_hand(
+    client, workspace, directory, scim_on
+):
+    polis, auth = scim_on
+    await deliver(
+        client,
+        directory,
+        polis,
+        event(directory, "user.created", user_data("u1", JANE)),
+    )
+    jane = auth.accounts[JANE]["id"]
+    members = f"/api/v1/workspaces/{workspace.id}/members"
+    reply = await client.patch(
+        f"{members}/{jane}", json={"role": "ADMIN"}, cookies=OWNER
+    )
+    assert reply.status_code == 409 and reply.json()["code"] == "managed_by_directory"
+    assert (await member_of(workspace.id, jane)).roles == [WorkspaceRoles.VIEWER]
+    # once the directory is deleted the member is managed by hand again
+    await client.delete(url(workspace, "/directory"), cookies=OWNER)
+    reply = await client.patch(
+        f"{members}/{jane}", json={"role": "REVIEWER"}, cookies=OWNER
+    )
+    assert reply.status_code == 200, reply.text
 
 
 async def test_mapping_refuses_unknown_roles_and_the_owner(

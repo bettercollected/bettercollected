@@ -61,8 +61,8 @@ const overview = (overrides: Partial<ScimOverviewDto> = {}): ScimOverviewDto => 
     counts: { provisioned: 3, deprovisioned: 1, failed: 1, ignored: 0, users: 5 },
     issues: [{ email: 'max@full.org', state: 'failed', reason: 'seat_limit', message: 'The workspace has no free seat.', at: null }],
     groups: [{ id: 'g1', name: 'Admins', role: 'ADMIN', members: 2 }],
-    defaultRole: 'COLLABORATOR',
-    mappableRoles: ['ADMIN', 'COLLABORATOR'],
+    defaultRole: 'VIEWER',
+    mappableRoles: ['ADMIN', 'EDITOR', 'REVIEWER', 'VIEWER', 'PRIVACY_OFFICER'],
     canManage: true,
     ...overrides
 });

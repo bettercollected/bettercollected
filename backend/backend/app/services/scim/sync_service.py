@@ -30,7 +30,12 @@ from common.exceptions.http import HTTPException as CommonHTTPException
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import (
+    WorkspaceRoles,
+    canonical_role,
+    canonical_roles,
+    stored_role,
+)
 from backend.app.repositories.scim_repository import (
     ScimDirectoryRepository,
     ScimGroupMemberRepository,
@@ -324,13 +329,12 @@ class ScimSyncService:
                 changed = (
                     membership.disabled
                     or membership.provisioned_by != PROVISIONED_BY_SCIM
-                    or [str(getattr(r, "value", r)) for r in membership.roles]
-                    != [role.value]
+                    or canonical_roles(membership.roles) != [role.value]
                 )
                 if changed:
                     membership.disabled = False
                     membership.provisioned_by = PROVISIONED_BY_SCIM
-                    membership.roles = [role]
+                    membership.roles = [stored_role(role)]
                     membership.updated_at = _now()
                     await self._workspace_users.save(membership)
                 return self._mark(record, ScimUserState.PROVISIONED)
@@ -407,7 +411,9 @@ class ScimSyncService:
             if group is not None and group.role:
                 roles.append(group.role)
         best = highest_role(roles)
-        return WorkspaceRoles(best) if best else default_sso_role(workspace)
+        if best:
+            return WorkspaceRoles(best)
+        return canonical_role(default_sso_role(workspace)) or WorkspaceRoles.VIEWER
 
     async def recompute(self, records: Iterable[ScimUserDocument], workspace) -> int:
         """Apply the role the groups now give to provisioned users whose
@@ -426,9 +432,8 @@ class ScimSyncService:
             if membership is None or membership.provisioned_by != PROVISIONED_BY_SCIM:
                 continue
             role = await self.role_for(record, workspace)
-            current = [str(getattr(r, "value", r)) for r in membership.roles]
-            if current != [role.value]:
-                membership.roles = [role]
+            if canonical_roles(membership.roles) != [role.value]:
+                membership.roles = [stored_role(role)]
                 membership.updated_at = _now()
                 await self._workspace_users.save(membership)
                 changed += 1

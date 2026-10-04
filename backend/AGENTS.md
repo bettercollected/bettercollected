@@ -228,7 +228,7 @@ mismatch 403, dedupe in `scim_events`, a failed event releases its claim and ans
 `sync_service.py` (the rules: verified SSO domains only, seat cap before the account exists, auth's internal
 `POST /auth/sso/directory-account`, memberships `provisioned_by="scim"`, deactivation **disables** and
 `revoke_all_for_user(SCIM_DEPROVISIONED)`, never the owner or a member invited by hand, JIT `"sso"` memberships are
-taken over; group→role, highest wins via `roles.py`, which reads `WorkspaceRoles` at runtime; `is_deprovisioned` is
+taken over; group→role, highest wins via `roles.py`, which reads `WorkspaceRoles` at runtime (stored with `stored_role`); `update_member_role` refuses a `"scim"` membership while the directory exists (409 `managed_by_directory`); `is_deprovisioned` is
 the guard `login_service` uses to refuse `sso_deprovisioned`; `reconcile`), `directory_service.py` (admin API
 `/workspaces/{id}/scim/*`: view `security.manage`, every change owner only; create needs a verified domain; the
 bearer token is returned once, the webhook secret stored encrypted with `container.crypto`; rotate replaces the

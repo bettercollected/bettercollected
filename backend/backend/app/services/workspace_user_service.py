@@ -4,7 +4,7 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import WorkspaceRoles, stored_role
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -94,8 +94,9 @@ class WorkspaceUserService:
         """A membership created by the workspace's SCIM directory
         (``provisioned_by="scim"``). Same seat rules as ``add_sso_member``; an
         existing membership is returned unchanged (the caller decides)."""
+        # stored like the role picker stores it (an Editor as COLLABORATOR)
         return await self._add_provisioned_member(
-            workspace_id, user_id, role, PROVISIONED_BY_SCIM
+            workspace_id, user_id, stored_role(role), PROVISIONED_BY_SCIM
         )
 
     async def _add_provisioned_member(

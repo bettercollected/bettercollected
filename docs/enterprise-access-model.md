@@ -97,7 +97,7 @@ Folders, and grants on folders, come later. The model already allows it: a folde
 
 ### 5. SSO / SCIM mapping (Phases 1–3)
 Status: SSO (Phase 1–2) and SCIM directory sync (Phase 3) are built ([sso.md](sso.md), "Directory sync"); mapping to member groups waits for member groups (step c).
-- **Workspace roles:** IdP groups map to a workspace role (one per group; Admin allowed, never Owner). The highest role wins, and members with no mapped group get the workspace default (the SSO "role for new members"; Viewer once the new roles land). **Built.** Members the directory manages show "Managed by your directory"; their role follows their groups. Members invited by hand and the owner are never changed by the directory.
+- **Workspace roles:** IdP groups map to a workspace role (one per group; Admin allowed, never Owner). The highest role wins, and members with no mapped group get the workspace default (the SSO "role for new members", Viewer by default). **Built.** Members the directory manages show "Managed by your directory" and their role can't be changed by hand (409 `managed_by_directory`); it follows their groups. Members invited by hand and the owner are never changed by the directory.
 - **Member groups:** IdP groups map to member groups, which then carry form grants. For example, the IdP group "HR" becomes the member group "HR", which is Reviewer on the restricted hiring forms. **Not built** (needs member groups).
 - **Deprovisioning:** **disables** the membership (rather than removing it, so it can be re-enabled and nothing is deleted) and revokes sessions. Forms the person created stay with the workspace. **Built**; a deprovisioned user's SSO sign-in is refused while the directory is connected.
 
