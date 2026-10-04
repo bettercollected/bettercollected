@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi_pagination.ext.beanie import paginate
+from fastapi_pagination.ext.beanie import apaginate
 
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
@@ -71,4 +71,4 @@ class DeletionRequestsRepository:
         deletion_requests_query = FormResponseDeletionRequest.find(
             find_query
         ).aggregate(aggregate_query)
-        return await paginate(deletion_requests_query)
+        return await apaginate(deletion_requests_query)
