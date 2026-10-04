@@ -38,6 +38,7 @@ from backend.app.repositories.form_response_repository import FormResponseReposi
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form_response import (
+    DeletionRequestStatus,
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
@@ -210,14 +211,16 @@ class FormResponseService:
         )
 
     async def get_workspace_form_all_submissions(
-        self, form_id: str, workspace_id: PydanticObjectId, user: User
+        self,
+        form_id: str,
+        workspace_id: PydanticObjectId,
+        user: User,
+        permission: Permission = Permission.RESPONSE_READ,
     ):
-        # Every response of the form, unpaginated: the CSV download and the
-        # flow view's per-response insights. Export gets its own permission
-        # with the rest of the bulk paths.
-        await self._authorization.authorize(
-            user, Permission.RESPONSE_READ, workspace_id
-        )
+        # Every response of the form, unpaginated. The flow view's
+        # per-response insights read it with response.read; the CSV download
+        # goes through the export route, which asks for response.export.
+        await self._authorization.authorize(user, permission, workspace_id)
         # Scope the form to the workspace as well: without this the caller could
         # name any workspace they belong to and read another workspace's form.
         workspace_form = (
@@ -515,6 +518,16 @@ class FormResponseService:
         prefix = f"private/{workspace_id}/{form_id}/{response_id}"
         self._aws_service.delete_folder_from_s3(prefix)
         return response_id
+
+    async def has_pending_deletion_request(self, form_id: str, response_id: str) -> bool:
+        request = await self._form_response_repo.find_deletion_request_by_response_id(
+            response_id
+        )
+        return bool(
+            request
+            and str(request.form_id) == str(form_id)
+            and request.status == DeletionRequestStatus.PENDING
+        )
 
     async def delete_response(self, response_id: str):
         return await self._form_response_repo.delete_response(response_id=response_id)

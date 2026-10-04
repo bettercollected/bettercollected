@@ -9,7 +9,7 @@ import globalConstants from '@app/constants/global';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery, useLazyGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery, useLazyExportFormSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import EmptyResponseIcon from '@Components/icons/expty-response-icon';
 import { DownloadIcon } from 'lucide-react';
@@ -55,7 +55,7 @@ export default function FormResponsesTable({ props }: any) {
     const { data, isLoading } = useGetFormsSubmissionsQuery(query);
     const { can } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
-    const [trigger, { isLoading: csvLoading }] = useLazyGetFormAllSubmissionsQuery();
+    const [trigger, { isLoading: csvLoading }] = useLazyExportFormSubmissionsQuery();
 
     const handleSearch = (event: any) => {
         if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
