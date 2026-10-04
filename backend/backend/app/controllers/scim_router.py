@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, delete, get, post, put
@@ -11,10 +12,12 @@ from backend.app.router import router
 from backend.app.services.scim.directory_service import (
     CreateDirectoryDto,
     DirectoryCredentialsDto,
+    DirectoryDto,
     DirectoryOverviewDto,
     GroupDto,
     GroupRoleDto,
     ResyncDto,
+    ResyncRequestDto,
 )
 from backend.app.services.user_service import get_full_user
 from backend.config import settings
@@ -82,11 +85,29 @@ class WorkspaceScimRouter(Routable):
             workspace_id, group_id, request, user
         )
 
-    @post("/{workspace_id}/scim/resync")
+    @post(
+        "/{workspace_id}/scim/resync",
+        responses={
+            409: {"description": "It would deprovision too many: nothing done."},
+        },
+    )
     async def resync(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self,
+        workspace_id: PydanticObjectId,
+        request: Optional[ResyncRequestDto] = None,
+        user: User = Depends(get_full_user),
     ) -> ResyncDto:
-        return await container.scim_directory_service().resync(workspace_id, user)
+        """``{"force": true}`` applies a resync the safety stop refused."""
+        return await container.scim_directory_service().resync(
+            workspace_id, user, force=bool(request and request.force)
+        )
+
+    @post("/{workspace_id}/scim/directory/cleanup")
+    async def cleanup(
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+    ) -> DirectoryDto:
+        """Retry deleting the previous Polis directory after a rotation."""
+        return await container.scim_directory_service().cleanup(workspace_id, user)
 
 
 @router(prefix="/scim", tags=["Directory sync webhook"])

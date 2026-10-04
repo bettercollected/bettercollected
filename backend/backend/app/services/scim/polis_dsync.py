@@ -13,6 +13,10 @@ from urllib.parse import quote
 from backend.app.services.sso.polis_client import PolisAdminClient, PolisError
 
 
+# 50 000 items at Polis's default page size: a safety stop, not a limit
+MAX_PAGES = 1000
+
+
 def _data(body: Any) -> Any:
     """Polis answers ``{"data": ..., "error": ...}``."""
     if isinstance(body, dict) and "data" in body:
@@ -60,20 +64,27 @@ class PolisDirectoryClient(PolisAdminClient):
     async def _pages(
         self, path: str, params: Dict[str, str], page_size: int
     ) -> List[Dict[str, Any]]:
+        """Every item. Polis caps each page at its own limit (``db.pageLimit``,
+        50 by default) whatever we ask for, so the offset advances by what
+        came back and only an empty page ends the listing. A reply that is
+        not a list raises PolisError: a partial listing must never pass for a
+        complete one (a resync would deprovision the rest)."""
         found: List[Dict[str, Any]] = []
         offset = 0
-        while True:
+        for _ in range(MAX_PAGES):
             body = await self._request(
                 "GET",
                 path,
                 params={**params, "pageOffset": offset, "pageLimit": page_size},
             )
             page = _data(body)
-            page = page if isinstance(page, list) else []
-            found.extend(item for item in page if isinstance(item, dict))
-            if len(page) < page_size or offset > 1_000_000:
+            if not isinstance(page, list):
+                raise PolisError(502, "The directory sync service answered oddly.")
+            if not page:
                 return found
-            offset += page_size
+            found.extend(item for item in page if isinstance(item, dict))
+            offset += len(page)
+        raise PolisError(502, "The directory is larger than a resync can read.")
 
     def _scope(self, tenant: str, directory_id: str) -> Dict[str, str]:
         return {

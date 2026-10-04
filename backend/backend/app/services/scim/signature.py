@@ -5,7 +5,7 @@
 where ``body`` is the JSON Polis posts, exactly as sent (it signs
 ``JSON.stringify(payload)`` and axios posts the same string), so the check
 runs on the raw request bytes, never on re-serialised JSON. Polis sends the
-same value as ``Ory-Polis-Signature`` too.
+same value as ``Ory-Polis-Signature`` too; only ``BoxyHQ-Signature`` is read.
 """
 
 import hashlib
@@ -13,7 +13,9 @@ import hmac
 import time
 from typing import Optional
 
-SIGNATURE_HEADERS = ("BoxyHQ-Signature", "Ory-Polis-Signature")
+# The only header read: Polis 26.2.0 always sends it (and the same value as
+# Ory-Polis-Signature, which is ignored, so one request has one signature).
+SIGNATURE_HEADER = "BoxyHQ-Signature"
 
 
 class BadSignature(Exception):
@@ -73,6 +75,10 @@ def verify(
     expected = hmac.new(
         secret.encode("utf-8"), f"{timestamp}.".encode("ascii") + body, hashlib.sha256
     ).hexdigest()
-    if not hmac.compare_digest(expected, signature.lower()):
+    try:
+        matches = hmac.compare_digest(expected, signature.lower())
+    except TypeError:  # not ASCII
+        raise BadSignature("malformed")
+    if not matches:
         raise BadSignature("mismatch")
     return timestamp

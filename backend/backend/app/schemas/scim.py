@@ -68,6 +68,10 @@ class ScimDirectoryDocument(MongoDocument):
     # or its error code
     last_resync_summary: Optional[Dict[str, Any]] = None
     last_resync_error: Optional[str] = None
+    # a rotation could not delete the previous Polis directory: its token
+    # may still be accepted by Polis until it is deleted (retried by the
+    # owner and by every resync)
+    stale_polis_directory_id: Optional[str] = None
 
     @field_validator("rotated_at", "last_event_at", "last_resync_at", mode="after")
     @classmethod
@@ -136,6 +140,10 @@ class ScimGroupDocument(MongoDocument):
     role_changed_by: Optional[str] = None
     # replaced directory (token rotation): matched to the new one by name
     replaced: bool = False
+    # why the owner should look at this group's mapping: "duplicate_name"
+    # (after a rotation several previous groups had its name, so none was
+    # matched and no role carried over)
+    needs_review: Optional[str] = None
     # TODO(member-groups): map to a member group too once member groups exist
     # (docs/enterprise-access-model.md §3, step c)
 

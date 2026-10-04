@@ -22,8 +22,17 @@ class SCIMSettings(BaseSettings):
     MAX_WEBHOOK_BYTES: int = 1_000_000
     # the nightly resync on the jobs worker (procrastinate cron syntax)
     RECONCILE_CRON: str = "17 3 * * *"
-    # Polis's dsync API page size during a resync
-    RECONCILE_PAGE_SIZE: int = 100
+    # Polis's dsync API page size during a resync (Polis caps pages at its
+    # own db.pageLimit, 50 by default; paging follows what comes back)
+    RECONCILE_PAGE_SIZE: int = 50
+    # A resync refuses to deprovision more than this share of the
+    # provisioned members, once it is at least RECONCILE_MIN_DEPROVISION of
+    # them (the owner can force it)
+    RECONCILE_MAX_DEPROVISION_RATIO: float = 0.2
+    RECONCILE_MIN_DEPROVISION: int = 5
+    # after a token rotation, resyncs remove nobody for this long (the
+    # identity provider re-pushes to the new directory meanwhile)
+    ROTATION_GRACE_HOURS: int = 24
 
     model_config = SettingsConfigDict(env_prefix="SCIM_")
 

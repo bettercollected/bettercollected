@@ -35,7 +35,7 @@ from backend.app.repositories.scim_repository import (
 )
 from backend.app.schemas.scim import ScimDirectoryDocument, ScimEventDocument
 from backend.app.services.scim.signature import (
-    SIGNATURE_HEADERS,
+    SIGNATURE_HEADER,
     BadSignature,
     verify,
 )
@@ -58,13 +58,18 @@ def _reply(status: int, code: str, **extra) -> WebhookReply:
     return WebhookReply(status, {"code": code, **extra})
 
 
-def event_key(directory_id, event: Dict[str, Any], timestamp_ms: int) -> str:
+def event_key(
+    directory_id, event: Dict[str, Any], timestamp_ms: int, index: int = 0
+) -> str:
+    """The same signed request (a retry, a replay) gives the same keys; two
+    identical events in one batch differ by their position."""
     material = json.dumps(
         [
             str(directory_id),
             event.get("event"),
             event.get("data"),
             timestamp_ms,
+            index,
         ],
         sort_keys=True,
         separators=(",", ":"),
@@ -90,10 +95,7 @@ class ScimWebhookService:
         if len(body) > settings.scim.MAX_WEBHOOK_BYTES:
             return _reply(413, "too_large")
         directory = await self._directories.get(directory_id)
-        signature = next(
-            (headers.get(name) for name in SIGNATURE_HEADERS if headers.get(name)),
-            None,
-        )
+        signature = headers.get(SIGNATURE_HEADER)
         if directory is None:
             logger.info("SCIM webhook refused: unknown directory")
             return _reply(401, "invalid_signature")
@@ -140,8 +142,8 @@ class ScimWebhookService:
             return _reply(503, "scim_disabled")
 
         applied = duplicates = 0
-        for event in events:
-            key = event_key(directory.id, event, timestamp)
+        for index, event in enumerate(events):
+            key = event_key(directory.id, event, timestamp, index)
             now = dt.datetime.now(dt.timezone.utc)
             try:
                 await self._events.claim(

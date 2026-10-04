@@ -44,6 +44,7 @@ from backend.app.repositories.scim_repository import (
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.schemas.workspace_user import DISABLED_BY_DIRECTORY
 from backend.app.schemas.scim import (
     ScimDirectoryDocument,
     ScimGroupDocument,
@@ -80,6 +81,7 @@ REASON_MESSAGES: Dict[str, str] = {
     "invalid_email": "The directory sent no usable email address.",
     "auth_unavailable": "The account service could not be reached; it is "
     "retried on the next change or resync.",
+    "pending": "Not applied yet; it is retried on the next change or resync.",
 }
 
 # memberships the directory may manage: its own and just-in-time SSO ones
@@ -131,6 +133,8 @@ class SyncCounts:
     failed: int = 0
     ignored: int = 0
     removed: int = 0
+    # users not applied because the auth service was unavailable
+    skipped: int = 0
     changes: List[str] = field(default_factory=list)
 
     def summary(self) -> Dict[str, int]:
@@ -142,11 +146,25 @@ class SyncCounts:
             "failed": self.failed,
             "ignored": self.ignored,
             "removed": self.removed,
+            "skipped": self.skipped,
         }
 
 
-class _AuthUnavailable(Exception):
-    pass
+class AuthUnavailable(Exception):
+    """The auth service could not be asked. Nothing is decided about the
+    user: a webhook answers 503 (Polis retries), a resync skips the user and
+    records the failure."""
+
+
+class ReconcileRefused(Exception):
+    """A resync would deprovision too many members at once (or Polis listed
+    nobody): nothing was applied. ``force`` overrides it."""
+
+    def __init__(self, would_deprovision: int, provisioned: int, listed: int):
+        super().__init__("mass_deprovision_refused")
+        self.would_deprovision = would_deprovision
+        self.provisioned = provisioned
+        self.listed = listed
 
 
 class ScimSyncService:
@@ -193,10 +211,10 @@ class ScimSyncService:
                 "SCIM: the auth service refused an account lookup (HTTP {})",
                 getattr(error, "status_code", "?"),
             )
-            raise _AuthUnavailable()
+            raise AuthUnavailable()
         except Exception as error:  # noqa: BLE001 — unreachable
             logger.warning("SCIM: auth unreachable: {}", type(error).__name__)
-            raise _AuthUnavailable()
+            raise AuthUnavailable()
         reply = reply if isinstance(reply, dict) else {}
         if reply.get("conflict"):
             return None, True
@@ -223,6 +241,7 @@ class ScimSyncService:
                     candidate.polis_user_id = user.polis_user_id
                     candidate.replaced = False
                     return candidate
+        # new: nothing decided yet (an id for group memberships)
         return ScimUserDocument(
             id=derived_object_id("scim_user", directory.id, user.polis_user_id),
             directory_id=directory.id,
@@ -230,25 +249,38 @@ class ScimSyncService:
             polis_user_id=user.polis_user_id,
             email=user.email,
             active=user.active,
+            state=ScimUserState.IGNORED,
+            reason="pending",
         )
 
     async def group_record(
         self, directory: ScimDirectoryDocument, polis_group_id: str, name: str
     ) -> ScimGroupDocument:
+        """By Polis id; else the one group a replaced directory (token
+        rotation) left with the same name, mapping included. Several such
+        groups with that name: none is matched, the new group starts
+        unmapped and is flagged for the owner (a name is not proof enough to
+        hand out a role, Admin least of all)."""
         record = await self._groups.find(directory.id, polis_group_id)
         if record is not None:
             return record
-        for candidate in await self._groups.list_by_directory(directory.id):
-            if candidate.replaced and candidate.name == name:
-                candidate.polis_group_id = polis_group_id
-                candidate.replaced = False
-                return candidate
+        candidates = [
+            c
+            for c in await self._groups.list_by_directory(directory.id)
+            if c.replaced and c.name == name
+        ]
+        if len(candidates) == 1:
+            candidate = candidates[0]
+            candidate.polis_group_id = polis_group_id
+            candidate.replaced = False
+            return candidate
         return ScimGroupDocument(
             id=derived_object_id("scim_group", directory.id, polis_group_id),
             directory_id=directory.id,
             workspace_id=directory.workspace_id,
             polis_group_id=polis_group_id,
             name=name,
+            needs_review="duplicate_name" if candidates else None,
         )
 
     # -- users ----------------------------------------------------------------
@@ -259,6 +291,8 @@ class ScimSyncService:
         deleted: bool = False,
         workspace=None,
     ) -> ScimUserDocument:
+        """Apply one directory user. Raises AuthUnavailable without changing
+        the record's outcome when the auth service can't be asked."""
         workspace = workspace or await self._workspace_repo.find_by_id(
             directory.workspace_id
         )
@@ -271,22 +305,30 @@ class ScimSyncService:
         ):
             # the IdP changed the address: the old account stops being this
             # directory user
-            await self._disable(record, workspace, record.user_id)
+            await self._disable_account(workspace, record.user_id, record.email)
             record.user_id = None
-        record.email = user.email or record.email
-        record.active = user.active and not deleted
+        email = user.email or record.email
+        active = user.active and not deleted
+        target = DirectoryUser(
+            polis_user_id=user.polis_user_id,
+            email=email,
+            active=active,
+            first_name=user.first_name,
+            last_name=user.last_name,
+        )
+        if active:
+            await self._provision(record, target, workspace)
+        else:
+            await self._deprovision(record, target, workspace)
+        # only now, once decided, is the change recorded
+        record.email = email
+        record.active = active
         record.deleted = deleted
         record.last_event_at = _now()
         record.updated_at = _now()
-        await self._users.save(record)  # an id for group memberships
+        await self._users.save(record)
         if deleted:
             await self._members.delete_by_user(record.id)
-        if record.active:
-            await self._provision(record, user, workspace)
-        else:
-            await self._deprovision(record, user, workspace)
-        record.updated_at = _now()
-        await self._users.save(record)
         logger.info(
             "SCIM user {} of directory {}: {}{}",
             record.id,
@@ -301,96 +343,118 @@ class ScimSyncService:
         record.state = state
         record.reason = reason
 
+    async def _on_this_workspaces_domain(self, workspace, email: str) -> bool:
+        if not email:
+            return False
+        claim = await self._domains.sso_domain_claim(email)
+        return claim is not None and str(claim.workspace_id) == str(workspace.id)
+
+    async def _lift_directory_disable(self, membership, workspace) -> bool:
+        """Re-enable what the directory disabled, nothing else (a plan
+        downgrade's disable stays). False when it would take a seat and none
+        is free (a disabled membership holds none)."""
+        if DISABLED_BY_DIRECTORY not in membership.disabled_reasons:
+            return True
+        if membership.disabled_reasons == [
+            DISABLED_BY_DIRECTORY
+        ] and not await self._workspace_user_service.has_free_seat(workspace.id):
+            return False
+        membership.enable_for(DISABLED_BY_DIRECTORY)
+        membership.updated_at = _now()
+        await self._workspace_users.save(membership)
+        return True
+
     async def _provision(self, record, user: DirectoryUser, workspace) -> None:
         if workspace is None or workspace.disabled:
             return self._mark(record, ScimUserState.FAILED, "workspace_unavailable")
         if not user.email:
             return self._mark(record, ScimUserState.FAILED, "invalid_email")
-        claim = await self._domains.sso_domain_claim(user.email)
-        if claim is None or str(claim.workspace_id) != str(workspace.id):
+        if not await self._on_this_workspaces_domain(workspace, user.email):
             return self._mark(record, ScimUserState.FAILED, "unverified_domain")
-        try:
-            account_id, conflict = await self._account(user, create=False)
-            if conflict:
-                return self._mark(record, ScimUserState.FAILED, "account_conflict")
-            if account_id and account_id == str(workspace.owner_id):
-                record.user_id = account_id
-                return self._mark(record, ScimUserState.IGNORED, "owner_protected")
-            membership = (
-                await self._workspace_user_service.find_member(workspace.id, account_id)
-                if account_id
-                else None
-            )
-            if membership is not None:
-                record.user_id = account_id
-                if membership.provisioned_by not in MANAGEABLE:
-                    return self._mark(record, ScimUserState.IGNORED, "manual_member")
-                role = await self.role_for(record, workspace)
-                changed = (
-                    membership.disabled
-                    or membership.provisioned_by != PROVISIONED_BY_SCIM
-                    or canonical_roles(membership.roles) != [role.value]
-                )
-                if changed:
-                    membership.disabled = False
-                    membership.provisioned_by = PROVISIONED_BY_SCIM
-                    membership.roles = [stored_role(role)]
-                    membership.updated_at = _now()
-                    await self._workspace_users.save(membership)
-                return self._mark(record, ScimUserState.PROVISIONED)
-            # a new member: the seat cap first, before any account exists
-            if not await self._workspace_user_service.has_free_seat(workspace.id):
-                return self._mark(record, ScimUserState.FAILED, "seat_limit")
-            if account_id is None:
-                account_id, conflict = await self._account(user, create=True)
-                if conflict or not account_id:
-                    return self._mark(record, ScimUserState.FAILED, "account_conflict")
+        account_id, conflict = await self._account(user, create=False)
+        if conflict:
+            return self._mark(record, ScimUserState.FAILED, "account_conflict")
+        if account_id and account_id == str(workspace.owner_id):
             record.user_id = account_id
-            role = await self.role_for(record, workspace)
-            try:
-                await self._workspace_user_service.add_directory_member(
-                    workspace.id, account_id, role
-                )
-            except SeatLimitReached:
+            return self._mark(record, ScimUserState.IGNORED, "owner_protected")
+        membership = (
+            await self._workspace_user_service.find_member(workspace.id, account_id)
+            if account_id
+            else None
+        )
+        if membership is not None:
+            record.user_id = account_id
+            if membership.provisioned_by not in MANAGEABLE:
+                # invited by hand: the directory never sets its role; it only
+                # lifts its own deactivation
+                if not await self._lift_directory_disable(membership, workspace):
+                    return self._mark(record, ScimUserState.FAILED, "seat_limit")
+                return self._mark(record, ScimUserState.IGNORED, "manual_member")
+            if not await self._lift_directory_disable(membership, workspace):
                 return self._mark(record, ScimUserState.FAILED, "seat_limit")
+            role = await self.role_for(record, workspace)
+            if membership.provisioned_by != PROVISIONED_BY_SCIM or canonical_roles(
+                membership.roles
+            ) != [role.value]:
+                membership.provisioned_by = PROVISIONED_BY_SCIM
+                membership.roles = [stored_role(role)]
+                membership.updated_at = _now()
+                await self._workspace_users.save(membership)
             return self._mark(record, ScimUserState.PROVISIONED)
-        except _AuthUnavailable:
-            return self._mark(record, ScimUserState.FAILED, "auth_unavailable")
+        # a new member: the seat cap first, before any account exists
+        if not await self._workspace_user_service.has_free_seat(workspace.id):
+            return self._mark(record, ScimUserState.FAILED, "seat_limit")
+        if account_id is None:
+            account_id, conflict = await self._account(user, create=True)
+            if conflict or not account_id:
+                return self._mark(record, ScimUserState.FAILED, "account_conflict")
+        record.user_id = account_id
+        role = await self.role_for(record, workspace)
+        try:
+            await self._workspace_user_service.add_directory_member(
+                workspace.id, account_id, role
+            )
+        except SeatLimitReached:
+            return self._mark(record, ScimUserState.FAILED, "seat_limit")
+        return self._mark(record, ScimUserState.PROVISIONED)
 
     async def _deprovision(self, record, user: DirectoryUser, workspace) -> None:
         account_id = record.user_id
         if account_id is None and user.email:
-            try:
-                account_id, _conflict = await self._account(user, create=False)
-            except _AuthUnavailable:
-                account_id = None
+            account_id, _conflict = await self._account(user, create=False)
         record.user_id = account_id
         if workspace is not None and account_id == str(workspace.owner_id):
             return self._mark(record, ScimUserState.IGNORED, "owner_protected")
         if workspace is not None and account_id:
-            membership = await self._workspace_user_service.find_member(
-                workspace.id, account_id
-            )
-            if membership is not None and membership.provisioned_by not in MANAGEABLE:
+            outcome = await self._disable_account(workspace, account_id, user.email)
+            if outcome == "manual_off_domain":
                 return self._mark(record, ScimUserState.IGNORED, "manual_member")
-            await self._disable(record, workspace, account_id)
         return self._mark(record, ScimUserState.DEPROVISIONED)
 
-    async def _disable(self, record, workspace, account_id: str) -> None:
-        """Disable a managed membership and end the user's sessions. Never the
-        owner's; never one invited by hand; never deletes anything."""
+    async def _disable_account(self, workspace, account_id: str, email: str) -> str:
+        """Disable the account's membership (reason ``directory``) and end
+        all of its sessions. Never the owner's. A membership invited by hand
+        too, when the address is on this workspace's verified domains (the
+        directory speaks for those). Never deletes anything."""
         if workspace is None or account_id == str(workspace.owner_id):
-            return
+            return "owner"
         membership = await self._workspace_user_service.find_member(
             workspace.id, account_id
         )
-        if membership is None or membership.provisioned_by not in MANAGEABLE:
-            return
-        if not membership.disabled:
-            membership.disabled = True
+        if membership is None:
+            return "none"
+        managed = membership.provisioned_by in MANAGEABLE
+        if not managed and not await self._on_this_workspaces_domain(workspace, email):
+            return "manual_off_domain"
+        changed = membership.disable_for(DISABLED_BY_DIRECTORY)
+        if managed and membership.provisioned_by != PROVISIONED_BY_SCIM:
             membership.provisioned_by = PROVISIONED_BY_SCIM
+            changed = True
+        if changed:
             membership.updated_at = _now()
             await self._workspace_users.save(membership)
+        # every session of the account, its other workspaces' included: the
+        # simplest safe choice (docs/sso.md); its other memberships stay
         revoked = await self._sessions.revoke_all_for_user(
             account_id, RevokeReason.SCIM_DEPROVISIONED
         )
@@ -400,6 +464,7 @@ class ScimSyncService:
             workspace.id,
             revoked,
         )
+        return "disabled"
 
     # -- roles ----------------------------------------------------------------
     async def role_for(self, record: ScimUserDocument, workspace) -> WorkspaceRoles:
@@ -547,19 +612,74 @@ class ScimSyncService:
         return not any(r.active and not r.deleted for r in records)
 
     # -- resync ---------------------------------------------------------------
+    @staticmethod
+    def in_rotation_grace(directory: ScimDirectoryDocument, now=None) -> bool:
+        """Within ``SCIM_ROTATION_GRACE_HOURS`` of a token rotation: the
+        identity provider may not have pushed everything to the new
+        directory yet, so a resync removes nobody and no group."""
+        if directory.rotated_at is None:
+            return False
+        now = now or _now()
+        grace = dt.timedelta(hours=settings.scim.ROTATION_GRACE_HOURS)
+        return now - directory.rotated_at < grace
+
+    @staticmethod
+    def check_mass_deprovision(
+        existing: List[ScimUserDocument],
+        parsed: List[DirectoryUser],
+        in_grace: bool,
+    ) -> None:
+        """Refuse (ReconcileRefused) a resync that would deprovision more
+        than ``SCIM_RECONCILE_MAX_DEPROVISION_RATIO`` of the provisioned
+        members and at least ``SCIM_RECONCILE_MIN_DEPROVISION`` of them, or
+        that got no user at all from Polis while members are provisioned: a
+        half-broken listing must not empty the workspace overnight."""
+        provisioned = [
+            r
+            for r in existing
+            if r.state == ScimUserState.PROVISIONED and not r.deleted
+        ]
+        if not provisioned:
+            return
+        listed = {u.polis_user_id for u in parsed}
+        active_ids = {u.polis_user_id for u in parsed if u.active}
+        active_emails = {u.email for u in parsed if u.active and u.email}
+        would = 0
+        for record in provisioned:
+            if record.polis_user_id in active_ids:
+                continue
+            if record.replaced and record.email in active_emails:
+                continue
+            if record.polis_user_id in listed or not in_grace:
+                would += 1
+        config = settings.scim
+        if (not parsed and not in_grace) or (
+            would >= config.RECONCILE_MIN_DEPROVISION
+            and would > config.RECONCILE_MAX_DEPROVISION_RATIO * len(provisioned)
+        ):
+            raise ReconcileRefused(would, len(provisioned), len(parsed))
+
     async def reconcile(
         self,
         directory: ScimDirectoryDocument,
         users: List[Dict[str, Any]],
         groups: List[Tuple[Dict[str, Any], List[str]]],
+        force: bool = False,
     ) -> SyncCounts:
         """Make the workspace match the directory as Polis holds it now:
         ``users`` and ``groups`` (each with its members' Polis user ids), as
-        listed by Polis's dsync API. Catches events that never arrived."""
+        listed by Polis's dsync API. Catches events that never arrived.
+        Raises ReconcileRefused before changing anything when it would
+        deprovision too many (``force`` skips that check)."""
         counts = SyncCounts()
         workspace = await self._workspace_repo.find_by_id(directory.workspace_id)
         parsed = [u for u in (DirectoryUser.of(d) for d in users) if u is not None]
         counts.users = len(parsed)
+        in_grace = self.in_rotation_grace(directory)
+        if not force:
+            self.check_mass_deprovision(
+                await self._users.list_by_directory(directory.id), parsed, in_grace
+            )
         # 1. a record for every user (so memberships can point at it)
         records: Dict[str, ScimUserDocument] = {}
         for user in parsed:
@@ -590,31 +710,38 @@ class ScimSyncService:
                 )
             for scim_user_id in current - wanted:
                 await self._members.remove(group.id, scim_user_id)
-        # groups Polis no longer has; a replaced directory's groups (token
-        # rotation) stay, with their mapping, until the new one sends them
+        # groups Polis no longer has (not while a rotation's grace lasts: the
+        # previous directory's groups keep their mapping until matched)
         for group in await self._groups.list_by_directory(directory.id):
-            if group.id not in seen_groups and not group.replaced:
+            if group.id not in seen_groups and not (group.replaced and in_grace):
                 await self._members.delete_by_group(group.id)
                 await self._groups.delete(group.id)
         # 3. every user's membership, status and role
         for user in parsed:
-            record = await self.apply_user(directory, user, workspace=workspace)
+            try:
+                record = await self.apply_user(directory, user, workspace=workspace)
+            except AuthUnavailable:
+                counts.skipped += 1
+                continue
             self._count(counts, record)
-        # 4. users Polis no longer has: deleted in the directory. Records left
-        # by a replaced directory (token rotation) only once the identity
-        # provider pushed to the new one: until then they keep their access.
+        # 4. users Polis no longer has: deleted in the directory (none while
+        # a rotation's grace lasts)
+        if in_grace:
+            return counts
         listed = {r.id for r in records.values()}
         for record in await self._users.list_by_directory(directory.id):
             if record.id in listed or record.deleted:
                 continue
-            if record.replaced and not parsed:
-                continue
             gone = DirectoryUser(
                 polis_user_id=record.polis_user_id, email=record.email, active=False
             )
-            record = await self.apply_user(
-                directory, gone, deleted=True, workspace=workspace
-            )
+            try:
+                await self.apply_user(
+                    directory, gone, deleted=True, workspace=workspace
+                )
+            except AuthUnavailable:
+                counts.skipped += 1
+                continue
             counts.removed += 1
         return counts
 

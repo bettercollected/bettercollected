@@ -25,6 +25,8 @@ class FakePolisDirectory:
         self.calls: List[tuple] = []
         self.directories: Dict[str, dict] = {}
         self.fail: Optional[PolisError] = None
+        # only deleting a directory fails (a rotation's clean-up)
+        self.fail_delete: Optional[PolisError] = None
         self._n = 0
         # what a resync lists: Polis users, groups and members per group
         self.users: List[dict] = []
@@ -57,8 +59,8 @@ class FakePolisDirectory:
         }
 
     async def delete_directory(self, directory_id):
-        if self.fail:
-            raise self.fail
+        if self.fail or self.fail_delete:
+            raise self.fail or self.fail_delete
         self.calls.append(("delete", directory_id))
         self.directories.pop(directory_id, None)
 

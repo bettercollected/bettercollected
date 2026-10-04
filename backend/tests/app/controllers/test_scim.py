@@ -508,7 +508,7 @@ async def test_the_owner_is_never_touched(client, workspace, directory, scim_on)
     assert (record.state, record.reason) == (ScimUserState.IGNORED, "owner_protected")
 
 
-async def test_a_manually_invited_member_is_untouched(
+async def test_a_manually_invited_member_keeps_their_role_but_is_deactivated(
     client, workspace, directory, scim_on
 ):
     polis, auth = scim_on
@@ -520,7 +520,8 @@ async def test_a_manually_invited_member_is_untouched(
             roles=[WorkspaceRoles.ADMIN],
         )
     )
-    admins = await _group(directory, "g-a", "Admins", role="COLLABORATOR")
+    session = await _session(manual["id"])
+    await _group(directory, "g-a", "Admins", role="VIEWER")
     for payload in (
         event(directory, "user.created", user_data("u1", JANE)),
         event(
@@ -528,15 +529,37 @@ async def test_a_manually_invited_member_is_untouched(
             "group.user_added",
             {**user_data("u1", JANE), "group": group_data("g-a", "Admins")},
         ),
-        event(directory, "user.updated", user_data("u1", JANE, active=False)),
     ):
         await deliver(client, directory, polis, payload)
+    # the directory never sets the role of a member invited by hand
     member = await member_of(workspace.id, manual["id"])
     assert not member.disabled and member.roles == [WorkspaceRoles.ADMIN]
     assert member.provisioned_by is None
-    record = await _record(directory, "u1")
-    assert record.reason == "manual_member"
-    assert admins.id
+    assert (await _record(directory, "u1")).reason == "manual_member"
+
+    # but deactivation (their address is on a verified domain) applies
+    await deliver(
+        client,
+        directory,
+        polis,
+        event(directory, "user.updated", user_data("u1", JANE, active=False)),
+    )
+    member = await member_of(workspace.id, manual["id"])
+    assert member.disabled and member.disabled_reasons == ["directory"]
+    assert member.roles == [WorkspaceRoles.ADMIN] and member.provisioned_by is None
+    assert (await container.session_repo().get(session.id)).revoked_at is not None
+    assert (await _record(directory, "u1")).state == ScimUserState.DEPROVISIONED
+
+    # re-activation lifts the directory's own deactivation
+    await deliver(
+        client,
+        directory,
+        polis,
+        event(directory, "user.updated", user_data("u1", JANE, active=True)),
+    )
+    member = await member_of(workspace.id, manual["id"])
+    assert not member.disabled and member.disabled_reasons == []
+    assert member.roles == [WorkspaceRoles.ADMIN]
 
 
 async def test_a_jit_member_is_taken_over(client, workspace, directory, scim_on):

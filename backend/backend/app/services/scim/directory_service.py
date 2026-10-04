@@ -45,8 +45,8 @@ from backend.app.services.scim.polis_dsync import (
 from backend.app.services.scim.roles import mappable_roles, to_mappable
 from backend.app.services.scim.sync_service import (
     REASON_MESSAGES,
+    ReconcileRefused,
     ScimSyncService,
-    SyncCounts,
 )
 from backend.app.services.sso.polis_client import PolisError, PolisUnavailable
 from backend.app.models.enum.workspace_roles import canonical_role
@@ -55,6 +55,8 @@ from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.config import settings
 
 MAX_FAILURES_SHOWN = 50
+# last_resync_error of a resync the safety stop refused
+REFUSED = "mass_deprovision_refused"
 
 
 class _CamelModel(BaseModel):
@@ -85,6 +87,11 @@ class DirectoryDto(_CamelModel):
     last_resync_at: Optional[dt.datetime] = None
     last_resync_summary: Optional[Dict[str, int]] = None
     last_resync_error: Optional[str] = None
+    # the previous Polis directory (before a rotation) could not be deleted:
+    # its token may still be accepted until "Retry" succeeds
+    previous_directory_pending_delete: bool = False
+    # resyncs remove nobody until then (after a rotation)
+    rotation_grace_until: Optional[dt.datetime] = None
 
     @classmethod
     def of(cls, d: ScimDirectoryDocument) -> "DirectoryDto":
@@ -102,6 +109,12 @@ class DirectoryDto(_CamelModel):
             last_resync_at=d.last_resync_at,
             last_resync_summary=d.last_resync_summary,
             last_resync_error=d.last_resync_error,
+            previous_directory_pending_delete=bool(d.stale_polis_directory_id),
+            rotation_grace_until=(
+                d.rotated_at + dt.timedelta(hours=settings.scim.ROTATION_GRACE_HOURS)
+                if d.rotated_at and ScimSyncService.in_rotation_grace(d)
+                else None
+            ),
         )
 
 
@@ -111,6 +124,9 @@ class DirectoryCredentialsDto(_CamelModel):
     directory: DirectoryDto
     scim_endpoint: str
     bearer_token: str
+    # rotation only: False when the previous Polis directory could not be
+    # deleted (its token may still be accepted; retry the clean-up)
+    previous_directory_deleted: bool = True
 
 
 class GroupDto(_CamelModel):
@@ -118,6 +134,9 @@ class GroupDto(_CamelModel):
     name: str
     role: Optional[str] = None
     members: int = 0
+    # "duplicate_name": after a rotation the mapping could not be carried
+    # over by name; the owner sets it again
+    needs_review: Optional[str] = None
 
 
 class DirectoryIssueDto(_CamelModel):
@@ -146,6 +165,11 @@ class DirectoryOverviewDto(_CamelModel):
     default_role: str
     mappable_roles: List[str]
     can_manage: bool = False
+
+
+class ResyncRequestDto(_CamelModel):
+    # deprovision even when it is more than the safety threshold
+    force: bool = False
 
 
 class ResyncDto(_CamelModel):
@@ -290,6 +314,7 @@ class ScimDirectoryService:
                 name=g.name,
                 role=g.role,
                 members=per_group.get(str(g.id), 0),
+                needs_review=g.needs_review,
             )
             for g in sorted(
                 await self._groups.list_by_directory(directory.id),
@@ -404,15 +429,21 @@ class ScimDirectoryService:
         directory.rotated_by = str(user.id)
         directory.updated_at = now
         await self._directories.save(directory)
+        # Active users wait to be matched by email; deactivated and deleted
+        # ones keep their record (and SSO stays refused for them).
         for record in await self._users.list_by_directory(directory.id):
-            if not record.deleted and not record.replaced:
+            if record.active and not record.deleted and not record.replaced:
                 record.replaced = True
                 await self._users.save(record)
         for group in await self._groups.list_by_directory(directory.id):
             if not group.replaced:
                 group.replaced = True
                 await self._groups.save(group)
-        await self._delete_in_polis(old_polis_id)
+        deleted = await self._delete_in_polis(old_polis_id)
+        if not deleted:
+            directory = await self._directories.get(directory.id) or directory
+            directory.stale_polis_directory_id = old_polis_id
+            await self._directories.save(directory)
         logger.info(
             "SCIM directory {} of workspace {} rotated by {}",
             directory.id,
@@ -423,16 +454,44 @@ class ScimDirectoryService:
             directory=DirectoryDto.of(directory),
             scim_endpoint=directory.scim_endpoint,
             bearer_token=scim_secret(created),
+            previous_directory_deleted=deleted,
         )
 
-    async def _delete_in_polis(self, polis_directory_id: str) -> None:
+    async def _delete_in_polis(self, polis_directory_id: str) -> bool:
         try:
             await self._polis.delete_directory(polis_directory_id)
+            return True
         except PolisError:
             logger.warning(
-                "Could not delete Polis directory {}; delete it by hand",
+                "Could not delete Polis directory {}; it is retried",
                 polis_directory_id,
             )
+            return False
+
+    async def _retry_stale(self, directory: ScimDirectoryDocument) -> bool:
+        """Delete a previous Polis directory a rotation could not delete."""
+        if not directory.stale_polis_directory_id:
+            return True
+        if not await self._delete_in_polis(directory.stale_polis_directory_id):
+            return False
+        fresh = await self._directories.get(directory.id) or directory
+        fresh.stale_polis_directory_id = None
+        fresh.updated_at = _now()
+        await self._directories.save(fresh)
+        return True
+
+    async def cleanup(self, workspace_id, user: User) -> DirectoryDto:
+        """Retry deleting the previous Polis directory (after a rotation)."""
+        await self._authorize_owner(workspace_id, user)
+        self._require_available()
+        directory = await self._directory(workspace_id)
+        if not await self._retry_stale(directory):
+            raise _refused(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                "scim_unavailable",
+                "The previous directory could not be deleted yet. Try again.",
+            )
+        return DirectoryDto.of(await self._directory(workspace_id))
 
     async def delete(self, workspace_id, user: User) -> None:
         """Stop syncing. Members stay as they are (an admin decides), and so
@@ -444,6 +503,7 @@ class ScimDirectoryService:
                 await self._polis.delete_directory(directory.polis_directory_id)
             except PolisError as error:
                 raise _polis_error(error)
+            await self._retry_stale(directory)
         await self._forget(directory)
         logger.info(
             "SCIM directory {} of workspace {} deleted by {}",
@@ -475,6 +535,7 @@ class ScimDirectoryService:
                 "That role can't be given by a directory group.",
             )
         group.role = role
+        group.needs_review = None
         group.role_changed_by = str(user.id)
         group.updated_at = _now()
         await self._groups.save(group)
@@ -491,29 +552,48 @@ class ScimDirectoryService:
         return GroupDto(id=str(group.id), name=group.name, role=role, members=members)
 
     # -- resync ---------------------------------------------------------------
-    async def resync(self, workspace_id, user: User) -> ResyncDto:
+    async def resync(self, workspace_id, user: User, force: bool = False) -> ResyncDto:
         await self._authorize_owner(workspace_id, user)
         self._require_available()
         directory = await self._directory(workspace_id)
-        summary = await self.resync_directory(directory, str(user.id))
+        summary = await self.resync_directory(directory, str(user.id), force=force)
         directory = await self._directory(workspace_id)
+        if directory.last_resync_error == REFUSED:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content={
+                    "code": REFUSED,
+                    "message": (
+                        f"This resync would deactivate {summary.get('wouldDeprovision', 0)} "
+                        f"of {summary.get('provisioned', 0)} members, more than the "
+                        "safety limit, so nothing was changed. Check your identity "
+                        "provider's assignments; resync with force if this is right."
+                    ),
+                    "summary": summary,
+                },
+            )
         if directory.last_resync_error:
             raise _refused(
                 HTTPStatus.SERVICE_UNAVAILABLE,
                 directory.last_resync_error,
-                "The directory sync service is not reachable.",
+                "The directory or account service is not reachable; resync "
+                "again later.",
             )
         return ResyncDto(directory=DirectoryDto.of(directory), summary=summary)
 
     async def resync_directory(
-        self, directory: ScimDirectoryDocument, by: str
+        self, directory: ScimDirectoryDocument, by: str, force: bool = False
     ) -> Dict[str, int]:
         """Pull the directory's users and groups from Polis and apply them
-        (the admin button, the CLI and the nightly job)."""
+        (the admin button, the CLI and the nightly job). The outcome is
+        recorded on the directory: ``last_resync_error`` is
+        ``scim_unavailable`` (Polis), ``mass_deprovision_refused`` (the safety
+        stop, nothing applied) or ``auth_unavailable`` (some users skipped)."""
         page = settings.scim.RECONCILE_PAGE_SIZE
         tenant, polis_id = directory.polis_tenant, directory.polis_directory_id
-        counts = SyncCounts()
+        summary: Dict[str, int] = {}
         error = None
+        await self._retry_stale(directory)
         try:
             users = await self._polis.list_users(tenant, polis_id, page)
             groups = []
@@ -525,39 +605,79 @@ class ScimDirectoryService:
                     tenant, polis_id, group_id, page
                 )
                 groups.append((group, members))
-            counts = await self._sync.reconcile(directory, users, groups)
+            counts = await self._sync.reconcile(directory, users, groups, force=force)
+            summary = counts.summary()
+            if counts.skipped:
+                error = "auth_unavailable"
         except PolisError:
             error = "scim_unavailable"
+        except ReconcileRefused as refused:
+            error = REFUSED
+            summary = {
+                "wouldDeprovision": refused.would_deprovision,
+                "provisioned": refused.provisioned,
+                "listed": refused.listed,
+            }
+            logger.warning(
+                "SCIM directory {}: resync refused, it would deprovision {} of {} "
+                "provisioned members ({} listed by Polis)",
+                directory.id,
+                refused.would_deprovision,
+                refused.provisioned,
+                refused.listed,
+            )
         now = _now()
         fresh = await self._directories.get(directory.id) or directory
         fresh.last_resync_at = now
         fresh.last_resync_by = by
         fresh.last_resync_error = error
-        if error is None:
-            fresh.last_resync_summary = counts.summary()
+        if summary:
+            fresh.last_resync_summary = summary
         fresh.updated_at = now
         await self._directories.save(fresh)
         logger.info(
-            "SCIM directory {} resynced by {}: {}",
+            "SCIM directory {} resynced by {}: {} {}",
             directory.id,
             by,
-            error or counts.summary(),
+            error or "ok",
+            summary,
         )
-        return counts.summary()
+        return summary
 
     async def resync_all(self, by: str = "schedule") -> Dict[str, int]:
-        """Every directory (the nightly job and ``--all``)."""
+        """Every directory (the nightly job and ``--all``). One directory's
+        failure is recorded on it and the others still run."""
         done = failed = 0
         if not scim_available():
             return {"directories": 0, "failed": 0}
         for directory in await self._directories.list_all():
-            await self.resync_directory(directory, by)
+            try:
+                await self.resync_directory(directory, by)
+            except Exception as error:  # noqa: BLE001 — the others still run
+                logger.error(
+                    "SCIM directory {}: resync failed: {}",
+                    directory.id,
+                    type(error).__name__,
+                )
+                await self._record_failure(directory, by, "resync_failed")
+                failed += 1
+                continue
             fresh = await self._directories.get(directory.id)
             if fresh is not None and fresh.last_resync_error:
                 failed += 1
             else:
                 done += 1
         return {"directories": done, "failed": failed}
+
+    async def _record_failure(self, directory, by: str, code: str) -> None:
+        try:
+            fresh = await self._directories.get(directory.id) or directory
+            fresh.last_resync_at = _now()
+            fresh.last_resync_by = by
+            fresh.last_resync_error = code
+            await self._directories.save(fresh)
+        except Exception:  # noqa: BLE001 — best effort
+            logger.error("SCIM directory {}: failure not recorded", directory.id)
 
     # -- workspace deletion ---------------------------------------------------
     async def release_workspaces(self, workspace_ids: List[PydanticObjectId]) -> int:
