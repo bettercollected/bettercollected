@@ -5,6 +5,7 @@ volumes:
   app-postgres-data:
   umami-db-data:
   temporal-postgres-data:
+  polis-db-data:
 services:
   mongodb:
     image: mongo:latest
@@ -197,6 +198,10 @@ services:
       - doc-sandbox:/run/doc-sandbox
     ports:
       - '8000:8000'
+    # `sso`: to reach Polis's admin API (docs/sso.md)
+    networks:
+      - default
+      - sso
     depends_on:
       temporal:
         condition: service_healthy
@@ -263,8 +268,17 @@ services:
       # PDF form import: documents are only opened by the isolated document-sandbox
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
+      # deleting a user's workspaces also deletes their SSO connections in Polis
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_POLIS_URL: ${SSO_POLIS_URL:-}
+      SSO_POLIS_INTERNAL_URL: http://polis:5225
+      SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
+      SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
     env_file:
       - .env.deployment
+    networks:
+      - default
+      - sso
     volumes:
       - doc-sandbox:/run/doc-sandbox
     depends_on:
@@ -293,6 +307,10 @@ services:
       SSO_POLIS_URL: ${SSO_POLIS_URL:-}
       SSO_POLIS_INTERNAL_URL: http://polis:5225
       SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
+    # `sso`: to reach Polis's token and userinfo endpoints (docs/sso.md)
+    networks:
+      - default
+      - sso
     depends_on:
       mongodb:
         condition: service_healthy
@@ -330,13 +348,18 @@ services:
   # Enterprise single sign-on (docs/sso.md): Ory Polis (formerly BoxyHQ SAML
   # Jackson) turns customers' SAML/OIDC identity providers into one OAuth code
   # flow. Off by default: only started with the `sso` profile, which deploy.sh
-  # adds when SSO_ENABLED=true in the root .env. deploy.sh also generates its
-  # secrets and creates its own database (`polis`) and role (`bc_polis`) in
-  # app-postgres. Bound to localhost: publish only /api/oauth/* and
-  # /.well-known/* through your TLS reverse proxy at SSO_POLIS_URL, never the
-  # admin API (/api/v1/*) or the admin UI.
+  # adds when SSO_ENABLED=true in the root .env. Isolated: Polis has its own
+  # Postgres (`polis-postgres`, on the internal `polis-db` network only) and
+  # sits on the `sso` network, which reaches the internet (customers' IdPs)
+  # and the backend and auth (who call it) but not Mongo, app-postgres,
+  # Temporal or the other services. Bound to localhost: publish only
+  # /api/oauth/* and /.well-known/* through your TLS reverse proxy at
+  # SSO_POLIS_URL, never the admin API (/api/v1/*) or the admin UI.
+  # Its secrets are required (deploy.sh generates them into .env on every
+  # first run, SSO or not, because compose checks them for every service).
   polis:
-    image: ${POLIS_IMAGE:-boxyhq/jackson:latest}
+    # 26.2.0, the version tested; pinned by digest
+    image: ${POLIS_IMAGE:-boxyhq/jackson@sha256:9165f3db9d9f5d3262f23446e860f4929f462d1d9c954af13f3bb44910c3a699}
     profiles: ["sso"]
     restart: unless-stopped
     environment:
@@ -344,14 +367,14 @@ services:
       NEXTAUTH_URL: ${SSO_POLIS_URL:-}
       DB_ENGINE: sql
       DB_TYPE: postgres
-      DB_URL: postgres://bc_polis:${BC_POLIS_PASSWORD:-}@app-postgres:5432/polis
+      DB_URL: postgres://bc_polis:${BC_POLIS_PASSWORD:?set by deploy.sh in the root .env}@polis-postgres:5432/polis
       # encrypts Polis's stored connections (IdP metadata, OIDC client secrets)
-      DB_ENCRYPTION_KEY: ${POLIS_DB_ENCRYPTION_KEY:-}
+      DB_ENCRYPTION_KEY: ${POLIS_DB_ENCRYPTION_KEY:?set by deploy.sh in the root .env}
       # the backend's SSO_POLIS_API_KEY
-      JACKSON_API_KEYS: ${SSO_POLIS_API_KEY:-}
+      JACKSON_API_KEYS: ${SSO_POLIS_API_KEY:?set by deploy.sh in the root .env}
       # never the default "dummy": shared by every tenant without PKCE
-      CLIENT_SECRET_VERIFIER: ${POLIS_CLIENT_SECRET_VERIFIER:-}
-      NEXTAUTH_SECRET: ${POLIS_NEXTAUTH_SECRET:-}
+      CLIENT_SECRET_VERIFIER: ${POLIS_CLIENT_SECRET_VERIFIER:?set by deploy.sh in the root .env}
+      NEXTAUTH_SECRET: ${POLIS_NEXTAUTH_SECRET:?set by deploy.sh in the root .env}
       # SP-initiated sign-in only; IdP-initiated logins are refused
       IDP_ENABLED: "false"
       # redirect_uri must equal the connection's (scheme, host, port and path)
@@ -361,9 +384,30 @@ services:
       DO_NOT_TRACK: "1"
     ports:
       - '127.0.0.1:5225:5225'
+    networks:
+      - sso
+      - polis-db
     depends_on:
-      app-postgres:
+      polis-postgres:
         condition: service_healthy
+
+  polis-postgres:
+    image: postgres:16-alpine
+    profiles: ["sso"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: polis
+      POSTGRES_USER: bc_polis
+      POSTGRES_PASSWORD: ${BC_POLIS_PASSWORD:?set by deploy.sh in the root .env}
+    volumes:
+      - polis-db-data:/var/lib/postgresql/data
+    networks:
+      - polis-db
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bc_polis -d polis']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
   # First-pass exposure: plain host port 3003, no TLS/reverse-proxy — put it
@@ -414,3 +458,11 @@ services:
       retries: 20
       start_period: 15s
 
+networks:
+  default:
+  # Polis and those who call it (backend, auth); has internet egress for the
+  # customers' identity providers
+  sso:
+  # Polis and its database only, no egress
+  polis-db:
+    internal: true

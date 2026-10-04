@@ -9,7 +9,8 @@
 # Production runs Polis from docker-compose.deployment.yml (profile `sso`).
 services:
   polis:
-    image: ${POLIS_IMAGE:-boxyhq/jackson:latest}
+    # 26.2.0, the version tested (as in docker-compose.deployment.yml)
+    image: ${POLIS_IMAGE:-boxyhq/jackson@sha256:9165f3db9d9f5d3262f23446e860f4929f462d1d9c954af13f3bb44910c3a699}
     ports:
       - "5225:5225"
     env_file:

@@ -48,9 +48,23 @@ for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASS
 done
 
 # Single sign-on (docs/sso.md): off unless the root .env has SSO_ENABLED=true.
-# Then Polis runs (compose profile `sso`) with generated secrets and its own
-# database and role in app-postgres. The operator sets SSO_POLIS_URL,
-# SSO_REDIRECT_URI and SSO_SAML_AUDIENCE in the root .env (see the doc).
+# Polis's secrets are generated on every first run, SSO or not: compose checks
+# the required values of every service, the `sso` profile's included. Hex
+# only; DB_ENCRYPTION_KEY must be 32 characters.
+for var in BC_POLIS_PASSWORD SSO_POLIS_API_KEY POLIS_CLIENT_SECRET_VERIFIER POLIS_NEXTAUTH_SECRET; do
+  if ! grep -q "^${var}=" .env 2>/dev/null; then
+    echo "${var}=$(openssl rand -hex 24)" >> .env
+    echo "Generated a new ${var} in .env (first run)."
+  fi
+done
+if ! grep -q "^POLIS_DB_ENCRYPTION_KEY=" .env 2>/dev/null; then
+  echo "POLIS_DB_ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
+  echo "Generated a new POLIS_DB_ENCRYPTION_KEY in .env (first run)."
+fi
+
+# With SSO_ENABLED=true, Polis and its own Postgres run (compose profile `sso`).
+# The operator sets SSO_POLIS_URL, SSO_REDIRECT_URI and SSO_SAML_AUDIENCE in
+# the root .env (see the doc).
 sso_enabled=false
 if grep -q "^SSO_ENABLED=true" .env 2>/dev/null; then
   sso_enabled=true
@@ -60,39 +74,13 @@ if grep -q "^SSO_ENABLED=true" .env 2>/dev/null; then
       exit 1
     fi
   done
-  # hex only: safe inside Polis's DB_URL. DB_ENCRYPTION_KEY must be 32 chars.
-  for var in BC_POLIS_PASSWORD SSO_POLIS_API_KEY POLIS_CLIENT_SECRET_VERIFIER POLIS_NEXTAUTH_SECRET; do
-    if ! grep -q "^${var}=" .env; then
-      echo "${var}=$(openssl rand -hex 24)" >> .env
-      echo "Generated a new ${var} in .env (first run with SSO)."
-    fi
-  done
-  if ! grep -q "^POLIS_DB_ENCRYPTION_KEY=" .env; then
-    echo "POLIS_DB_ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
-    echo "Generated a new POLIS_DB_ENCRYPTION_KEY in .env (first run with SSO)."
-  fi
-  services_to_start+=("polis")
+  services_to_start+=("polis-postgres" "polis")
 fi
 
 compose_files=(-f "docker-compose.deployment.yml")
 if [ "$sso_enabled" = true ]; then
   compose_files+=(--profile sso)
 fi
-
-# Polis's own database and role, created once (idempotent). The password is
-# re-applied on every run, so it always matches BC_POLIS_PASSWORD in .env.
-function ensure_polis_database() {
-  local password
-  password=$(grep "^BC_POLIS_PASSWORD=" .env | cut -d= -f2-)
-  "$docker_compose_cmd" "${compose_files[@]}" exec -T app-postgres \
-    psql -v ON_ERROR_STOP=1 -U bettercollected -d postgres -v pw="$password" <<'SQL'
-SELECT 'CREATE ROLE bc_polis LOGIN' WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bc_polis')\gexec
-ALTER ROLE bc_polis WITH LOGIN PASSWORD :'pw';
-SELECT 'CREATE DATABASE polis OWNER bc_polis' WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'polis')\gexec
-REVOKE CONNECT ON DATABASE polis FROM PUBLIC;
-GRANT CONNECT ON DATABASE polis TO bc_polis;
-SQL
-}
 
 # Common docker function
 function dockerup() {
@@ -121,9 +109,6 @@ function dockerup() {
   # finds nothing left to do after this step.
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" pull -q backend auth $([ "$googleform_flag" = true ] && echo integrations-googleform)
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" up -d --wait app-postgres
-  if [ "$sso_enabled" = true ]; then
-    ensure_polis_database
-  fi
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head
   # procrastinate's queue tables (jobs schema), applied once; a no-op afterwards
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/python -m backend.jobs.schema
