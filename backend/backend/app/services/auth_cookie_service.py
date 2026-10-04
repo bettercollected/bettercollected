@@ -36,6 +36,9 @@ def _encode(user: User, *, typ: str, exp: int, jti: str) -> str:
     }
     if user.sid:
         claims["sid"] = user.sid
+    if user.auth_method:
+        # "sso": the platform-admin grant ignores this session (docs/sso.md)
+        claims["auth_method"] = user.auth_method
     return jwt.encode(claims, settings.auth_settings.JWT_SECRET, algorithm="HS256")
 
 

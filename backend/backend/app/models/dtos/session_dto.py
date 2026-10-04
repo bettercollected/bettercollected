@@ -14,6 +14,8 @@ class SessionDto(CamelModel):
     last_refreshed_at: Optional[dt.datetime] = None
     expires_at: Optional[dt.datetime] = None
     user_agent: Optional[str] = None
+    # "sso" for a single sign-on session, None otherwise
+    method: Optional[str] = None
     current: bool = False
 
     @classmethod
@@ -24,5 +26,6 @@ class SessionDto(CamelModel):
             last_refreshed_at=session.last_refreshed_at,
             expires_at=session.expires_at,
             user_agent=session.user_agent,
+            method=session.method,
             current=str(session.id) == current_sid,
         )

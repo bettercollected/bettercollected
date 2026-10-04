@@ -57,6 +57,8 @@ class RevokeReason:
     REFRESH_TOKEN_REUSE = "refresh_token_reuse"
     USER_NOT_FOUND = "user_not_found"
     ACCOUNT_DELETED = "account_deleted"
+    # the workspace started requiring single sign-on for the user's domain
+    SSO_REQUIRED = "sso_required"
 
 
 class SessionEnded(HTTPException):
@@ -115,6 +117,18 @@ def user_from_access_token(token: Optional[str]) -> Optional[User]:
         return None
 
 
+SSO_METHOD = "sso"
+
+
+def platform_admin_proof(email_verified: Optional[bool], auth_method=None) -> bool:
+    """What the backend tells auth about a session's email when auth decides
+    the platform-admin grant (``email_verified`` of ``/auth/status`` and
+    ``/auth/callback``): the email was proven at sign-in, and not by single
+    sign-on. An SSO session's address is vouched for by a customer's identity
+    provider, which must never control the platform-admin role (docs/sso.md)."""
+    return email_verified is True and auth_method != SSO_METHOD
+
+
 def auth_http_client():
     """The client the refresh asks auth's /status with (a seam for tests)."""
     return httpx.AsyncClient()
@@ -126,10 +140,16 @@ class SessionService:
 
     # -- sign-in -----------------------------------------------------------
     async def start(
-        self, user: User, response: Response, request: Optional[Request] = None
+        self,
+        user: User,
+        response: Response,
+        request: Optional[Request] = None,
+        method: Optional[str] = None,
     ) -> User:
         """A new session for a user who just signed in; sets both cookies and
-        returns the user as the tokens describe them (with ``sid``)."""
+        returns the user as the tokens describe them (with ``sid``).
+        ``method``: how they signed in ("sso"), None for OTP and Google."""
+        method = method or user.auth_method
         now = utcnow()
         expires_at = now + dt.timedelta(
             days=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS
@@ -142,13 +162,18 @@ class SessionService:
             last_refreshed_at=now,
             expires_at=expires_at,
             email_verified=user.email_verified is True,
+            method=method,
             user_agent=user_agent[:USER_AGENT_MAX] if user_agent else None,
             created_at=now,
             updated_at=now,
         )
         await self.session_repo.save(session)
         user = user.model_copy(
-            update={"sid": str(session.id), "email_verified": session.email_verified}
+            update={
+                "sid": str(session.id),
+                "email_verified": session.email_verified,
+                "auth_method": method,
+            }
         )
         set_access_token_to_response(user, response)
         set_refresh_token_to_response(
@@ -244,10 +269,13 @@ class SessionService:
         async with auth_http_client() as http_client:
             reply = await http_client.get(
                 settings.auth_settings.BASE_URL + "/auth/status",
-                # the session's own claim, recorded at sign-in
+                # the session's own claim, recorded at sign-in (never true for
+                # an SSO session: no platform-admin grant through an IdP)
                 params={
                     "user_id": session.user_id,
-                    "email_verified": session.email_verified is True,
+                    "email_verified": platform_admin_proof(
+                        session.email_verified, session.method
+                    ),
                 },
                 headers=auth_service_headers(),
                 timeout=60,
@@ -269,6 +297,7 @@ class SessionService:
                 "sub": body.get("email"),
                 "email_verified": session.email_verified is True,
                 "sid": str(session.id),
+                "auth_method": session.method,
             }
         )
 
