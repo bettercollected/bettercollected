@@ -50,6 +50,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresBlacklistedRefreshTokenRepository,
     PostgresUserTagsRepository,
     PostgresWorkspaceAPIKeyRepository,
+    PostgresWorkspaceDomainRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -69,6 +70,9 @@ from backend.app.repositories.workspace_ai_profile_repository import (
 )
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
+)
+from backend.app.repositories.workspace_domain_repository import (
+    WorkspaceDomainRepository,
 )
 from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.blacklisted_refresh_token_repository import (
@@ -141,6 +145,7 @@ from backend.app.services.pdf_import.storage import S3ObjectStore
 from backend.app.services.pdf_import_service import PdfImportService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
@@ -330,6 +335,18 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(FormImportRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFormImportRepository, pg_sessionmaker
+        ),
+    )
+    workspace_domain_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(WorkspaceDomainRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresWorkspaceDomainRepository, pg_sessionmaker
         ),
     )
     workspace_api_key_repo = providers.Singleton(
@@ -613,6 +630,12 @@ class AppContainer(containers.DeclarativeContainer):
         CustomDomainService, settings=settings.custom_domain
     )
 
+    workspace_domain_service: WorkspaceDomainService = providers.Singleton(
+        WorkspaceDomainService,
+        workspace_user_service=workspace_user_service,
+        domain_repo=workspace_domain_repo,
+    )
+
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
         http_client=http_client,
@@ -626,6 +649,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
+        workspace_domain_service=workspace_domain_service,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(

@@ -44,6 +44,9 @@ dependencies = [
     "pdfplumber>=0.11",
     "pypdfium2>=4.30",
     "pillow>=11",
+    "dnspython>=2.8",
+    "idna>=3.10",
+    "publicsuffixlist>=1.0",
 ]
 
 [dependency-groups]

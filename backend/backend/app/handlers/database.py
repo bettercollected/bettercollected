@@ -30,6 +30,7 @@ from backend.app.schemas.workspace_invitation import (
 from backend.app.schemas.workspace_user import (
     WorkspaceUserDocument,
 )
+from backend.app.schemas.workspace_domain import WorkspaceDomainDocument
 from backend.app.schemas.flow_event import FlowEventDocument
 from common.db import MirrorWriteFailureDocument
 
@@ -71,6 +72,7 @@ async def init_db(db: str, client: AsyncMongoClient):
             ResponderGroupMemberDocument,
             ResponderGroupDocument,
             FlowEventDocument,
+            WorkspaceDomainDocument,
             MirrorWriteFailureDocument,
         ]
     )
