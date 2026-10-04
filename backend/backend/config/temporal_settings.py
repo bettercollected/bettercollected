@@ -5,7 +5,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class TemporalSettings(BaseSettings):
     server_uri: str = "localhost:7233"
-    api_key: str = "random_api_key"
+    # Shared with the Temporal worker and the actions-executor (API_KEY there);
+    # no default: unset means the internal job routes answer 503
+    # (backend.app.services.internal_job_key).
+    api_key: str = ""
     namespace: str = "default"
     template_preview_queue: Optional[str] = "template_preview_queue"
     worker_queue: str = "default"

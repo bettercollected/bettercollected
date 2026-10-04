@@ -9,7 +9,7 @@ from activities.delete_response import delete_response
 from activities.delete_user import delete_user
 from activities.import_form import import_form
 from activities.save_preview import save_preview
-from settings.application import settings
+from settings.application import log_if_api_key_missing, settings
 from workflows.response_deletion_workflow import DeleteResponseWorkflow
 from workflows.user_deletion_workflow import DeleteUserWorkflow
 
@@ -36,6 +36,7 @@ async def run_worker():
 
 
 async def main():
+    log_if_api_key_missing()
     workers = [run_worker() for i in range(0, settings.workers)]
     await asyncio.gather(*workers)
 
