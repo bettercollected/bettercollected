@@ -31,7 +31,7 @@ from beanie import PydanticObjectId
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import WorkspaceRoles, canonical_role
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -48,25 +48,28 @@ from backend.config import settings
 SSO_REQUIRED = "sso_required"
 
 # The role a first SSO sign-in gets unless the workspace chose another.
-# TODO(access-roles): switch to WorkspaceRoles.VIEWER once the
-# EDITOR/REVIEWER/VIEWER/PRIVACY_OFFICER roles land (the accepted design's
-# default is Viewer); COLLABORATOR is the least-privileged role today.
-DEFAULT_SSO_ROLE = WorkspaceRoles.COLLABORATOR
+# The accepted design's default (docs/enterprise-access-model.md): Viewer.
+DEFAULT_SSO_ROLE = WorkspaceRoles.VIEWER
+
+# What the owner may pick as the SSO default, highest first. Admin and
+# Privacy officer are granted by hand, never by an identity provider.
+SSO_ASSIGNABLE_ROLES = (
+    WorkspaceRoles.EDITOR,
+    WorkspaceRoles.REVIEWER,
+    WorkspaceRoles.VIEWER,
+)
 
 
 def assignable_sso_roles() -> List[str]:
-    """Roles a workspace may pick as its SSO default: every workspace role
-    but ADMIN (admins are promoted by hand, never by an identity provider).
-    New roles in the enum become choosable automatically."""
-    return [role.value for role in WorkspaceRoles if role != WorkspaceRoles.ADMIN]
+    return [role.value for role in SSO_ASSIGNABLE_ROLES]
 
 
 def default_sso_role(workspace: Optional[WorkspaceDocument]) -> WorkspaceRoles:
-    """The workspace's configured default role, if it is (still) valid."""
-    configured = getattr(workspace, "sso_default_role", None)
-    if configured in assignable_sso_roles():
-        return WorkspaceRoles(configured)
-    return DEFAULT_SSO_ROLE
+    """The workspace's configured default role (as the API speaks it), if it
+    is (still) one SSO may give. A stored ``COLLABORATOR`` (the default
+    before the new roles) is Editor and is kept, not migrated."""
+    role = canonical_role(getattr(workspace, "sso_default_role", None))
+    return role if role in SSO_ASSIGNABLE_ROLES else DEFAULT_SSO_ROLE
 
 
 def sso_required_error(domain: str) -> HTTPException:

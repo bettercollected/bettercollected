@@ -25,6 +25,7 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
+from backend.app.models.enum.workspace_roles import canonical_role
 from backend.app.repositories.sso_connection_repository import (
     SsoConnectionExists,
     SsoConnectionRepository,
@@ -592,13 +593,17 @@ class SsoConnectionService:
         fields = {}
         now = _now()
         if request.default_role is not None:
-            if request.default_role not in assignable_sso_roles():
+            if (
+                canonical_role(request.default_role) is None
+                or canonical_role(request.default_role).value
+                not in assignable_sso_roles()
+            ):
                 raise _refused(
                     HTTPStatus.UNPROCESSABLE_ENTITY,
                     "invalid_role",
                     "That role can't be given by single sign-on.",
                 )
-            fields["sso_default_role"] = request.default_role
+            fields["sso_default_role"] = canonical_role(request.default_role).value
         switching_on = request.sso_required is True and not workspace.sso_required
         if request.sso_required is not None and request.sso_required != bool(
             workspace.sso_required

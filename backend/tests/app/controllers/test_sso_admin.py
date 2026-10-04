@@ -62,7 +62,8 @@ async def test_overview_shows_sp_values_domains_and_settings(client, workspace, 
     }
     assert body["domains"] == [DOMAIN]  # the lost one is not an SSO domain
     assert body["settings"]["ssoRequired"] is False
-    assert body["settings"]["defaultRole"] == "COLLABORATOR"
+    assert body["settings"]["defaultRole"] == "VIEWER"
+    assert body["settings"]["assignableRoles"] == ["EDITOR", "REVIEWER", "VIEWER"]
     assert "ADMIN" not in body["settings"]["assignableRoles"]
     assert body["settings"]["ownerBreakGlass"] is True
     # the API key never reaches the browser
@@ -296,19 +297,36 @@ async def test_another_workspaces_connection_is_404(
 
 
 # -- settings and SSO required -------------------------------------------------
-async def test_default_role_is_validated(client, workspace, sso_on):
+@pytest.mark.parametrize("role", ["ADMIN", "PRIVACY_OFFICER", "OWNER", "nobody"])
+async def test_default_role_refuses_admin_and_privacy_officer(
+    client, workspace, sso_on, role
+):
     reply = await client.put(
         url(workspace, "/settings"),
-        json={"defaultRole": "ADMIN"},
+        json={"defaultRole": role},
         cookies=_cookies(testUser),
     )
     assert reply.status_code == 422 and reply.json()["code"] == "invalid_role"
+
+
+@pytest.mark.parametrize(
+    "role,shown",
+    [
+        ("VIEWER", "VIEWER"),
+        ("REVIEWER", "REVIEWER"),
+        ("EDITOR", "EDITOR"),
+        ("COLLABORATOR", "EDITOR"),  # the stored spelling of Editor
+    ],
+)
+async def test_default_role_accepts_viewer_reviewer_editor(
+    client, workspace, sso_on, role, shown
+):
     reply = await client.put(
         url(workspace, "/settings"),
-        json={"defaultRole": "COLLABORATOR"},
+        json={"defaultRole": role},
         cookies=_cookies(testUser),
     )
-    assert reply.status_code == 200 and reply.json()["defaultRole"] == "COLLABORATOR"
+    assert reply.status_code == 200 and reply.json()["defaultRole"] == shown
 
 
 @pytest.mark.parametrize(
@@ -711,7 +729,7 @@ async def test_an_admin_can_view_and_test_but_not_change(
         ("POST", f"/connections/{connection.id}/disable", None),
         ("DELETE", f"/connections/{connection.id}", None),
         ("PUT", "/settings", {"ssoRequired": True}),
-        ("PUT", "/settings", {"defaultRole": "COLLABORATOR"}),
+        ("PUT", "/settings", {"defaultRole": "EDITOR"}),
     ):
         reply = await client.request(
             method, url(workspace, suffix), json=body, cookies=_cookies(admin_member)

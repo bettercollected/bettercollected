@@ -155,7 +155,7 @@ async def test_sign_in_creates_member_session_and_redirects(client, sso_workspac
     member = await container.workspace_user_repo().find_workspace_user(
         workspace.id, PydanticObjectId(account["id"])
     )
-    assert member.roles == [WorkspaceRoles.COLLABORATOR]
+    assert member.roles == [WorkspaceRoles.VIEWER]  # the default
     token = reply.cookies.get("Authorization")
     claims = decode_token(token)
     assert claims["sid"] and claims["auth_method"] == "sso"
@@ -202,7 +202,7 @@ async def test_an_unassignable_default_role_falls_back(
     member = await container.workspace_user_repo().find_workspace_user(
         workspace.id, PydanticObjectId(auth.accounts["jane@" + DOMAIN]["id"])
     )
-    assert member.roles == [WorkspaceRoles.COLLABORATOR]
+    assert member.roles == [WorkspaceRoles.VIEWER]
 
 
 async def test_an_existing_member_is_never_downgraded(client, sso_workspace):
@@ -508,3 +508,28 @@ async def test_testing_needs_security_manage(client, workspace, sso_on):
         TEST.format(ws=workspace.id, c=connection.id), cookies=_cookies(testUser1)
     )
     assert reply.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "configured,stored",
+    [
+        # a default stored before the new roles: Editor, kept as is
+        ("COLLABORATOR", WorkspaceRoles.COLLABORATOR),
+        ("EDITOR", WorkspaceRoles.COLLABORATOR),  # Editor's stored spelling
+        ("REVIEWER", WorkspaceRoles.REVIEWER),
+        ("PRIVACY_OFFICER", WorkspaceRoles.VIEWER),  # never given by SSO
+    ],
+)
+async def test_the_configured_default_role_is_given(
+    client, sso_workspace, configured, stored
+):
+    workspace, _ = sso_workspace
+    await container.workspace_repo().set_fields(
+        workspace, {"sso_default_role": configured}
+    )
+    _, auth = sso_on_of()
+    await sign_in(client)
+    member = await container.workspace_user_repo().find_workspace_user(
+        workspace.id, PydanticObjectId(auth.accounts["jane@" + DOMAIN]["id"])
+    )
+    assert member.roles == [stored]

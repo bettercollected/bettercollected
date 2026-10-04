@@ -216,7 +216,7 @@ cap via `WorkspaceUserService.has_free_seat`; JIT membership with the default ro
 redirect quotes the workspace handle; "Test connection" records the outcome and signs nobody in), `policy.py`
 (SSO-required refuses email codes and Google for those domains, ends non-SSO sessions at refresh; the workspace owner
 keeps email codes as break-glass; on other workspaces' forms an email code only gives a **respondent-scoped session**
-(`session_scope="respondent"`), which `authorize()` grants nothing; default role, TODO VIEWER). Connections: `sso_connections` + Postgres twin (revision 0008); used states: `sso_used_states` (0009). Sessions record `method="sso"`; an SSO
+(`session_scope="respondent"`), which `authorize()` grants nothing; default SSO role Viewer; the owner may pick Reviewer or Editor, never Admin or Privacy officer). Connections: `sso_connections` + Postgres twin (revision 0008); used states: `sso_used_states` (0009). Sessions record `method="sso"`; an SSO
 session is never platform-admin-eligible (`session_service.platform_admin_proof`, used for `/auth/status` and
 `/auth/callback`). Tests use `tests/app/sso_helpers.py` (fake Polis and auth).
 
