@@ -25,6 +25,12 @@ if XDIST_WORKER:
         os.environ["DATABASE_URL"] = f"{_url}_{XDIST_WORKER}" + (
             f"?{_query}" if _query else ""
         )
+    # The mirror-write timeout (2 s by default) bounds request latency in
+    # production. With several workers sharing the CPUs and database servers,
+    # a mirror write occasionally stalled past it, and the test then failed on
+    # a "mirror failure" that was only a slow write. No test depends on the
+    # value; a real failure or hang still fails the test.
+    os.environ.setdefault("DB_MIRROR_TIMEOUT_MS", "10000")
 
 import httpx
 import pymongo
