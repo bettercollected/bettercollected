@@ -60,7 +60,9 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const workspace = useAppSelector(selectWorkspace);
     const { can } = useWorkspacePermissions();
     const canReadResponses = can(WorkspacePermission.RESPONSE_READ);
-    const canDeleteResponses = can(WorkspacePermission.RESPONSE_DELETE);
+    // Completing a pending deletion request is also privacy.manage (a
+    // Privacy officer deletes without reading the answers).
+    const canDeleteResponses = can(WorkspacePermission.RESPONSE_DELETE) || can(WorkspacePermission.PRIVACY_MANAGE);
     const googleFormHostUrl = 'https://docs.google.com/';
     const typeFormHostUrl = 'https://admin.typeform.com/';
     const handlePageChange = (e: any, page: number) => {
@@ -137,8 +139,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         if (status.toLowerCase() !== 'pending' || !isSelf) return <></>;
 
         if (requestForDeletion && response.provider === 'self') {
-            // A Privacy officer sees the request but neither its answers
-            // (response.read) nor, by the role table, the delete itself.
+            // A Privacy officer completes the request without seeing its
+            // answers (no response.read).
             return (
                 <div className="flex items-center gap-1">
                     {canReadResponses && (

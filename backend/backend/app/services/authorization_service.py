@@ -70,6 +70,11 @@ PRIVACY_OFFICER_PERMISSIONS: FrozenSet[Permission] = frozenset(
 
 ADMIN_PERMISSIONS: FrozenSet[Permission] = ALL_PERMISSIONS - {P.WORKSPACE_BILLING}
 
+# What a Privacy officer never holds, even with another role beside it.
+ANSWER_PERMISSIONS: FrozenSet[Permission] = frozenset(
+    {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT}
+)
+
 ROLE_PERMISSIONS: Dict[WorkspaceRoles, FrozenSet[Permission]] = {
     # everything but billing (plan, transfer, deleting the workspace)
     WorkspaceRoles.ADMIN: ADMIN_PERMISSIONS,
@@ -119,6 +124,11 @@ def permissions_for(roles: Optional[Iterable], is_owner: bool) -> FrozenSet[Perm
     granted = set()
     for role in roles:
         granted |= role_permissions(role)
+    if WorkspaceRoles.PRIVACY_OFFICER in {
+        canonical_role(role) for role in roles
+    }:
+        # "Never reads answers" holds whatever else the membership holds.
+        granted -= ANSWER_PERMISSIONS
     return frozenset(granted)
 
 

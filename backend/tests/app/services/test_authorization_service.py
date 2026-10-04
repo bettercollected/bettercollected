@@ -120,9 +120,18 @@ def test_roles_add_up_and_unknown_ones_add_nothing():
     assert permissions_for(["VIEWER", "FORM_CREATOR"], is_owner=False) == (
         ROLE_TABLE["VIEWER"]
     )
-    assert permissions_for(["VIEWER", "PRIVACY_OFFICER"], is_owner=False) == (
-        ROLE_TABLE["VIEWER"] | ROLE_TABLE["PRIVACY_OFFICER"]
+    assert permissions_for(["VIEWER", "REVIEWER"], is_owner=False) == (
+        ROLE_TABLE["REVIEWER"]
     )
+
+
+@pytest.mark.parametrize("other", ["ADMIN", "EDITOR", "REVIEWER", "VIEWER", "COLLABORATOR"])
+def test_a_privacy_officer_never_reads_answers_whatever_else_they_hold(other):
+    granted = permissions_for(["PRIVACY_OFFICER", other], is_owner=False)
+    assert granted.isdisjoint(
+        {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT}
+    )
+    assert P.PRIVACY_MANAGE in granted
 
 
 async def test_a_membership_with_an_unknown_role_loads_and_holds_nothing(workspace):
