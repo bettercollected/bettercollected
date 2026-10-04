@@ -154,13 +154,20 @@ async def test_forwards_the_refreshed_token(
 ):
     """An expired access token is refreshed for this request; auth must get the
     new token, not the expired one, or the user counts would come back empty."""
-    import backend.app.services.user_service as user_service
+    import http.cookies
 
-    monkeypatch.setattr(user_service.httpx, "AsyncClient", FakeStatusClient)
-    cookies = {
-        "Authorization": "expired",
-        "RefreshToken": test_user_cookies["RefreshToken"],
-    }
+    import backend.app.services.session_service as session_service
+    from starlette.responses import Response
+
+    monkeypatch.setattr(session_service.httpx, "AsyncClient", FakeStatusClient)
+    signed_in = Response()
+    await container.session_service().start(testUser, signed_in)
+    refresh = next(
+        http.cookies.SimpleCookie(h)["RefreshToken"].value
+        for h in signed_in.headers.getlist("set-cookie")
+        if "RefreshToken" in http.cookies.SimpleCookie(h)
+    )
+    cookies = {"Authorization": "expired", "RefreshToken": refresh}
     response = await client.get(URL, cookies=cookies)
     assert response.status_code == 200
     assert response.json()["users"] is not None

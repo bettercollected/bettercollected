@@ -17,7 +17,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 import backend
-import backend.app.services.user_service as user_service
+import backend.app.services.session_service as user_service
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.services import internal_auth
@@ -184,9 +184,15 @@ class FakeAuth:
         return Reply()
 
 
-def _expired_session_request() -> Request:
-    refresh = container.jwt_service().encode(
-        User(id=testUser.id, sub=testUser.sub, roles=["FORM_CREATOR"])
+async def _expired_session_request() -> Request:
+    signed_in = Response()
+    await container.session_service().start(
+        User(id=testUser.id, sub=testUser.sub, roles=["FORM_CREATOR"]), signed_in
+    )
+    refresh = next(
+        http.cookies.SimpleCookie(h)["RefreshToken"].value
+        for h in signed_in.headers.getlist("set-cookie")
+        if "RefreshToken" in http.cookies.SimpleCookie(h)
     )
     cookie = f"Authorization=expired; RefreshToken={refresh}"
     return Request({"type": "http", "headers": [(b"cookie", cookie.encode())]})
@@ -205,7 +211,7 @@ class TestSessionRefresh:
 
     async def test_refresh_sends_the_key(self):
         response = Response()
-        user = await get_logged_user(_expired_session_request(), response)
+        user = await get_logged_user(await _expired_session_request(), response)
         assert user.id == testUser.id
         (call,) = FakeAuth.calls
         assert call["url"].endswith("/auth/status")
@@ -221,7 +227,7 @@ class TestSessionRefresh:
         signed-out user: say so instead of logging them out."""
         FakeAuth.status_code = status
         with pytest.raises(HTTPException) as refused:
-            await get_logged_user(_expired_session_request(), Response())
+            await get_logged_user(await _expired_session_request(), Response())
         assert refused.value.status_code == 503
 
 

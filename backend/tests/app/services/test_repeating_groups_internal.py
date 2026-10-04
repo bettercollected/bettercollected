@@ -7,6 +7,7 @@ import pytest
 from common.models.standard_form import StandardForm, StandardFormField
 from pydantic import ValidationError
 
+from tests.app.auth_helpers import access_token
 from backend.app.container import container
 from backend.app.services.ai.ops import apply_form_ops, parse_ops
 from backend.app.services.internal_fields import (
@@ -53,7 +54,7 @@ def _form(group):
 
 
 def _cookies(user):
-    token = container.jwt_service().encode(user)
+    token = access_token(user)
     return {"Authorization": token, "RefreshToken": token}
 
 

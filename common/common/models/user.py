@@ -65,6 +65,9 @@ class User(BaseModel):
     # The session's email was proven at sign-in (OTP, or a provider that says
     # so). Carried in the tokens so a refresh keeps or drops what it grants.
     email_verified: Optional[bool] = None
+    # The server-side session the tokens belong to (the backend's
+    # ``sessions``); refreshing checks it, so revoking it ends the session.
+    sid: Optional[str] = None
 
     def is_admin(self):
         """

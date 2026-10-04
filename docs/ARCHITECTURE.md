@@ -78,10 +78,12 @@ contract, defined in [common/common/constants/plugin_routes.py](../common/common
 
 - **Login** is handled by the `auth` service (:8001): email **OTP** (`/otp/send`, `/otp/validate`) or **OAuth** via a
   provider (`/{provider}/basic` + `/basic/callback`). It issues **JWTs** and hands them back through the backend.
-- The **backend** wraps this in cookie-based sessions (`auth_service.py`, `auth_cookie_service.py`), with a
-  refresh-token flow; revoked refresh tokens are stored in Mongo (`BlackListedRefreshTokens`).
-- The **webapp** sends cookies (`credentials: 'include'`) and silently refreshes via a mutex-guarded retry in
-  [webapp/src/store/customFetchBase.ts](../webapp/src/store/customFetchBase.ts).
+- The **backend** turns every sign-in into a server-side session (`sessions`, `session_service.py`) and sets two
+  httpOnly cookies (`auth_cookie_service.py`): a short access token (default 15 minutes, checked without a database
+  read) and a refresh token. Refreshing checks the session and the user, so revoking a session (logout, "sign out
+  everywhere", account deletion) ends it within one access-token lifetime.
+- The **webapp** sends cookies (`credentials: 'include'`); any request with an expired access token is refreshed by
+  the backend, and the app calls `POST /auth/refresh` (which also rotates the refresh token) once per load.
 - Secrets/OAuth credentials are encrypted with **Tink / AES keysets** (`MASTER_ENCRYPTION_KEYSET`, `*_AES_KEY`) —
   see `common/common/services/crypto_service.py`. Never persist or log decrypted tokens.
 

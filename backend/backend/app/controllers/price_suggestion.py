@@ -10,7 +10,7 @@ from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.price_suggestion import PriceSuggestionRequest
 from backend.app.router import router
-from backend.app.services.auth_cookie_service import set_tokens_to_response
+from backend.app.services.auth_cookie_service import set_access_token_to_response
 from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.user_service import get_logged_user
 from backend.config import settings
@@ -43,5 +43,6 @@ class PriceSuggestionController(Routable):
             suggested_price=suggested_price, user=user
         )
         user.plan = Plans.PRO
-        set_tokens_to_response(user=user, response=response)
+        # the plan claim lives in the access token; same session
+        set_access_token_to_response(user=user, response=response)
         return "Code Redeem Successful"

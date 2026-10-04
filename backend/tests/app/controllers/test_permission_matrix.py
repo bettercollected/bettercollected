@@ -39,6 +39,7 @@ from backend.app.services.authorization_service import (
 )
 from backend.app.services.form_service import FormService
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
+from tests.app.auth_helpers import access_token
 from tests.app.controllers.test_form_ai_insights import _seed_form_and_responses
 from tests.app.controllers.data import (
     formData,
@@ -665,7 +666,7 @@ async def matrix(workspace, published_form, outside_services, fake_dns):
 
 
 def _cookies(user: User) -> dict:
-    token = container.jwt_service().encode(user)
+    token = access_token(user)
     return {"Authorization": token, "RefreshToken": token}
 
 

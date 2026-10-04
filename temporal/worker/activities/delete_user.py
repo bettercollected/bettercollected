@@ -1,23 +1,18 @@
-import json
-
 from temporalio import activity, workflow
 
 from settings.application import settings
 
 with workflow.unsafe.imports_passed_through():
     from wrappers.apm_wrapper import APMAsyncHttpClient
-    from configs.crypto import crypto
-    from models.user_tokens import UserTokens
 
 
 @activity.defn(name="delete_user")
-async def delete_user(token: str):
+async def delete_user(deletion_request: str):
+    """``deletion_request`` is the backend-encrypted request naming the
+    account; it is passed on as is (the backend decrypts and checks it)."""
     async with APMAsyncHttpClient("delete_user") as client:
-        decrypted_token = crypto.decrypt(token)
-        user_token = UserTokens(**json.loads(decrypted_token))
-        cookies = {"Authorization": user_token.access_token, "RefreshToken": user_token.refresh_token}
-        headers = {"api-key": settings.api_key}
-        response = await  client.delete(url=settings.server_url + "/auth/user", cookies=cookies, headers=headers)
+        headers = {"api-key": settings.api_key, "X-User-Deletion": deletion_request}
+        response = await client.delete(url=settings.server_url + "/auth/user", headers=headers)
         if response.status_code != 200:
             raise RuntimeError("Could not delete user")
         return "User Deleted Successfully"

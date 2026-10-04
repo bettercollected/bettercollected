@@ -49,7 +49,9 @@ class AuthService:
         user = User(**jwt_response)
         return user
 
-    async def handle_auth_callback(self, jwt_token: str) -> User:
+    async def handle_auth_callback(
+        self, jwt_token: str, email_verified: bool = False
+    ) -> User:
         decoded_data = jwt.decode(
             jwt_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
@@ -75,11 +77,17 @@ class AuthService:
                 user_info.last_name if user_info.last_name else user_document.last_name
             )
             user_document = await user_document.save()
+        # The re-issued token continues the backend's signed-in session for the
+        # same email, so it keeps that session's proof of the email (and what
+        # it grants, like a config-named platform admin's ADMIN).
         return User(
             id=str(user_document.id),
             sub=user_document.email,
-            roles=user_document.roles,
+            roles=roles_for(
+                user_document.email, user_document.roles, verified=email_verified
+            ),
             plan=user_document.plan,
+            email_verified=email_verified,
         )
 
     async def get_basic_auth_url(

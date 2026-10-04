@@ -431,11 +431,30 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 
 ## Cross-service integration points
 
-- **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; refresh-token
-  blacklist in Mongo; cookies via `auth_cookie_service.py`. The auth service's API is internal-only (#766): every
+- **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; sessions in
+  `services/session_service.py` (below); cookies via `auth_cookie_service.py`. The auth service's API is internal-only (#766): every
   call to `settings.auth_settings.BASE_URL`/`CALLBACK_URI` passes `headers=auth_service_headers(...)`
   (`services/internal_auth.py`, the shared `AUTH_INTERNAL_NOTIFY_KEY`); `tests/app/services/test_auth_call_sites.py`
   fails on a call without it. Never add the key to a shared client — it also calls third parties.
+- **Sessions** (`services/session_service.py`, `sessions` collection, identity group): every sign-in
+  (`SessionService.start`: OTP, Google/Typeform basic sign-in) creates a session whose id is the tokens' `sid`.
+  Tokens carry `typ` (`access`/`refresh`); an access token is accepted without a database read only with `typ=access`
+  and a `sid`, so `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` (default 15; never the old 43200) bounds how long a revoked
+  session keeps working. The refresh path (`get_logged_user` when the access token expired, and `POST /auth/refresh`)
+  needs the session live and unexpired and auth's `/auth/status` to know the user (404 revokes the session); a failed
+  refresh is `SessionEnded` (401, the handler clears both cookies). Only `POST /auth/refresh` rotates the refresh
+  token (new `jti`, same `sid`): server-side rendering forwards cookies and drops `Set-Cookie`, so the implicit refresh
+  must not. The jti a rotation replaced gets an access token only (never a refresh token) for
+  `AUTH_REFRESH_REUSE_GRACE_SECONDS` (60); any other old jti is a replay and revokes the session. Every
+  refresh that does not rotate re-checks the session after asking auth (`touch` must match a live row). Re-issuing tokens inside a session (plan
+  change, import OAuth) only sets a new access token for the same `sid`. Revocation: `GET /auth/logout`,
+  `GET/DELETE /auth/sessions[/{sid}]`, `SessionService.revoke_all_for_user` (requesting account deletion; the
+  hook for deprovisioning); the deletion itself deletes the rows. Expired rows go through a Mongo TTL index on
+  `expires_at` and `delete_expired` on the list/revoke-all paths (there is no periodic job). The user-deletion job
+  names its user by an encrypted `UserDeletion` (user id + email), never by a stored token; `DELETE /auth/user`
+  (Temporal) needs the API key and that request in `X-User-Deletion`. Tokens without `sid` (before sessions) are refused: those users sign in once more. The
+  `blacklisted_refresh_tokens` table is unused and kept until a later release drops it. After sign-in the redirect
+  goes only to this instance's origins (`services/login_redirect.py`: `API_CLIENT_URL` + `allowed_origins`).
 - **Jobs:** `services/temporal_service.py` starts the three background jobs — user deletion, scheduled response
   deletion (at the response's expiration), action-code execution — on Temporal (default) or, per job kind via
   `JOBS_BACKEND__<job>=postgres`, as procrastinate jobs (`backend/jobs/tasks.py`; `run_action` is deferred by name and

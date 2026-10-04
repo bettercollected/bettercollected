@@ -83,5 +83,9 @@ class AuthRoutes(Routable):
         return basic_auth_url
 
     @get("/callback")
-    async def _auth_callback(self, jwt_token: str) -> User:
-        return await self.auth_service.handle_auth_callback(jwt_token)
+    async def _auth_callback(
+        self, jwt_token: str, email_verified: bool = False
+    ) -> User:
+        """``email_verified``: the signed-in session's claim; the backend only
+        exchanges that session's own email here (#763)."""
+        return await self.auth_service.handle_auth_callback(jwt_token, email_verified)

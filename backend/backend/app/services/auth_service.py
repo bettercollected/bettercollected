@@ -14,12 +14,14 @@ from pydantic import EmailStr
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.models.dataclasses.user_tokens import UserDeletion
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.internal_auth import auth_service_headers
+from backend.app.services.login_redirect import safe_redirect
+from backend.app.services.session_service import RevokeReason, SessionService
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
@@ -62,6 +64,8 @@ class AuthService:
         temporal_service: TemporalService,
         crypto: Crypto,
         user_tags_service: UserTagsService,
+        session_service: SessionService = None,
+        allowed_origins_repo=None,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -71,6 +75,19 @@ class AuthService:
         self.temporal_service = temporal_service
         self.crypto = crypto
         self.user_tags_service = user_tags_service
+        self.session_service = session_service
+        self.allowed_origins_repo = allowed_origins_repo
+
+    async def safe_login_redirect(
+        self, url: Optional[str], default_path: str = "/"
+    ) -> str:
+        """``url`` if it is on one of this instance's origins, else the client
+        URL's ``default_path`` (see ``login_redirect``)."""
+        client_url = (settings.api_settings.CLIENT_URL or "").rstrip("/")
+        allowed = [client_url]
+        if self.allowed_origins_repo is not None:
+            allowed += await self.allowed_origins_repo.list_origins()
+        return safe_redirect(url, allowed, client_url + default_path)
 
     async def get_user_status(self, user: User):
         try:
@@ -179,16 +196,33 @@ class AuthService:
 
         jwt_token = self.jwt_service.encode(user_info)
 
+        signed_in = user
         response_data = await self.http_client.get(
             settings.auth_settings.CALLBACK_URI,
-            params={"jwt_token": jwt_token},
+            # the email is the session's own (checked above), so the session's
+            # claim carries over: a platform admin keeps ADMIN
+            params={
+                "jwt_token": jwt_token,
+                "email_verified": signed_in.email_verified is True,
+            },
             headers=auth_service_headers(),
         )
-        user = User(**response_data)
+        user = User(
+            **{
+                **response_data,
+                "email_verified": signed_in.email_verified is True,
+                # the same session continues: only the access token is re-issued
+                "sid": signed_in.sid,
+            }
+        )
         decrypted_data = json.loads(self.crypto.decrypt(state))
         state = OAuthState(**decrypted_data)
         if state.email is not None and user.sub != state.email:
             raise HTTPException(403, "Invalid User Authentication.")
+        if state.client_referer_uri:
+            state.client_referer_uri = await self.safe_login_redirect(
+                state.client_referer_uri
+            )
         return user, state
 
     async def get_basic_auth_url(
@@ -226,8 +260,12 @@ class AuthService:
                 await self.user_tags_service.add_user_tag(
                     user_id=User(**user).id, tag=UserTagType.PROSPECTIVE_PRO_USER
                 )
-        client_referer_url = response_data.get("client_referer_url", "")
-        if not user and response_data.get("error"):
+        refused = not user and response_data.get("error")
+        client_referer_url = await self.safe_login_redirect(
+            response_data.get("client_referer_url", ""),
+            "/login" if refused else "/",
+        )
+        if refused:
             # auth refused the sign-in (e.g. the provider did not verify the
             # email, #758): back to the login page, which explains it
             client_referer_url = with_login_error(
@@ -239,6 +277,7 @@ class AuthService:
         await self.delete_credentials_from_integrations(user=user)
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
         await self.delete_user_form_auth(user=user)
+        await self.session_service.delete_all_for_user(user.id)
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
@@ -274,16 +313,18 @@ class AuthService:
                 content="Could not delete the user from the auth service.",
             )
 
-    async def add_workflow_to_delete_user(
-        self, access_token: str, refresh_token: str, user: User
-    ):
+    async def add_workflow_to_delete_user(self, user: User):
         await event_logger_service.send_event(
             event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub
         )
-        return await self.temporal_service.start_user_deletion_workflow(
-            UserTokens(access_token=access_token, refresh_token=refresh_token),
-            user_id=user.id,
+        started = await self.temporal_service.start_user_deletion_workflow(
+            UserDeletion(user_id=user.id, email=user.sub)
         )
+        # signed out everywhere now; the job names the user itself
+        await self.session_service.revoke_all_for_user(
+            user.id, RevokeReason.ACCOUNT_DELETED
+        )
+        return started
 
     async def upgrade_user_to_pro(self, user: User):
         return await self.http_client.patch(

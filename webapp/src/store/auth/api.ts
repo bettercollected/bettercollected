@@ -3,12 +3,12 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import environments from '@app/configs/environments';
 import { UserStatus } from '@app/models/dtos/user-status';
 
-import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_TAG_TYPES, VerifyOtp } from './types';
+import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_SESSIONS_TAG, AUTH_TAG_TYPES, AuthSession, VerifyOtp } from './types';
 
 export const AUTH_REDUCER_PATH = 'authApi';
 export const authApi = createApi({
     reducerPath: AUTH_REDUCER_PATH,
-    tagTypes: [AUTH_TAG_TYPES, AUTH_OTP_TAGS, AUTH_REFRESH_TAG],
+    tagTypes: [AUTH_TAG_TYPES, AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_SESSIONS_TAG],
     refetchOnReconnect: true,
     refetchOnMountOrArgChange: true,
     keepUnusedDataFor: 0,
@@ -58,6 +58,27 @@ export const authApi = createApi({
             }),
             invalidatesTags: [AUTH_REFRESH_TAG]
         }),
+        getSessions: builder.query<AuthSession[], void>({
+            query: () => ({
+                url: '/auth/sessions',
+                method: 'GET'
+            }),
+            providesTags: [AUTH_SESSIONS_TAG]
+        }),
+        revokeSession: builder.mutation<{ revoked: number }, string>({
+            query: (sessionId) => ({
+                url: `/auth/sessions/${encodeURIComponent(sessionId)}`,
+                method: 'DELETE'
+            }),
+            invalidatesTags: [AUTH_SESSIONS_TAG]
+        }),
+        revokeOtherSessions: builder.mutation<{ revoked: number }, void>({
+            query: () => ({
+                url: '/auth/sessions',
+                method: 'DELETE'
+            }),
+            invalidatesTags: [AUTH_SESSIONS_TAG]
+        }),
         deleteAccount: builder.mutation<string, any>({
             query: (body) => ({
                 url: '/auth/user/delete/workflow',
@@ -68,4 +89,15 @@ export const authApi = createApi({
     })
 });
 
-export const { useGetStatusQuery, useDeleteAccountMutation, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLogoutMutation, useRefreshTokenMutation } = authApi;
+export const {
+    useGetStatusQuery,
+    useDeleteAccountMutation,
+    useLazyGetStatusQuery,
+    usePostSendOtpMutation,
+    usePostVerifyOtpMutation,
+    useLogoutMutation,
+    useRefreshTokenMutation,
+    useGetSessionsQuery,
+    useRevokeSessionMutation,
+    useRevokeOtherSessionsMutation
+} = authApi;

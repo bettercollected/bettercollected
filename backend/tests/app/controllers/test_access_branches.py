@@ -18,6 +18,7 @@ from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.form_service import FormService
+from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import invited_user, testUser, testUser1, testUser2
 from tests.app.services.test_internal_fields import NAME, REFERENCE, _form_payload
 
@@ -27,7 +28,7 @@ invitee = User(id=str(PydanticObjectId()), sub="invitee@example.com")
 
 
 def _cookies(user: User) -> dict:
-    token = container.jwt_service().encode(user)
+    token = access_token(user)
     return {"Authorization": token, "RefreshToken": token}
 
 

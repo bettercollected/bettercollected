@@ -12,6 +12,7 @@ from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
 from dotenv import load_dotenv
 
+from tests.app.auth_helpers import access_token
 from backend.app import get_application
 from backend.app.asgi import lifespan
 from backend.app.container import container
@@ -329,25 +330,25 @@ async def workspace_group(
 
 @pytest.fixture()
 def test_user_cookies():
-    token = container.jwt_service().encode(testUser)
+    token = access_token(testUser)
     return {"Authorization": token, "RefreshToken": token}
 
 
 @pytest.fixture()
 def test_user_cookies_1():
-    token = container.jwt_service().encode(testUser1)
+    token = access_token(testUser1)
     return {"Authorization": token, "RefreshToken": token}
 
 
 @pytest.fixture()
 def test_pro_user_cookies():
-    token = container.jwt_service().encode(proUser)
+    token = access_token(proUser)
     return {"Authorization": token, "RefreshToken": token}
 
 
 @pytest.fixture()
 def test_invited_user_cookies():
-    token = container.jwt_service().encode(invited_user)
+    token = access_token(invited_user)
     return {"Authorization": token, "RefreshToken": token}
 
 

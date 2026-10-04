@@ -12,6 +12,7 @@ from common.models.user import User
 from fastapi_pagination import Page, Params
 from fastapi_pagination.api import set_page, set_params
 
+from tests.app.auth_helpers import access_token
 from backend.app.container import container
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
@@ -55,7 +56,7 @@ def _form_payload():
 
 
 def _cookies(user):
-    token = container.jwt_service().encode(user)
+    token = access_token(user)
     return {"Authorization": token, "RefreshToken": token}
 
 

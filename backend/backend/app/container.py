@@ -47,7 +47,7 @@ from backend.app.repositories.postgres.forms import (
     PostgresWorkspaceFormRepository,
 )
 from backend.app.repositories.postgres.identity import (
-    PostgresBlacklistedRefreshTokenRepository,
+    PostgresSessionRepository,
     PostgresUserTagsRepository,
     PostgresWorkspaceAPIKeyRepository,
     PostgresWorkspaceDomainRepository,
@@ -75,9 +75,7 @@ from backend.app.repositories.workspace_domain_repository import (
     WorkspaceDomainRepository,
 )
 from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
-from backend.app.repositories.blacklisted_refresh_token_repository import (
-    BlacklistedRefreshTokenRepository,
-)
+from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
@@ -105,6 +103,7 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
 from backend.app.services.auth_service import AuthService
+from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.coupon_service import CouponService
 from backend.app.services.feedback_service import UserFeedbackService
@@ -261,21 +260,17 @@ class AppContainer(containers.DeclarativeContainer):
         ),
         mongo=providers.Singleton(AllowedOriginsRepository),
     )
-    blacklisted_refresh_token_repo: BlacklistedRefreshTokenRepository = (
-        providers.Singleton(
-            RoutingRepository,
-            group="identity",
-            flags=flags,
-            on_mirror_failure=outbox_recorder,
-            mirror_timeout_s=mirror_timeout_s,
-            metrics=routing_metrics,
-            mongo=providers.Singleton(BlacklistedRefreshTokenRepository),
-            postgres=providers.Singleton(
-                postgres_repository,
-                PostgresBlacklistedRefreshTokenRepository,
-                pg_sessionmaker,
-            ),
-        )
+    session_repo: SessionRepository = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(SessionRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresSessionRepository, pg_sessionmaker
+        ),
     )
 
     flow_event_repo: FlowEventRepository = providers.Singleton(
@@ -727,6 +722,10 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
     )
 
+    session_service: SessionService = providers.Singleton(
+        SessionService, session_repo=session_repo
+    )
+
     auth_service: AuthService = providers.Singleton(
         AuthService,
         http_client=http_client,
@@ -737,6 +736,8 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
         crypto=crypto,
         user_tags_service=user_tags_service,
+        session_service=session_service,
+        allowed_origins_repo=allowed_origins_repo,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(

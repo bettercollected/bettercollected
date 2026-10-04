@@ -2,7 +2,7 @@
 
 import logging
 from http import HTTPStatus
-from typing import Optional
+from typing import List, Optional
 
 from classy_fastapi import Routable, get, post, delete
 from common.enums.form_provider import FormProvider
@@ -13,22 +13,25 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.user_feedback import UserFeedbackDto
 from backend.app.models.dtos.user_status_dto import UserStatusDto
 from backend.app.router import router
+from backend.app.models.dtos.session_dto import SessionDto
 from backend.app.services.auth_cookie_service import (
     delete_token_cookie,
-    set_tokens_to_response,
     set_access_token_to_response,
 )
 from backend.app.services.auth_service import AuthService
 from backend.app.services.feedback_service import UserFeedbackService
+from backend.app.services.session_service import (
+    AuthServiceUnavailable,
+    RevokeReason,
+    SessionService,
+)
 from backend.app.services.user_service import (
     get_logged_user,
-    add_refresh_token_to_blacklist,
-    get_access_token,
-    get_refresh_token,
-    get_api_key,
+    get_user_to_delete,
 )
 from backend.config import settings
 from backend.app.models.enum.form_integration import FormIntegrationType
@@ -52,11 +55,13 @@ class AuthRoutes(Routable):
         self,
         auth_service=container.auth_service(),
         user_feedback_service=container.user_feedback_service(),
+        session_service=container.session_service(),
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.auth_service: AuthService = auth_service
+        self.session_service: SessionService = session_service
         self.user_feedback_service: UserFeedbackService = user_feedback_service
 
     @get(
@@ -84,27 +89,71 @@ class AuthRoutes(Routable):
     async def _validate_otp(
         self,
         login_details: UserLoginWithOTP,
+        request: Request,
         response: Response,
         prospective_pro_user: Optional[bool] = False,
     ):
         user = await self.auth_service.validate_otp(
             login_details, prospective_pro_user=prospective_pro_user
         )
-        set_tokens_to_response(user, response)
+        await self.session_service.start(user, response, request)
         return "Logged In successfully"
 
     @post(
         "/refresh",
     )
-    async def _refresh_access_token(
-        self, response: Response, user=Depends(get_logged_user)
-    ):
-        user_response = await self.auth_service.get_user_status(user=user)
-        user_response["sub"] = user_response.get("email")
-        user_response["email_verified"] = user.email_verified is True
-        set_access_token_to_response(user=User(**user_response), response=response)
+    async def _refresh_access_token(self, request: Request, response: Response):
+        """Always goes through the session (never just re-mints a live access
+        token) and rotates the refresh token."""
+        try:
+            await self.session_service.refresh(request, response, rotate=True)
+        except HTTPException:  # incl. SessionEnded: 401, cookies cleared
+            raise
+        except AuthServiceUnavailable as e:
+            log.error(
+                f"Session refresh: the auth service answered {e.status_code}; "
+                "check AUTH_INTERNAL_NOTIFY_KEY on the backend and auth services"
+            )
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE, "Sign-in is temporarily unavailable."
+            )
+        except Exception as e:
+            log.error(e)
+            raise HTTPException(HTTPStatus.UNAUTHORIZED, "No user logged in.")
         response.status_code = HTTPStatus.OK
         return response
+
+    @get("/sessions", response_model=List[SessionDto])
+    async def _list_sessions(self, user: User = Depends(get_logged_user)):
+        """The signed-in user's live sessions (this one marked ``current``)."""
+        sessions = await self.session_service.list_for_user(user.id)
+        return [SessionDto.of(s, current_sid=user.sid) for s in sessions]
+
+    @delete("/sessions/{session_id}")
+    async def _revoke_session(
+        self,
+        session_id: str,
+        response: Response,
+        user: User = Depends(get_logged_user),
+    ):
+        reason = (
+            RevokeReason.LOGOUT
+            if session_id == user.sid
+            else RevokeReason.SIGNED_OUT_ELSEWHERE
+        )
+        if not await self.session_service.revoke(session_id, user.id, reason):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Session not found.")
+        if session_id == user.sid:
+            delete_token_cookie(response)
+        return {"revoked": 1}
+
+    @delete("/sessions")
+    async def _revoke_other_sessions(self, user: User = Depends(get_logged_user)):
+        """Sign out everywhere else: every session but this one."""
+        revoked = await self.session_service.revoke_all_for_user(
+            user.id, RevokeReason.LOGOUT_EVERYWHERE, except_sid=user.sid
+        )
+        return {"revoked": revoked}
 
     @get(
         "/{provider_name}/oauth",
@@ -143,7 +192,8 @@ class AuthRoutes(Routable):
         if settings.api_settings.ENABLE_GOOGLE_PICKER_API:
             redirect_uri = redirect_uri + "?modal=true"
         response = RedirectResponse(redirect_uri)
-        set_tokens_to_response(user, response)
+        # same session (sid and email_verified carried over): new access token
+        set_access_token_to_response(user, response)
         if state_data.client_referer_uri:
             return response
         return {"message": "Token saved successfully."}
@@ -188,6 +238,7 @@ class AuthRoutes(Routable):
     async def _basic_auth_callback(
         self,
         provider: FormProvider,
+        request: Request,
         code: Optional[str] = None,
         state: Optional[str] = None,
     ):
@@ -203,14 +254,14 @@ class AuthRoutes(Routable):
         )
         response = RedirectResponse(client_referer_url)
         if user:
-            set_tokens_to_response(User(**user), response)
+            await self.session_service.start(User(**user), response, request)
         return response
 
     @get(
         "/logout",
     )
     async def logout(self, request: Request, response: Response):
-        await add_refresh_token_to_blacklist(request=request)
+        await self.session_service.end_current(request, RevokeReason.LOGOUT)
         delete_token_cookie(response=response)
         return "Logged out successfully!!!"
 
@@ -219,12 +270,12 @@ class AuthRoutes(Routable):
     )
     async def delete_user(
         self,
-        request: Request,
-        user: User = Depends(get_logged_user),
-        api_key: str = Depends(get_api_key),
+        user: User = Depends(get_user_to_delete),
     ):
+        # called by the deletion workflow: the API key and the encrypted
+        # deletion request it was started with; deleting the account also
+        # deletes all of its sessions
         await self.auth_service.delete_user(user=user)
-        await add_refresh_token_to_blacklist(request=request)
         return "User Deleted Successfully"
 
     @post(
@@ -234,13 +285,9 @@ class AuthRoutes(Routable):
         self,
         response: Response,
         user_feedback: UserFeedbackDto,
-        access_token=Depends(get_access_token),
-        refresh_token=Depends(get_refresh_token),
         user: User = Depends(get_logged_user),
     ):
         await self.user_feedback_service.save_user_feedback(user_feedback=user_feedback)
-        resp = await self.auth_service.add_workflow_to_delete_user(
-            access_token=access_token, refresh_token=refresh_token, user=user
-        )
+        resp = await self.auth_service.add_workflow_to_delete_user(user=user)
         delete_token_cookie(response)
         return resp

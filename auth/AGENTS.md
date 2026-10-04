@@ -56,11 +56,12 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - **Platform admins** (`ADMIN` role, not workspace admins — and *every* platform-admin power behind the backend's
   `get_logged_admin`, not only metrics): `PLATFORM_ADMIN_EMAILS` (comma-separated) adds ADMIN to those users' token
   roles via `services/platform_admins.py:roles_for`, **only for sessions whose email was verified at sign-in**: OTP
-  login, and Google when userinfo reports `verified_email`. Typeform's `/me` email and the `/callback` JWT exchange
-  never get it. The session's `email_verified` claim lives in the backend-issued tokens (`common.models.user.User`);
+  login, and Google when userinfo reports `verified_email`. Typeform's `/me` email never gets it; the `/callback` JWT
+  exchange (import OAuth re-issuing the signed-in session's token, same email) gets it only when the backend passes
+  that session's `email_verified=true`. The session's `email_verified` claim lives in the backend-issued tokens (`common.models.user.User`);
   on refresh the backend passes it to `GET /status?email_verified=`, which grants only when it is true. Never stored,
-  so removing an email revokes it at the user's next token (tokens already issued keep it until they expire,
-  `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES`); an ADMIN stored on the user document still counts. Sessions from before this
+  so removing an email revokes it at the user's next token (access tokens already issued keep it until they
+  expire, `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` on the backend, 15 minutes by default); an ADMIN stored on the user document still counts. Sessions from before this
   claim existed count as unverified (sign in again). `GET /admin/metrics` (user counts for the backend's platform
   metrics page) requires ADMIN.
 
@@ -92,7 +93,8 @@ google `services/migration_service.py`. Never put the key on a shared HTTP clien
 
 ## Cross-service position
 
-- Issues JWTs that the **backend** wraps into cookie sessions (backend owns the refresh-token blacklist, not auth).
+- Issues JWTs that the **backend** wraps into cookie sessions (backend owns the sessions and their revocation, not
+  auth; a refresh asks `/auth/status`, and a 404 there ends the session).
 - Login OAuth here is distinct from provider *import* OAuth in `integrations/google` (:8003) / typeform (:8002).
 - Emails (OTP, invites) go out via `mail_service.py` (SMTP / fastapi-mail); templates in `app/templates/`.
 - **Notifications** (`controllers/notifications_router.py`, `services/notification_service.py`):

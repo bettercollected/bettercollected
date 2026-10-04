@@ -95,10 +95,23 @@ class WorkspaceDomainRow(Base, BaseRow):
 
 
 class BlacklistedRefreshTokenRow(Base, BaseRow):
+    """No longer written or read: session revocation (``sessions``) replaced
+    the refresh-token blacklist. Kept until a later release drops the table
+    (migrations are expand-only)."""
+
     __tablename__ = "blacklisted_refresh_tokens"
     token = S.text("token")
     expiry = S.ts("expiry")
     __table_args__ = (Index(None, "token"), Index(None, "expiry"))
+
+
+class SessionRow(Base, BaseRow):
+    __tablename__ = "sessions"
+    user_id = S.text("user_id")
+    refresh_jti = S.text("refresh_jti")
+    revoked_at = S.ts("revoked_at")
+    expires_at = S.ts("expires_at")
+    __table_args__ = (Index(None, "user_id", "revoked_at"), Index(None, "expires_at"))
 
 
 class UserTagsRow(Base, BaseRow):
