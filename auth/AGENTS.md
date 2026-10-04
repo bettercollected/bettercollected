@@ -46,6 +46,14 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   login page with `login_error=unverified_email&login_provider=…`, which the webapp explains. `GET /callback` (the
   backend's import-OAuth token exchange) never creates accounts, and the backend only sends it the signed-in user's
   own email.
+- **Single sign-on** (`services/sso_service.py`, `controllers/sso_router.py`, `SSO_*` settings; docs/sso.md): not a
+  basic-auth provider (the factory refuses `sso`). The backend picks the tenant (workspace) and the Polis connection;
+  `GET /auth/sso/authorize` builds the Polis URL (PKCE, encrypted state with tenant, connection, time and the backend's
+  context), `GET /auth/sso/callback` exchanges the code, checks userinfo's `requested` tenant/product/client_id and
+  returns the asserted email with a short-lived encrypted assertion, **creating no account** (the backend checks the
+  domain and the seat cap first); `POST /auth/sso/account` then finds or creates the account through
+  `account_for_provider_sign_in`, matching emails case-insensitively (`find_users_by_email_ci`), `email_verified`
+  true, and never the platform-admin role (`roles_for(..., verified=False)`).
 - **Routes** (`controllers/auth_router.py`):
   - `GET /otp/send`, `GET /otp/validate` — email OTP login.
   - `GET /{provider_name}/basic` + `GET /{provider}/basic/callback` — per-provider OAuth login.

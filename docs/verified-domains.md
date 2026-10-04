@@ -1,6 +1,6 @@
 # Verified email domains
 
-A workspace proves it owns an email domain (for example `acme.com`) by publishing a DNS TXT record. This is part of Phase 0 of the enterprise work: single sign-on may only map a domain its workspace has verified. Mapping a domain hands every address in it, existing accounts included, to that workspace's identity provider (see "domain mapping is a full trust grant" in `docs/sso-spike.md` on the `spike/sso-polis` branch).
+A workspace proves it owns an email domain (for example `acme.com`) by publishing a DNS TXT record. This is part of Phase 0 of the enterprise work: single sign-on may only map a domain its workspace has verified. Mapping a domain hands every address in it, existing accounts included, to that workspace's identity provider (see [sso.md](sso.md)).
 
 This is not the custom domain a workspace serves its forms on. That feature is described in [custom-domain.md](custom-domain.md).
 
@@ -79,7 +79,7 @@ A workspace can hold at most `VERIFIED_DOMAINS_MAX_PER_WORKSPACE` claims (defaul
 - A check that passes resets `failedChecks` and clears `verificationLostAt`.
 - A check that finds the record missing or wrong (`no_record`, `token_mismatch`) adds one to `failedChecks`. After `VERIFIED_DOMAINS_LOSS_AFTER_FAILED_CHECKS` such checks in a row (default 3), `verificationLostAt` is set.
 - `dns_timeout` and `dns_error` are problems with the resolver, not the domain. They are recorded in `lastCheckError` but do not count towards `failedChecks`.
-- A domain whose record is lost **stays verified, and is not transferred**. Its owner keeps it, and `domain_owner` still returns that owner. This avoids flapping, and it means a lapsed domain can't be taken over just by registering it. Releasing a lost domain is done by its owner, or by support. SSO can read `verification_lost_at` from the claim to decide whether to warn or refuse.
+- A domain whose record is lost **stays verified, and is not transferred**. Its owner keeps it, and `domain_owner` still returns that owner. This avoids flapping, and it means a lapsed domain can't be taken over just by registering it. Releasing a lost domain is done by its owner, or by support. Single sign-on refuses a lost domain (`sso_domain_claim`) until a re-check finds the record again.
 - "Verify now" on a verified domain is the same check.
 
 ## Helpers for single sign-on
@@ -89,7 +89,7 @@ On `container.workspace_domain_service()`:
 - `domain_owner(domain_or_email) -> PydanticObjectId | None`: the workspace that verified exactly that domain. Pending, failed and conflicting claims don't count.
 - `is_domain_verified_for(workspace_id, email_or_domain) -> bool`
 
-Both accept an email address and normalise the input the same way as a claim does.
+Both accept an email address and normalise the input the same way as a claim does. Single sign-on uses the stricter `sso_domain_claim(email)` and `sso_domains(workspace_id)`: verified, not lost, and not reserved now (a domain that became reserved after it was verified is not used). See [sso.md](sso.md).
 
 ## Storage
 
