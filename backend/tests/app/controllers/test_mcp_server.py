@@ -21,6 +21,11 @@ from backend.app.schemas.mcp_audit_log import MCPAuditLogDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
+from beanie import PydanticObjectId
+from common.models.user import User
+
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from tests.app.controllers.data import testUser, testUser1
 
 MCP_URL = "/api/v1/mcp"
@@ -325,6 +330,65 @@ class TestMCPServer:
         )
         assert result.get("isError") is True
         assert "forms:write" in result["content"][0]["text"]
+
+    async def test_a_privacy_officers_key_reads_no_answers(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+    ):
+        """A key acts with its creator's current permissions: made while the
+        creator was an Admin, it stops reading answers once they are a
+        Privacy officer."""
+        officer = User(id=str(PydanticObjectId()), sub="mcp-officer@example.com")
+        repo = container.workspace_user_repo()
+        await repo.save(
+            WorkspaceUserDocument(
+                workspace_id=workspace.id,
+                user_id=officer.id,
+                roles=[WorkspaceRoles.ADMIN],
+            )
+        )
+        token = await _make_key(workspace.id, ["responses:read"], user=officer)
+        allowed = await _call_tool(
+            client, token, "list_responses", {"form_id": workspace_form.form_id}
+        )
+        assert not allowed.get("isError"), allowed
+
+        membership = await repo.find_workspace_user(
+            workspace.id, PydanticObjectId(officer.id)
+        )
+        membership.roles = [WorkspaceRoles.PRIVACY_OFFICER]
+        await repo.save(membership)
+
+        refused = await _call_tool(
+            client, token, "list_responses", {"form_id": workspace_form.form_id}
+        )
+        assert refused.get("isError") is True
+        assert "response.read" in refused["content"][0]["text"]
+
+    async def test_a_removed_creators_key_fails(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+    ):
+        creator = User(id=str(PydanticObjectId()), sub="mcp-creator@example.com")
+        await container.workspace_user_repo().save(
+            WorkspaceUserDocument(
+                workspace_id=workspace.id,
+                user_id=creator.id,
+                roles=[WorkspaceRoles.ADMIN],
+            )
+        )
+        token = await _make_key(workspace.id, ["forms:read"], user=creator)
+        assert not (await _call_tool(client, token, "list_forms", {})).get("isError")
+
+        await container.workspace_user_repo().delete(workspace.id, creator.id)
+
+        refused = await _call_tool(client, token, "list_forms", {})
+        assert refused.get("isError") is True
+        assert "Forbidden" in refused["content"][0]["text"]
 
     async def test_cross_workspace_form_is_invisible(
         self,

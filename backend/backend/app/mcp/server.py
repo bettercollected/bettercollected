@@ -21,6 +21,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.permission import Permission
 from backend.app.models.dtos.request_dtos import CreateFormWithAI
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
@@ -58,7 +59,19 @@ mcp = FastMCP(
 )
 
 
-def _key(scope: str) -> WorkspaceAPIKeyDocument:
+# What the key's creator must still hold, right now, for each scope: a key
+# never does more than the person who made it currently may (a removed,
+# disabled or demoted creator makes the key refuse).
+SCOPE_PERMISSIONS: Dict[str, Permission] = {
+    "forms:read": Permission.FORM_READ,
+    "forms:write": Permission.FORM_EDIT,
+    "responses:read": Permission.RESPONSE_READ,
+    "deletion_requests:read": Permission.PRIVACY_MANAGE,
+    "deletion_requests:write": Permission.PRIVACY_MANAGE,
+}
+
+
+async def _key(scope: str) -> WorkspaceAPIKeyDocument:
     key = current_api_key.get()
     if key is None:
         raise ValueError("Not authenticated")
@@ -68,6 +81,13 @@ def _key(scope: str) -> WorkspaceAPIKeyDocument:
         # Our HTTPException carries the message in `content`, which str() drops
         # — re-raise as ValueError so the MCP client sees why it was denied.
         raise ValueError(str(e.content)) from e
+    if not await _c().authorization_service().has_permission(
+        _acting_user(key), SCOPE_PERMISSIONS[scope], key.workspace_id
+    ):
+        raise ValueError(
+            "Forbidden: the person who created this API key no longer has "
+            f"'{SCOPE_PERMISSIONS[scope].value}' in this workspace."
+        )
     return key
 
 
@@ -108,7 +128,7 @@ def _require_form_in_workspace(form_id: str, workspace_forms: Dict[str, Any]) ->
 @mcp.tool()
 async def list_forms() -> str:
     """List the workspace's forms: id, title, share slug and publish state."""
-    key = _key("forms:read")
+    key = await _key("forms:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     forms = await _c().form_repo().get_forms_by_form_ids(list(workspace_forms))
     items = [
@@ -131,7 +151,7 @@ async def list_forms() -> str:
 @mcp.tool()
 async def get_form(form_id: str) -> str:
     """Get a form's full structure (pages, fields, settings) as JSON."""
-    key = _key("forms:read")
+    key = await _key("forms:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     form = await _c().form_repo().get_form_document_by_id(form_id)
@@ -148,7 +168,7 @@ async def create_form(title: str, description: str = "") -> str:
     """Create a blank draft form (one empty page) — for building precisely
     with update_form ops. Use create_form_with_ai when you want the platform
     to design the form from a prompt instead."""
-    key = _key("forms:write")
+    key = await _key("forms:write")
     import uuid as _uuid
 
     from common.models.standard_form import (
@@ -197,7 +217,7 @@ async def create_form(title: str, description: str = "") -> str:
 async def create_form_with_ai(prompt: str) -> str:
     """Create a new draft form from a natural-language prompt. Generation is
     grounded in the workspace's AI profile (guidelines + compliance)."""
-    key = _key("forms:write")
+    key = await _key("forms:write")
     from backend.app.container import container
 
     try:
@@ -249,7 +269,7 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids).
     Field types: short_text, long_text, email, number, url, phone_number, date,
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
-    key = _key("forms:write")
+    key = await _key("forms:write")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     form_document = await _c().form_repo().get_form_document_by_id(form_id)
@@ -268,7 +288,7 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
 @mcp.tool()
 async def publish_form(form_id: str) -> str:
     """Publish a form so it can accept responses. Returns the share slug."""
-    key = _key("forms:write")
+    key = await _key("forms:write")
     from backend.app.container import container
 
     workspace_forms = await _workspace_form_ids(key.workspace_id)
@@ -290,7 +310,7 @@ async def publish_form(form_id: str) -> str:
 async def list_responses(form_id: str, limit: int = 20) -> str:
     """List a form's responses (most recent first): response id, submission
     time, and answer count. Use get_response for full answers."""
-    key = _key("responses:read")
+    key = await _key("responses:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     limit = max(1, min(limit, 100))
@@ -312,7 +332,7 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
 @mcp.tool()
 async def get_response(response_id: str) -> str:
     """Get one response's full answers."""
-    key = _key("responses:read")
+    key = await _key("responses:read")
     response = await _c().form_response_repo().get_response(response_id)
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     if not response or response.form_id not in workspace_forms:
@@ -358,7 +378,7 @@ async def get_response(response_id: str) -> str:
 async def list_deletion_requests() -> str:
     """List pending response-deletion requests across the workspace — the
     privacy queue an operator (or agent) should act on."""
-    key = _key("deletion_requests:read")
+    key = await _key("deletion_requests:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     requests = (
         await _c()
@@ -382,7 +402,7 @@ async def list_deletion_requests() -> str:
 async def get_ai_profile() -> str:
     """The workspace's AI profile: about, form guidelines and compliance
     requirements. Respect these when creating or editing forms."""
-    key = _key("forms:read")
+    key = await _key("forms:read")
     profile = await AIProfileService.get_profile_for_prompt(key.workspace_id)
     await _audit("get_ai_profile", True)
     return json.dumps(
