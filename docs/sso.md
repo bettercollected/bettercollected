@@ -194,7 +194,9 @@ Directory sync needs single sign-on on the instance (`SSO_ENABLED` and the rest,
 | backend | `SCIM_EVENT_RETENTION_SECONDS` | `86400` | How long accepted events are remembered against replays |
 | backend | `SCIM_MAX_WEBHOOK_BYTES` | `1000000` | Largest webhook body (Polis sends at most 1 MB) |
 | backend, jobs worker | `SCIM_RECONCILE_CRON` | `17 3 * * *` | The nightly resync (procrastinate cron) |
-| backend | `SCIM_RECONCILE_PAGE_SIZE` | `100` | Page size when listing users and groups from Polis |
+| backend | `SCIM_RECONCILE_PAGE_SIZE` | `50` | Page size asked of Polis. Polis caps pages at its own `db.pageLimit` (50 by default) whatever is asked; a resync pages on until an empty page, so any cap works |
+| backend | `SCIM_RECONCILE_MAX_DEPROVISION_RATIO`, `SCIM_RECONCILE_MIN_DEPROVISION` | `0.2`, `5` | The resync safety stop (below) |
+| backend | `SCIM_ROTATION_GRACE_HOURS` | `24` | After a token rotation, resyncs deactivate nobody for this long |
 
 **Expose the SCIM endpoint** next to the sign-in paths, so identity providers can reach it (Polis checks the bearer token; the admin API stays internal):
 
@@ -211,7 +213,18 @@ The SCIM base URL shown to admins is `SSO_POLIS_URL/api/scim/v2.0/<directory id>
 ```bash
 uv run python -m backend.scim resync --workspace <workspace id>
 uv run python -m backend.scim resync --all
+uv run python -m backend.scim resync --workspace <workspace id> --force   # past the safety stop
 ```
+
+**The resync safety stop.** A resync deactivates everyone Polis no longer lists, so a broken or partial listing could empty a workspace overnight. It therefore refuses, before changing anything, when it would deactivate more than 20 % of the provisioned members and at least 5 of them, or when Polis lists nobody while members are provisioned. The refusal is recorded on the directory (`mass_deprovision_refused`, shown on the settings page; the log has ids and counts only). The owner can force it from the page (after a confirmation) or with `--force`. Listing errors (Polis down, a reply that is not a list) fail the resync instead of passing for an empty directory. One directory's failure never stops the nightly run for the others.
+
+**Duplicate memberships.** A workspace has one membership per user: a unique index on (`workspace_id`, `user_id`) in `workspace_users`, so SSO, SCIM and an invitation racing to add the same person can't create two (the loser reads the existing one). Databases from before may hold duplicates. Check before deploying:
+
+```bash
+uv run python -m backend.membership_duplicates   # read-only; exit 1 and a list of ids when there are duplicates
+```
+
+Resolve each pair by hand (keep the membership with the right role, delete the other; nothing is deleted automatically), then deploy. If duplicates remain, Postgres revision `0011` stops **before changing anything** with a message naming this command, and the backend logs an ERROR at startup instead of creating the Mongo index (it still starts; new inserts are deduplicated in code). Once resolved, the next migration and the next restart create the indexes.
 
 **Local development.** After `scripts/sso-dev-setup.sh`, the backend runs on the host and Polis in a container, so Polis needs the host's address for webhooks. On Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `polis` service (or use the gateway address of the `bettercollected_default` network, e.g. `docker network inspect bettercollected_default -f '{{(index .IPAM.Config 0).Gateway}}'`) and set `SCIM_WEBHOOK_URL=http://host.docker.internal:8000/api/v1/scim/webhook` in `backend/.env`. The backend must listen on `0.0.0.0` for the container to reach it.
 
@@ -231,20 +244,21 @@ Settings → **Single sign-on** → **Directory sync (SCIM)**. Owner and Admins 
 | Directory event | Effect in the workspace |
 |---|---|
 | `user.created`, `user.updated` (active) | Only for an address on one of the workspace's verified domains: the account is found (case-insensitive) or created (email verified, never the platform-admin role), and the membership created or enabled with the role from its groups, else the default role (the SSO "role for new members"). Marked `provisioned_by: "scim"` |
-| `user.updated` (`active: false`), `user.deleted` | The membership is **disabled**, never deleted (their forms stay with the workspace), and all of the person's sessions are revoked (`scim_deprovisioned`): their next refresh fails, within the access-token lifetime (15 minutes by default). Their other workspaces are untouched. A deactivated user who is re-activated is enabled again |
+| `user.updated` (`active: false`), `user.deleted` | The membership is **disabled** (reason `directory`), never deleted (their forms stay with the workspace), and **all** of the account's sessions are revoked (`scim_deprovisioned`), on every workspace, because sessions are per account: the simplest safe choice. Their next refresh fails, within the access-token lifetime (15 minutes by default); their memberships elsewhere are untouched, so they sign in again there. Applies to members invited by hand too, when their address is on one of the workspace's verified domains. A re-activated user is enabled again, if a seat is free, but only from the directory's own deactivation: a membership the plan disabled stays disabled |
 | `group.created`, `group.updated` | The group is recorded or renamed (its mapping follows its id) |
 | `group.user_added`, `group.user_removed`, `group.deleted` | Group membership is updated and the member's role recomputed |
 | Address not on a verified domain | Ignored and listed as a failure ("not on one of this workspace's verified domains") |
-| No free seat (`API_ALLOWED_COLLABORATORS`) | Nothing is created (no account, no membership) and it is listed as a failure; the next change or a resync retries |
+| No free seat (`API_ALLOWED_COLLABORATORS`) | Nothing is created (no account, no membership) and it is listed as a failure; the next change or a resync retries. Disabled memberships hold no seat (for invitations and SSO too), so re-enabling one also needs a free seat |
+| The auth service is unreachable | Nothing is decided for that user: the webhook answers 503 (Polis retries), a resync skips them and records `auth_unavailable` |
 | The workspace owner | Never changed (not disabled, no role change), listed as "left alone" |
-| A member invited by hand | Never changed by the directory (role and status), listed as "left alone" |
+| A member invited by hand | Their role is never changed by the directory ("left alone"); a deactivation does disable them (on a verified domain), and a re-activation lifts it |
 | A member who joined by SSO sign-in (just in time) | Taken over: from then on the directory manages them |
 
 **Roles.** The highest role among a member's mapped groups wins (Admin, Editor, Reviewer, Viewer, then Privacy officer); members in no mapped group get the default role (Viewer unless the owner chose Reviewer or Editor); changing the default role or a mapping re-applies roles at once. Admin may be mapped; the owner never comes from a directory. Roles are read from the role list at runtime, so new workspace roles become mappable automatically. A member the directory manages shows **"Managed by your directory"** on the members page with the role picker disabled: their role follows their groups at the identity provider, and a change by hand is refused (`PATCH /workspaces/{id}/members/{user_id}` answers 409 `managed_by_directory`) until the directory is deleted. An Editor is stored as `COLLABORATOR`, like the role picker stores it. Mapping groups to member groups (for form-level access) comes with member groups.
 
 **SCIM is authoritative.** While the workspace has a directory, someone it deactivated or deleted cannot sign in with SSO (`sso_deprovisioned`), even if the identity provider still lets them through and even if their membership was removed by hand.
 
-**Rotate token.** Polis cannot change a directory's token, so rotating replaces the directory: a new **base URL and token** (shown once), and the old token stops working at once. Enter both at the identity provider; it sends its users and groups again, matched by email and group name, so members keep their access and groups their mapping. Until the identity provider has pushed to the new directory, a resync leaves the previous members as they are.
+**Rotate token.** Polis cannot change a directory's token, so rotating replaces the directory: a new **base URL and token** (shown once), and the old directory is deleted, so its token stops working. If Polis can't delete it right then, the reply and the page say the old token may still be accepted, with a **Retry** button; every resync retries too. Enter both at the identity provider; it sends its users and groups again. Users are matched by email; groups by Polis id where it is unchanged, else by name when exactly one previous group had that name (its mapping carries over). Several previous groups sharing a name carry nothing over: the new group starts unmapped and is flagged "Check the role" (a name is not proof enough to hand out a role, Admin least of all). **Grace:** for `SCIM_ROTATION_GRACE_HOURS` (24) after a rotation, resyncs deactivate nobody and remove no group, while the identity provider re-pushes; after that the usual rules (and the safety stop) apply. Users the directory had deactivated stay refused for SSO across the rotation.
 
 **Delete.** Syncing stops: members stay with their role and status (an admin decides what to do with them), and the directory's records are removed. Remove the SCIM app at the identity provider too.
 
@@ -252,9 +266,9 @@ Settings → **Single sign-on** → **Directory sync (SCIM)**. Owner and Admins 
 
 ### Security
 
-- The webhook has no session or key: it is authenticated by Polis's `BoxyHQ-Signature: t=<ms>,s=<hex>`, an HMAC-SHA256 of `"<t>.<raw body>"` with the directory's own webhook secret (generated by us, stored encrypted with `AUTH_AES_HEX_KEY`, never returned or logged), compared in constant time. Missing or wrong signatures, timestamps more than 5 minutes off, and unknown directories all get the same 401; nothing but the directory lookup runs before the check.
+- The webhook has no session or key: it is authenticated by Polis's `BoxyHQ-Signature: t=<ms>,s=<hex>` (the only header read; Polis 26.2.0 always sends it, and the identical `Ory-Polis-Signature` is ignored), an HMAC-SHA256 of `"<t>.<raw body>"` with the directory's own webhook secret (generated by us, stored encrypted with `AUTH_AES_HEX_KEY`, never returned or logged), compared in constant time. Missing or wrong signatures, timestamps more than 5 minutes off, and unknown directories all get the same 401; nothing but the directory lookup runs before the check.
 - Every event must name this directory's Polis id, tenant (the workspace) and product (403 `tenant_mismatch` otherwise).
-- Polis gives events no id and resends the same signed request when it retries, so each event is accepted once by a hash of (directory, type, data, signed time) in `scim_events`; a duplicate answers 200 at once. A failed event releases its record and answers 503, so Polis's retry (3 times) is applied.
+- Polis gives events no id and resends the same signed request when it retries, so each event is accepted once by a hash of (directory, type, data, signed time, its position in a batch) in `scim_events`; a duplicate answers 200 at once. A failed event releases its record and answers 503, so Polis's retry (3 times) is applied.
 - Logs carry ids, event types and outcome codes, never emails or names.
 - The SCIM bearer token is shown once and never stored here; Polis checks it.
 
@@ -266,16 +280,17 @@ Under `/api/v1/workspaces/{workspace_id}/scim`; viewing needs `security.manage`,
 |---|---|---|
 | GET | `` | `available`, `hasVerifiedDomain`, `directory` (no secrets), `types`, `counts`, `issues`, `groups`, `defaultRole`, `mappableRoles`, `canManage` |
 | POST | `/directory` | **Owner.** 201 `{directory, scimEndpoint, bearerToken}` (the token only here). 409 `sso_domain_required`, `scim_directory_exists`; 422 `invalid_directory_type`; 404 `scim_disabled`; 503 `scim_unavailable` |
-| POST | `/directory/rotate` | **Owner.** `{directory, scimEndpoint, bearerToken}` |
+| POST | `/directory/rotate` | **Owner.** `{directory, scimEndpoint, bearerToken, previousDirectoryDeleted}` |
+| POST | `/directory/cleanup` | **Owner.** Retries deleting the previous Polis directory; 503 `scim_unavailable` while it can't |
 | DELETE | `/directory` | **Owner.** 204; members stay |
 | PUT | `/groups/{group_id}` | **Owner.** `{role}` (a workspace role or null). 422 `invalid_role` |
-| POST | `/resync` | **Owner.** `{directory, summary}`; 503 `scim_unavailable` |
+| POST | `/resync` | **Owner.** Body `{force?}`. `{directory, summary}`; 409 `mass_deprovision_refused` with `summary {wouldDeprovision, provisioned, listed}` (nothing changed); 503 `scim_unavailable`, `auth_unavailable` |
 
 `POST /api/v1/scim/webhook/{directory_id}`: Polis only (signature). 200 `{applied, duplicates}`; 401, 403, 400, 413, 503 as above. Auth's internal `POST /auth/sso/directory-account` finds or creates the account.
 
 ### Storage
 
-Identity group, each a Mongo collection with its Postgres twin (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: Mongo TTL index, the twin deletes expired rows on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none). Deleting a workspace deletes its directory here and in Polis.
+Identity group, each a Mongo collection with its Postgres twin (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: Mongo TTL index, the twin deletes expired rows on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none) and `disabled_reasons` (`plan`, `directory`): each path lifts only its own reason, so an upgrade doesn't re-enable someone the directory deactivated and the directory doesn't re-enable someone a downgrade disabled (a disabled membership from before has none recorded and counts as `plan`). Revision `0011` makes (`workspace_id`, `user_id`) unique in `workspace_users` (see "Duplicate memberships"). Deleting a workspace deletes its directory here and in Polis.
 
 ### Troubleshooting
 
@@ -283,9 +298,12 @@ Identity group, each a Mongo collection with its Postgres twin (revision `0010`,
 - **Nothing arrives ("No change received yet"):** Polis can't reach `SCIM_WEBHOOK_URL` (check from the Polis container), or the backend refuses the signature (backend log: `SCIM webhook refused ... mismatch` means the secret differs, e.g. the directory was replaced outside BetterCollected; `expired` means the clocks differ by more than 5 minutes). Polis's own log lists failed deliveries. "Resync now" applies everything Polis holds regardless.
 - **Someone is listed as failed with "not on one of this workspace's verified domains":** verify that domain, then resync.
 - **"no free seat":** free seats or raise `API_ALLOWED_COLLABORATORS`, then resync.
-- **A member's role doesn't change:** they were invited by hand or are the owner (the directory leaves them alone), or their groups are not pushed to the SCIM app.
+- **A member's role doesn't change:** they were invited by hand or are the owner (the directory leaves roles alone), or their groups are not pushed to the SCIM app.
+- **"it would have deactivated too many members":** the safety stop refused a resync. Check the app's assignments at the identity provider (an unassigned group, a filter); if the departures are real, resync with force.
+- **A group says "Check the role":** after a rotation several previous groups had its name, so its role was not carried over; choose it again.
+- **"The previous directory could not be deleted":** after a rotation Polis was not reachable; press Retry (or wait for the next resync). Until then the old token may still be accepted by Polis.
 - **Someone deactivated still has access for a few minutes:** sessions end at their next refresh (the access-token lifetime); their membership is disabled at once, which stops every workspace permission immediately.
 
 ### Tests
 
-Backend: `tests/app/controllers/test_scim.py` (signatures valid, invalid, expired and replayed, tenant mismatch, provisioning, deprovisioning with session revocation, the owner, unverified domains, the seat cap, group mapping and recomputation, members invited by hand, the SSO guard, resync, rotation, deletion), `tests/app/repositories/test_scim_parity.py`, and rows in `test_permission_matrix.py`. Auth: `tests/integration/app/test_sso_service.py` (`directory_account`). Polis is a stand-in (`tests/app/scim_helpers.py`).
+Backend: `tests/app/controllers/test_scim_review.py` (Polis's capped pages through the real client with 120 users, the safety stop, plan and directory disable reasons, seats, the auth outage, one membership per user and the duplicate report, rotation clean-up, group matching and grace, the signature header), `tests/app/db/test_migrations.py` (0011 refuses with duplicates), `tests/app/controllers/test_scim.py` (signatures valid, invalid, expired and replayed, tenant mismatch, provisioning, deprovisioning with session revocation, the owner, unverified domains, the seat cap, group mapping and recomputation, members invited by hand, the SSO guard, resync, rotation, deletion), `tests/app/repositories/test_scim_parity.py`, and rows in `test_permission_matrix.py`. Auth: `tests/integration/app/test_sso_service.py` (`directory_account`). Polis is a stand-in (`tests/app/scim_helpers.py`).
