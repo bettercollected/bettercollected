@@ -20,7 +20,8 @@ from backend.app.repositories.workspace_ai_profile_repository import (
     WorkspaceAIProfileRepository,
 )
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 
 # Keep the whole profile comfortably inside a prompt without RAG.
 MAX_SECTION_CHARS = 8000
@@ -50,10 +51,10 @@ def _c():
 class AIProfileService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         profile_repo: WorkspaceAIProfileRepository,
     ):
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
         self._profile_repo = profile_repo
 
     async def get_profile(
@@ -61,9 +62,7 @@ class AIProfileService:
     ) -> AIProfileResponseDto:
         # Any workspace member may read — the profile steers what the AI
         # produces for them, and visibility is the point.
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.FORM_READ, workspace_id)
         document = await self._profile_repo.find_by_workspace(workspace_id)
         if not document:
             return AIProfileResponseDto()
@@ -78,9 +77,7 @@ class AIProfileService:
     async def update_profile(
         self, workspace_id: PydanticObjectId, dto: AIProfileDto, user: User
     ) -> AIProfileResponseDto:
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.AI_MANAGE, workspace_id)
         document = await self._profile_repo.find_by_workspace(workspace_id)
         if not document:
             document = WorkspaceAIProfileDocument(workspace_id=workspace_id)

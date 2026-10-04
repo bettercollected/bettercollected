@@ -560,7 +560,7 @@ class AppContainer(containers.DeclarativeContainer):
         action_repository=action_repository,
         form_repo=form_repo,
         temporal_service=temporal_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         http_client=http_client,
         form_provider_service=form_provider_service,
         form_response_service=form_response_service,
@@ -631,6 +631,7 @@ class AppContainer(containers.DeclarativeContainer):
         allowed_origins_repo=allowed_origins_repo,
         aws_service=aws_service,
         workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
@@ -639,7 +640,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     ai_profile_service: AIProfileService = providers.Singleton(
         AIProfileService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         profile_repo=workspace_ai_profile_repo,
     )
 
@@ -647,14 +648,14 @@ class AppContainer(containers.DeclarativeContainer):
 
     api_key_service: APIKeyService = providers.Singleton(
         APIKeyService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         api_key_repo=workspace_api_key_repo,
     )
 
     ai_consent_service: AIConsentService = providers.Singleton(
         AIConsentService,
         workspace_repo=workspace_repo,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
     )
 
     openai_service: OpenAIService = providers.Singleton(
@@ -861,7 +862,8 @@ class AppContainer(containers.DeclarativeContainer):
 
     analytics_service: AnalyticsService = providers.Singleton(
         AnalyticsService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
+        workspace_repo=workspace_repo,
     )
 
     platform_metrics_service: PlatformMetricsService = providers.Singleton(

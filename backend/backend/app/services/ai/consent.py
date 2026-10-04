@@ -21,7 +21,8 @@ from pydantic.alias_generators import to_camel
 from backend.app.exceptions import HTTPException
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.workspace import WorkspaceDocument
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 from backend.config import settings
 
 AI_NOT_ENABLED = "ai_not_enabled"
@@ -112,10 +113,10 @@ class AIConsentService:
     def __init__(
         self,
         workspace_repo: WorkspaceRepository,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
     ):
         self._workspace_repo = workspace_repo
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
 
     async def consented_provider(self, workspace_id: PydanticObjectId) -> Optional[str]:
         """The consented provider id, or None when the workspace has not
@@ -134,20 +135,15 @@ class AIConsentService:
         return provider
 
     async def _is_admin(self, workspace_id: PydanticObjectId, user: User) -> bool:
-        try:
-            await self._workspace_user_service.check_is_admin_in_workspace(
-                workspace_id=workspace_id, user=user
-            )
-            return True
-        except HTTPException:
-            return False
+        return await self._authorization.has_permission(
+            user, Permission.AI_MANAGE, workspace_id
+        )
 
     async def get_settings(
         self, workspace_id: PydanticObjectId, user: User
     ) -> WorkspaceAISettingsDto:
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        # Every member sees whether AI is on (and sets their own preference).
+        await self._authorization.authorize(user, Permission.FORM_READ, workspace_id)
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         from backend.app.services.ai.memory import AIMemoryService
 
@@ -165,9 +161,7 @@ class AIConsentService:
         dto: UpdateWorkspaceAISettingsDto,
         user: User,
     ) -> WorkspaceAISettingsDto:
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
-        )
+        await self._authorization.authorize(user, Permission.AI_MANAGE, workspace_id)
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         now = dt.datetime.now(dt.timezone.utc)
         if dto.enabled:

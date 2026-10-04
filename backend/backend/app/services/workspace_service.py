@@ -16,6 +16,7 @@ from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
@@ -29,6 +30,7 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.custom_domain_service import (
     CustomDomainService,
@@ -76,8 +78,10 @@ class WorkspaceService:
         form_response_service: FormResponseService,
         responder_groups_service: ResponderGroupsService,
         user_tags_service: UserTagsService,
+        authorization_service: AuthorizationService,
         custom_domain_service: Optional[CustomDomainService] = None,
     ):
+        self._authorization = authorization_service
         self.http_client = http_client
         self.custom_domain_service = custom_domain_service
         self._workspace_repo = workspace_repo
@@ -98,16 +102,12 @@ class WorkspaceService:
 
     async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
-        if user:
-            try:
-                await self._workspace_user_service.check_user_has_access_in_workspace(
-                    workspace_id=workspace.id, user=user
-                )
-                return WorkspaceResponseDto(
-                    **workspace.model_dump(mode="json"), dashboard_access=True
-                )
-            except HTTPException:
-                pass
+        if user and await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace.id
+        ):
+            return WorkspaceResponseDto(
+                **workspace.model_dump(mode="json"), dashboard_access=True
+            )
         return WorkspaceResponseDto(**workspace.model_dump(mode="json"))
 
     async def create_non_default_workspace(
@@ -173,16 +173,16 @@ class WorkspaceService:
         workspace_patch: WorkspaceRequestDtoCamel,
         user: User,
     ):
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        # Name, handle, images, custom domain and policies. The owner only, as
+        # before (#765): the access model gives this to workspace.manage
+        # (Owner and Admin), which is left to the roles step. Until then it
+        # needs the one permission only the owner holds.
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_BILLING, workspace_id
         )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
         )
-        if not str(workspace_document.owner_id) == user.id:
-            raise HTTPException(
-                HTTPStatus.FORBIDDEN, "You are not authorized to perform this action."
-            )
 
         workspace_document = await self.upload_images_of_workspace(
             workspace_document=workspace_document,
@@ -292,8 +292,8 @@ class WorkspaceService:
         The list is small and owned by one settings surface, so replacing it
         wholesale keeps create/rename/delete a single round-trip each.
         """
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         if len(custom_themes) > 20:
             raise HTTPException(
@@ -322,8 +322,8 @@ class WorkspaceService:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
@@ -419,8 +419,8 @@ class WorkspaceService:
         return {"message": "Otp sent successfully"}
 
     async def get_workspace_stats(self, workspace_id: PydanticObjectId, user: User):
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.ANALYTICS_READ, workspace_id
         )
         form_ids = await self.workspace_form_service.get_form_ids_in_workspace(
             workspace_id=workspace_id
@@ -559,8 +559,8 @@ class WorkspaceService:
     async def _require_custom_domain_admin(
         self, workspace_id: PydanticObjectId, user: User
     ) -> WorkspaceDocument:
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         if (
@@ -665,8 +665,8 @@ class WorkspaceService:
         await self._workspace_repo.delete_workspaces_with_ids(workspace_ids)
 
     async def verify_workspace_domain(self, workspace_id, user):
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         if (
