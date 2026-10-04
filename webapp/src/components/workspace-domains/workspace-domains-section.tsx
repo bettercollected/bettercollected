@@ -66,6 +66,9 @@ function CopyButton({ value, label }: { value: string; label: string }) {
             className="shrink-0 rounded p-1 text-black-500 transition-colors hover:text-black-800"
         >
             {copied ? <Check className="h-4 w-4 text-[#0E8A5F]" /> : <Copy className="h-4 w-4" />}
+            <span className="sr-only" aria-live="polite">
+                {copied ? 'Copied' : ''}
+            </span>
         </button>
     );
 }
@@ -122,7 +125,7 @@ function DomainCard({ domain, workspaceId }: { domain: WorkspaceDomainDto; works
     return (
         <li className="flex flex-col gap-4 rounded-lg border border-black-200 bg-white p-4" data-testid={`domain-${domain.domain}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1" aria-live="polite">
                     <div className="flex flex-wrap items-center gap-2">
                         {verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-[#0E8A5F]" /> : <Globe2 className="h-4 w-4 shrink-0 text-black-500" />}
                         <span className="break-all text-sm font-semibold text-black-900">{domain.displayDomain}</span>
@@ -153,14 +156,14 @@ function DomainCard({ domain, workspaceId }: { domain: WorkspaceDomainDto; works
                 </div>
             )}
 
-            {problem && !domain.verificationLostAt && <p className={cn('text-xs', verified ? 'text-black-600' : 'text-[#C43D3D]')}>{problem}</p>}
+            <div aria-live="polite">{problem && !domain.verificationLostAt && <p className={cn('text-xs', verified ? 'text-black-600' : 'text-[#C43D3D]')}>{problem}</p>}</div>
 
             {domain.status !== 'conflict' && (
                 <div className="bg-black-50 flex flex-col gap-3 rounded-md p-3">
                     <p className="text-xs leading-relaxed text-black-700">
                         {verified
                             ? 'Keep this TXT record in place: the domain is checked again regularly.'
-                            : 'At your DNS provider, add a TXT record with this name and value. Some providers add the domain to the name for you; then enter only the first part.'}
+                            : 'At your DNS provider, add a TXT record with this name and value. Some providers add the domain to the name for you; then enter only the first part. DNS changes can take up to a few hours to show up.'}
                     </p>
                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
                         <RecordField label="Name (host)" value={domain.txtRecordName} copyLabel={`Copy record name for ${domain.displayDomain}`} />
@@ -186,7 +189,7 @@ export default function WorkspaceDomainsSection() {
     const workspace = useAppSelector(selectWorkspace);
     const workspaceId: string = workspace?.id;
     const { toast } = useToast();
-    const { data: domains = [], isLoading } = useGetEmailDomainsQuery(workspaceId, { skip: !workspaceId });
+    const { data: domains = [], isLoading, isError, refetch } = useGetEmailDomainsQuery(workspaceId, { skip: !workspaceId });
     const [claimDomain, { isLoading: isClaiming }] = useClaimEmailDomainMutation();
     const [draft, setDraft] = useState('');
     const [claimError, setClaimError] = useState<string | null>(null);
@@ -244,6 +247,13 @@ export default function WorkspaceDomainsSection() {
                 <h2 className="text-sm font-semibold text-black-900">Domains</h2>
                 {isLoading ? (
                     <p className="text-xs text-black-500">Loading…</p>
+                ) : isError ? (
+                    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#F3D1D1] bg-[#FBEFEF] px-3 py-3 text-xs text-[#C43D3D]">
+                        <span>Your domains couldn&apos;t be loaded. Nothing has been changed.</span>
+                        <Button size="sm" variant="v2Button" onClick={() => refetch()}>
+                            Try again
+                        </Button>
+                    </div>
                 ) : domains.length === 0 ? (
                     <p className="rounded-md border border-dashed border-black-200 px-3 py-4 text-center text-xs text-black-500">No domains yet. Add your organisation&apos;s email domain above.</p>
                 ) : (

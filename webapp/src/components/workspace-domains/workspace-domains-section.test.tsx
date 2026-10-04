@@ -10,7 +10,8 @@ import { store } from '@app/store/store';
 import WorkspaceDomainsSection, { checkErrorMessage } from './workspace-domains-section';
 
 // Partial-mock only the hooks; the store keeps the real workspacesApi.
-const domainsQueryMock: { data: WorkspaceDomainDto[]; isLoading: boolean } = { data: [], isLoading: false };
+const refetchMock = vi.fn();
+const domainsQueryMock: { data: WorkspaceDomainDto[] | undefined; isLoading: boolean; isError: boolean; refetch: typeof refetchMock } = { data: [], isLoading: false, isError: false, refetch: refetchMock };
 const claimMock = vi.fn();
 const verifyMock = vi.fn();
 const deleteMock = vi.fn();
@@ -60,6 +61,8 @@ describe('WorkspaceDomainsSection', () => {
     beforeEach(() => {
         domainsQueryMock.data = [];
         domainsQueryMock.isLoading = false;
+        domainsQueryMock.isError = false;
+        refetchMock.mockReset();
         claimMock.mockReset().mockResolvedValue({ data: domain() });
         verifyMock.mockReset().mockResolvedValue({ data: domain({ status: 'verified', verifiedAt: '2026-10-04T10:05:00Z' }) });
         deleteMock.mockReset().mockResolvedValue({ data: undefined });
@@ -73,6 +76,16 @@ describe('WorkspaceDomainsSection', () => {
     it('shows an empty state', () => {
         renderSection();
         expect(screen.getByText(/No domains yet/)).toBeDefined();
+    });
+
+    it('shows a load error with a retry instead of the empty state', () => {
+        domainsQueryMock.data = undefined;
+        domainsQueryMock.isError = true;
+        renderSection();
+        expect(screen.queryByText(/No domains yet/)).toBeNull();
+        expect(screen.getByRole('alert').textContent).toMatch(/couldn.t be loaded/);
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(refetchMock).toHaveBeenCalledTimes(1);
     });
 
     it('claims a domain', async () => {
