@@ -510,7 +510,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_repo=form_response_repo,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
-        workspace_user_repo=workspace_user_repo,
+        authorization_service=authorization_service,
         aws_service=aws_service,
         workspace_repo=workspace_repo,
     )
@@ -520,7 +520,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_repo=form_response_repo,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
-        workspace_user_repo=workspace_user_repo,
+        authorization_service=authorization_service,
         workspace_repo=workspace_repo,
         http_client=http_client,
     )
@@ -551,7 +551,7 @@ class AppContainer(containers.DeclarativeContainer):
     responder_groups_service = providers.Singleton(
         ResponderGroupsService,
         responder_groups_repo=responder_groups_repository,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_service=form_service,
     )
 
@@ -691,7 +691,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_ai_insights_service: FormAIInsightsService = providers.Singleton(
         FormAIInsightsService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         form_response_repo=form_response_repo,
@@ -731,6 +731,7 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_members_service: WorkspaceMembersService = providers.Singleton(
         WorkspaceMembersService,
         workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_invitation_repo=workspace_invitation_repo,
         workspace_repo=workspace_repo,
         http_client=http_client,
@@ -761,7 +762,7 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_responders_service = providers.Singleton(
         WorkspaceRespondersService,
         workspace_responders_repo=workspace_responders_repo,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_response_service=form_response_service,
     )
     workspace_consent_repo = providers.Singleton(
