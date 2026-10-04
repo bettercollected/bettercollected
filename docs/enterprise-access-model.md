@@ -30,7 +30,7 @@ can(user, permission, workspace, form?)  =
 | `workspace.manage` | name, handle, branding, themes, custom domain, site settings |
 | `workspace.billing` | plan, Stripe, transfer, delete workspace |
 | `members.manage` | invite, remove, change roles, member groups |
-| `security.manage` | SSO connection, SCIM, verified domains, API keys |
+| `security.manage` | SSO settings (view, test a connection), SCIM, verified domains, API keys. Changing the SSO configuration (connections, "require SSO", the default role) is **owner only** on top: a connection controls every account on the workspace's verified domains, the owner's included ([sso.md](sso.md)) |
 | `ai.manage` | AI opt-in and provider, AI profile |
 | `audit.read` | audit log |
 | `form.create` | create, import (Google/Typeform/PDF), from template |

@@ -21,7 +21,7 @@ browser ─▶ Polis ─▶ IdP (SAML or OIDC) ─▶ Polis ─▶ backend GET /
 
 - **The tenant is the workspace.** Polis's tenant is the workspace id and its product is `SSO_POLIS_PRODUCT` (`bettercollected`). A later SCIM directory attaches to the same tenant.
 - **SSO only covers verified domains.** A connection applies to the workspace's email domains verified with a DNS TXT record ([verified-domains.md](verified-domains.md)). A domain that is only claimed, one whose verification was lost (`verificationLostAt`), one verified by another workspace, or one reserved by the operator (including the platform admins' domains) is never used. Sub-domains are separate domains.
-- **A domain is a trust grant.** Once a domain is verified and SSO is on, the workspace's IdP decides who every address on that domain is, existing accounts included. That is why verification is required and why a workspace can only connect an IdP it controls.
+- **A domain is a trust grant.** Once a domain is verified and SSO is on, the workspace's IdP decides who every address on that domain is, existing accounts included, **the owner's own**. That is why verification is required, and why **only the workspace owner** can change the SSO configuration (connections, "require SSO", the default role): an Admin able to enable an IdP they control could sign in as the owner or anyone else on the domain.
 
 ## For operators
 
@@ -41,11 +41,14 @@ SSO_SAML_AUDIENCE=https://sso.example.org
 
 Then run `./deploy.sh`. With `SSO_ENABLED=true` it:
 
-- generates `BC_POLIS_PASSWORD`, `SSO_POLIS_API_KEY` (Polis's `JACKSON_API_KEYS`), `POLIS_CLIENT_SECRET_VERIFIER`, `POLIS_NEXTAUTH_SECRET` and a 32-character `POLIS_DB_ENCRYPTION_KEY` into `.env` (once; keep them, and back them up: losing `POLIS_DB_ENCRYPTION_KEY` loses every connection);
-- creates Polis's own database `polis` and role `bc_polis` in `app-postgres` (idempotent; the role owns only that database);
-- starts the `polis` service (compose profile `sso`) and passes the `SSO_*` settings to the backend and auth.
+- checks that `SSO_POLIS_URL`, `SSO_REDIRECT_URI` and `SSO_SAML_AUDIENCE` are set;
+- starts `polis` and its own `polis-postgres` (compose profile `sso`) and passes the `SSO_*` settings to the backend, the jobs worker and auth.
 
-Polis runs with `IDP_ENABLED=false` (no IdP-initiated sign-in), `OPENID_REDIRECT_EXACT_MATCH=true` (the redirect URI must match exactly), a random `CLIENT_SECRET_VERIFIER` (never Polis's default `dummy`) and `DB_ENCRYPTION_KEY`. The image defaults to `boxyhq/jackson:latest`; version 26.2.0 is the one tested. Pin it with `POLIS_IMAGE=boxyhq/jackson:<version>` in `.env`.
+`deploy.sh` generates Polis's secrets into `.env` on its first run whether SSO is on or not: `BC_POLIS_PASSWORD`, `SSO_POLIS_API_KEY` (Polis's `JACKSON_API_KEYS`), `POLIS_CLIENT_SECRET_VERIFIER`, `POLIS_NEXTAUTH_SECRET` and a 32-character `POLIS_DB_ENCRYPTION_KEY`. The compose file requires them (`${VAR:?}`), so Polis can never start with an empty key; compose checks required values for every service, profiles included, so running the compose file by hand needs them set even without SSO. Keep them and back them up: losing `POLIS_DB_ENCRYPTION_KEY` loses every connection.
+
+Polis runs with `IDP_ENABLED=false` (no IdP-initiated sign-in), `OPENID_REDIRECT_EXACT_MATCH=true` (the redirect URI must match exactly), a random `CLIENT_SECRET_VERIFIER` (never Polis's default `dummy`) and `DB_ENCRYPTION_KEY`. The image is pinned by digest to 26.2.0, the version tested; override it with `POLIS_IMAGE` in `.env` only after testing another.
+
+**Network isolation.** Polis fetches nothing an admin typed in (we fetch metadata and discovery documents ourselves, see "SSRF" below), but it does call the IdPs' token, userinfo and JWKS endpoints. So it runs on its own networks: `polis-db` (internal, Polis and its Postgres only) and `sso` (Polis, the backend, the jobs worker and auth, with internet egress). It cannot reach Mongo, `app-postgres`, Temporal, Umami or the other services. The backend and auth can reach it, and it can reach their HTTP ports in turn (auth's API needs the internal key). Local development (`docker-compose.sso.yml`) is simpler: Polis joins the local stack's network and keeps its data in `app-postgres`.
 
 The webapp's SSO screens are a build-time flag: build the image with `--build-arg NEXT_PUBLIC_ENABLE_SSO=true`.
 
@@ -63,7 +66,7 @@ server {
 }
 ```
 
-`/api/oauth/saml` (the SAML ACS) and `/api/oauth/oidc` (the OIDC redirect) receive the IdPs' answers through the browser; `/api/oauth/authorize` starts a sign-in; `/api/oauth/token` and `/api/oauth/userinfo` are called by the auth service, which uses `http://polis:5225` inside the compose network.
+`/api/oauth/saml` (the SAML ACS) and `/api/oauth/oidc` (the OIDC redirect) receive the IdPs' answers through the browser; `/api/oauth/authorize` starts a sign-in; `/api/oauth/token` and `/api/oauth/userinfo` are called by the auth service, which uses `http://polis:5225` inside the compose network. Deleting a connection sends Polis the connection's own client secret as a query parameter (the only form Polis's admin DELETE accepts); that request stays on the internal `sso` network, and the admin API must never be exposed.
 
 ### Settings
 
@@ -96,20 +99,23 @@ The script generates throwaway secrets in `.sso-dev/` (gitignored), creates the 
 
 ## For workspace admins
 
-Settings → **Single sign-on** (Owner and Admins: the `security.manage` permission).
+Settings → **Single sign-on**. Owner and Admins (`security.manage`) see the page and can **test** a connection, which never signs anyone in. **Only the workspace owner** creates, enables, disables and deletes connections and changes "require single sign-on" and the default role.
 
 1. **Verify your domain** under Settings → Domains first.
 2. **Register BetterCollected at your IdP** with the values the page shows: for SAML the **ACS URL** (reply URL) and the **entity ID** (audience), or the SP metadata URL; for OIDC the **redirect URI**. The IdP must send the user's email address (SAML NameID or an email attribute; OIDC `email` claim).
-3. **Add a connection**: SAML from the IdP's metadata URL (https and public only) or its metadata XML, or OIDC from the discovery URL plus the client ID and secret. The secret goes to Polis, encrypted there, and is never shown again or stored by BetterCollected.
+3. **Add a connection**: SAML from the IdP's metadata URL (https and public only) or its metadata XML, or OIDC from the discovery URL plus the client ID and secret. The secret goes to Polis, encrypted there, and is never shown again or stored by BetterCollected. If the IdP's entity ID is already connected to another workspace (for example registered first by someone else), creating it fails with `idp_already_connected` and a message to contact support, who can check who owns it and release it.
 4. **Test connection**: you sign in at the IdP once. The result comes back to the page. It passes when the IdP vouched for an address on one of your verified domains. Testing never signs anyone in and never creates accounts or members.
-5. **Enable** the connection. One connection is enabled at a time; enabling another disables the first, which allows moving to a new IdP without a gap.
+5. **Enable** the connection: only after this connection's current configuration passed a test (re-adding the same IdP updates it in Polis and asks for a new test). One connection is enabled at a time; enabling another disables the first, which allows moving to a new IdP without a gap.
 6. Optionally choose the **role for new members** and **require single sign-on**.
 
-People who sign in with SSO for the first time join the workspace with the default role (Collaborator today; the setting accepts every workspace role except Admin, which is never given by an IdP). Existing members keep their role. A workspace with no free seat refuses new members with a clear message and creates no account. SSO members get no personal workspace.
+People who sign in with SSO for the first time join the workspace with the default role (Collaborator today; the setting accepts every workspace role except Admin, which is never given by an IdP). Existing members keep their role. A **disabled** membership stays disabled: that person gets no session (`sso_membership_disabled`). A **removed** member who signs in with SSO again is added again, like any first SSO sign-in (that is how just-in-time membership works); to keep someone out, remove them at the IdP. SCIM deprovisioning (next phase) will handle this properly. A workspace with no free seat refuses new members with a clear message and creates no account; the cap is checked before the account exists and again after the membership is written, and a sign-in that raced past the first look gives its seat back (in a tight race both may be refused, never both admitted). SSO members get no personal workspace.
 
 ### Requiring single sign-on
 
-"Require single sign-on for *your domains*" refuses every other way of signing in for addresses on the workspace's SSO domains: email codes (on the dashboard and on every workspace's respondent pages) and Google. It needs an enabled connection that passed a test and at least one SSO domain, and while it is on, the enabled connection can't be disabled or deleted. When you turn it on you can sign out the members on those domains at once (their sessions from before; the owner's sessions and your own current session are kept), so their next sign-in goes through the IdP.
+"Require single sign-on for *your domains*" refuses every other way of signing in for addresses on the workspace's SSO domains: email codes on the dashboard and on this workspace's own forms, and Google. It needs an enabled connection that passed a test and at least one SSO domain, and while it is on, the enabled connection can't be disabled or deleted.
+
+- **Existing sessions end at their next refresh** (within `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES`, 15 by default): any session for an address on those domains that did not sign in with SSO, member of the workspace or not. Exceptions: the owner's email-code sessions (break-glass) and respondent-scoped sessions (below). When you turn the requirement on you can also sign out the members on those domains at once (the owner's sessions and your own current session are kept).
+- **Respondents on other workspaces' forms.** Someone on such a domain may still verify their email with a code to answer *another* workspace's forms. That session is **respondent-scoped** (`scope: "respondent"` and the workspace it was made for): it holds no workspace permission anywhere (`authorize()` grants nothing, so the dashboard, the API and API-key creation refuse it), carries only the respondent role (no creator, no platform admin), creates no personal workspace, and is exempt from the refresh rule. On the SSO workspace's own forms, email codes stay refused for those addresses.
 
 The requirement is only enforced while it can be met: with SSO switched off on the instance, the workspace disabled, the connection disabled or the domain's verification lost, nothing is refused.
 
@@ -119,40 +125,43 @@ The requirement is only enforced while it can be met: with SSO switched off on t
 
 - **State and PKCE.** Every sign-in uses PKCE (S256); the verifier lives only in our Fernet-encrypted state (`AUTH_AES_HEX_KEY`) together with the tenant, the connection and the time, and the state expires after `SSO_STATE_MAX_AGE_SECONDS`. The authorize request names the connection itself (its Polis clientID); the callback checks that userinfo's `requested.tenant`, `requested.product` and `requested.client_id` are the ones the sign-in started with.
 - **Order of checks.** The connection, workspace, domain and seat checks run before auth creates an account, so a refused sign-in leaves nothing behind.
-- **Redirects.** After sign-in the browser goes only to this instance's origins (`login_redirect.py`: `API_CLIENT_URL` and `allowed_origins`). Errors redirect with a code from a fixed list (`sso_error=`), never free text.
+- **Login CSRF and replay.** Starting a sign-in (or a test) sets a short-lived HttpOnly, SameSite=Lax cookie `SsoNonce` (path `/api/v1/auth/sso`, 10 minutes) whose SHA-256 travels in the encrypted state. The callback needs that browser's cookie (`sso_session_mismatch` otherwise), and each nonce is accepted once (`sso_used_states`, unique, expiring), so a victim's browser can't be signed in to an attacker's account and a callback can't be replayed. (In the local end-to-end run a replayed callback got past Polis's token exchange and was stopped by this record, so don't rely on Polis for single use.)
+- **Redirects.** After sign-in the browser goes only to this instance's origins (`login_redirect.py`: `API_CLIENT_URL` and `allowed_origins`). The dashboard URL is built on that allow-listed origin with the workspace handle URL-quoted as one path segment (so a handle like `//evil.com` can't change the host) and checked against the allow-list again. Errors redirect with a code from a fixed list (`sso_error=`), never free text.
 - **Sessions.** An SSO sign-in creates a revocable session like every other provider (`method: "sso"`, listed under Account settings → Sessions).
-- **Platform admins.** An SSO session never gets the platform-admin role from `PLATFORM_ADMIN_EMAILS`, whatever its email: the backend tells auth the session is not admin-eligible on sign-in, on every refresh and in the import-OAuth token exchange. On top of that, the platform admins' domains (and `VERIFIED_DOMAINS_RESERVED`) can't be claimed, and a domain that becomes reserved after it was verified is no longer used for SSO.
+- **Platform admins.** An SSO session never has the platform-admin role: not from `PLATFORM_ADMIN_EMAILS` (the backend tells auth the session is not admin-eligible on sign-in, on every refresh and in the import-OAuth token exchange) and not one stored on the account either (auth leaves it out of the SSO sign-in and the backend strips it on every refresh). On top of that, the platform admins' domains (and `VERIFIED_DOMAINS_RESERVED`) can't be claimed, and a domain that becomes reserved after it was verified is no longer used for SSO.
 - **Email case.** SSO compares emails case-insensitively: `bob@acme.com` signs in to an existing `Bob@Acme.com` account instead of creating a second one. Several accounts differing only in case are refused (`sso_account_conflict`). The other sign-in paths still match exactly (a central normalisation is a follow-up).
-- **SSRF.** Metadata and discovery URLs must be `https`, without credentials, and resolve only to public addresses (no private, loopback, link-local, CGNAT, multicast or reserved ranges, IPv4 or IPv6) before they are handed to Polis, which fetches them. Polis resolves the name again when it fetches, so DNS rebinding is not covered by this check; keep Polis on a network that can't reach internal admin services.
+- **SSRF.** Polis is never handed a URL an admin typed. A SAML metadata URL is fetched by the backend (every redirect hop checked, at most 3, 512 KB cap) and Polis gets the XML. An OIDC discovery document is fetched the same way, and every endpoint it lists (`issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`) must be `https` and resolve only to public addresses; Polis gets those checked endpoints as the connection's metadata (it never fetches the discovery URL), and they are checked again before each test. "Public" means no private, loopback, link-local, CGNAT, multicast, reserved or unspecified ranges, IPv4 or IPv6, and no credentials in the URL. **Residual risk:** names are resolved for the check and again for the request (by the backend, and by Polis when it calls the token, userinfo and JWKS endpoints at sign-in), so a name whose DNS answer changes after the check (rebinding, or a later DNS change at the IdP) is not covered. That is why Polis runs on its own networks (above).
 - **Secrets.** The Polis API key is used server-side only. OIDC client secrets pass through the backend to Polis and are never stored or logged by BetterCollected; Polis encrypts its store with `DB_ENCRYPTION_KEY`.
 - **Not covered:** IdP-initiated sign-in (off in Polis), single logout (signing out of BetterCollected does not sign out of the IdP), and SCIM provisioning (below). Removing someone at the IdP stops new sign-ins; their existing sessions run until they expire or are revoked. Removing the member from the workspace takes away their access at once.
 
 ## API
 
-All under `/api/v1/workspaces/{workspace_id}/sso`, all requiring `security.manage`:
+All under `/api/v1/workspaces/{workspace_id}/sso`, all requiring `security.manage`, and the changes also the workspace owner (`AuthorizationService.require_owner`):
 
 | Method | Path | Result |
 |---|---|---|
 | GET | `` | `available`, `serviceProvider` (ACS URL, entity ID, SP metadata URL, OIDC redirect URI), `domains`, `connections`, `settings`, `maxConnections` |
-| POST | `/connections` | 201. `{type: "saml", name?, metadataXml \| metadataUrl}` or `{type: "oidc", name?, discoveryUrl, clientId, clientSecret}`. 422 `https_required`, `private_address`, `unresolvable_host`, `invalid_url`, `metadata_required`, `invalid_metadata`, `oidc_fields_required`, `too_many_connections`; 409 `idp_already_connected` (the IdP's entity ID belongs to another workspace) or `connection_exists`; 503 `sso_unavailable` |
-| POST | `/connections/{id}/enable` | enables it, disables the others |
-| POST | `/connections/{id}/disable` | 409 `sso_required_on` while it is the enabled one and SSO is required |
-| DELETE | `/connections/{id}` | 204; also deleted in Polis. 409 as above |
-| GET | `/connections/{id}/test` | browser navigation: the IdP, then back to the settings page with `?sso_test=ok` or a code |
-| PUT | `/settings` | `{ssoRequired?, defaultRole?, revokeSessions?}`. 409 `sso_connection_required`, `sso_connection_untested`, `sso_domain_required`; 422 `invalid_role`. Answers the settings with `revokedSessions` |
+| POST | `/connections` | **Owner.** 201. `{type: "saml", name?, metadataXml \| metadataUrl}` or `{type: "oidc", name?, discoveryUrl, clientId, clientSecret}`. 422 `https_required`, `private_address`, `unresolvable_host`, `invalid_url`, `fetch_failed`, `invalid_discovery`, `metadata_required`, `invalid_metadata`, `oidc_fields_required`, `too_many_connections`; 409 `idp_already_connected` (the IdP's entity ID belongs to another workspace) or `connection_exists`; 503 `sso_unavailable` |
+| POST | `/connections/{id}/enable` | **Owner.** Enables it, disables the others. 409 `sso_connection_untested` unless this connection passed a test |
+| POST | `/connections/{id}/disable` | **Owner.** 409 `sso_required_on` while it is the enabled one and SSO is required |
+| DELETE | `/connections/{id}` | **Owner.** 204; also deleted in Polis. 409 as above |
+| GET | `/connections/{id}/test` | Owner and Admins. Browser navigation: the IdP, then back to the settings page with `?sso_test=ok` or a code |
+| PUT | `/settings` | **Owner.** `{ssoRequired?, defaultRole?, revokeSessions?}`. 409 `sso_connection_required`, `sso_connection_untested`, `sso_domain_required`; 422 `invalid_role`. Answers the settings with `revokedSessions` |
 
-Sign-in: `GET /api/v1/auth/sso/login?email=` and `GET /api/v1/auth/sso/callback` (Polis's redirect). Login error codes (`?sso_error=`): `sso_disabled`, `sso_not_configured`, `sso_failed`, `sso_expired`, `sso_bad_state`, `sso_tenant_mismatch`, `sso_email_domain_not_allowed`, `sso_workspace_unavailable`, `sso_seat_limit`, `sso_account_conflict`. An email code refused by the requirement answers 403 `{code: "sso_required", message}`; a refused Google sign-in returns to the login page with `login_error=sso_required`.
+The overview (`GET`) is Owner and Admins and says `canManage` (the caller is the owner).
+
+Sign-in: `GET /api/v1/auth/sso/login?email=` and `GET /api/v1/auth/sso/callback` (Polis's redirect). Login error codes (`?sso_error=`): `sso_disabled`, `sso_not_configured`, `sso_failed`, `sso_expired`, `sso_bad_state`, `sso_tenant_mismatch`, `sso_email_domain_not_allowed`, `sso_workspace_unavailable`, `sso_seat_limit`, `sso_account_conflict`, `sso_session_mismatch`, `sso_membership_disabled`. An email code refused by the requirement answers 403 `{code: "sso_required", message}`; a refused Google sign-in returns to the login page with `login_error=sso_required`. `POST /api/v1/auth/otp/validate` takes an optional `workspace_id` (the workspace whose forms the code was asked for), which decides whether such an address gets a respondent-scoped session.
 
 The auth service's routes (`/auth/sso/authorize`, `/auth/sso/callback`, `POST /auth/sso/account`) are internal like all of auth's API.
 
 ## Storage
 
-Collection `sso_connections` (`SsoConnectionDocument`) with its Postgres twin `app.sso_connections` in the identity group (revision `0008`, a new table only): workspace, type (`saml`/`oidc`), name, status (`enabled`/`disabled`), the Polis clientID, tenant and product, the IdP's entity ID or discovery URL and OIDC client ID (never the secret), who created and enabled it, and the last test's time, user and outcome. Unique Polis clientID; index on workspace and status. The workspace document carries `sso_required` (with who and when) and `sso_default_role`. Sessions carry `method: "sso"`. Deleting a workspace deletes its connections here and in Polis.
+Collection `sso_connections` (`SsoConnectionDocument`) with its Postgres twin `app.sso_connections` in the identity group (revision `0008`, a new table only): workspace, type (`saml`/`oidc`), name, status (`enabled`/`disabled`), the Polis clientID, tenant and product, the IdP's entity ID or discovery URL and OIDC client ID (never the secret), who created and enabled it, and the last test's time, user and outcome. Unique Polis clientID; index on workspace and status. Collection `sso_used_states` with its twin `app.sso_used_states` (revision `0009`, a new table only): the hash of each accepted sign-in nonce, unique, until it expires (Mongo TTL index; the twin deletes expired rows on each claim). The workspace document carries `sso_required` (with who and when) and `sso_default_role`. Sessions carry `method` (`sso`, `otp`, `google`) and, for a respondent-only session, `scope: "respondent"` with `scope_workspace_id`; the tokens carry them as `auth_method`, `session_scope` and `scope_workspace_id`. Deleting a workspace deletes its connections here and in Polis.
 
 ## Tests
 
 - auth: `tests/integration/app/test_sso_service.py` (PKCE and state, tenant/product/connection mismatch, case-insensitive matching, the assertion, no platform-admin role, the internal key), `test_postgres_parity.py` (the case-insensitive lookup in both stores).
-- backend: `tests/app/controllers/test_sso_login.py` (unverified, lost, reserved and other workspaces' domains, tenant mismatch, seat cap before the account exists, never downgrading, sessions, redirects, connection tests), `test_sso_admin.py` (admin API, SSRF, SSO required, break-glass, Google, revocation), `tests/app/services/test_sso_url_guard.py`, `tests/app/repositories/test_sso_connection_parity.py`, and a row per endpoint in `test_permission_matrix.py`. Polis and auth are stand-ins (`tests/app/sso_helpers.py`); nothing calls a real IdP or resolves real names.
+- backend: `tests/app/controllers/test_sso_login.py` (unverified, lost, reserved and other workspaces' domains, tenant mismatch, seat cap before the account exists, never downgrading, sessions, redirects, connection tests), `test_sso_admin.py` (admin API, owner only, enabling needs a test, SSRF with redirect hops and OIDC endpoints, SSO required, break-glass, Google, revocation), `test_sso_review.py` (crafted workspace handles, the nonce cookie and single-use states, disabled memberships, the seat race, no stored admin role, sessions ending at refresh, respondent-scoped sessions), `tests/app/services/test_sso_url_guard.py`, `tests/app/repositories/test_sso_connection_parity.py`, and a row per endpoint in `test_permission_matrix.py`. Polis and auth are stand-ins (`tests/app/sso_helpers.py`); nothing calls a real IdP or resolves real names.
 
 ## SCIM (next phase)
 
