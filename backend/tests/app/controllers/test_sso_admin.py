@@ -16,6 +16,9 @@ from backend.config import settings
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import invited_user, testUser, testUser1
 from tests.app.sso_helpers import (  # noqa: F401 — fixtures
+    DISCOVERY_URL,
+    METADATA_URL,
+    discovery,
     DOMAIN,
     SAML_XML,
     add_connection,
@@ -89,11 +92,14 @@ async def test_create_a_saml_connection_from_a_public_url(client, workspace, sso
     polis, _ = sso_on
     reply = await client.post(
         url(workspace, "/connections"),
-        json={"type": "saml", "metadataUrl": "https://idp.acme-sso.org/metadata"},
+        json={"type": "saml", "metadataUrl": METADATA_URL},
         cookies=_cookies(testUser),
     )
     assert reply.status_code == 201, reply.text
-    assert polis.calls[0][4] == "https://idp.acme-sso.org/metadata"
+    # fetched by us through the guard; Polis gets the XML, never the URL
+    assert polis.web.requested == [METADATA_URL]
+    assert polis.calls[0][3] is True and polis.calls[0][4] is None
+    assert reply.json()["metadataUrl"] == METADATA_URL
 
 
 @pytest.mark.parametrize(
@@ -538,3 +544,211 @@ async def test_members_and_outsiders_are_refused(client, workspace, sso_on, user
             method, url(workspace, suffix), json=body, cookies=_cookies(user)
         )
         assert reply.status_code == 403, (suffix, reply.text)
+
+
+# -- review fixes: guarded fetches ---------------------------------------------
+async def test_a_redirect_to_a_private_address_is_refused(client, workspace, sso_on):
+    polis, _ = sso_on
+    polis.web.pages[METADATA_URL] = (
+        302,
+        "",
+        {"location": "https://169.254.169.254/latest/meta-data/"},
+    )
+    reply = await client.post(
+        url(workspace, "/connections"),
+        json={"type": "saml", "metadataUrl": METADATA_URL},
+        cookies=_cookies(testUser),
+    )
+    assert reply.status_code == 422 and reply.json()["code"] == "private_address"
+    assert polis.web.requested == [METADATA_URL]  # the private hop is never asked
+    assert polis.calls == []
+
+
+async def test_a_public_redirect_hop_is_followed(client, workspace, sso_on):
+    polis, _ = sso_on
+    moved = "https://cdn.acme-sso.org/metadata.xml"
+    polis.web.pages[METADATA_URL] = (301, "", {"location": moved})
+    polis.web.pages[moved] = (200, SAML_XML, {})
+    reply = await client.post(
+        url(workspace, "/connections"),
+        json={"type": "saml", "metadataUrl": METADATA_URL},
+        cookies=_cookies(testUser),
+    )
+    assert reply.status_code == 201, reply.text
+    assert polis.web.requested == [METADATA_URL, moved]
+
+
+async def test_too_many_redirects_are_refused(client, workspace, sso_on):
+    polis, _ = sso_on
+    polis.web.pages[METADATA_URL] = (302, "", {"location": METADATA_URL})
+    reply = await client.post(
+        url(workspace, "/connections"),
+        json={"type": "saml", "metadataUrl": METADATA_URL},
+        cookies=_cookies(testUser),
+    )
+    assert reply.status_code == 422 and reply.json()["code"] == "fetch_failed"
+
+
+def _oidc(secret="s3cret"):
+    return {
+        "type": "oidc",
+        "discoveryUrl": DISCOVERY_URL,
+        "clientId": "bc",
+        "clientSecret": secret,
+    }
+
+
+async def test_oidc_hands_polis_the_checked_endpoints(client, workspace, sso_on):
+    polis, _ = sso_on
+    reply = await client.post(
+        url(workspace, "/connections"), json=_oidc(), cookies=_cookies(testUser)
+    )
+    assert reply.status_code == 201, reply.text
+    metadata = polis.calls[0][3]
+    assert metadata == {
+        k: discovery()[k]
+        for k in (
+            "issuer",
+            "authorization_endpoint",
+            "token_endpoint",
+            "userinfo_endpoint",
+            "jwks_uri",
+        )
+    }
+
+
+@pytest.mark.parametrize(
+    "override,code",
+    [
+        ({"token_endpoint": "https://10.0.0.8/token"}, "private_address"),
+        ({"jwks_uri": "https://169.254.169.254/keys"}, "private_address"),
+        ({"userinfo_endpoint": "http://login.acme-sso.org/userinfo"}, "https_required"),
+        ({"authorization_endpoint": "https://localhost/authorize"}, "private_address"),
+        ({"jwks_uri": None}, "invalid_discovery"),
+    ],
+)
+async def test_oidc_endpoints_must_be_public_https(
+    client, workspace, sso_on, override, code
+):
+    import json as _json
+
+    polis, _ = sso_on
+    doc = {k: v for k, v in discovery(**override).items() if v is not None}
+    polis.web.pages[DISCOVERY_URL] = (200, _json.dumps(doc), {})
+    reply = await client.post(
+        url(workspace, "/connections"), json=_oidc(), cookies=_cookies(testUser)
+    )
+    assert reply.status_code == 422, reply.text
+    assert reply.json()["code"] == code
+    assert polis.calls == []
+
+
+async def test_a_test_rechecks_the_oidc_endpoints(
+    client, workspace, sso_on, monkeypatch
+):
+    reply = await client.post(
+        url(workspace, "/connections"), json=_oidc(), cookies=_cookies(testUser)
+    )
+    cid = reply.json()["id"]
+
+    async def now_private(host):
+        return ["10.1.2.3"]
+
+    monkeypatch.setattr(container.sso_connection_service(), "_resolver", now_private)
+    reply = await client.get(
+        url(workspace, f"/connections/{cid}/test"), cookies=_cookies(testUser)
+    )
+    assert reply.status_code == 422 and reply.json()["code"] == "private_address"
+
+
+# -- review fixes: owner only --------------------------------------------------
+@pytest.fixture()
+async def admin_member(workspace):
+    admin = User(id=str(PydanticObjectId()), sub="admin@" + DOMAIN)
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace.id, user_id=admin.id, roles=[WorkspaceRoles.ADMIN]
+        )
+    )
+    return admin
+
+
+async def test_an_admin_can_view_and_test_but_not_change(
+    client, workspace, sso_on, admin_member
+):
+    polis, _ = sso_on
+    connection = await add_connection(workspace.id, enabled=False)
+    reply = await client.get(url(workspace), cookies=_cookies(admin_member))
+    assert reply.status_code == 200 and reply.json()["canManage"] is False
+    reply = await client.get(
+        url(workspace, f"/connections/{connection.id}/test"),
+        cookies=_cookies(admin_member),
+    )
+    assert reply.status_code == 307
+    for method, suffix, body in (
+        ("POST", "/connections", {"type": "saml", "metadataXml": SAML_XML}),
+        ("POST", f"/connections/{connection.id}/enable", None),
+        ("POST", f"/connections/{connection.id}/disable", None),
+        ("DELETE", f"/connections/{connection.id}", None),
+        ("PUT", "/settings", {"ssoRequired": True}),
+        ("PUT", "/settings", {"defaultRole": "COLLABORATOR"}),
+    ):
+        reply = await client.request(
+            method, url(workspace, suffix), json=body, cookies=_cookies(admin_member)
+        )
+        assert reply.status_code == 403, (method, suffix, reply.text)
+    assert polis.calls == []
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.status.value == "disabled"
+
+
+async def test_the_owner_can_manage(client, workspace, sso_on):
+    reply = await client.get(url(workspace), cookies=_cookies(testUser))
+    assert reply.json()["canManage"] is True
+
+
+async def test_an_untested_connection_cannot_be_enabled(client, workspace, sso_on):
+    connection = await add_connection(workspace.id, enabled=False, tested=False)
+    reply = await client.post(
+        url(workspace, f"/connections/{connection.id}/enable"),
+        cookies=_cookies(testUser),
+    )
+    assert (
+        reply.status_code == 409 and reply.json()["code"] == "sso_connection_untested"
+    )
+
+
+async def test_a_changed_configuration_must_be_tested_again(client, workspace, sso_on):
+    polis, _ = sso_on
+    first = await client.post(
+        url(workspace, "/connections"),
+        json={"type": "saml", "metadataXml": SAML_XML},
+        cookies=_cookies(testUser),
+    )
+    stored = await container.sso_connection_repo().get(first.json()["id"])
+    stored.tested_at = utcnow()
+    await container.sso_connection_repo().save(stored)
+    # Polis updates the connection of the same IdP in place
+    polis._n -= 1
+    reply = await client.post(
+        url(workspace, "/connections"),
+        json={"type": "saml", "metadataXml": SAML_XML},
+        cookies=_cookies(testUser),
+    )
+    assert reply.status_code == 409 and reply.json()["code"] == "connection_exists"
+    stored = await container.sso_connection_repo().get(first.json()["id"])
+    assert not stored.is_tested and stored.last_test_error == "config_changed"
+
+
+async def test_a_squatted_entity_id_suggests_support(client, workspace, sso_on):
+    polis, _ = sso_on
+    polis.fail = PolisError(
+        400, "EntityID already exists for different tenant", "idp_already_connected"
+    )
+    reply = await client.post(
+        url(workspace, "/connections"),
+        json={"type": "saml", "metadataXml": SAML_XML},
+        cookies=_cookies(testUser),
+    )
+    assert reply.status_code == 409
+    assert "contact support" in reply.json()["message"]

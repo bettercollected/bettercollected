@@ -40,6 +40,11 @@ class SsoConnectionRepository:
             return None
         return await SsoConnectionDocument.find_one({"_id": object_id})
 
+    async def find_by_polis_client_id(
+        self, client_id: str
+    ) -> Optional[SsoConnectionDocument]:
+        return await SsoConnectionDocument.find_one({"polis_client_id": client_id})
+
     async def list_by_workspace(
         self, workspace_id: PydanticObjectId
     ) -> List[SsoConnectionDocument]:

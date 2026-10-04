@@ -135,14 +135,17 @@ class PolisAdminClient:
         self,
         tenant: str,
         name: str,
-        discovery_url: str,
+        metadata: Dict[str, str],
         client_id: str,
         client_secret: str,
     ) -> Dict[str, Any]:
+        """``metadata``: the checked endpoints of the IdP's discovery
+        document (issuer, authorization, token, userinfo, JWKS), so Polis
+        never fetches the discovery URL itself."""
         body = self._base(tenant, name)
         body.update(
             {
-                "oidcDiscoveryUrl": discovery_url,
+                "oidcMetadata": metadata,
                 "oidcClientId": client_id,
                 "oidcClientSecret": client_secret,
             }
@@ -164,8 +167,11 @@ class PolisAdminClient:
         return body or None
 
     async def delete_connection(self, client_id: str) -> None:
-        """Delete one connection. Polis wants its client secret for that, so
-        it is read from Polis and used at once, never kept."""
+        """Delete one connection. Polis wants the connection's own client
+        secret for that, and its DELETE only takes it as a query parameter,
+        so it is read from Polis and sent back at once over the internal
+        network (SSO_POLIS_INTERNAL_URL), never kept or logged. We never use
+        that secret otherwise (sign-ins use PKCE)."""
         connection = await self.get_connection(client_id)
         if not connection:
             return

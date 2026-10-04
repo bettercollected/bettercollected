@@ -1,12 +1,18 @@
 """Workspace single sign-on administration (docs/sso.md).
 
-Everything here needs ``security.manage`` in the workspace (Owner, Admin).
+Viewing the settings and testing a connection need ``security.manage``
+(Owner, Admin). Everything that changes the configuration (connections,
+"SSO required", the default role) is **Owner only**: an enabled connection
+decides who every address on the workspace's verified domains is, the
+owner's own account included, so an Admin must not be able to point it at
+an identity provider they control.
 Connections are created in Ory Polis through its admin API; we keep a
 reference (``sso_connections``). The workspace's SSO settings (SSO required,
 default role) live on the workspace document.
 """
 
 import datetime as dt
+import json
 from http import HTTPStatus
 from typing import List, Optional
 
@@ -47,11 +53,19 @@ from backend.app.services.sso.url_guard import (
     Resolver,
     UnsafeUrl,
     check_public_https_url,
+    fetch_public,
 )
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.config import settings
 
 MAX_METADATA_BYTES = 512 * 1024
+OIDC_ENDPOINTS = (
+    "issuer",
+    "authorization_endpoint",
+    "token_endpoint",
+    "userinfo_endpoint",
+    "jwks_uri",
+)
 
 
 class _CamelModel(BaseModel):
@@ -146,6 +160,8 @@ class SsoOverviewDto(_CamelModel):
     connections: List[SsoConnectionDto] = []
     settings: SsoSettingsDto
     max_connections: int
+    # the caller may change the configuration (the workspace owner)
+    can_manage: bool = False
 
 
 def _refused(status: HTTPStatus, code: str, message: str) -> HTTPException:
@@ -162,10 +178,14 @@ def _polis_error(error: PolisError) -> HTTPException:
             HTTPStatus.SERVICE_UNAVAILABLE, "sso_unavailable", error.message
         )
     if error.code == "idp_already_connected":
+        # one IdP entity ID belongs to one workspace in Polis: another
+        # organisation may have registered it first (squatting)
         return _refused(
             HTTPStatus.CONFLICT,
             error.code,
-            "This identity provider is already connected to another workspace.",
+            "This identity provider (its entity ID) is already connected to "
+            "another workspace. If it is your organisation's, contact support "
+            "to have it released.",
         )
     return _refused(HTTPStatus.UNPROCESSABLE_ENTITY, error.code, error.message)
 
@@ -182,6 +202,7 @@ class SsoConnectionService:
         policy: SsoPolicyService,
         polis: PolisAdminClient,
         resolver: Optional[Resolver] = None,
+        fetch_transport=None,
     ):
         self._authorization = authorization_service
         self._connections = connection_repo
@@ -192,12 +213,19 @@ class SsoConnectionService:
         self._policy = policy
         self._polis = polis
         self._resolver = resolver
+        # a seam for tests: the HTTP transport of our own metadata fetches
+        self._fetch_transport = fetch_transport
 
     # -- access ---------------------------------------------------------------
     async def _authorize(self, workspace_id: PydanticObjectId, user: User) -> None:
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
         )
+
+    async def _authorize_owner(self, workspace_id: PydanticObjectId, user: User):
+        """Changing the configuration: the owner only (see the module)."""
+        await self._authorize(workspace_id, user)
+        await self._authorization.require_owner(user, workspace_id)
 
     @staticmethod
     def _require_available() -> None:
@@ -223,7 +251,11 @@ class SsoConnectionService:
     ) -> SsoConnectionDocument:
         await self._authorize(workspace_id, user)
         self._require_available()
-        return await self._connection_in_workspace(workspace_id, connection_id)
+        connection = await self._connection_in_workspace(workspace_id, connection_id)
+        if connection.oidc_endpoints:
+            # the IdP's endpoints Polis will call: still public addresses?
+            await self._check_oidc_endpoints(connection.oidc_endpoints)
+        return connection
 
     # -- read -----------------------------------------------------------------
     async def overview(
@@ -254,6 +286,7 @@ class SsoConnectionService:
             ],
             settings=self._settings_dto(workspace),
             max_connections=sso.MAX_CONNECTIONS_PER_WORKSPACE,
+            can_manage=await self._authorization.is_owner(user, workspace_id),
         )
 
     @staticmethod
@@ -273,7 +306,7 @@ class SsoConnectionService:
         request: CreateSsoConnectionDto,
         user: User,
     ) -> SsoConnectionDto:
-        await self._authorize(workspace_id, user)
+        await self._authorize_owner(workspace_id, user)
         self._require_available()
         if (
             await self._connections.count_by_workspace(workspace_id)
@@ -319,11 +352,20 @@ class SsoConnectionService:
         try:
             await self._connections.create(document)
         except SsoConnectionExists:
-            # Polis updates a connection for the same tenant and IdP in place
+            # Polis updated the connection for the same tenant and IdP in
+            # place: the recorded one no longer has the configuration its
+            # test passed with
+            existing = await self._connections.find_by_polis_client_id(client_id)
+            if existing is not None:
+                existing.tested_at = None
+                existing.last_test_error = "config_changed"
+                existing.updated_at = _now()
+                await self._connections.save(existing)
             raise _refused(
                 HTTPStatus.CONFLICT,
                 "connection_exists",
-                "This identity provider is already connected to this workspace.",
+                "This identity provider is already connected to this workspace. "
+                "Its details were updated; test it again.",
             )
         logger.info(
             "SSO connection {} ({}) created in workspace {} by {}",
@@ -340,6 +382,37 @@ class SsoConnectionService:
         except UnsafeUrl as unsafe:
             raise _refused(HTTPStatus.UNPROCESSABLE_ENTITY, unsafe.code, unsafe.message)
 
+    async def _fetch(self, url: str, max_bytes: int) -> bytes:
+        """Fetch through the guard ourselves (every redirect hop checked)."""
+        try:
+            return await fetch_public(
+                url.strip(),
+                self._resolver,
+                transport=self._fetch_transport,
+                max_bytes=max_bytes,
+                timeout=settings.sso.HTTP_TIMEOUT_SECONDS,
+            )
+        except UnsafeUrl as unsafe:
+            raise _refused(HTTPStatus.UNPROCESSABLE_ENTITY, unsafe.code, unsafe.message)
+
+    async def _check_oidc_endpoints(self, metadata: dict) -> None:
+        for key in OIDC_ENDPOINTS:
+            value = metadata.get(key)
+            if not isinstance(value, str) or not value:
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "invalid_discovery",
+                    f"The discovery document has no {key}.",
+                )
+            try:
+                await check_public_https_url(value, self._resolver)
+            except UnsafeUrl as unsafe:
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    unsafe.code,
+                    f"The identity provider's {key} is not allowed: {unsafe.message}",
+                )
+
     async def _create_saml(self, tenant, name, request, document) -> dict:
         xml = (request.metadata_xml or "").strip()
         url = (request.metadata_url or "").strip()
@@ -350,20 +423,20 @@ class SsoConnectionService:
                 "Give the identity provider's metadata as XML or as a URL, not both.",
             )
         if url:
-            url = await self._guarded_url(url)
-            document.metadata_url = url
-            record = await self._polis.create_saml(tenant, name, metadata_url=url)
-        else:
-            if (
-                len(xml.encode("utf-8")) > MAX_METADATA_BYTES
-                or "EntityDescriptor" not in xml
-            ):
-                raise _refused(
-                    HTTPStatus.UNPROCESSABLE_ENTITY,
-                    "invalid_metadata",
-                    "That is not SAML metadata (an EntityDescriptor document).",
-                )
-            record = await self._polis.create_saml(tenant, name, raw_metadata=xml)
+            # fetched here, through the guard; Polis gets the XML, never the URL
+            body = await self._fetch(url, MAX_METADATA_BYTES)
+            xml = body.decode("utf-8", errors="replace").strip()
+            document.metadata_url = url.strip()
+        if (
+            len(xml.encode("utf-8")) > MAX_METADATA_BYTES
+            or "EntityDescriptor" not in xml
+        ):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_metadata",
+                "That is not SAML metadata (an EntityDescriptor document).",
+            )
+        record = await self._polis.create_saml(tenant, name, raw_metadata=xml)
         document.idp_entity_id = ((record or {}).get("idpMetadata") or {}).get(
             "entityID"
         )
@@ -387,19 +460,41 @@ class SsoConnectionService:
                 "invalid_client_secret",
                 "The client secret is too long.",
             )
-        url = await self._guarded_url(url)
-        document.oidc_discovery_url = url
+        # fetched here, through the guard; Polis gets the checked endpoints
+        # (it then never fetches the discovery URL itself)
+        body = await self._fetch(url, 64 * 1024)
+        try:
+            discovery = json.loads(body)
+        except ValueError:
+            discovery = None
+        if not isinstance(discovery, dict):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_discovery",
+                "That is not an OpenID Connect discovery document.",
+            )
+        await self._check_oidc_endpoints(discovery)
+        metadata = {key: discovery[key] for key in OIDC_ENDPOINTS}
+        document.oidc_discovery_url = url.strip()
         document.oidc_client_id = client_id
-        return await self._polis.create_oidc(tenant, name, url, client_id, secret)
+        document.oidc_endpoints = metadata
+        return await self._polis.create_oidc(tenant, name, metadata, client_id, secret)
 
     async def enable_connection(
         self, workspace_id: PydanticObjectId, connection_id: str, user: User
     ) -> SsoConnectionDto:
         """Enable one connection; the workspace's other ones are disabled
-        (one identity provider signs members in at a time)."""
-        await self._authorize(workspace_id, user)
+        (one identity provider signs members in at a time). Only a
+        connection whose current configuration passed a test."""
+        await self._authorize_owner(workspace_id, user)
         self._require_available()
         connection = await self._connection_in_workspace(workspace_id, connection_id)
+        if not connection.is_tested:
+            raise _refused(
+                HTTPStatus.CONFLICT,
+                "sso_connection_untested",
+                "Test this connection successfully before you enable it.",
+            )
         now = _now()
         if not connection.is_enabled:
             connection.status = SsoConnectionStatus.ENABLED
@@ -415,7 +510,7 @@ class SsoConnectionService:
     async def disable_connection(
         self, workspace_id: PydanticObjectId, connection_id: str, user: User
     ) -> SsoConnectionDto:
-        await self._authorize(workspace_id, user)
+        await self._authorize_owner(workspace_id, user)
         connection = await self._connection_in_workspace(workspace_id, connection_id)
         await self._refuse_while_required(workspace_id, connection)
         if connection.is_enabled:
@@ -430,7 +525,7 @@ class SsoConnectionService:
     async def delete_connection(
         self, workspace_id: PydanticObjectId, connection_id: str, user: User
     ) -> None:
-        await self._authorize(workspace_id, user)
+        await self._authorize_owner(workspace_id, user)
         connection = await self._connection_in_workspace(workspace_id, connection_id)
         await self._refuse_while_required(workspace_id, connection)
         if settings.sso.is_configured:
@@ -481,7 +576,7 @@ class SsoConnectionService:
         request: UpdateSsoSettingsDto,
         user: User,
     ) -> SsoSettingsDto:
-        await self._authorize(workspace_id, user)
+        await self._authorize_owner(workspace_id, user)
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         if workspace is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)

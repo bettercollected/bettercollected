@@ -7,6 +7,7 @@ import json
 from typing import Dict, List, Optional
 from urllib.parse import parse_qs, urlencode, urlsplit
 
+import httpx
 import pytest
 from beanie import PydanticObjectId
 from common.exceptions.http import HTTPException as CommonHTTPException
@@ -59,8 +60,8 @@ class FakePolisAdmin:
             tenant, "saml", idpMetadata={"entityID": "https://idp.acme-sso.org/entity"}
         )
 
-    async def create_oidc(self, tenant, name, discovery_url, client_id, client_secret):
-        self.calls.append(("create_oidc", tenant, name, discovery_url, client_id))
+    async def create_oidc(self, tenant, name, metadata, client_id, client_secret):
+        self.calls.append(("create_oidc", tenant, name, metadata, client_id))
         return self._new(tenant, "oidc")
 
     async def delete_connection(self, client_id):
@@ -170,6 +171,41 @@ async def public_resolver(host: str) -> List[str]:
     return [PUBLIC_IP]
 
 
+DISCOVERY_URL = "https://login.acme-sso.org/.well-known/openid-configuration"
+METADATA_URL = "https://idp.acme-sso.org/metadata"
+
+
+def discovery(**overrides) -> dict:
+    doc = {
+        "issuer": "https://login.acme-sso.org",
+        "authorization_endpoint": "https://login.acme-sso.org/authorize",
+        "token_endpoint": "https://login.acme-sso.org/token",
+        "userinfo_endpoint": "https://login.acme-sso.org/userinfo",
+        "jwks_uri": "https://login.acme-sso.org/jwks",
+        "scopes_supported": ["openid", "email"],
+    }
+    doc.update(overrides)
+    return doc
+
+
+class FakeWeb:
+    """The documents our own guarded fetches see: url -> (status, body,
+    headers). Records every URL requested."""
+
+    def __init__(self):
+        self.pages = {
+            METADATA_URL: (200, SAML_XML, {}),
+            DISCOVERY_URL: (200, json.dumps(discovery()), {}),
+        }
+        self.requested: List[str] = []
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        self.requested.append(url)
+        status, body, headers = self.pages.get(url, (404, "", {}))
+        return httpx.Response(status, text=body, headers=headers)
+
+
 @pytest.fixture
 def sso_on(monkeypatch):
     sso = settings.sso
@@ -192,6 +228,15 @@ def sso_on(monkeypatch):
     monkeypatch.setattr(container.sso_policy_service(), "_http_client", auth)
     monkeypatch.setattr(container.auth_service(), "http_client", auth)
     monkeypatch.setattr(container.workspace_service(), "http_client", auth)
+    web = FakeWeb()
+    polis.web = web
+    monkeypatch.setattr(
+        container.sso_connection_service(),
+        "_fetch_transport",
+        httpx.MockTransport(web.handler),
+    )
+    # cookies without "secure" over the tests' http transport (the nonce)
+    monkeypatch.setattr(settings.api_settings, "HOST", "localhost")
     return polis, auth
 
 

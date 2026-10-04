@@ -1,6 +1,6 @@
 import datetime as dt
 import enum
-from typing import Optional
+from typing import Dict, Optional
 
 from beanie import PydanticObjectId
 from common.configs.mongo_document import MongoDocument
@@ -44,6 +44,9 @@ class SsoConnectionDocument(MongoDocument):
     metadata_url: Optional[str] = None
     oidc_discovery_url: Optional[str] = None
     oidc_client_id: Optional[str] = None
+    # the checked endpoints of the OIDC discovery document (handed to Polis
+    # as its metadata; re-checked before a test)
+    oidc_endpoints: Optional[Dict[str, str]] = None
     created_by: str
     enabled_at: Optional[dt.datetime] = None
     enabled_by: Optional[str] = None

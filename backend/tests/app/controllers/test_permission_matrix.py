@@ -214,13 +214,15 @@ CASES = [
         ADMINS,
         ok=404,
     ),
-    # --- single sign-on (security.manage)
+    # --- single sign-on: viewing and testing need security.manage; changing
+    # the configuration is Owner only (an Admin must not point the domain at
+    # an identity provider they control)
     Case("sso.overview", "GET", W + "/sso", ADMINS, ok=200),
     Case(
         "sso.connections.create",
         "POST",
         W + "/sso/connections",
-        ADMINS,
+        OWNER_ONLY,
         lambda c: {"json": {"type": "saml", "metadataXml": SAML_XML}},
         ok=201,
     ),
@@ -228,21 +230,21 @@ CASES = [
         "sso.connections.enable",
         "POST",
         W + "/sso/connections/{sso_connection}/enable",
-        ADMINS,
+        OWNER_ONLY,
         ok=200,
     ),
     Case(
         "sso.connections.disable",
         "POST",
         W + "/sso/connections/{sso_connection}/disable",
-        ADMINS,
+        OWNER_ONLY,
         ok=200,
     ),
     Case(
         "sso.connections.delete",
         "DELETE",
         W + "/sso/connections/{sso_connection}",
-        ADMINS,
+        OWNER_ONLY,
         ok=204,
     ),
     Case(
@@ -256,7 +258,7 @@ CASES = [
         "sso.settings",
         "PUT",
         W + "/sso/settings",
-        ADMINS,
+        OWNER_ONLY,
         lambda c: {"json": {"defaultRole": "COLLABORATOR"}},
         ok=200,
     ),
