@@ -21,7 +21,8 @@ from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
 )
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 
 # Scopes gate tool/endpoint access. Deliberately coarse in v1.
 VALID_SCOPES = {
@@ -94,17 +95,17 @@ def _c():
 class APIKeyService:
     def __init__(
         self,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
         api_key_repo: WorkspaceAPIKeyRepository,
     ):
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
         self._api_key_repo = api_key_repo
 
     async def create_key(
         self, workspace_id: PydanticObjectId, dto: CreateAPIKeyDto, user: User
     ) -> CreatedAPIKeyDto:
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.SECURITY_MANAGE, workspace_id
         )
         invalid = set(dto.scopes) - VALID_SCOPES
         if invalid:
@@ -140,8 +141,8 @@ class APIKeyService:
     async def list_keys(
         self, workspace_id: PydanticObjectId, user: User
     ) -> List[APIKeyDto]:
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.SECURITY_MANAGE, workspace_id
         )
         documents = await self._api_key_repo.list_by_workspace(workspace_id)
         return [_to_dto(d) for d in documents]
@@ -149,8 +150,8 @@ class APIKeyService:
     async def revoke_key(
         self, workspace_id: PydanticObjectId, key_id: str, user: User
     ) -> List[APIKeyDto]:
-        await self._workspace_user_service.check_is_admin_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self._authorization.authorize(
+            user, Permission.SECURITY_MANAGE, workspace_id
         )
         document = await self._api_key_repo.get_or_404(PydanticObjectId(key_id))
         if not document or str(document.workspace_id) != str(workspace_id):

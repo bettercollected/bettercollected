@@ -1,3 +1,4 @@
+import hmac
 import logging
 from http import HTTPStatus
 
@@ -10,6 +11,7 @@ from starlette.responses import Response
 from backend.app.exceptions import HTTPException
 from backend.app.services.auth_cookie_service import set_access_token_to_response
 from backend.app.services.internal_auth import auth_service_headers
+from backend.app.services.internal_job_key import require_job_api_key
 from backend.config import settings
 
 
@@ -72,7 +74,9 @@ async def get_logged_user(request: Request, response: Response) -> User:
 
 
 def get_api_key(request: Request, response: Response) -> str:
-    if request.headers.get("api-key") != settings.temporal_settings.api_key:
+    expected = require_job_api_key()  # 503 while not configured
+    given = (request.headers.get("api-key") or "").encode()
+    if not hmac.compare_digest(given, expected.encode()):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             content="You are not allowed to perform this action.",

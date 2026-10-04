@@ -266,6 +266,7 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
         return (
             True
             if workspace_user
+            and not workspace_user.disabled
             and (
                 WorkspaceRoles.ADMIN in workspace_user.roles
                 or workspace.owner_id == user.id

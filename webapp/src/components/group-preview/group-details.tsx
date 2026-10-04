@@ -9,7 +9,8 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
@@ -23,7 +24,9 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
         regex: group.regex
     });
 
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+
+    const canManageGroups = can(WorkspacePermission.MEMBERS_MANAGE);
     const workspace = useAppSelector((state) => state.workspace);
     const handleInput = (event: any) => {
         setGroupInfo({
@@ -48,7 +51,7 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
     return (
         <form onSubmit={handleUpdateGroup} className="md:max-w-[618px]">
             <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
-            {isAdmin && (
+            {canManageGroups && (
                 <div className="flex justify-start mt-10">
                     <Button variant="secondary" size="medium" isLoading={updateGroupResponse.isLoading}>
                         {t(buttonConstant.saveChanges)}

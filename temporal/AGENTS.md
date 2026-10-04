@@ -57,5 +57,8 @@ or a standalone Temporal dev server. Set `TEMPORAL_SERVER_URL` / `TEMPORAL_NAMES
   worker registers, or jobs sit unpicked. Change both sides together.
 - **Selenium worker** needs a Chrome/Chromedriver runtime (baked into its Dockerfile) — preview generation fails without it.
 - **Pydantic v1 here** vs newer Pydantic elsewhere — don't copy v2-only patterns into these services.
+- **`API_KEY`** (the `api-key` header on every call to the backend) must equal the backend's
+  `TEMPORAL_API_KEY`. It has no default: unset or the old `random_api_key` becomes `""`
+  (`settings/application.py`), the worker logs an error at startup and the backend answers 503.
 - Encrypted user tokens (`models/user_tokens.py`) are decrypted only inside activities using the shared AES keysets —
   keep decrypted secrets out of logs and workflow history.

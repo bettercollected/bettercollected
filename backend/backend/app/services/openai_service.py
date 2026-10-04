@@ -29,6 +29,7 @@ from backend.app.services.openai_provider import OpenAIFormProvider
 from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_service import WorkspaceService
+from backend.app.models.enum.permission import Permission
 
 _DEFAULT_LAYOUT = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
 
@@ -38,11 +39,11 @@ class OpenAIService:
         self,
         workspace_service: WorkspaceService,
         workspace_form_service: WorkspaceFormService,
-        workspace_user_service=None,
+        authorization_service=None,
         ai_consent_service: Optional[AIConsentService] = None,
     ):
         self.workspace_service: WorkspaceService = workspace_service
-        self.workspace_user_service = workspace_user_service
+        self.authorization_service = authorization_service
         self.ai_consent_service = ai_consent_service
         self.workspace_form_service: WorkspaceFormService = workspace_form_service
         self._unsplash = UnsplashService()
@@ -98,8 +99,8 @@ class OpenAIService:
     ):
         # Membership and the workspace's AI opt-in first (#717): nothing is
         # loaded into a prompt or sent to a provider before both pass.
-        await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        await self.authorization_service.authorize(
+            user, Permission.FORM_CREATE, workspace_id
         )
         provider = await self.provider_for_workspace(
             workspace_id, create_form_ai.provider

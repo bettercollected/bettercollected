@@ -10,8 +10,8 @@ import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 
 interface IGroupMemberProps {
@@ -25,7 +25,8 @@ interface IGroupMemberProps {
 export default function GroupMember({ group, emails, handleSearch, handleAddMembers, handleRemoveMember }: IGroupMemberProps) {
     const { openModal } = useModal();
     const { t } = useTranslation();
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const { can } = useWorkspacePermissions();
+    const canManageGroups = can(WorkspacePermission.MEMBERS_MANAGE);
     const MemberList = () => (
         <div className=" mt-6 flex flex-col md:max-w-[610px] gap-6">
             {!!handleSearch && (
@@ -53,7 +54,7 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
                     <div className="flex flex-col">
                         <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
                     </div>
-                    {isAdmin && (
+                    {canManageGroups && (
                         <Button variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_MEMBERS', { handleAddMembers, group })}>
                             {t(buttonConstant.addMember)}
                         </Button>

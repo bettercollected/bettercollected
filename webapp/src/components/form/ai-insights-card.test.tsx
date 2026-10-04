@@ -22,12 +22,12 @@ vi.mock('@app/store/redux/form-api', async (importOriginal) => {
     };
 });
 
-// Insights are for workspace admins only (#716).
-const auth = { isAdmin: true };
-vi.mock('@app/store/auth/slice', async (importOriginal) => {
-    const actual: any = await importOriginal();
-    return { ...actual, selectIsAdmin: () => auth.isAdmin };
-});
+// Running insights is response.read; allowing them on a form is ai.manage.
+const ADMIN_PERMISSIONS = ['response.read', 'ai.manage'];
+const access: { permissions: string[] } = { permissions: ADMIN_PERMISSIONS };
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
+    useWorkspacePermissions: () => ({ can: (permission: string) => access.permissions.includes(permission), permissions: new Set(access.permissions), isLoading: false })
+}));
 
 // Workspace AI opt-in (#715): on unless a test turns it off.
 const aiSettingsMock: { data: any; refetch: ReturnType<typeof vi.fn> } = { data: undefined, refetch: vi.fn() };
@@ -77,7 +77,7 @@ describe('AIInsightsCard', () => {
         generateMock.mockReset();
         cachedQueryMock.data = undefined;
         aiSettingsMock.data = { ...AI_ON };
-        auth.isAdmin = true;
+        access.permissions = ADMIN_PERMISSIONS;
         updateInsightsSettingsMock.mockReset();
         withFormSettings({ ...ALLOWED });
     });
@@ -144,10 +144,25 @@ describe('AIInsightsCard', () => {
         expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
     });
 
-    it('members who are not admins cannot run insights', () => {
-        auth.isAdmin = false;
+    it('members who read responses run insights but do not decide whether the form allows them', () => {
+        access.permissions = ['response.read'];
         renderCard();
-        expect(screen.getByText(/Only workspace admins/)).toBeDefined();
+        expect(screen.getByRole('button', { name: /Summarize responses/ })).toBeDefined();
+        expect(screen.queryByText('Stop allowing AI insights')).toBeNull();
+    });
+
+    it('members who read responses are told an admin allows insights on a form', () => {
+        access.permissions = ['response.read'];
+        withFormSettings({});
+        renderCard();
+        expect(screen.getByText(/A workspace admin can allow them/)).toBeDefined();
+        expect(screen.queryByRole('button', { name: 'Allow AI insights on responses' })).toBeNull();
+    });
+
+    it('without access to responses there are no insights', () => {
+        access.permissions = [];
+        renderCard();
+        expect(screen.getByText(/Only members who can read this form/)).toBeDefined();
         expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
     });
 

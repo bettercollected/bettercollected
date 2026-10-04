@@ -6,6 +6,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDomainDto } from '@app/models/dtos/workspace-domain-dto';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
@@ -48,9 +49,11 @@ export interface WorkspaceAISettings {
     learnPreferences: boolean;
 }
 
+export const WORKSPACE_PERMISSIONS_TAG = 'WORKSPACE_PERMISSIONS_TAG';
+
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG'],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', WORKSPACE_PERMISSIONS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -470,6 +473,17 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['AI_PROFILE_TAG']
         }),
+        // The caller's effective permissions in a workspace (empty for a
+        // non-member). Kept a while: many controls read it. The user id is
+        // part of the cache key only, so one user never reads another's.
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission> }, { workspaceId: string; userId: string }>({
+            query: ({ workspaceId }) => ({
+                url: `/workspaces/${workspaceId}/permissions`,
+                method: 'GET'
+            }),
+            keepUnusedDataFor: 300,
+            providesTags: [WORKSPACE_PERMISSIONS_TAG]
+        }),
         getAISettings: builder.query<WorkspaceAISettings, string>({
             query: (workspaceId) => ({
                 url: `/workspaces/${workspaceId}/ai-settings`,
@@ -731,6 +745,7 @@ export const {
     useGetAIProfileQuery,
     useUpdateAIProfileMutation,
     useGetAISettingsQuery,
+    useGetWorkspacePermissionsQuery,
     useUpdateAISettingsMutation,
     useUpdateAIMemorySettingsMutation,
     useGetAIMemoryQuery,

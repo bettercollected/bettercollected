@@ -7,7 +7,7 @@ from urllib.parse import quote
 from uuid import uuid4
 
 from beanie import PydanticObjectId
-from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
+from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import RespondentFeedback
 from common.models.user import User
 from common.services.http_client import HttpClient
@@ -18,11 +18,11 @@ from backend.app.models.dtos.respondent_feedback_dto import (
     RespondentFeedbackPost,
     StaffFeedback,
 )
+from backend.app.models.enum.permission import Permission
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.services.respondent_feedback import (
     current_status,
     decrypt_feedback,
@@ -31,10 +31,10 @@ from backend.app.services.respondent_feedback import (
     feedback_entries,
     staff_feedback,
 )
+from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
-ONLY_ADMINS = "Only workspace admins can respond to submissions."
 FEEDBACK_OFF = (
     "Responding to submissions is turned off for this form. "
     "Turn it on in the form's settings first."
@@ -50,14 +50,14 @@ class RespondentFeedbackService:
         form_response_repo: FormResponseRepository,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+        authorization_service: AuthorizationService,
         workspace_repo: WorkspaceRepository,
         http_client: HttpClient,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
-        self._workspace_user_repo = workspace_user_repo
+        self._authorization = authorization_service
         self._workspace_repo = workspace_repo
         self._http_client = http_client
 
@@ -72,20 +72,14 @@ class RespondentFeedbackService:
     ) -> StaffFeedback:
         """Append one update for the respondent of ``response_id``.
 
-        Workspace admins and the owner only (an active membership as well).
-        The form must have feedback turned on, and a status must be one of
+        Needs response.annotate (any active member today). The form must have feedback turned on, and a status must be one of
         the form's current statuses (422 otherwise). The respondent is
         emailed a notice when ``emails_respondent``; that mail going wrong
         never fails the update. ``access_token`` is the poster's, forwarded
         to the auth service that sends the mail."""
-        if not await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id, user
-        ):
-            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
-        if not await self._workspace_user_repo.is_user_admin_in_workspace(
-            workspace_id, user
-        ):
-            raise HTTPException(HTTPStatus.FORBIDDEN, content=ONLY_ADMINS)
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_ANNOTATE, workspace_id
+        )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
                 workspace_id, form_id
