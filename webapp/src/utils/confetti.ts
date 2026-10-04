@@ -9,7 +9,7 @@ export function fireworks() {
         return Math.random() * (max - min) + min;
     }
 
-    let interval: NodeJS.Timer = setInterval(function () {
+    let interval: ReturnType<typeof setInterval> = setInterval(function () {
         let timeLeft = animationEnd - Date.now();
 
         if (timeLeft <= 0) {
