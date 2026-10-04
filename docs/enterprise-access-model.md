@@ -96,9 +96,10 @@ Folders, and grants on folders, come later. The model already allows it: a folde
 - Today's scopes map onto permissions: `forms:read` → `form.read`; `forms:write` → `form.edit`; `responses:read` → `response.read` **and** `response.export` (a bulk read through the API is an export); `deletion_requests:*` → `privacy.manage`.
 
 ### 5. SSO / SCIM mapping (Phases 1–3)
-- **Workspace roles:** IdP groups map to a workspace role. The highest role wins, and members with no mapped group get the workspace default (Viewer or Editor, chosen per workspace).
-- **Member groups:** IdP groups map to member groups, which then carry form grants. For example, the IdP group "HR" becomes the member group "HR", which is Reviewer on the restricted hiring forms.
-- **Deprovisioning:** removes the membership and revokes sessions (Phase 0 session revocation). Forms the person created stay with the workspace. Today removing a member deletes forms they imported, which must not happen under SCIM.
+Status: SSO (Phase 1–2) and SCIM directory sync (Phase 3) are built ([sso.md](sso.md), "Directory sync"); mapping to member groups waits for member groups (step c).
+- **Workspace roles:** IdP groups map to a workspace role (one per group; Admin allowed, never Owner). The highest role wins, and members with no mapped group get the workspace default (the SSO "role for new members"; Viewer once the new roles land). **Built.** Members the directory manages show "Managed by your directory"; their role follows their groups. Members invited by hand and the owner are never changed by the directory.
+- **Member groups:** IdP groups map to member groups, which then carry form grants. For example, the IdP group "HR" becomes the member group "HR", which is Reviewer on the restricted hiring forms. **Not built** (needs member groups).
+- **Deprovisioning:** **disables** the membership (rather than removing it, so it can be re-enabled and nothing is deleted) and revokes sessions. Forms the person created stay with the workspace. **Built**; a deprovisioned user's SSO sign-in is refused while the directory is connected.
 
 ## Enforcement
 - One authorisation service, `authorize(user, permission, workspace_id, form_id=None)`, plus a listing filter for "forms this user can see". Services call these; controllers and repositories don't decide access.
