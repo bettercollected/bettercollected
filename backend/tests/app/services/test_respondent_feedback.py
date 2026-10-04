@@ -180,27 +180,23 @@ async def test_a_new_form_has_default_statuses_and_feedback_off(
 # ---------------------------------------------------------------------------
 
 
-async def test_only_admins_switch_it_or_its_statuses(
-    client, workspace, workspace_1, form
-):
-    """Turning feedback on decides whether respondents get emailed: like
-    posting, it is for workspace admins and the owner."""
+async def test_who_may_switch_it_or_its_statuses(client, workspace, workspace_1, form):
+    """Turning feedback on and its statuses are form settings (form.edit):
+    collaborators may, non-members may not."""
     url = _settings_url(workspace, form.form_id)
+    outsider = await client.patch(
+        url, json={"respondentFeedbackEnabled": True}, cookies=_cookies(testUser1)
+    )
+    assert outsider.status_code == 403
     for body in (
         {"respondentFeedbackEnabled": True},
-        {"respondentFeedbackEnabled": False},
         {"feedbackStatuses": ["Shortlisted"]},
+        {"respondentFeedbackEnabled": False},
     ):
         collaborator = await client.patch(
             url, json=body, cookies=_cookies(invited_user)
         )
-        assert collaborator.status_code == 403, body
-        assert "admins" in collaborator.text
-    # other settings stay open to members, as before
-    pinned = await client.patch(
-        url, json={"pinned": True}, cookies=_cookies(invited_user)
-    )
-    assert pinned.status_code == 200, pinned.text
+        assert collaborator.status_code == 200, (body, collaborator.text)
     # the owner may
     settings = await _enable(client, workspace, form, feedbackStatuses=["Shortlisted"])
     assert settings["settings"]["respondentFeedbackEnabled"] is True

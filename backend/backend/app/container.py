@@ -496,7 +496,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_service: FormService = providers.Singleton(
         FormService,
-        workspace_user_repo=workspace_user_repo,
+        authorization_service=authorization_service,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
@@ -571,7 +571,7 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceFormService,
         form_provider_service=form_provider_service,
         plugin_proxy_service=plugin_proxy_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_service=form_service,
         workspace_form_repository=workspace_form_repo,
         form_repo=form_repo,
@@ -613,7 +613,7 @@ class AppContainer(containers.DeclarativeContainer):
         store=pdf_import_store,
         pipeline=pdf_import_pipeline,
         workspace_form_service=workspace_form_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         settings=settings.pdf_import,
         flags=flags,
     )
@@ -662,13 +662,13 @@ class AppContainer(containers.DeclarativeContainer):
         OpenAIService,
         workspace_service=workspace_service,
         workspace_form_service=workspace_form_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         ai_consent_service=ai_consent_service,
     )
 
     form_ai_chat_service: FormAIChatService = providers.Singleton(
         FormAIChatService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         session_repo=form_ai_session_repo,
@@ -681,7 +681,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_ai_review_service: FormAIReviewService = providers.Singleton(
         FormAIReviewService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         provider_resolver=providers.Callable(
@@ -779,7 +779,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     workspace_consent_service = providers.Singleton(
         WorkspaceConsentService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         workspace_consent_repo=workspace_consent_repo,
     )
 
@@ -801,7 +801,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_template_service = providers.Singleton(
         FormTemplateService,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
         form_template_repo=form_template_repo,
         workspace_form_service=workspace_form_service,
         aws_service=aws_service,
@@ -855,7 +855,7 @@ class AppContainer(containers.DeclarativeContainer):
         MediaLibraryService,
         media_library_repo=media_library_repo,
         aws_service=aws_service,
-        workspace_user_service=workspace_user_service,
+        authorization_service=authorization_service,
     )
 
     umami_client: UmamiClient = providers.Singleton(UmamiClient)
@@ -882,7 +882,7 @@ class AppContainer(containers.DeclarativeContainer):
         integration_action_service=integration_action_service,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
-        workspace_user_repo=workspace_user_repo,
+        authorization_service=authorization_service,
         action_repository=action_repository,
     )
 

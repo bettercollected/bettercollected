@@ -1,7 +1,5 @@
 from http import HTTPStatus
 from beanie import PydanticObjectId
-from bson import ObjectId
-from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 from fastapi import File, UploadFile
 
@@ -9,7 +7,8 @@ from backend.app.exceptions.http import HTTPException
 from backend.app.models.dtos.media_libraries_dto import MediaType
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.services.aws_service import AWSS3Service
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.models.enum.permission import Permission
 from starlette.requests import Request
 
 
@@ -20,20 +19,15 @@ class MediaLibraryService:
         self,
         media_library_repo: MediaLibraryRepository,
         aws_service: AWSS3Service,
-        workspace_user_service: WorkspaceUserService,
+        authorization_service: AuthorizationService,
     ):
         self._media_library_repo = media_library_repo
         self._aws_service = aws_service
-        self._workspace_user_service = workspace_user_service
+        self._authorization = authorization_service
 
     async def _check_member(self, workspace_id: str, user: User):
-        if not ObjectId.is_valid(workspace_id):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
-        await self._workspace_user_service.check_user_has_access_in_workspace(
-            PydanticObjectId(workspace_id), user
-        )
+        # Images for forms and the workspace's pages: whoever edits forms.
+        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
 
     async def get_medias_in_workspace_by_workspace_id(
         self, workspace_id: str, media_query: str, user: User
