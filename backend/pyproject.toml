@@ -56,6 +56,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "aioresponses>=0.7.9",
     "httpx>=0.28.1",
+    "pytest-xdist>=3.8.0",
 ]
 
 [tool.uv.sources]
