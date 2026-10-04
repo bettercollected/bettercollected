@@ -15,6 +15,7 @@ export const ssoErrorMessages: Record<string, string> = {
     sso_tenant_mismatch: 'Single sign-on failed. Please try again.',
     sso_session_mismatch: 'This sign-in was started in another browser or was already used. Please start again.',
     sso_membership_disabled: 'Your membership of this workspace is disabled. Ask a workspace admin.',
+    sso_deprovisioned: "Your organisation's directory has deactivated your access to this workspace. Ask your IT admin.",
     sso_expired: 'The sign-in took too long. Please try again.',
     sso_failed: 'Single sign-on failed. Please try again.'
 };

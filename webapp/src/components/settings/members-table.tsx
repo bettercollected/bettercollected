@@ -1,12 +1,11 @@
-import { useTranslation } from 'react-i18next';
-
 import _ from 'lodash';
 
 import UserDetails from '@Components/common/user-details';
-import DataTable from 'react-data-table-component';
-
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import MemberOptions from '@Components/datatable/member-options';
+import DataTable from 'react-data-table-component';
+import { useTranslation } from 'react-i18next';
+
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { utcToLocalDate, utcToLocalTime } from '@app/utils/date-utils';
@@ -45,7 +44,19 @@ export default function MembersTable({ data }: any) {
         },
         {
             name: t(members.role),
-            selector: (member: any) => _.capitalize(member.roles[0]),
+            // A member the SCIM directory manages: the role follows their
+            // groups at the identity provider, so it is not changed here.
+            cell: (member: any) => (
+                <div className="flex flex-col gap-0.5 py-1">
+                    <span>{_.capitalize(member.roles[0])}</span>
+                    {member.managedByDirectory && (
+                        <span className="text-[11px] font-medium text-black-500" data-testid="managed-by-directory">
+                            {t(members.managedByDirectory)}
+                        </span>
+                    )}
+                    {member.disabled && <span className="text-[11px] font-medium text-[#C43D3D]">{t(members.deactivated)}</span>}
+                </div>
+            ),
             style: {
                 color: '#3A465A',
                 paddingLeft: '16px',

@@ -1,6 +1,8 @@
 export const members = {
     member: 'MEMBER',
     role: 'MEMBERS.ROLE',
+    managedByDirectory: 'MEMBERS.MANAGED_BY_DIRECTORY',
+    deactivated: 'MEMBERS.DEACTIVATED',
     join: 'MEMBERS.JOIN',
     invitations: 'MEMBERS.INVITATION',
     invitationDate: 'MEMBERS.INVITATION_DATE',

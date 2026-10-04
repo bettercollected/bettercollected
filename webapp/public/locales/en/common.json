@@ -482,6 +482,8 @@
     "INVITATION_DATE": "Invitation Date",
     "JOIN": "Joined Date",
     "ROLE": "Role",
+    "MANAGED_BY_DIRECTORY": "Managed by your directory",
+    "DEACTIVATED": "Deactivated",
     "COLLABORATORS": {
       "DEFAULT": "Collaborators",
       "DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete responses."
