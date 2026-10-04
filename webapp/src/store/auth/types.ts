@@ -3,6 +3,17 @@ export const AUTH_TAG_TYPES = 'AUTH_API';
 export const AUTH_REFRESH_TAG = 'AUTH_REFRESH_TAG';
 export const AUTH_LOG_OUT = 'AUTH_LOG_OUT';
 export const AUTH_OTP_TAGS = 'AUTH_OTP_TAGS';
+export const AUTH_SESSIONS_TAG = 'AUTH_SESSIONS_TAG';
+
+/** One of the signed-in user's sessions (GET /auth/sessions). */
+export interface AuthSession {
+    id: string;
+    createdAt?: string;
+    lastRefreshedAt?: string;
+    expiresAt?: string;
+    userAgent?: string;
+    current: boolean;
+}
 
 export interface VerifyOtp {
     body: {

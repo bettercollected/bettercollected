@@ -2,6 +2,7 @@
 
 
 import AIMemorySection from '@app/components/account-settings/ai-memory-section';
+import SessionsSection from '@app/components/account-settings/sessions-section';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
@@ -40,6 +41,7 @@ export default function AccountSettingsClient() {
                 <SettingCard title={t(localesCommon.privacyPolicy.title)} description={t(localesCommon.privacyPolicy.description)} link="https://bettercollected.com/privacy-policy" />
                 <SettingCard title={t(localesCommon.termsOfServices.title)} description={t(localesCommon.termsOfServices.description)} link="https://bettercollected.com/terms-of-service" />
                 <AIMemorySection />
+                <SessionsSection />
                 <div className="my-6">
                     <Button
                         variant="ghost"
