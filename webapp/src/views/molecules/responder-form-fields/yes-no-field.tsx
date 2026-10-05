@@ -13,6 +13,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { Check } from 'lucide-react';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { yesNoChoices } from '@app/utils/yes-no-choices';
 import QuestionWrapper from './question-wrapper';
 
 const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
@@ -48,7 +49,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                 }}
             >
                 {field &&
-                    field.properties?.choices?.map((choice, index) => {
+                    yesNoChoices(field).map((choice, index) => {
                         return (
                             <RadioGroup.Option value={choice.value === 'Yes'} key={index} as={Fragment}>
                                 {({ active, checked }) => {

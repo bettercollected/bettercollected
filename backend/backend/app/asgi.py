@@ -91,9 +91,15 @@ async def lifespan(app: FastAPI):
             )
         else:
             try:
-                result = await seed_flow_templates(workspace_id)
+                result = await seed_flow_templates(
+                    workspace_id, template_repo=container.form_template_repo()
+                )
                 if result["seeded"]:
                     logger.info(f"Seeded flow templates: {', '.join(result['seeded'])}")
+                if result["repaired"]:
+                    logger.info(
+                        f"Repaired yes/no choices in flow templates: {', '.join(result['repaired'])}"
+                    )
             except Exception:
                 logger.exception("Flow-template seeding failed; continuing startup.")
 

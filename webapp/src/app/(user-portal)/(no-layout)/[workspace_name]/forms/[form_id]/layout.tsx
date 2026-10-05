@@ -18,7 +18,10 @@ export async function generateMetadata({ params }: { params: Promise<{ workspace
         };
     }
 
-    const form = await getFormById(workspace.id, form_id);
+    // Respondents are usually signed out: read the published form, which is
+    // also what they are shown (the draft is members-only, so the title fell
+    // back to "Form Not Found" for every visitor and every link preview).
+    const form = await getFormById(workspace.id, form_id, { published: true });
 
     if (!form) {
         return {

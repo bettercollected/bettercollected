@@ -2,6 +2,7 @@ import { RadioGroup } from '@headlessui/react';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
+import { yesNoChoices } from '@app/utils/yes-no-choices';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 const YesNoField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
@@ -11,7 +12,7 @@ const YesNoField = ({ field, slide, disabled }: { field: StandardFormFieldDto; s
         <>
             <RadioGroup className={'flex w-min flex-col gap-2'} value={field.value} onChange={() => {}}>
                 {field &&
-                    field.properties?.choices?.map((choice, index) => {
+                    yesNoChoices(field).map((choice, index) => {
                         return (
                             <RadioGroup.Option value={choice.value} key={index}>
                                 <div

@@ -10,7 +10,7 @@ import { useFormState } from '@app/store/jotai/form';
 import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { downloadFile, generateFileMetaData } from '@app/utils/file-utils';
+import { downloadFile, formatFileSizeMb, generateFileMetaData } from '@app/utils/file-utils';
 import DeleteIcon from '@Components/icons/delete';
 import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 
@@ -116,7 +116,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                     the same legibility defect the yes/no chips had. */}
                 <div style={{ backgroundColor: theme?.tertiary + '55', color: theme?.primary }} className="p1 flex w-full cursor-pointer items-center justify-between rounded px-3 py-2" onClick={downloadFormFile}>
                     <p className="mr-5 flex-1 truncate">{fileMetaData?.name}</p>
-                    <p className="text-sm">{fileMetaData?.size} MB</p>
+                    <p className="text-sm">{formatFileSizeMb(fileMetaData?.size)}</p>
                 </div>
 
                 <button

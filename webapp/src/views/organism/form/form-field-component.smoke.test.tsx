@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { describe, expect, it, vi } from 'vitest';
@@ -87,5 +87,37 @@ describe('FormFieldComponent renders every responder field type without crashing
             const { container } = renderField(base(type));
             expect(container.firstChild).not.toBeNull();
         }
+    });
+});
+
+describe('fields are answerable, not just rendered', () => {
+    // Seeded templates stored yes/no questions without their choices: the
+    // question rendered with nothing to click, which the crash test above
+    // could not catch.
+    it.each([
+        ['stored Yes/No choices', base(FieldTypes.YES_NO, { properties: { fields: [], choices: choices('Yes', 'No') } })],
+        ['no properties', base(FieldTypes.YES_NO)],
+        ['empty choices', base(FieldTypes.YES_NO, { properties: { fields: [], choices: [] } })]
+    ])('yes/no offers Yes and No with %s', (_label, field) => {
+        renderField(field);
+        expect(screen.getAllByRole('radio').map((r) => r.textContent?.trim())).toEqual(['Yes', 'No']);
+    });
+
+    it('rating stars keep their DOM nodes on hover and show the answer under the pointer', () => {
+        renderField(base(FieldTypes.RATING, { properties: { fields: [], steps: 5 } }));
+        const third = screen.getByRole('button', { name: 'Rate 3 of 5' });
+        act(() => {
+            fireEvent.mouseOver(third);
+        });
+        // A component declared inside render remounted every star on hover.
+        expect(screen.getByRole('button', { name: 'Rate 3 of 5' })).toBe(third);
+        act(() => {
+            fireEvent.click(third);
+        });
+        // Still hovering: stars 1-3 are filled with the accent, 4-5 are empty.
+        const fills = [1, 2, 3, 4, 5].map((n) => screen.getByRole('button', { name: `Rate ${n} of 5` }).querySelector('[fill]')?.getAttribute('fill'));
+        expect(fills.slice(0, 3).every((f) => f && f !== 'transparent')).toBe(true);
+        expect(fills.slice(3)).toEqual(['transparent', 'transparent']);
+        expect(screen.getByRole('button', { name: 'Rate 3 of 5' }).getAttribute('aria-pressed')).toBe('true');
     });
 });

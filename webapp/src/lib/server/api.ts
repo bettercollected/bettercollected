@@ -68,11 +68,14 @@ export async function getWorkspaceById(workspaceId: string) {
     }
 }
 
-export async function getFormById(workspaceId: string, formId: string) {
+// `published` asks for the published version, which anyone may read; without
+// it the API returns the draft, which only workspace members may read.
+export async function getFormById(workspaceId: string, formId: string, { published = false }: { published?: boolean } = {}) {
     if (!workspaceId || !formId) return null;
     try {
         const cookieHeader = await getCookieHeader();
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}`, {
+        const query = published ? '?published=true' : '';
+        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}${query}`, {
             headers: {
                 cookie: cookieHeader
             },
