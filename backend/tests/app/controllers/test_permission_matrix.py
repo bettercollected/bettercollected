@@ -25,6 +25,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
+from common.db.flags import WriteMode
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from httpx import AsyncClient
@@ -871,6 +872,17 @@ def _allowed(case: Case) -> FrozenSet[str]:
     return case.allowed
 
 
+# The matrix tests authorization, not storage. It runs in the Mongo mode and
+# in the Postgres-served mode, so every endpoint x role check runs against
+# each store; in the mirrored-writes mode (DB_WRITE_MODE=dual) it would only
+# repeat the Mongo run with a mirror behind it, at most of that job's time.
+skip_when_mirrored = pytest.mark.skipif(
+    container.flags().default_write is WriteMode.DUAL,
+    reason="authorization, not storage: covered by the mongo and postgres modes",
+)
+
+
+@skip_when_mirrored
 @pytest.mark.parametrize("role", ROLES)
 @pytest.mark.parametrize("case", CASES, ids=[case.name for case in CASES])
 async def test_permission_matrix(

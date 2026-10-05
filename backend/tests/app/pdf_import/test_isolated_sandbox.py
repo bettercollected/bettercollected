@@ -21,7 +21,11 @@ from backend.app.services.pdf_import.sandbox import (
 )
 from tests.app.pdf_import import documents
 
-pytestmark = pytest.mark.asyncio
+pytestmark = [
+    pytest.mark.asyncio,
+    # one sandbox server for the module, also under pytest-xdist (--dist loadgroup)
+    pytest.mark.xdist_group("isolated_sandbox"),
+]
 LIMITS = dict(
     max_pages=30, max_pixels=60_000_000, timeout_s=60, memory_mb=1536, max_parallel=2
 )

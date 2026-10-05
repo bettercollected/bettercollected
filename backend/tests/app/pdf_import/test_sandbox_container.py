@@ -61,9 +61,13 @@ def _image_available() -> bool:
     )
 
 
-pytestmark = pytest.mark.skipif(
-    not _image_available(), reason=f"needs docker and the {IMAGE} image"
-)
+pytestmark = [
+    pytest.mark.skipif(
+        not _image_available(), reason=f"needs docker and the {IMAGE} image"
+    ),
+    # one container for the module, also under pytest-xdist (--dist loadgroup)
+    pytest.mark.xdist_group("sandbox_container"),
+]
 
 
 def _hardened(name: str, *extra: str) -> list:

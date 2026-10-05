@@ -132,7 +132,12 @@ jobs:
               env:
                   DB_READ_SOURCE: ${{ matrix.read_source }}
                   DB_WRITE_MODE: ${{ matrix.write_mode }}
-              run: uv run pytest
+              # Four pytest-xdist workers (a hosted runner has 4 vCPUs; more
+              # workers measured slower), each with its own Mongo and Postgres
+              # database (tests/conftest.py). Not "-n auto": that counts
+              # physical cores. loadgroup spreads tests one by one, except
+              # modules that share an expensive fixture.
+              run: uv run pytest -n 4 --dist loadgroup
 
     auth-tests:
         name: Auth tests (pytest)

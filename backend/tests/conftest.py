@@ -4,13 +4,40 @@ import os
 from typing import Any, Coroutine
 from unittest.mock import patch
 
+from dotenv import load_dotenv
+
+# pytest-xdist: each worker ("gw0", "gw1", ...) gets its own Mongo and Postgres
+# databases, named after the configured ones plus the worker id. This has to
+# happen before the backend is imported: some modules read DATABASE_URL at import
+# time (the procrastinate app). Without xdist nothing changes.
+XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER", "")
+# The configured Postgres URL; under xdist the server's admin connection and the
+# "test" guard use it, and each worker's database is derived from it.
+BASE_DATABASE_URL = os.environ.get("DATABASE_URL", "")
+if XDIST_WORKER:
+    load_dotenv(os.getenv("DOTENV_PATH", ".env.test"))
+    BASE_DATABASE_URL = os.environ.get("DATABASE_URL", "")
+    os.environ["MONGO_TEST_DB"] = (
+        f"{os.environ.get('MONGO_TEST_DB', 'bettercollected_test')}_{XDIST_WORKER}"
+    )
+    if BASE_DATABASE_URL:
+        _url, _, _query = BASE_DATABASE_URL.partition("?")
+        os.environ["DATABASE_URL"] = f"{_url}_{XDIST_WORKER}" + (
+            f"?{_query}" if _query else ""
+        )
+    # The mirror-write timeout (2 s by default) bounds request latency in
+    # production. With several workers sharing the CPUs and database servers,
+    # a mirror write occasionally stalled past it, and the test then failed on
+    # a "mirror failure" that was only a slow write. No test depends on the
+    # value; a real failure or hang still fails the test.
+    os.environ.setdefault("DB_MIRROR_TIMEOUT_MS", "10000")
+
 import httpx
 import pymongo
 import pytest
 import pytest_asyncio
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
-from dotenv import load_dotenv
 
 from tests.app.auth_helpers import access_token
 from backend.app import get_application
@@ -42,15 +69,59 @@ TEST_MONGO_DB = os.getenv("MONGO_TEST_DB", "bettercollected_test")
 
 
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "")
+if not XDIST_WORKER:
+    BASE_DATABASE_URL = TEST_DATABASE_URL
+
+
+def _database_name(url: str) -> str:
+    return url.rsplit("/", 1)[-1].split("?")[0]
 
 
 def _postgres_configured() -> bool:
     """A Postgres test database is available. Guarded: only databases whose name
-    contains "test" are ever migrated or truncated by the suite."""
+    contains "test" are ever created, migrated, truncated or dropped by the suite.
+    Under xdist the configured name must pass; the worker's adds a suffix."""
     if not TEST_DATABASE_URL:
         return False
-    name = TEST_DATABASE_URL.rsplit("/", 1)[-1].split("?")[0]
-    return "test" in name
+    return "test" in _database_name(BASE_DATABASE_URL) and "test" in _database_name(
+        TEST_DATABASE_URL
+    )
+
+
+async def _postgres_admin(statement: str) -> None:
+    """Run one statement on the server's maintenance database (``postgres``)."""
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.pool import NullPool
+
+    from common.db.engine import normalise_url
+
+    url, _, query = normalise_url(BASE_DATABASE_URL).partition("?")
+    admin_url = url.rpartition("/")[0] + "/postgres" + (f"?{query}" if query else "")
+    engine = create_async_engine(
+        admin_url, poolclass=NullPool, isolation_level="AUTOCOMMIT"
+    )
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text(statement))
+    finally:
+        await engine.dispose()
+
+
+async def _create_worker_database() -> None:
+    """A fresh Postgres database for this xdist worker (a leftover from an
+    interrupted run is replaced). It lives for one test session, so its commits
+    don't wait for the WAL flush (on a server with fsync on, that wait was most
+    of the Postgres modes' time)."""
+    name = _database_name(TEST_DATABASE_URL)
+    await _postgres_admin(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+    await _postgres_admin(f'CREATE DATABASE "{name}"')
+    await _postgres_admin(f'ALTER DATABASE "{name}" SET synchronous_commit = off')
+
+
+async def _drop_worker_database() -> None:
+    name = _database_name(TEST_DATABASE_URL)
+    await _postgres_admin(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
 def _alembic_upgrade_head() -> None:
@@ -92,6 +163,29 @@ async def _truncate_postgres() -> None:
             await conn.execute(text(f"DELETE FROM {name}"))
 
 
+async def _clear_mongo(db) -> None:
+    """Empty every collection that holds documents.
+
+    Like the Postgres reset: a delete_many on each of the ~35 collections cost
+    a round trip apiece on every test, although a test touches only a few. One
+    aggregation (each collection's first document, tagged with its name, via
+    $unionWith) finds the non-empty ones, and only those are cleared.
+    """
+    names = await db.list_collection_names(filter={"type": "collection"})
+    if not names:
+        return
+
+    def first_of(name: str) -> list:
+        return [{"$limit": 1}, {"$project": {"_id": 0, "c": {"$literal": name}}}]
+
+    pipeline = first_of(names[0]) + [
+        {"$unionWith": {"coll": name, "pipeline": first_of(name)}} for name in names[1:]
+    ]
+    cursor = await db[names[0]].aggregate(pipeline)
+    for name in [doc["c"] async for doc in cursor]:
+        await db[name].delete_many({})
+
+
 def _drop_test_db() -> None:
     """Drop the test database using a synchronous pymongo client.
 
@@ -120,6 +214,9 @@ async def _initialized_app():
 
     _drop_test_db()
 
+    worker_database = bool(XDIST_WORKER) and _postgres_configured()
+    if worker_database:
+        await _create_worker_database()
     if _postgres_configured():
         # Alembic drives its own event loop; keep it off the session loop.
         await asyncio.to_thread(_alembic_upgrade_head)
@@ -134,6 +231,8 @@ async def _initialized_app():
         yield app
 
     _drop_test_db()
+    if worker_database:
+        await _drop_worker_database()
     settings.mongo_settings.URI = original_uri
     settings.mongo_settings.DB = original_db
     container.database_client.reset_override()
@@ -146,9 +245,7 @@ async def _clean_db(_initialized_app):
     Clearing documents (rather than dropping the database) keeps the indexes and
     collections created by the one-time init, so per-test setup stays cheap.
     """
-    db = container.database_client()[TEST_MONGO_DB]
-    for name in await db.list_collection_names():
-        await db[name].delete_many({})
+    await _clear_mongo(container.database_client()[TEST_MONGO_DB])
     if _postgres_configured() and container.flags().requires_postgres():
         await _truncate_postgres()
     yield
