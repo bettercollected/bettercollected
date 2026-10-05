@@ -36,7 +36,7 @@ dependencies = [
     "googleapis-common-protos>=1.75.5",
     "elastic-apm>=6.26.2",
     "common",
-    "pydantic[email]>=2.13.4",
+    "pydantic[email]>=2.13.5",
     "pydantic-settings>=2.15.0",
     "h11>=0.16.0",
     "httpx>=0.27.0",
