@@ -23,7 +23,8 @@ jobs:
                     - webapp
                     - temporal/worker
                     - temporal/actions-executor
-        runs-on: ubuntu-latest
+        # The shared office runners, like the deploy job; CI_RUNNER overrides.
+        runs-on: ${{ vars.CI_RUNNER || 'builder' }}
         steps:
             - name: Checkout code with submodules
               uses: actions/checkout@v7

@@ -14,42 +14,19 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    # Picks the runner for the rest of the workflow: prefer a self-hosted runner
-    # when one is online, otherwise fall back to GitHub-hosted `ubuntu-latest`.
+    # Jobs run on the shared office runners (label `builder`); fork PRs stay
+    # on GitHub-hosted runners so code from outside the repository never runs
+    # on our machines. The repository variable CI_RUNNER overrides the label
+    # (set it to `ubuntu-latest` to go back to GitHub-hosted runners).
     #
-    # Listing runners requires a token with "Administration: read" on the repo,
-    # which the default GITHUB_TOKEN does NOT have. Add a repo/org secret named
-    # RUNNER_READ_TOKEN (a fine-grained PAT with Administration:read, or a classic
-    # PAT with `repo`) to enable self-hosted selection. Without it, the check
-    # fails closed and everything runs on GitHub-hosted runners.
-    select-runner:
-        name: Select runner
-        runs-on: ubuntu-latest
-        outputs:
-            runner: ${{ steps.pick.outputs.runner }}
-        steps:
-            - name: Prefer self-hosted when available
-              id: pick
-              env:
-                  GH_TOKEN: ${{ secrets.RUNNER_READ_TOKEN || github.token }}
-                  REPO: ${{ github.repository }}
-              run: |
-                  runner="ubuntu-latest"
-                  online=$(gh api "repos/$REPO/actions/runners" \
-                      --jq '[.runners[] | select(.status=="online")] | length' 2>/dev/null || echo "")
-                  if [ -n "$online" ] && [ "$online" -gt 0 ] 2>/dev/null; then
-                      runner="self-hosted"
-                  fi
-                  echo "Online self-hosted runners: ${online:-unknown (no access) }"
-                  echo "Selected runner: $runner"
-                  echo "runner=$runner" >> "$GITHUB_OUTPUT"
+    # Service containers publish random host ports, so jobs running side by
+    # side on one machine, or next to databases already on it, don't collide.
 
     # The three persistence modes run as parallel jobs: Mongo only, every group
     # mirrored to Postgres (dual), and every group served from Postgres.
     backend-tests:
         name: Backend tests (pytest, ${{ matrix.mode }})
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         strategy:
             fail-fast: false
             matrix:
@@ -70,7 +47,7 @@ jobs:
             mongo:
                 image: mongo:7
                 ports:
-                    - 27017:27017
+                    - 27017
                 options: >-
                     --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
                     --health-interval 10s
@@ -84,7 +61,7 @@ jobs:
                     POSTGRES_PASSWORD: postgres
                     POSTGRES_DB: bettercollected_test
                 ports:
-                    - 5432:5432
+                    - 5432
                 options: >-
                     --tmpfs /var/lib/postgresql/data:rw
                     --health-cmd "pg_isready -U postgres -d bettercollected_test"
@@ -96,8 +73,6 @@ jobs:
                 working-directory: backend
         env:
             VIRTUAL_ENV: ""
-            MONGO_URI: mongodb://localhost:27017
-            DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
             AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
             AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
             SCHEDULAR_ENABLED: "False"
@@ -130,6 +105,8 @@ jobs:
 
             - name: Run backend tests (${{ matrix.mode }})
               env:
+                  MONGO_URI: mongodb://localhost:${{ job.services.mongo.ports['27017'] }}
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   DB_READ_SOURCE: ${{ matrix.read_source }}
                   DB_WRITE_MODE: ${{ matrix.write_mode }}
               # Four pytest-xdist workers (a hosted runner has 4 vCPUs; more
@@ -141,8 +118,7 @@ jobs:
 
     auth-tests:
         name: Auth tests (pytest)
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         # The auth suite uses an in-memory Mongo mock (mongomock-motor), so no Mongo
         # service is needed. Postgres is provided for the repository layer that is
         # replacing Mongo (plans/postgres-consolidation.md).
@@ -154,7 +130,7 @@ jobs:
                     POSTGRES_PASSWORD: postgres
                     POSTGRES_DB: bettercollected_test
                 ports:
-                    - 5432:5432
+                    - 5432
                 options: >-
                     --health-cmd "pg_isready -U postgres -d bettercollected_test"
                     --health-interval 5s
@@ -181,7 +157,7 @@ jobs:
               env:
                   VIRTUAL_ENV: ""
                   DOTENV_PATH: /nonexistent.env
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
@@ -191,7 +167,7 @@ jobs:
                   VIRTUAL_ENV: ""
                   DOTENV_PATH: /nonexistent.env
                   DB_WRITE_MODE: dual
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
@@ -202,7 +178,7 @@ jobs:
                   DOTENV_PATH: /nonexistent.env
                   DB_READ_SOURCE: postgres
                   DB_WRITE_MODE: postgres
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
@@ -213,13 +189,12 @@ jobs:
         # drift (tests/unit/app/utils/test_aiohttp_client.py, tests/unit/app/views,
         # tests/unit/app/test_asgi.py) that predate the Postgres work and were never
         # run in CI. This job runs everything else; repairing those is a follow-up.
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         services:
             mongo:
                 image: mongo:7
                 ports:
-                    - 27017:27017
+                    - 27017
                 options: >-
                     --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
                     --health-interval 10s
@@ -232,7 +207,7 @@ jobs:
                     POSTGRES_PASSWORD: postgres
                     POSTGRES_DB: bettercollected_test
                 ports:
-                    - 5432:5432
+                    - 5432
                 options: >-
                     --health-cmd "pg_isready -U postgres -d bettercollected_test"
                     --health-interval 5s
@@ -259,11 +234,11 @@ jobs:
               env:
                   VIRTUAL_ENV: ""
                   DOTENV_PATH: /nonexistent.env
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
-                  MONGO_URI: mongodb://localhost:27017
+                  MONGO_URI: mongodb://localhost:${{ job.services.mongo.ports['27017'] }}
                   MONGO_DB: bettercollected_google_test
                   MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
               run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
@@ -272,11 +247,11 @@ jobs:
                   VIRTUAL_ENV: ""
                   DOTENV_PATH: /nonexistent.env
                   DB_WRITE_MODE: dual
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
-                  MONGO_URI: mongodb://localhost:27017
+                  MONGO_URI: mongodb://localhost:${{ job.services.mongo.ports['27017'] }}
                   MONGO_DB: bettercollected_google_test
                   MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
               run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
@@ -286,11 +261,11 @@ jobs:
                   DOTENV_PATH: /nonexistent.env
                   DB_READ_SOURCE: postgres
                   DB_WRITE_MODE: postgres
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
-                  MONGO_URI: mongodb://localhost:27017
+                  MONGO_URI: mongodb://localhost:${{ job.services.mongo.ports['27017'] }}
                   MONGO_DB: bettercollected_google_test
                   MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
 
@@ -298,8 +273,7 @@ jobs:
 
     common-tests:
         name: Common tests (pytest)
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         # common/db is the Postgres foundation shared by the Python services
         # (plans/postgres-consolidation.md); its integration tests need a live
         # Postgres and skip themselves when DATABASE_URL is unset.
@@ -311,7 +285,7 @@ jobs:
                     POSTGRES_PASSWORD: postgres
                     POSTGRES_DB: bettercollected_test
                 ports:
-                    - 5432:5432
+                    - 5432
                 options: >-
                     --health-cmd "pg_isready -U postgres -d bettercollected_test"
                     --health-interval 5s
@@ -337,13 +311,12 @@ jobs:
             - name: Run common tests
               env:
                   VIRTUAL_ENV: ""
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
               run: uv run pytest
 
     webapp-build:
         name: Webapp build & type-check
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         defaults:
             run:
                 working-directory: webapp
@@ -365,8 +338,7 @@ jobs:
 
     webapp-tests:
         name: Webapp tests (vitest)
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         defaults:
             run:
                 working-directory: webapp

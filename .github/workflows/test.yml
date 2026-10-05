@@ -10,12 +10,12 @@ permissions:
 
 jobs:
     backend-test:
-        runs-on: ubuntu-latest
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         services:
             mongo:
                 image: mongo:7
                 ports:
-                    - 27017:27017
+                    - 27017
                 options: >-
                     --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
                     --health-interval 10s
@@ -28,7 +28,7 @@ jobs:
                     POSTGRES_PASSWORD: postgres
                     POSTGRES_DB: bettercollected_test
                 ports:
-                    - 5432:5432
+                    - 5432
                 options: >-
                     --health-cmd "pg_isready -U postgres -d bettercollected_test"
                     --health-interval 5s
@@ -58,8 +58,8 @@ jobs:
               id: test-backend
               env:
                   VIRTUAL_ENV: ""
-                  MONGO_URI: mongodb://localhost:27017
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  MONGO_URI: mongodb://localhost:${{ job.services.mongo.ports['27017'] }}
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/bettercollected_test
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   SCHEDULAR_ENABLED: "False"
@@ -69,7 +69,7 @@ jobs:
               run: uv run pytest
 
     schemathesis:
-        runs-on: ubuntu-latest
+        runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (vars.CI_RUNNER || 'builder') || 'ubuntu-latest' }}
         steps:
             - name: Configure schemathesis using action
               uses: schemathesis/action@v1
