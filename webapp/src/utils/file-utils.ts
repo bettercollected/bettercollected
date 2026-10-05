@@ -26,3 +26,11 @@ export async function downloadFile(fileUrl: string, fileName: string) {
     link.parentNode!.removeChild(link);
     return true;
 }
+
+// Sizes are stored in MB with two decimals, so anything under ~5 KB is 0.
+export function formatFileSizeMb(sizeMb?: number): string {
+    if (sizeMb === undefined || sizeMb === null || Number.isNaN(sizeMb)) return '';
+    if (sizeMb < 0.01) return '< 10 KB';
+    if (sizeMb < 1) return `${Math.round(sizeMb * 1024)} KB`;
+    return `${sizeMb} MB`;
+}
