@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { KeyRound } from 'lucide-react';
 
 import environments from '@app/configs/environments';
-import { navigateWithReferrer, ssoEnabled, ssoErrorMessage } from '@app/lib/sso';
+import { navigateWithReferrer, ssoErrorMessage } from '@app/lib/sso';
+import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
 
@@ -20,10 +21,11 @@ interface SsoSignInProps {
 
 /**
  * "Sign in with SSO": the work email decides which workspace's identity
- * provider signs the user in (docs/sso.md). Off unless the build sets
- * NEXT_PUBLIC_ENABLE_SSO=true.
+ * provider signs the user in (docs/sso.md). Off unless the webapp's
+ * SSO_ENABLED is true (read at runtime).
  */
 export default function SsoSignIn({ initialEmail, notice }: SsoSignInProps) {
+    const ssoEnabled = useSsoEnabled();
     const searchParams = useSearchParams();
     const errorMessage = ssoErrorMessage(searchParams?.get('sso_error'));
     const [open, setOpen] = useState(!!errorMessage || !!initialEmail);

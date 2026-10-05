@@ -10,9 +10,11 @@ import { DialogModalContainer } from '@app/lib/hooks/use-dialog-modal';
 import { SecondaryDialogModalContainer } from '@app/lib/hooks/use-secondary-dialog-modal';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { cn } from '@app/shadcn/util/lib';
+import { readRuntimeFlags } from '@app/lib/runtime-flags';
 import AuthProvider from '@app/shared/hocs/auth-provider';
 import I18nProvider from '@app/shared/hocs/i18n-provider';
 import ReduxProvider from '@app/shared/hocs/redux-provider';
+import RuntimeFlagsProvider from '@app/shared/hocs/runtime-flags-provider';
 import ThemeProvider from '@app/shared/hocs/theme-provider';
 import BaseModalContainer from '@Components/modals/containers/base-modal-container';
 import { Viewport } from 'next';
@@ -90,19 +92,23 @@ export default function RootLayout({
                 )}
                 <SwRegister />
                 <script src="/api/config" defer></script>
-                <ThemeProvider>
-                    <I18nProvider>
-                        <Toaster />
-                        <ReduxProvider>
-                            <AuthProvider>
-                                {children}
-                                <DialogModalContainer />
-                                <SecondaryDialogModalContainer />
-                                <BaseModalContainer />
-                            </AuthProvider>
-                        </ReduxProvider>
-                    </I18nProvider>
-                </ThemeProvider>
+                {/* Every route renders per request, so these flags come from the
+                    running server's environment, not from the build. */}
+                <RuntimeFlagsProvider flags={readRuntimeFlags()}>
+                    <ThemeProvider>
+                        <I18nProvider>
+                            <Toaster />
+                            <ReduxProvider>
+                                <AuthProvider>
+                                    {children}
+                                    <DialogModalContainer />
+                                    <SecondaryDialogModalContainer />
+                                    <BaseModalContainer />
+                                </AuthProvider>
+                            </ReduxProvider>
+                        </I18nProvider>
+                    </ThemeProvider>
+                </RuntimeFlagsProvider>
             </body>
         </html>
     );

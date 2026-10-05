@@ -48,6 +48,9 @@ services:
       ADMIN_DOMAIN: localhost:3000
       CLIENT_DOMAIN: localhost:3001
       NEXT_PUBLIC_NODE_ENV: development
+      # Single sign-on UI (docs/sso.md), read at runtime; the same root .env
+      # switch as the backend and auth
+      SSO_ENABLED: ${SSO_ENABLED:-false}
     env_file:
       - .env.deployment
     ports:

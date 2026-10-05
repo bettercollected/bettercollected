@@ -24,7 +24,7 @@ import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
-import { ssoEnabled } from '@app/lib/sso';
+import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
 import { INavGroup, INavbarItem } from '@app/models/props/navbar';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -33,6 +33,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import DashboardDrawer from '@Components/sidebar/dashboard-drawer';
 
 const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const ssoEnabled = useSsoEnabled();
     const drawerWidth = 289;
 
     const auth = useAppSelector(selectAuth);

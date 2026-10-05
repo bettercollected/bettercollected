@@ -55,7 +55,7 @@ Polis runs with `IDP_ENABLED=false` (no IdP-initiated sign-in), `OPENID_REDIRECT
 
 **Network isolation.** Polis fetches nothing an admin typed in (we fetch metadata and discovery documents ourselves, see "SSRF" below), but it does call the IdPs' token, userinfo and JWKS endpoints. So it runs on its own networks, defined in the overlay: `polis-db` (internal, Polis and its Postgres only) and `sso` (Polis, the backend, the jobs worker and auth, with internet egress). It cannot reach Mongo, `app-postgres`, Temporal, Umami or the other services. The backend and auth can reach it, and it can reach their HTTP ports in turn (auth's API needs the internal key). Local development (`docker-compose.sso.yml`) is simpler: Polis joins the local stack's network and keeps its data in `app-postgres`.
 
-The webapp's SSO screens are a build-time flag: build the image with `--build-arg NEXT_PUBLIC_ENABLE_SSO=true`.
+The webapp's SSO screens follow the webapp container's own `SSO_ENABLED`, read at runtime: the same image serves deployments with and without SSO, no rebuild needed. Set it with the backend's and auth's.
 
 ### Exposing Polis
 
@@ -91,7 +91,7 @@ server {
 | auth | `SSO_STATE_MAX_AGE_SECONDS` | `600` | How long a started sign-in may take |
 | auth | `SSO_ASSERTION_MAX_AGE_SECONDS` | `120` | How long the backend has to finish a checked sign-in |
 | auth | `SSO_POLIS_CLIENT_SECRET` | | Optional: Polis's `CLIENT_SECRET_VERIFIER`, sent on the token call. Every sign-in uses PKCE, which Polis checks instead |
-| webapp (build) | `NEXT_PUBLIC_ENABLE_SSO` | `false` | Shows "Sign in with SSO" and the settings page |
+| webapp | `SSO_ENABLED` | `false` | Shows "Sign in with SSO" and the settings page; read at runtime, same values as the backend's |
 
 `API_ALLOWED_COLLABORATORS` (backend) is the seat cap a first SSO sign-in is checked against, the same as an accepted invitation. `PLATFORM_ADMIN_EMAILS` must be set on the backend too (it reserves those domains, see below).
 

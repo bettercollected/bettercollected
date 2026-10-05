@@ -1,6 +1,6 @@
-// Enterprise single sign-on (docs/sso.md). Off unless the build sets
-// NEXT_PUBLIC_ENABLE_SSO=true (the backend and auth also need SSO_ENABLED).
-export const ssoEnabled = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
+// Enterprise single sign-on (docs/sso.md). Whether it is on comes from the
+// webapp's SSO_ENABLED at runtime: useSsoEnabled() in
+// @app/shared/hocs/runtime-flags-provider.
 
 // The backend sends the browser back with a fixed code, never free text, and
 // anyone can craft the URL: only these codes are explained, anything else
