@@ -40,7 +40,7 @@ dependencies = [
     # 2.x renames FastMCP and changes the server APIs; migrate deliberately.
     "mcp>=1.30.0,<2",
     "procrastinate>=3.10.0,<4",
-    "custom-domain-sdk>=0.6.1",
+    "custom-domain-sdk>=0.9.0",
     "pypdf>=6.0",
     "pdfplumber>=0.11",
     "pypdfium2>=4.30",

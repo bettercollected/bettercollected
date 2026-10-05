@@ -41,6 +41,36 @@ def test_settings_parse_keys_and_secrets():
     assert not CustomDomainSettings(api_url="", api_credential="").enabled
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://edge.customdomainapi.com",
+        "https://edge.customdomainapi.com/",
+        "https://edge.customdomainapi.com/v1",
+        "https://edge.customdomainapi.com/v1/",
+    ],
+)
+def test_api_url_drops_the_version_the_sdk_adds_itself(url):
+    settings = CustomDomainSettings(api_url=url, api_credential="cd_live")
+    assert settings.api_url == "https://edge.customdomainapi.com"
+
+
+def test_settings_read_hosted_application_key_ids():
+    # The hosted service hands out per-application keys named app_…; during a
+    # rotation the previous key stays next to the new one.
+    hosted = CustomDomainSettings(
+        api_url="https://edge.customdomainapi.com",
+        api_credential="cd_live",
+        assertion_keys="app_2f9c1a:new-secret, app_7d01be:old:secret",
+    )
+    assert hosted.enabled
+    assert hosted.api_url == "https://edge.customdomainapi.com"
+    assert hosted.assertion_key_map() == {
+        "app_2f9c1a": "new-secret",
+        "app_7d01be": "old:secret",
+    }
+
+
 def test_idempotency_key_is_stable_per_attempt_and_bounded():
     key = idempotency_key("64ae38bcdea80b08417d058a", "forms.customer.example", "n1")
     assert key == idempotency_key(
