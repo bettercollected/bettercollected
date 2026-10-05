@@ -257,7 +257,13 @@ up new/changed templates the next time it restarts, no manual step required.
   **If it's unset, seeding is skipped with a log warning** (not an error) — this is also why an empty/misconfigured
   `DEFAULT_WORKSPACE_ID` silently produces an empty gallery even with templates in the DB: check this first.
 - Idempotent by title + `builder_version="v2"` — never overwrites an existing template, so hand-edits in the DB
-  survive restarts.
+  survive restarts. One exception: at startup it gives an existing template's yes/no fields the Yes/No choices
+  earlier versions left out (forms made from them showed the question with nothing to answer). That repair and
+  new templates go through the routed template repository, so mirrored or Postgres-served stores get them too;
+  new templates are also written to Mongo, where the existence check looks.
+- Every choice-type field needs its choices stored: the responder renders yes/no, dropdown and multiple-choice
+  options from `properties.choices` (yes/no falls back to Yes/No, the others show nothing). Use `_yes_no()` and
+  `_choices(...)`.
 - To add a template: write a new zero-arg builder function returning `{title, description, category, fields}` (see
   `support_triage()`/`lead_qualification()` for the shape) and add it to `TEMPLATE_BUILDERS`.
 - To force a re-seed of a changed template, delete it from `form_templates` first (by title) — the next restart (or

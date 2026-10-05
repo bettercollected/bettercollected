@@ -71,6 +71,47 @@ def _choices(*labels: str) -> dict:
     return {"choices": [{"id": _id(), "value": label} for label in labels]}
 
 
+def _yes_no() -> dict:
+    # Same choices the builder creates for a yes/no field; the responder renders
+    # its buttons from them.
+    return _choices("Yes", "No")
+
+
+def _missing_yes_no_choices(fields) -> list:
+    """Yes/no fields (at any depth) stored without their Yes/No choices."""
+    missing = []
+    for field in fields or []:
+        props = field.properties
+        if getattr(field.type, "value", field.type) == "yes_no" and not (props and props.choices):
+            missing.append(field)
+        if props and props.fields:
+            missing.extend(_missing_yes_no_choices(props.fields))
+    return missing
+
+
+async def repair_yes_no_choices(template_repo, template_id) -> bool:
+    """Give a seeded template's yes/no fields the Yes/No choices that earlier
+    versions of this script left out (forms created from them showed the
+    question with nothing to answer). Reads and writes through the routed
+    repository, so both stores are repaired. Returns True if it changed."""
+    from common.models.standard_form import StandardChoice, StandardFieldProperty
+
+    template = await template_repo.get_template_by_id(template_id)
+    if template is None:
+        return False
+    missing = _missing_yes_no_choices(template.fields)
+    for field in missing:
+        if field.properties is None:
+            field.properties = StandardFieldProperty()
+        field.properties.choices = [
+            StandardChoice(id=_id(), value="Yes"),
+            StandardChoice(id=_id(), value="No"),
+        ]
+    if missing:
+        await template_repo.save(template)
+    return bool(missing)
+
+
 def support_triage() -> dict:
     topic = _q("dropdown", "What do you need help with?", _choices("Billing", "Technical issue", "Something else"), required=True)
     billing = _slide([_q("short_text", "Which invoice or charge is this about?")])
@@ -96,7 +137,7 @@ def support_triage() -> dict:
 
 
 def lead_qualification() -> dict:
-    timeline = _q("yes_no", "Are you looking to get started in the next 3 months?", None, required=True)
+    timeline = _q("yes_no", "Are you looking to get started in the next 3 months?", _yes_no(), required=True)
     details = _slide([_q("short_text", "What's the main problem you're hoping to solve?"), _q("number", "How many people are on your team?")])
     contact = _slide([_q("email", "Best email to reach you", required=True)])
     intro = _slide(
@@ -113,7 +154,7 @@ def lead_qualification() -> dict:
 
 
 def job_screening() -> dict:
-    authorized = _q("yes_no", "Are you legally authorized to work in this role's location?", None, required=True)
+    authorized = _q("yes_no", "Are you legally authorized to work in this role's location?", _yes_no(), required=True)
     experience = _slide([_q("long_text", "Tell us about your most relevant experience."), _q("url", "Portfolio or LinkedIn")])
     contact = _slide([_q("email", "Contact email", required=True), _q("phone_number", "Phone number")])
     intro = _slide(
@@ -133,24 +174,30 @@ def job_screening() -> dict:
 TEMPLATE_BUILDERS = (support_triage, lead_qualification, job_screening)
 
 
-async def seed_flow_templates(workspace_id) -> dict:
+async def seed_flow_templates(workspace_id, template_repo=None) -> dict:
     """
     Create any of TEMPLATE_BUILDERS that don't already exist (matched by title +
     builder_version="v2"). Assumes Beanie is already initialized with
     FormTemplateDocument — true both at app startup (see asgi.py) and in the
     standalone CLI path below. Safe to call repeatedly: existing templates are
-    left untouched, never overwritten.
+    left untouched, never overwritten, except that with ``template_repo`` (the
+    app's routed template repository) existing templates get their missing
+    yes/no choices repaired.
 
-    Returns {"seeded": [...titles...], "skipped": [...titles...]}.
+    Returns {"seeded": [...], "skipped": [...], "repaired": [...]} (titles).
     """
-    seeded, skipped = [], []
+    seeded, skipped, repaired = [], [], []
     for build in TEMPLATE_BUILDERS:
         payload = build()
+        # Matched by title in any workspace, as before: DEFAULT_WORKSPACE_ID may
+        # differ from the workspace an earlier run seeded into.
         existing = await FormTemplateDocument.find_one(
             FormTemplateDocument.title == payload["title"], FormTemplateDocument.builder_version == "v2"
         )
         if existing:
             skipped.append(payload["title"])
+            if template_repo is not None and await repair_yes_no_choices(template_repo, existing.id):
+                repaired.append(payload["title"])
             continue
         # fix slide/field indexes
         for i, slide in enumerate(payload["fields"]):
@@ -169,9 +216,14 @@ async def seed_flow_templates(workspace_id) -> dict:
             thankyou_page=[{"layout": LAYOUT}],
             settings={"is_public": True},
         )
+        if template_repo is not None:
+            # Through the routed repository, so the store that serves templates
+            # (mirrored or Postgres-served) has it for the gallery...
+            doc = await template_repo.save(doc)
+        # ...and always in Mongo, where the existence check above looks.
         await doc.save()
         seeded.append(payload["title"])
-    return {"seeded": seeded, "skipped": skipped}
+    return {"seeded": seeded, "skipped": skipped, "repaired": repaired}
 
 
 async def _main() -> None:
