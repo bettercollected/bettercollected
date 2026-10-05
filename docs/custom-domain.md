@@ -1,11 +1,16 @@
 # Custom domains through the custom-domain service
 
 BetterCollected serves a workspace's forms on a hostname the customer owns
-(`forms.customer.example`). Since this integration, the DNS verification, the
-certificate and the edge are provided by the
-[custom-domain service](https://github.com/sireto/custom-domain); the
-backend talks to its v1 API through the `custom-domain-sdk` package and the
-webapp verifies the signed assertion the edge adds to every request.
+(`forms.customer.example`). The DNS verification, the certificate and the
+edge are provided by the custom-domain service, either the hosted
+[Custom Domain API](https://customdomainapi.com/docs/) (customdomainapi.com,
+what bettercollected.com uses) or the same open-source service
+[self-hosted](https://github.com/sireto/custom-domain). Both expose the same
+v1 API and the same assertion contract: the backend talks to the API through
+the `custom-domain-sdk` package, and the webapp verifies the signed assertion
+the edge adds to every request. Only onboarding differs; see
+[Onboarding on the hosted service](#onboarding-on-the-hosted-service) or
+[Onboarding on a self-hosted service](#onboarding-on-a-self-hosted-service-operator-once).
 
 Until the operator sets `CUSTOM_DOMAIN_API_URL` and
 `CUSTOM_DOMAIN_API_CREDENTIAL`, nothing changes: the backend keeps using the
@@ -15,7 +20,7 @@ the workspace from the request host.
 ## How a request is served
 
 ```
-customer browser ──► edge (edge.bettercollected.com, Caddy)
+customer browser ──► edge (edge.customdomainapi.com when hosted; your own edge name when self-hosted)
                         │  TLS for the customer hostname (on-demand certificate)
                         │  X-Custom-Domain-Assertion: v1.<key>.<payload>.<mac>
                         ▼
@@ -67,27 +72,73 @@ messages, and the status.
 Backend (`backend/.env`):
 
 ```
-CUSTOM_DOMAIN_API_URL=https://<management api>        # the service's API, not the edge
-CUSTOM_DOMAIN_API_CREDENTIAL=cd_...                    # custom-domain credential issue
-CUSTOM_DOMAIN_APPLICATION_ID=<uuid>                    # custom-domain application create
-CUSTOM_DOMAIN_ASSERTION_KEYS=1:<secret>                # the service's EDGE_ASSERTION_KEYS
+CUSTOM_DOMAIN_API_URL=https://edge.customdomainapi.com # hosted; self-hosted: the service's API, not the edge
+CUSTOM_DOMAIN_API_CREDENTIAL=cd_...                    # hosted: API keys tab; self-hosted: custom-domain credential issue
+CUSTOM_DOMAIN_APPLICATION_ID=<application id>          # hosted: Origin tab; self-hosted: custom-domain application create
+CUSTOM_DOMAIN_ASSERTION_KEYS=app_...:<secret>          # hosted: Origin tab; self-hosted: 1:<secret> (EDGE_ASSERTION_KEYS)
 CUSTOM_DOMAIN_WEBHOOK_SECRETS=<current>[,<previous>]   # from `python -m backend.custom_domain subscribe`
 ```
 
 Webapp (server-side environment):
 
 ```
-CUSTOM_DOMAIN_ASSERTION_KEYS=1:<secret>                # same value as the backend
-CUSTOM_DOMAIN_APPLICATION_ID=<uuid>
+CUSTOM_DOMAIN_ASSERTION_KEYS=app_...:<secret>          # same value as the backend
+CUSTOM_DOMAIN_APPLICATION_ID=<application id>
 CUSTOM_DOMAIN_ASSERTION_MODE=optional                  # during migration; `required` (default) afterwards
-CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN=<token>        # printed by `custom-domain origin register`
+CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN=<token>        # hosted: Origin tab; self-hosted: `custom-domain origin register`
 ```
 
-The assertion secret is at least 32 characters; rotate by adding the new key
-first on the service, then giving both keys to backend and webapp
-(`1:<old>,2:<new>`), then removing the old one after a minute.
+`CUSTOM_DOMAIN_API_URL` is the base URL without `/v1`: the SDK adds the
+version itself (a trailing `/v1`, as the hosted docs print it, is dropped).
 
-## Onboarding BetterCollected on the service (operator, once)
+The assertion key ring is `<key id>:<secret>[,<key id>:<secret>]`; every
+entry verifies, so a rotation keeps both keys for a while:
+
+- **Hosted:** on the Origin tab, **Rotate the key** issues a new `app_…`
+  key that starts signing 24 hours later. Add it next to the current one on
+  backend and webapp (`app_old:<secret>,app_new:<secret>`), and remove the
+  old one after the switch.
+- **Self-hosted:** add the new key on the service first, give both keys to
+  backend and webapp (`1:<old>,2:<new>`), then remove the old one after a
+  minute. The secret is at least 32 characters.
+
+Only ever put **our own application's key** in the ring. The hosted edge is
+shared with other applications, and a deployment-wide key would let anyone
+holding it sign an assertion that names our application.
+
+## Onboarding on the hosted service
+
+In the portal at [app.customdomainapi.com](https://app.customdomainapi.com),
+in the application "BetterCollected":
+
+1. **Origin tab:** add the webapp host (`forms.bettercollected.com`). Deploy
+   the webapp with the token shown there as
+   `CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN` (served at
+   `/.well-known/custom-domain-origin-verification`), then press
+   **Verify and use**.
+2. **Origin tab:** press **Get your assertion key**. The key id (`app_…`),
+   the secret and the application id are shown once; store them as stack
+   secrets (`CUSTOM_DOMAIN_ASSERTION_KEYS=app_…:<secret>`,
+   `CUSTOM_DOMAIN_APPLICATION_ID`), on the webapp and the backend.
+3. **API keys tab:** create the backend's key (`cd_…`, shown once) for
+   `CUSTOM_DOMAIN_API_CREDENTIAL`, and set
+   `CUSTOM_DOMAIN_API_URL=https://edge.customdomainapi.com`.
+4. Deploy, then subscribe to status events as below (`subscribe`).
+
+Customers point their hostname at `edge.customdomainapi.com` (CNAME) and add
+the ownership TXT record; both come back from the API and the settings page
+shows them exactly as returned. A dedicated edge with our own name would only
+change that CNAME target.
+
+On Free, an application holds up to 25 domains, the API key may make 60
+requests a minute, and proxied traffic is limited to 600 requests a minute
+(100 a second) across all hostnames; over it, visitors get `429`. Paid plans
+have their own edge without the proxied-request limit.
+
+The edge terminates TLS for customers' hostnames, so respondents' answers
+pass through it on the way to the webapp. The hosted edge runs in Germany.
+
+## Onboarding on a self-hosted service (operator, once)
 
 On the service host:
 
@@ -100,7 +151,7 @@ custom-domain credential issue --application bettercollected --label backend
 ```
 
 Then in the backend environment set the five variables above, deploy, and
-subscribe to status events:
+subscribe to status events (hosted and self-hosted alike):
 
 ```bash
 python -m backend.custom_domain subscribe --url https://<api host>/api/v1/custom-domain/webhooks --secret-file webhook.secret
@@ -112,14 +163,15 @@ python -m backend.custom_domain subscribe --url https://<api host>/api/v1/custom
 
 The domains currently served by the legacy server keep working until step 5
 below. Their customers must change DNS: the A record to the legacy server's
-IP becomes a CNAME to `edge.bettercollected.com` plus the ownership TXT
-record. Send that notice with a date before step 2: a grandfathered domain
+IP becomes a CNAME to the edge (`edge.customdomainapi.com` on the hosted
+service) plus the ownership TXT record. Send that notice with a date before step 2: a grandfathered domain
 whose TXT record is still missing 24 hours after import is suspended.
 
 1. Export the reference map (hostname → workspace id) while Mongo is
    authoritative:
    `python -m backend.custom_domain export-reference-map --out bc-domains.json`
-2. On the service: `custom-domain legacy import --application bettercollected
+2. On the service host (for the hosted service, its operator runs this):
+   `custom-domain legacy import --application bettercollected
    --reference-map bc-domains.json --grandfather --dry-run`, resolve every
    skipped name (apex domains cannot be imported), then run it for real.
    Grandfathered domains start in `provisioning` with ownership verified by
@@ -144,7 +196,7 @@ keeps every domain serving throughout:
 
 | Step | Webapp | Backend | Service |
 | --- | --- | --- | --- |
-| a | `CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN` | – | `origin register`, then `origin verify` |
+| a | `CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN` | – | hosted: Origin tab, **Verify and use**; self-hosted: `origin register`, then `origin verify` |
 | b | `CUSTOM_DOMAIN_ASSERTION_KEYS`, `CUSTOM_DOMAIN_APPLICATION_ID`, `CUSTOM_DOMAIN_ASSERTION_MODE=optional` | – | – |
 | c | – | `CUSTOM_DOMAIN_API_URL`, `_API_CREDENTIAL`, `_APPLICATION_ID`, `_ASSERTION_KEYS`, then `_WEBHOOK_SECRETS` after `subscribe` | `legacy import`, then `adopt` on the backend |
 | d | – | – | customers change DNS; domains reach `ready` |
