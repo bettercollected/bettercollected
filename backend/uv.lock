@@ -402,7 +402,7 @@ requires-dist = [
     { name = "classy-fastapi", specifier = "==0.7.0" },
     { name = "common", editable = "../common" },
     { name = "cryptography", specifier = ">=50.0.2" },
-    { name = "custom-domain-sdk", specifier = ">=0.6.1" },
+    { name = "custom-domain-sdk", specifier = ">=0.9.0" },
     { name = "dependency-injector", specifier = ">=4.49.1" },
     { name = "dnspython", specifier = ">=2.8" },
     { name = "elastic-apm", specifier = ">=6.26.2" },
@@ -964,14 +964,14 @@ wheels = [
 
 [[package]]
 name = "custom-domain-sdk"
-version = "0.6.1"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/5a/e575316215e7e983579bdcb8fc80dfcbc9855c4e2d57da82eb29b1244e6f/custom_domain_sdk-0.6.1.tar.gz", hash = "sha256:56672dd087c1d9928f8219f081d9344309082e79f325fa95dac27818ca4d416f", size = 15574, upload-time = "2026-09-27T17:11:40.809Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/94/5ce71b0cee7e1a0654c84b8073da59e93c8e17df35cf7a0070417dfff582/custom_domain_sdk-0.9.0.tar.gz", hash = "sha256:3548f34c78ed041ebf473e915978842ff1ebef0bc251f64f8468708961796f07", size = 15578, upload-time = "2026-10-04T11:48:53.783Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/71/e42ac41a3e5f25d175718e1cc147f4fff7b140eb9970c923683b6e31df17/custom_domain_sdk-0.6.1-py3-none-any.whl", hash = "sha256:a5c5a530ac7a7ad9c7fc18ef8776c3e12f0654c6be041080c6804f776096181e", size = 19101, upload-time = "2026-09-27T17:11:39.5Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/bc/0cae3f5ae36e9b9a6ae0cc2a99f255266127c6cc8b9d0ccba04a434ee7bb/custom_domain_sdk-0.9.0-py3-none-any.whl", hash = "sha256:e47669efeb2f0d6af20d03f1c3b1d0443f45b0970b311479020400377d130e9f", size = 19103, upload-time = "2026-10-04T11:48:52.334Z" },
 ]
 
 [[package]]

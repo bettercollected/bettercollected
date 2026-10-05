@@ -1,10 +1,12 @@
 from typing import Dict, List
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class CustomDomainSettings(BaseSettings):
-    """The custom-domain service (github.com/sireto/custom-domain).
+    """The custom-domain service: hosted (customdomainapi.com) or self-hosted
+    (github.com/sireto/custom-domain); both expose the same v1 API.
 
     ``api_url`` + ``api_credential`` switch the backend from the legacy
     certificate server (``HTTPS_CERT_API_*``) to the v1 domain API; with them
@@ -21,6 +23,13 @@ class CustomDomainSettings(BaseSettings):
     webhook_secrets: str = ""
 
     model_config = SettingsConfigDict(env_prefix="CUSTOM_DOMAIN_")
+
+    @field_validator("api_url")
+    @classmethod
+    def _without_version(cls, value: str) -> str:
+        # The SDK adds /v1 itself; the hosted docs print the base URL with it.
+        value = value.strip().rstrip("/")
+        return value[: -len("/v1")] if value.endswith("/v1") else value
 
     @property
     def enabled(self) -> bool:

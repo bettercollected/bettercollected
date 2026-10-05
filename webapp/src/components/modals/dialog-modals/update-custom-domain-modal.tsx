@@ -7,7 +7,6 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/components/modal-views/context';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -63,7 +62,7 @@ export default function UpdateCustomDomainModal() {
     return (
         <HeaderModalWrapper headerTitle="Add Custom Domain">
             <form onSubmit={handleSubmit}>
-                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', { domain: environments.CUSTOM_DOMAIN_IP })}</div>
+                <div className="text-start max-w-full mb-4 body4 !text-black-700">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE')}</div>
                 <h1 className={'body3 !text-black-800 mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>
                 <AppInput
                     placeholder={t(placeHolder.enterCustomDomain)}

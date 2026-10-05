@@ -10,7 +10,7 @@ import { AssertionInvalid, decideAssertion, parseAssertionKeys, verifyAssertion 
 const KEYS = { '1': 'a-very-long-secret-for-key-one-0123456789', '2': 'previous-key-secret-abcdefghijklmnopqrstu' };
 const NOW = 1_800_000_000;
 
-function token(payload: Record<string, unknown>, keyId = '1', secret = KEYS[keyId as '1' | '2']) {
+function token(payload: Record<string, unknown>, keyId = '1', secret: string = KEYS[keyId as '1' | '2']) {
     const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const mac = createHmac('sha256', secret).update(`v1.${keyId}.${body}`).digest('base64url');
     return `v1.${keyId}.${body}.${mac}`;
@@ -50,6 +50,16 @@ describe('verifyAssertion', () => {
         expect(code(() => verifyAssertion(token({ ...payload, app: 'other-app' }), KEYS, options))).toBe('wrong_application');
         expect(code(() => verifyAssertion(token(payload), KEYS, { ...options, hostname: 'other.example' }))).toBe('wrong_hostname');
         expect(code(() => verifyAssertion(token({ app: 'app-1' }), KEYS, options))).toBe('malformed');
+    });
+
+    it("accepts the hosted service's per-application key ids (app_…)", () => {
+        const hostedKeys = parseAssertionKeys('app_2f9c1a:hosted-application-secret-0123456789abcdef');
+        const signed = token(payload, 'app_2f9c1a', hostedKeys['app_2f9c1a']);
+        expect(verifyAssertion(signed, hostedKeys, options).keyId).toBe('app_2f9c1a');
+        // another application's key on the shared edge is not in our keyring
+        expect(code(() => verifyAssertion(token(payload, 'app_other', 'another-applications-secret-0123456789'), hostedKeys, options))).toBe('unknown_key');
+        // our key but naming another application
+        expect(code(() => verifyAssertion(token({ ...payload, app: 'other-app' }, 'app_2f9c1a', hostedKeys['app_2f9c1a']), hostedKeys, options))).toBe('wrong_application');
     });
 
     it('tolerates clock skew of 30 seconds', () => {

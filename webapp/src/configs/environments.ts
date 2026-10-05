@@ -10,7 +10,6 @@ const environments = {
     UMAMI_WEBSITE_ID: process.env.UMAMI_WEBSITE_ID,
     UMAMI_SCRIPT_URL: process.env.UMAMI_SCRIPT_URL,
 
-    CUSTOM_DOMAIN_IP: process.env.CUSTOM_DOMAIN_IP || '135.181.40.62',
     // custom-domain service (server only): the edge's assertion keys, our
     // application id and the origin verification token. Unset = legacy path.
     CUSTOM_DOMAIN_ASSERTION_KEYS: process.env.CUSTOM_DOMAIN_ASSERTION_KEYS,
