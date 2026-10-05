@@ -1,7 +1,7 @@
 FROM python:3.11-slim-bookworm
 
 # Install uv ensure the path is correct
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /bin/
 
 # Set environment variables
 ENV UV_COMPILE_BYTECODE=1
