@@ -4,12 +4,17 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import WorkspaceRoles, stored_role
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
 from common.models.user import User
+
+
+# WorkspaceUserDocument.provisioned_by
+PROVISIONED_BY_SSO = "sso"
+PROVISIONED_BY_SCIM = "scim"
 
 
 class SeatLimitReached(Exception):
@@ -56,15 +61,26 @@ class WorkspaceUserService:
         workspace_user = WorkspaceUserDocument(
             workspace_id=workspace_id, user_id=user.id, roles=[role]
         )
-        return await self.workspace_user_repository.save(workspace_user)
+        # a racing writer's membership wins; this one is not added twice
+        return await self.workspace_user_repository.add_if_absent(workspace_user)
+
+    async def active_member_count(self, workspace_id: PydanticObjectId) -> int:
+        """Members holding a seat: all but those disabled only by the SCIM
+        directory (``WorkspaceUserDocument.holds_seat``). An invitation, a
+        first SSO sign-in, the SCIM directory and the recount after an insert
+        all count this way."""
+        workspace_users = await self.workspace_user_repository.get_workspace_users(
+            workspace_id=PydanticObjectId(workspace_id)
+        )
+        return sum(1 for member in workspace_users if member.holds_seat)
 
     async def has_free_seat(self, workspace_id: PydanticObjectId) -> bool:
         """Whether one more member fits under ``API_ALLOWED_COLLABORATORS``
-        (the same count an accepted invitation is checked against)."""
-        workspace_users = await self.workspace_user_repository.get_workspace_users(
-            workspace_id=workspace_id
+        (the owner plus that many members), counting active memberships."""
+        return (
+            await self.active_member_count(workspace_id)
+            <= settings.api_settings.ALLOWED_COLLABORATORS
         )
-        return len(workspace_users) <= settings.api_settings.ALLOWED_COLLABORATORS
 
     async def find_member(self, workspace_id: PydanticObjectId, user_id: str):
         return await self.workspace_user_repository.find_workspace_user(
@@ -79,27 +95,53 @@ class WorkspaceUserService:
         never downgraded. Raises SeatLimitReached when the workspace is
         full (callers check ``has_free_seat`` before the account is created;
         this is the last look)."""
-        existing = await self.find_member(workspace_id, user.id)
+        return await self._add_provisioned_member(
+            workspace_id, user.id, role, PROVISIONED_BY_SSO
+        )
+
+    async def add_directory_member(
+        self, workspace_id: PydanticObjectId, user_id: str, role: WorkspaceRoles
+    ) -> WorkspaceUserDocument:
+        """A membership created by the workspace's SCIM directory
+        (``provisioned_by="scim"``). Same seat rules as ``add_sso_member``; an
+        existing membership is returned unchanged (the caller decides)."""
+        # stored like the role picker stores it (an Editor as COLLABORATOR)
+        return await self._add_provisioned_member(
+            workspace_id, user_id, stored_role(role), PROVISIONED_BY_SCIM
+        )
+
+    async def _add_provisioned_member(
+        self,
+        workspace_id: PydanticObjectId,
+        user_id: str,
+        role: WorkspaceRoles,
+        provisioned_by: str,
+    ) -> WorkspaceUserDocument:
+        existing = await self.find_member(workspace_id, user_id)
         if existing:
             return existing
         if not await self.has_free_seat(workspace_id):
             raise SeatLimitReached(str(workspace_id))
-        member = await self.workspace_user_repository.save(
-            WorkspaceUserDocument(
-                workspace_id=PydanticObjectId(workspace_id),
-                user_id=user.id,
-                roles=[role],
-            )
+        document = WorkspaceUserDocument(
+            id=PydanticObjectId(),
+            workspace_id=PydanticObjectId(workspace_id),
+            user_id=PydanticObjectId(user_id),
+            roles=[role],
+            provisioned_by=provisioned_by,
         )
+        member = await self.workspace_user_repository.add_if_absent(document)
+        if str(member.id) != str(document.id):
+            # the same user was added meanwhile (unique index): that one stays
+            return member
         # Two sign-ins racing past the look above would both be added: count
         # again after the write and give the seat back when over the cap (in
         # a tight race both may give it back: refusing is the safe side).
-        members = await self.workspace_user_repository.get_workspace_users(
-            workspace_id=PydanticObjectId(workspace_id)
-        )
-        if len(members) > settings.api_settings.ALLOWED_COLLABORATORS + 1:
+        if (
+            await self.active_member_count(workspace_id)
+            > settings.api_settings.ALLOWED_COLLABORATORS + 1
+        ):
             await self.workspace_user_repository.delete(
-                PydanticObjectId(workspace_id), PydanticObjectId(user.id)
+                PydanticObjectId(workspace_id), PydanticObjectId(user_id)
             )
             raise SeatLimitReached(str(workspace_id))
         return member

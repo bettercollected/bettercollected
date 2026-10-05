@@ -33,6 +33,13 @@ from backend.app.schemas.workspace_user import (
 from backend.app.schemas.workspace_domain import WorkspaceDomainDocument
 from backend.app.schemas.sso_connection import SsoConnectionDocument
 from backend.app.schemas.sso_used_state import SsoUsedStateDocument
+from backend.app.schemas.scim import (
+    ScimDirectoryDocument,
+    ScimEventDocument,
+    ScimGroupDocument,
+    ScimGroupMemberDocument,
+    ScimUserDocument,
+)
 from backend.app.schemas.flow_event import FlowEventDocument
 from common.db import MirrorWriteFailureDocument
 
@@ -77,6 +84,11 @@ async def init_db(db: str, client: AsyncMongoClient):
             WorkspaceDomainDocument,
             SsoConnectionDocument,
             SsoUsedStateDocument,
+            ScimDirectoryDocument,
+            ScimUserDocument,
+            ScimGroupDocument,
+            ScimGroupMemberDocument,
+            ScimEventDocument,
             MirrorWriteFailureDocument,
         ]
     )
@@ -84,7 +96,39 @@ async def init_db(db: str, client: AsyncMongoClient):
         database=db,
         document_models=document_models,
     )
+    await ensure_membership_unique_index(db)
     logger.info("Database connected successfully.")
+
+
+MEMBERSHIP_INDEX = "uq_workspace_users_workspace_user"
+
+
+async def ensure_membership_unique_index(db) -> bool:
+    """One membership per workspace and user (``workspace_users``). Created
+    here, not in the document's settings, so a database that still holds
+    duplicates starts anyway: it logs an ERROR naming the check to run
+    (``python -m backend.membership_duplicates``) and the inserts keep
+    reading the existing row instead. Nothing is ever deleted here."""
+    from pymongo import ASCENDING
+    from pymongo.errors import DuplicateKeyError, OperationFailure
+
+    try:
+        await db["workspace_users"].create_index(
+            [("workspace_id", ASCENDING), ("user_id", ASCENDING)],
+            unique=True,
+            name=MEMBERSHIP_INDEX,
+        )
+        return True
+    except (DuplicateKeyError, OperationFailure) as error:
+        logger.error(
+            "workspace_users holds duplicate memberships (same workspace and "
+            "user), so the unique index {} was not created ({}). Run `python -m "
+            "backend.membership_duplicates` and resolve them by hand (see "
+            "docs/sso.md, 'Duplicate memberships').",
+            MEMBERSHIP_INDEX,
+            type(error).__name__,
+        )
+        return False
 
 
 async def close_db(client: AsyncMongoClient):

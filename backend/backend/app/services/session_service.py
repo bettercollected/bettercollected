@@ -61,6 +61,8 @@ class RevokeReason:
     SSO_REQUIRED = "sso_required"
     # a new sign-in in the same browser replaced it
     REPLACED = "replaced_by_sign_in"
+    # the workspace's SCIM directory deactivated or deleted the user
+    SCIM_DEPROVISIONED = "scim_deprovisioned"
 
 
 class SessionEnded(HTTPException):

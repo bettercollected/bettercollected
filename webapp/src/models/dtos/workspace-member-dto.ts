@@ -11,6 +11,10 @@ export interface WorkspaceMembersDto {
     joined: string;
     email: string;
     profileImage?: string;
+    // 'sso' (just in time), 'scim' (the directory) or null (invited)
+    provisionedBy?: string | null;
+    // the workspace's SCIM directory controls this member's role and status
+    managedByDirectory?: boolean;
 }
 
 export interface WorkspaceInvitationDto {

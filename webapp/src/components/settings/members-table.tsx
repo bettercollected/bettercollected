@@ -34,12 +34,28 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
     // a deleted account keeps its role row but there is no one to change it for
     const editable = can(WorkspacePermission.MEMBERS_MANAGE) && !isOwner && member.id !== auth?.id && !member.accountDeleted;
 
+    // A member the SCIM directory manages: the role follows their groups at
+    // the identity provider (the backend refuses a change, 409).
+    const status = (
+        <>
+            {member.managedByDirectory && (
+                <span className="text-[11px] font-medium text-black-500" data-testid={`managed-by-directory-${member.id}`}>
+                    {t(members.managedByDirectory)}
+                </span>
+            )}
+            {member.disabled && <span className="text-[11px] font-medium text-[#C43D3D]">{t(members.deactivated)}</span>}
+        </>
+    );
+
     if (!editable) {
         const shown = isOwner ? WorkspaceRole.OWNER : role;
         return (
-            <span title={shown ? t(roleLocale(shown).description) : undefined} data-testid={`member-role-${member.id}`}>
-                {shown ? t(roleLocale(shown).name) : t(memberRoles.unknownRole)}
-            </span>
+            <div className="flex flex-col gap-0.5 py-1">
+                <span title={shown ? t(roleLocale(shown).description) : undefined} data-testid={`member-role-${member.id}`}>
+                    {shown ? t(roleLocale(shown).name) : t(memberRoles.unknownRole)}
+                </span>
+                {status}
+            </div>
         );
     }
 
@@ -53,7 +69,12 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
         }
     };
 
-    return <RoleSelect value={role} onChange={handleChange} disabled={isLoading} ariaLabel={t(members.role)} />;
+    return (
+        <div className="flex flex-col gap-0.5 py-1">
+            <RoleSelect value={role} onChange={handleChange} disabled={isLoading || !!member.managedByDirectory} ariaLabel={t(members.role)} />
+            {status}
+        </div>
+    );
 }
 
 export default function MembersTable({ data }: any) {

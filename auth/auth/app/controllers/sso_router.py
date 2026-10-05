@@ -18,6 +18,14 @@ class SsoAccountRequest(BaseModel):
     assertion: str = Field(..., min_length=1, max_length=4096)
 
 
+class DirectoryAccountRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    # False: only look the account up (deprovisioning never creates one)
+    create: bool = False
+    first_name: Optional[str] = Field(None, max_length=200)
+    last_name: Optional[str] = Field(None, max_length=200)
+
+
 @router(prefix="/auth/sso", tags=["Single sign-on"], dependencies=INTERNAL_ONLY)
 class SsoRoutes(Routable):
     def __init__(
@@ -57,3 +65,15 @@ class SsoRoutes(Routable):
     async def _account(self, request: SsoAccountRequest) -> User:
         """Find or create the account for a checked sign-in."""
         return await self.sso_service.account(request.assertion)
+
+    @post("/directory-account")
+    async def _directory_account(self, request: DirectoryAccountRequest):
+        """Find (or, with ``create``, create) the account of a user the
+        workspace's SCIM directory provisions. The backend checked the domain
+        and the seat cap first."""
+        return await self.sso_service.directory_account(
+            request.email,
+            request.create,
+            first_name=request.first_name,
+            last_name=request.last_name,
+        )

@@ -1,5 +1,6 @@
 'use client';
 
+import WorkspaceScimSection from '@app/components/workspace-sso/workspace-scim-section';
 import WorkspaceSsoSection from '@app/components/workspace-sso/workspace-sso-section';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { ssoEnabled } from '@app/lib/sso';
@@ -7,7 +8,8 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 /**
  * Single sign-on (docs/sso.md): connect the organisation's identity provider
- * (SAML or OIDC) for its verified email domains, and optionally require it.
+ * (SAML or OIDC) for its verified email domains, and optionally require it;
+ * and directory sync (SCIM), which provisions and deprovisions members.
  */
 export default function WorkspaceSsoPage() {
     const { can } = useWorkspacePermissions();
@@ -35,6 +37,7 @@ export default function WorkspaceSsoPage() {
                 connect one you control.
             </p>
             <WorkspaceSsoSection />
+            <WorkspaceScimSection />
         </div>
     );
 }

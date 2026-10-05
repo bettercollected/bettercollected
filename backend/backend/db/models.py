@@ -2,10 +2,10 @@
 
 Spine columns are what the code filters, joins, sorts or requires unique on
 (measured from the repositories); everything else stays inside ``doc``.
-Indexes mirror the Mongo ``IndexModel``s plus the join keys. Two constraints
-Mongo does not enforce today (``workspace_forms`` per workspace+form,
-``workspace_users`` per workspace+user) are plain indexes here until the
-migration preflight has proven the data is duplicate-free.
+Indexes mirror the Mongo ``IndexModel``s plus the join keys. A constraint
+Mongo did not enforce (``workspace_forms`` per workspace+form) is a plain
+index here until the migration preflight has proven the data is
+duplicate-free; ``workspace_users`` per workspace+user is unique (0011).
 """
 
 from __future__ import annotations
@@ -44,7 +44,10 @@ class WorkspaceUserRow(Base, BaseRow):
     user_id = S.text("user_id")
     disabled = S.bool("disabled")
     __table_args__ = (
-        Index("ix_workspace_users_workspace_user", "workspace_id", "user_id"),
+        # one membership per workspace and user (revision 0011)
+        Index(
+            "uq_workspace_users_workspace_user", "workspace_id", "user_id", unique=True
+        ),
         Index(None, "user_id"),
     )
 
@@ -110,6 +113,54 @@ class SsoUsedStateRow(Base, BaseRow):
     nonce_hash = S.text("nonce_hash")
     expires_at = S.ts("expires_at")
     __table_args__ = (UniqueConstraint("nonce_hash"), Index(None, "expires_at"))
+
+
+class ScimDirectoryRow(Base, BaseRow):
+    __tablename__ = "scim_directories"
+    workspace_id = S.text("workspace_id")
+    polis_directory_id = S.text("polis_directory_id")
+    __table_args__ = (
+        UniqueConstraint("workspace_id"),
+        UniqueConstraint("polis_directory_id"),
+    )
+
+
+class ScimUserRow(Base, BaseRow):
+    __tablename__ = "scim_users"
+    directory_id = S.text("directory_id")
+    workspace_id = S.text("workspace_id")
+    polis_user_id = S.text("polis_user_id")
+    email = S.text("email")
+    __table_args__ = (
+        UniqueConstraint("directory_id", "polis_user_id"),
+        Index(None, "workspace_id", "email"),
+    )
+
+
+class ScimGroupRow(Base, BaseRow):
+    __tablename__ = "scim_groups"
+    directory_id = S.text("directory_id")
+    polis_group_id = S.text("polis_group_id")
+    __table_args__ = (UniqueConstraint("directory_id", "polis_group_id"),)
+
+
+class ScimGroupMemberRow(Base, BaseRow):
+    __tablename__ = "scim_group_members"
+    directory_id = S.text("directory_id")
+    group_id = S.text("group_id")
+    scim_user_id = S.text("scim_user_id")
+    __table_args__ = (
+        Index(None, "group_id"),
+        Index(None, "scim_user_id"),
+        Index(None, "directory_id"),
+    )
+
+
+class ScimEventRow(Base, BaseRow):
+    __tablename__ = "scim_events"
+    event_key = S.text("event_key")
+    expires_at = S.ts("expires_at")
+    __table_args__ = (UniqueConstraint("event_key"), Index(None, "expires_at"))
 
 
 class BlacklistedRefreshTokenRow(Base, BaseRow):

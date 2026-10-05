@@ -25,6 +25,10 @@ class WorkspaceMemberDto(CamelModel):
     # PRIVACY_OFFICER, or None for a role this release doesn't know
     role: Optional[str] = None
     disabled: Optional[bool] = None
+    # "sso" (just in time), "scim" (the directory) or None (invited)
+    provisioned_by: Optional[str] = None
+    # the workspace's SCIM directory controls this member's role and status
+    managed_by_directory: bool = False
 
 
 class UpdateMemberRoleRequest(CamelModel):

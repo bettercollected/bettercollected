@@ -65,6 +65,11 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceDomainRepository,
     PostgresSsoConnectionRepository,
     PostgresSsoUsedStateRepository,
+    PostgresScimDirectoryRepository,
+    PostgresScimEventRepository,
+    PostgresScimGroupMemberRepository,
+    PostgresScimGroupRepository,
+    PostgresScimUserRepository,
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -86,6 +91,13 @@ from backend.app.repositories.workspace_domain_repository import (
 )
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
 from backend.app.repositories.sso_used_state_repository import SsoUsedStateRepository
+from backend.app.repositories.scim_repository import (
+    ScimDirectoryRepository,
+    ScimEventRepository,
+    ScimGroupMemberRepository,
+    ScimGroupRepository,
+    ScimUserRepository,
+)
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -104,6 +116,11 @@ PAIRS = [
     (WorkspaceDomainRepository, PostgresWorkspaceDomainRepository),
     (SsoConnectionRepository, PostgresSsoConnectionRepository),
     (SsoUsedStateRepository, PostgresSsoUsedStateRepository),
+    (ScimDirectoryRepository, PostgresScimDirectoryRepository),
+    (ScimUserRepository, PostgresScimUserRepository),
+    (ScimGroupRepository, PostgresScimGroupRepository),
+    (ScimGroupMemberRepository, PostgresScimGroupMemberRepository),
+    (ScimEventRepository, PostgresScimEventRepository),
     (UserTagsRepository, PostgresUserTagsRepository),
     (FormRepository, PostgresFormRepository),
     (WorkspaceFormRepository, PostgresWorkspaceFormRepository),

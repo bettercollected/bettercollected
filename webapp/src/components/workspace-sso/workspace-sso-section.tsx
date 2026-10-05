@@ -17,9 +17,10 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateSsoConnectionMutation, useDeleteSsoConnectionMutation, useGetWorkspaceSsoQuery, useSetSsoConnectionEnabledMutation, useUpdateSsoSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-const inputClass = 'h-10 w-full rounded-md border border-black-300 bg-white px-3.5 py-0 text-sm text-black-900 outline-none transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]';
+export const inputClass = 'h-10 w-full rounded-md border border-black-300 bg-white px-3.5 py-0 text-sm text-black-900 outline-none transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]';
 
-const ROLE_LABELS: Record<string, string> = {
+export const ROLE_LABELS: Record<string, string> = {
+    ADMIN: 'Admin',
     COLLABORATOR: 'Collaborator',
     VIEWER: 'Viewer',
     EDITOR: 'Editor',
@@ -27,18 +28,18 @@ const ROLE_LABELS: Record<string, string> = {
     PRIVACY_OFFICER: 'Privacy officer'
 };
 
-function errorMessage(error: any, fallback: string): string {
+export function errorMessage(error: any, fallback: string): string {
     const data = error?.data;
     if (data && typeof data === 'object' && typeof data.message === 'string') return data.message;
     if (typeof data === 'string') return data;
     return fallback;
 }
 
-function formatTime(value?: string | null): string {
+export function formatTime(value?: string | null): string {
     return value ? new Date(value).toLocaleString() : '';
 }
 
-function CopyField({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function CopyField({ label, value, hint }: { label: string; value: string; hint?: string }) {
     const [copied, setCopied] = useState(false);
     return (
         <div className="flex flex-col gap-1">
@@ -70,7 +71,7 @@ function CopyField({ label, value, hint }: { label: string; value: string; hint?
     );
 }
 
-function Section({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
+export function Section({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
     return (
         <section className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">

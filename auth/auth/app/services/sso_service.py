@@ -317,6 +317,47 @@ class SsoService:
             first_name=claim.get("first_name"),
             last_name=claim.get("last_name"),
         )
+        return self._sso_user(user_document)
+
+    # -- 4. directory sync (SCIM) ---------------------------------------------
+    async def directory_account(
+        self,
+        email: str,
+        create: bool,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """The account of a user the workspace's SCIM directory provisions:
+        ``{"user": User | None, "conflict": bool}``. The backend calls this
+        only for an address on one of the workspace's verified domains, after
+        checking the seat cap (docs/sso.md, "Directory sync"). With ``create``
+        false it only looks the account up (deprovisioning); with ``create``
+        true a missing account is created like a first SSO sign-in (email
+        verified, never the platform-admin role)."""
+        self._require_enabled()
+        email = normalized_email(email)
+        if not email:
+            raise _error(422, "invalid_email", "Not an email address.")
+        existing, conflict = await self._existing_account(email)
+        if conflict:
+            return {"user": None, "conflict": True}
+        if existing is None and not create:
+            return {"user": None, "conflict": False}
+        user_document = existing
+        if user_document is None:
+            user_document = await account_for_provider_sign_in(
+                self._users,
+                PROVIDER,
+                email,
+                True,
+                creator=True,
+                first_name=(first_name or "").strip()[:100] or None,
+                last_name=(last_name or "").strip()[:100] or None,
+            )
+        return {"user": self._sso_user(user_document), "conflict": False}
+
+    @staticmethod
+    def _sso_user(user_document) -> User:
         return User(
             id=str(user_document.id),
             sub=user_document.email,

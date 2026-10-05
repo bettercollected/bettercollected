@@ -27,7 +27,10 @@ from backend.app.services.authorization_service import (
     role_permissions,
 )
 from backend.app.services.workspace_form_service import WorkspaceFormService
-from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.workspace_user_service import (
+    PROVISIONED_BY_SCIM,
+    WorkspaceUserService,
+)
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
@@ -46,13 +49,23 @@ class WorkspaceMembersService:
         http_client: HttpClient,
         workspace_form_service: WorkspaceFormService,
         authorization_service: AuthorizationService,
+        scim_directory_repo=None,
     ):
+        # a membership the workspace's SCIM directory manages is shown as such
+        self._scim_directories = scim_directory_repo
         self.workspace_user_service = workspace_user_service
         self.authorization_service = authorization_service
         self.workspace_invitation_repository = workspace_invitation_repo
         self.workspace_repo = workspace_repo
         self.http_client = http_client
         self.workspace_form_service = workspace_form_service
+
+    async def _has_directory(self, workspace_id) -> bool:
+        """The workspace has a SCIM directory (docs/sso.md, "Directory sync")."""
+        return (
+            self._scim_directories is not None
+            and await self._scim_directories.find_by_workspace(workspace_id) is not None
+        )
 
     async def get_workspace_members(self, workspace_id: PydanticObjectId, user: User):
         await self.authorization_service.authorize(
@@ -72,6 +85,7 @@ class WorkspaceMembersService:
             for info in (await self._get_user_info_from_ids(user_ids) or [])
             if info and info.get("_id") is not None
         }
+        has_directory = await self._has_directory(workspace_id)
         response_user_list = []
         for workspace_user in sorted(workspace_users, key=lambda m: str(m.user_id)):
             user_info = users_by_id.get(str(workspace_user.user_id))
@@ -92,6 +106,10 @@ class WorkspaceMembersService:
                 is_owner=str(workspace_user.user_id) == str(owner_id),
             )
             user.disabled = workspace_user.disabled
+            user.provisioned_by = workspace_user.provisioned_by
+            user.managed_by_directory = bool(
+                has_directory and workspace_user.provisioned_by == PROVISIONED_BY_SCIM
+            )
             response_user_list.append(user)
         return response_user_list
 
@@ -143,9 +161,7 @@ class WorkspaceMembersService:
             [membership.user_id for membership in memberships]
         )
         for info in users_info or []:
-            if info and info.get("email") and self.compare_emails(
-                info["email"], email
-            ):
+            if info and info.get("email") and self.compare_emails(info["email"], email):
                 raise HTTPException(
                     status_code=HTTPStatus.CONFLICT,
                     content="This person is already a member; change their role "
@@ -227,7 +243,9 @@ class WorkspaceMembersService:
             )
 
         if response_status == InvitationResponse.ACCEPTED:
-            await self._refuse_if_inviter_lost_the_role(workspace_id, invitation_request)
+            await self._refuse_if_inviter_lost_the_role(
+                workspace_id, invitation_request
+            )
             invitation_request.invitation_status = InvitationStatus.ACCEPTED
             await self.workspace_user_service.add_user_to_workspace_with_role(
                 workspace_id=workspace_id, user=user, role=invitation_request.role
@@ -363,6 +381,20 @@ class WorkspaceMembersService:
         if membership is None:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Member not found."
+            )
+        if (
+            membership.provisioned_by == PROVISIONED_BY_SCIM
+            and await self._has_directory(workspace_id)
+        ):
+            # the directory decides: its group mapping would undo this
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content={
+                    "code": "managed_by_directory",
+                    "message": "This member's role comes from your directory's "
+                    "groups. Change it at your identity provider or in the "
+                    "group mapping.",
+                },
             )
         membership.roles = [stored_role(new_role)]
         await self.workspace_user_service.save_workspace_user(membership)

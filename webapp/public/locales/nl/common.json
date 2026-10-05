@@ -450,7 +450,7 @@
     "LINK_EXPIRY": "Deze link verloopt over 7 dagen.",
     "INVITATION_EXPIRED": "Uitnodiging Verlopen",
     "THE_INVITATION_YOU_ARE_TRYING_TO_ACCESS_HAS_EXPIRED": "De uitnodiging die je probeert te openen is verlopen.",
-    "ENSURE_TEXT": "Zorg ervoor dat u bent ingelogd op het juiste account.", 
+    "ENSURE_TEXT": "Zorg ervoor dat u bent ingelogd op het juiste account.",
     "RETURN_TO_WORKSPACE": "Terug naar Werkruimte",
     "SWITCH_ACCOUNT": "ghfhvy",
     "LIST": {
@@ -459,7 +459,6 @@
       "ITEM_3": "Formulier uit werkruimte verwijderen",
       "TITLE": "Je krijgt toegang tot:"
     }
-    
   },
   "INVITE_COLLABORATOR": {
     "DEFAULT": "Medewerker uitnodigen",
@@ -479,6 +478,8 @@
     "INVITATION_DATE": "Uitnodigingsdatum",
     "JOIN": "Toetredingsdatum",
     "ROLE": "Rol",
+    "MANAGED_BY_DIRECTORY": "Beheerd door uw directory",
+    "DEACTIVATED": "Gedeactiveerd",
     "COLLABORATORS": {
       "DEFAULT": "Medewerkers",
       "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen."
@@ -923,5 +924,72 @@
     "NO_ACCESS": "Je hebt geen toegang tot deze pagina.",
     "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. Je kunt het later wijzigen.",
     "DELETED_ACCOUNT": "Verwijderd account"
+  },
+  "SCIM": {
+    "TITLE": "Synchronisatie met gebruikersbeheer (SCIM)",
+    "DESCRIPTION": "Uw identiteitsprovider voegt mensen toe aan deze werkruimte, deactiveert ze wanneer ze vertrekken en bepaalt hun rol op basis van hun groepen. Alleen adressen op uw geverifieerde domeinen worden gesynchroniseerd.",
+    "LOAD_FAILED": "De synchronisatie met gebruikersbeheer kon niet worden geladen.",
+    "TRY_AGAIN": "Opnieuw proberen",
+    "NOT_ENABLED": "Synchronisatie met gebruikersbeheer is niet ingeschakeld op deze installatie. De beheerder schakelt die in (SSO_ENABLED en SCIM_WEBHOOK_URL, zie docs/sso.md).",
+    "OWNER_ONLY": "Alleen de eigenaar van de werkruimte kan de synchronisatie wijzigen. U kunt de status bekijken.",
+    "NO_DIRECTORY": "Er is geen gebruikersbeheer gekoppeld.",
+    "CREDENTIALS_NOTICE": "Voer deze nu in bij de SCIM-instellingen van uw identiteitsprovider. Het token wordt maar één keer getoond: bent u het kwijt, vernieuw het dan.",
+    "BASE_URL": "SCIM-basis-URL",
+    "BEARER_TOKEN": "Bearer-token",
+    "COPIED": "Ik heb ze gekopieerd",
+    "IDENTITY_PROVIDER": "Identiteitsprovider",
+    "VERIFY_DOMAIN_FIRST": "Verifieer eerst een e-maildomein: alleen adressen op uw geverifieerde domeinen worden toegevoegd.",
+    "CREATE": "Koppeling maken",
+    "CREATE_FAILED": "De koppeling kon niet worden gemaakt.",
+    "SYNCING": "Synchroniseert",
+    "LAST_CHANGE": "Laatste wijziging {{time}} ({{type}})",
+    "NO_CHANGE": "Nog geen wijziging ontvangen.",
+    "LAST_RESYNC": "Laatste synchronisatie {{time}}",
+    "LAST_RESYNC_FAILED": "Laatste synchronisatie mislukt {{time}}: {{reason}}",
+    "RESYNC_ERRORS": {
+      "scim_unavailable": "de synchronisatiedienst was niet bereikbaar.",
+      "auth_unavailable": "de accountdienst was niet bereikbaar; sommige mensen zijn overgeslagen.",
+      "mass_deprovision_refused": "er zouden te veel leden tegelijk worden gedeactiveerd, dus er is niets gewijzigd. Controleer uw identiteitsprovider en synchroniseer opnieuw (u kunt het forceren).",
+      "resync_failed": "er ging iets mis; het wordt vannacht opnieuw geprobeerd."
+    },
+    "RESYNC": "Nu synchroniseren",
+    "ROTATE": "Token vernieuwen",
+    "DELETE": "Verwijderen",
+    "RETRY": "Opnieuw proberen",
+    "STALE_DIRECTORY": "De koppeling van vóór de laatste vernieuwing kon nog niet worden verwijderd, dus het oude token wordt misschien nog geaccepteerd. Dit wordt bij elke synchronisatie opnieuw geprobeerd.",
+    "ROTATION_GRACE": "Token vernieuwd: tot {{time}} deactiveert een synchronisatie niemand, terwijl uw identiteitsprovider iedereen naar de nieuwe koppeling stuurt.",
+    "TOKEN_HINT": "Het bearer-token werd getoond toen de koppeling werd gemaakt; vernieuw het als u een nieuw nodig hebt.",
+    "COUNTS": {
+      "provisioned": "Actief",
+      "deprovisioned": "Gedeactiveerd",
+      "failed": "Mislukt",
+      "ignored": "Ongewijzigd"
+    },
+    "NEEDS_ATTENTION": "Vraagt aandacht",
+    "UNKNOWN_USER": "Onbekende gebruiker",
+    "GROUPS_TITLE": "Groepen en rollen",
+    "GROUPS_DESCRIPTION": "Geef een groep een rol in de werkruimte; wie in meerdere groepen zit, krijgt de hoogste. Wie in geen gekoppelde groep zit, krijgt de rol voor nieuwe leden ({{role}}, onder Beleid). De eigenaar wordt nooit gewijzigd, en de rol van leden die u zelf hebt uitgenodigd blijft ongemoeid.",
+    "GROUP": "Groep",
+    "MEMBERS": "Leden",
+    "ROLE": "Rol",
+    "ROLE_FOR": "Rol voor {{group}}",
+    "NO_ROLE": "Geen rol (standaard)",
+    "NO_GROUPS": "Nog geen groepen. Wijs groepen toe aan de SCIM-app bij uw identiteitsprovider (groepen doorsturen).",
+    "CHECK_ROLE": "Controleer de rol",
+    "CHECK_ROLE_HINT": "Na de vernieuwing van het token hadden meerdere eerdere groepen deze naam, dus de rol is niet overgenomen. Kies hem opnieuw.",
+    "MAPPING_FAILED": "De koppeling kon niet worden gewijzigd.",
+    "MAPPING_SAVED": "{{group}}: {{role}}.",
+    "CONFIRM_ROTATE": "Het SCIM-token vernieuwen? De basis-URL en het token veranderen allebei en het huidige token werkt meteen niet meer. U voert de nieuwe in bij uw identiteitsprovider, die zijn gebruikers en groepen opnieuw stuurt. Leden houden intussen hun toegang.",
+    "ROTATE_FAILED": "Het token kon niet worden vernieuwd.",
+    "ROTATE_STALE": "De vorige koppeling kon nog niet worden verwijderd, dus het oude token wordt misschien nog geaccepteerd. Probeer het opruimen hieronder opnieuw.",
+    "CONFIRM_DELETE": "De koppeling met gebruikersbeheer verwijderen? Leden blijven in de werkruimte met hun huidige rol, maar uw identiteitsprovider voegt ze niet meer toe, deactiveert ze niet meer en werkt ze niet meer bij. Wie erdoor was gedeactiveerd, wordt weer actief als er een plaats vrij is; de anderen blijven gedeactiveerd. Verwijder ook de SCIM-app bij uw identiteitsprovider.",
+    "DELETE_FAILED": "De koppeling kon niet worden verwijderd.",
+    "DELETED": "Koppeling verwijderd. De leden zijn behouden.",
+    "DELETED_LEFT": "Koppeling verwijderd. De leden zijn behouden; {{count}} die erdoor waren gedeactiveerd, blijven gedeactiveerd omdat er geen plaats vrij is.",
+    "CONFIRM_FORCE": "Deze synchronisatie zou {{count}} van de {{total}} leden deactiveren, meer dan de veiligheidsgrens, dus er is niets gewijzigd. Controleer eerst de toewijzingen bij uw identiteitsprovider. Toch deactiveren?",
+    "RESYNC_FAILED": "Synchroniseren is mislukt.",
+    "RESYNCED": "{{users}} gebruikers en {{groups}} groepen gesynchroniseerd.",
+    "CLEANUP_FAILED": "De vorige koppeling kon nog niet worden verwijderd.",
+    "CLEANED_UP": "De vorige koppeling is verwijderd."
   }
 }

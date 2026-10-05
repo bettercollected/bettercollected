@@ -111,3 +111,51 @@ def test_upgrade_is_idempotent(scratch_url):
     command.upgrade(config, "head")
     command.upgrade(config, "head")  # nothing to do, must not fail
     assert asyncio.run(_diff(scratch_url)) == []
+
+
+async def _execute(url: str, statement: str):
+    engine = create_async_engine(url, poolclass=NullPool)
+    try:
+        async with engine.begin() as conn:
+            return (await conn.execute(text(statement))).all()
+    finally:
+        await engine.dispose()
+
+
+def _membership(oid: str) -> str:
+    def ref(value):
+        return f"jsonb_build_object('$oid', '{value}')"
+
+    return (
+        "INSERT INTO app.workspace_users (id, doc, _bc_checksum) VALUES "
+        f"('{oid}', jsonb_build_object('_id', {ref(oid)}, 'workspace_id', "
+        f"{ref('6ac000000000000000000001')}, 'user_id', "
+        f"{ref('6ac000000000000000000002')}), 'x') RETURNING id"
+    )
+
+
+def test_duplicate_memberships_stop_0011_before_it_changes_anything(scratch_url):
+    """Revision 0011's unique membership index refuses, loudly and before
+    any change, while duplicates exist; nothing is deleted."""
+    config = _config(scratch_url)
+    command.upgrade(config, "0010")
+    for oid in ("a" * 24, "b" * 24):
+        asyncio.run(_execute(scratch_url, _membership(oid)))
+
+    with pytest.raises(RuntimeError, match="membership_duplicates"):
+        command.upgrade(config, "head")
+
+    rows = asyncio.run(_execute(scratch_url, "SELECT id FROM app.workspace_users"))
+    assert len(rows) == 2
+    version = asyncio.run(
+        _execute(scratch_url, "SELECT version_num FROM app.alembic_version")
+    )
+    assert version == [("0010",)]
+    # resolved by hand: it goes through
+    asyncio.run(
+        _execute(
+            scratch_url,
+            f"DELETE FROM app.workspace_users WHERE id = '{'b' * 24}' RETURNING id",
+        )
+    )
+    command.upgrade(config, "head")

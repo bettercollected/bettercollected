@@ -13,7 +13,8 @@
 # network, which reaches the internet (the customers' IdPs) and the backend,
 # the jobs worker and auth (who call it), but not Mongo, app-postgres,
 # Temporal or the other services. Bound to localhost: publish only
-# /api/oauth/* and /.well-known/* through your TLS reverse proxy at
+# /api/oauth/*, /.well-known/* (and /api/scim/* with directory sync)
+# through your TLS reverse proxy at
 # SSO_POLIS_URL, never the admin API (/api/v1/*) or the admin UI.
 services:
   polis:
@@ -70,12 +71,18 @@ services:
   backend:
     environment:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:?set by deploy.sh in the root .env}
+      # SCIM directory sync (docs/sso.md): Polis delivers directory events to
+      # the backend over this `sso` network; the directory's id is appended
+      SCIM_WEBHOOK_URL: ${SCIM_WEBHOOK_URL:-http://backend:8000/api/v1/scim/webhook}
     networks:
       - default
       - sso
   jobs-worker:
     environment:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:?set by deploy.sh in the root .env}
+      # the nightly SCIM resync runs here and needs directory sync to be
+      # configured, exactly as on the backend
+      SCIM_WEBHOOK_URL: ${SCIM_WEBHOOK_URL:-http://backend:8000/api/v1/scim/webhook}
     networks:
       - default
       - sso

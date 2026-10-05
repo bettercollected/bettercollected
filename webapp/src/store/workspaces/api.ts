@@ -6,6 +6,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDomainDto } from '@app/models/dtos/workspace-domain-dto';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { CreateScimDirectoryRequest, ScimCredentialsDto, ScimDirectoryDto, ScimGroupDto, ScimOverviewDto, ScimResyncDto } from '@app/models/dtos/workspace-scim-dto';
 import { CreateSsoConnectionRequest, SsoConnectionDto, SsoOverviewDto, SsoSettingsDto, UpdateSsoSettingsRequest } from '@app/models/dtos/workspace-sso-dto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
@@ -54,7 +55,7 @@ export const WORKSPACE_PERMISSIONS_TAG = 'WORKSPACE_PERMISSIONS_TAG';
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', 'SSO_TAG', WORKSPACE_PERMISSIONS_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', 'SSO_TAG', 'SCIM_TAG', WORKSPACE_PERMISSIONS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -598,6 +599,67 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['EMAIL_DOMAINS_TAG']
         }),
+        // SCIM directory sync (docs/sso.md); viewing needs security.manage,
+        // every change is owner only.
+        getWorkspaceScim: builder.query<ScimOverviewDto, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/scim`,
+                method: 'GET',
+                credentials: 'include'
+            }),
+            providesTags: ['SCIM_TAG']
+        }),
+        createScimDirectory: builder.mutation<ScimCredentialsDto, { workspace_id: string; body: CreateScimDirectoryRequest }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/scim/directory`,
+                method: 'POST',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SCIM_TAG']
+        }),
+        rotateScimToken: builder.mutation<ScimCredentialsDto, { workspace_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/scim/directory/rotate`,
+                method: 'POST',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SCIM_TAG']
+        }),
+        deleteScimDirectory: builder.mutation<{ reEnabled: number; leftDisabled: number }, { workspace_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/scim/directory`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SCIM_TAG']
+        }),
+        setScimGroupRole: builder.mutation<ScimGroupDto, { workspace_id: string; group_id: string; role: string | null }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/scim/groups/${request.group_id}`,
+                method: 'PUT',
+                body: { role: request.role },
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SCIM_TAG']
+        }),
+        resyncScimDirectory: builder.mutation<ScimResyncDto, { workspace_id: string; force?: boolean }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/scim/resync`,
+                method: 'POST',
+                body: { force: !!request.force },
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SCIM_TAG']
+        }),
+        cleanupScimDirectory: builder.mutation<ScimDirectoryDto, { workspace_id: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/scim/directory/cleanup`,
+                method: 'POST',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['SCIM_TAG']
+        }),
         // Single sign-on (docs/sso.md); owner/admins only (security.manage).
         getWorkspaceSso: builder.query<SsoOverviewDto, string>({
             query: (workspaceId) => ({
@@ -638,7 +700,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include'
             }),
-            invalidatesTags: ['SSO_TAG']
+            invalidatesTags: ['SSO_TAG', 'SCIM_TAG']
         }),
         patchWorkspaceThemes: builder.mutation<any, any>({
             // Replaces the workspace's saved custom form themes (full-list PATCH).
@@ -810,6 +872,13 @@ export const {
     useSetSsoConnectionEnabledMutation,
     useDeleteSsoConnectionMutation,
     useUpdateSsoSettingsMutation,
+    useGetWorkspaceScimQuery,
+    useCreateScimDirectoryMutation,
+    useRotateScimTokenMutation,
+    useDeleteScimDirectoryMutation,
+    useSetScimGroupRoleMutation,
+    useResyncScimDirectoryMutation,
+    useCleanupScimDirectoryMutation,
     useClaimEmailDomainMutation,
     useVerifyEmailDomainMutation,
     useDeleteEmailDomainMutation,
