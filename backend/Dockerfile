@@ -1,7 +1,7 @@
 FROM python:3.11.12
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uv/bin/uv
 
 # Configure environment variables
 ENV PYTHONUNBUFFERED=1 \

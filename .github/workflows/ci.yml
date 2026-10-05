@@ -122,6 +122,7 @@ jobs:
             - name: Set up uv
               uses: astral-sh/setup-uv@v7
               with:
+                  version: "0.12.23"
                   python-version: 3.11.12
                   enable-cache: true
 
@@ -169,6 +170,7 @@ jobs:
             - name: Set up uv
               uses: astral-sh/setup-uv@v7
               with:
+                  version: "0.12.23"
                   python-version: 3.11.12
                   enable-cache: true
 
@@ -247,6 +249,7 @@ jobs:
             - name: Set up uv
               uses: astral-sh/setup-uv@v7
               with:
+                  version: "0.12.23"
                   python-version: 3.11.12
                   enable-cache: true
 
@@ -326,6 +329,7 @@ jobs:
             - name: Set up uv
               uses: astral-sh/setup-uv@v7
               with:
+                  version: "0.12.23"
                   python-version: 3.11.12
                   enable-cache: true
 
