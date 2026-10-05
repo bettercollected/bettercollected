@@ -810,7 +810,7 @@
         "SLOGAN": "Personaliseer uw URL's met aangepast domein",
         "TITLE": "Aangepaste Domeinnaam",
         "DESCRIPTION": "Laat uw bedrijf er professioneler uitzien en verbeter uw merkherkenning.",
-        "NOTE": "Let op !!! Zorg ervoor dat het DNS A-record van je aangepaste domein is ingesteld op {{ domain }}",
+        "NOTE": "Na het opslaan toont de instellingenpagina van je domein de DNS-records die je bij je DNS-provider toevoegt.",
         "TEXT_FIELD_TITLE": "Voer het domein in dat u wilt verbinden"
       },
       "UNLIMITED_FORMS": {

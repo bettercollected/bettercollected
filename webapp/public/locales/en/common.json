@@ -814,7 +814,7 @@
         "SLOGAN": "Personalize Your URLs With Custom Domain",
         "TITLE": "Custom Domain Name",
         "DESCRIPTION": "Serve your site and forms from your own domain, so responders see your brand end to end.",
-        "NOTE": "Notice !!! Ensure  DNS A Record of your custom-domain is Pointed to {{ domain }} ",
+        "NOTE": "After you save, your domain's settings page shows the DNS records to add at your DNS provider.",
         "TEXT_FIELD_TITLE": "Enter the domain you want to connect"
       },
       "UNLIMITED_FORMS": {
