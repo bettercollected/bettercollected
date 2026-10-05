@@ -44,10 +44,25 @@ jobs:
                   echo "Selected runner: $runner"
                   echo "runner=$runner" >> "$GITHUB_OUTPUT"
 
+    # The three persistence modes run as parallel jobs: Mongo only, every group
+    # mirrored to Postgres (dual), and every group served from Postgres.
     backend-tests:
-        name: Backend tests (pytest)
+        name: Backend tests (pytest, ${{ matrix.mode }})
         needs: select-runner
         runs-on: ${{ needs.select-runner.outputs.runner }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - mode: mongo
+                      read_source: ""
+                      write_mode: ""
+                    - mode: dual
+                      read_source: ""
+                      write_mode: dual
+                    - mode: postgres
+                      read_source: postgres
+                      write_mode: postgres
         # The backend tests talk to a real MongoDB (Beanie), so provide one.
         # Without it, every DB call blocks on the ~30s ServerSelectionTimeout and
         # the suite runs for many minutes.
@@ -61,6 +76,7 @@ jobs:
                     --health-interval 10s
                     --health-timeout 5s
                     --health-retries 10
+            # A throwaway test database: data on tmpfs, durability off below.
             postgres:
                 image: postgres:16-alpine
                 env:
@@ -70,6 +86,7 @@ jobs:
                 ports:
                     - 5432:5432
                 options: >-
+                    --tmpfs /var/lib/postgresql/data:rw
                     --health-cmd "pg_isready -U postgres -d bettercollected_test"
                     --health-interval 5s
                     --health-timeout 5s
@@ -77,8 +94,30 @@ jobs:
         defaults:
             run:
                 working-directory: backend
+        env:
+            VIRTUAL_ENV: ""
+            MONGO_URI: mongodb://localhost:27017
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+            AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+            SCHEDULAR_ENABLED: "False"
+            API_ENABLE_FORM_CREATION: "True"
+            UNSPLASH_ACCESS_KEY: ""
+            MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
         steps:
             - uses: actions/checkout@v7
+
+            # Durability is pointless for a test database that lives for one job.
+            # These settings take effect on reload, no restart needed.
+            - name: Tune the test Postgres for speed
+              working-directory: .
+              run: |
+                  docker exec ${{ job.services.postgres.id }} psql -U postgres -d bettercollected_test -v ON_ERROR_STOP=1 \
+                      -c "ALTER SYSTEM SET fsync = off" \
+                      -c "ALTER SYSTEM SET synchronous_commit = off" \
+                      -c "ALTER SYSTEM SET full_page_writes = off" \
+                      -c "SELECT pg_reload_conf()" \
+                      -c "SHOW fsync" -c "SHOW synchronous_commit" -c "SHOW full_page_writes"
 
             - name: Set up uv
               uses: astral-sh/setup-uv@v7
@@ -87,51 +126,18 @@ jobs:
                   enable-cache: true
 
             - name: Install dependencies
-              env:
-                  VIRTUAL_ENV: ""
               run: uv sync --frozen
 
-            - name: Run backend tests
+            - name: Run backend tests (${{ matrix.mode }})
               env:
-                  VIRTUAL_ENV: ""
-                  MONGO_URI: mongodb://localhost:27017
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  SCHEDULAR_ENABLED: "False"
-                  API_ENABLE_FORM_CREATION: "True"
-                  UNSPLASH_ACCESS_KEY: ""
-                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
-              run: uv run pytest
-
-            - name: Run backend tests (every group mirrored to Postgres)
-              env:
-                  VIRTUAL_ENV: ""
-                  MONGO_URI: mongodb://localhost:27017
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  SCHEDULAR_ENABLED: "False"
-                  API_ENABLE_FORM_CREATION: "True"
-                  UNSPLASH_ACCESS_KEY: ""
-                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
-                  DB_WRITE_MODE: dual
-              run: uv run pytest
-
-            - name: Run backend tests (every group served from Postgres)
-              env:
-                  VIRTUAL_ENV: ""
-                  MONGO_URI: mongodb://localhost:27017
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  SCHEDULAR_ENABLED: "False"
-                  API_ENABLE_FORM_CREATION: "True"
-                  UNSPLASH_ACCESS_KEY: ""
-                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
-                  DB_READ_SOURCE: postgres
-                  DB_WRITE_MODE: postgres
-              run: uv run pytest
+                  DB_READ_SOURCE: ${{ matrix.read_source }}
+                  DB_WRITE_MODE: ${{ matrix.write_mode }}
+              # Four pytest-xdist workers (a hosted runner has 4 vCPUs; more
+              # workers measured slower), each with its own Mongo and Postgres
+              # database (tests/conftest.py). Not "-n auto": that counts
+              # physical cores. loadgroup spreads tests one by one, except
+              # modules that share an expensive fixture.
+              run: uv run pytest -n 4 --dist loadgroup
 
     auth-tests:
         name: Auth tests (pytest)

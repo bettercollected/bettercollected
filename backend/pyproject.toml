@@ -22,7 +22,7 @@ dependencies = [
     "httpx>=0.28.1",
     "classy-fastapi==0.7.0",
     "pyjwt>=2.15.1",
-    "boto3>=1.43.106",
+    "boto3>=1.43.107",
     "python-multipart>=0.0.22",
     "cryptography>=50.0.2",
     "fastapi-pagination>=0.16.0",
@@ -38,7 +38,7 @@ dependencies = [
     "pymongo>=4.18.2",
     "pydantic-settings>=2.15.0",
     # 2.x renames FastMCP and changes the server APIs; migrate deliberately.
-    "mcp>=1.28.1,<2",
+    "mcp>=1.30.0,<2",
     "procrastinate>=3.10.0,<4",
     "custom-domain-sdk>=0.6.1",
     "pypdf>=6.0",
@@ -56,6 +56,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "aioresponses>=0.7.9",
     "httpx>=0.28.1",
+    "pytest-xdist>=3.8.0",
 ]
 
 [tool.uv.sources]

@@ -125,7 +125,8 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
   drift with Mongo authoritative (`--direction postgres->mongo` for the fallback) and drains the outboxes.
 - **Tests run three ways in CI** (Mongo · everything mirrored · everything served from Postgres). Parity tests
   (`tests/app/repositories/test_*_parity.py`) run each method on both stores; test fixtures must go through
-  `container.<repo>()`, never Beanie directly, or the Postgres-served mode fails.
+  `container.<repo>()`, never Beanie directly, or the Postgres-served mode fails. The permission matrix
+  (authorization, not storage) is skipped in the dual mode; it runs in the other two.
 
 Beanie Documents are registered in [backend/app/handlers/database.py](backend/app/handlers/database.py) `init_db`'s
 `document_models` list — **a new collection must be added there or it won't be initialized** (and needs a row +
@@ -525,6 +526,7 @@ DATABASE_URL=postgresql+asyncpg://bettercollected:bettercollected@localhost:5432
 # the same suite mirrored / served from Postgres (what CI runs):
 DB_WRITE_MODE=dual ... uv run pytest
 DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ... uv run pytest
+uv run pytest -n 4 --dist loadgroup      # in parallel (CI): each xdist worker gets <db>_gwN in Mongo and Postgres
 uv run alembic -c alembic.ini upgrade head   # as the service role (bc_app), see backend/.env.example
 DB_AUTO_MIGRATE=true ./run.sh                # or: migrate app + jobs schemas at startup (advisory-locked)
 python -m backend.jobs.worker                # procrastinate worker (JOBS_BACKEND=postgres)

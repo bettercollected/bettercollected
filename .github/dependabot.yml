@@ -15,6 +15,12 @@ updates:
       # bump them together with the runtime.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # Tailwind 4 is a config migration (CSS-first config, new PostCSS
+      # plugin, renamed utilities); it is planned separately.
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwind-scrollbar"
+        update-types: ["version-update:semver-major"]
 
   # Python services (uv)
   - package-ecosystem: "uv"

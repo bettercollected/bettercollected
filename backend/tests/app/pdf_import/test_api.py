@@ -73,11 +73,11 @@ async def test_upload_creates_a_draft_form_and_analyses_every_page(
     form = await container.form_repo().get_form_document_by_id(body["formId"])
     assert form is not None and form.title == "Membership form"
 
-    # the original is stored privately inside the form's folder
-    [key] = store.objects
-    assert key.startswith(
-        f"private/{workspace.id}/{body['formId']}/imports/{body['id']}/"
-    )
+    # the original is stored privately inside the form's folder (the import
+    # runs in the background: its first stage outputs may already be beside it)
+    folder = f"private/{workspace.id}/{body['formId']}/imports/{body['id']}/"
+    assert f"{folder}source.pdf" in store.objects
+    assert all(key.startswith(folder) for key in store.objects)
 
     done = await finished(client, workspace, test_user_cookies, body["id"])
     assert done["status"] == ImportStatus.COMPLETED, done
