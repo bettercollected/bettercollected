@@ -11,7 +11,7 @@ import environments from '@app/configs/environments';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
-import { ssoEnabled } from '@app/lib/sso';
+import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
@@ -35,6 +35,7 @@ const loginProviderNames = new Map<string, string>([
 ]);
 
 export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
+    const ssoEnabled = useSsoEnabled();
     const { t } = useTranslation();
     const { toast } = useToast();
     const [postSendOtp, { isLoading }] = usePostSendOtpMutation();

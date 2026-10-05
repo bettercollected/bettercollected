@@ -3,7 +3,7 @@
 import WorkspaceScimSection from '@app/components/workspace-sso/workspace-scim-section';
 import WorkspaceSsoSection from '@app/components/workspace-sso/workspace-sso-section';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
-import { ssoEnabled } from '@app/lib/sso';
+import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
 /**
@@ -12,6 +12,7 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
  * and directory sync (SCIM), which provisions and deprovisions members.
  */
 export default function WorkspaceSsoPage() {
+    const ssoEnabled = useSsoEnabled();
     const { can } = useWorkspacePermissions();
 
     if (!ssoEnabled) {

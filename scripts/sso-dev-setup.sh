@@ -140,7 +140,7 @@ Settings for auth/.env:
   SSO_ENABLED=true
   SSO_POLIS_URL=$POLIS
   SSO_REDIRECT_URI=$REDIRECT_URI
-Webapp: NEXT_PUBLIC_ENABLE_SSO=true
+Webapp (webapp/.env): SSO_ENABLED=true
 Teardown: docker compose -f docker-compose.sso.yml -p bettercollected-sso down
 (and drop the $POLIS_DB database to wipe Polis's data)
 EOF
