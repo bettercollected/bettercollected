@@ -48,6 +48,12 @@ import { Shield } from 'lucide-react';
 import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repeating-group-field';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 
+// A #rrggbb page colour at ~90% opacity; anything else (unset, named colours)
+// falls back to a translucent white.
+function headerGround(accent?: string) {
+    return accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? `${accent}E6` : 'rgba(255,255,255,0.85)';
+}
+
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
         case FieldTypes.TEXT:
@@ -239,7 +245,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     return (
         <Controller>
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
-                <div className="absolute left-0 right-0 top-5 z-10 mx-auto w-full ">
+                {/* The bar sits over the scrolling questions: give it the page's
+                    ground (translucent + blur, so it also works over gradient or image
+                    backgrounds) or questions scroll through the header text. */}
+                <div className="absolute left-0 right-0 top-0 z-10 mx-auto w-full pb-3 pt-5 backdrop-blur-sm" style={{ background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent) }}>
                     <div className="px-5 md:px-8 xl:px-10 2xl:px-20">
                         <div className={`flex w-full max-w-[800px] items-center justify-between gap-3 px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
                             <BackButton
@@ -261,7 +270,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     </span>
                                 )}
                                 <span className="whitespace-nowrap tabular-nums">
-                                    Page {currentSlide + 1} of {standardForm?.fields?.length || 1}
+                                    Page {Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1)} of {standardForm?.fields?.length || 1}
                                 </span>
                             </div>
                         </div>

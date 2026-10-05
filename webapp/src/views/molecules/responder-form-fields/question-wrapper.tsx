@@ -14,6 +14,10 @@ import { RenderImage } from '@app/views/organism/form-builder/fields/render-fiel
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 import { HEADING_CLASSES } from '@app/utils/text-headings';
 
+// Answer fields that V2InputFields (used elsewhere) leaves out; without them
+// these never showed their "Optional" marker.
+const ALSO_ANSWERABLE = [FieldTypes.LONG_TEXT, FieldTypes.LINK, FieldTypes.FILE_UPLOAD];
+
 export default function QuestionWrapper({ field, children, errorMessage }: { field: StandardFormFieldDto; children?: React.ReactNode; errorMessage?: string }) {
     const { formResponse } = useFormResponse();
     const { theme } = useFormState();
@@ -30,7 +34,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // no one is nudged into answering something they could skip. Display-only
     // fields (statements, images) collect nothing, so they carry no marker.
     // (Design-Language.md §5: "Don't hide which fields are optional to coerce answers".)
-    const isAnswerable = field?.type ? V2InputFields.includes(field.type) : false;
+    const isAnswerable = field?.type ? V2InputFields.includes(field.type) || ALSO_ANSWERABLE.includes(field.type) : false;
     const isRequired = !!field?.validations?.required;
 
     // Answer piping: swap pipe tokens for the responder's earlier answers (or
