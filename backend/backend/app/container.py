@@ -754,6 +754,7 @@ class AppContainer(containers.DeclarativeContainer):
         domain_service=workspace_domain_service,
         connection_repo=sso_connection_repo,
         http_client=http_client,
+        workspace_user_repo=workspace_user_repo,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(

@@ -185,7 +185,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
     const { can } = useWorkspacePermissions();
-    // the owner holds the plan (workspace.billing), so the Pro upsell is theirs
+    // owners hold workspace.billing, so the Pro upsell is theirs
     const isAdmin = can(WorkspacePermission.WORKSPACE_BILLING);
     const canEditForm = can(WorkspacePermission.FORM_EDIT);
     const auth = useAppSelector(selectAuth);

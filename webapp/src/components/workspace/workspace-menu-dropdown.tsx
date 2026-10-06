@@ -76,6 +76,8 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         if (!data || isLoading || !Array.isArray(data)) {
             return false;
         }
+        // the limit counts the workspaces billed to me (I'm their billing
+        // owner), like the backend; co-owned ones don't count
         const usersWorkspaces = data.filter((space: WorkspaceDto) => {
             return space.ownerId === auth?.id;
         });
@@ -83,7 +85,8 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     };
 
     const getWorkspaceRole = (space: WorkspaceDto) => {
-        if (auth && space && auth?.id === space?.ownerId) return t(dashboardConstants.drawer.owner);
+        // a workspace can have several owners; the list says which are ours
+        if (auth && space && (space.isOwner ?? auth?.id === space?.ownerId)) return t(dashboardConstants.drawer.owner);
         return t(dashboardConstants.drawer.collaborator);
     };
 

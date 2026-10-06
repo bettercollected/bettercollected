@@ -136,7 +136,7 @@ describe('WorkspaceSsoSection', () => {
     it('shows an admin the settings read-only, with testing', () => {
         query.data = overview({ canManage: false, connections: [connection({ status: 'disabled' })] });
         renderSection();
-        expect(screen.getByText(/Only the workspace owner can change single sign-on/)).toBeTruthy();
+        expect(screen.getByText(/Only a workspace owner can change single sign-on/)).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Add connection' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Require single sign-on' })).toBeNull();

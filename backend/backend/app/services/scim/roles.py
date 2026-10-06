@@ -2,9 +2,9 @@
 
 Roles are read from ``WorkspaceRoles`` at runtime, so a role added to the
 enum becomes mappable without a change here. ADMIN may be mapped (an
-organisation's admin group); the owner never comes from a directory (it is
-not a role, and ``OWNER`` is refused). ``COLLABORATOR`` is the stored
-spelling of EDITOR and is accepted as EDITOR.
+organisation's admin group); an owner never comes from a directory
+(``OWNER`` is refused, and owners are never changed by it).
+``COLLABORATOR`` is the stored spelling of EDITOR and is accepted as EDITOR.
 """
 
 from typing import Iterable, List, Optional

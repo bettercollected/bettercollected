@@ -11,7 +11,6 @@ export const initialAuthState: UserStatus = {
     plan: Plan.FREE,
     roles: [],
     id: '',
-    isAdmin: false,
     isLoading: true
 };
 
@@ -44,7 +43,5 @@ export const { setAuth } = slice.actions;
 export default reducerObj;
 
 export const selectAuth = (state: any) => state.auth;
-
-export const selectIsAdmin = (state: any) => state.auth.isAdmin;
 
 export const selectIsProPlan = (state: RootState) => !!state.workspace.isPro;

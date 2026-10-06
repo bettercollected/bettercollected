@@ -248,7 +248,12 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     """Model for returning information about a workspace."""
 
     id: Optional[PydanticObjectId] = None
+    # the billing owner: the account whose plan the workspace runs on (a
+    # workspace can have other owners with the same rights)
     owner_id: Optional[str] = None
+    # in the caller's own workspace list only: whether they are one of its
+    # owners (the billing owner or a member with role OWNER)
+    is_owner: Optional[bool] = None
     dashboard_access: Optional[bool] = None
     disabled: Optional[bool] = None
     default: Optional[bool] = None

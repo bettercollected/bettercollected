@@ -24,7 +24,10 @@ export interface WorkspaceDto {
     title: string;
     workspaceName: string;
     description: string;
+    // the billing owner: the account the workspace's plan is billed to
     ownerId: string;
+    // in the signed-in user's own workspace list: whether they are an owner
+    isOwner?: boolean;
     profileImage?: string;
     bannerImage?: string;
     customDomain?: string;

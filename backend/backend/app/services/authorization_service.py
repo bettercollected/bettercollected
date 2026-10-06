@@ -21,7 +21,12 @@ from common.models.user import User
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
-from backend.app.models.enum.workspace_roles import WorkspaceRoles, canonical_role
+from backend.app.models.enum.workspace_roles import (
+    WorkspaceRoles,
+    canonical_role,
+    has_owner_role,
+    is_owner_membership,
+)
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -78,7 +83,12 @@ ANSWER_PERMISSIONS: FrozenSet[Permission] = frozenset(
     {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT}
 )
 
+# Every owner holds every permission: the billing owner (``owner_id``) and
+# each member with role OWNER alike.
+OWNER_PERMISSIONS: FrozenSet[Permission] = ALL_PERMISSIONS
+
 ROLE_PERMISSIONS: Dict[WorkspaceRoles, FrozenSet[Permission]] = {
+    WorkspaceRoles.OWNER: OWNER_PERMISSIONS,
     # everything but billing (plan, transfer, deleting the workspace)
     WorkspaceRoles.ADMIN: ADMIN_PERMISSIONS,
     WorkspaceRoles.EDITOR: EDITOR_PERMISSIONS,
@@ -87,14 +97,12 @@ ROLE_PERMISSIONS: Dict[WorkspaceRoles, FrozenSet[Permission]] = {
     WorkspaceRoles.PRIVACY_OFFICER: PRIVACY_OFFICER_PERMISSIONS,
 }
 
-# The owner (``workspace.owner_id``) holds every permission.
-OWNER_PERMISSIONS: FrozenSet[Permission] = ALL_PERMISSIONS
-
 NO_PERMISSIONS: FrozenSet[Permission] = frozenset()
 
-# A disabled workspace (the owner's plan was downgraded) is read-only for its
-# owner: they still answer deletion requests and reach their respondents'
-# data (GDPR), but change nothing else. Other members get nothing.
+# A disabled workspace (the billing owner's plan was downgraded) is read-only
+# for its owners: they still answer deletion requests and reach their
+# respondents' data (GDPR), but change nothing else. Other members get
+# nothing.
 DISABLED_WORKSPACE_OWNER_PERMISSIONS: FrozenSet[Permission] = frozenset(
     {
         P.FORM_READ,
@@ -120,7 +128,7 @@ def permissions_for(roles: Optional[Iterable], is_owner: bool) -> FrozenSet[Perm
     An empty role list is a membership from before roles existed (the schema
     default); it has always had full content access, so it stays an Editor.
     """
-    if is_owner:
+    if is_owner or has_owner_role(roles):
         return OWNER_PERMISSIONS
     if not roles:
         return EDITOR_PERMISSIONS
@@ -157,7 +165,7 @@ class AuthorizationService:
     ) -> FrozenSet[Permission]:
         """What ``user`` may do in the workspace. Nothing without an active
         membership (a disabled one counts as none) or in a missing workspace;
-        in a disabled workspace only its owner keeps read and privacy
+        in a disabled workspace only its owners keep read and privacy
         permissions."""
         workspace_oid = _object_id(workspace_id)
         user_oid = _object_id(user.id) if user else None
@@ -176,7 +184,7 @@ class AuthorizationService:
         workspace = await self._workspace_repo.find_by_id(workspace_oid)
         if workspace is None:
             return NO_PERMISSIONS
-        is_owner = str(workspace.owner_id) == str(user_oid)
+        is_owner = is_owner_membership(workspace, membership)
         if workspace.disabled:
             return DISABLED_WORKSPACE_OWNER_PERMISSIONS if is_owner else NO_PERMISSIONS
         return permissions_for(membership.roles, is_owner=is_owner)
@@ -217,13 +225,11 @@ class AuthorizationService:
     async def is_owner(
         self, user: Optional[User], workspace_id: Union[PydanticObjectId, str, None]
     ) -> bool:
-        """Whether ``user`` is the owner of an available workspace, with a
-        full (not respondent-scoped) session and an active membership."""
-        perms = await self.effective_permissions(user, workspace_id)
-        if perms != OWNER_PERMISSIONS:
-            return False
-        workspace = await self._workspace_repo.find_by_id(_object_id(workspace_id))
-        return workspace is not None and str(workspace.owner_id) == str(user.id)
+        """Whether ``user`` is an owner of an available workspace (the
+        billing owner or a member with role OWNER, every owner alike), with
+        a full (not respondent-scoped) session and an active membership.
+        Only owners hold every permission."""
+        return await self.effective_permissions(user, workspace_id) == OWNER_PERMISSIONS
 
     async def require_owner(
         self,
@@ -231,9 +237,10 @@ class AuthorizationService:
         workspace_id: Union[PydanticObjectId, str, None],
         message: str = MESSAGE_FORBIDDEN,
     ) -> None:
-        """403 unless ``user`` owns the workspace. For decisions no role may
-        take, like single sign-on configuration: it controls every account on
-        the workspace's verified domains, the owner's own included."""
+        """403 unless ``user`` is an owner of the workspace. For decisions no
+        role below Owner may take, like single sign-on configuration: it
+        controls every account on the workspace's verified domains, the
+        owners' own included."""
         if not await self.is_owner(user, workspace_id):
             raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=message)
 

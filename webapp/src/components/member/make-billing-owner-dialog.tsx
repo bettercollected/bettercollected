@@ -9,44 +9,45 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { WORKSPACE_PERMISSIONS_TAG, workspacesApi } from '@app/store/workspaces/api';
-import { useTransferWorkspaceOwnershipMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { useMakeBillingOwnerMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 
 /**
- * Why ownership can't go to this member, as a locale key, or undefined when
- * it can. Mirrors the backend: only to an Admin, never a personal (default)
- * workspace, never one on a paid plan (the plan is billed to the owner).
+ * Why this member can't become the billing owner, as a locale key, or
+ * undefined when they can. Mirrors the backend: only another owner, never on
+ * a personal (default) workspace, never on a paid plan (the plan is billed to
+ * the current billing owner's account).
  */
-export function transferBlocker(workspace: { default?: any; isPro?: boolean } | undefined, role?: WorkspaceRole): string | undefined {
-    if (workspace?.default === true || workspace?.default === 'true') return memberRoles.transferPersonal;
-    if (workspace?.isPro) return memberRoles.transferPaid;
-    if (role !== WorkspaceRole.ADMIN) return memberRoles.transferOnlyAdmins;
+export function billingOwnerBlocker(workspace: { default?: any; isPro?: boolean } | undefined, role?: WorkspaceRole): string | undefined {
+    if (workspace?.default === true || workspace?.default === 'true') return memberRoles.billingPersonal;
+    if (workspace?.isPro) return memberRoles.billingPaid;
+    if (role !== WorkspaceRole.OWNER) return memberRoles.billingOnlyOwners;
     return undefined;
 }
 
-interface TransferOwnershipDialogProps {
+interface MakeBillingOwnerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     member: WorkspaceMembersDto;
 }
 
-export default function TransferOwnershipDialog({ open, onOpenChange, member }: TransferOwnershipDialogProps) {
+export default function MakeBillingOwnerDialog({ open, onOpenChange, member }: MakeBillingOwnerDialogProps) {
     const { t } = useTranslation();
     const { toast } = useToast();
     const dispatch = useAppDispatch();
     const workspace = useAppSelector((state) => state.workspace);
-    const [transfer, { isLoading }] = useTransferWorkspaceOwnershipMutation();
-    const blocked = transferBlocker(workspace, memberRole(member));
+    const [makeBillingOwner, { isLoading }] = useMakeBillingOwnerMutation();
+    const blocked = billingOwnerBlocker(workspace, memberRole(member));
 
     const handleConfirm = async () => {
-        const result: any = await transfer({ workspaceId: workspace.id, userId: member.id });
+        const result: any = await makeBillingOwner({ workspaceId: workspace.id, userId: member.id });
         if (result?.error) {
-            toast({ description: result.error?.data || t(memberRoles.transferFailed), variant: 'destructive' });
+            toast({ description: result.error?.data || t(memberRoles.billingFailed), variant: 'destructive' });
         } else {
             dispatch(setWorkspace({ ...workspace, ownerId: member.id }));
             dispatch(workspacesApi.util.invalidateTags([WORKSPACE_PERMISSIONS_TAG]));
-            toast({ description: t(memberRoles.transferDone) });
+            toast({ description: t(memberRoles.billingDone) });
         }
         onOpenChange(false);
     };
@@ -55,8 +56,8 @@ export default function TransferOwnershipDialog({ open, onOpenChange, member }: 
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{t(memberRoles.transferTitle, { name: getFullNameFromUser(member) })}</AlertDialogTitle>
-                    <AlertDialogDescription>{blocked ? t(blocked) : t(memberRoles.transferDescription)}</AlertDialogDescription>
+                    <AlertDialogTitle>{t(memberRoles.billingTitle, { name: getFullNameFromUser(member) })}</AlertDialogTitle>
+                    <AlertDialogDescription>{blocked ? t(blocked) : t(memberRoles.billingDescription)}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel disabled={isLoading}>{t(memberRoles.cancel)}</AlertDialogCancel>
@@ -67,7 +68,7 @@ export default function TransferOwnershipDialog({ open, onOpenChange, member }: 
                             handleConfirm();
                         }}
                     >
-                        {t(memberRoles.transferOwnership)}
+                        {t(memberRoles.makeBillingOwner)}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

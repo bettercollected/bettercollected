@@ -15,6 +15,9 @@ export interface WorkspaceMembersDto {
     provisionedBy?: string | null;
     // the workspace's SCIM directory controls this member's role and status
     managedByDirectory?: boolean;
+    // the owner the workspace's plan is billed to (workspace.ownerId); every
+    // owner has the same rights
+    billingOwner?: boolean;
 }
 
 export interface WorkspaceInvitationDto {

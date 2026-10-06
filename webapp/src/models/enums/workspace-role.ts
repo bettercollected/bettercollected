@@ -12,8 +12,15 @@ export const WorkspaceRole = {
 
 export type WorkspaceRole = (typeof WorkspaceRole)[keyof typeof WorkspaceRole];
 
-// What can be given to a member, highest first. Ownership is transferred.
+// What can be given to a member, highest first. Owner only by an owner
+// (assignableRoles): a workspace can have several owners with equal rights.
 export const ASSIGNABLE_ROLES: Array<WorkspaceRole> = [WorkspaceRole.ADMIN, WorkspaceRole.EDITOR, WorkspaceRole.REVIEWER, WorkspaceRole.VIEWER, WorkspaceRole.PRIVACY_OFFICER];
+
+/** The roles the current user may give: Owner too when they are an owner
+ *  (they hold workspace.billing). */
+export function assignableRoles(canGiveOwner: boolean): Array<WorkspaceRole> {
+    return canGiveOwner ? [WorkspaceRole.OWNER, ...ASSIGNABLE_ROLES] : ASSIGNABLE_ROLES;
+}
 
 /** The role a member or invitation stands for, or undefined when unknown. */
 export function toWorkspaceRole(role?: string | null): WorkspaceRole | undefined {
@@ -26,6 +33,12 @@ export function toWorkspaceRole(role?: string | null): WorkspaceRole | undefined
 /** A member's role: the backend's `role`, else the first of `roles`. */
 export function memberRole(member: { role?: string | null; roles?: Array<string> }): WorkspaceRole | undefined {
     return toWorkspaceRole(member.role) ?? toWorkspaceRole(member.roles?.[0]);
+}
+
+/** Whether `member` is the billing owner (the account the plan is billed to):
+ *  the current workspace's ownerId, else what the members list reported. */
+export function isBillingOwnerOf(member: { id: string; billingOwner?: boolean | null }, workspace?: { ownerId?: string } | null): boolean {
+    return workspace?.ownerId ? workspace.ownerId === member.id : !!member.billingOwner;
 }
 
 export const roleLocale = (role: WorkspaceRole) => ({

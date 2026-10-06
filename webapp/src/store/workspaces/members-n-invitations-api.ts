@@ -84,9 +84,11 @@ export const membersNInvitationsApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_MEMBERS_TAG]
         }),
-        transferWorkspaceOwnership: builder.mutation<{ message: string; ownerId: string }, { workspaceId: string; userId: string }>({
+        // Another owner becomes the billing owner (the plan's account); the
+        // previous billing owner stays an owner.
+        makeBillingOwner: builder.mutation<{ message: string; ownerId: string }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId, userId }) => ({
-                url: `/${workspaceId}/members/${userId}/transfer-ownership`,
+                url: `/${workspaceId}/members/${userId}/make-billing-owner`,
                 method: 'POST'
             }),
             invalidatesTags: [WORKSPACE_MEMBERS_TAG]
@@ -120,5 +122,5 @@ export const {
     useDeleteWorkspaceInvitationMutation,
     useResendWorkspaceInvitationMutation, // Export the resend mutation
     useUpdateWorkspaceMemberRoleMutation,
-    useTransferWorkspaceOwnershipMutation
+    useMakeBillingOwnerMutation
 } = membersNInvitationsApi;
