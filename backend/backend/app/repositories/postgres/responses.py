@@ -515,6 +515,35 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def list_by_form_id(self, scope: ResponseScope) -> List[FormResponseDocument]:
         return await self.many(_in_scope(FormResponseRow, scope))
 
+    async def list_by_response_id(self, response_id: str) -> List[FormResponseDocument]:
+        return await self.many(
+            FormResponseRow.response_id == response_id, order_by=(FormResponseRow.id,)
+        )
+
+    async def list_by_submission_uuid(
+        self, submission_uuid: str
+    ) -> List[FormResponseDocument]:
+        return await self.many(
+            FormResponseRow.submission_uuid == submission_uuid,
+            order_by=(FormResponseRow.id,),
+        )
+
+    async def count_unstamped(self, form_id: str) -> int:
+        responses = await self.count(
+            FormResponseRow.form_id == str(form_id),
+            FormResponseRow.workspace_id.is_(None),
+        )
+        dr = ResponseDeletionRequestRow
+        async with self._session() as session:
+            requests = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(dr)
+                    .where(dr.form_id == str(form_id), dr.workspace_id.is_(None))
+                )
+            ).scalar_one()
+        return responses + requests
+
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await self.upsert(response)
 
@@ -525,6 +554,25 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             ResponseDeletionRequestRow,
             FormResponseDeletionRequest,
             ResponseDeletionRequestRow.response_id == response_id,
+        )
+
+    async def find_deletion_request_for(
+        self, response: FormResponseDocument
+    ) -> Optional[FormResponseDeletionRequest]:
+        dr = ResponseDeletionRequestRow
+        in_workspace = (
+            dr.workspace_id.is_(None)
+            if response.workspace_id is None
+            else or_(
+                dr.workspace_id == str(response.workspace_id), dr.workspace_id.is_(None)
+            )
+        )
+        return await self.one_of(
+            dr,
+            FormResponseDeletionRequest,
+            dr.response_id == response.response_id,
+            dr.form_id == str(response.form_id),
+            in_workspace,
         )
 
     async def add_deletion_request(
@@ -636,14 +684,14 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def patch_form_response(
         self,
         form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
+        document_id: PydanticObjectId,
         response: StandardFormResponse,
         workspace_id: PydanticObjectId,
         user=User,
     ):
         response_document = await self.one(
+            FormResponseRow.id == str(document_id),
             FormResponseRow.form_id == _oid(form_id),
-            FormResponseRow.response_id == _oid(response_id),
         )
         if response_document is None:
             raise HTTPException(
@@ -685,17 +733,10 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             response_document.workspace_id = PydanticObjectId(workspace_id)
         return await self.upsert(response_document)
 
-    async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
-        await self.delete_where(
-            FormResponseRow.form_id == _oid(form_id),
-            FormResponseRow.response_id == response_id,
-        )
-        deletion_request = await self.one_of(
-            ResponseDeletionRequestRow,
-            FormResponseDeletionRequest,
-            ResponseDeletionRequestRow.form_id == _oid(form_id),
-            ResponseDeletionRequestRow.response_id == response_id,
-        )
+    async def delete_form_response(self, response: FormResponseDocument):
+        response_id = response.response_id
+        await self.delete_where(FormResponseRow.id == str(response.id))
+        deletion_request = await self.find_deletion_request_for(response)
         if deletion_request:
             deletion_request.status = DeletionRequestStatus.SUCCESS
             await self.upsert(deletion_request, row=ResponseDeletionRequestRow)
@@ -720,9 +761,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             doc = (
                 await session.execute(
                     select(FormResponseRow.doc)
-                    .where(FormResponseRow.response_id == response.response_id)
-                    .order_by(FormResponseRow.created_at, FormResponseRow.id)
-                    .limit(1)
+                    .where(FormResponseRow.id == str(response.id))
                     .with_for_update()
                 )
             ).scalar_one_or_none()
@@ -738,7 +777,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         return stored
 
     async def add_respondent_feedback(
-        self, response_id: str, entry: RespondentFeedback
+        self, response: FormResponseDocument, entry: RespondentFeedback
     ) -> Optional[FormResponseDocument]:
         """Twin of the Mongo ``$push``: the row is locked while the entry is
         appended to the stored history."""
@@ -746,9 +785,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             doc = (
                 await session.execute(
                     select(FormResponseRow.doc)
-                    .where(FormResponseRow.response_id == response_id)
-                    .order_by(FormResponseRow.created_at, FormResponseRow.id)
-                    .limit(1)
+                    .where(FormResponseRow.id == str(response.id))
                     .with_for_update()
                 )
             ).scalar_one_or_none()

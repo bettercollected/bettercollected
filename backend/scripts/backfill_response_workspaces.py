@@ -17,8 +17,10 @@ none. This attributes each one, in Mongo (``MONGO_URI``/``MONGO_DB``) and, when
   ``MASTER_ENCRYPTION_KEYSET``. The plaintext is discarded unread;
 * nothing to authenticate (no answers, plaintext answers, key unavailable) on a
   form linked to several workspaces -> ambiguous: left unstamped, so it stays
-  hidden from every workspace, unless ``--ambiguous first-importer`` gives it
-  to the workspace that linked the form first;
+  hidden from every workspace (there is deliberately no option to guess: an
+  ambiguous record may be any of the workspaces' respondents' data). While a
+  form has such records it cannot be unlinked from one of its workspaces
+  (409), so they never pass to the remaining one;
 * the form is linked to no workspace -> orphaned, left alone.
 
 A deletion request takes its response's workspace (as stamped, or as this run
@@ -45,8 +47,6 @@ from bson import ObjectId
 
 CIPHERTEXT_PREFIX = b"v1:"
 ENCRYPTED_FIELDS = ("answers", "hidden_fields", "internal_answers")
-
-LEAVE, FIRST_IMPORTER = "leave", "first-importer"
 
 
 # --------------------------------------------------------------- attribution
@@ -85,12 +85,10 @@ class Attributor:
         self,
         links: Dict[str, List[str]],
         opens: Optional[Callable[[str, str, bytes], bool]],
-        ambiguous: str = LEAVE,
     ):
         # form_id -> workspace ids, first linked first
         self.links = links
         self.opens = opens
-        self.ambiguous = ambiguous
 
     def by_form(self, form_id: str) -> Tuple[str, Optional[str]]:
         workspaces = self.links.get(str(form_id)) or []
@@ -98,8 +96,6 @@ class Attributor:
             return "orphaned", None
         if len(workspaces) == 1:
             return "single_workspace", workspaces[0]
-        if self.ambiguous == FIRST_IMPORTER:
-            return "ambiguous_first_importer", workspaces[0]
         return "ambiguous", None
 
     def response(self, record: Dict[str, Any]) -> Tuple[str, Optional[str]]:
@@ -273,11 +269,10 @@ async def backfill_store(
     store,
     apply: bool,
     opens: Optional[Callable[[str, str, bytes], bool]],
-    ambiguous: str = LEAVE,
     batch_size: int = 500,
 ) -> Dict[str, Any]:
     links = await store.links()
-    attributor = Attributor(links, opens, ambiguous)
+    attributor = Attributor(links, opens)
     report: Dict[str, Any] = {
         "forms_linked_to_several_workspaces": sum(
             1 for workspaces in links.values() if len(workspaces) > 1
@@ -333,18 +328,15 @@ async def backfill_store(
     return report
 
 
-async def run(
-    stores, apply: bool, opens=None, ambiguous: str = LEAVE, batch_size: int = 500
-) -> Dict[str, Any]:
+async def run(stores, apply: bool, opens=None, batch_size: int = 500) -> Dict[str, Any]:
     report: Dict[str, Any] = {
         "mode": "apply" if apply else "dry-run",
-        "ambiguous": ambiguous,
         "encryption_key": opens is not None,
         "stores": {},
     }
     for store in stores:
         report["stores"][store.name] = await backfill_store(
-            store, apply, opens, ambiguous, batch_size
+            store, apply, opens, batch_size
         )
     return report
 
@@ -362,14 +354,6 @@ def _parse(argv: List[str]) -> argparse.Namespace:
         choices=("all", "mongo", "postgres"),
         default="all",
         help="all = Mongo, plus Postgres when DATABASE_URL is set",
-    )
-    parser.add_argument(
-        "--ambiguous",
-        choices=(LEAVE, FIRST_IMPORTER),
-        default=LEAVE,
-        help="records of a form linked to several workspaces that the "
-        "encryption cannot attribute: leave them hidden (default) or give "
-        "them to the workspace that linked the form first",
     )
     parser.add_argument("--batch-size", type=int, default=500)
     return parser.parse_args(argv)
@@ -403,7 +387,6 @@ async def _main(argv: List[str]) -> int:
             stores,
             apply=args.apply,
             opens=default_opener(),
-            ambiguous=args.ambiguous,
             batch_size=args.batch_size,
         )
     finally:

@@ -275,6 +275,7 @@ async def test_response_listings_compose_over_forms(sessions):
             dumped.pop(key, None)
         submitted.append(dumped)
     assert submitted[0] == submitted[1]
+    r1 = await mongo.get_response("r1")  # the same document in both stores
     await parity(
         mongo,
         postgres,
@@ -284,7 +285,7 @@ async def test_response_listings_compose_over_forms(sessions):
                 lambda: (f1, None, ["zzz"], at(9)),
             ),
             ("find_deletion_request_by_response_id", lambda: ("r3",)),
-            ("delete_form_response", lambda: ("f1", "r1")),
+            ("delete_form_response", lambda: (r1,)),
             ("get_response", lambda: ("r1",)),
             ("delete_by_form_id_except", lambda: (f1, ["r2"])),
             ("list_by_form_id", lambda: (f1,)),
@@ -560,6 +561,7 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
     await seed_both((mongo, postgres), "save", seed)
+    gone = response("f1", "nope", 2)  # never stored
 
     def entry(n, status=None, message=None):
         return RespondentFeedback(
@@ -575,9 +577,9 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
         mongo,
         postgres,
         [
-            ("add_respondent_feedback", lambda: ("r1", entry(1, status="Selected"))),
-            ("add_respondent_feedback", lambda: ("r1", entry(2, message=b"v1:x"))),
-            ("add_respondent_feedback", lambda: ("nope", entry(3))),  # None
+            ("add_respondent_feedback", lambda: (seed, entry(1, status="Selected"))),
+            ("add_respondent_feedback", lambda: (seed, entry(2, message=b"v1:x"))),
+            ("add_respondent_feedback", lambda: (gone, entry(3))),  # None
             ("get_response", lambda: ("r1",)),
         ],
     )
@@ -588,7 +590,7 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
         assert stored.respondent_feedback[1].message == b"v1:x"
         assert stored.respondent_feedback[1].created_at == at(12)
         assert "respondent" in str(stored.answers)
-        assert await repo.add_respondent_feedback("nope", entry(4)) is None
+        assert await repo.add_respondent_feedback(gone, entry(4)) is None
 
 
 async def test_responses_are_read_per_workspace(sessions):
@@ -695,3 +697,91 @@ async def test_responses_are_read_per_workspace(sessions):
         assert [r.response_id for r in await repo.list_by_form_id(in_a)] == ["a1"]
         assert await repo.list_by_form_id(in_b) == []
         assert (await repo.get_response("old")) is not None
+
+
+async def test_writes_to_one_workspaces_copy_never_touch_anothers(sessions):
+    """#768: workspaces A and B each hold a copy of the same provider
+    response (same response_id). Internal answers, feedback, a respondent's
+    edit and a deletion go to the copy they were given, by its id, in both
+    stores; B's copy stays exactly as it was."""
+    from common.models.standard_form import InternalAnswerMeta, RespondentFeedback
+
+    a, b = PydanticObjectId(), PydanticObjectId()
+    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    mongo = FormResponseRepository(crypto=container.crypto())
+    postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
+
+    def copy(workspace_id):
+        return response(
+            "p1",
+            "shared",
+            1,
+            answers={"q": {"text": "original"}},
+            workspace_id=workspace_id,
+            dataOwnerIdentifier="r@x",
+            provider="google",
+        )
+
+    in_a, in_b = copy(a), copy(b)
+    await seed_both((mongo, postgres), "save", in_a, in_b)
+    await seed_both(
+        (mongo, postgres),
+        "save",
+        response("p1", "legacy", 2, answers={}),  # stored before #768
+    )
+    for repo in (mongo, postgres):
+        await repo.add_deletion_request(in_b, "shared")
+    b_before = {}
+    for repo in (mongo, postgres):
+        copies = await repo.list_by_response_id("shared")
+        assert {c.workspace_id for c in copies} == {a, b}
+        b_before[repo] = strip(next(c for c in copies if c.workspace_id == b))
+        assert (await repo.find_deletion_request_for(in_b)).workspace_id == b
+        assert await repo.find_deletion_request_for(in_a) is None
+        assert await repo.count_unstamped("p1") == 1
+
+    edited = in_a.model_copy(deep=True)
+    edited.internal_answers = b"v1:internal"
+    edited.internal_answers_meta = {
+        "x": InternalAnswerMeta(updated_by="u1", updated_at=at(5))
+    }
+    edited.internal_answers_version = 1
+    feedback = RespondentFeedback(
+        id="e1", status="Selected", created_at=at(6), created_by="u1"
+    )
+    user = User(id=str(PydanticObjectId()), sub="r@x")
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("save_internal_answers", lambda: (edited, 0)),
+            ("add_respondent_feedback", lambda: (in_a, feedback)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        await repo.patch_form_response(
+            "p1",
+            in_a.id,
+            StandardFormResponse(answers={"q": {"text": "edited"}}),
+            a,
+            user,
+        )
+
+    for repo in (mongo, postgres):
+        copies = {c.workspace_id: c for c in await repo.list_by_response_id("shared")}
+        assert copies[a].internal_answers == b"v1:internal"
+        assert [e.id for e in copies[a].respondent_feedback] == ["e1"]
+        assert "edited" not in str(copies[a].answers)  # encrypted under A now
+        assert strip(copies[b]) == b_before[repo]
+
+    for repo in (mongo, postgres):
+        await repo.delete_form_response(in_a)
+        copies = await repo.list_by_response_id("shared")
+        assert [c.workspace_id for c in copies] == [b]
+        assert strip(copies[0]) == b_before[repo]
+        # B's deletion request was not completed by deleting A's copy
+        request = await repo.find_deletion_request_for(in_b)
+        assert request.status == "pending"
+        await repo.delete_form_response(in_b)
+        assert await repo.list_by_response_id("shared") == []
+        assert (await repo.find_deletion_request_for(in_b)).status == "success"

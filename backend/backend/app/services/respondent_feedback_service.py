@@ -21,7 +21,7 @@ from backend.app.models.dtos.respondent_feedback_dto import (
 from backend.app.models.enum.permission import Permission
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.response_scope import response_in_workspace
+from backend.app.repositories.response_scope import find_response_in_workspace
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.services.respondent_feedback import (
@@ -90,15 +90,14 @@ class RespondentFeedbackService:
             raise HTTPException(
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
-        response = await self._form_response_repo.get_response(response_id)
-        if (
-            not response
-            or str(response.form_id) != str(workspace_form.form_id)
-            # collected through another workspace (#768)
-            or not await response_in_workspace(
-                self._workspace_form_repo, response, workspace_id
-            )
-        ):
+        # this workspace's copy (#768); another workspace's is never touched
+        response = await find_response_in_workspace(
+            self._form_response_repo,
+            self._workspace_form_repo,
+            workspace_id,
+            response_id,
+        )
+        if not response or str(response.form_id) != str(workspace_form.form_id):
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form_settings = workspace_form.settings
         if not form_settings.respondent_feedback_enabled:
@@ -123,9 +122,7 @@ class RespondentFeedbackService:
             created_by=str(user.id),
             created_by_email=user.sub,
         )
-        saved = await self._form_response_repo.add_respondent_feedback(
-            response.response_id, entry
-        )
+        saved = await self._form_response_repo.add_respondent_feedback(response, entry)
         if saved is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
 

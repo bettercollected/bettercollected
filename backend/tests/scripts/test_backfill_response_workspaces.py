@@ -22,9 +22,9 @@ from backend.db.models import FormResponseRow, ResponseDeletionRequestRow
 from common.db.canonical import checksum
 from common.services.crypto_service import crypto_service
 from scripts.backfill_response_workspaces import (
-    FIRST_IMPORTER,
     MongoStore,
     PostgresStore,
+    _parse,
     default_opener,
     run,
 )
@@ -208,18 +208,16 @@ async def test_without_the_key_shared_forms_stay_ambiguous(store):
     assert stamped["s1"] == str(WS_A)
 
 
-async def test_first_importer_policy_gives_ambiguous_ones_to_the_first_workspace(
-    store,
-):
-    report = await run(
-        [store], apply=True, opens=default_opener(), ambiguous=FIRST_IMPORTER
-    )
-
-    counts = report["stores"][store.name]
-    assert counts["responses"]["ambiguous_first_importer"] == 1
-    stamped = await _stamped(store)
-    assert stamped["sh_x"] == str(WS_A) and stamped["dr:sh_x"] == str(WS_A)
-    assert stamped["sh_b"] == str(WS_B)  # attributed ones keep their workspace
+def test_there_is_no_option_to_guess_ambiguous_records():
+    """An ambiguous record may hold any linked workspace's respondents'
+    data: it is never handed to one of them by a rule of thumb."""
+    with pytest.raises(SystemExit):
+        _parse(["--apply", "--ambiguous", "first-importer"])
+    assert vars(_parse(["--apply"])) == {
+        "apply": True,
+        "store": "all",
+        "batch_size": 500,
+    }
 
 
 async def test_after_the_backfill_each_workspace_reads_its_own(store):

@@ -92,3 +92,29 @@ async def response_in_workspace(
         return str(stamped) == str(workspace_id)
     scope = await response_scope(workspace_form_repo, workspace_id, [response.form_id])
     return str(response.form_id) in scope.legacy_form_ids
+
+
+async def pick_in_workspace(
+    workspace_form_repo, copies: Iterable[Any], workspace_id: PydanticObjectId
+) -> Optional[Any]:
+    """Of the stored copies of one response (a provider response is stored
+    once per workspace that imported it), the one that belongs to
+    ``workspace_id``, or None. Writes go to that copy by its ``_id``."""
+    for copy in copies:
+        if await response_in_workspace(workspace_form_repo, copy, workspace_id):
+            return copy
+    return None
+
+
+async def find_response_in_workspace(
+    form_response_repo,
+    workspace_form_repo,
+    workspace_id: PydanticObjectId,
+    response_id: str,
+) -> Optional[Any]:
+    """The copy of ``response_id`` that belongs to ``workspace_id``."""
+    return await pick_in_workspace(
+        workspace_form_repo,
+        await form_response_repo.list_by_response_id(str(response_id)),
+        workspace_id,
+    )

@@ -381,6 +381,34 @@ class FormResponseRepository(BaseRepository):
     async def list_by_form_id(self, scope: ResponseScope) -> List[FormResponseDocument]:
         return await FormResponseDocument.find(scope.mongo_filter()).to_list()
 
+    # A provider response is stored once per workspace that imported it
+    # (#768): these return every copy; the caller picks its workspace's
+    # (``response_scope.find_response_in_workspace``) and writes by its _id.
+    async def list_by_response_id(self, response_id: str) -> List[FormResponseDocument]:
+        return (
+            await FormResponseDocument.find({"response_id": response_id})
+            .sort("_id")
+            .to_list()
+        )
+
+    async def list_by_submission_uuid(
+        self, submission_uuid: str
+    ) -> List[FormResponseDocument]:
+        return (
+            await FormResponseDocument.find({"submission_uuid": submission_uuid})
+            .sort("_id")
+            .to_list()
+        )
+
+    async def count_unstamped(self, form_id: str) -> int:
+        """Responses and deletion requests of ``form_id`` stored before #768
+        (no workspace_id) that the backfill has not attributed yet."""
+        query = {"form_id": str(form_id), "workspace_id": None}
+        return (
+            await FormResponseDocument.find(query).count()
+            + await FormResponseDeletionRequest.find(query).count()
+        )
+
     @write_op
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await response.save()
@@ -389,6 +417,19 @@ class FormResponseRepository(BaseRepository):
         self, response_id: str
     ) -> Optional[FormResponseDeletionRequest]:
         return await FormResponseDeletionRequest.find_one({"response_id": response_id})
+
+    async def find_deletion_request_for(
+        self, response: FormResponseDocument
+    ) -> Optional[FormResponseDeletionRequest]:
+        """The deletion request of this stored copy: same response and form,
+        in its workspace (or stored before #768 without one)."""
+        return await FormResponseDeletionRequest.find_one(
+            {
+                "response_id": response.response_id,
+                "form_id": response.form_id,
+                "workspace_id": {"$in": [response.workspace_id, None]},
+            }
+        )
 
     @write_op(replay=True)
     async def add_deletion_request(
@@ -493,13 +534,15 @@ class FormResponseRepository(BaseRepository):
     async def patch_form_response(
         self,
         form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
+        document_id: PydanticObjectId,
         response: StandardFormResponse,
         workspace_id: PydanticObjectId,
         user=User,
     ):
+        """Merge a respondent's edit into one stored copy, by its ``_id`` (the
+        copy the caller checked belongs to ``workspace_id``)."""
         response_document = await FormResponseDocument.find_one(
-            {"form_id": str(form_id), "response_id": str(response_id)}
+            {"_id": PydanticObjectId(document_id), "form_id": str(form_id)}
         )
         if response_document is None:
             raise HTTPException(
@@ -542,13 +585,12 @@ class FormResponseRepository(BaseRepository):
         return await response_document.save()
 
     @write_op
-    async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
-        await FormResponseDocument.find(
-            {"form_id": str(form_id), "response_id": response_id}
-        ).delete()
-        deletion_request = await FormResponseDeletionRequest.find_one(
-            {"form_id": str(form_id), "response_id": response_id}
-        )
+    async def delete_form_response(self, response: FormResponseDocument):
+        """Delete one stored copy, by its ``_id``; its deletion request (in
+        its workspace) counts as done. Other workspaces' copies stay."""
+        response_id = response.response_id
+        await FormResponseDocument.find({"_id": response.id}).delete()
+        deletion_request = await self.find_deletion_request_for(response)
         if deletion_request:
             deletion_request.status = DeletionRequestStatus.SUCCESS
             await deletion_request.save()
@@ -581,8 +623,9 @@ class FormResponseRepository(BaseRepository):
             if expected_version
             else {"internal_answers_version": {"$in": [None, 0]}}
         )
+        # by _id: the copy the caller loaded and checked (#768)
         return await FormResponseDocument.find_one(
-            {"response_id": response.response_id, **version_match}
+            {"_id": response.id, **version_match}
         ).update(
             {
                 "$set": {
@@ -599,20 +642,23 @@ class FormResponseRepository(BaseRepository):
 
     @write_op(replay=True)
     async def add_respondent_feedback(
-        self, response_id: str, entry: RespondentFeedback
+        self, response: FormResponseDocument, entry: RespondentFeedback
     ) -> Optional[FormResponseDocument]:
-        """Append one feedback entry (its message already encrypted) to a
-        response's history, touching nothing else. Returns the stored
-        document, or None when the response is gone."""
+        """Append one feedback entry (its message already encrypted) to the
+        history of one stored copy (by ``_id``, the copy the caller checked),
+        touching nothing else. Returns the stored document, or None when the
+        response is gone."""
         encoded = to_bson_dict(
-            FormResponseDocument(response_id=response_id, respondent_feedback=[entry])
+            FormResponseDocument(
+                response_id=response.response_id, respondent_feedback=[entry]
+            )
         )["respondent_feedback"][0]
         # ``$push`` refuses a null field, which every response saved before
         # this feature carries: make it an empty list first.
         await FormResponseDocument.find_one(
-            {"response_id": response_id, "respondent_feedback": None}
+            {"_id": response.id, "respondent_feedback": None}
         ).update({"$set": {"respondent_feedback": []}})
-        return await FormResponseDocument.find_one({"response_id": response_id}).update(
+        return await FormResponseDocument.find_one({"_id": response.id}).update(
             {"$push": {"respondent_feedback": encoded}},
             response_type=UpdateResponse.NEW_DOCUMENT,
         )

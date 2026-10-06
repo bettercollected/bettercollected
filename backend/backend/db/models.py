@@ -299,7 +299,16 @@ class FormResponseRow(Base, BaseRow):
     # the workspace it was collected in or imported into (0015, #768)
     workspace_id = S.text("workspace_id")
     __table_args__ = (
-        UniqueConstraint("response_id"),
+        # one copy of a provider response per workspace (0015, #768); rows
+        # stored before workspace_id existed count as one more "workspace"
+        Index(
+            "uq_form_responses_response_workspace",
+            "response_id",
+            "workspace_id",
+            unique=True,
+            postgresql_nulls_not_distinct=True,
+            postgresql_where=text("response_id IS NOT NULL"),
+        ),
         Index("ix_form_responses_form_created", "form_id", "created_at"),
         Index(
             "ix_form_responses_workspace_form_created",

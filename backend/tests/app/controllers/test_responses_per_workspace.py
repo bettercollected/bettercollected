@@ -324,3 +324,180 @@ class TestWrites:
     ):
         stored = await _stored(workspace_form_response["response_id"])
         assert stored.workspace_id == PydanticObjectId(workspace.id)
+
+
+# ------------------------------------------- copies sharing a provider response id
+async def _copies(response_id="s1"):
+    """workspace id -> that workspace's stored copy of ``response_id``."""
+    return {
+        copy.workspace_id: copy
+        for copy in await container.form_response_repo().list_by_response_id(
+            response_id
+        )
+    }
+
+
+@pytest.fixture()
+async def copies(workspace, workspace_1):
+    """Both workspaces imported the same provider response ``s1`` (each keeps
+    its own copy, encrypted under its own context); A also has ``a1``."""
+    await _import(workspace, testUser, ["s1", "a1"], "shared-a")
+    await _import(workspace_1, testUser1, ["s1"], "shared-b")
+    return workspace, workspace_1
+
+
+class TestCopiesOfOneProviderResponse:
+    async def test_each_workspace_reads_its_own_copy(
+        self, client: AsyncClient, copies, test_user_cookies, test_user_cookies_1
+    ):
+        a, b = copies
+        assert set(await _copies()) == {a.id, b.id}
+        for workspace, cookies in ((a, test_user_cookies), (b, test_user_cookies_1)):
+            single = await client.get(
+                f"{_url(workspace)}/submissions/s1", cookies=cookies
+            )
+            assert single.status_code == 200, single.text
+            assert single.json()["response"]["answers"]["q1"]["text"] == "s1"
+        receipt = await client.get(f"{_url(b)}/submissions/by-uuid/uuid-s1")
+        assert receipt.status_code == 200, receipt.text
+        assert receipt.json()["form"]["settings"]["customUrl"] == "shared-b"
+
+    async def test_staff_writes_on_one_copy_leave_the_other_untouched(
+        self, client: AsyncClient, copies, test_user_cookies, test_user_cookies_1
+    ):
+        a, b = copies
+        b_before = (await _copies())[b.id].model_dump()
+        base = _url(a)
+        noted = await client.patch(
+            f"{base}/forms/{FORM_ID}/submissions/s1/internal-answers",
+            cookies=test_user_cookies,
+            json={"answers": {"nope": None}},
+        )
+        # the form has no internal fields: refused on A's copy, not a 404
+        assert noted.status_code == 400, noted.text
+        await container.workspace_form_repo().save_workspace_form(
+            workspace_id=a.id,
+            form_id=FORM_ID,
+            user_id=testUser.id,
+            workspace_form_settings=WorkspaceFormSettings(
+                custom_url="shared-a",
+                provider="google",
+                respondent_feedback_enabled=True,
+                feedback_statuses=["Selected"],
+            ),
+        )
+        posted = await client.post(
+            f"{base}/forms/{FORM_ID}/submissions/s1/feedback",
+            cookies=test_user_cookies,
+            json={"status": "Selected", "message": "for A's respondent"},
+        )
+        assert posted.status_code == 200, posted.text
+        filed = await client.delete(
+            f"{_url(b)}/submissions/s1", cookies=test_user_cookies_1
+        )
+        assert filed.status_code == 200, filed.text
+        b_before = (await _copies())[b.id].model_dump()
+
+        stored = await _copies()
+        assert [e.status for e in stored[a.id].respondent_feedback] == ["Selected"]
+        assert stored[b.id].model_dump() == b_before
+
+        # A's staff delete A's copy; B's copy and B's pending request stay
+        await container.workspace_form_service().delete_form_response(
+            a.id, FORM_ID, "s1", testUser
+        )
+        stored = await _copies()
+        assert set(stored) == {b.id}
+        assert stored[b.id].model_dump() == b_before
+        request = await container.form_response_repo().find_deletion_request_for(
+            stored[b.id]
+        )
+        assert request.status == "pending"
+        listed = await client.get(
+            f"{_url(b)}/forms/{FORM_ID}/submissions", cookies=test_user_cookies_1
+        )
+        assert _ids(listed.json()["items"]) == {"s1"}
+
+
+# -------------------------------------------------- unlinking and the backfill
+class TestUnlinkWithUnattributedResponses:
+    async def test_unlink_is_refused_until_the_backfill_attributed_them(
+        self, client: AsyncClient, shared, test_user_cookies, test_user_cookies_1
+    ):
+        from backend.app.schemas.standard_form_response import FormResponseDocument
+        from common.services.crypto_service import crypto_service
+        from scripts.backfill_response_workspaces import (
+            MongoStore,
+            PostgresStore,
+            default_opener,
+            run,
+        )
+        from tests.conftest import TEST_MONGO_DB
+
+        a, b = shared
+        # stored before #768 through A's import: no workspace_id, encrypted
+        # under A's context; hidden from both while the form is shared
+        await container.form_response_repo().save(
+            FormResponseDocument(
+                form_id=FORM_ID,
+                response_id="old",
+                provider="google",
+                dataOwnerIdentifier="old@example.com",
+                answers=crypto_service.encrypt(
+                    workspace_id=a.id, form_id=FORM_ID, data='{"q1": {"text": "x"}}'
+                ),
+            )
+        )
+        url = f"{_url(a)}/forms/{FORM_ID}"
+        refused = await client.delete(url, cookies=test_user_cookies)
+        assert refused.status_code == 409, refused.text
+        assert "backfill" in refused.text
+        listed = await client.get(
+            f"{_url(b)}/forms/{FORM_ID}/submissions", cookies=test_user_cookies_1
+        )
+        assert _ids(listed.json()["items"]) == {"rb1"}  # still linked, still B's
+
+        flags, stores = container.flags(), []
+        if flags.writes_mongo("responses"):
+            stores.append(MongoStore(container.database_client()[TEST_MONGO_DB]))
+        if flags.writes_postgres("responses"):
+            stores.append(PostgresStore(container.pg_engine()))
+        await run(stores, apply=True, opens=default_opener())
+        assert (await _stored("old")).workspace_id == a.id
+
+        removed = await client.delete(url, cookies=test_user_cookies)
+        assert removed.status_code == 200, removed.text
+        assert await _stored("old") is None  # A's, gone with A's link
+        listed = await client.get(
+            f"{_url(b)}/forms/{FORM_ID}/submissions", cookies=test_user_cookies_1
+        )
+        assert _ids(listed.json()["items"]) == {"rb1"}
+
+
+class TestAccountDeletion:
+    async def test_a_deleted_workspace_takes_only_its_own_responses(
+        self, client: AsyncClient, shared, test_user_cookies_1
+    ):
+        a, b = shared
+        await container.workspace_form_service().delete_forms_with_ids(
+            form_ids=[FORM_ID], workspace_ids=[a.id], user_id=testUser.id
+        )
+        assert await _stored("ra1") is None and await _stored("ra2") is None
+        assert await container.form_repo().get_form_document_by_id(FORM_ID)
+        assert await container.workspace_form_repo().find_workspace_form(b.id, FORM_ID)
+        assert not await container.workspace_form_repo().find_workspace_form(
+            a.id, FORM_ID
+        )
+        listed = await client.get(
+            f"{_url(b)}/forms/{FORM_ID}/submissions", cookies=test_user_cookies_1
+        )
+        assert _ids(listed.json()["items"]) == {"rb1"}
+
+    async def test_a_form_left_in_no_workspace_goes_entirely(self, shared):
+        a, b = shared
+        await container.workspace_form_service().delete_forms_with_ids(
+            form_ids=[FORM_ID], workspace_ids=[a.id, b.id], user_id=testUser.id
+        )
+        for response_id in ("ra1", "ra2", "rb1"):
+            assert await _stored(response_id) is None
+        assert not await container.form_repo().get_form_document_by_id(FORM_ID)
