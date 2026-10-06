@@ -95,5 +95,19 @@
       "1": "Move your arrow keys (↕), and press Enter to see the magic.",
       "2": "Press Esc to close the builder spotlight."
     }
+  },
+  "PLAIN_LANGUAGE": {
+    "LABEL": "Plain-language tips",
+    "INTRO": "Plain language (B1): tips only, nothing is blocked.",
+    "ANNOUNCE_one": "{{count}} plain-language tip for this text",
+    "ANNOUNCE_other": "{{count}} plain-language tips for this text",
+    "LONG_SENTENCE": "This sentence has {{words}} words. Keep it to {{limit}} or fewer: split it in two.",
+    "PASSIVE_NL": "“{{match}}” is passive. Say who does it, e.g. “we sturen u” instead of “u wordt gestuurd”.",
+    "PASSIVE_EN": "“{{match}}” is passive. Say who does it, e.g. “we will send” instead of “will be sent”.",
+    "JARGON": "“{{match}}” is officialese. Plainer: “{{suggestion}}”.",
+    "AND_OR": "“{{match}}” asks two things at once. Ask one thing per question.",
+    "TWO_QUESTIONS": "This asks two questions. Make it two separate questions.",
+    "JOINED_QUESTIONS": "“{{match}} …” starts a second question. Ask it separately.",
+    "DISMISS": "Dismiss tip"
   }
 }
