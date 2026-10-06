@@ -1,8 +1,11 @@
 """Postgres twins of the ai- and analytics-group repositories."""
 
+import datetime as dt
 from typing import List, Optional
 
 from beanie import PydanticObjectId
+from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from backend.app.repositories.postgres.forms import _oid
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
@@ -10,6 +13,7 @@ from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.mcp_audit_log import MCPAuditLogDocument
+from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.db.models import (
     AiPreferenceMemoryRow,
@@ -17,9 +21,10 @@ from backend.db.models import (
     FormAiSessionRow,
     FormFlowEventRow,
     McpAuditLogRow,
+    RateLimitCounterRow,
     WorkspaceAiProfileRow,
 )
-from common.db import PostgresRepositoryBase
+from common.db import PostgresRepositoryBase, from_row_doc, row_values
 
 
 class PostgresFlowEventRepository(PostgresRepositoryBase):
@@ -113,3 +118,47 @@ class PostgresMcpAuditLogRepository(PostgresRepositoryBase):
         self, workspace_id: PydanticObjectId
     ) -> List[MCPAuditLogDocument]:
         return await self.many(McpAuditLogRow.workspace_id == _oid(workspace_id))
+
+
+class PostgresRateLimitRepository(PostgresRepositoryBase):
+    row = RateLimitCounterRow
+    document = RateLimitCounterDocument
+
+    async def hit(self, counter_id: str, expires_at: dt.datetime) -> int:
+        now = dt.datetime.now(dt.timezone.utc)
+        names = self._column_names()
+        locked = (
+            select(RateLimitCounterRow.doc)
+            .where(RateLimitCounterRow.id == counter_id)
+            .with_for_update()
+        )
+        async with self._session() as session, session.begin():
+            doc = (await session.execute(locked)).scalar_one_or_none()
+            if doc is None:
+                first = RateLimitCounterDocument(
+                    id=PydanticObjectId(counter_id), hits=1, expires_at=expires_at
+                )
+                values = row_values(first)
+                inserted = await session.execute(
+                    pg_insert(RateLimitCounterRow)
+                    .values({names[k]: v for k, v in values.items()})
+                    .on_conflict_do_nothing(index_elements=[names["id"]])
+                    .returning(RateLimitCounterRow.id)
+                )
+                if inserted.scalar_one_or_none() is not None:
+                    created = True
+                else:
+                    # another request created it first: count on that one
+                    doc = (await session.execute(locked)).scalar_one()
+                    created = False
+            else:
+                created = False
+            if not created:
+                counter = from_row_doc(RateLimitCounterDocument, doc)
+                counter.hits += 1
+                counter.updated_at = now
+                await session.execute(self._upsert_statement(row_values(counter)))
+                return counter.hits
+        # no TTL index here: expired counters go whenever a new one starts
+        await self.delete_where(RateLimitCounterRow.expires_at <= now)
+        return 1

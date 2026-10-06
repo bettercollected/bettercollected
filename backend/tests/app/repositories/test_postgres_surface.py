@@ -35,6 +35,7 @@ from backend.app.repositories.form_ai_insight_repository import FormAIInsightRep
 from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
+from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.ai import (
     PostgresAIPreferenceMemoryRepository,
@@ -42,6 +43,7 @@ from backend.app.repositories.postgres.ai import (
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
     PostgresMcpAuditLogRepository,
+    PostgresRateLimitRepository,
     PostgresWorkspaceAIProfileRepository,
 )
 from backend.app.repositories.postgres.responses import (
@@ -137,6 +139,7 @@ PAIRS = [
     (WorkspaceAIProfileRepository, PostgresWorkspaceAIProfileRepository),
     (AIPreferenceMemoryRepository, PostgresAIPreferenceMemoryRepository),
     (McpAuditLogRepository, PostgresMcpAuditLogRepository),
+    (RateLimitRepository, PostgresRateLimitRepository),
 ]
 
 

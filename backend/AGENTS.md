@@ -555,3 +555,8 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`
   scattered through services.
+- **Client addresses and rate limits:** read a client's address with `utils/client_ip.client_ip(request,
+  settings.api_settings.TRUSTED_PROXIES)` (X-Forwarded-For only from trusted proxies, read from the right), never the
+  raw header. `services/rate_limiter.FixedWindowRateLimiter` counts requests per scope, client and window in
+  `rate_limit_counters` (analytics group, twin revision 0012), shared by every replica; counter ids are keyed hashes,
+  so no address is stored. The public `flow-events` endpoint uses it (#767).
