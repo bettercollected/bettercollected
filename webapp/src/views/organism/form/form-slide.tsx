@@ -20,6 +20,7 @@ import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-l
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { validateSlide } from '@app/utils/vvalidation-utils';
+import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
@@ -141,6 +142,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         };
 
         formData.append('response', JSON.stringify(postBody));
+        const aiNoticeToken = aiNoticeTokenToSend(standardForm);
+        if (aiNoticeToken) formData.append('ai_notice_token', aiNoticeToken);
         files.forEach((fileObj) => {
             formData.append('files', fileObj.file, fileObj.fileName);
             formData.append('file_field_ids', fileObj.fieldId);

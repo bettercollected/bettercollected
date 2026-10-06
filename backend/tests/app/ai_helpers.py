@@ -69,3 +69,19 @@ async def disable_ai(workspace) -> None:
     await container.workspace_repo().set_fields(
         workspace, {"ai_enabled": False, "ai_provider": None}
     )
+
+
+async def submit_with_notice(workspace_id, form_id, response):
+    """Store ``response`` the way the form page submits it: with the AI notice
+    token the page got with the form when it shows the notice (#752), so it
+    is stamped exactly when a respondent would have seen the notice now."""
+    from backend.app.services.ai.notice_token import stamp_response, token_for_form
+
+    association = await container.workspace_form_repo().find_workspace_form(
+        workspace_id, form_id
+    )
+    token = token_for_form(workspace_id, association)
+    stamp_response(response, token, workspace_id, association)
+    return await container.form_response_service().submit_form_response(
+        form_id, response, workspace_id
+    )

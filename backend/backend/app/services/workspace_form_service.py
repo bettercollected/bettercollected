@@ -39,6 +39,7 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.actions_service import ActionService
+from backend.app.services.ai.notice_token import stamp_response as stamp_ai_notice
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -592,6 +593,7 @@ class WorkspaceFormService:
         form_files: Optional[Any],
         response: StandardFormResponseCamelModel,
         user: User,
+        ai_notice_token: Optional[str] = None,
     ):
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_in_workspace(
@@ -680,6 +682,10 @@ class WorkspaceFormService:
                 form_id=str(form_id),
             )
 
+        # An edit keeps the response's AI notice stamp; a page that showed the
+        # notice (valid token, #752) stamps it now. The body never does.
+        stamp_ai_notice(response, ai_notice_token, workspace_id, workspace_form)
+
         form_response = await self.form_response_service.patch_form_response(
             workspace_id=workspace_id,
             form_id=form_id,
@@ -697,6 +703,7 @@ class WorkspaceFormService:
         response: StandardFormResponse,
         user: User,
         form_files: list[FormFileResponse] = None,
+        ai_notice_token: Optional[str] = None,
     ):
         # Internal fields are filled in by staff afterwards — values a
         # respondent submission carries for them are dropped, never stored.
@@ -745,6 +752,10 @@ class WorkspaceFormService:
         )
         if expiry:
             response.expiration, response.expiration_type = expiry
+        # AI insights analyse a response only when its page showed the AI
+        # notice (#752): the signed token the form fetch handed out, checked
+        # against the form's current setting. Never what the body claims.
+        stamp_ai_notice(response, ai_notice_token, workspace_id, workspace_form)
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         latest_version_of_form = await self.form_service.get_latest_version_of_form(
             form_id=form_id

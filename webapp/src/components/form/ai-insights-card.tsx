@@ -14,7 +14,7 @@ import { useGenerateAIInsightsMutation, useGetAIInsightsQuery, useUpdateAIInsigh
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 // What a summary sends (backend services/ai/insights.py project_responses).
-const INSIGHTS_SENDS = "this form's questions and the answers of responses submitted since AI insights were allowed, including free-text answers as written; email and phone answers are replaced by a placeholder and staff-only fields are left out";
+const INSIGHTS_SENDS = "this form's questions and the answers of responses submitted from a page that showed the AI notice, including free-text answers as written; email and phone answers are replaced by a placeholder and staff-only fields are left out";
 
 interface InsightTheme {
     title: string;
@@ -31,14 +31,17 @@ interface Insight {
     totalResponses: number;
     generatedAt: string;
     analysedSince?: string | null;
+    /** Responses whose page showed the AI notice (#752); absent on older summaries. */
+    noticeShownResponses?: number | null;
 }
 
 /**
  * AI summary of a form's responses (plan §2 'response summaries', P3).
  * Needs the workspace AI opt-in (#715) and the form's own "Allow AI insights
  * on responses" (#716, ai.manage: admins): while that is on, respondents see
- * a notice naming the provider, and only responses submitted afterwards are
- * analysed. Running and reading summaries is response.read, like the answers
+ * a notice naming the provider, and only responses submitted from a page that
+ * showed it are analysed (#752: the page sends back the signed notice token;
+ * a page opened before the setting was on has none). Running and reading summaries is response.read, like the answers
  * they summarise. The AI reads answer content ONLY when someone clicks
  * Summarize; free-text answers are sent as written, and the copy says so.
  */
@@ -139,8 +142,8 @@ export default function AIInsightsCard() {
             ) : aiEnabled && !formAllows ? (
                 <div className="flex flex-col items-start gap-2.5">
                     <p className="max-w-[68ch] text-[13px] leading-relaxed text-black-600">
-                        AI summaries are off for this form. When you allow them, respondents see a notice that their responses may be analysed by an AI provider ({workspaceProvider}), and only responses submitted from then on are ever sent. Responses
-                        already collected are not analysed.
+                        AI summaries are off for this form. When you allow them, respondents see a notice that their responses may be analysed by an AI provider ({workspaceProvider}), and only responses submitted from a page that showed this notice are ever
+                        sent. Responses already collected, and responses from pages opened before you allow it, are never analysed.
                     </p>
                     {error && <p className="text-xs text-[#7A2E2E]">{error}</p>}
                     {canManageAI ? (
@@ -155,9 +158,9 @@ export default function AIInsightsCard() {
                 <div className="flex flex-col items-start gap-2.5">
                     <p className="max-w-[68ch] text-[13px] leading-relaxed text-black-600">
                         Get a plain-language summary of what your responses say — recurring themes, overall tone, and what to act on. Answers are sent to {providerName} <span className="font-medium">only when you click</span>, and only for responses
-                        submitted
-                        {allowedSince ? ` since ${new Date(allowedSince).toLocaleString()}` : ' since AI insights were allowed'}, when respondents started seeing the notice. Free-text answers are sent as written, so anything respondents typed into them
-                        (names, addresses, health details) reaches {providerName}. Respondent identities are not sent, email and phone answers are replaced by a placeholder, and staff-only fields are left out.
+                        submitted from a page that showed the AI notice
+                        {allowedSince ? ` (shown since ${new Date(allowedSince).toLocaleString()})` : ''}. Responses submitted before, or from a page opened before AI insights were allowed, are never analysed. Free-text answers are sent as written, so
+                        anything respondents typed into them (names, addresses, health details) reaches {providerName}. Respondent identities are not sent, email and phone answers are replaced by a placeholder, and staff-only fields are left out.
                     </p>
                     {error && <p className="text-xs text-[#7A2E2E]">{error}</p>}
                     <div className="flex flex-wrap items-center gap-3">
@@ -195,7 +198,11 @@ export default function AIInsightsCard() {
                     {error && <p className="text-xs text-[#7A2E2E]">{error}</p>}
                     <p className="text-[10.5px] text-black-400">
                         Based on {insight.responseCount === insight.totalResponses ? `all ${insight.totalResponses}` : `${insight.responseCount} of ${insight.totalResponses}`} responses
-                        {insight.analysedSince ? ` (submitted since ${new Date(insight.analysedSince).toLocaleString()})` : ''} · generated {new Date(insight.generatedAt).toLocaleString()} · sent to {providerName}: {INSIGHTS_SENDS}
+                        {insight.analysedSince ? ` (submitted with the AI notice, shown since ${new Date(insight.analysedSince).toLocaleString()})` : ''}
+                        {typeof insight.noticeShownResponses === 'number' && insight.noticeShownResponses < insight.totalResponses
+                            ? ` · ${insight.totalResponses - insight.noticeShownResponses} of ${insight.totalResponses} were submitted without the AI notice and are never analysed`
+                            : ''}{' '}
+                        · generated {new Date(insight.generatedAt).toLocaleString()} · sent to {providerName}: {INSIGHTS_SENDS}
                     </p>
                 </div>
             )}

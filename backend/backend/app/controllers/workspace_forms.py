@@ -62,6 +62,14 @@ from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
 
 
+def _is_stub(form) -> bool:
+    """The placeholder served instead of a published form the caller may not
+    fill: it has no questions to submit."""
+    if isinstance(form, dict):
+        return bool(form.get("unauthorized"))
+    return bool(getattr(form, "unauthorized", None))
+
+
 def _parse_form_body(form_body: str) -> StandardForm:
     """Parse a builder form payload (camelCase) into the stored snake_case
     model. Structural errors (e.g. a nested repeating group) are the
@@ -292,6 +300,15 @@ class WorkspaceFormsRouter(Routable):
             user=user,
             draft=draft,
         )
+        if published and not _is_stub(form):
+            # The respondent's page shows the AI notice while the form allows
+            # AI insights; the token proves it on submit (#752).
+            token = await self._form_service.ai_notice_token(workspace_id, form_id)
+            if token:
+                if isinstance(form, dict):
+                    form["aiNoticeToken"] = token
+                else:
+                    form.ai_notice_token = token
         return form
 
     @patch(
@@ -361,6 +378,7 @@ class WorkspaceFormsRouter(Routable):
         file_field_ids: list[str] = Form(None),
         file_ids: list[str] = Form(None),
         response: str = Form(None),
+        ai_notice_token: Optional[str] = Form(None),
         user: User = Depends(get_user_if_logged_in),
     ):
         form_files = None
@@ -384,6 +402,7 @@ class WorkspaceFormsRouter(Routable):
             response=parsed_response,
             form_files=form_files,
             user=user,
+            ai_notice_token=ai_notice_token,
         )
         # The stored response carries the form's retention (applied by the
         # service), not only what the client sent.
@@ -407,6 +426,7 @@ class WorkspaceFormsRouter(Routable):
         file_field_ids: list[str] = Form(None),
         file_ids: list[str] = Form(None),
         response: str = Form(None),
+        ai_notice_token: Optional[str] = Form(None),
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
@@ -432,6 +452,7 @@ class WorkspaceFormsRouter(Routable):
             form_files=form_files,
             response=parsed_response,
             user=user,
+            ai_notice_token=ai_notice_token,
         )
 
     @delete(

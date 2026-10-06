@@ -88,7 +88,15 @@ describe('AIInsightsCard', () => {
         // honest about free text, and names the provider
         expect(screen.getByText(/Free-text answers are sent as/)).toBeDefined();
         expect(screen.getByText(/Answers are sent to OpenAI/)).toBeDefined();
+        // #752: only responses whose page showed the notice
+        expect(screen.getByText(/submitted from a page that showed the AI notice/)).toBeDefined();
         expect(screen.getByRole('button', { name: /Summarize responses/ })).toBeDefined();
+    });
+
+    it('says how many responses were submitted without the AI notice (#752)', () => {
+        cachedQueryMock.data = { ...INSIGHT, responseCount: 2, totalResponses: 5, noticeShownResponses: 2 };
+        renderCard();
+        expect(screen.getByText(/3 of 5 were submitted without the AI notice and are never analysed/)).toBeDefined();
     });
 
     it('generating renders summary, themes with counts, and provenance', async () => {
@@ -127,7 +135,7 @@ describe('AIInsightsCard', () => {
         renderCard();
 
         expect(screen.getByText(/respondents see a notice/)).toBeDefined();
-        expect(screen.getByText(/Responses already\s+collected are not analysed/)).toBeDefined();
+        expect(screen.getByText(/Responses already collected, and responses from pages opened before you allow it, are never analysed/)).toBeDefined();
         expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
 
         fireEvent.click(screen.getByRole('button', { name: 'Allow AI insights on responses' }));

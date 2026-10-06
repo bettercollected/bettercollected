@@ -166,7 +166,8 @@ export interface StandardFormDto {
         /** Plain-words retention, e.g. "kept for 90 days". */
         retentionText?: string;
         // "Allow AI insights on responses" (#716): while on, respondents see
-        // a notice naming the provider; only later responses are analysed.
+        // a notice naming the provider; only responses submitted from a page
+        // that showed it are analysed (aiNoticeToken, #752).
         aiInsightsEnabled?: boolean | null;
         aiInsightsProvider?: string | null;
         aiInsightsProviderName?: string | null;
@@ -204,6 +205,12 @@ export interface StandardFormDto {
     secrets?: Record<any, Array<Parameters>>;
     theme?: FormTheme;
     unauthorized?: boolean;
+    /**
+     * Signed proof that this page shows the AI insights notice (#752): sent
+     * with the published form while it allows AI insights, and sent back on
+     * submit. Only responses carrying a valid one are ever analysed.
+     */
+    aiNoticeToken?: string | null;
 }
 
 export interface StandardFormResponseDto {

@@ -22,6 +22,7 @@ from tests.app.ai_helpers import (
     FakeProvider,
     allow_insights,
     enable_ai,
+    submit_with_notice,
     use_fake_provider,
 )
 from backend.app.models.dtos.request_dtos import AIProvider
@@ -68,7 +69,7 @@ async def _seed_form_and_responses(
 ) -> None:
     """Give the fixture form real questions and three answered responses,
     submitted after AI insights were allowed for it (unless ``allow`` is
-    False)."""
+    False), from pages showing the AI notice while the form allows them."""
     if allow:
         await allow_insights(workspace_id, form_id)
     form_doc = await container.form_repo().get_form_document_by_id(form_id)
@@ -150,8 +151,8 @@ async def _seed_form_and_responses(
         },
     ]
     for answers in answer_sets:
-        await container.form_response_service().submit_form_response(
-            form_id, StandardFormResponse(answers=answers), workspace_id
+        await submit_with_notice(
+            workspace_id, form_id, StandardFormResponse(answers=answers)
         )
 
 
@@ -326,8 +327,8 @@ def _insights_url(workspace, form_id):
 
 
 async def _submit(workspace_id, form_id, answers):
-    await container.form_response_service().submit_form_response(
-        form_id, StandardFormResponse(answers=answers), workspace_id
+    await submit_with_notice(
+        workspace_id, form_id, StandardFormResponse(answers=answers)
     )
 
 
@@ -554,7 +555,7 @@ class TestInsightsConsent:
             json={},
         )
         assert response.status_code == 400
-        assert "since AI insights were allowed" in response.text
+        assert "showed the AI notice" in response.text
         assert fake_insights_provider.calls == []
 
     async def test_a_changed_workspace_provider_needs_a_fresh_notice(

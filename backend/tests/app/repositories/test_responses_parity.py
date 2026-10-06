@@ -108,6 +108,46 @@ async def pages_equal(mongo_call, postgres_call, size=10):
 
 
 # ------------------------------------------------------------------ responses
+async def test_responses_with_the_ai_notice(sessions):
+    """#752: only responses submitted here whose page showed the notice for
+    this provider name since the setting was turned on."""
+    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    mongo = FormResponseRepository(crypto=container.crypto())
+    postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
+
+    def shown(minutes, name="OpenAI", provider="self"):
+        return dict(
+            answers={},
+            provider=provider,
+            ai_notice_shown_at=at(minutes),
+            ai_notice_provider_name=name,
+        )
+
+    await seed_both(
+        (mongo, postgres),
+        "save",
+        response("n1", "a1", 10, **shown(9)),
+        response("n1", "a2", 20, **shown(19)),
+        response("n1", "a3", 30, **shown(29, name="Google Gemini")),
+        response("n1", "a4", 40, answers={}, provider="self"),  # never saw it
+        response("n1", "a5", 50, **shown(2)),  # shown before the setting
+        response("n1", "a6", 60, **shown(59, provider="google")),  # imported
+        response("n2", "a7", 70, **shown(69)),  # another form
+    )
+    calls = [
+        ("list_recent_with_ai_notice", lambda: ("n1", "OpenAI", at(5), 10)),
+        ("list_recent_with_ai_notice", lambda: ("n1", "OpenAI", at(5), 1)),
+        ("list_recent_with_ai_notice", lambda: ("n1", "Google Gemini", at(5), 10)),
+        ("count_with_ai_notice", lambda: ("n1", "OpenAI", at(5))),
+        ("count_with_ai_notice", lambda: ("n1", "OpenAI", at(0))),
+        ("count_with_ai_notice", lambda: ("n3", "OpenAI", at(0))),
+    ]
+    await parity(mongo, postgres, calls)
+    listed = await postgres.list_recent_with_ai_notice("n1", "OpenAI", at(5), 10)
+    assert [r.response_id for r in listed] == ["a2", "a1"]
+    assert await mongo.count_with_ai_notice("n1", "OpenAI", at(0)) == 3
+
+
 async def test_response_listings_compose_over_forms(sessions):
     ws = PydanticObjectId()
     # forms-group data, in Mongo only: the twin composes over it
