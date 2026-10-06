@@ -11,5 +11,7 @@ describe('root layout', () => {
         // build machine's value into the image.
         const layout = await import('./layout');
         expect(layout.dynamic).toBe('force-dynamic');
-    });
+        // Importing the whole root layout (providers, translations) takes a
+        // few seconds when the suite runs in parallel.
+    }, 20000);
 });
