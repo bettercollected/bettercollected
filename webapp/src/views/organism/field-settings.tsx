@@ -227,9 +227,12 @@ export default function FieldSettings() {
 export function WhyWeAskSetting({ value, required, onChange }: { value: string; required: boolean; onChange: (value: string) => void }) {
     const missing = required && !value.trim();
     return (
-        <label className="flex w-full flex-col gap-1">
-            <span className="text-black-700 text-xs font-medium">Why we ask this</span>
+        <div className="flex w-full flex-col gap-1">
+            <label htmlFor="why-we-ask" className="text-black-700 text-xs font-medium">
+                Why we ask this
+            </label>
             <textarea
+                id="why-we-ask"
                 value={value}
                 maxLength={WHY_WE_ASK_MAX_LENGTH}
                 rows={2}
@@ -242,6 +245,6 @@ export function WhyWeAskSetting({ value, required, onChange }: { value: string; 
             <span id="why-we-ask-help" className={`text-[11px] leading-relaxed ${missing ? 'text-amber-700' : 'text-black-500'}`}>
                 {missing ? 'This question asks for personal details. Say briefly why you need them; the form can’t be published without it.' : 'Shown to respondents under the question.'}
             </span>
-        </label>
+        </div>
     );
 }

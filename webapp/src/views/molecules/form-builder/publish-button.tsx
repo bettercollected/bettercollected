@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@app/shadcn/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
@@ -27,7 +27,12 @@ function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string
     return null;
 }
 
-const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
+/**
+ * `fields`: the builder's live pages. Checks run on them, and publishing
+ * waits (briefly) for the autosave to store them, so what is checked is what
+ * the server checks and publishes.
+ */
+const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?: Array<StandardFormFieldDto> }) => {
     const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
@@ -39,13 +44,32 @@ const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const [problems, setProblems] = useState<PublishProblem[]>([]);
+    const [waiting, setWaiting] = useState(false);
+    const savedFieldsRef = useRef(standardForm?.fields);
+    useEffect(() => {
+        savedFieldsRef.current = standardForm?.fields;
+    }, [standardForm?.fields]);
+
+    // The server checks the saved draft: give the autosave (debounced) a
+    // moment to store the fix the creator just made.
+    const waitForSave = async () => {
+        for (let i = 0; i < 20 && getPublishProblems(savedFieldsRef.current).length; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+    };
 
     const publishForm = async () => {
         // Honest defaults first: the creator sees what to fix, and where.
-        const found = getPublishProblems(standardForm?.fields);
+        const current = fields?.length ? fields : standardForm?.fields;
+        const found = getPublishProblems(current);
         if (found.length) {
             setProblems(found);
             return;
+        }
+        if (fields?.length) {
+            setWaiting(true);
+            await waitForSave();
+            setWaiting(false);
         }
         const response: any = await publishV2Form({
             workspaceId: workspace.id,
@@ -68,7 +92,7 @@ const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
     };
 
     const showQuestion = (fieldId: string) => {
-        const place = locate(standardForm?.fields, fieldId);
+        const place = locate(fields?.length ? fields : standardForm?.fields, fieldId);
         if (!place) return;
         setActiveSlideComponent(place.slide);
         setActiveFieldComponent(place.field);
@@ -77,13 +101,15 @@ const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
 
     return (
         <>
-            <Button isLoading={isLoading} onClick={publishForm} className="!bg-[#2456CC] text-white hover:!bg-[#1E49AD]" data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
+            <Button isLoading={isLoading || waiting} onClick={publishForm} className="!bg-[#2456CC] text-white hover:!bg-[#1E49AD]" data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
                 Publish
             </Button>
             <Dialog open={problems.length > 0} onOpenChange={(open) => !open && setProblems([])}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-lg" title="Before you publish">
                     <DialogHeader>
-                        <DialogTitle>Before you publish</DialogTitle>
+                        <div aria-hidden="true" className="text-lg font-semibold leading-none tracking-tight">
+                            Before you publish
+                        </div>
                         <DialogDescription>
                             {problems.length === 1 ? 'One thing' : `${problems.length} things`} would mislead or stop the people filling in this form. Fix {problems.length === 1 ? 'it' : 'them'} and publish again.
                         </DialogDescription>
@@ -92,7 +118,7 @@ const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
                         {problems.map((problem) => (
                             <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-black-200 p-3 text-sm">
                                 <span className="text-black-800">{problem.message}</span>
-                                {locate(standardForm?.fields, problem.fieldId) && (
+                                {locate(fields?.length ? fields : standardForm?.fields, problem.fieldId) && (
                                     <button type="button" onClick={() => showQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
                                         Show the question
                                     </button>

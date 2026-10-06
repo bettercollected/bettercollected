@@ -292,7 +292,7 @@ const Navbar = () => {
                     </Button>
                 )}
 
-                <PublishButton />
+                <PublishButton fields={formFields} />
             </div>
 
             {/* Flow view — mounted at the navbar root so the default-view heuristic

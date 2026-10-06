@@ -110,7 +110,7 @@ export default function TrustSettingsEditor() {
                         {keepError}
                     </span>
                 ) : (
-                    <span className="text-black-500 text-[11px]">Answers are deleted automatically after this. Applies to answers submitted from now on.</span>
+                    <span className="text-black-500 text-[11px]">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
                 )}
             </div>
             <label className="flex flex-col gap-1">

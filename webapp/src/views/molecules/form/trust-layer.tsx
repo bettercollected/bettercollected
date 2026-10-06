@@ -88,7 +88,42 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     });
 
     return (
-        <div className="w-full" data-testid="privacy-panel">
+        // The strip comes first in the DOM, so after the toggle the keyboard
+        // moves into the panel; flex-col-reverse shows the panel above it.
+        <div className="flex w-full flex-col-reverse" data-testid="privacy-panel">
+            {/* 13px legible strip: who is collecting, and the way into the panel. */}
+            <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t border-t-black-200 bg-white/90 px-4 py-2 text-[13px] backdrop-blur-sm" lang={language}>
+                <Shield className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
+                {ownerName && (
+                    <span className="inline-flex items-center gap-1.5 text-black-700">
+                        {ownerImage ? <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
+                        <span>
+                            <Trans t={t} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: ownerName }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
+                        </span>
+                    </span>
+                )}
+                <span className="h-3 w-px bg-black-200" aria-hidden="true" />
+                <button
+                    ref={toggleRef}
+                    id={toggleId}
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-controls={panelId}
+                    onClick={toggle}
+                    className="pointer-events-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold text-black-900 underline decoration-dotted underline-offset-2 hover:bg-black-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                    {t('PRIVACY.TOGGLE')}
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : 'rotate-180'}`} aria-hidden="true" />
+                </button>
+                {showPoweredBy && (
+                    <>
+                        <span className="h-3 w-px bg-black-200" aria-hidden="true" />
+                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-black-600 hover:text-black-900">
+                            <Trans t={t} i18nKey="PRIVACY.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
+                        </a>
+                    </>
+                )}
+            </div>
             {expanded && (
                 <section
                     id={panelId}
@@ -137,39 +172,6 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                     </div>
                 </section>
             )}
-            {/* 13px legible strip: who is collecting, and the way into the panel. */}
-            <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t border-t-black-200 bg-white/90 px-4 py-2 text-[13px] backdrop-blur-sm" lang={language}>
-                <Shield className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
-                {ownerName && (
-                    <span className="inline-flex items-center gap-1.5 text-black-700">
-                        {ownerImage ? <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
-                        <span>
-                            <Trans t={t} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: ownerName }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
-                        </span>
-                    </span>
-                )}
-                <span className="h-3 w-px bg-black-200" aria-hidden="true" />
-                <button
-                    ref={toggleRef}
-                    id={toggleId}
-                    type="button"
-                    aria-expanded={expanded}
-                    aria-controls={panelId}
-                    onClick={toggle}
-                    className="pointer-events-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold text-black-900 underline decoration-dotted underline-offset-2 hover:bg-black-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                >
-                    {t('PRIVACY.TOGGLE')}
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : 'rotate-180'}`} aria-hidden="true" />
-                </button>
-                {showPoweredBy && (
-                    <>
-                        <span className="h-3 w-px bg-black-200" aria-hidden="true" />
-                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-black-600 hover:text-black-900">
-                            <Trans t={t} i18nKey="PRIVACY.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
-                        </a>
-                    </>
-                )}
-            </div>
         </div>
     );
 }
