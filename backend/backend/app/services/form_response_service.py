@@ -49,7 +49,7 @@ from backend.app.services.internal_fields import (
     internal_field_ids,
     internal_fields,
     strip_internal_answers,
-    strip_internal_fields,
+    respondent_view,
     validate_internal_answer,
 )
 from backend.app.services.respondent_feedback import (
@@ -292,7 +292,7 @@ class FormResponseService:
                 for field in await self.internal_field_definitions(response.form_id)
             ]
         else:
-            strip_internal_fields(form)
+            respondent_view(form)
         response.form_title = form.title
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
@@ -570,7 +570,7 @@ class FormResponseService:
         )
 
         return {
-            "form": strip_internal_fields(
+            "form": respondent_view(
                 StandardFormCamelModel(**form.model_dump(mode="json"))
             ),
             "response": respondent_response,

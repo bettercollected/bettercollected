@@ -30,6 +30,8 @@ class ActionRepository:
     @write_op
     async def delete_action(self, action_id: PydanticObjectId):
         await ActionDocument.find_one(ActionDocument.id == action_id).delete()
+        # each workspace's copy of the action (with its credentials) goes too
+        await WorkspaceActionsDocument.find({"action_id": action_id}).delete()
         return action_id
 
     async def get_all_actions(self):

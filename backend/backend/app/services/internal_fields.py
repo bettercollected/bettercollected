@@ -150,6 +150,29 @@ def strip_internal_fields(form: Any) -> Any:
     return form
 
 
+def strip_action_config(form: Any) -> Any:
+    """Remove the form's action configuration in place (and return it).
+
+    Action parameters hold webhook URLs (Slack, Discord, plain webhooks),
+    SMTP usernames and notification addresses, and secrets hold credentials:
+    the builder shows parameters to editors, respondents and the public never
+    receive either. The action job input keeps both (it doesn't call this)."""
+    if form is None:
+        return form
+    for key in ("parameters", "secrets"):
+        if isinstance(form, dict):
+            form.pop(key, None)
+        elif hasattr(form, key):
+            setattr(form, key, None)
+    return form
+
+
+def respondent_view(form: Any) -> Any:
+    """What respondents and the public see of a form: no internal fields and
+    no action configuration."""
+    return strip_action_config(strip_internal_fields(form))
+
+
 def strip_internal_answers(response: Any) -> Any:
     """Remove staff-entered values from a response payload in place."""
     if response is None:

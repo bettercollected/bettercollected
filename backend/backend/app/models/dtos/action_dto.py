@@ -5,7 +5,7 @@ from typing import Optional
 from beanie import PydanticObjectId
 from common.models.standard_form import Trigger
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel, model_serializer
+from pydantic import BaseModel, Field, model_serializer
 
 from backend.app.schemas.action_document import ParameterValue, ActionSettings
 
@@ -23,6 +23,11 @@ class ActionDto(CamelModel):
 
 
 class ActionResponse(ActionDto, CamelModel):
+    """An action as the API shows it: its code and secrets stay in the backend
+    (the job input is built from the stored document, not from this)."""
+
+    action_code: Optional[str] = Field(None, exclude=True)
+    secrets: Optional[List[ParameterValue]] = Field(None, exclude=True)
     id: PydanticObjectId
     settings: Optional[ActionSettings] = None
     workspace_id: Optional[PydanticObjectId] = None

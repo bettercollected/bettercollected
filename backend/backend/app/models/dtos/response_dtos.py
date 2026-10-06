@@ -1,6 +1,7 @@
 from typing import Any, Optional, Dict, List
 
 from common.models.standard_form import (
+    ParameterValue,
     StandardForm,
     StandardFormFieldType,
     FormBuilderTagTypes,
@@ -40,6 +41,8 @@ class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
 
 class StandardFormCamelModel(StandardForm, CamelModel):
     model_config = {"extra": "allow"}
+    # Action credentials: readable in-process, never serialized into a response.
+    secrets: Optional[Dict[str, List[ParameterValue]]] = Field(None, exclude=True)
     settings: Optional[WorkspaceFormSettingsCamelModal] = None
     responses: Optional[int] = 0
     version: Optional[int] = None

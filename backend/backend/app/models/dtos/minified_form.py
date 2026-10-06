@@ -10,6 +10,7 @@ from common.models.standard_form import (
 )
 from common.models.standard_form import Theme
 from fastapi_camelcase import CamelModel
+from pydantic import Field
 
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.dtos.response_dtos import (
@@ -47,7 +48,8 @@ class FormDtoCamelModel(CamelModel):
     updated_at: Optional[dt.datetime] = None
     actions: Optional[Dict[Trigger, List[ActionState]]] = None
     parameters: Optional[Dict[str, List[ParameterValue]]] = None
-    secrets: Optional[Dict[str, List[ParameterValue]]] = None
+    # Action credentials: readable in-process, never serialized into a response.
+    secrets: Optional[Dict[str, List[ParameterValue]]] = Field(None, exclude=True)
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
     tabular_value: Optional[List[List[str]]] = None

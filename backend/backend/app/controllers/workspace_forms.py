@@ -607,10 +607,11 @@ class WorkspaceFormsRouter(Routable):
         temporal_api_key=Depends(get_api_key),
     ):
 
-        response = await self.workspace_form_service.update_action_from_temporal(
+        form = await self.workspace_form_service.update_action_from_temporal(
             workspace_id=workspace_id, form_id=form_id, action_id=action_id
         )
-        return response
+        # the actions only: the form document carries every action's secrets
+        return form.actions
 
 
 def _check_file_ids(file_ids) -> None:

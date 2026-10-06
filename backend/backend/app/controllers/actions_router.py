@@ -42,14 +42,14 @@ class ActionRouter(Routable):
     #     action = await self.action_service.create_action(workspace_id=workspace_id, action=action, user=user)
     #     return ActionResponse(**action.model_dump(mode='json'))
 
-    @post("/actions")
+    @post("/actions", response_model=ActionResponse)
     async def create_action(
         self, action: ActionDto, user: User = Depends(get_logged_admin)
     ):
         action = await self.action_service.create_global_action(
             action=action, user=user
         )
-        return action
+        return ActionResponse(**action.model_dump(mode="json"))
 
     @get(
         "/actions",

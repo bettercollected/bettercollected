@@ -5,7 +5,7 @@ from beanie.odm.enums import SortDirection
 from beanie.odm.queries.aggregation import AggregationQuery
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import apaginate
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, Trigger
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.FormVersion import FormVersion
@@ -24,6 +24,17 @@ _LOOKUP_SCAFFOLDING = [
     "versions",
     "responses_deletion_requests",
 ]
+
+
+def detach_action(form: FormDocument, action_id: str) -> None:
+    """Drop one action from a form's triggers, parameters and secrets, in
+    place; every other action keeps its own (the Postgres twin applies it to
+    rows it holds locked)."""
+    for trigger, states in (form.actions or {}).items():
+        form.actions[trigger] = [s for s in states or [] if str(s.id) != action_id]
+    for bag in (form.parameters, form.secrets):
+        if isinstance(bag, dict):
+            bag.pop(action_id, None)
 
 
 class FormRepository:
@@ -444,25 +455,29 @@ class FormRepository:
 
     @write_op
     async def remove_action_from_all_forms(self, action_id: PydanticObjectId):
-        """Detach a deleted action from every form: drop it from the on_submit
-        triggers and forget its parameters and secrets (moved here from the
-        actions repository — it writes forms, so it belongs to the forms group)."""
-        await FormDocument.find(
-            {
-                "$or": [
-                    {"actions.on_submit": {"$in": [action_id]}},
-                    {"actions.on_open": {"$in": [action_id]}},
-                ]
-            }
-        ).update(
-            {
-                "$pull": {"actions.on_submit": action_id},
-                "$unset": {
-                    f"parameters.{str(action_id)}": "",
-                    f"secrets.{str(action_id)}": "",
-                },
-            }
-        )
+        """Detach a deleted action from every form and published version: drop
+        it from the triggers and forget its parameters and secrets (moved here
+        from the actions repository — it writes forms, so it belongs to the
+        forms group).
+
+        Triggers hold ``{id, enabled}`` entries. A form can hold the action's
+        credentials before the action is attached (OAuth runs first), so its
+        parameters and secrets are removed wherever they are. Targeted
+        ``$pull``/``$unset`` updates, each filtered to documents where the path
+        exists, so concurrent edits of a form are not overwritten and other
+        actions' parameters and secrets are left alone."""
+        key = str(action_id)
+        for document in (FormDocument, FormVersionsDocument):
+            for trigger in Trigger:
+                path = f"actions.{trigger.value}"
+                await document.find({f"{path}.id": action_id}).update(
+                    {"$pull": {path: {"id": action_id}}}
+                )
+            for bag in ("parameters", "secrets"):
+                path = f"{bag}.{key}"
+                await document.find({path: {"$exists": True}}).update(
+                    {"$unset": {path: ""}}
+                )
 
     @write_op
     async def update_form_actions(
