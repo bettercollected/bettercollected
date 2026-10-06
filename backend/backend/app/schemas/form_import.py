@@ -17,6 +17,20 @@ class ImportStatus:
     ACTIVE = (QUEUED, RUNNING)
 
 
+# error code and message of an import that stopped making progress (its
+# process was killed, e.g. by a deploy) and was expired so it no longer holds
+# the workspace's import slot (#703)
+CODE_INTERRUPTED = "interrupted"
+MESSAGE_INTERRUPTED = "The import was interrupted. Please try again."
+
+
+def _utc(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
+    """Stored dates may come back naive (Mongo): they are UTC."""
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=dt.timezone.utc)
+    return value
+
+
 class PageAnalysis(BaseModel):
     """What the page analysis found on one page and how the page will be read."""
 
@@ -54,7 +68,8 @@ class FormImportDocument(MongoDocument):
     error: Optional[str] = None
     # stable reason for ``error`` (the screens translate it): a refusal code
     # (encrypted, too_many_pages, unreadable, timeout, no_questions, ...),
-    # "unavailable", "failed", or "waiting_for_reader" while queued for a retry
+    # "unavailable", "failed", "interrupted" (no progress for too long: its
+    # process died), or "waiting_for_reader" while queued for a retry
     error_code: Optional[str] = None
     file_name: str
     content_type: str
@@ -72,6 +87,35 @@ class FormImportDocument(MongoDocument):
     ai_consent: bool = False
     ai_consent_at: Optional[dt.datetime] = None
     ai_consent_by: Optional[str] = None
+    # bumped while the import's job is alive (every save of the pipeline and a
+    # heartbeat during long stages and retry waits): an active import whose
+    # last progress is older than PDF_IMPORT_STALE_AFTER_S was interrupted
+    heartbeat_at: Optional[dt.datetime] = None
+
+    def last_progress(self) -> Optional[dt.datetime]:
+        """The latest sign of life: the heartbeat, or for records written
+        before heartbeats existed, when the import started or was created.
+        (Not ``updated_at``: only the Mongo store bumps it on save.)"""
+        seen = [
+            _utc(v)
+            for v in (self.heartbeat_at, self.started_at, self.created_at)
+            if v is not None
+        ]
+        return max(seen) if seen else None
+
+    def is_stale(self, stale_before: dt.datetime) -> bool:
+        """Still marked active but without any progress since ``stale_before``."""
+        if self.status not in ImportStatus.ACTIVE:
+            return False
+        last = self.last_progress()
+        return last is None or last < stale_before
+
+    def mark_interrupted(self, now: dt.datetime) -> None:
+        self.status = ImportStatus.FAILED
+        self.error = MESSAGE_INTERRUPTED
+        self.error_code = CODE_INTERRUPTED
+        self.report["refused"] = CODE_INTERRUPTED
+        self.finished_at = now
 
     class Settings:
         # native dates (no ISO-string encoders): the limits query compares them

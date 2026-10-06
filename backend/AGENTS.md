@@ -446,11 +446,25 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   `error`: the refusal code (`encrypted`, `unreadable`, `too_many_pages`,
   `too_large`, `too_complex`, `timeout`, `empty`, ...), `no_questions` (compile
   found nothing to ask: failing beats an empty draft), `unavailable`
-  (`give_up`), `failed` (unexpected), and `waiting_for_reader` while queued for
-  a retry. The webapp translates by code (`builder` namespace,
+  (`give_up`), `failed` (unexpected), `interrupted` (expired, see below), and
+  `waiting_for_reader` while queued for a retry. The webapp translates by code (`builder` namespace,
   `PDF_IMPORT.ERROR.<code>`, EN + NL, `components/pdf-import/import-failure.tsx`);
   a new code needs both locales. Logs carry the import id and code, never the
   file name or document text.
+- **An import whose job died is expired as `interrupted`** (#703): the job writes
+  `heartbeat_at` every `PDF_IMPORT_HEARTBEAT_S` (30s) while it runs, during long
+  stages and retry waits too (`ImportPipeline.keep_alive`, around the in-process
+  retries and the procrastinate job), and every pipeline save sets it. An active
+  import whose last progress (`heartbeat_at`, else `started_at`/`created_at`) is
+  older than `PDF_IMPORT_STALE_AFTER_S` (600s: total run time is unbounded, the
+  longest silence of a live import is one model call retried, 2 x 120s) is
+  failed by `form_import_repo.expire_stale` under the same workspace lock as the
+  limit check, then its untouched draft is removed like any failure's. It runs on
+  every start, when the progress screen reads a stale import, and in the
+  procrastinate worker's `expire_stale_imports` sweep (`PDF_IMPORT_STALE_SWEEP_CRON`).
+  A job that finds its import expired at its next heartbeat is cancelled, so it
+  never writes over the failure. `touch` sets only `heartbeat_at` (Mongo `$set`,
+  Postgres row lock), never the rest of the record.
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.

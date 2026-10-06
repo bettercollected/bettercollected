@@ -9,16 +9,18 @@ document's content).
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import collections
 import datetime as dt
 import json
-from typing import Awaitable, Callable, List, Tuple
+from typing import Awaitable, Callable, List, Optional, Tuple, TypeVar
 
 from beanie import PydanticObjectId
 from loguru import logger
 
 from backend.app.schemas.form_import import (
+    CODE_INTERRUPTED,
     FormImportDocument,
     ImportStatus,
     PageAnalysis,
@@ -53,6 +55,7 @@ NOTE_DRAFT_REMOVED = (
     "The empty draft form was removed because the import did not finish."
 )
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+T = TypeVar("T")
 
 
 def _checked_render(result: dict, number: int, max_bytes: int):
@@ -432,21 +435,21 @@ class ImportPipeline:
         record.status = ImportStatus.RUNNING
         record.started_at = record.started_at or _now()
         record.error = record.error_code = None
-        await self._repo.save(record)
+        await self._save(record)
         data = None
         try:
             for name, stage in self.stages():
                 if name in record.stages:
                     continue
                 record.stage = name
-                await self._repo.save(record)
+                await self._save(record)
                 if data is None:
                     data = await self._store.get(record.source_key)
                 record.stages[name] = {
                     "finished_at": _now().isoformat(),
                     **(await stage(record, data)),
                 }
-                await self._repo.save(record)
+                await self._save(record)
             record.status = ImportStatus.COMPLETED
             record.stage = None
         except DocumentRefused as refused:
@@ -463,7 +466,7 @@ class ImportPipeline:
             logger.warning(
                 "form import {} waiting for the sandbox: {}", record.id, unavailable
             )
-            await self._repo.save(record)
+            await self._save(record)
             raise
         except (
             Exception
@@ -477,8 +480,54 @@ class ImportPipeline:
         record.finished_at = _now()
         if record.status == ImportStatus.FAILED:
             await self.discard_draft(record)
-        await self._repo.save(record)
+        await self._save(record)
         return record
+
+    async def _save(self, record: FormImportDocument) -> None:
+        """Every save of a running import is also a sign of life."""
+        record.heartbeat_at = _now()
+        await self._repo.save(record)
+
+    async def keep_alive(
+        self, import_id: PydanticObjectId, work: Awaitable[T]
+    ) -> Optional[T]:
+        """Run ``work`` (the import's job: a run, or the in-process retries
+        with their waits) while writing the import's heartbeat every
+        ``HEARTBEAT_S``, so a healthy import is never expired however long a
+        stage takes. If the import was expired as interrupted meanwhile (its
+        heartbeat stalled too long), ``work`` is cancelled before it can write
+        over that, and None is returned."""
+        task = asyncio.ensure_future(work)
+        try:
+            while True:
+                done, _ = await asyncio.wait({task}, timeout=self._settings.HEARTBEAT_S)
+                if done:
+                    return task.result()
+                if not await self._beat(import_id):
+                    logger.warning(
+                        "form import {} was expired as {} while running: stopped",
+                        import_id,
+                        CODE_INTERRUPTED,
+                    )
+                    task.cancel()
+                    await asyncio.gather(task, return_exceptions=True)
+                    return None
+        finally:
+            if not task.done():
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+
+    async def _beat(self, import_id: PydanticObjectId) -> bool:
+        """Write the heartbeat; False only when the import was expired as
+        interrupted (a heartbeat that fails to write never stops the import)."""
+        try:
+            if await self._repo.touch(import_id, _now()):
+                return True
+            record = await self._repo.get(import_id)
+        except Exception:  # noqa: BLE001
+            logger.exception("form import {} could not write its heartbeat", import_id)
+            return True
+        return not (record is not None and record.error_code == CODE_INTERRUPTED)
 
     async def discard_draft(self, record: FormImportDocument) -> None:
         """A failed import takes its draft form away again if the draft is

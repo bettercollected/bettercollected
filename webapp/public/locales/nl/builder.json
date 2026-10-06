@@ -159,6 +159,10 @@
         "MESSAGE": "De documentlezer is op dit moment niet beschikbaar.",
         "NEXT": "Probeer het over een paar minuten opnieuw. Blijft het gebeuren, neem dan contact op met support."
       },
+      "interrupted": {
+        "MESSAGE": "Het importeren is onderbroken.",
+        "NEXT": "Probeer het opnieuw."
+      },
       "failed": {
         "MESSAGE": "Er ging iets mis bij het importeren van dit document.",
         "NEXT": "Probeer het opnieuw. Blijft het gebeuren, neem dan contact op met support."

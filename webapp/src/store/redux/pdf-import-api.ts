@@ -21,7 +21,7 @@ export interface PdfImport {
     status: PdfImportStatus;
     stage?: string | null;
     error?: string | null;
-    /** Stable reason for `error` (a refusal code, "no_questions", "unavailable", "failed", or "waiting_for_reader" while queued); the screens translate it. */
+    /** Stable reason for `error` (a refusal code, "no_questions", "unavailable", "interrupted", "failed", or "waiting_for_reader" while queued); the screens translate it. */
     errorCode?: string | null;
     fileName: string;
     contentType: string;

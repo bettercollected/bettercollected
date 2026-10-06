@@ -159,6 +159,10 @@
         "MESSAGE": "The document reader is not available right now.",
         "NEXT": "Try again in a few minutes. If it keeps happening, contact support."
       },
+      "interrupted": {
+        "MESSAGE": "The import was interrupted.",
+        "NEXT": "Please try again."
+      },
       "failed": {
         "MESSAGE": "Something went wrong while importing this document.",
         "NEXT": "Try again. If it keeps happening, contact support."
