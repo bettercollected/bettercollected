@@ -9,7 +9,7 @@ import { AlertTriangle, Check, CircleCheck, Copy, KeyRound, LifeBuoy, ShieldChec
 
 import environments from '@app/configs/environments';
 import { navigateWithReferrer, ssoTestMessage } from '@app/lib/sso';
-import { SsoConnectionDto, SsoConnectionType, SsoOverviewDto } from '@app/models/dtos/workspace-sso-dto';
+import { SsoConnectionDto, SsoConnectionType, SsoOverviewDto, SsoServiceProviderDto } from '@app/models/dtos/workspace-sso-dto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
@@ -83,7 +83,29 @@ export function Section({ title, description, children }: { title: string; descr
     );
 }
 
-function ConnectionCard({ connection, workspaceId, ssoRequired, canManage }: { connection: SsoConnectionDto; workspaceId: string; ssoRequired: boolean; canManage: boolean }) {
+/** What the last failed test saw: the domain of the address the identity
+ * provider sent (never the address) and the names of the claims it sent. */
+export function TestDiagnostics({ connection, domains }: { connection: SsoConnectionDto; domains: string[] }) {
+    const domain = connection.lastTestDomain;
+    const claims = connection.lastTestClaims ?? [];
+    if (!domain && claims.length === 0) return null;
+    return (
+        <span className="flex flex-col gap-0.5 text-xs text-black-700">
+            {domain && (
+                <span>
+                    Your identity provider sent an address at <strong className="break-all">{domain}</strong>. This workspace&apos;s verified domains: {domains.length ? domains.join(', ') : 'none yet'}.
+                </span>
+            )}
+            {claims.length > 0 && (
+                <span>
+                    Claims received: <code className="break-all text-[11px]">{claims.join(', ')}</code>
+                </span>
+            )}
+        </span>
+    );
+}
+
+function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domains }: { connection: SsoConnectionDto; workspaceId: string; ssoRequired: boolean; canManage: boolean; domains: string[] }) {
     const { toast } = useToast();
     const [setEnabled, { isLoading: isToggling }] = useSetSsoConnectionEnabledMutation();
     const [deleteConnection, { isLoading: isDeleting }] = useDeleteSsoConnectionMutation();
@@ -125,6 +147,7 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage }: { c
                     </span>
                     <span className="text-xs text-black-500">{connection.testedAt ? `Last successful test ${formatTime(connection.testedAt)}` : 'Test it before you require single sign-on.'}</span>
                     {connection.lastTestError && <span className="text-xs text-[#C43D3D]">Last test failed: {ssoTestMessage(connection.lastTestError)}</span>}
+                    {connection.lastTestError && <TestDiagnostics connection={connection} domains={domains} />}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <Button size="sm" variant="v2Button" onClick={test}>
@@ -275,6 +298,64 @@ function AddConnectionForm({ workspaceId, workspaceName, onDone }: { workspaceId
     );
 }
 
+function HelpStep({ children }: { children: React.ReactNode }) {
+    return <li className="leading-relaxed">{children}</li>;
+}
+
+function Value({ children }: { children: React.ReactNode }) {
+    return <code className="break-all rounded bg-black-100 px-1 py-0.5 text-[11px] text-black-800">{children}</code>;
+}
+
+/** Step-by-step setup for Microsoft Entra ID (and a short Keycloak note),
+ * with this instance's own service-provider values. */
+export function EntraSetupHelp({ sp }: { sp: SsoServiceProviderDto }) {
+    return (
+        <details className="group rounded-md border border-black-200 bg-white p-3 text-xs text-black-700" data-testid="sso-entra-help">
+            <summary className="cursor-pointer text-xs font-semibold text-black-900">Setting up Microsoft Entra ID</summary>
+            <div className="mt-3 flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                    <h3 className="text-xs font-semibold text-black-900">SAML (Enterprise application)</h3>
+                    <ol className="ml-4 list-decimal space-y-1">
+                        <HelpStep>In the Microsoft Entra admin center, open Enterprise applications → New application → Create your own application (non-gallery).</HelpStep>
+                        <HelpStep>
+                            Single sign-on → SAML → Basic SAML Configuration: Identifier (Entity ID) <Value>{sp.entityId}</Value> and Reply URL (Assertion Consumer Service URL) <Value>{sp.acsUrl}</Value>.
+                        </HelpStep>
+                        <HelpStep>
+                            Attributes &amp; Claims: the email address claim must be <Value>user.mail</Value> (or <Value>user.userprincipalname</Value> if your users have no mailbox and sign in with their email address).
+                        </HelpStep>
+                        <HelpStep>SAML Certificates: copy the App Federation Metadata Url into “Metadata URL” here, or download the Federation Metadata XML and paste it.</HelpStep>
+                        <HelpStep>Users and groups: assign the people who may sign in.</HelpStep>
+                    </ol>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <h3 className="text-xs font-semibold text-black-900">OpenID Connect (App registration)</h3>
+                    <ol className="ml-4 list-decimal space-y-1">
+                        <HelpStep>
+                            App registrations → New registration. Redirect URI: platform Web, <Value>{sp.oidcRedirectUri}</Value>.
+                        </HelpStep>
+                        <HelpStep>Certificates &amp; secrets → New client secret. Copy its value (not its ID) into “Client secret” here.</HelpStep>
+                        <HelpStep>Token configuration → Add optional claim → ID token → email.</HelpStep>
+                        <HelpStep>
+                            Here: Discovery URL <Value>https://login.microsoftonline.com/&lt;tenant ID&gt;/v2.0/.well-known/openid-configuration</Value>, Client ID = the Application (client) ID.
+                        </HelpStep>
+                    </ol>
+                </div>
+                <p className="leading-relaxed">
+                    Every user needs an email address in Entra ID (the Email field of their account), on one of this workspace&apos;s verified domains. Test in a private window, or sign out of Microsoft first, so that you sign in with the account you mean
+                    to test.
+                </p>
+                <div className="flex flex-col gap-1.5 border-t border-black-100 pt-3">
+                    <h3 className="text-xs font-semibold text-black-900">Keycloak (OpenID Connect)</h3>
+                    <p className="leading-relaxed">
+                        Create an OpenID Connect client with Client authentication on (confidential). Valid redirect URIs must be exactly <Value>{sp.oidcRedirectUri}</Value>. Keep the <Value>email</Value> client scope assigned, and give users an email
+                        address.
+                    </p>
+                </div>
+            </div>
+        </details>
+    );
+}
+
 function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; workspaceId: string }) {
     const { toast } = useToast();
     const [update, { isLoading }] = useUpdateSsoSettingsMutation();
@@ -390,6 +471,8 @@ export default function WorkspaceSsoSection() {
 
     const sp = overview.serviceProvider;
     const ok = testResult === 'ok';
+    // the connection this failed test result belongs to: the latest one that failed with it
+    const testedConnection = testResult && !ok ? overview.connections.filter((c) => c.lastTestError === testResult).sort((a, b) => (b.lastTestAt ?? '').localeCompare(a.lastTestAt ?? ''))[0] : undefined;
 
     return (
         <div className="flex flex-col gap-8">
@@ -402,7 +485,10 @@ export default function WorkspaceSsoSection() {
             {testResult && (
                 <div role="status" className={cn('flex items-start gap-2 rounded-md border p-3 text-xs leading-relaxed', ok ? 'border-[#BFE5D2] bg-[#E7F6EE] text-[#0B6B4A]' : 'border-[#F3D1D1] bg-[#FBEFEF] text-[#9E2F2F]')}>
                     {ok ? <CircleCheck className="mt-0.5 h-4 w-4 shrink-0" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}
-                    <span>{ssoTestMessage(testResult)}</span>
+                    <span className="flex flex-col gap-1">
+                        <span>{ssoTestMessage(testResult)}</span>
+                        {testedConnection && <TestDiagnostics connection={testedConnection} domains={overview.domains} />}
+                    </span>
                 </div>
             )}
 
@@ -436,6 +522,7 @@ export default function WorkspaceSsoSection() {
                         <CopyField label="OIDC redirect URI" value={sp.oidcRedirectUri} />
                     </div>
                     <p className="text-[11px] text-black-500">Your identity provider must send the user&apos;s email address (SAML: the NameID or an email attribute; OIDC: the email claim).</p>
+                    <EntraSetupHelp sp={sp} />
                 </Section>
             )}
 
@@ -443,7 +530,7 @@ export default function WorkspaceSsoSection() {
                 {overview.connections.length > 0 && (
                     <ul className="flex flex-col gap-3">
                         {overview.connections.map((connection) => (
-                            <ConnectionCard key={connection.id} connection={connection} workspaceId={workspaceId} ssoRequired={overview.settings.ssoRequired} canManage={overview.canManage} />
+                            <ConnectionCard key={connection.id} connection={connection} workspaceId={workspaceId} ssoRequired={overview.settings.ssoRequired} canManage={overview.canManage} domains={overview.domains} />
                         ))}
                     </ul>
                 )}
