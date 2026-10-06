@@ -47,9 +47,9 @@ class TemporalRouter(Routable):
         payload: FormActionsDto,
         api_key=Depends(get_api_key),
     ):
-        return await self.form_actions_service.update_form_secrets(
-            form_id, action_id, payload
-        )
+        await self.form_actions_service.update_form_secrets(form_id, action_id, payload)
+        # never echo the form back: it carries every action's secrets
+        return "Updated"
 
     @post("/delete/submissions/{submission_id}")
     async def delete_expired_submissions(

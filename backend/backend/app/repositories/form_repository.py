@@ -26,6 +26,16 @@ _LOOKUP_SCAFFOLDING = [
 ]
 
 
+def detach_action(form: FormDocument, action_id: str) -> None:
+    """Drop one action from a form's triggers, parameters and secrets, in
+    place; every other action keeps its own (shared by both stores)."""
+    for trigger, states in (form.actions or {}).items():
+        form.actions[trigger] = [s for s in states or [] if str(s.id) != action_id]
+    for bag in (form.parameters, form.secrets):
+        if isinstance(bag, dict):
+            bag.pop(action_id, None)
+
+
 class FormRepository:
     def _forms_in_workspace_query(
         self,
@@ -446,23 +456,26 @@ class FormRepository:
     async def remove_action_from_all_forms(self, action_id: PydanticObjectId):
         """Detach a deleted action from every form: drop it from the on_submit
         triggers and forget its parameters and secrets (moved here from the
-        actions repository — it writes forms, so it belongs to the forms group)."""
-        await FormDocument.find(
+        actions repository — it writes forms, so it belongs to the forms group).
+
+        Triggers hold ``{id, enabled}`` entries. A form can hold the action's
+        credentials before the action is attached (OAuth runs first), so forms
+        carrying its parameters or secrets are matched too. Other actions'
+        parameters and secrets are left alone."""
+        key = str(action_id)
+        forms = await FormDocument.find(
             {
                 "$or": [
-                    {"actions.on_submit": {"$in": [action_id]}},
-                    {"actions.on_open": {"$in": [action_id]}},
+                    {"actions.on_submit.id": action_id},
+                    {"actions.on_open.id": action_id},
+                    {f"parameters.{key}": {"$exists": True}},
+                    {f"secrets.{key}": {"$exists": True}},
                 ]
             }
-        ).update(
-            {
-                "$pull": {"actions.on_submit": action_id},
-                "$unset": {
-                    f"parameters.{str(action_id)}": "",
-                    f"secrets.{str(action_id)}": "",
-                },
-            }
-        )
+        ).to_list()
+        for form in forms:
+            detach_action(form, key)
+            await form.save()
 
     @write_op
     async def update_form_actions(

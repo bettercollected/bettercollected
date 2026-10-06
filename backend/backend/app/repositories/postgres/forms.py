@@ -34,6 +34,7 @@ from backend.app.models.template import StandardFormTemplate, StandardTemplateSe
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
 from backend.app.repositories.form_import_repository import check_import_limits
+from backend.app.repositories.form_repository import detach_action
 from backend.app.repositories.metric_periods import (
     object_id_at,
     postgres_counts_per_period,
@@ -448,23 +449,22 @@ class PostgresFormRepository(PostgresRepositoryBase):
         return await self.one(FormRow.form_id == _oid(form_id))
 
     async def remove_action_from_all_forms(self, action_id: PydanticObjectId):
-        # ObjectIds sit in the canonical doc as {"$oid": hex}; @> finds the forms
-        marker = [{"$oid": _oid(action_id)}]
+        # Triggers hold {id, enabled}; ObjectIds sit in the canonical doc as
+        # {"$oid": hex}, so @> finds the forms. Forms holding the action's
+        # parameters or secrets (OAuth runs before attaching) match too.
+        key = _oid(action_id)
+        marker = [{"id": {"$oid": key}}]
         actions = FormRow.doc["actions"]
         forms = await self.many(
             or_(
                 actions["on_submit"].contains(marker),
                 actions["on_open"].contains(marker),
+                FormRow.doc["parameters"].has_key(key),
+                FormRow.doc["secrets"].has_key(key),
             )
         )
         for form in forms:
-            if form.actions and form.actions.get("on_submit"):
-                form.actions["on_submit"] = [  # $pull
-                    a for a in form.actions["on_submit"] if str(a) != _oid(action_id)
-                ]
-            for bag in (form.parameters, form.secrets):  # $unset
-                if isinstance(bag, dict):
-                    bag.pop(_oid(action_id), None)
+            detach_action(form, key)
         if forms:
             await self.upsert_many(forms)
 

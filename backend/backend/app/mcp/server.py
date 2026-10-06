@@ -163,7 +163,9 @@ async def get_form(form_id: str) -> str:
     return json.dumps(
         StandardFormCamelModel(
             **StandardForm(**form.model_dump()).model_dump()
-        ).model_dump(mode="json", by_alias=True, exclude_none=True)
+        ).model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude={"secrets"}
+        )
     )
 
 
