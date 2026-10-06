@@ -4,6 +4,7 @@ chosen by any workspace owner, appears only in the body, on one line, capped
 and HTML-escaped. A caller-supplied image is shown only from this instance's
 storage."""
 
+import re
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,7 +17,7 @@ from auth.app.services.mail_service import (
     MailService,
     sender_name,
     storage_image_url,
-    web_image_url,
+    avatar_image_url,
 )
 from auth.app.services.user_service import UserService
 from auth.config import settings
@@ -98,8 +99,7 @@ class TestVerificationCodeMail:
     async def test_subject_is_fixed_and_title_only_in_body(self):
         message = await otp_mail("Acme Hiring")
         assert message.subject == "Your BetterCollected verification code"
-        assert "Acme Hiring" in message.body
-        assert "BetterCollected" in message.body
+        assert "Acme Hiring via BetterCollected" in message.body
 
     @pytest.mark.asyncio
     async def test_title_is_single_line_and_capped(self):
@@ -121,13 +121,18 @@ class TestVerificationCodeMail:
     @pytest.mark.asyncio
     async def test_the_products_own_name_is_not_repeated(self):
         message = await otp_mail("Better Collected")
-        assert "confirm your identity for" not in message.body
+        assert " via " not in message.body
 
     @pytest.mark.asyncio
     async def test_an_empty_title_still_sends(self):
         message = await otp_mail(None)
         assert message.subject == "Your BetterCollected verification code"
-        assert "None" not in message.body
+        assert "None" not in message.body and " via " not in message.body
+
+    @pytest.mark.asyncio
+    async def test_an_over_long_image_is_dropped_not_refused(self):
+        message = await otp_mail("Acme", IMAGE + "x" * 5000)
+        assert message.body.count("<img") == 2  # only the two product logos
 
     @pytest.mark.asyncio
     async def test_storage_image_is_shown(self):
@@ -180,20 +185,66 @@ class TestInvitationMail:
         assert "PayPal Security Bcc: victim@example.com Subject: Reset" in message.body
 
     @pytest.mark.asyncio
-    async def test_inviter_image_must_be_a_web_url(self):
-        message = await invitation_mail("Acme", profile_image="javascript:alert(1)")
-        assert "javascript:" not in message.body
-        message = await invitation_mail(
-            "Acme", profile_image="https://lh3.googleusercontent.com/a/photo"
+    @pytest.mark.parametrize(
+        "image",
+        [
+            "https://lh3.googleusercontent.com/a/photo=s96-c",
+            STORAGE + "avatar.png",
+        ],
+    )
+    async def test_inviter_avatar_from_allowed_hosts(self, image):
+        message = await invitation_mail("Acme", profile_image=image)
+        assert f'src="{image}"' in message.body
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "image",
+        [
+            "https://tracker.example.com/pixel.png",
+            "http://lh3.googleusercontent.com/a/photo",
+            "https://lh3.googleusercontent.com.evil.example.com/a/photo",
+            "javascript:alert(1)",
+        ],
+    )
+    async def test_other_inviter_avatars_show_the_initial(self, image):
+        """An avatar loads when the mail is opened: any other host would learn
+        the recipient's IP."""
+        message = await invitation_mail("Acme", profile_image=image)
+        assert image not in message.body
+        assert re.search(r">\s*A\s*</div>", message.body)  # Ann's initial
+
+    def test_avatar_hosts_are_configurable(self, monkeypatch):
+        monkeypatch.setattr(
+            settings, "MAIL_AVATAR_URL_PREFIXES", "https://avatars.example.com/u/"
         )
-        assert 'src="https://lh3.googleusercontent.com/a/photo"' in message.body
+        assert avatar_image_url("https://avatars.example.com/u/1.png")
+        assert avatar_image_url("https://lh3.googleusercontent.com/a/x") is None
 
 
 def test_image_url_checks():
     assert storage_image_url(IMAGE) == IMAGE
     assert storage_image_url(None) is None
-    assert web_image_url("http://example.com/a.png") == "http://example.com/a.png"
-    assert web_image_url("ftp://example.com/a.png") is None
+    assert (
+        storage_image_url("ftp://storage.example.com/bettercollected/public/a") is None
+    )
+    assert storage_image_url(IMAGE + "x" * 5000) is None
+
+
+def test_otp_send_takes_any_title_length(app_runner):
+    """The backend does not cap titles: a long one is capped in the body, an
+    over-long image dropped; neither fails the send (#761)."""
+    with patch.object(AuthService, "send_otp_to_mail", new_callable=AsyncMock) as send:
+        response = app_runner.get(
+            "auth/otp/send",
+            params={
+                "receiver_email": "someone@example.com",
+                "creator": False,
+                "workspace_title": "t" * 3000,
+                "workspace_profile_image": IMAGE + "x" * 3000,
+            },
+        )
+    assert response.status_code == 200, response.text
+    assert len(send.await_args.kwargs["workspace_title"]) == 3000
 
 
 def test_otp_send_needs_no_workspace_values(app_runner):

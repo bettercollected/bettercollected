@@ -66,6 +66,10 @@ class Application(BaseSettings):
     MAIL_IMAGE_URL_PREFIXES: Optional[str] = (
         "https://s3.eu-central-1.wasabisys.com/bettercollected/public/"
     )
+    # Comma-separated URL prefixes an inviter's avatar may also load from in
+    # invitation mails: Google sign-in stores its userinfo "picture", served
+    # from lh3.googleusercontent.com. Any other avatar shows an initial.
+    MAIL_AVATAR_URL_PREFIXES: Optional[str] = "https://lh3.googleusercontent.com/"
     # Shared with the backend (and integrations/google): every route except
     # /ready and POST /stripe/webhooks needs it in X-Internal-Key
     # (controllers/internal_key.py). Named after the first route it guarded;

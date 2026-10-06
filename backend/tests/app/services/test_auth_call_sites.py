@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import httpx
 from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import Response
@@ -24,6 +25,7 @@ from backend.app.services import internal_auth
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.user_service import get_logged_user
 from backend.config import settings
+from common.exceptions.http import HTTPException as CommonHTTPException
 from common.models.user import User
 from tests.app.controllers.data import testUser
 
@@ -149,6 +151,52 @@ class TestOtpLogin:
         (url,), kwargs = sent.call_args
         assert url.endswith("/auth/otp/validate")
         assert kwargs["headers"] == {"X-Internal-Key": KEY}
+
+
+class TestCodeMailFailures:
+    """#761: a code mail auth refused or failed is never reported as sent, and
+    auth's answer (which can echo the address) is not passed on."""
+
+    REFUSAL = CommonHTTPException(
+        422, {"detail": [{"input": "someone@example.com", "msg": "too long"}]}
+    )
+
+    @pytest.mark.parametrize(
+        "error",
+        [REFUSAL, CommonHTTPException(503, "x"), httpx.ReadTimeout("slow")],
+    )
+    async def test_creator_code(self, client: AsyncClient, error):
+        with patch(
+            "common.services.http_client.HttpClient.get", AsyncMock(side_effect=error)
+        ):
+            response = await client.post(
+                "/api/v1/auth/creator/otp/send",
+                params={"receiver_email": "someone@example.com"},
+            )
+        assert response.status_code == 502, response.text
+        assert "someone@example.com" not in response.text
+        assert "too long" not in response.text
+
+    async def test_workspace_code(self, client: AsyncClient, workspace):
+        sent = AsyncMock(side_effect=self.REFUSAL)
+        with patch("common.services.http_client.HttpClient.get", sent):
+            response = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/auth/otp/send",
+                params={"receiver_email": "someone@example.com"},
+            )
+        assert sent.await_count == 1
+        assert response.status_code == 502, response.text
+        assert "someone@example.com" not in response.text
+
+    async def test_workspace_code_sent(self, client: AsyncClient, workspace):
+        sent = AsyncMock(return_value={"message": "Email set to be sent"})
+        with patch("common.services.http_client.HttpClient.get", sent):
+            response = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/auth/otp/send",
+                params={"receiver_email": "someone@example.com"},
+            )
+        assert response.status_code == 200, response.text
+        assert sent.call_args.kwargs["params"]["workspace_title"] == workspace.title
 
 
 class FakeAuth:
