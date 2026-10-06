@@ -31,6 +31,7 @@ from backend.app.repositories.postgres.ai import (
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
     PostgresMcpAuditLogRepository,
+    PostgresRateLimitRepository,
     PostgresWorkspaceAIProfileRepository,
 )
 from backend.app.repositories.postgres.responses import (
@@ -90,6 +91,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.flow_event_repository import FlowEventRepository
+from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.form_import_repository import FormImportRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
@@ -131,6 +133,8 @@ from backend.app.services.integration_action_service import IntegrationActionSer
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
 from backend.app.services.platform_metrics_service import PlatformMetricsService
+from backend.app.services.flow_event_service import FlowEventService
+from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
@@ -307,6 +311,18 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(FlowEventRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFlowEventRepository, pg_sessionmaker
+        ),
+    )
+    rate_limit_repo: RateLimitRepository = providers.Singleton(
+        RoutingRepository,
+        group="analytics",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(RateLimitRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresRateLimitRepository, pg_sessionmaker
         ),
     )
     form_ai_insight_repo = providers.Singleton(
@@ -552,6 +568,19 @@ class AppContainer(containers.DeclarativeContainer):
             pg_sessionmaker,
             responder_groups_repository,
         ),
+    )
+
+    rate_limiter: FixedWindowRateLimiter = providers.Singleton(
+        FixedWindowRateLimiter,
+        repo=rate_limit_repo,
+        secret=settings.auth_settings.JWT_SECRET,
+    )
+    flow_event_service: FlowEventService = providers.Singleton(
+        FlowEventService,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        flow_event_repo=flow_event_repo,
+        rate_limiter=rate_limiter,
     )
 
     # Every workspace-scoped access decision (services call authorize()).
