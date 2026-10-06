@@ -11,5 +11,7 @@ describe('root layout', () => {
         // build machine's value into the image.
         const layout = await import('./layout');
         expect(layout.dynamic).toBe('force-dynamic');
-    });
+        // Importing the root layout pulls in every provider; under a loaded
+        // runner that can take longer than vitest's 5 s default.
+    }, 30_000);
 });
