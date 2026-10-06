@@ -124,7 +124,18 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                         </span>
                     </span>
                 )}
-                <span className="h-3 w-px bg-black-200" aria-hidden="true" />
+                {aiUsed && (
+                    // The AI notice is part of what every respondent sees, not
+                    // only inside the panel (#752): its own line on phones.
+                    <>
+                        <span className="hidden h-3 w-px bg-black-200 sm:inline-block" aria-hidden="true" />
+                        <span className="w-full text-center text-black-700 sm:w-auto" data-testid="privacy-strip-ai">
+                            {aiProvider ? t('PRIVACY.STRIP_AI_USED', { provider: aiProvider }) : t('PRIVACY.STRIP_AI_USED_NO_PROVIDER')}
+                        </span>
+                    </>
+                )}
+                {/* on phones the AI line ends a row: no divider starting the next */}
+                <span className={`h-3 w-px bg-black-200 ${aiUsed ? 'hidden sm:inline-block' : ''}`} aria-hidden="true" />
                 <button
                     ref={toggleRef}
                     id={toggleId}

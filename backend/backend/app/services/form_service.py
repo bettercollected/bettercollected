@@ -1,6 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
@@ -40,6 +40,9 @@ from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.ai.notice_token import (
+    token_for_form as ai_notice_token_for_form,
+)
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
@@ -197,6 +200,18 @@ class FormService:
         )
         # Respondents and the public never receive internal fields.
         return form if is_admin else respondent_view(form)
+
+    async def ai_notice_token(
+        self, workspace_id: PydanticObjectId, form_id_or_slug: str
+    ) -> Optional[str]:
+        """The AI notice token for a respondent's page of this form (#752), or
+        None while the form shows no AI notice."""
+        association = (
+            await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
+                workspace_id=workspace_id, custom_url=form_id_or_slug
+            )
+        )
+        return ai_notice_token_for_form(workspace_id, association)
 
     async def _get_form_by_id(
         self,

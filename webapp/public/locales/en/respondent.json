@@ -12,6 +12,8 @@
         "AI": "AI",
         "AI_USED": "Your answers may be analysed by AI ({{provider}}) when the form's team runs AI insights.",
         "AI_USED_NO_PROVIDER": "Your answers may be analysed by AI when the form's team runs AI insights.",
+        "STRIP_AI_USED": "Answers may be analysed by AI ({{provider}}).",
+        "STRIP_AI_USED_NO_PROVIDER": "Answers may be analysed by AI.",
         "RIGHTS": "Your rights",
         "RIGHTS_TEXT": "You can view your answers and ask for them to be deleted at any time.",
         "RIGHTS_LINK": "View or delete your response",

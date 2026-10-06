@@ -12,6 +12,8 @@
         "AI": "AI",
         "AI_USED": "Je antwoorden kunnen door AI ({{provider}}) worden geanalyseerd als het team achter dit formulier AI-inzichten gebruikt.",
         "AI_USED_NO_PROVIDER": "Je antwoorden kunnen door AI worden geanalyseerd als het team achter dit formulier AI-inzichten gebruikt.",
+        "STRIP_AI_USED": "Antwoorden kunnen door AI ({{provider}}) worden geanalyseerd.",
+        "STRIP_AI_USED_NO_PROVIDER": "Antwoorden kunnen door AI worden geanalyseerd.",
         "RIGHTS": "Je rechten",
         "RIGHTS_TEXT": "Je kunt je antwoorden altijd inzien en laten verwijderen.",
         "RIGHTS_LINK": "Je antwoorden inzien of verwijderen",

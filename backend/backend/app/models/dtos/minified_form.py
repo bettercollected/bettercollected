@@ -58,3 +58,7 @@ class FormDtoCamelModel(CamelModel):
     welcome_page: Optional[WelcomePageField] = None
     thankyou_page: Optional[List[ThankYouPageField]] = None
     unauthorized: Optional[bool] = None
+    # Signed proof that this page shows the AI insights notice (#752): only on
+    # the published form while the form allows AI insights. The form page
+    # sends it back with the submission.
+    ai_notice_token: Optional[str] = None

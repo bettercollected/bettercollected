@@ -6,8 +6,12 @@ form's own "Allow AI insights on responses" setting (admins only, recorded
 with who and when; while on, respondents see a notice naming the provider),
 and an admin clicking generate. Only forms collected by BetterCollected
 qualify (an imported form's respondents answered on the provider's page,
-which has no notice), and only their own responses submitted after the
-setting was turned on, i.e. after the notice was shown, are ever sent. The result is
+which has no notice), and only their own responses whose page showed the
+notice are ever sent: each carries the server's stamp from a signed token
+the form page received with the form (#752, ``notice_token.py``), for the
+provider name the notice named, under the current setting. A response
+submitted from a page loaded before the setting was on has no stamp and is
+never sent, whenever it was submitted. The result is
 cached so viewing it later reads the cache, not the data, and the projection
 is minimising by construction:
 
@@ -132,17 +136,19 @@ def submitted_here(
     return [r for r in responses if getattr(r, "provider", None) == SELF_PROVIDER]
 
 
-def submitted_since(
-    responses: List[FormResponseDocument], since: dt.datetime
+def notice_shown(
+    responses: List[FormResponseDocument], provider_name: str, since: dt.datetime
 ) -> List[FormResponseDocument]:
-    """Responses submitted at or after ``since`` (when respondents started
-    seeing the AI notice); one without a timestamp is left out."""
+    """Responses whose page showed the AI notice naming ``provider_name``
+    under the setting turned on at ``since`` (#752). A response without the
+    stamp never saw it, whenever it was submitted."""
     since = _aware(since)
     return [
         r
         for r in responses
-        if _aware(getattr(r, "created_at", None)) is not None
-        and _aware(r.created_at) >= since
+        if getattr(r, "ai_notice_provider_name", None) == provider_name
+        and _aware(getattr(r, "ai_notice_shown_at", None)) is not None
+        and _aware(r.ai_notice_shown_at) >= since
     ]
 
 
@@ -160,8 +166,11 @@ class FormAIInsightsResponse(_CamelModel):
     response_count: int
     total_responses: int
     generated_at: dt.datetime
-    # only responses submitted from this moment on were analysed
+    # only responses whose page showed the AI notice, from this moment on
     analysed_since: Optional[dt.datetime] = None
+    # how many of total_responses showed the notice (the rest never will be
+    # analysed); None on summaries generated before this was recorded
+    notice_shown_responses: Optional[int] = None
 
 
 def _question_titles(form: StandardForm) -> Dict[str, str]:
@@ -394,8 +403,9 @@ class FormAIInsightsService:
 
     async def _require_insights_allowed(
         self, workspace_id: PydanticObjectId, association
-    ) -> dt.datetime:
-        """The moment respondents started seeing the notice, or 403: the form
+    ) -> tuple:
+        """(the moment respondents started seeing the notice, the provider name
+        it shows), or 403: the form
         must be collected here and allow AI insights, for the provider (and,
         for a compatible endpoint, the host) the notice named."""
         self._require_collected_here(association)
@@ -403,8 +413,8 @@ class FormAIInsightsService:
         if not settings or not settings.ai_insights_enabled:
             raise _insights_not_enabled(
                 "AI insights are off for this form. A workspace admin can allow "
-                "them in the form's settings; only responses submitted after that "
-                "are analysed."
+                "them in the form's settings; only responses submitted from a page "
+                "that showed the AI notice are analysed."
             )
         consented = await self._ai_consent.require_enabled(workspace_id)
         # The name is compared too: for the compatible provider it carries the
@@ -418,7 +428,7 @@ class FormAIInsightsService:
                 "Respondents were told a different AI provider. Turn AI insights "
                 "off and on again for this form to show them the current one."
             )
-        return settings.ai_insights_enabled_at
+        return settings.ai_insights_enabled_at, settings.ai_insights_provider_name
 
     async def get_cached(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
@@ -446,7 +456,9 @@ class FormAIInsightsService:
         # The workspace's AI opt-in (#715) and the form's own setting (#716)
         # before any response is read.
         provider = await self._provider_resolver(workspace_id, request.provider)
-        since = await self._require_insights_allowed(workspace_id, association)
+        since, notice_provider_name = await self._require_insights_allowed(
+            workspace_id, association
+        )
 
         total = await self._form_response_repo.count_responses_for_form_ids([form_id])
         if total == 0:
@@ -454,25 +466,30 @@ class FormAIInsightsService:
                 status_code=HTTPStatus.BAD_REQUEST,
                 content="This form has no responses to summarize yet.",
             )
-        # Newest first: every response submitted after the notice is newer
-        # than any submitted before it, so filtering the latest ones is enough.
-        # Defence in depth: never a response imported from a provider.
-        responses = submitted_since(
+        # Only responses whose page showed the notice (#752), newest first;
+        # the repository filters, and the same rules are checked again here
+        # (defence in depth: never an imported response, never another name).
+        responses = notice_shown(
             submitted_here(
-                await self._form_response_repo.list_recent_by_form_id(
-                    form_id, MAX_RESPONSES
+                await self._form_response_repo.list_recent_with_ai_notice(
+                    form_id, notice_provider_name, since, MAX_RESPONSES
                 )
             ),
+            notice_provider_name,
             since,
         )
         if not responses:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 content=(
-                    "No responses were submitted since AI insights were allowed "
-                    "for this form. Only those are analysed."
+                    "No responses were submitted from a page that showed the AI "
+                    "notice since AI insights were allowed for this form. Only "
+                    "those are analysed."
                 ),
             )
+        notice_count = await self._form_response_repo.count_with_ai_notice(
+            form_id, notice_provider_name, since
+        )
         form = StandardForm(**form_document.model_dump())
         # internal in the draft, the published or any older version
         internal_ids = await self._form_response_service.all_internal_field_ids(
@@ -532,6 +549,7 @@ class FormAIInsightsService:
             "actionable": actionable,
             "sentiment": sentiment,
             "analysed_since": _aware(since).isoformat(),
+            "notice_shown_responses": notice_count,
         }
         now = dt.datetime.now(dt.timezone.utc)
         document = await self._insight_repo.find(workspace_id, form_id)

@@ -338,9 +338,23 @@ documents) goes to an AI provider until the workspace has opted in. Code:
   (`settings.provider == "self"`) qualify: an imported form's respondents
   answered on Google Forms / Typeform and never saw the notice, so the setting
   and generate both refuse it, and only `provider == "self"` responses are ever
-  analysed. Only responses with `created_at` at or
-  after `ai_insights_enabled_at` are analysed (turning it off and on again moves
-  that moment), and a workspace provider other than the one the notice named
+  analysed. **Only responses whose page showed the notice (#752):** while the
+  setting is on, the published form fetch (`GET …/forms/{id}?published=true`)
+  carries `aiNoticeToken` (`services/ai/notice_token.py`: HMAC-SHA256 under a key
+  derived from `AUTH_JWT_SECRET`, binding workspace, form id, provider id and
+  name, `ai_insights_enabled_at` and when it was issued; valid 24 hours). The form
+  page sends it back as the multipart field `ai_notice_token` on submit;
+  `stamp_response` clears whatever the body claims and sets
+  `ai_notice_shown_at`/`ai_notice_provider_name` only for a valid token matching
+  the current setting. A respondent's edit never adds the stamp (it merges
+  answers, so earlier answers would become analysable): it keeps the stored one
+  and clears what the body claims. The respondent form shows the notice in the
+  privacy strip itself, not only in the collapsed panel, wherever a token is
+  sent. Generate reads
+  `list_recent_with_ai_notice` (stamped for the setting's provider name, shown
+  at or after `ai_insights_enabled_at`, so turning it off and on again excludes
+  earlier ones); `created_at` plays no part. Responses from before #752 carry no
+  stamp and are never analysed. A workspace provider other than the one the notice named
   (id and resolved name, so a changed `COMPAT_BASE_URL` host counts) is
   refused (403 `ai_insights_not_enabled`) until the form setting is renewed. The
   projection redacts email/phone answers and leaves out internal fields and their

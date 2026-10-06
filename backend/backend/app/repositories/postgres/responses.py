@@ -447,6 +447,33 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             limit=limit,
         )
 
+    @staticmethod
+    def _ai_notice_where(form_id: str, provider_name: str, shown_since: dt.datetime):
+        # to the second (utc truncates), like the Mongo store's ISO strings
+        since = utc(shown_since)
+        return (
+            FormResponseRow.form_id == form_id,
+            FormResponseRow.provider == "self",
+            FormResponseRow.ai_notice_provider_name == provider_name,
+            FormResponseRow.ai_notice_shown_at >= since,
+        )
+
+    async def list_recent_with_ai_notice(
+        self, form_id: str, provider_name: str, shown_since: dt.datetime, limit: int
+    ) -> List[FormResponseDocument]:
+        return await self.many(
+            *self._ai_notice_where(form_id, provider_name, shown_since),
+            order_by=(FormResponseRow.created_at.desc(), FormResponseRow.id),
+            limit=limit,
+        )
+
+    async def count_with_ai_notice(
+        self, form_id: str, provider_name: str, shown_since: dt.datetime
+    ) -> int:
+        return await self.count(
+            *self._ai_notice_where(form_id, provider_name, shown_since)
+        )
+
     async def list_deletion_requests_for_form_ids(
         self, form_ids: List[str]
     ) -> List[FormResponseDeletionRequest]:
@@ -610,6 +637,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             form_id=form_id,
             data=json.dumps(answers),
         )
+        # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
         response_document.updated_at = dt.datetime.now(dt.timezone.utc)
         return await self.upsert(response_document)

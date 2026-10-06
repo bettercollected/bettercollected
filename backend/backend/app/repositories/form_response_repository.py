@@ -337,6 +337,39 @@ class FormResponseRepository(BaseRepository):
             .to_list()
         )
 
+    @staticmethod
+    def _ai_notice_query(
+        form_id: str, provider_name: str, shown_since: dt.datetime
+    ) -> Dict[str, Any]:
+        # submitted here, from a page that showed the AI notice naming
+        # ``provider_name`` under the current setting (#752); timestamps are
+        # stored as ISO strings, compared to the second like created_at
+        return {
+            "form_id": form_id,
+            "provider": "self",
+            "ai_notice_provider_name": provider_name,
+            "ai_notice_shown_at": {"$gte": iso_second(shown_since)},
+        }
+
+    async def list_recent_with_ai_notice(
+        self, form_id: str, provider_name: str, shown_since: dt.datetime, limit: int
+    ) -> List[FormResponseDocument]:
+        return (
+            await FormResponseDocument.find(
+                self._ai_notice_query(form_id, provider_name, shown_since)
+            )
+            .sort("-created_at")
+            .limit(limit)
+            .to_list()
+        )
+
+    async def count_with_ai_notice(
+        self, form_id: str, provider_name: str, shown_since: dt.datetime
+    ) -> int:
+        return await FormResponseDocument.find(
+            self._ai_notice_query(form_id, provider_name, shown_since)
+        ).count()
+
     async def list_deletion_requests_for_form_ids(
         self, form_ids: List[str]
     ) -> List[FormResponseDeletionRequest]:
@@ -487,6 +520,7 @@ class FormResponseRepository(BaseRepository):
             form_id=form_id,
             data=json.dumps(answers),
         )
+        # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
         response_document.updated_at = dt.datetime.now(dt.timezone.utc)
         return await response_document.save()

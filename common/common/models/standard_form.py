@@ -1016,4 +1016,10 @@ class StandardFormResponse(BaseModel):
     dataOwnerIdentifier: Optional[str] = None
     anonymous_identity: Optional[str] = None
     submission_uuid: Optional[str] = None
+    # When the respondent's page showed the AI insights notice, and the
+    # provider name it showed (#752). Set by the server only, from the signed
+    # notice token the form page echoes back; AI insights analyse only
+    # responses carrying it.
+    ai_notice_shown_at: Optional[dt.datetime] = None
+    ai_notice_provider_name: Optional[str] = None
 

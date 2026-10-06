@@ -109,6 +109,30 @@ describe('Privacy panel on respondent forms', () => {
         expect(screen.queryByText(/AI/)).not.toBeInTheDocument();
     });
 
+    it('states AI use in the always-visible strip, without opening the panel (#752)', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true, aiInsightsProviderName: 'OpenAI' } });
+        expect(screen.queryByRole('region')).not.toBeInTheDocument();
+        expect(screen.getByTestId('privacy-strip-ai')).toHaveTextContent('Answers may be analysed by AI (OpenAI).');
+        unmount();
+
+        const noProvider = renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true } });
+        expect(screen.getByTestId('privacy-strip-ai')).toHaveTextContent(/^Answers may be analysed by AI\.$/);
+        noProvider.unmount();
+
+        renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: false, aiInsightsProviderName: 'OpenAI' } });
+        expect(screen.queryByTestId('privacy-strip-ai')).not.toBeInTheDocument();
+    });
+
+    it('states AI use in the strip in Dutch', () => {
+        setBrowserLanguages(['nl']);
+        const { unmount } = renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true, aiInsightsProviderName: 'Mistral' } });
+        expect(screen.getByTestId('privacy-strip-ai')).toHaveTextContent('Antwoorden kunnen door AI (Mistral) worden geanalyseerd.');
+        unmount();
+        renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true } });
+        expect(screen.getByTestId('privacy-strip-ai')).toHaveTextContent(/^Antwoorden kunnen door AI worden geanalyseerd\.$/);
+    });
+
     it('states AI use in Dutch too', () => {
         setBrowserLanguages(['nl']);
         renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true, aiInsightsProviderName: 'Mistral' } });
