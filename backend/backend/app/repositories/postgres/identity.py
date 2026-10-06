@@ -26,7 +26,7 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.user_tag_enum import UserTagType
-from backend.app.models.enum.workspace_roles import WorkspaceRoles, has_owner_role
+from backend.app.models.enum.workspace_roles import has_owner_role
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.repositories.metric_periods import (
     object_id_at,
@@ -91,7 +91,6 @@ from common.db import (
     to_bson_dict,
 )
 from common.enums.workspace_invitation_status import InvitationStatus
-from common.models.user import User
 
 
 def _oid(value: Any) -> str:
@@ -291,40 +290,6 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
 class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
     row = WorkspaceUserRow
     document = WorkspaceUserDocument
-
-    async def has_user_access_in_workspace(
-        self, workspace_id: PydanticObjectId, user: User
-    ) -> bool:
-        if not user or not workspace_id:
-            return False
-        workspace_user = await self.find_workspace_user(workspace_id, user.id)
-        return True if workspace_user and not workspace_user.disabled else False
-
-    async def is_user_admin_in_workspace(
-        self, workspace_id: PydanticObjectId, user: User
-    ) -> bool:
-        if not user or not workspace_id:
-            return False
-        workspace_user = await self.find_workspace_user(workspace_id, user.id)
-        # The original calls WorkspaceDocument.get unconditionally: a missing
-        # workspace raises NotFoundError even when the user is not a member.
-        workspace = WorkspaceDocument.verify_doc_exists(
-            await self.one_of(
-                WorkspaceRow, WorkspaceDocument, WorkspaceRow.id == _oid(workspace_id)
-            ),
-            {"id": workspace_id},
-        )
-        return (
-            True
-            if workspace_user
-            and not workspace_user.disabled
-            and (
-                WorkspaceRoles.ADMIN in workspace_user.roles
-                or has_owner_role(workspace_user.roles)
-                or workspace.owner_id == user.id
-            )
-            else False
-        )
 
     async def get_workspace_users(self, workspace_id: PydanticObjectId):
         return await self.many(WorkspaceUserRow.workspace_id == _oid(workspace_id))
