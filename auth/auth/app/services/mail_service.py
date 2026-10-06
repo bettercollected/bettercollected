@@ -57,8 +57,15 @@ def render(template_name: str, **context) -> str:
     return _environment.get_template(template_name).render(**context)
 
 
+MAX_IMAGE_URL_LENGTH = 2048
+
+
 def _url_parts(url: Optional[str]):
-    if not url or any(ch.isspace() or ch in "\"'<>\\" for ch in url):
+    if (
+        not url
+        or len(url) > MAX_IMAGE_URL_LENGTH
+        or any(ch.isspace() or ch in "\"'<>\\" for ch in url)
+    ):
         return None
     try:
         parts = urlsplit(url)
@@ -74,20 +81,21 @@ def _url_parts(url: Optional[str]):
     return parts
 
 
-def web_image_url(url: Optional[str]) -> Optional[str]:
-    """``url`` when it is a plain http(s) URL, else None."""
-    return url if _url_parts(url) else None
+def _prefixes(*settings_values: Optional[str]):
+    for value in settings_values:
+        for prefix in (value or "").split(","):
+            if prefix.strip():
+                yield prefix.strip()
 
 
-def storage_image_url(url: Optional[str]) -> Optional[str]:
-    """``url`` when it points into this instance's own public storage
-    (``MAIL_IMAGE_URL_PREFIXES``), else None: a caller-supplied image is
-    only shown from there."""
+def _allowed_image_url(url: Optional[str], prefixes) -> Optional[str]:
+    """``url`` when it lies under one of ``prefixes`` (same scheme and host,
+    path below the prefix's), else None. Images load when the mail is opened,
+    so any other host would learn the recipient's address and IP."""
     parts = _url_parts(url)
     if not parts or ".." in parts.path.split("/"):
         return None
-    for prefix in (settings.MAIL_IMAGE_URL_PREFIXES or "").split(","):
-        prefix = prefix.strip()
+    for prefix in prefixes:
         base = _url_parts(prefix)
         if not base:
             continue
@@ -98,6 +106,22 @@ def storage_image_url(url: Optional[str]) -> Optional[str]:
         ):
             return url
     return None
+
+
+def storage_image_url(url: Optional[str]) -> Optional[str]:
+    """``url`` when it points into this instance's own public storage
+    (``MAIL_IMAGE_URL_PREFIXES``), else None: a caller-supplied image is
+    only shown from there. Over-long or malformed URLs are dropped too."""
+    return _allowed_image_url(url, _prefixes(settings.MAIL_IMAGE_URL_PREFIXES))
+
+
+def avatar_image_url(url: Optional[str]) -> Optional[str]:
+    """An inviter's avatar: from this instance's storage or a sign-in
+    provider's image host (``MAIL_AVATAR_URL_PREFIXES``), else None."""
+    return _allowed_image_url(
+        url,
+        _prefixes(settings.MAIL_IMAGE_URL_PREFIXES, settings.MAIL_AVATAR_URL_PREFIXES),
+    )
 
 
 class MailService:

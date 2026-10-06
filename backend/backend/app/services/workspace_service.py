@@ -8,8 +8,10 @@ import bson
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
+from common.exceptions.http import HTTPException as CommonHTTPException
 from common.services.http_client import HttpClient
 from fastapi import UploadFile
+from httpx import HTTPError
 from loguru import logger
 import loguru
 from pydantic import EmailStr
@@ -71,6 +73,26 @@ def raise_if_reserved_workspace_name(workspace_name: str) -> None:
         raise HTTPException(
             HTTPStatus.CONFLICT, content="This workspace handle is reserved."
         )
+
+
+CODE_MAIL_FAILED = "We could not send the code. Please try again in a moment."
+
+
+async def request_code_mail(http_client: HttpClient, params: dict) -> None:
+    """Ask the auth service to mail a sign-in code. A refusal or failure there
+    is never reported as sent; the caller gets a generic 502 (auth's answer
+    can echo the request, the address included, so it is not passed on)."""
+    try:
+        await http_client.get(
+            settings.auth_settings.BASE_URL + "/auth/otp/send",
+            params=params,
+            headers=auth_service_headers(),
+            timeout=180,
+        )
+    except (CommonHTTPException, HTTPError) as exc:
+        status = getattr(exc, "status_code", type(exc).__name__)
+        logger.warning(f"Sign-in code mail not requested: auth answered {status}")
+        raise HTTPException(HTTPStatus.BAD_GATEWAY, CODE_MAIL_FAILED)
 
 
 class WorkspaceService:
@@ -443,16 +465,14 @@ class WorkspaceService:
             await self._sso_policy.code_sign_in_scope(
                 receiver_email, workspace_id=str(workspace_id)
             )
-        await self.http_client.get(
-            settings.auth_settings.BASE_URL + "/auth/otp/send",
-            params={
+        await request_code_mail(
+            self.http_client,
+            {
                 "receiver_email": receiver_email,
-                "workspace_title": workspace.title,
-                "workspace_profile_image": workspace.profile_image,
+                "workspace_title": workspace.title or "",
+                "workspace_profile_image": workspace.profile_image or "",
                 "creator": False,
             },
-            headers=auth_service_headers(),
-            timeout=180,
         )
         return {"message": "Otp sent successfully"}
 

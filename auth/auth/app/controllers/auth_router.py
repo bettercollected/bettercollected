@@ -16,7 +16,6 @@ from common.models.user import (
     User,
 )
 
-from fastapi import Query
 from pydantic import EmailStr
 
 from starlette.background import BackgroundTasks
@@ -45,10 +44,11 @@ class AuthRoutes(Routable):
         receiver_email: EmailStr,
         creator: bool,
         background_tasks: BackgroundTasks,
-        # shown in the mail body only, never in From or the subject (#761);
-        # the image only from this instance's storage (MAIL_IMAGE_URL_PREFIXES)
-        workspace_title: Optional[str] = Query(None, max_length=1000),
-        workspace_profile_image: Optional[str] = Query(None, max_length=2000),
+        # shown in the mail body only, never in From or the subject (#761).
+        # No length limits here: the title is capped by one_line, and an
+        # over-long or foreign image is dropped; neither may fail the send.
+        workspace_title: Optional[str] = None,
+        workspace_profile_image: Optional[str] = None,
     ):
         background_tasks.add_task(
             self.auth_service.send_otp_to_mail,

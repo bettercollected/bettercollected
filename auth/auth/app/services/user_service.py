@@ -15,7 +15,7 @@ from auth.app.services.mail_service import (
     one_line,
     render,
     sender_name,
-    web_image_url,
+    avatar_image_url,
 )
 from auth.app.services.stripe_service import StripeService
 from auth.config import settings
@@ -62,7 +62,7 @@ class UserService:
                 role=one_line(role),
                 invitation_link=invitation_link,
                 inviter_name=inviter_name,
-                image_url=web_image_url(inviter.profile_image),
+                image_url=avatar_image_url(inviter.profile_image),
                 initial=inviter_name[:1].upper(),
             ),
             subtype="html",

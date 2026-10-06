@@ -111,6 +111,10 @@ google `services/migration_service.py`. Never put the key on a shared HTTP clien
   A caller-supplied workspace image (`/auth/otp/send`) is shown only when it starts with one of
   `MAIL_IMAGE_URL_PREFIXES` (this instance's public storage, default the hosted bucket's `public/`); otherwise the
   mail shows an initial. Self-hosters on other storage set it to `<AWS_PUBLIC_URL or AWS_ENDPOINT_URL>/<bucket>/public/`.
+  An inviter's avatar may also come from `MAIL_AVATAR_URL_PREFIXES` (default `https://lh3.googleusercontent.com/`,
+  where Google sign-in's `picture` is served); images load on open, so any other host would learn the recipient's IP.
+  The code mail's body names the workspace as "<workspace> via <ORGANIZATION_NAME>". `/auth/otp/send` never refuses
+  over-long values (a refusal makes the backend answer the respondent 502): titles are capped, bad images dropped. The mails are English only; there is no locale support yet.
 - **Notifications** (`controllers/notifications_router.py`, `services/notification_service.py`):
   `POST /notifications/submission-update` mails a respondent (fixed subject "Update on your submission") that staff responded to their submission. Not a
   relay: **only the backend may call it** — the internal key, like every route (see "Internal-only API"),
