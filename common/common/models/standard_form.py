@@ -443,6 +443,8 @@ class RepeatSettings(BaseModel):
 
 # At most this many date rules per date question.
 DATE_RULES_MAX = 5
+# Length cap of a question's "why we ask this" line (StandardFieldProperty).
+WHY_WE_ASK_MAX_LENGTH = 280
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
@@ -533,6 +535,10 @@ class StandardFieldProperty(BaseModel):
     label: Optional[str] = Field(None, max_length=120)
     # Constraints on a date question's answer (see DateRule).
     date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
+    # "Why we ask this": the creator's short reason for asking an identifying
+    # question (email, phone, ID number), shown to respondents under it.
+    # Publishing needs one on every such question (services/publish_checks.py).
+    why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

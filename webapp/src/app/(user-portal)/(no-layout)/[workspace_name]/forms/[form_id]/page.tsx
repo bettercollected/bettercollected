@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-piping';
@@ -15,7 +16,7 @@ import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
 import { useRouter } from 'next/navigation';
-import { use, useEffect, useRef } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 
 export default function FormPage(props: { params: Promise<{ form_id: string; workspace_name: string }> }) {
     const params = use(props.params);
@@ -43,6 +44,8 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     const router = useRouter();
     const trackedViewRef = useRef(false);
+    const { currentSlide } = useResponderState();
+    const roomy = useMinViewportHeight(640);
 
     useEffect(() => {
         if (trackedViewRef.current) return;
@@ -156,15 +159,27 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                     <TrustLayer
                         ownerName={workspace?.title || workspace?.workspaceName}
                         ownerImage={workspace?.profileImage}
-                        purpose={data?.settings?.purpose}
-                        retention={data?.settings?.retentionText}
-                        privacyUrl={data?.settings?.privacyPolicyUrl}
+                        settings={data?.settings}
                         portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
-                        poweredBy={!data?.settings?.disableBranding}
-                        aiProviderName={data?.settings?.aiInsightsEnabled ? data?.settings?.aiInsightsProviderName : null}
+                        // Open on the welcome page, where there is room before
+                        // the first question; a strip with the toggle elsewhere.
+                        defaultExpanded={currentSlide === -1 && roomy}
                     />
                 </div>
             )}
         </div>
     );
 };
+
+/** Whether the viewport is at least `px` tall (false on the server). */
+function useMinViewportHeight(px: number) {
+    const [matches, setMatches] = useState(false);
+    useEffect(() => {
+        const query = window.matchMedia(`(min-height: ${px}px)`);
+        const update = () => setMatches(query.matches);
+        update();
+        query.addEventListener?.('change', update);
+        return () => query.removeEventListener?.('change', update);
+    }, [px]);
+    return matches;
+}

@@ -1,0 +1,32 @@
+{
+    "PRIVACY": {
+        "COLLECTED_BY": "Collected by <1>{{owner}}</1>",
+        "TOGGLE": "Your privacy",
+        "PANEL_LABEL": "How your answers are handled",
+        "RECEIVER": "Who receives your answers",
+        "PURPOSE": "Why they are asked",
+        "RETENTION": "How long they are kept",
+        "IDENTITY": "Your identity",
+        "IDENTITY_REQUIRED": "You sign in with your email address before you can answer.",
+        "IDENTITY_NOT_REQUIRED": "No verification needed. You can answer without signing in.",
+        "AI": "AI",
+        "AI_USED": "Your answers may be analysed by AI ({{provider}}) when the form's team runs AI insights.",
+        "AI_USED_NO_PROVIDER": "Your answers may be analysed by AI when the form's team runs AI insights.",
+        "RIGHTS": "Your rights",
+        "RIGHTS_TEXT": "You can view your answers and ask for them to be deleted at any time.",
+        "RIGHTS_LINK": "View or delete your response",
+        "POLICY_LINK": "Privacy policy",
+        "POWERED_BY": "Powered by <1>bettercollected</1>",
+        "LANGUAGE": "Language",
+        "OPENS_IN_NEW_TAB": "(opens in a new tab)"
+    },
+    "RETENTION": {
+        "DAYS_one": "Kept for {{count}} day after you submit.",
+        "DAYS_other": "Kept for {{count}} days after you submit.",
+        "UNTIL_DATE": "Kept until {{date}}.",
+        "UNTIL_DELETED": "No fixed period: kept until they are deleted."
+    },
+    "QUESTION": {
+        "WHY_WE_ASK": "Why we ask this:"
+    }
+}

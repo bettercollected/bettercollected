@@ -38,10 +38,12 @@ from common.models.standard_form import (
     Theme,
     date_rule_problems,
     prune_date_rules,
+    WHY_WE_ASK_MAX_LENGTH,
 )
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
+from backend.app.services.policy_url import checked_policy_url
 from pydantic.alias_generators import to_camel
 
 
@@ -102,6 +104,9 @@ class NewFieldSpec(_CamelModel):
     allow_multiple: Optional[bool] = None
     # date only: a short label shown with the picker ("Start date")
     label: Optional[str] = Field(None, max_length=120)
+    # "Why we ask this", shown under the question; publishing needs one on
+    # email, phone and ID-number questions (services/publish_checks.py).
+    why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
 
 
 class DateRuleSpec(_CamelModel):
@@ -139,6 +144,8 @@ class FieldPatch(_CamelModel):
     # and the date rules (full replacement; [] clears).
     label: Optional[str] = Field(None, max_length=120)
     date_rules: Optional[List[DateRuleSpec]] = None
+    # "Why we ask this" line under the question ("" clears).
+    why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
 
 
 class AddFieldOp(_CamelModel):
@@ -477,6 +484,8 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         properties.description = spec.description
     if spec.col_span is not None:
         properties.col_span = spec.col_span
+    if spec.why_we_ask and spec.why_we_ask.strip():
+        properties.why_we_ask = spec.why_we_ask.strip()
     if spec.label:
         if spec.type != StandardFormFieldType.DATE:
             raise OpError("A label only applies to date questions.")
@@ -555,6 +564,9 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
     if patch.col_span is not None:
         field.properties.col_span = patch.col_span
         changed.append("width")
+    if patch.why_we_ask is not None:
+        field.properties.why_we_ask = patch.why_we_ask.strip() or None
+        changed.append("why we ask this")
     if patch.internal:
         _ensure_can_be_internal(field.type)
     if patch.internal is not None:
@@ -865,6 +877,12 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
             "Nothing to change — provide at least one of: purpose, retentionText, "
             "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber."
         )
+    if op.patch.privacy_policy_url is not None:
+        # Respondents get it as a link: http(s) only.
+        try:
+            checked_policy_url(op.patch.privacy_policy_url)
+        except ValueError as error:
+            raise OpError(str(error))
     return "Updated form settings: " + ", ".join(changed)
 
 

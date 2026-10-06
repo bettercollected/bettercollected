@@ -8,6 +8,7 @@ from common.models.standard_form import (
     Condition,
     ConditionalActions,
     DATE_RULES_MAX,
+    WHY_WE_ASK_MAX_LENGTH,
     DateRule,
     FieldLogic,
     FieldPosition,
@@ -103,6 +104,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     repeat: Optional[RepeatSettings] = None
     label: Optional[str] = Field(None, max_length=120)
     date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
+    # "Why we ask this" line under an identifying question (services/publish_checks.py).
+    why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
 
 
 class StandardFormFieldCamelModel(CamelModel):

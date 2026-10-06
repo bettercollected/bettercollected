@@ -1,6 +1,6 @@
 import { JSONContent } from '@tiptap/react';
 
-import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { getComparableAnswerValue } from '@app/utils/conditional-logic';
 import { GroupAggregate, resolveGroupAggregate } from '@app/utils/group-aggregates';
 
@@ -231,9 +231,17 @@ export function captureHiddenFieldValues(declaredNames: string[] | undefined, se
 }
 
 /**
+ * Field types a share link may prefill. Free-entry answers only: a link must
+ * never choose for the respondent (tick a yes/no, pick an option), so no
+ * consent or opt-in can arrive already given.
+ */
+export const PREFILLABLE_FIELD_TYPES: ReadonlyArray<string> = [FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.EMAIL, FieldTypes.NUMBER, FieldTypes.LINK, FieldTypes.PHONE_NUMBER, FieldTypes.DATE];
+
+/**
  * URL prefill for visible input fields: `?field_<fieldId>=value`.
  * Returns {fieldId, field, value} for every param that addresses a real
- * answerable field; the caller applies them with the typed answer setters.
+ * free-entry field (PREFILLABLE_FIELD_TYPES); the caller applies them with
+ * the typed answer setters.
  */
 export function getPrefillEntries(slides: Array<StandardFormFieldDto> | undefined, search: string | URLSearchParams): Array<{ field: StandardFormFieldDto; value: string }> {
     const params = typeof search === 'string' ? new URLSearchParams(search) : search;
@@ -242,7 +250,7 @@ export function getPrefillEntries(slides: Array<StandardFormFieldDto> | undefine
     params.forEach((value, key) => {
         if (!key.startsWith('field_') || value === '') return;
         const field = byId[key.slice('field_'.length)];
-        if (field && V2InputFields.includes(field.type)) entries.push({ field, value });
+        if (field && PREFILLABLE_FIELD_TYPES.includes(field.type)) entries.push({ field, value });
     });
     return entries;
 }

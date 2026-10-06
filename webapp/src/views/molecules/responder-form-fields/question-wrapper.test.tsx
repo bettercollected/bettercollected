@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // RenderImage drags in the whole builder field registry — irrelevant here.
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
@@ -16,6 +16,8 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { store } from '@app/store/store';
 import QuestionWrapper from './question-wrapper';
+// Registers the respondent translations, as the app layout does.
+import '@app/shared/hocs/i18n-provider';
 
 const field = (overrides: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id: 'f1', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Your name?', ...overrides });
 
@@ -119,5 +121,29 @@ describe('QuestionWrapper — string titles are text, never markup', () => {
     it('keeps plain string titles bold', () => {
         const { container } = renderWrapper(field({ title: 'Your name?' }));
         expect(container.querySelector('strong')?.textContent).toBe('Your name?');
+    });
+});
+
+describe('QuestionWrapper — "why we ask this"', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('shows the reason under an identifying question and links it for assistive tech (English)', async () => {
+        vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['en-GB']);
+        renderWrapper(field({ type: FieldTypes.EMAIL, title: 'Email', properties: { whyWeAsk: 'To send you a copy of your answers.' } }));
+        const reason = await screen.findByText(/To send you a copy of your answers\./);
+        expect(reason.closest('p')).toHaveTextContent('Why we ask this: To send you a copy of your answers.');
+        expect(screen.getByRole('group').getAttribute('aria-describedby')).toContain('q-why-f1');
+    });
+
+    it('labels the reason in Dutch for a Dutch respondent', async () => {
+        vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['nl-NL']);
+        renderWrapper(field({ type: FieldTypes.PHONE_NUMBER, title: 'Telefoon', properties: { whyWeAsk: 'Zodat we je kunnen terugbellen.' } }));
+        const reason = await screen.findByText(/Zodat we je kunnen terugbellen\./);
+        await waitFor(() => expect(reason.closest('p')).toHaveTextContent('Waarom we dit vragen: Zodat we je kunnen terugbellen.'));
+    });
+
+    it('shows nothing without a reason', () => {
+        renderWrapper(field({ type: FieldTypes.EMAIL, title: 'Email' }));
+        expect(screen.queryByText(/why we ask this/i)).not.toBeInTheDocument();
     });
 });

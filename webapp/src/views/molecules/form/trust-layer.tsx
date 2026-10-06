@@ -1,117 +1,199 @@
 'use client';
 
-import { Shield } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+
+import { ChevronDown, Shield } from 'lucide-react';
+import { Trans } from 'react-i18next';
+
+import useRespondentLanguage, { RESPONDENT_LANGUAGES } from '@app/lib/hooks/use-respondent-language';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { httpUrl } from '@app/utils/http-url';
+import { describeRetention, retentionExplanation } from '@app/utils/retention';
 
 export interface TrustLayerProps {
-    /** Who is collecting the responses — the workspace/brand name. */
+    /** Who receives the answers: the workspace/organisation name. */
     ownerName?: string;
     /** Optional owner logo/avatar. */
     ownerImage?: string;
-    /** Optional one-line statement of why the form collects data. */
-    purpose?: string;
-    /** Link to how the data is handled (form- or workspace-level privacy policy). */
-    privacyUrl?: string;
-    /** Human-readable retention, e.g. "kept for 90 days". */
-    retention?: string;
-    /** Link to the responder portal where a submission can be viewed/deleted. */
+    /**
+     * The form's settings: purpose, retention (the enforced period, with the
+     * creator's explanation next to it), privacy policy link, verified
+     * identity or a private form, AI insights and branding all come from here.
+     */
+    settings?: Partial<NonNullable<StandardFormDto['settings']>>;
+    /** Where a respondent views or deletes their response (the workspace portal). */
     portalUrl?: string;
     /**
-     * Show "Powered by bettercollected" as the strip's last item. The strip is
-     * the form's single footer — attribution lives here rather than floating
-     * over page content (the thank-you page used to stack its own footer
-     * underneath this one). Off when the form's disableBranding setting is on.
+     * Show "Powered by bettercollected" as the strip's last item. Defaults to
+     * the form's branding setting. The strip is the form's single footer.
      */
     poweredBy?: boolean;
     /**
-     * Set when the form allows AI insights on responses (#716): the AI
-     * provider responses may be sent to, named to the respondent.
+     * Open the panel by default (the welcome page). Follows the prop until
+     * the respondent opens or closes it themselves.
      */
-    aiProviderName?: string | null;
+    defaultExpanded?: boolean;
 }
 
 /**
- * A quiet, persistent "trust layer" for the responder form: who is collecting,
- * why, how the data is handled, and the right to delete. Making the privacy
- * story visible on every form is bettercollected's differentiator — see
- * Design-Language.md §4.
- *
- * Presentational only: pass in data (see the wired usage on the fill page).
+ * The privacy panel on every respondent form: a quiet footer strip (who is
+ * collecting, a disclosure button) that opens a short, standard panel: who
+ * receives the answers, why, how long they are kept, whether a verified
+ * identity is needed, whether AI is used on them, and the respondent's rights.
+ * Dutch and English (`respondent` namespace), in the respondent's language.
  */
-export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention, portalUrl, poweredBy, aiProviderName }: TrustLayerProps) {
-    const items: React.ReactNode[] = [];
+export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl, poweredBy, defaultExpanded = false }: TrustLayerProps) {
+    const { t, language, setLanguage } = useRespondentLanguage();
+    const [expanded, setExpanded] = useState(defaultExpanded);
+    const touchedRef = useRef(false);
+    const toggleRef = useRef<HTMLButtonElement>(null);
+    const panelId = useId();
+    const toggleId = useId();
 
-    if (ownerName) {
-        const owner = (
+    useEffect(() => {
+        if (!touchedRef.current) setExpanded(defaultExpanded);
+    }, [defaultExpanded]);
+
+    const toggle = () => {
+        touchedRef.current = true;
+        setExpanded((open) => !open);
+    };
+
+    const purpose = settings?.purpose?.trim();
+    // Rendered as a link: http(s) only (the backend refuses anything else).
+    const privacyUrl = httpUrl(settings?.privacyPolicyUrl);
+    const retentionNote = retentionExplanation(settings);
+    // A private form is served only to signed-in members of an admitted group.
+    const signInRequired = !!(settings?.requireVerifiedIdentity || settings?.private);
+    const aiUsed = !!settings?.aiInsightsEnabled;
+    const aiProvider = settings?.aiInsightsProviderName?.trim();
+    const showPoweredBy = poweredBy ?? !settings?.disableBranding;
+    const newTab = <span className="sr-only"> {t('PRIVACY.OPENS_IN_NEW_TAB')}</span>;
+
+    const rows: Array<{ key: string; term: string; detail: React.ReactNode }> = [];
+    if (ownerName) rows.push({ key: 'receiver', term: t('PRIVACY.RECEIVER'), detail: ownerName });
+    if (purpose) rows.push({ key: 'purpose', term: t('PRIVACY.PURPOSE'), detail: purpose });
+    rows.push({
+        key: 'retention',
+        term: t('PRIVACY.RETENTION'),
+        // The enforced period always; the creator's explanation next to it.
+        detail: (
             <>
-                {ownerImage ? (
-                    <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" />
-                ) : null}
-                Collected by <span className="text-black-900 font-semibold">{ownerName}</span>
+                {describeRetention(settings as StandardFormDto['settings'], t, language)}
+                {retentionNote && (
+                    <>
+                        {' '}
+                        <span className="text-black-600" data-testid="privacy-retention-note">
+                            {retentionNote}
+                        </span>
+                    </>
+                )}
             </>
-        );
-        items.push(
-            // Provenance doubles as the way home: the owner chip links to the
-            // workspace portal (new tab — never interrupt an in-progress fill).
-            portalUrl ? (
-                <a key="owner" href={portalUrl} target="_blank" rel="noopener noreferrer" className="text-black-700 hover:text-black-900 pointer-events-auto inline-flex items-center gap-1.5">
-                    {owner}
-                </a>
-            ) : (
-                <span key="owner" className="text-black-700 inline-flex items-center gap-1.5">
-                    {owner}
-                </span>
-            )
-        );
-    }
-    if (purpose) {
-        items.push(<span key="purpose" className="text-black-700">{purpose}</span>);
-    }
-    if (privacyUrl) {
-        items.push(
-            <a key="privacy" href={privacyUrl} target="_blank" rel="noopener noreferrer" className="text-brand-500 pointer-events-auto hover:underline">
-                How your data is used
-            </a>
-        );
-    }
-    if (aiProviderName) {
-        items.push(
-            <span key="ai" className="text-black-700">
-                Responses may be analysed by an AI provider ({aiProviderName})
-            </span>
-        );
-    }
-    // Deletion is a right responders always have (post-submission); when we know
-    // where to exercise it, say so with a link — otherwise state it plainly.
-    items.push(
-        portalUrl ? (
-            <a key="delete" href={portalUrl} target="_blank" rel="noopener noreferrer" className="text-black-700 pointer-events-auto underline decoration-dotted underline-offset-2 hover:text-black-900">
-                View or delete your response anytime{retention ? ` · ${retention}` : ''}
-            </a>
-        ) : (
-            <span key="delete" className="text-black-700">
-                You can view or delete your response anytime{retention ? ` · ${retention}` : ''}
-            </span>
         )
-    );
-    if (poweredBy) {
-        items.push(
-            <a key="powered-by" href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-black-900 pointer-events-auto">
-                Powered by <span className="font-semibold">bettercollected</span>
-            </a>
-        );
-    }
+    });
+    rows.push({ key: 'identity', term: t('PRIVACY.IDENTITY'), detail: signInRequired ? t('PRIVACY.IDENTITY_REQUIRED') : t('PRIVACY.IDENTITY_NOT_REQUIRED') });
+    if (aiUsed) rows.push({ key: 'ai', term: t('PRIVACY.AI'), detail: aiProvider ? t('PRIVACY.AI_USED', { provider: aiProvider }) : t('PRIVACY.AI_USED_NO_PROVIDER') });
+    rows.push({
+        key: 'rights',
+        term: t('PRIVACY.RIGHTS'),
+        detail: (
+            <>
+                {t('PRIVACY.RIGHTS_TEXT')}{' '}
+                {portalUrl && (
+                    <a href={portalUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700">
+                        {t('PRIVACY.RIGHTS_LINK')}
+                        {newTab}
+                    </a>
+                )}
+            </>
+        )
+    });
 
     return (
-        // 13px legible ink-2 — the strip that carries the product's differentiator
-        // shouldn't be the smallest text on screen (Design-Language §4).
-        <div className="border-t-black-200 bg-white/85 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t px-4 py-2.5 text-[13px] backdrop-blur-sm">
-            <Shield className="text-brand-500 h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
-            {items.map((item, i) => (
-                <span key={i} className="inline-flex items-center gap-3">
-                    {i > 0 && <span className="bg-black-200 h-3 w-px" aria-hidden="true" />}
-                    {item}
-                </span>
-            ))}
+        // The strip comes first in the DOM, so after the toggle the keyboard
+        // moves into the panel; flex-col-reverse shows the panel above it.
+        <div className="flex w-full flex-col-reverse" data-testid="privacy-panel">
+            {/* 13px legible strip: who is collecting, and the way into the panel. */}
+            <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t border-t-black-200 bg-white/90 px-4 py-2 text-[13px] backdrop-blur-sm" lang={language}>
+                <Shield className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
+                {ownerName && (
+                    <span className="inline-flex items-center gap-1.5 text-black-700">
+                        {ownerImage ? <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
+                        <span>
+                            <Trans t={t} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: ownerName }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
+                        </span>
+                    </span>
+                )}
+                <span className="h-3 w-px bg-black-200" aria-hidden="true" />
+                <button
+                    ref={toggleRef}
+                    id={toggleId}
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-controls={panelId}
+                    onClick={toggle}
+                    className="pointer-events-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold text-black-900 underline decoration-dotted underline-offset-2 hover:bg-black-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                    {t('PRIVACY.TOGGLE')}
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : 'rotate-180'}`} aria-hidden="true" />
+                </button>
+                {showPoweredBy && (
+                    <>
+                        <span className="h-3 w-px bg-black-200" aria-hidden="true" />
+                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-black-600 hover:text-black-900">
+                            <Trans t={t} i18nKey="PRIVACY.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
+                        </a>
+                    </>
+                )}
+            </div>
+            {expanded && (
+                <section
+                    id={panelId}
+                    aria-labelledby={toggleId}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                            touchedRef.current = true;
+                            setExpanded(false);
+                            toggleRef.current?.focus();
+                        }
+                    }}
+                    className="pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-200 bg-white px-4 py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+                >
+                    <div className="mx-auto flex max-w-[800px] flex-col gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h2 className="text-[15px] font-semibold text-black-900">{t('PRIVACY.PANEL_LABEL')}</h2>
+                            <div role="group" aria-label={t('PRIVACY.LANGUAGE')} className="flex overflow-hidden rounded-md border border-black-300 text-[12px]">
+                                {RESPONDENT_LANGUAGES.map((option) => (
+                                    <button
+                                        key={option.code}
+                                        type="button"
+                                        lang={option.code}
+                                        aria-pressed={language === option.code}
+                                        onClick={() => setLanguage(option.code)}
+                                        className={`px-2 py-1 font-medium ${language === option.code ? 'bg-black-900 text-white' : 'bg-white text-black-700 hover:bg-black-100'}`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <dl className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2" lang={language}>
+                            {rows.map((row) => (
+                                <div key={row.key} data-testid={`privacy-${row.key}`}>
+                                    <dt className="text-[12px] font-semibold uppercase tracking-wide text-black-600">{row.term}</dt>
+                                    <dd className="text-black-800">{row.detail}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                        {privacyUrl && (
+                            <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="w-fit font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700">
+                                {t('PRIVACY.POLICY_LINK')}
+                                {newTab}
+                            </a>
+                        )}
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

@@ -6,6 +6,8 @@ import { initReactI18next, I18nextProvider } from 'react-i18next';
 import commonEn from '../../../public/locales/en/common.json';
 import builderEn from '../../../public/locales/en/builder.json';
 import builderNl from '../../../public/locales/nl/builder.json';
+import respondentEn from '../../../public/locales/en/respondent.json';
+import respondentNl from '../../../public/locales/nl/respondent.json';
 
 // Initialize i18next if not already initialized
 if (!i18n.isInitialized) {
@@ -13,18 +15,23 @@ if (!i18n.isInitialized) {
         resources: {
             en: {
                 common: commonEn,
-                builder: builderEn
+                builder: builderEn,
+                respondent: respondentEn
             },
-            // Builder strings only (small), so Dutch builder text resolves once a
-            // locale switch exists; the app still renders in English (lng below)
-            // and anything missing falls back to English.
+            // Dutch builder strings resolve once a locale switch exists (the app
+            // still renders in English, lng below). Respondent-facing text is
+            // Dutch and English: the form's privacy panel and question notes read
+            // it in the respondent's language (lib/hooks/use-respondent-language.ts)
+            // without switching the rest of the app. Anything missing falls back
+            // to English.
             nl: {
-                builder: builderNl
+                builder: builderNl,
+                respondent: respondentNl
             }
         },
         lng: 'en',
         fallbackLng: 'en',
-        ns: ['common', 'builder'],
+        ns: ['common', 'builder', 'respondent'],
         defaultNS: 'common',
         interpolation: {
             escapeValue: false

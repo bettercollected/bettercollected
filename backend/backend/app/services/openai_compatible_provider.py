@@ -20,6 +20,7 @@ from backend.app.services.ai_form_provider import (
     PAGE_TIMEOUT_S,
     AIFormProvider,
 )
+from backend.app.services.form_generation_rules import HONEST_FORM_RULES
 from backend.config import settings
 
 GENERATION_SYSTEM_PROMPT = """
@@ -62,6 +63,7 @@ interface Form {
 3. 'choices' required for multiple_choice/dropdown (>= 2 options); 'steps' for ratings.
 4. Realistic, human-friendly content. Valid JSON only.
 """
+GENERATION_SYSTEM_PROMPT += HONEST_FORM_RULES
 
 
 class OpenAICompatibleFormProvider(AIFormProvider):

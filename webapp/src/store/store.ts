@@ -6,7 +6,6 @@ import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/reset-state';
 import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
 import { couponCodeApi } from '@app/store/coupon-code/api';
-import fillFormSlice from '@app/store/fill-form/slice';
 import formSlice from '@app/store/forms/slice';
 import { integrationApi } from '@app/store/integration-apis';
 import { plansApi } from '@app/store/plans/api';
@@ -56,7 +55,6 @@ const reducers = {
     [authSlice.reducerPath]: authSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
-    [fillFormSlice.reducerPath]: fillFormSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer,
     [providerApi.reducerPath]: providerApi.reducer,

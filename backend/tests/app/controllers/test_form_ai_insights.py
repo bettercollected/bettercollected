@@ -91,7 +91,9 @@ async def _seed_form_and_responses(
                         index=1,
                         type=StandardFormFieldType.EMAIL,
                         title="Your email?",
-                        properties=StandardFieldProperty(fields=[]),
+                        properties=StandardFieldProperty(
+                            fields=[], why_we_ask="So we can reply to you."
+                        ),
                     ),
                     StandardFormField(
                         id="q-score",

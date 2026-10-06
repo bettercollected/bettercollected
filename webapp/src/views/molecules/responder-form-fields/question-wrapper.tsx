@@ -13,6 +13,7 @@ import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 import { HEADING_CLASSES } from '@app/utils/text-headings';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 // Answer fields that V2InputFields (used elsewhere) leaves out; without them
 // these never showed their "Optional" marker.
@@ -46,6 +47,9 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     const title = typeof field?.title === 'string' && field.title ? stringTitleToDoc(field.title, [{ type: 'bold' }]) : field?.title;
     const resolvedTitle = resolvePipesInTitle(title, pipeContext);
     const resolvedDescription = resolvePipesInText(field?.description, pipeContext);
+    // "Why we ask this": the creator's reason for an identifying question.
+    const { t, language } = useRespondentLanguage();
+    const whyWeAsk = field?.properties?.whyWeAsk?.trim();
 
     return (
         <div
@@ -59,7 +63,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 ? {
                       role: 'group',
                       'aria-labelledby': `q-title-${field.id}`,
-                      'aria-describedby': [resolvedDescription ? `q-desc-${field.id}` : null, hasError ? `q-error-${field.id}` : null].filter(Boolean).join(' ') || undefined
+                      'aria-describedby': [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, hasError ? `q-error-${field.id}` : null].filter(Boolean).join(' ') || undefined
                   }
                 : {})}
         >
@@ -85,6 +89,14 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                     <div id={`q-desc-${field.id}`} className="text-black-700 mt-1.5 max-w-[62ch] text-[15px] leading-relaxed">
                         {resolvedDescription}
                     </div>
+                )}
+                {whyWeAsk && (
+                    <p id={`q-why-${field.id}`} className="text-black-700 border-brand-200 mt-1.5 max-w-[62ch] border-l-2 pl-2.5 text-[14px] leading-relaxed">
+                        <span className="text-black-800 font-semibold" lang={language}>
+                            {t('QUESTION.WHY_WE_ASK')}
+                        </span>{' '}
+                        {whyWeAsk}
+                    </p>
                 )}
             </div>
             <RenderImage field={field} />

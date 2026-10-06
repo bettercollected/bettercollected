@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 import random
 import re
@@ -50,6 +51,12 @@ from backend.app.services.internal_fields import (
     strip_internal_fields,
 )
 from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.publish_checks import (
+    PUBLISH_CHECKS_VERSION,
+    ensure_publishable,
+)
+from backend.app.services.policy_url import checked_policy_url
+from backend.app.services.retention import checked_retention, submission_expiry
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.repeating_groups import (
@@ -65,6 +72,73 @@ from backend.app.models.enum.permission import Permission
 from backend.config import settings
 
 crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
+
+
+def _unprocessable_unless(check, *args):
+    """``check(*args)``, its ValueError turned into a 422."""
+    try:
+        return check(*args)
+    except ValueError as error:
+        raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+
+
+def _usable_settings(form_settings: StandardFormSettings, drop_unusable: bool):
+    """The retention ``(type, value)`` and policy link a new form stores,
+    under the settings-patch rules (SettingsPatchDto). A 422 when they can't
+    be applied, or, with ``drop_unusable`` (a copy), left out instead."""
+    today = dt.date.today()
+    try:
+        retention_type, retention_value = checked_retention(
+            form_settings.response_expiration_type,
+            form_settings.response_expiration,
+            today,
+        )
+    except ValueError as error:
+        if not drop_unusable:
+            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+        retention_type, retention_value = None, None
+    try:
+        policy_url = checked_policy_url(form_settings.privacy_policy_url)
+    except ValueError as error:
+        if not drop_unusable:
+            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+        policy_url = None
+    return retention_type, retention_value, policy_url
+
+
+def _retention_key(kind, value):
+    kind = getattr(kind, "value", kind) or None
+    value = value.strip() if isinstance(value, str) else value
+    return kind, value or None
+
+
+def _apply_retention_update(stored, incoming: StandardFormSettings) -> None:
+    """Apply the retention a form update carries (either part may be
+    missing: the stored one stays). A changed setting must pass the
+    settings-patch rules or the update is refused with a 422; sending back
+    the stored setting unchanged is not a change, so a form whose end date
+    has since passed can still be saved."""
+    if incoming.response_expiration_type is None and _retention_key(
+        None, incoming.response_expiration
+    ) == (None, None):
+        return
+    kind = (
+        incoming.response_expiration_type
+        if incoming.response_expiration_type is not None
+        else stored.response_expiration_type
+    )
+    value = (
+        incoming.response_expiration
+        if incoming.response_expiration is not None
+        else stored.response_expiration
+    )
+    if _retention_key(kind, value) == _retention_key(
+        stored.response_expiration_type, stored.response_expiration
+    ):
+        return
+    kind, value = _unprocessable_unless(checked_retention, kind, value, dt.date.today())
+    stored.response_expiration_type = kind
+    stored.response_expiration = value
 
 
 class WorkspaceFormService:
@@ -192,6 +266,7 @@ class WorkspaceFormService:
                     #  as it doesn't change with workspaces
                     provider=standard_form.settings.provider,
                     private=not standard_form.settings.is_public,
+                    publish_checks_version=PUBLISH_CHECKS_VERSION,
                 ),
             )
 
@@ -352,12 +427,35 @@ class WorkspaceFormService:
         user: User,
         logo: UploadFile = None,
         cover_image: UploadFile = None,
+        drop_unusable_settings: bool = False,
     ):
+        """Create a form in the workspace.
+
+        ``drop_unusable_settings`` is for a form copied from another one (a
+        template): a retention that can no longer be applied (an end date
+        that has passed) or a policy link that isn't http(s) is left out
+        (answers are kept until deleted, no link) instead of refusing the
+        copy. A form described by its creator gets a 422 for those.
+        """
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        settings = (
+            form.settings
+            if form.settings
+            else StandardFormSettings(
+                privacy_policy_url="",
+                response_expiration="",
+                response_expiration_type=None,
+                response_data_owner_field="",
+            )
+        )
+        # Checked before anything is stored or uploaded.
+        retention_type, retention_value, policy_url = _usable_settings(
+            settings, drop_unusable=drop_unusable_settings
+        )
         form.form_id = str(PydanticObjectId())
 
         if logo:
@@ -373,16 +471,6 @@ class WorkspaceFormService:
             )
             form.cover_image = cover_image_url
         saved_form = await self.form_service.create_form(form=form)
-        settings = (
-            form.settings
-            if form.settings
-            else StandardFormSettings(
-                privacy_policy_url="",
-                response_expiration="",
-                response_expiration_type=None,
-                response_data_owner_field="",
-            )
-        )
 
         # Human-friendly default share slug derived from the title (e.g.
         # "Customer Feedback" -> "customer-feedback") instead of the raw 24-char
@@ -395,10 +483,13 @@ class WorkspaceFormService:
         workspace_form_settings = WorkspaceFormSettings(
             custom_url=custom_url,
             provider="self",
-            privacy_policy_url=settings.privacy_policy_url,
-            response_expiration=settings.response_expiration,
-            response_expiration_type=settings.response_expiration_type,
+            privacy_policy_url=policy_url,
+            response_expiration=retention_value,
+            response_expiration_type=retention_type,
             response_data_owner_field=(settings.response_data_owner_field),
+            # Every new form (builder, template, AI, PDF import, MCP/API) is
+            # held to the current publish checks.
+            publish_checks_version=PUBLISH_CHECKS_VERSION,
         )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
@@ -435,18 +526,15 @@ class WorkspaceFormService:
                 workspace_form.settings.response_data_owner_field = (
                     form.settings.response_data_owner_field
                 )
-            if form.settings.privacy_policy_url is not None:
-                workspace_form.settings.privacy_policy_url = (
-                    form.settings.privacy_policy_url
+            # http(s) only; sending back the stored link is not a change
+            if form.settings.privacy_policy_url not in (
+                None,
+                workspace_form.settings.privacy_policy_url,
+            ):
+                workspace_form.settings.privacy_policy_url = _unprocessable_unless(
+                    checked_policy_url, form.settings.privacy_policy_url
                 )
-            if form.settings.response_expiration is not None:
-                workspace_form.settings.response_expiration = (
-                    form.settings.response_expiration
-                )
-            if form.settings.response_expiration_type is not None:
-                workspace_form.settings.response_expiration_type = (
-                    form.settings.response_expiration_type
-                )
+            _apply_retention_update(workspace_form.settings, form.settings)
             await self.workspace_form_repository.save(workspace_form)
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
@@ -649,6 +737,14 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.UNAUTHORIZED,
                 content="Sign in to respond to this form.",
             )
+        # The retention the form states to respondents is applied here, not
+        # left to the client (services/retention.py).
+        expiry = submission_expiry(
+            workspace_form.settings if workspace_form else None,
+            dt.datetime.now(dt.timezone.utc).replace(tzinfo=None),
+        )
+        if expiry:
+            response.expiration, response.expiration_type = expiry
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         latest_version_of_form = await self.form_service.get_latest_version_of_form(
             form_id=form_id
@@ -741,7 +837,24 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
-        await self.check_form_exists_in_workspace(workspace_id, str(form_id))
+        workspace_form = (
+            await self.workspace_form_repository.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=str(form_id)
+            )
+        )
+        if not workspace_form:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        # Honest defaults (services/publish_checks.py): checked on the draft
+        # that is about to go live, whoever publishes it (builder, API, MCP),
+        # by the rules the form was created under.
+        ensure_publishable(
+            await self.form_service.get_form_document_by_id(str(form_id)),
+            checks_version=(
+                workspace_form.settings.publish_checks_version
+                if workspace_form.settings
+                else None
+            ),
+        )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         return await self.form_service.publish_form(form_id=form_id)
 
@@ -837,7 +950,10 @@ class WorkspaceFormService:
                 form_id=str(duplicated_form.form_id),
                 workspace_id=workspace_id,
                 user_id=user.id,
-                settings=WorkspaceFormSettings(),
+                # A duplicate is a new form: current publish checks.
+                settings=WorkspaceFormSettings(
+                    publish_checks_version=PUBLISH_CHECKS_VERSION
+                ),
             )
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)

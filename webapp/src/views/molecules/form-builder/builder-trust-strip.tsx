@@ -19,14 +19,7 @@ export function BuilderTrustStrip() {
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
     return (
-        <TrustLayer
-            ownerName={workspace?.title || workspace?.workspaceName}
-            ownerImage={workspace?.profileImage}
-            purpose={standardForm?.settings?.purpose}
-            retention={standardForm?.settings?.retentionText}
-            privacyUrl={standardForm?.settings?.privacyPolicyUrl}
-            poweredBy={!standardForm?.settings?.disableBranding}
-        />
+        <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} />
     );
 }
 
@@ -41,7 +34,7 @@ export function TrustStripNudge() {
     const { setPropertiesTab } = usePropertiesTab();
 
     const settings = standardForm?.settings;
-    if (settings?.purpose || settings?.retentionText || settings?.privacyPolicyUrl) return null;
+    if (settings?.purpose || settings?.retentionText || settings?.responseExpirationType || settings?.privacyPolicyUrl) return null;
 
     return (
         <button
