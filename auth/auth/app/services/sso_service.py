@@ -25,14 +25,20 @@ enabled connection, seats) and calls this service, which is internal-only:
 
 Emails are matched case-insensitively at this boundary: an existing
 ``Bob@Example.com`` account is the one ``bob@example.com`` signs in to.
+
+A "Test connection" sign-in (``test``) asks the IdP for a fresh sign-in
+(SAML ``forceAuthn``, OIDC ``prompt=select_account``) instead of reusing the
+browser's session, and its callback also reports the *names* of the claims
+the IdP sent (never their values), so an admin can see what is missing.
 """
 
 import base64
 import hashlib
 import json
+import re
 import secrets
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -52,6 +58,20 @@ PROVIDER = "sso"
 AUTH_METHOD = "sso"
 MAX_CONTEXT_LENGTH = 2048
 
+# What a test sign-in may ask the IdP for, per protocol: a fresh sign-in
+# with the account picker instead of the browser's existing IdP session.
+# Polis reads ``forceAuthn`` for SAML connections and forwards other params
+# to an OIDC IdP (OPENID_REQUEST_FORWARD_PARAMS, docs/sso.md).
+FRESH_SIGN_IN_PARAMS = {
+    "saml": {"forceAuthn": "true"},
+    "oidc": {"prompt": "select_account"},
+}
+
+# Claim names reported for a test: a SAML attribute name (often a URI) or an
+# OIDC claim name. Anything else (spaces, "@", quotes, ...) is dropped.
+_CLAIM_NAME = re.compile(r"^[A-Za-z0-9_.:/#-]{1,160}$")
+MAX_CLAIM_NAMES = 50
+
 crypto: Crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 
 
@@ -69,6 +89,20 @@ def normalized_email(email: Optional[str]) -> str:
     except EmailNotValidError:
         return ""
     return value
+
+
+def claim_names(profile: Dict[str, Any]) -> List[str]:
+    """The names of the claims the IdP sent, from Polis's ``raw`` profile
+    (SAML attributes or OIDC ID token + userinfo claims): names only, never
+    values, at most ``MAX_CLAIM_NAMES``, only plausible names. Empty when
+    Polis reported no raw claims."""
+    raw = profile.get("raw")
+    if not isinstance(raw, dict):
+        return []
+    names = sorted(
+        {key for key in raw if isinstance(key, str) and _CLAIM_NAME.match(key)}
+    )
+    return names[:MAX_CLAIM_NAMES]
 
 
 def pkce_challenge(verifier: str) -> str:
@@ -102,8 +136,15 @@ class SsoService:
         client_id: str,
         context: Optional[str] = None,
         login_hint: Optional[str] = None,
+        test: bool = False,
+        protocol: Optional[str] = None,
     ) -> str:
+        """``test``: a "Test connection" sign-in: a fresh sign-in at the IdP
+        for the connection's ``protocol`` (``saml`` or ``oidc``), and claim
+        names reported at the callback."""
         self._require_enabled()
+        if protocol is not None and protocol not in FRESH_SIGN_IN_PARAMS:
+            raise _error(400, "sso_failed", "Bad request")
         if not tenant or not client_id:
             raise _error(400, "sso_not_configured", "No connection to sign in with.")
         context_json: Dict[str, Any] = {}
@@ -126,6 +167,7 @@ class SsoService:
                     "issued_at": int(time.time()),
                     "verifier": code_verifier,
                     "context": context_json,
+                    "test": bool(test),
                 }
             )
         )
@@ -142,6 +184,8 @@ class SsoService:
         hint = normalized_email(login_hint)
         if hint:
             params["login_hint"] = hint
+        if test and protocol:
+            params.update(FRESH_SIGN_IN_PARAMS[protocol])
         return f"{self.sso.polis_url}/api/oauth/authorize?{urlencode(params)}"
 
     # -- 2. callback ----------------------------------------------------------
@@ -154,6 +198,8 @@ class SsoService:
             issued_at = int(state_json["issued_at"])
             if not isinstance(state_json.get("context", {}), dict):
                 raise ValueError("bad context")
+            if not isinstance(state_json.get("test", False), bool):
+                raise ValueError("bad test flag")
         except (InvalidToken, KeyError, TypeError, ValueError, AttributeError):
             raise _error(400, "sso_bad_state", "Bad request")
         if time.time() - issued_at > self.sso.STATE_MAX_AGE_SECONDS:
@@ -237,13 +283,19 @@ class SsoService:
             raise _error(
                 403, "sso_tenant_mismatch", "Single sign-on failed.", context=context
             )
+        # only for a test, and only names: what the IdP sent, to tell a
+        # missing email claim from a wrong one
+        diagnostics = (
+            {"claim_names": claim_names(profile)} if state_json.get("test") else {}
+        )
         email = normalized_email(profile.get("email"))
         if not email:
             raise _error(
                 403,
-                "sso_email_domain_not_allowed",
-                "Your identity provider did not send a usable email address.",
+                "sso_email_missing",
+                "Your identity provider did not send an email address.",
                 context=context,
+                **diagnostics,
             )
         first_name = (profile.get("firstName") or "").strip()[:100] or None
         last_name = (profile.get("lastName") or "").strip()[:100] or None
@@ -270,6 +322,7 @@ class SsoService:
             "account_conflict": conflict,
             "context": context,
             "assertion": assertion,
+            **diagnostics,
         }
 
     async def _existing_account(self, email: str):
