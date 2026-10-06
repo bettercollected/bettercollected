@@ -620,3 +620,26 @@ async def test_a_refused_edit_uploads_no_files(
     )
     assert refused.status_code in (403, 404), refused.text
     assert uploads == []
+
+
+async def test_the_old_csv_route_is_gone(
+    client: AsyncClient,
+    common_url: str,
+    test_user_cookies: dict[str, str],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+):
+    """(#771) `GET .../forms/{form_id}/export-csv` called a service method that
+    no longer existed and answered 500 to everyone. It is removed: the CSV
+    download reads `.../all-submissions/export` (response.export)."""
+    from backend.app.router import root_api_router
+
+    assert not [
+        route.path
+        for route in root_api_router.routes
+        if getattr(route, "path", "").endswith("/export-csv")
+    ]
+    gone = await client.get(
+        f"{common_url}/forms/{workspace_form.form_id}/export-csv",
+        cookies=test_user_cookies,
+    )
+    assert gone.status_code in (404, 405)
