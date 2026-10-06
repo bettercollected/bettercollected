@@ -105,8 +105,14 @@ google `services/migration_service.py`. Never put the key on a shared HTTP clien
   auth; a refresh asks `/auth/status`, and a 404 there ends the session).
 - Login OAuth here is distinct from provider *import* OAuth in `integrations/google` (:8003) / typeform (:8002).
 - Emails (OTP, invites) go out via `mail_service.py` (SMTP / fastapi-mail); templates in `app/templates/`.
+  **Workspace titles never reach a header (#761):** the From display name is always `ORGANIZATION_NAME`
+  (`MailService` takes no sender-name argument), subjects are fixed wording, and a workspace title, form title or
+  inviter name appears only in the body, through `one_line` (single line, capped) and the autoescaped `render`.
+  A caller-supplied workspace image (`/auth/otp/send`) is shown only when it starts with one of
+  `MAIL_IMAGE_URL_PREFIXES` (this instance's public storage, default the hosted bucket's `public/`); otherwise the
+  mail shows an initial. Self-hosters on other storage set it to `<AWS_PUBLIC_URL or AWS_ENDPOINT_URL>/<bucket>/public/`.
 - **Notifications** (`controllers/notifications_router.py`, `services/notification_service.py`):
-  `POST /notifications/submission-update` mails a respondent that staff responded to their submission. Not a
+  `POST /notifications/submission-update` mails a respondent (fixed subject "Update on your submission") that staff responded to their submission. Not a
   relay: **only the backend may call it** — the internal key, like every route (see "Internal-only API"),
   because a user's
   token alone would let anyone mail any address from our domain. Also a Bearer JWT (the backend forwards the

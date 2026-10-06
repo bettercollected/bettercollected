@@ -1,6 +1,7 @@
 """GET /users/invite/send/mail: only this instance's backend (shared internal
 key) may have invitation mails sent."""
 
+import re
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -59,11 +60,11 @@ class TestInvitationMailContent:
         )
         repo = SimpleNamespace(get_user_by_id=AsyncMock(return_value=inviter))
         with patch("auth.app.services.user_service.MailService") as mail_service:
-            mail_service.return_value.send_async_mail = AsyncMock()
+            mail_service.return_value.send_message = AsyncMock()
             await UserService(repo, None).send_mail_to_user_for_invitation(**PARAMS)
-        message = mail_service.return_value.send_async_mail.await_args.args[0]
-        assert message.template_body["inviter_name"] == "owner@example.com"
-        assert message.template_body["image_alternative"] == "O"
+        message = mail_service.return_value.send_message.await_args.args[0]
+        assert "owner@example.com" in message.body
+        assert re.search(r">\s*O\s*</div>", message.body)  # the initial
 
 
 class TestDeleteUser:

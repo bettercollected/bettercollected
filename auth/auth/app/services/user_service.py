@@ -1,6 +1,7 @@
 import asyncio
 import datetime as dt
 from typing import Any, Dict, List
+from urllib.parse import quote
 
 from beanie import PydanticObjectId
 from common.enums.plan import Plans
@@ -9,7 +10,13 @@ from pydantic import EmailStr
 
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.schemas.user import UserDocument
-from auth.app.services.mail_service import MailService
+from auth.app.services.mail_service import (
+    MailService,
+    one_line,
+    render,
+    sender_name,
+    web_image_url,
+)
 from auth.app.services.stripe_service import StripeService
 from auth.config import settings
 
@@ -36,34 +43,31 @@ class UserService:
     ):
         inviter: UserDocument = await self.user_repo.get_user_by_id(inviter_id)
         invitation_link = (
-            settings.CLIENT_ADMIN_URL + "/" + workspace_name + "/invitation/" + token
+            f"{settings.CLIENT_ADMIN_URL}/{quote(workspace_name, safe='')}"
+            f"/invitation/{quote(token, safe='')}"
         )
         # an inviter without a first name (e.g. signed up by email code) is
         # named by their email rather than failing the mail
-        inviter_name = inviter.first_name or inviter.email or ""
-        template_body = {
-            "workspace_title": workspace_title,
-            "role": role,
-            "invitation_link": invitation_link,
-            "inviter_name": inviter_name,
-            "image_url": inviter.profile_image,
-            "image_alternative": inviter_name[:1].upper(),
-        }
+        inviter_name = one_line(inviter.first_name or inviter.email) or ""
+        # From and subject are this instance's; the workspace title is chosen
+        # by the workspace and only shown in the body (#761)
+        product = sender_name()
         message = MessageSchema(
-            subject=f"{workspace_title} invitation",
+            subject=f"You have been invited to a workspace on {product}",
             recipients=[email],
-            template_body=template_body,
+            body=render(
+                "invitation_mail.html",
+                product=product,
+                workspace_title=one_line(workspace_title),
+                role=one_line(role),
+                invitation_link=invitation_link,
+                inviter_name=inviter_name,
+                image_url=web_image_url(inviter.profile_image),
+                initial=inviter_name[:1].upper(),
+            ),
             subtype="html",
         )
-        mail_service = MailService(organization_name=workspace_title)
-        if inviter.profile_image:
-            await mail_service.send_async_mail(
-                message, template_name="invitation_mail.html"
-            )
-        else:
-            await mail_service.send_async_mail(
-                message, template_name="invitation_mail_without_image.html"
-            )
+        await MailService().send_message(message)
 
     async def delete_user(self, user_id: PydanticObjectId):
         user = await self.user_repo.get_user_by_id(user_id=user_id)
