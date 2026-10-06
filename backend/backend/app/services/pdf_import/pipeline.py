@@ -42,6 +42,13 @@ from backend.app.services.pdf_import.structuring import (
 
 MESSAGE_FAILED = "The import failed unexpectedly. Please try again."
 MESSAGE_UNAVAILABLE = "The document reader is unavailable. Please try again later."
+MESSAGE_WAITING = "Waiting for the document reader to become available."
+MESSAGE_NO_QUESTIONS = "No questions were found in this document."
+# error codes besides the document's own refusal codes (DocumentRefused.code)
+CODE_FAILED = "failed"
+CODE_UNAVAILABLE = "unavailable"
+CODE_WAITING = "waiting_for_reader"
+CODE_NO_QUESTIONS = "no_questions"
 NOTE_DRAFT_REMOVED = (
     "The empty draft form was removed because the import did not finish."
 )
@@ -221,7 +228,8 @@ class ImportPipeline:
             return record
         record.status = ImportStatus.FAILED
         record.error = MESSAGE_UNAVAILABLE
-        record.report["refused"] = "unavailable"
+        record.error_code = CODE_UNAVAILABLE
+        record.report["refused"] = CODE_UNAVAILABLE
         record.finished_at = _now()
         await self.discard_draft(record)
         await self._repo.save(record)
@@ -362,14 +370,13 @@ class ImportPipeline:
         fdm = await self._load_json(record, "fdm.json")
         layout = await self._load_json(record, "layout.json")
         if not fdm.get("elements"):
-            record.report["compile"] = {
-                "pages": 0,
-                "fields": 0,
-                "note": "nothing to compile",
-            }
-            return {"pages": 0}
+            # an empty draft is no result: fail, so the draft is removed and
+            # the screen says why instead of a blank form appearing
+            raise DocumentRefused(CODE_NO_QUESTIONS, MESSAGE_NO_QUESTIONS)
         document = await self._draft(record)
         form, report = build_form(fdm, layout, document.title or "Imported form")
+        if not form.fields:
+            raise DocumentRefused(CODE_NO_QUESTIONS, MESSAGE_NO_QUESTIONS)
         form = with_stable_ids(form, str(record.id))
         # structuring takes a while: look again right before writing, and only
         # ever fill the untouched draft this import created
@@ -424,7 +431,7 @@ class ImportPipeline:
             return record
         record.status = ImportStatus.RUNNING
         record.started_at = record.started_at or _now()
-        record.error = None
+        record.error = record.error_code = None
         await self._repo.save(record)
         data = None
         try:
@@ -445,12 +452,14 @@ class ImportPipeline:
         except DocumentRefused as refused:
             record.status = ImportStatus.FAILED
             record.error = refused.message
+            record.error_code = refused.code
             record.report["refused"] = refused.code
             logger.info("form import {} refused: {}", record.id, refused.code)
         except SandboxUnavailable as unavailable:
             # the sandbox, not the document: the job retries; checkpoints keep progress
             record.status = ImportStatus.QUEUED
-            record.error = "Waiting for the document reader to become available."
+            record.error = MESSAGE_WAITING
+            record.error_code = CODE_WAITING
             logger.warning(
                 "form import {} waiting for the sandbox: {}", record.id, unavailable
             )
@@ -461,6 +470,7 @@ class ImportPipeline:
         ):  # noqa: BLE001 — reported on the record, logged without content
             record.status = ImportStatus.FAILED
             record.error = MESSAGE_FAILED
+            record.error_code = CODE_FAILED
             logger.exception(
                 "form import {} failed at stage {}", record.id, record.stage
             )

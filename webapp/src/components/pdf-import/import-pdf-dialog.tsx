@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useRouter } from 'next-nprogress-bar';
 
@@ -8,7 +9,7 @@ import { AIOptIn } from '@app/components/ai/ai-consent';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@app/shadcn/components/ui/dialog';
 import { useGetPdfImportAiQuery, useStartPdfImportMutation } from '@app/store/redux/pdf-import-api';
-import { validateUpload } from '@app/utils/pdf-import';
+import { startErrorKey, validateUpload } from '@app/utils/pdf-import';
 
 interface ImportPdfDialogProps {
     open: boolean;
@@ -20,6 +21,7 @@ interface ImportPdfDialogProps {
 /** Upload a PDF (or a photo of a paper form) and follow its import. */
 export default function ImportPdfDialog({ open, onOpenChange, workspaceId, workspaceName }: ImportPdfDialogProps) {
     const router = useRouter();
+    const { t } = useTranslation('builder');
     const input = useRef<HTMLInputElement>(null);
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,8 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
             return;
         }
         const detail = result.error?.data;
-        setError(detail?.message || (typeof detail === 'string' ? detail : null) || 'The upload failed. Please try again.');
+        const key = startErrorKey(detail?.code);
+        setError(key ? t(key) : detail?.message || (typeof detail === 'string' ? detail : null) || t('PDF_IMPORT.START_ERROR.upload_failed'));
     };
 
     return (

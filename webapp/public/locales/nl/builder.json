@@ -109,5 +109,68 @@
     "TWO_QUESTIONS": "Hier staan twee vragen. Maak er twee aparte vragen van.",
     "JOINED_QUESTIONS": "“{{match}} …” begint een tweede vraag. Stel die apart.",
     "DISMISS": "Tip verbergen"
+  },
+  "PDF_IMPORT": {
+    "FAILED_TITLE": "Het importeren is gestopt",
+    "WAITING_FOR_READER": "We wachten tot de documentlezer beschikbaar is. Het importeren gaat daarna vanzelf verder.",
+    "DRAFT_REMOVED": "Er is niets aan uw formulieren toegevoegd: het lege conceptformulier is verwijderd.",
+    "DRAFT_KEPT": "Uw conceptformulier is bewaard, omdat u het al had aangepast.",
+    "TRY_ANOTHER_FILE": "Probeer een ander bestand",
+    "OPEN_DRAFT": "Open het concept",
+    "ERROR": {
+      "encrypted": {
+        "MESSAGE": "Deze pdf is beveiligd met een wachtwoord.",
+        "NEXT": "Haal het wachtwoord eraf (bijvoorbeeld door de pdf af te drukken naar een nieuwe pdf) en upload hem opnieuw."
+      },
+      "unreadable": {
+        "MESSAGE": "Dit bestand kon niet worden gelezen. Misschien is het beschadigd of geen echte pdf of afbeelding.",
+        "NEXT": "Open het op uw computer en sla het op of druk het af als nieuwe pdf, en upload die. Of probeer een ander bestand."
+      },
+      "too_many_pages": {
+        "MESSAGE": "Dit document heeft meer pagina's dan in één keer kunnen worden geïmporteerd.",
+        "NEXT": "Splits het in kleinere delen, bijvoorbeeld één per onderdeel, en importeer elk deel apart."
+      },
+      "too_large": {
+        "MESSAGE": "Dit bestand is te groot om te importeren.",
+        "NEXT": "Upload een kleiner bestand: maak de afbeelding kleiner of splits het document in delen."
+      },
+      "too_complex": {
+        "MESSAGE": "Dit document bevat meer inhoud dan een formulierimport aankan.",
+        "NEXT": "Probeer een eenvoudigere versie, of splits het document en importeer de delen één voor één."
+      },
+      "timeout": {
+        "MESSAGE": "Het lezen van dit document duurde te lang.",
+        "NEXT": "Probeer het opnieuw. Gebeurt het weer, splits het document dan in kleinere delen of probeer een ander bestand."
+      },
+      "empty": {
+        "MESSAGE": "Dit bestand heeft geen pagina's of geen inhoud.",
+        "NEXT": "Controleer of u het juiste bestand hebt gekozen en probeer een ander bestand."
+      },
+      "unsupported_type": {
+        "MESSAGE": "Dit soort bestand kan niet worden geïmporteerd.",
+        "NEXT": "Upload een pdf, of een foto van het formulier als PNG, JPEG of WebP."
+      },
+      "no_questions": {
+        "MESSAGE": "Er zijn geen vragen gevonden in dit document.",
+        "NEXT": "Probeer een duidelijkere scan of foto, of een pdf waarin u de tekst kunt selecteren. U kunt het formulier ook zelf maken.",
+        "NEXT_WITHOUT_AI": "Alleen de ingebouwde lezer is gebruikt, en die kan geen scans of foto's lezen. Upload een pdf waarin u de tekst kunt selecteren, of sta AI-lezen toe voor deze upload als uw werkruimte AI gebruikt."
+      },
+      "unavailable": {
+        "MESSAGE": "De documentlezer is op dit moment niet beschikbaar.",
+        "NEXT": "Probeer het over een paar minuten opnieuw. Blijft het gebeuren, neem dan contact op met support."
+      },
+      "failed": {
+        "MESSAGE": "Er ging iets mis bij het importeren van dit document.",
+        "NEXT": "Probeer het opnieuw. Blijft het gebeuren, neem dan contact op met support."
+      }
+    },
+    "START_ERROR": {
+      "import_in_progress": "Er loopt nog een andere import in deze werkruimte. Wacht tot die klaar is en probeer het dan opnieuw.",
+      "daily_limit": "Deze werkruimte heeft het maximale aantal imports voor de afgelopen 24 uur bereikt. Probeer het later opnieuw.",
+      "too_large": "Dit bestand is te groot om te importeren. Upload een kleiner bestand of splits het document.",
+      "unsupported_type": "Kies een pdf, of een foto van een formulier als PNG, JPEG of WebP.",
+      "empty": "Dit bestand is leeg. Kies een ander bestand.",
+      "upload_failed": "Het uploaden is mislukt. Probeer het opnieuw."
+    }
   }
 }

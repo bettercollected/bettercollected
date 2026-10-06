@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Link from 'next/link';
 
+import ImportFailure from '@app/components/pdf-import/import-failure';
 import { Button } from '@app/shadcn/components/ui/button';
 import { pageImageUrl, useGetPdfImportQuery, useGetPdfImportReviewQuery } from '@app/store/redux/pdf-import-api';
 import { STAGES, aiStructuringNote, describeRules, describeStaffPart, describeWithheld, isAiWording, placeBox, progressPercent, stageStates } from '@app/utils/pdf-import';
@@ -63,6 +65,7 @@ function PageWithBoxes({ workspaceId, importId, page, selected, onSelect }: any)
 }
 
 export default function ImportProgressReview({ workspaceId, workspaceName, importId }: { workspaceId: string; workspaceName: string; importId: string }) {
+    const { t } = useTranslation('builder');
     const [finished, setFinished] = useState(false);
     const { data } = useGetPdfImportQuery({ workspaceId, importId }, { pollingInterval: finished ? 0 : POLL_MS, skip: !workspaceId });
     const done = data?.status === 'completed' || data?.status === 'failed';
@@ -86,7 +89,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
             <div className="mx-auto flex max-w-xl flex-col gap-6 p-10">
                 <div>
                     <h1 className="h3-new text-black-800">Importing {data.fileName}</h1>
-                    <p className="mt-1 text-sm text-black-600">{data.status === 'failed' ? 'The import stopped.' : 'This usually takes under a minute. You can leave this page; the draft form will be ready in your forms list.'}</p>
+                    <p className="mt-1 text-sm text-black-600">{data.status === 'failed' ? t('PDF_IMPORT.FAILED_TITLE') : 'This usually takes under a minute. You can leave this page; the draft form will be ready in your forms list.'}</p>
                 </div>
                 {data.status !== 'failed' && (
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-black-200">
@@ -95,24 +98,8 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                 )}
                 <StageList states={states} />
                 <p className="text-xs text-black-600">{aiStructuringNote(data.aiConsent)}</p>
-                {data.error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{data.error}</p>}
-                {data.status === 'failed' && (
-                    <>
-                        <p className="text-sm text-black-600">
-                            {data.formId ? 'Your draft form was kept: it already had changes.' : 'Nothing was left in your forms list: the empty draft form was removed.'}
-                        </p>
-                        <div className="flex flex-wrap gap-3">
-                            <Link href={`/${workspaceName}/dashboard/forms/create`}>
-                                <Button variant="v2Button">Try another file</Button>
-                            </Link>
-                            {data.formId && (
-                                <Link href={`/${workspaceName}/dashboard/forms/${data.formId}/edit`}>
-                                    <Button>Open the draft</Button>
-                                </Link>
-                            )}
-                        </div>
-                    </>
-                )}
+                {data.status === 'queued' && data.error && <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t('PDF_IMPORT.WAITING_FOR_READER')}</p>}
+                {data.status === 'failed' && <ImportFailure data={data} workspaceName={workspaceName} />}
             </div>
         );
     }

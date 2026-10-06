@@ -52,6 +52,10 @@ class FormImportDocument(MongoDocument):
     status: str = ImportStatus.QUEUED
     stage: Optional[str] = None
     error: Optional[str] = None
+    # stable reason for ``error`` (the screens translate it): a refusal code
+    # (encrypted, too_many_pages, unreadable, timeout, no_questions, ...),
+    # "unavailable", "failed", or "waiting_for_reader" while queued for a retry
+    error_code: Optional[str] = None
     file_name: str
     content_type: str
     size_bytes: int

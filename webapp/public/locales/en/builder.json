@@ -109,5 +109,68 @@
     "TWO_QUESTIONS": "This asks two questions. Make it two separate questions.",
     "JOINED_QUESTIONS": "“{{match}} …” starts a second question. Ask it separately.",
     "DISMISS": "Dismiss tip"
+  },
+  "PDF_IMPORT": {
+    "FAILED_TITLE": "The import stopped",
+    "WAITING_FOR_READER": "Waiting for the document reader to become available. The import continues by itself.",
+    "DRAFT_REMOVED": "Nothing was added to your forms list: the empty draft form was removed.",
+    "DRAFT_KEPT": "Your draft form was kept because it already had changes.",
+    "TRY_ANOTHER_FILE": "Try another file",
+    "OPEN_DRAFT": "Open the draft",
+    "ERROR": {
+      "encrypted": {
+        "MESSAGE": "This PDF is protected with a password.",
+        "NEXT": "Remove the password (for example by printing it to a new PDF) and upload it again."
+      },
+      "unreadable": {
+        "MESSAGE": "This file could not be read. It may be damaged or not a real PDF or image.",
+        "NEXT": "Open it on your computer and save or print it to a new PDF, then upload that. Or try another file."
+      },
+      "too_many_pages": {
+        "MESSAGE": "This document has more pages than one import can take.",
+        "NEXT": "Split it into smaller parts, for example one per section, and import each part."
+      },
+      "too_large": {
+        "MESSAGE": "This file is too large to import.",
+        "NEXT": "Upload a smaller file: reduce the image size, or split the document into parts."
+      },
+      "too_complex": {
+        "MESSAGE": "This document holds more content than a form import can handle.",
+        "NEXT": "Try a simpler version, or split the document and import the parts one by one."
+      },
+      "timeout": {
+        "MESSAGE": "Reading this document took too long.",
+        "NEXT": "Try again. If it happens again, split the document into smaller parts or try another file."
+      },
+      "empty": {
+        "MESSAGE": "This file has no pages or no content.",
+        "NEXT": "Check that you chose the right file and try another one."
+      },
+      "unsupported_type": {
+        "MESSAGE": "This kind of file cannot be imported.",
+        "NEXT": "Upload a PDF, or a PNG, JPEG or WebP photo of the form."
+      },
+      "no_questions": {
+        "MESSAGE": "No questions were found in this document.",
+        "NEXT": "Try a clearer scan or photo, or a PDF in which you can select the text. You can also build the form yourself.",
+        "NEXT_WITHOUT_AI": "Only the built-in reader was used, and it cannot read scans or photos. Upload a PDF in which you can select the text, or allow AI reading for this upload if your workspace uses AI."
+      },
+      "unavailable": {
+        "MESSAGE": "The document reader is not available right now.",
+        "NEXT": "Try again in a few minutes. If it keeps happening, contact support."
+      },
+      "failed": {
+        "MESSAGE": "Something went wrong while importing this document.",
+        "NEXT": "Try again. If it keeps happening, contact support."
+      }
+    },
+    "START_ERROR": {
+      "import_in_progress": "Another import is still running in this workspace. Wait for it to finish, then try again.",
+      "daily_limit": "This workspace has reached its number of imports for the last 24 hours. Try again later.",
+      "too_large": "This file is too large to import. Upload a smaller file or split the document.",
+      "unsupported_type": "Choose a PDF, or a PNG, JPEG or WebP photo of a form.",
+      "empty": "This file is empty. Choose another file.",
+      "upload_failed": "The upload failed. Please try again."
+    }
   }
 }

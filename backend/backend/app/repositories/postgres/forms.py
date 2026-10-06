@@ -22,8 +22,8 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import and_, exists, func, not_, or_, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import and_, exists, func, not_, or_, select, text
+from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.consent import ConsentCamelModel
@@ -33,7 +33,11 @@ from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
-from backend.app.repositories.form_import_repository import check_import_limits
+from backend.app.repositories.form_import_repository import (
+    ImportLimitReached,
+    check_import_limits,
+    lock_wait_s,
+)
 from backend.app.repositories.form_repository import detach_action
 from backend.app.repositories.metric_periods import (
     object_id_at,
@@ -63,6 +67,15 @@ from common.models.user import User
 
 _fn = getattr(func, SCHEMA)
 TIMESTAMP_FIELDS = {"created_at", "updated_at", "published_at"}
+
+
+# SQLSTATE lock_not_available: a lock wait ran past lock_timeout
+LOCK_NOT_AVAILABLE = "55P03"
+
+
+def _sqlstate(error: DBAPIError) -> Optional[str]:
+    orig = getattr(error, "orig", None)
+    return getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)
 
 
 def _oid(value: Any) -> str:
@@ -1000,40 +1013,55 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
     ) -> FormImportDocument:
         """Twin of the Mongo lock document: a transaction-scoped advisory lock
         per workspace serialises starts, then the counts and the insert run in
-        the same transaction."""
+        the same transaction. A start that waits longer than the Mongo lock
+        would is refused as busy, like there (not the session's lock_timeout
+        error)."""
         self._check_collection(document, FormImportRow)
         workspace_id = _oid(document.workspace_id)
         async with self._session() as session, session.begin():
-            await session.execute(
-                select(
-                    func.pg_advisory_xact_lock(
-                        func.hashtextextended(f"form_imports:{workspace_id}", 0)
-                    )
-                )
-            )
-            active = (
+            wait_ms = max(1, int(lock_wait_s() * 1000))
+            await session.execute(text(f"SET LOCAL lock_timeout = '{wait_ms}ms'"))
+            try:
                 await session.execute(
-                    select(func.count())
-                    .select_from(FormImportRow)
-                    .where(
-                        FormImportRow.workspace_id == workspace_id,
-                        FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+                    select(
+                        func.pg_advisory_xact_lock(
+                            func.hashtextextended(f"form_imports:{workspace_id}", 0)
+                        )
                     )
                 )
-            ).scalar_one()
-            today = (
-                await session.execute(
-                    select(func.count())
-                    .select_from(FormImportRow)
-                    .where(
-                        FormImportRow.workspace_id == workspace_id,
-                        FormImportRow.created_at >= since,
-                    )
-                )
-            ).scalar_one()
+            except DBAPIError as error:
+                if _sqlstate(error) == LOCK_NOT_AVAILABLE:
+                    raise ImportLimitReached("import_in_progress") from None
+                raise
+            active, today = await self._limit_counts(session, workspace_id, since)
             check_import_limits(active, today, max_active, max_per_day)
             await session.execute(self._upsert_statement(row_values(document)))
         return document
+
+    async def _limit_counts(self, session, workspace_id: str, since: datetime):
+        """(running imports, imports created since ``since``), read in the
+        transaction that holds the workspace's advisory lock."""
+        active = (
+            await session.execute(
+                select(func.count())
+                .select_from(FormImportRow)
+                .where(
+                    FormImportRow.workspace_id == workspace_id,
+                    FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+                )
+            )
+        ).scalar_one()
+        today = (
+            await session.execute(
+                select(func.count())
+                .select_from(FormImportRow)
+                .where(
+                    FormImportRow.workspace_id == workspace_id,
+                    FormImportRow.created_at >= since,
+                )
+            )
+        ).scalar_one()
+        return active, today
 
     async def get(self, import_id: PydanticObjectId) -> Optional[FormImportDocument]:
         return await self.one(FormImportRow.id == _oid(import_id))

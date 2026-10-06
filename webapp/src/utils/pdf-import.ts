@@ -108,3 +108,34 @@ export function describeWithheld(withheld: Record<string, number> | undefined | 
             text: `Page ${page}: ${count} ${count === 1 ? 'word' : 'words'} inside answer boxes looked like filled-in answers and ${count === 1 ? 'was' : 'were'} left out of the questions. Check the questions there.`
         }));
 }
+
+/** Reasons an import can stop with, each with its own message and next step (builder namespace, PDF_IMPORT.ERROR.<code>). */
+export const IMPORT_ERROR_CODES = ['encrypted', 'unreadable', 'too_many_pages', 'too_large', 'too_complex', 'timeout', 'empty', 'unsupported_type', 'no_questions', 'unavailable', 'failed'] as const;
+export type ImportErrorCode = (typeof IMPORT_ERROR_CODES)[number];
+
+/** Reasons the upload itself can be refused with, before an import starts (PDF_IMPORT.START_ERROR.<code>). */
+export const START_ERROR_CODES = ['import_in_progress', 'daily_limit', 'too_large', 'unsupported_type', 'empty'] as const;
+
+/** Why a failed import stopped: its error code (older records only have `report.refused`); anything unknown is a plain failure. */
+export function importErrorCode(item: { errorCode?: string | null; report?: Record<string, any> | null }): ImportErrorCode {
+    const code = item.errorCode ?? item.report?.refused ?? 'failed';
+    return (IMPORT_ERROR_CODES as readonly string[]).includes(code) ? (code as ImportErrorCode) : 'failed';
+}
+
+/** Whether only the built-in reader ran: no consent for the upload, or the report says why AI was not used. */
+export function readWithoutAi(item: { aiConsent?: boolean; report?: Record<string, any> | null }): boolean {
+    const notes: unknown[] = item.report?.notes ?? [];
+    return !item.aiConsent || notes.some((n) => typeof n === 'string' && n.startsWith('AI structuring not used'));
+}
+
+/** The translation key of what to do next after a failed import. */
+export function importErrorNextKey(code: ImportErrorCode, withoutAi: boolean): string {
+    if (code === 'no_questions' && withoutAi) return 'PDF_IMPORT.ERROR.no_questions.NEXT_WITHOUT_AI';
+    return `PDF_IMPORT.ERROR.${code}.NEXT`;
+}
+
+/** The translation key for a refused upload, or null for an unknown code (the server's message is shown then). */
+export function startErrorKey(code: string | null | undefined): string | null {
+    if (code && (START_ERROR_CODES as readonly string[]).includes(code)) return `PDF_IMPORT.START_ERROR.${code}`;
+    return null;
+}

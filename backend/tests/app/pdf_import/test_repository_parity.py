@@ -75,19 +75,39 @@ async def test_form_imports(sessions):
     )
 
 
-@pytest.mark.parametrize("store", ["mongo", "postgres"])
-async def test_parallel_creates_respect_the_limits(sessions, store):
-    """Each store's create_within_limits is atomic on its own (the Mongo lock
-    document, the Postgres advisory lock), whichever one is primary."""
-    import asyncio
-
-    from backend.app.repositories.form_import_repository import ImportLimitReached
-
-    repo = (
+def _repo(store, sessions):
+    return (
         FormImportRepository()
         if store == "mongo"
         else PostgresFormImportRepository(sessions)
     )
+
+
+@pytest.mark.parametrize("store", ["mongo", "postgres"])
+async def test_parallel_creates_respect_the_limits(sessions, store, monkeypatch):
+    """Each store's create_within_limits is atomic on its own (the Mongo lock
+    document, the Postgres advisory lock), whichever one is primary.
+
+    Every start pauses between reading the counts and inserting, so without
+    the lock all of them would read the same counts and pass: the test fails
+    every time the lock is missing, not only when the scheduler happens to
+    interleave the starts. The lock wait is lengthened so a loaded machine
+    cannot turn a slow start into a refusal."""
+    import asyncio
+
+    from backend.app.repositories import form_import_repository as module
+    from backend.app.repositories.form_import_repository import ImportLimitReached
+
+    monkeypatch.setattr(module, "LOCK_WAIT_S", 120.0)
+    repo = _repo(store, sessions)
+    counts = repo._limit_counts
+
+    async def slow_counts(*args):
+        result = await counts(*args)
+        await asyncio.sleep(0.05)  # the window a missing lock would let others in
+        return result
+
+    monkeypatch.setattr(repo, "_limit_counts", slow_counts)
     since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
 
     async def attempt(ws, max_active, max_per_day):
@@ -113,3 +133,56 @@ async def test_parallel_creates_respect_the_limits(sessions, store):
     assert await repo.count_created_since(ws, since) == 2
     # other workspaces are not held up
     assert await attempt(PydanticObjectId(), 1, 1) == "ok"
+
+
+@pytest.mark.parametrize("store", ["mongo", "postgres"])
+async def test_a_start_that_waits_too_long_is_refused_as_busy(
+    sessions, store, monkeypatch
+):
+    """A workspace whose lock stays held (a stuck start) refuses new starts
+    with the usual "an import is already running", in both stores, instead of
+    a database error."""
+    from sqlalchemy import func, select
+
+    from backend.app.repositories import form_import_repository as module
+    from backend.app.repositories.form_import_repository import (
+        LOCKS,
+        ImportLimitReached,
+    )
+
+    monkeypatch.setattr(module, "LOCK_WAIT_S", 0.3)
+    repo = _repo(store, sessions)
+    ws = PydanticObjectId()
+    since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    new = record(ws, "f-new", ImportStatus.QUEUED)
+    if store == "mongo":
+        locks = FormImportDocument.get_pymongo_collection().database[LOCKS]
+        await locks.insert_one(
+            {
+                "_id": str(ws),
+                "token": "someone-else",
+                "expires_at": dt.datetime.now(dt.timezone.utc)
+                + dt.timedelta(minutes=1),
+            }
+        )
+        try:
+            with pytest.raises(ImportLimitReached) as refused:
+                await repo.create_within_limits(new, 1, 10, since)
+        finally:
+            await locks.delete_one({"_id": str(ws)})
+    else:
+        async with sessions() as holder, holder.begin():
+            await holder.execute(
+                select(
+                    func.pg_advisory_xact_lock(
+                        func.hashtextextended(f"form_imports:{ws}", 0)
+                    )
+                )
+            )
+            with pytest.raises(ImportLimitReached) as refused:
+                await repo.create_within_limits(new, 1, 10, since)
+    assert refused.value.code == "import_in_progress"
+    assert await repo.count_active(ws) == 0
+    # once the lock is free the start goes through
+    await repo.create_within_limits(new, 1, 10, since)
+    assert await repo.count_active(ws) == 1
