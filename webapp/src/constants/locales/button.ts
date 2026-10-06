@@ -1,6 +1,7 @@
 export const buttonConstant = {
     edit: 'BUTTON.EDIT',
     add: 'BUTTON.ADD',
+    close: 'BUTTON.CLOSE',
     save: 'BUTTON.SAVE',
     saving: 'BUTTON.SAVING',
     login: 'BUTTON.LOGIN',

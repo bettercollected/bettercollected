@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
+import ModalCloseButton from '@app/components/modal-views/modal-close-button';
 import SettingsCard from '@app/components/settings/card';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -21,6 +21,9 @@ import { WorkspaceRole, assignableRoles, roleLocale } from '@app/models/enums/wo
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
+
+// Shared by the email input and the role select so the two line up.
+export const INVITE_FIELD_CLASS = 'h-10 w-full rounded-xl border-black-300 px-3 text-sm';
 
 export default function InviteMemberModal() {
     const { toast } = useToast();
@@ -72,27 +75,36 @@ export default function InviteMemberModal() {
         closeModal();
     };
     return (
-        <SettingsCard className="relative !space-y-0 px-10 py-6 pb-10">
-            <Close onClick={closeModal} className="absolute right-2 top-2 h-8 w-8 cursor-pointer p-2" />
-            <div className="text-black-900 text-lg font-semibold leading-snug">{t(inviteCollaborator.default)}</div>
+        <SettingsCard className="relative !space-y-0 px-6 py-6 pb-8 sm:px-10 sm:pb-10">
+            <ModalCloseButton onClick={closeModal} className="absolute right-2 top-2 h-8 w-8" />
+            <div className="text-black-900 pr-6 text-lg font-semibold leading-snug">{t(inviteCollaborator.default)}</div>
             <div className="text-black-600 pt-3 text-sm leading-relaxed">{t(inviteCollaborator.description)}</div>
             <form onSubmit={handleSendInvitation} className="flex flex-col  justify-start pt-8">
-                <div className="text-black-700 mb-2 text-sm font-medium">{t(localesCommon.enterEmail)}</div>
+                <label htmlFor="invite-member-email" className="text-black-700 mb-2 text-sm font-medium">
+                    {t(localesCommon.enterEmail)}
+                </label>
                 <AppInput
+                    id="invite-member-email"
                     disabled={isLoading}
                     data-testid="otp-input"
                     spellCheck={false}
                     value={invitationMail}
                     type="email"
+                    autoComplete="email"
+                    required
                     placeholder={t(localesCommon.enterEmail)}
+                    // Same box as the role select below: full width, 40px, 14px text.
+                    className={INVITE_FIELD_CLASS}
                     onChange={(event) => {
                         setInvitationMail(event.target.value);
                     }}
                 />
-                <div className="text-black-700 mb-2 mt-4 text-sm font-medium">{t(members.role)}</div>
-                <RoleSelect value={role} roles={assignableRoles(canGiveOwner)} onChange={setRole} disabled={isLoading} ariaLabel={t(members.role)} className="h-10 w-full bg-white" />
+                <div className="text-black-700 mb-2 mt-4 text-sm font-medium">
+                    {t(members.role)}
+                </div>
+                <RoleSelect value={role} roles={assignableRoles(canGiveOwner)} onChange={setRole} disabled={isLoading} ariaLabel={t(members.role)} className={`${INVITE_FIELD_CLASS} bg-white`} />
                 <div className="text-black-600 mt-2 text-xs leading-relaxed">{t(roleLocale(role).description)}</div>
-                <div className="text-black-500 mt-1 text-xs leading-relaxed">{t(memberRoles.inviteDescription)}</div>
+                <div className="text-black-600 mt-1 text-xs leading-relaxed">{t(memberRoles.inviteDescription)}</div>
                 <div className="mt-4 flex w-full flex-col justify-end">
                     <Button size="medium" disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}

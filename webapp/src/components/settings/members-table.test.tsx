@@ -5,7 +5,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import MakeBillingOwnerDialog, { billingOwnerBlocker } from '@app/components/member/make-billing-owner-dialog';
-import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
+import InviteMemberModal, { INVITE_FIELD_CLASS } from '@app/components/modal-views/modals/invite-member-modal';
 import { assignableRoles, isBillingOwnerOf, memberRole, toWorkspaceRole } from '@app/models/enums/workspace-role';
 import { setAuth } from '@app/store/auth/slice';
 import { store } from '@app/store/store';
@@ -196,5 +196,19 @@ describe('InviteMemberModal', () => {
         fireEvent.submit(screen.getByRole('button', { name: 'BUTTON.SEND_INVITATION' }).closest('form') as HTMLFormElement);
 
         await waitFor(() => expect(inviteMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', body: { role: 'EDITOR', email: 'new@example.com' } }));
+    });
+
+    it('labels the email field and lines it up with the role field', () => {
+        renderWith(<InviteMemberModal />);
+
+        const email = screen.getByLabelText('ENTER_EMAIL');
+        const role = screen.getByRole('combobox', { name: 'MEMBERS.ROLE' });
+        expect(email.getAttribute('type')).toBe('email');
+        for (const token of INVITE_FIELD_CLASS.split(' ')) {
+            expect(email.className.split(' ')).toContain(token);
+            expect(role.className.split(' ')).toContain(token);
+        }
+        expect(INVITE_FIELD_CLASS.split(' ')).toContain('w-full');
+        expect(screen.getByRole('button', { name: 'BUTTON.CLOSE' })).toBeDefined();
     });
 });
