@@ -974,7 +974,7 @@
     "NEEDS_ATTENTION": "Vraagt aandacht",
     "UNKNOWN_USER": "Onbekende gebruiker",
     "GROUPS_TITLE": "Groepen en rollen",
-    "GROUPS_DESCRIPTION": "Geef een groep een rol in de werkruimte; wie in meerdere groepen zit, krijgt de hoogste. Wie in geen gekoppelde groep zit, krijgt de rol voor nieuwe leden ({{role}}, onder Beleid). Eigenaren worden nooit gewijzigd, en de rol van leden die u zelf hebt uitgenodigd blijft ongemoeid.",
+    "GROUPS_DESCRIPTION": "Geef een groep een rol in de werkruimte; wie in meerdere groepen zit, krijgt de hoogste. Wie in geen gekoppelde groep zit, krijgt de rol voor nieuwe leden ({{role}}, onder Beleid). De factuureigenaar wordt nooit gewijzigd, de rol van eigenaren ook niet, en de rol van leden die u zelf hebt uitgenodigd blijft ongemoeid.",
     "GROUP": "Groep",
     "MEMBERS": "Leden",
     "ROLE": "Rol",

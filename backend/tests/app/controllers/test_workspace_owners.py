@@ -455,12 +455,12 @@ async def directory(client, owners, scim_on, members_list):
     return document
 
 
-async def test_the_directory_never_changes_an_owner(
+async def test_the_directory_never_changes_an_owners_role(
     client: AsyncClient, owners, directory, scim_on
 ):
-    """A member the directory provisioned can be made an owner by hand;
-    from then on the directory changes neither their role nor their status,
-    and never grants Owner itself."""
+    """A member the directory provisioned can be made an owner by hand; from
+    then on the directory never changes their role, and never grants Owner
+    itself."""
     polis, auth = scim_on
     await deliver(
         client,
@@ -504,21 +504,106 @@ async def test_the_directory_never_changes_an_owner(
     )
     assert (await member_of(owners.id, jane)).roles == [WorkspaceRoles.OWNER]
 
-    # deactivation at the IdP leaves the owner alone
+    listed = await client.get(_members(owners.id), cookies=_cookies(testUser))
+    (row,) = [m for m in listed.json() if m["id"] == jane]
+    assert row["managedByDirectory"] is False
+
+
+async def test_a_co_owner_deactivated_in_the_directory_loses_everything(
+    client: AsyncClient, owners, directory, scim_on
+):
+    """The IT person made an owner leaves: the IdP's deactivation disables
+    their membership like any member's, ends their sessions and takes the
+    break-glass; reactivation brings them back as an owner."""
+    polis, auth = scim_on
+    await deliver(
+        client,
+        directory,
+        polis,
+        event(directory, "user.created", user_data("u1", JANE)),
+    )
+    jane_id = auth.accounts[JANE]["id"]
+    jane = User(id=jane_id, sub=JANE)
+    promoted = await client.patch(
+        f"{_members(owners.id)}/{jane_id}",
+        json={"role": "OWNER"},
+        cookies=_cookies(testUser),
+    )
+    assert promoted.status_code == 200, promoted.text
+    assert await _permissions(jane, owners.id) == ALL_PERMISSIONS
+    # SSO required, so the email code is break-glass for owners only
+    await add_connection(owners.id)
+    required = await client.put(
+        _sso(owners, "/settings"),
+        json={"ssoRequired": True},
+        cookies=_cookies(testUser),
+    )
+    assert required.status_code == 200, required.text
+    policy = container.sso_policy_service()
+    assert await policy.code_sign_in_scope(JANE, user_id=jane_id) is None
+    session = await _session(jane_id)
+
     await deliver(
         client,
         directory,
         polis,
         event(directory, "user.updated", user_data("u1", JANE, active=False)),
     )
-    member = await member_of(owners.id, jane)
-    assert not member.disabled and member.roles == [WorkspaceRoles.OWNER]
-    record = await container.scim_user_repo().find(directory.id, "u1")
-    assert (record.state, record.reason) == (ScimUserState.IGNORED, "owner_protected")
 
-    listed = await client.get(_members(owners.id), cookies=_cookies(testUser))
-    (row,) = [m for m in listed.json() if m["id"] == jane]
-    assert row["managedByDirectory"] is False
+    member = await member_of(owners.id, jane_id)
+    assert member.disabled and "directory" in member.disabled_reasons
+    assert member.roles == [WorkspaceRoles.OWNER]
+    assert (await container.session_repo().get(session.id)).revoked_at is not None
+    assert not await _permissions(jane, owners.id)
+    for method, path, body in (
+        ("GET", _sso(owners), None),
+        ("PUT", _sso(owners, "/settings"), {"ssoRequired": False}),
+        ("DELETE", f"{_members(owners.id)}/{co_owner.id}", None),
+    ):
+        reply = await client.request(method, path, json=body, cookies=_cookies(jane))
+        assert reply.status_code == 403, (method, path, reply.text)
+    with pytest.raises(Exception) as refused:
+        await policy.code_sign_in_scope(JANE, user_id=jane_id)
+    assert "sso_required" in str(refused.value.content)
+    with pytest.raises(Exception):
+        await policy.code_sign_in_scope(JANE)
+    assert await container.scim_sync_service().is_deprovisioned(owners.id, JANE)
+
+    # reactivated at the IdP: enabled again, still an owner (the stored role)
+    await deliver(
+        client,
+        directory,
+        polis,
+        event(directory, "user.updated", user_data("u1", JANE, active=True)),
+    )
+    member = await member_of(owners.id, jane_id)
+    assert not member.disabled and member.roles == [WorkspaceRoles.OWNER]
+    assert await _permissions(jane, owners.id) == ALL_PERMISSIONS
+    record = await container.scim_user_repo().find(directory.id, "u1")
+    assert record.state == ScimUserState.PROVISIONED
+
+
+async def test_the_directory_never_touches_the_billing_owner(
+    client: AsyncClient, owners, directory, scim_on
+):
+    polis, auth = scim_on
+    auth.add_account("owner@" + DOMAIN, user_id=testUser.id)
+    session = await _session(testUser.id)
+    for payload in (
+        event(directory, "user.created", user_data("o1", "owner@" + DOMAIN)),
+        event(
+            directory,
+            "user.updated",
+            user_data("o1", "owner@" + DOMAIN, active=False),
+        ),
+    ):
+        assert (await deliver(client, directory, polis, payload)).status_code == 200
+
+    assert not (await _membership(owners.id, testUser)).disabled
+    assert await _permissions(testUser, owners.id) == ALL_PERMISSIONS
+    assert (await container.session_repo().get(session.id)).revoked_at is None
+    record = await container.scim_user_repo().find(directory.id, "o1")
+    assert (record.state, record.reason) == (ScimUserState.IGNORED, "owner_protected")
 
 
 async def test_a_directory_group_never_maps_to_owner(

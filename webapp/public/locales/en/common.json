@@ -978,7 +978,7 @@
     "NEEDS_ATTENTION": "Needs attention",
     "UNKNOWN_USER": "Unknown user",
     "GROUPS_TITLE": "Groups and roles",
-    "GROUPS_DESCRIPTION": "Give a group a workspace role; someone in several groups gets the highest. People in no mapped group get the role for new members ({{role}}, under Policy). Owners are never changed, and the role of members you invited by hand is left alone.",
+    "GROUPS_DESCRIPTION": "Give a group a workspace role; someone in several groups gets the highest. People in no mapped group get the role for new members ({{role}}, under Policy). The billing owner is never changed, owners' roles are never changed, and the role of members you invited by hand is left alone.",
     "GROUP": "Group",
     "MEMBERS": "Members",
     "ROLE": "Role",
