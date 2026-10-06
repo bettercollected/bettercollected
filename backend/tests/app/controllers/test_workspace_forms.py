@@ -480,7 +480,12 @@ class TestWorkspaceForm:
         )
 
         expected_response = {
-            "settings": {**workspace_settings, "embedUrl": None, "provider": "self"}
+            "settings": {
+                **workspace_settings,
+                "embedUrl": None,
+                "provider": "self",
+                "publishChecksVersion": 1,
+            }
         }
         actual_response = patch_settings.json()
         assert patch_settings.status_code == 200
