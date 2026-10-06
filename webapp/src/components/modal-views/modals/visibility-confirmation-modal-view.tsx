@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import Divider from '@Components/common/divider';
 
-import { Close } from '@app/components/icons/close';
+import ModalCloseButton from '@app/components/modal-views/modal-close-button';
 import { useModal } from '@app/components/modal-views/context';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
@@ -39,13 +39,7 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
         <div className={'rounded-xl bg-white md:w-[466px]'}>
             <div className={'flex justify-between p-4'}>
                 <h1 className={'text-black-800 text-sm font-normal'}>{t('VISIBILITY_MODAL.TITLE')}</h1>
-                <div className={'hover:bg-black-200 absolute right-5 top-3 cursor-pointer p-1 hover:rounded-sm'}>
-                    <Close
-                        onClick={() => {
-                            closeModal();
-                        }}
-                    />
-                </div>
+                <ModalCloseButton onClick={closeModal} className="absolute right-5 top-3 h-8 w-8" iconClassName="h-6 w-6" />
             </div>
             <Divider />
             <div className={'flex flex-col gap-3 p-10 pt-6'}>

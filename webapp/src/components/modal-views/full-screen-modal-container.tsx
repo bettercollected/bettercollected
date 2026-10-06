@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next';
+
+import { buttonConstant } from '@app/constants/locales/button';
 import { Fragment, useCallback } from 'react';
 
 import { Button } from '@app/shadcn/components/ui/button';
@@ -27,6 +30,7 @@ function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
 
 export default function FullScreenModalContainer() {
     const { isOpen, closeModal, modalProps, view } = useFullScreenModal();
+    const { t } = useTranslation();
 
     const closeModalHandler = useCallback(() => {
         if (!modalProps?.nonClosable) closeModal();
@@ -35,14 +39,14 @@ export default function FullScreenModalContainer() {
     return (
         <>
             <Transition appear show={isOpen} as={Fragment}>
-                <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden  text-center" onClose={closeModalHandler}>
+                <Dialog as="div" className="fixed inset-0 z-modal h-full w-full overflow-y-auto overflow-x-hidden  text-center" onClose={closeModalHandler}>
                     <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                         <DialogBackdrop className={`fixed inset-0 z-40  ${view === 'UPGRADE_TO_PRO' ? '!bg-white' : 'bg-gray-700 bg-opacity-60'}   cursor-pointer`} />
                     </Transition.Child>
 
                     {/* This element is need to fix FocusTap headless-ui warning issue */}
                     <div className="sr-only">
-                        <Button variant="ghost" size="sm" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
+                        <Button aria-label={t(buttonConstant.close)} variant="ghost" size="sm" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
                             <Close className="h-auto w-[13px]" />
                         </Button>
                     </div>

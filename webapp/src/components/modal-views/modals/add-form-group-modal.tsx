@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@app/shadcn/components/
 import cn from 'classnames';
 import { Check, CheckCircle, ChevronsUpDown } from "lucide-react";
 
-import { Close } from '@app/components/icons/close';
+import ModalCloseButton from '@app/components/modal-views/modal-close-button';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -45,7 +45,7 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
     };
     return (
         <div className="relative rounded-[8px] bg-white p-10 md:w-[658px]">
-            <Close onClick={closeModal} className="absolute right-2 top-2 h-8 w-8 cursor-pointer p-2" />
+            <ModalCloseButton onClick={closeModal} className="absolute right-2 top-2 h-8 w-8" />
             <h4 className="h4">{t(buttonConstant.addForm)}</h4>
             <p className="body4 !text-black-700 mb-8  mt-2">{t(groupConstant.form.description)}</p>
             {forms && (
@@ -62,7 +62,7 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[570px] p-0 z-[99999] bg-white" align="start">
+                        <PopoverContent className="w-[570px] p-0 bg-white" align="start">
                             <Command>
                                 <CommandInput placeholder={"Search forms..."} />
                                 <CommandList>

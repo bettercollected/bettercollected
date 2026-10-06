@@ -1,4 +1,4 @@
-import { Close } from '@app/components/icons/close';
+import ModalCloseButton from '@app/components/modal-views/modal-close-button';
 import { FieldTypes, StaffFeedback, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Separator } from '@app/shadcn/components/ui/separator';
@@ -59,11 +59,11 @@ const ViewResponseFullModalView = ({ response, formFields, form, formId, workspa
             <div className="flex flex-row justify-between p-4">
                 <div className="flex flex-col">
                     <span className="p3-new text-black-800">Response</span>
-                    <span className="text-black-500 text-[10px]">{utcToLocalDateTIme(response?.createdAt)}</span>
+                    <span className="text-black-600 text-[10px]">{utcToLocalDateTIme(response?.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-1">
                     <EllipsisSection formId={formId} workspaceId={workspaceId} responseId={response.responseId} />
-                    <Close onClick={closeModal} />
+                    <ModalCloseButton onClick={closeModal} className="h-8 w-8" iconClassName="h-6 w-6" />
                 </div>
             </div>
             <Separator />
@@ -134,7 +134,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                     return (
                         <div className="flex flex-col gap-2" key={field.id}>
                             {getTitleForHeaderForTable(field)}
-                            {items.length === 0 && <span className="text-black-500 text-sm italic">No answer</span>}
+                            {items.length === 0 && <span className="text-black-600 text-sm italic">No answer</span>}
                             {items.map((item, index) => {
                                 const itemContext = { ...pipeContext, answers: itemScopeAnswers(response.answers, { groupId: field.id, index, childIds: children.map((c) => c.id) }) };
                                 return (
@@ -146,7 +146,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                                             return (
                                                 <div className="flex flex-col gap-1" key={child.id}>
                                                     <span className="text-black-600 text-[13px] font-medium leading-snug">{childTitle}</span>
-                                                    {answerText !== '' ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-500 text-sm italic">No answer</span>}
+                                                    {answerText !== '' ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-600 text-sm italic">No answer</span>}
                                                 </div>
                                             );
                                         })}
@@ -204,7 +204,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                                     {getAnswerForField(response, field)}
                                 </div>
                             ) : (
-                                <span className="text-black-500 text-sm italic">No answer</span>
+                                <span className="text-black-600 text-sm italic">No answer</span>
                             )}
                         </div>
                     );
@@ -213,16 +213,16 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}
-                        {answerText ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-500 text-sm italic">No answer</span>}
+                        {answerText ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-600 text-sm italic">No answer</span>}
                     </div>
                 );
             })}
             {response.hiddenFields && Object.keys(response.hiddenFields).length > 0 && (
                 <div className="flex flex-col gap-3 border-t pt-4">
-                    <span className="p4-new text-black-500">Hidden fields (from the share link)</span>
+                    <span className="p4-new text-black-600">Hidden fields (from the share link)</span>
                     {Object.entries(response.hiddenFields).map(([name, value]) => (
                         <div className="flex flex-col gap-1" key={name}>
-                            <span className="p4-new text-black-500 font-mono">{name}</span>
+                            <span className="p4-new text-black-600 font-mono">{name}</span>
                             <span className="p2-new text-black-700">{value}</span>
                         </div>
                     ))}
@@ -254,7 +254,7 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
                     <MoreVertical className={cn('cursor-pointer')} width={16} height={16} />
                 </div>
             </PopoverTrigger>
-            <PopoverContent side="left" align="start" className=" !z-[10000]  w-[180px] bg-white p-0 shadow-lg">
+            <PopoverContent side="left" align="start" className="w-[180px] bg-white p-0 shadow-lg">
                 <div className=" p2 !my-2  flex cursor-pointer items-center gap-2 px-4 py-2 !text-[#C43D3D] hover:bg-[#FBEFEF]" onClick={handleDelete}>
                     <DeleteIcon className="text-[#C43D3D]" />
                     Delete response

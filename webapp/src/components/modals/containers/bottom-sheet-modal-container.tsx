@@ -1,4 +1,7 @@
 
+import { useTranslation } from 'react-i18next';
+
+import { buttonConstant } from '@app/constants/locales/button';
 import { Button } from '@app/shadcn/components/ui/button';
 import CreateGroupModal from '@Components/modals/bottom-sheet-modals/create-group-modal';
 import DeleteAccountModal from '@Components/modals/bottom-sheet-modals/delete-account-modal';
@@ -37,10 +40,11 @@ const renderModalContent = (view: BOTTOM_SCREEN_MODALS, modalProps: any) => {
 
 export default function BottomSheetModalContainer() {
     const { isOpen, closeBottomSheetModal, modalProps, view } = useBottomSheetModal();
+    const { t } = useTranslation();
 
     return (
         <>
-            <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden  text-center" open={isOpen} onClose={closeBottomSheetModal}>
+            <Dialog as="div" className="fixed inset-0 z-modal h-full w-full overflow-y-auto overflow-x-hidden  text-center" open={isOpen} onClose={closeBottomSheetModal}>
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <AnimatePresence mode="wait">
                     {view && (
@@ -58,7 +62,7 @@ export default function BottomSheetModalContainer() {
                     )}
                 </AnimatePresence>
                 <div className="sr-only">
-                    <Button variant="ghost" size="sm" onClick={closeBottomSheetModal} className="opacity-50 hover:opacity-80 ">
+                    <Button aria-label={t(buttonConstant.close)} variant="ghost" size="sm" onClick={closeBottomSheetModal} className="opacity-50 hover:opacity-80 ">
                         <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>

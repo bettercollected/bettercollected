@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@app/shadcn/components/
 import cn from 'classnames';
 import { Check, CheckCircle, ChevronsUpDown } from "lucide-react";
 
-import { Close } from '@app/components/icons/close';
+import ModalCloseButton from '@app/components/modal-views/modal-close-button';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
@@ -42,7 +42,7 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
     };
     return (
         <div className="relative rounded-[8px] bg-white p-10 md:w-[658px]">
-            <Close onClick={closeModal} className="absolute right-2 top-2 h-8 w-8 cursor-pointer p-2" />
+            <ModalCloseButton onClick={closeModal} className="absolute right-2 top-2 h-8 w-8" />
             <h4 className="h4">{t(formConstant.addgroup.title, { form: form.title })}</h4>
             <p className="body4 !text-black-700 mb-8  mt-2">{t(formConstant.addgroup.description)}</p>
             {responderGroups && (

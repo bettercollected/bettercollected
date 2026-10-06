@@ -16,7 +16,7 @@ function StageList({ states }: { states: Record<string, string> }) {
             {STAGES.map((s) => (
                 <li key={s.key} className="flex items-center gap-3 text-sm">
                     <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${states[s.key] === 'done' ? 'bg-green-600' : states[s.key] === 'current' ? 'animate-pulse bg-blue-500' : states[s.key] === 'failed' ? 'bg-red-600' : 'bg-black-300'}`} />
-                    <span className={states[s.key] === 'waiting' ? 'text-black-500' : 'text-black-800'}>{s.label}</span>
+                    <span className={states[s.key] === 'waiting' ? 'text-black-600' : 'text-black-800'}>{s.label}</span>
                 </li>
             ))}
         </ol>
@@ -41,7 +41,7 @@ function PageWithBoxes({ workspaceId, importId, page, selected, onSelect }: any)
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={pageImageUrl(workspaceId, importId, page.number)} alt={`Page ${page.number} of the uploaded document`} className="block w-full" />
             ) : (
-                <div className="flex h-full min-h-40 items-center justify-center p-6 text-center text-sm text-black-500">No page image (the document reader for images is not configured on this server).</div>
+                <div className="flex h-full min-h-40 items-center justify-center p-6 text-center text-sm text-black-600">No page image (the document reader for images is not configured on this server).</div>
             )}
             {width > 0 &&
                 page.boxes.map((b: any) => {

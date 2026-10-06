@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Divider from '@Components/common/divider';
 
 import QRGenerator from '@Components/form/qr-generator';
-import { Close } from '@app/components/icons/close';
+import ModalCloseButton from '@app/components/modal-views/modal-close-button';
 import { useModal } from '@app/components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -72,13 +72,7 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
         <div className=" rounded-[8px] bg-white md:w-[466px]">
             <div className={'flex justify-between px-2 py-[18px] md:px-4'}>
                 <h1 className={'p2-new'}>QR Code</h1>
-                <div className={'hover:bg-black-200 absolute right-5 top-3 cursor-pointer p-1 hover:rounded-sm'}>
-                    <Close
-                        onClick={() => {
-                            closeModal();
-                        }}
-                    />
-                </div>
+                <ModalCloseButton onClick={closeModal} className="absolute right-5 top-3 h-8 w-8" iconClassName="h-6 w-6" />
             </div>
             <Divider />
             <div className={'flex flex-col items-center justify-center gap-4 p-4 pt-6 md:p-10'}>
