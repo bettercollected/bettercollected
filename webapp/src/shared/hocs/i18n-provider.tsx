@@ -5,6 +5,7 @@ import i18n from 'i18next';
 import { initReactI18next, I18nextProvider } from 'react-i18next';
 import commonEn from '../../../public/locales/en/common.json';
 import builderEn from '../../../public/locales/en/builder.json';
+import builderNl from '../../../public/locales/nl/builder.json';
 
 // Initialize i18next if not already initialized
 if (!i18n.isInitialized) {
@@ -13,6 +14,12 @@ if (!i18n.isInitialized) {
             en: {
                 common: commonEn,
                 builder: builderEn
+            },
+            // Builder strings only (small), so Dutch builder text resolves once a
+            // locale switch exists; the app still renders in English (lng below)
+            // and anything missing falls back to English.
+            nl: {
+                builder: builderNl
             }
         },
         lng: 'en',

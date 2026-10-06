@@ -4,11 +4,14 @@ import cn from 'classnames';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import MoveUpDown from '@app/views/molecules/form-builder/move-up-down';
+import PlainLanguageHints from '@app/views/molecules/form-builder/plain-language-hints';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -34,6 +37,9 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();
     const { navbarState, setNavbarState } = useNavbarState();
+    // Plain-language tips use the form's declared language when it has one.
+    const form = useAppSelector(selectForm);
+    const plainLanguage = { formId: form?.formId, formLanguage: form?.settings?.language };
 
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
@@ -52,6 +58,9 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                     <AnimatePresence>
                         {Array.isArray(slideFields) && slideFields.length ? (
                             slideFields.map((field, index) => {
+                                // Tips show for the question being edited only, so the canvas stays calm.
+                                const showHints = !disabled && !isScaledDown && activeFieldComponent?.id === field.id;
+                                const titleHintsId = `plain-language-title-${field.id}`;
                                 return (
                                     <motion.div
                                         key={field.id}
@@ -147,9 +156,11 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                             slide={slide}
                                                             // autofocus={field?.type !== FieldType.MATRIX && activeFieldComponent?.id === field.id}
                                                             isRequired={field?.validations?.required}
+                                                            describedById={titleHintsId}
                                                         />
                                                     </div>
-                                                    <FieldDescription field={field} disabled={disabled} />
+                                                    {showHints && <PlainLanguageHints id={titleHintsId} value={field.title} {...plainLanguage} />}
+                                                    <FieldDescription field={field} disabled={disabled} hints={showHints ? plainLanguage : undefined} />
                                                 </div>
                                                 {renderFieldWrapper(field, slide, disabled)}
                                             </div>

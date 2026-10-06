@@ -157,6 +157,8 @@ export interface StandardFormDto {
         isPublished?: boolean;
         roles?: Array<string>;
         privacyPolicyUrl?: string;
+        /** Declared form language, e.g. "nl" or "en-GB" (set by some imports; no picker yet). */
+        language?: string | null;
         /** Trust-layer content: why the data is collected (shown to responders). */
         purpose?: string;
         /** Plain-words retention, e.g. "kept for 90 days". */
