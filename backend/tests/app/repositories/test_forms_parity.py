@@ -136,9 +136,23 @@ async def test_form_listings_search_and_versions(sessions):
     # cross-group data, in Mongo only
     group = await groups.create_group(ws, "Corp", regex=".*@corp.com")
     await groups.add_group_to_form("f1", group.id)
-    await FormResponseDocument(form_id="f1", response_id="r1", answers={}).save()
-    await FormResponseDocument(form_id="f1", response_id="r2", answers={}).save()
-    await FormResponseDeletionRequest(form_id="f1", response_id="r1").save()
+    # f1 is linked to another workspace too: only the responses collected
+    # here count (#768); one stored before workspace_id existed is
+    # ambiguous and counts nowhere. f3 is this workspace's only: its
+    # unstamped response is its own.
+    elsewhere = PydanticObjectId()
+    for response_id, workspace_id in (("r1", ws), ("r2", ws), ("r3", elsewhere)):
+        await FormResponseDocument(
+            form_id="f1", response_id=response_id, answers={}, workspace_id=workspace_id
+        ).save()
+    await FormResponseDocument(form_id="f1", response_id="r4", answers={}).save()
+    await FormResponseDocument(form_id="f3", response_id="r5", answers={}).save()
+    await FormResponseDeletionRequest(
+        form_id="f1", response_id="r1", workspace_id=ws
+    ).save()
+    await FormResponseDeletionRequest(
+        form_id="f1", response_id="r3", workspace_id=elsewhere
+    ).save()
 
     ids = ["f1", "f2", "f3", "missing"]
     default_sort = SortRequest()
@@ -173,6 +187,8 @@ async def test_form_listings_search_and_versions(sessions):
         1,
         True,
     )
+    f3 = next(f for f in listed if f["form_id"] == "f3")
+    assert (f3["responses"], f3["deletion_requests"]) == (1, 0)
     assert [g["_id"] for g in f1["groups"]] == [group.id]
     assert f1["settings"]["custom_url"] == "alpha" and f1["imported_by"] == "u1"
 

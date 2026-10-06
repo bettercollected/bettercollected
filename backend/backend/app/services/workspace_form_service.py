@@ -3,7 +3,7 @@ import os
 import random
 import re
 from http import HTTPStatus
-from typing import List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from loguru import logger
@@ -324,12 +324,33 @@ class WorkspaceFormService:
         workspace_ids = (
             await self.workspace_form_repository.get_workspace_ids_for_form_id(form_id)
         )
+        if len(workspace_ids) > 1 and await self.form_response_service.unstamped_count(
+            form_id
+        ):
+            # Responses stored before #768 of a form linked to several
+            # workspaces belong to none of them yet. Unlinked here, the form
+            # would be linked to one workspace only, which would then read
+            # them as its own (they may be this workspace's).
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                content=(
+                    "This form also belongs to another workspace and has "
+                    "responses from before they were kept per workspace. "
+                    "Run the response backfill "
+                    "(scripts/backfill_response_workspaces.py) first."
+                ),
+            )
 
         workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
             workspace_id=workspace_id, form_id=form_id
         )
 
         if len(workspace_ids) > 1:
+            # the form stays in the other workspaces; the responses collected
+            # through this one go (#768)
+            await self.form_response_service.delete_workspace_form_responses(
+                workspace_id=workspace_id, form_id=form_id
+            )
             return "Form deleted from workspace."
 
         form = await self.form_service.get_form_document_by_id(form_id)
@@ -398,12 +419,22 @@ class WorkspaceFormService:
             form_id=form_id, group_id=group_id
         )
 
-    async def delete_forms_with_ids(self, form_ids: List[str]):
-        workspace_forms = (
-            await self.workspace_form_repository.get_workspace_forms_form_ids(
-                form_ids=form_ids
+    async def delete_forms_with_ids(
+        self,
+        form_ids: List[str],
+        workspace_ids: Optional[List[PydanticObjectId]] = None,
+        user_id: Optional[str] = None,
+    ):
+        """Account deletion: the forms of the deleted workspaces
+        (``workspace_ids``) and the ones ``user_id`` imported. A form also
+        linked to a workspace that stays (#768) keeps that link, its form
+        document and that workspace's responses; only the deleted
+        workspaces' links and responses go. Without ``workspace_ids`` every
+        named form goes entirely."""
+        if workspace_ids is not None:
+            form_ids = await self._keep_forms_of_remaining_workspaces(
+                form_ids, workspace_ids, user_id
             )
-        )
         await self.form_response_service.delete_form_responses_of_form_ids(
             form_ids=form_ids
         )
@@ -414,6 +445,42 @@ class WorkspaceFormService:
         if self._pdf_import_repo is not None and form_ids:
             await self._pdf_import_repo.delete_by_form_ids(list(form_ids))
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
+
+    async def _keep_forms_of_remaining_workspaces(
+        self,
+        form_ids: List[str],
+        workspace_ids: List[PydanticObjectId],
+        user_id: Optional[str],
+    ) -> List[str]:
+        """Unlink the shared forms from the deleted workspaces only; returns
+        the forms that are left in no other workspace (deleted entirely)."""
+        gone = {str(w) for w in workspace_ids}
+        links: Dict[str, list] = {}
+        for link in await self.workspace_form_repository.get_workspace_forms_form_ids(
+            form_ids=list(form_ids)
+        ):
+            links.setdefault(str(link.form_id), []).append(link)
+
+        def removed(link) -> bool:
+            return str(link.workspace_id) in gone or (
+                user_id is not None and str(link.user_id) == str(user_id)
+            )
+
+        entirely = []
+        for form_id in form_ids:
+            form_links = links.get(str(form_id), [])
+            if all(removed(link) for link in form_links):
+                entirely.append(form_id)
+                continue
+            leaving = {str(link.workspace_id) for link in form_links if removed(link)}
+            await self.form_response_service.delete_workspaces_form_responses(
+                [PydanticObjectId(w) for w in leaving], str(form_id)
+            )
+            for workspace_id in leaving:
+                await self.workspace_form_repository.delete_form_in_workspace(
+                    workspace_id=PydanticObjectId(workspace_id), form_id=str(form_id)
+                )
+        return entirely
 
     def generate_presigned_file_url(
         self,
@@ -623,7 +690,11 @@ class WorkspaceFormService:
 
         # refuse before anything is stored: only the respondent of this form's
         # response may edit it (checked again, atomically, by the repository)
-        existing = await self.form_response_service.get_response_by_id(str(response_id))
+        # this workspace's copy only (#768): another workspace's is never
+        # read or written here
+        existing = await self.form_response_service.workspace_response(
+            workspace_id, str(response_id)
+        )
         if (
             existing is None
             or str(existing.form_id) != str(form_id)
@@ -689,7 +760,7 @@ class WorkspaceFormService:
         form_response = await self.form_response_service.patch_form_response(
             workspace_id=workspace_id,
             form_id=form_id,
-            response_id=response_id,
+            document_id=existing.id,
             response=response,
             user=user,
         )
@@ -829,7 +900,7 @@ class WorkspaceFormService:
                 user, Permission.PRIVACY_MANAGE, workspace_id
             )
             if not await self.form_response_service.has_pending_deletion_request(
-                str(form_id), response_id
+                workspace_id, str(form_id), response_id
             ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN

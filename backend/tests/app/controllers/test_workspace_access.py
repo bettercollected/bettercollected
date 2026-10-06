@@ -11,6 +11,7 @@ from common.models.standard_form import StandardForm
 from httpx import AsyncClient
 
 from backend.app.container import container
+from tests.app.response_helpers import form_scope
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import ActionDto
 from backend.app.models.enum.form_integration import FormIntegrationType
@@ -355,7 +356,7 @@ class TestIntegrationOAuth:
 
 async def _deletion_requests(form_id):
     return await container.form_response_repo().list_deletion_requests_for_form_ids(
-        [form_id]
+        await form_scope(form_id)
     )
 
 

@@ -485,12 +485,12 @@ class WorkspaceService:
         )
         responses_count = (
             await self.form_response_service.get_responses_count_in_workspace(
-                workspace_form_ids=form_ids
+                workspace_id=workspace_id, workspace_form_ids=form_ids
             )
         )
         deletion_count = (
             await self.form_response_service.get_deletion_requests_count_in_workspace(
-                form_ids=form_ids
+                workspace_id=workspace_id, form_ids=form_ids
             )
         )
 
@@ -788,7 +788,10 @@ class WorkspaceService:
         await self.responder_groups_service.delete_groups_of_workspaces(
             workspace_ids=workspace_ids
         )
-        await self.workspace_form_service.delete_forms_with_ids(form_ids=form_ids)
+        # forms shared with workspaces that stay keep those (#768)
+        await self.workspace_form_service.delete_forms_with_ids(
+            form_ids=form_ids, workspace_ids=workspace_ids, user_id=user.id
+        )
         await self._workspace_user_service.delete_user_form_all_workspaces(user)
         await self._workspace_user_service.delete_user_of_workspaces(
             workspace_ids=workspace_ids

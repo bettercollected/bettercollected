@@ -687,11 +687,11 @@ async def test_version_conflict_detected_at_the_write(
     """Deterministic race: another save lands between our read and write."""
     service = container.form_response_service()
     repo = container.form_response_repo()
-    original_get = repo.get_response
+    original_list = repo.list_by_response_id
     raced = {"done": False}
 
-    async def get_then_race(response_id):
-        response = await original_get(response_id)
+    async def read_then_race(response_id):
+        copies = await original_list(response_id)
         if not raced["done"]:
             raced["done"] = True
             await service.update_internal_answers(
@@ -701,9 +701,11 @@ async def test_version_conflict_detected_at_the_write(
                 {REVIEWER: {"text": "first"}},
                 invited_user,
             )
-        return response
+        return copies
 
-    monkeypatch.setattr(service._form_response_repo, "get_response", get_then_race)
+    monkeypatch.setattr(
+        service._form_response_repo, "list_by_response_id", read_then_race
+    )
     with pytest.raises(HTTPException) as conflict:
         await service.update_internal_answers(
             workspace.id,

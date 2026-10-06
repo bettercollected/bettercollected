@@ -12,7 +12,6 @@ from fastapi_pagination import Page, Params
 from fastapi_pagination.api import set_page, set_params
 
 from backend.app.container import container
-from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import ActionDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
@@ -43,6 +42,7 @@ from backend.app.repositories.postgres.responses import (
     PostgresResponderGroupsRepository,
     PostgresWorkspaceRespondersRepository,
 )
+from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -81,6 +81,12 @@ def sessions(clean_postgres):
 
 def at(minutes):
     return T0 + dt.timedelta(minutes=minutes)
+
+
+def legacy(workspace_id, *form_ids):
+    """A scope whose forms are linked to this workspace only: responses
+    stored before #768 (no workspace_id, as seeded here) are its own."""
+    return ResponseScope(workspace_id, tuple(form_ids), tuple(form_ids))
 
 
 def response(form_id, response_id, minutes, **extra):
@@ -134,18 +140,20 @@ async def test_responses_with_the_ai_notice(sessions):
         response("n1", "a6", 60, **shown(59, provider="google")),  # imported
         response("n2", "a7", 70, **shown(69)),  # another form
     )
+    ws = PydanticObjectId()
+    n1, n3 = legacy(ws, "n1"), legacy(ws, "n3")
     calls = [
-        ("list_recent_with_ai_notice", lambda: ("n1", "OpenAI", at(5), 10)),
-        ("list_recent_with_ai_notice", lambda: ("n1", "OpenAI", at(5), 1)),
-        ("list_recent_with_ai_notice", lambda: ("n1", "Google Gemini", at(5), 10)),
-        ("count_with_ai_notice", lambda: ("n1", "OpenAI", at(5))),
-        ("count_with_ai_notice", lambda: ("n1", "OpenAI", at(0))),
-        ("count_with_ai_notice", lambda: ("n3", "OpenAI", at(0))),
+        ("list_recent_with_ai_notice", lambda: (n1, "OpenAI", at(5), 10)),
+        ("list_recent_with_ai_notice", lambda: (n1, "OpenAI", at(5), 1)),
+        ("list_recent_with_ai_notice", lambda: (n1, "Google Gemini", at(5), 10)),
+        ("count_with_ai_notice", lambda: (n1, "OpenAI", at(5))),
+        ("count_with_ai_notice", lambda: (n1, "OpenAI", at(0))),
+        ("count_with_ai_notice", lambda: (n3, "OpenAI", at(0))),
     ]
     await parity(mongo, postgres, calls)
-    listed = await postgres.list_recent_with_ai_notice("n1", "OpenAI", at(5), 10)
+    listed = await postgres.list_recent_with_ai_notice(n1, "OpenAI", at(5), 10)
     assert [r.response_id for r in listed] == ["a2", "a1"]
-    assert await mongo.count_with_ai_notice("n1", "OpenAI", at(0)) == 3
+    assert await mongo.count_with_ai_notice(n1, "OpenAI", at(0)) == 3
 
 
 async def test_response_listings_compose_over_forms(sessions):
@@ -174,7 +182,8 @@ async def test_response_listings_compose_over_forms(sessions):
                 await repo.get_response(response_id), response_id
             )
 
-    ids = ["f1", "f2", "orphan", "missing"]
+    ids = legacy(ws, "f1", "f2", "orphan", "missing")
+    f1, f2 = legacy(ws, "f1"), legacy(ws, "f2")
     user_a = User(id=str(PydanticObjectId()), sub="a@example.com")
     await pages_equal(
         lambda: mongo.get_form_responses(ids),
@@ -232,27 +241,19 @@ async def test_response_listings_compose_over_forms(sessions):
             ("count_deletion_requests_by_form_ids", lambda: (ids,)),
             ("count_responses_for_form_ids", lambda: (ids,)),
             ("get_deletion_requests_count_in_workspace", lambda: (ids,)),
-            ("get_deletion_requests_count_in_workspace", lambda: (["missing"],)),
-            ("list_recent_by_form_id", lambda: ("f1", 2)),
+            (
+                "get_deletion_requests_count_in_workspace",
+                lambda: (legacy(ws, "missing"),),
+            ),
+            ("list_recent_by_form_id", lambda: (f1, 2)),
             ("list_deletion_requests_for_form_ids", lambda: (ids,)),
-            ("list_by_form_id", lambda: ("f2",)),
+            ("list_by_form_id", lambda: (f2,)),
             ("find_deletion_request_by_response_id", lambda: ("r3",)),
             ("find_deletion_request_by_response_id", lambda: ("r1",)),
             ("get_all_expiring_responses", lambda: ()),
             ("get_response", lambda: ("r2",)),
             ("get_response", lambda: ("nope",)),
-            ("verify_response_exists_in_workspace", lambda: (ws, "r1")),
         ],
-    )
-    await both_raise(
-        HTTPException,
-        lambda: mongo.verify_response_exists_in_workspace(PydanticObjectId(), "r1"),
-        lambda: postgres.verify_response_exists_in_workspace(PydanticObjectId(), "r1"),
-    )
-    await both_raise(
-        HTTPException,
-        lambda: mongo.verify_response_exists_in_workspace(ws, "r5"),
-        lambda: postgres.verify_response_exists_in_workspace(ws, "r5"),
     )
     # writes
     submitted = []
@@ -274,25 +275,26 @@ async def test_response_listings_compose_over_forms(sessions):
             dumped.pop(key, None)
         submitted.append(dumped)
     assert submitted[0] == submitted[1]
+    r1 = await mongo.get_response("r1")  # the same document in both stores
     await parity(
         mongo,
         postgres,
         [
             (
                 "mark_deletion_requests_success_except",
-                lambda: ("f1", None, ["zzz"], at(9)),
+                lambda: (f1, None, ["zzz"], at(9)),
             ),
             ("find_deletion_request_by_response_id", lambda: ("r3",)),
-            ("delete_form_response", lambda: ("f1", "r1")),
+            ("delete_form_response", lambda: (r1,)),
             ("get_response", lambda: ("r1",)),
-            ("delete_by_form_id_except", lambda: ("f1", ["r2"])),
-            ("list_by_form_id", lambda: ("f1",)),
+            ("delete_by_form_id_except", lambda: (f1, ["r2"])),
+            ("list_by_form_id", lambda: (f1,)),
             ("delete_response", lambda: ("r3",)),
             ("delete_deletion_requests", lambda: ("f1",)),
             ("list_deletion_requests_for_form_ids", lambda: (ids,)),
             ("delete_by_form_ids", lambda: (["f2", "orphan"],)),
             ("count_responses_for_form_ids", lambda: (ids,)),
-            ("delete_deletion_requests_by_form_ids", lambda: (ids,)),
+            ("delete_deletion_requests_by_form_ids", lambda: (list(ids.form_ids),)),
         ],
     )
 
@@ -559,6 +561,7 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
     await seed_both((mongo, postgres), "save", seed)
+    gone = response("f1", "nope", 2)  # never stored
 
     def entry(n, status=None, message=None):
         return RespondentFeedback(
@@ -574,9 +577,9 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
         mongo,
         postgres,
         [
-            ("add_respondent_feedback", lambda: ("r1", entry(1, status="Selected"))),
-            ("add_respondent_feedback", lambda: ("r1", entry(2, message=b"v1:x"))),
-            ("add_respondent_feedback", lambda: ("nope", entry(3))),  # None
+            ("add_respondent_feedback", lambda: (seed, entry(1, status="Selected"))),
+            ("add_respondent_feedback", lambda: (seed, entry(2, message=b"v1:x"))),
+            ("add_respondent_feedback", lambda: (gone, entry(3))),  # None
             ("get_response", lambda: ("r1",)),
         ],
     )
@@ -587,4 +590,198 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
         assert stored.respondent_feedback[1].message == b"v1:x"
         assert stored.respondent_feedback[1].created_at == at(12)
         assert "respondent" in str(stored.answers)
-        assert await repo.add_respondent_feedback("nope", entry(4)) is None
+        assert await repo.add_respondent_feedback(gone, entry(4)) is None
+
+
+async def test_responses_are_read_per_workspace(sessions):
+    """#768: one provider form in two workspaces. Every scoped read returns
+    the scope's workspace's responses (and deletion requests) only, the same
+    in both stores; unstamped ones count only where the form is the
+    workspace's alone (``legacy_form_ids``)."""
+    a, b = PydanticObjectId(), PydanticObjectId()
+    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    await forms.save_form(FormDocument(form_id="p1", title="Provider"))
+    for workspace, user in ((a, "ua"), (b, "ub")):
+        await workspace_forms.save(
+            WorkspaceFormDocument(workspace_id=workspace, form_id="p1", user_id=user)
+        )
+    mongo = FormResponseRepository(crypto=container.crypto())
+    postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
+
+    def notice(minutes):
+        return dict(
+            provider="self",
+            ai_notice_shown_at=at(minutes),
+            ai_notice_provider_name="OpenAI",
+        )
+
+    await seed_both(
+        (mongo, postgres),
+        "save",
+        response("p1", "a1", 1, answers={}, workspace_id=a, **notice(1)),
+        response("p1", "a2", 2, answers={}, workspace_id=a, dataOwnerIdentifier="r@x"),
+        response("p1", "b1", 3, answers={}, workspace_id=b, **notice(3)),
+        response("p1", "b2", 4, answers={}, workspace_id=b, dataOwnerIdentifier="r@x"),
+        response("p1", "old", 5, answers={}),  # before #768: ambiguous here
+    )
+    for repo in (mongo, postgres):
+        for response_id in ("a2", "b2"):
+            await repo.add_deletion_request(
+                await repo.get_response(response_id), response_id
+            )
+    in_a, in_b = ResponseScope(a, ("p1",)), ResponseScope(b, ("p1",))
+    user = User(id=str(PydanticObjectId()), sub="r@x")
+    for scope, own, importer in (
+        (in_a, {"a1", "a2"}, "ua"),
+        (in_b, {"b1", "b2"}, "ub"),
+    ):
+        page = await pages_equal(
+            lambda: mongo.get_form_responses(scope),
+            lambda: postgres.get_form_responses(scope),
+        )
+        assert {i["response_id"] for i in page.items} == own
+        requests = await pages_equal(
+            lambda: DeletionRequestsRepository.get_deletion_requests(scope),
+            lambda: postgres.get_deletion_requests(scope),
+        )
+        assert {i["response_id"] for i in requests.items} == own & {"a2", "b2"}
+        assert {i["form_imported_by"] for i in requests.items} == {importer}
+        mine = await pages_equal(
+            lambda: mongo.get_user_submissions(scope, user),
+            lambda: postgres.get_user_submissions(scope, user),
+        )
+        assert {i["response_id"] for i in mine.items} == own & {"a2", "b2"}
+        responders = await pages_equal(
+            lambda: mongo.list(scope, False, data_subjects=True),
+            lambda: postgres.list(scope, False, data_subjects=True),
+        )
+        assert [r["responses"] for r in responders.items] == [1]
+        await parity(
+            mongo,
+            postgres,
+            [
+                ("count_responses_with_answers_by_form_ids", lambda: (scope,)),
+                ("count_deletion_requests_by_form_ids", lambda: (scope,)),
+                ("count_responses_for_form_ids", lambda: (scope,)),
+                ("get_deletion_requests_count_in_workspace", lambda: (scope,)),
+                ("list_recent_by_form_id", lambda: (scope, 10)),
+                ("list_by_form_id", lambda: (scope,)),
+                ("list_deletion_requests_for_form_ids", lambda: (scope,)),
+                ("list_recent_with_ai_notice", lambda: (scope, "OpenAI", at(0), 10)),
+                ("count_with_ai_notice", lambda: (scope, "OpenAI", at(0))),
+            ],
+        )
+        for repo in (mongo, postgres):
+            assert await repo.count_responses_for_form_ids(scope) == 2
+            assert {r.response_id for r in await repo.list_by_form_id(scope)} == own
+            assert await repo.count_with_ai_notice(scope, "OpenAI", at(0)) == 1
+    # the unstamped one is the workspace's when the form is its alone
+    only_a = ResponseScope(a, ("p1",), ("p1",))
+    for repo in (mongo, postgres):
+        assert await repo.count_responses_for_form_ids(only_a) == 3
+    # an import refresh and an unlink touch the scope's workspace only
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("delete_by_form_id_except", lambda: (in_a, ["a1"])),
+            ("mark_deletion_requests_success_except", lambda: (in_a, None, [], at(9))),
+            ("list_by_form_id", lambda: (in_b,)),
+            ("delete_in_scope", lambda: (in_b,)),
+            ("list_by_form_id", lambda: (in_a,)),
+            ("list_by_form_id", lambda: (in_b,)),
+            ("list_deletion_requests_for_form_ids", lambda: (in_b,)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        assert [r.response_id for r in await repo.list_by_form_id(in_a)] == ["a1"]
+        assert await repo.list_by_form_id(in_b) == []
+        assert (await repo.get_response("old")) is not None
+
+
+async def test_writes_to_one_workspaces_copy_never_touch_anothers(sessions):
+    """#768: workspaces A and B each hold a copy of the same provider
+    response (same response_id). Internal answers, feedback, a respondent's
+    edit and a deletion go to the copy they were given, by its id, in both
+    stores; B's copy stays exactly as it was."""
+    from common.models.standard_form import InternalAnswerMeta, RespondentFeedback
+
+    a, b = PydanticObjectId(), PydanticObjectId()
+    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    mongo = FormResponseRepository(crypto=container.crypto())
+    postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
+
+    def copy(workspace_id):
+        return response(
+            "p1",
+            "shared",
+            1,
+            answers={"q": {"text": "original"}},
+            workspace_id=workspace_id,
+            dataOwnerIdentifier="r@x",
+            provider="google",
+        )
+
+    in_a, in_b = copy(a), copy(b)
+    await seed_both((mongo, postgres), "save", in_a, in_b)
+    await seed_both(
+        (mongo, postgres),
+        "save",
+        response("p1", "legacy", 2, answers={}),  # stored before #768
+    )
+    for repo in (mongo, postgres):
+        await repo.add_deletion_request(in_b, "shared")
+    b_before = {}
+    for repo in (mongo, postgres):
+        copies = await repo.list_by_response_id("shared")
+        assert {c.workspace_id for c in copies} == {a, b}
+        b_before[repo] = strip(next(c for c in copies if c.workspace_id == b))
+        assert (await repo.find_deletion_request_for(in_b)).workspace_id == b
+        assert await repo.find_deletion_request_for(in_a) is None
+        assert await repo.count_unstamped("p1") == 1
+
+    edited = in_a.model_copy(deep=True)
+    edited.internal_answers = b"v1:internal"
+    edited.internal_answers_meta = {
+        "x": InternalAnswerMeta(updated_by="u1", updated_at=at(5))
+    }
+    edited.internal_answers_version = 1
+    feedback = RespondentFeedback(
+        id="e1", status="Selected", created_at=at(6), created_by="u1"
+    )
+    user = User(id=str(PydanticObjectId()), sub="r@x")
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("save_internal_answers", lambda: (edited, 0)),
+            ("add_respondent_feedback", lambda: (in_a, feedback)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        await repo.patch_form_response(
+            "p1",
+            in_a.id,
+            StandardFormResponse(answers={"q": {"text": "edited"}}),
+            a,
+            user,
+        )
+
+    for repo in (mongo, postgres):
+        copies = {c.workspace_id: c for c in await repo.list_by_response_id("shared")}
+        assert copies[a].internal_answers == b"v1:internal"
+        assert [e.id for e in copies[a].respondent_feedback] == ["e1"]
+        assert "edited" not in str(copies[a].answers)  # encrypted under A now
+        assert strip(copies[b]) == b_before[repo]
+
+    for repo in (mongo, postgres):
+        await repo.delete_form_response(in_a)
+        copies = await repo.list_by_response_id("shared")
+        assert [c.workspace_id for c in copies] == [b]
+        assert strip(copies[0]) == b_before[repo]
+        # B's deletion request was not completed by deleting A's copy
+        request = await repo.find_deletion_request_for(in_b)
+        assert request.status == "pending"
+        await repo.delete_form_response(in_b)
+        assert await repo.list_by_response_id("shared") == []
+        assert (await repo.find_deletion_request_for(in_b)).status == "success"

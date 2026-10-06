@@ -296,9 +296,26 @@ class FormResponseRow(Base, BaseRow):
     # AI insights read only responses whose page showed the notice (0014)
     ai_notice_provider_name = S.text("ai_notice_provider_name")
     ai_notice_shown_at = S.ts("ai_notice_shown_at")
+    # the workspace it was collected in or imported into (0015, #768)
+    workspace_id = S.text("workspace_id")
     __table_args__ = (
-        UniqueConstraint("response_id"),
+        # one copy of a provider response per workspace (0015, #768); rows
+        # stored before workspace_id existed count as one more "workspace"
+        Index(
+            "uq_form_responses_response_workspace",
+            "response_id",
+            "workspace_id",
+            unique=True,
+            postgresql_nulls_not_distinct=True,
+            postgresql_where=text("response_id IS NOT NULL"),
+        ),
         Index("ix_form_responses_form_created", "form_id", "created_at"),
+        Index(
+            "ix_form_responses_workspace_form_created",
+            "workspace_id",
+            "form_id",
+            "created_at",
+        ),
         Index(None, "submission_uuid"),
         Index(None, "data_owner_identifier"),
         Index(None, "anonymous_identity"),
@@ -314,6 +331,7 @@ class ResponseDeletionRequestRow(Base, BaseRow):
     status = S.text("status")
     data_owner_identifier = S.text("dataOwnerIdentifier", name="data_owner_identifier")
     anonymous_identity = S.text("anonymous_identity")
+    workspace_id = S.text("workspace_id")  # of the response (0015, #768)
     __table_args__ = (
         # Mongo's unique index treats a missing provider as one value; NULLS NOT DISTINCT keeps that.
         UniqueConstraint(

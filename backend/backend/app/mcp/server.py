@@ -24,6 +24,10 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.models.dtos.request_dtos import CreateFormWithAI
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
+from backend.app.repositories.response_scope import (
+    find_response_in_workspace,
+    response_scope,
+)
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.api_keys import APIKeyService
@@ -320,7 +324,11 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     limit = max(1, min(limit, 100))
-    responses = await _c().form_response_repo().list_recent_by_form_id(form_id, limit)
+    # this workspace's responses only (#768)
+    scope = await response_scope(
+        _c().workspace_form_repo(), key.workspace_id, [form_id]
+    )
+    responses = await _c().form_response_repo().list_recent_by_form_id(scope, limit)
     items = [
         {
             "responseId": r.response_id,
@@ -339,7 +347,13 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
 async def get_response(response_id: str) -> str:
     """Get one response's full answers."""
     key = await _key("responses:read")
-    response = await _c().form_response_repo().get_response(response_id)
+    # this workspace's copy (#768)
+    response = await find_response_in_workspace(
+        _c().form_response_repo(),
+        _c().workspace_form_repo(),
+        key.workspace_id,
+        response_id,
+    )
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     if not response or response.form_id not in workspace_forms:
         raise ValueError("Response not found in this workspace.")
@@ -386,10 +400,11 @@ async def list_deletion_requests() -> str:
     privacy queue an operator (or agent) should act on."""
     key = await _key("deletion_requests:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
+    scope = await response_scope(
+        _c().workspace_form_repo(), key.workspace_id, list(workspace_forms)
+    )
     requests = (
-        await _c()
-        .form_response_repo()
-        .list_deletion_requests_for_form_ids(list(workspace_forms))
+        await _c().form_response_repo().list_deletion_requests_for_form_ids(scope)
     )
     items = [
         {

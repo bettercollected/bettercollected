@@ -42,6 +42,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.response_scope import response_scope
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -460,7 +461,9 @@ class FormAIInsightsService:
             workspace_id, association
         )
 
-        total = await self._form_response_repo.count_responses_for_form_ids([form_id])
+        # this workspace's responses only (#768)
+        scope = await response_scope(self._workspace_form_repo, workspace_id, [form_id])
+        total = await self._form_response_repo.count_responses_for_form_ids(scope)
         if total == 0:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -472,7 +475,7 @@ class FormAIInsightsService:
         responses = notice_shown(
             submitted_here(
                 await self._form_response_repo.list_recent_with_ai_notice(
-                    form_id, notice_provider_name, since, MAX_RESPONSES
+                    scope, notice_provider_name, since, MAX_RESPONSES
                 )
             ),
             notice_provider_name,
@@ -488,7 +491,7 @@ class FormAIInsightsService:
                 ),
             )
         notice_count = await self._form_response_repo.count_with_ai_notice(
-            form_id, notice_provider_name, since
+            scope, notice_provider_name, since
         )
         form = StandardForm(**form_document.model_dump())
         # internal in the draft, the published or any older version
