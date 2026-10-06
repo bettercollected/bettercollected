@@ -2,7 +2,7 @@
 route here: only the backend calls these, after it decided which workspace
 and connection a sign-in may use."""
 
-from typing import Optional
+from typing import Literal, Optional
 
 from classy_fastapi import Routable, get, post
 from pydantic import BaseModel, Field
@@ -41,12 +41,21 @@ class SsoRoutes(Routable):
         client_id: str,
         context: Optional[str] = None,
         login_hint: Optional[str] = None,
+        test: bool = False,
+        protocol: Optional[Literal["saml", "oidc"]] = None,
     ):
         """The Polis authorize URL for the workspace (tenant) and connection
-        (Polis clientID) the backend resolved."""
+        (Polis clientID) the backend resolved. ``test`` (a "Test connection"
+        sign-in) asks the IdP for a fresh sign-in for the connection's
+        ``protocol`` and reports claim names at the callback."""
         return {
             "auth_url": self.sso_service.authorize_url(
-                tenant, client_id, context=context, login_hint=login_hint
+                tenant,
+                client_id,
+                context=context,
+                login_hint=login_hint,
+                test=test,
+                protocol=protocol,
             )
         }
 

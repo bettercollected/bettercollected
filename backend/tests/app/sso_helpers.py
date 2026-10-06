@@ -79,7 +79,10 @@ class FakeAuth:
 
     def __init__(self):
         self.accounts: Dict[str, dict] = {}
-        self.idp_email = "jane@" + DOMAIN
+        # None: the IdP sent no email address (auth: sso_email_missing)
+        self.idp_email: Optional[str] = "jane@" + DOMAIN
+        # the claim names auth reports for a test sign-in
+        self.claim_names: List[str] = ["email", "upn"]
         self.tenant_override: Optional[str] = None
         self.client_id_override: Optional[str] = None
         self.account_conflict = False
@@ -109,11 +112,16 @@ class FakeAuth:
                     "tenant": params["tenant"],
                     "client_id": params["client_id"],
                     "context": json.loads(params["context"]),
+                    "test": params.get("test") == "true",
                 }
             )
             query = {"client_id": params["client_id"], "state": state}
             if params.get("login_hint"):
                 query["login_hint"] = params["login_hint"]
+            # like auth: a SAML test asks the IdP for a fresh sign-in; an
+            # OIDC test adds nothing (Polis forwards no extra params)
+            if params.get("test") == "true" and params["protocol"] == "saml":
+                query["forceAuthn"] = "true"
             return {"auth_url": f"{POLIS_URL}/api/oauth/authorize?{urlencode(query)}"}
         if path.endswith("/auth/sso/callback"):
             try:
@@ -124,9 +132,22 @@ class FakeAuth:
                 raise CommonHTTPException(
                     401, {"code": "sso_failed", "context": state["context"]}
                 )
+            diagnostics = (
+                {"claim_names": list(self.claim_names)} if state.get("test") else {}
+            )
+            if not self.idp_email:
+                raise CommonHTTPException(
+                    403,
+                    {
+                        "code": "sso_email_missing",
+                        "context": state["context"],
+                        **diagnostics,
+                    },
+                )
             email = self.idp_email.lower()
             existing = self.accounts.get(email)
             return {
+                **diagnostics,
                 "tenant": self.tenant_override or state["tenant"],
                 "polis_client_id": self.client_id_override or state["client_id"],
                 "email": email,
@@ -283,14 +304,18 @@ async def verify_domain(workspace_id, domain=DOMAIN, lost=False):
 
 
 async def add_connection(
-    workspace_id, enabled=True, tested=True, client_id=None
+    workspace_id,
+    enabled=True,
+    tested=True,
+    client_id=None,
+    kind: SsoConnectionType = SsoConnectionType.SAML,
 ) -> SsoConnectionDocument:
     now = dt.datetime.now(dt.timezone.utc)
     return await container.sso_connection_repo().create(
         SsoConnectionDocument(
             id=PydanticObjectId(),
             workspace_id=PydanticObjectId(workspace_id),
-            type=SsoConnectionType.SAML,
+            type=kind,
             name="Acme IdP",
             status=(
                 SsoConnectionStatus.ENABLED if enabled else SsoConnectionStatus.DISABLED

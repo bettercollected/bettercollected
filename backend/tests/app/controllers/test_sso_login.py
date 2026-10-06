@@ -7,12 +7,18 @@ import pytest
 from beanie import PydanticObjectId
 from common.models.user import User
 from httpx import AsyncClient
+from loguru import logger
 
 from backend.app.container import container
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.schemas.sso_connection import SsoConnectionType
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.session_service import decode_token
+from backend.app.services.sso.connection_service import (
+    failed_test_claims,
+    failed_test_domain,
+)
 from backend.config import settings
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser1
@@ -484,6 +490,146 @@ async def test_a_failed_test_is_recorded(client, workspace, sso_on):
     assert stored.last_test_error == "sso_email_domain_not_allowed"
 
 
+# -- test diagnostics -----------------------------------------------------------
+async def run_test(client, workspace, connection, user=testUser):
+    started = await client.get(
+        TEST.format(ws=workspace.id, c=connection.id), cookies=_cookies(user)
+    )
+    assert started.status_code == 307, started.text
+    reply = await client.get(
+        CALLBACK,
+        params={"code": "c", "state": state_of(started.headers["location"])},
+        cookies=_cookies(user),
+    )
+    return started, reply
+
+
+@pytest.mark.parametrize(
+    "kind,extra",
+    [
+        (SsoConnectionType.SAML, {"forceAuthn": "true"}),
+        # Polis forwards no extra params to an OIDC IdP (docs/sso.md)
+        (SsoConnectionType.OIDC, {}),
+    ],
+)
+async def test_a_test_asks_a_saml_idp_for_a_fresh_sign_in(
+    client, workspace, sso_on, kind, extra
+):
+    await verify_domain(workspace.id)
+    connection = await add_connection(
+        workspace.id, enabled=False, tested=False, kind=kind
+    )
+    _, auth = sso_on
+
+    started, _ = await run_test(client, workspace, connection)
+
+    call = [c for c in auth.calls if c[1].endswith("/sso/authorize")][-1][2]
+    assert call["test"] == "true" and call["protocol"] == kind.value
+    query = query_of(started.headers["location"])
+    assert {k: v for k, v in query.items() if k not in ("client_id", "state")} == extra
+
+
+async def test_a_regular_sign_in_asks_for_no_fresh_sign_in(client, sso_workspace):
+    _, auth = sso_on_of()
+    await start(client)
+    call = [c for c in auth.calls if c[1].endswith("/sso/authorize")][-1][2]
+    assert "test" not in call and "protocol" not in call
+
+
+async def test_a_failed_test_records_the_domain_and_claim_names_only(
+    client, workspace, sso_on
+):
+    await verify_domain(workspace.id)
+    connection = await add_connection(workspace.id, enabled=False, tested=False)
+    _, auth = sso_on
+    auth.idp_email = "Someone.Secret@Unclaimed-Corp.org"
+    auth.claim_names = ["upn", "email", "not a claim", "x@y.org"]
+    logged = []
+    sink = logger.add(lambda message: logged.append(str(message)), level="DEBUG")
+    try:
+        _, reply = await run_test(client, workspace, connection)
+    finally:
+        logger.remove(sink)
+
+    assert (
+        query_of(reply.headers["location"])["sso_test"]
+        == "sso_email_domain_not_allowed"
+    )
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.last_test_domain == "unclaimed-corp.org"
+    assert stored.last_test_claims == ["email", "upn"]
+    # never the address or its local part, stored or logged
+    dumped = stored.model_dump_json().lower()
+    assert "someone" not in dumped and "secret" not in dumped
+    assert not [line for line in logged if "unclaimed-corp" in line.lower()]
+    assert not [line for line in logged if "someone" in line.lower()]
+
+    overview = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/sso", cookies=_cookies(testUser)
+    )
+    shown = [c for c in overview.json()["connections"] if c["id"] == str(connection.id)]
+    assert shown[0]["lastTestDomain"] == "unclaimed-corp.org"
+    assert shown[0]["lastTestClaims"] == ["email", "upn"]
+
+
+async def test_a_test_without_an_email_has_its_own_code(client, workspace, sso_on):
+    await verify_domain(workspace.id)
+    connection = await add_connection(workspace.id, enabled=False, tested=False)
+    _, auth = sso_on
+    auth.idp_email = None
+    auth.claim_names = ["preferred_username", "upn"]
+
+    _, reply = await run_test(client, workspace, connection)
+
+    assert query_of(reply.headers["location"])["sso_test"] == "sso_email_missing"
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.last_test_error == "sso_email_missing"
+    assert stored.last_test_domain is None
+    assert stored.last_test_claims == ["preferred_username", "upn"]
+
+
+async def test_a_passed_test_clears_the_diagnostics(client, workspace, sso_on):
+    await verify_domain(workspace.id)
+    connection = await add_connection(workspace.id, enabled=False, tested=False)
+    _, auth = sso_on
+    auth.idp_email = "someone@unclaimed-corp.org"
+    await run_test(client, workspace, connection)
+    auth.idp_email = "jane@" + DOMAIN
+
+    _, reply = await run_test(client, workspace, connection)
+
+    assert query_of(reply.headers["location"])["sso_test"] == "ok"
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.is_tested
+    assert stored.last_test_domain is None and stored.last_test_claims is None
+
+
+async def test_a_sign_in_without_an_email_has_its_own_code(client, sso_workspace):
+    _, connection = sso_workspace
+    _, auth = sso_on_of()
+    auth.idp_email = None
+
+    reply = await sign_in(client)
+
+    assert sso_error(reply) == "sso_email_missing"
+    assert auth.created_accounts() == []
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.last_test_error is None and stored.last_test_claims is None
+
+
+async def test_a_regular_sign_in_stores_no_diagnostics(client, sso_workspace):
+    _, connection = sso_workspace
+    _, auth = sso_on_of()
+    auth.idp_email = "someone@unclaimed-corp.org"
+
+    reply = await sign_in(client)
+
+    assert sso_error(reply) == "sso_email_domain_not_allowed"
+    stored = await container.sso_connection_repo().get(connection.id)
+    assert stored.last_test_domain is None and stored.last_test_claims is None
+    assert stored.last_test_error is None
+
+
 async def test_only_the_admin_who_started_the_test_completes_it(
     client, workspace, sso_on
 ):
@@ -533,3 +679,24 @@ async def test_the_configured_default_role_is_given(
         workspace.id, PydanticObjectId(auth.accounts["jane@" + DOMAIN]["id"])
     )
     assert member.roles == [stored]
+
+
+@pytest.mark.parametrize(
+    "value,kept",
+    [
+        ("Unclaimed-Corp.org", "unclaimed-corp.org"),
+        ("someone@unclaimed-corp.org", None),
+        ("not a domain", None),
+        (None, None),
+    ],
+)
+def test_only_a_domain_is_kept_for_a_failed_test(value, kept):
+    assert failed_test_domain(value) == kept
+
+
+def test_only_plausible_claim_names_are_kept():
+    names = ["upn", "upn", "http://schemas.xmlsoap.org/claims/Group", "a b", "x@y", 3]
+    kept = failed_test_claims(names)
+    assert kept == ["http://schemas.xmlsoap.org/claims/Group", "upn"]
+    assert len(failed_test_claims([f"claim_{n:03d}" for n in range(80)])) == 50
+    assert failed_test_claims([]) is None and failed_test_claims("upn") is None

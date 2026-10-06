@@ -19,6 +19,10 @@ export interface SsoConnectionDto {
     testedAt?: string | null;
     lastTestAt?: string | null;
     lastTestError?: string | null;
+    // what the last failed test saw: the domain of the address the identity
+    // provider sent (never the address) and the names of its claims
+    lastTestDomain?: string | null;
+    lastTestClaims?: string[] | null;
 }
 
 export interface SsoServiceProviderDto {
