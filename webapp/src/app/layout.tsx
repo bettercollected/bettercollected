@@ -29,6 +29,11 @@ export const viewport: Viewport = {
     initialScale: 1
 };
 
+// Render every route per request. The runtime flags below (readRuntimeFlags)
+// come from the running server's environment; a page prerendered at build time
+// would freeze them into the image again.
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://bettercollected.com'),
     title: {
