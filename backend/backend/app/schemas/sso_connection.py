@@ -1,6 +1,6 @@
 import datetime as dt
 import enum
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.configs.mongo_document import MongoDocument
@@ -59,6 +59,13 @@ class SsoConnectionDocument(MongoDocument):
     last_test_at: Optional[dt.datetime] = None
     # code of the last test's failure, None when it passed
     last_test_error: Optional[str] = None
+    # what a failed test saw, for the admin to diagnose it (docs/sso.md,
+    # "Troubleshooting"); cleared by a passed test and a config change:
+    # the domain of the address the IdP sent (never the address itself),
+    # for ``sso_email_domain_not_allowed``
+    last_test_domain: Optional[str] = None
+    # the names of the claims the IdP sent (never their values)
+    last_test_claims: Optional[List[str]] = None
 
     @field_validator(
         "enabled_at", "disabled_at", "tested_at", "last_test_at", mode="after"

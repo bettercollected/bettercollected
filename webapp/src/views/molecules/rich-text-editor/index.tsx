@@ -96,7 +96,20 @@ function usePreviousState(value: any) {
     return ref.current;
 }
 
-export function RichTextEditor({ field, slide, autofocus = false, isRequired = false }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; autofocus?: boolean; isRequired?: boolean }) {
+export function RichTextEditor({
+    field,
+    slide,
+    autofocus = false,
+    isRequired = false,
+    describedById
+}: {
+    field: StandardFormFieldDto;
+    slide: StandardFormFieldDto;
+    autofocus?: boolean;
+    isRequired?: boolean;
+    /** Id of helper text for the title (plain-language tips), for aria-describedby. */
+    describedById?: string;
+}) {
     const { updateTitle, formFields } = useFormFieldsAtom();
     const { formState } = useFormState();
 
@@ -157,7 +170,8 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
                         // Match the responder's question scale (24px/600) so the
                         // canvas is honest about what responders will see.
                         class: `outline-none text-2xl font-semibold leading-snug w-full max-w-full min-w-[300px] ${HEADING_CLASSES}`,
-                        style: 'word-break: break-word'
+                        style: 'word-break: break-word',
+                        ...(describedById ? { 'aria-describedby': describedById } : {})
                     }
                 }}
                 onUpdate={({ editor }) => {

@@ -95,5 +95,19 @@
       "1": "Beweeg je pijltoetsen (↕) en druk op Enter om het magische te zien.",
       "2": "Druk op Esc om de bouwer spotlight te sluiten."
     }
+  },
+  "PLAIN_LANGUAGE": {
+    "LABEL": "Tips voor duidelijke taal",
+    "INTRO": "Duidelijke taal (B1): alleen tips, niets wordt geblokkeerd.",
+    "ANNOUNCE_one": "{{count}} tip voor duidelijke taal bij deze tekst",
+    "ANNOUNCE_other": "{{count}} tips voor duidelijke taal bij deze tekst",
+    "LONG_SENTENCE": "Deze zin heeft {{words}} woorden. Houd het bij {{limit}} of minder: maak er twee zinnen van.",
+    "PASSIVE_NL": "“{{match}}” is lijdende vorm. Zeg wie het doet, bijvoorbeeld “we sturen u” in plaats van “u wordt gestuurd”.",
+    "PASSIVE_EN": "“{{match}}” is lijdende vorm. Zeg wie het doet, bijvoorbeeld “we will send” in plaats van “will be sent”.",
+    "JARGON": "“{{match}}” is ambtelijk. Eenvoudiger: “{{suggestion}}”.",
+    "AND_OR": "“{{match}}” vraagt twee dingen tegelijk. Stel één vraag per keer.",
+    "TWO_QUESTIONS": "Hier staan twee vragen. Maak er twee aparte vragen van.",
+    "JOINED_QUESTIONS": "“{{match}} …” begint een tweede vraag. Stel die apart.",
+    "DISMISS": "Tip verbergen"
   }
 }

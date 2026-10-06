@@ -5,6 +5,7 @@ import i18n from 'i18next';
 import { initReactI18next, I18nextProvider } from 'react-i18next';
 import commonEn from '../../../public/locales/en/common.json';
 import builderEn from '../../../public/locales/en/builder.json';
+import builderNl from '../../../public/locales/nl/builder.json';
 import respondentEn from '../../../public/locales/en/respondent.json';
 import respondentNl from '../../../public/locales/nl/respondent.json';
 
@@ -17,11 +18,14 @@ if (!i18n.isInitialized) {
                 builder: builderEn,
                 respondent: respondentEn
             },
-            // Respondent-facing text is Dutch and English: the form's privacy
-            // panel and question notes read it in the respondent's language
-            // (lib/hooks/use-respondent-language.ts) without switching the
-            // rest of the app.
+            // Dutch builder strings resolve once a locale switch exists (the app
+            // still renders in English, lng below). Respondent-facing text is
+            // Dutch and English: the form's privacy panel and question notes read
+            // it in the respondent's language (lib/hooks/use-respondent-language.ts)
+            // without switching the rest of the app. Anything missing falls back
+            // to English.
             nl: {
+                builder: builderNl,
                 respondent: respondentNl
             }
         },
