@@ -37,6 +37,7 @@ from backend.app.repositories.form_import_repository import (
     ImportLimitReached,
     check_import_limits,
     lock_wait_s,
+    workspaces_with_stale_imports,
 )
 from backend.app.repositories.form_repository import detach_action
 from backend.app.repositories.metric_periods import (
@@ -1019,24 +1020,88 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
         self._check_collection(document, FormImportRow)
         workspace_id = _oid(document.workspace_id)
         async with self._session() as session, session.begin():
-            wait_ms = max(1, int(lock_wait_s() * 1000))
-            await session.execute(text(f"SET LOCAL lock_timeout = '{wait_ms}ms'"))
-            try:
-                await session.execute(
-                    select(
-                        func.pg_advisory_xact_lock(
-                            func.hashtextextended(f"form_imports:{workspace_id}", 0)
-                        )
-                    )
-                )
-            except DBAPIError as error:
-                if _sqlstate(error) == LOCK_NOT_AVAILABLE:
-                    raise ImportLimitReached("import_in_progress") from None
-                raise
+            await self._lock_workspace(session, workspace_id)
             active, today = await self._limit_counts(session, workspace_id, since)
             check_import_limits(active, today, max_active, max_per_day)
             await session.execute(self._upsert_statement(row_values(document)))
         return document
+
+    @staticmethod
+    async def _lock_workspace(session, workspace_id: str) -> None:
+        """The workspace's advisory lock for the rest of the transaction; a
+        start that waits longer than the Mongo lock would is refused as busy."""
+        wait_ms = max(1, int(lock_wait_s() * 1000))
+        await session.execute(text(f"SET LOCAL lock_timeout = '{wait_ms}ms'"))
+        try:
+            await session.execute(
+                select(
+                    func.pg_advisory_xact_lock(
+                        func.hashtextextended(f"form_imports:{workspace_id}", 0)
+                    )
+                )
+            )
+        except DBAPIError as error:
+            if _sqlstate(error) == LOCK_NOT_AVAILABLE:
+                raise ImportLimitReached("import_in_progress") from None
+            raise
+
+    async def touch(self, import_id: PydanticObjectId, at: datetime) -> bool:
+        """Twin of the Mongo ``$set``: the row is locked while only its
+        heartbeat changes, so a concurrent pipeline save is never undone."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(FormImportRow.doc)
+                    .where(
+                        FormImportRow.id == _oid(import_id),
+                        FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+                    )
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return False
+            stored = from_row_doc(FormImportDocument, doc)
+            stored.heartbeat_at = at
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
+    async def expire_stale(
+        self, workspace_id: PydanticObjectId, stale_before: datetime, now: datetime
+    ) -> List[FormImportDocument]:
+        """Twin of the Mongo expiry: under the workspace's advisory lock, the
+        active rows are locked, and those without progress since
+        ``stale_before`` are marked failed (``interrupted``)."""
+        expired = []
+        workspace = _oid(workspace_id)
+        async with self._session() as session, session.begin():
+            await self._lock_workspace(session, workspace)
+            docs = (
+                (
+                    await session.execute(
+                        select(FormImportRow.doc)
+                        .where(
+                            FormImportRow.workspace_id == workspace,
+                            FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+                        )
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for doc in docs:
+                record = from_row_doc(FormImportDocument, doc)
+                if not record.is_stale(stale_before):
+                    continue
+                record.mark_interrupted(now)
+                await session.execute(self._upsert_statement(row_values(record)))
+                expired.append(record)
+        return expired
+
+    async def stale_workspaces(self, stale_before: datetime) -> List[PydanticObjectId]:
+        active = await self.many(FormImportRow.status.in_(list(ImportStatus.ACTIVE)))
+        return workspaces_with_stale_imports(active, stale_before)
 
     async def _limit_counts(self, session, workspace_id: str, since: datetime):
         """(running imports, imports created since ``since``), read in the

@@ -75,13 +75,32 @@ async def import_form(context, import_id: str) -> str:
     from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 
     pipeline = _container().pdf_import_pipeline()
+    import_id = PydanticObjectId(import_id)
     try:
-        record = await pipeline.run(PydanticObjectId(import_id))
+        # the heartbeat keeps a long stage from looking interrupted
+        record = await pipeline.keep_alive(import_id, pipeline.run(import_id))
     except SandboxUnavailable:
         if context.job.attempts + 1 < IMPORT_FORM_ATTEMPTS:
             raise
-        record = await pipeline.give_up(PydanticObjectId(import_id))
+        record = await pipeline.give_up(import_id)
     return record.status if record else "missing"
+
+
+@app.periodic(
+    cron=settings.pdf_import.STALE_SWEEP_CRON, periodic_id="expire_stale_imports"
+)
+@app.task(
+    name="expire_stale_imports",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="expire_stale_imports",
+)
+async def expire_stale_imports(timestamp: int) -> str:
+    """Fail form imports whose job died mid-run (no heartbeat for
+    ``PDF_IMPORT_STALE_AFTER_S``) so they free their workspace's import slot
+    (#703). Starting an import and looking at one expire them too; this sweep
+    only makes sure nothing stays "running" in between."""
+    expired = await _container().pdf_import_service().expire_stale_everywhere()
+    return f"{expired} expired"
 
 
 @app.periodic(cron=settings.scim.RECONCILE_CRON, periodic_id="scim_reconcile")
