@@ -21,7 +21,7 @@ browser ─▶ Polis ─▶ IdP (SAML or OIDC) ─▶ Polis ─▶ backend GET /
 
 - **The tenant is the workspace.** Polis's tenant is the workspace id and its product is `SSO_POLIS_PRODUCT` (`bettercollected`). The workspace's SCIM directory ([directory sync](#directory-sync-scim)) attaches to the same tenant.
 - **SSO only covers verified domains.** A connection applies to the workspace's email domains verified with a DNS TXT record ([verified-domains.md](verified-domains.md)). A domain that is only claimed, one whose verification was lost (`verificationLostAt`), one verified by another workspace, or one reserved by the operator (including the platform admins' domains) is never used. Sub-domains are separate domains.
-- **A domain is a trust grant.** Once a domain is verified and SSO is on, the workspace's IdP decides who every address on that domain is, existing accounts included, **the owner's own**. That is why verification is required, and why **only the workspace owner** can change the SSO configuration (connections, "require SSO", the default role): an Admin able to enable an IdP they control could sign in as the owner or anyone else on the domain.
+- **A domain is a trust grant.** Once a domain is verified and SSO is on, the workspace's IdP decides who every address on that domain is, existing accounts included, **the owners' own**. That is why verification is required, and why **only the workspace's owners** can change the SSO configuration (connections, "require SSO", the default role): an Admin able to enable an IdP they control could sign in as an owner or anyone else on the domain. A workspace can have several owners with equal rights (the billing owner and every member with role Owner, [enterprise-access-model.md](enterprise-access-model.md#owners-after-step-b)), so the owner who pays can make their IT person an owner to set SSO up.
 
 ## For operators
 
@@ -102,11 +102,11 @@ docker compose -f docker-compose.local.yml up -d     # Mongo + app-postgres
 scripts/sso-dev-setup.sh --seed-workspace            # Polis :5225, mock SAML IdP :4000, demo workspace
 ```
 
-The script generates throwaway secrets in `.sso-dev/` (gitignored), creates the `polis` database, starts `docker-compose.sso.yml` and prints the `SSO_*` lines for `backend/.env` and `auth/.env` (`SSO_POLIS_API_KEY` is `JACKSON_API_KEYS` from `.sso-dev/polis.env`). The mock IdP only issues `@example.com` and `@example.org` addresses, which domain verification refuses to claim, and there is no DNS to publish a record in. So `--seed-workspace` (or `--workspace <id>`) marks `example.com` verified for the workspace **directly in the local Mongo**; this is a local-only shortcut. Then, signed in as the workspace owner (`owner@example.com`, email code), open the workspace's Single sign-on settings, add a SAML connection by pasting the XML from `http://localhost:4000/api/saml/metadata` (a `localhost` metadata URL is refused by design), test it, enable it, and sign out. "Sign in with SSO" with any `@example.com` address then goes through the mock IdP; pick `@example.org` there to see the domain refusal. Both containers listen on `127.0.0.1` only, and mock-saml is pinned to 1.4.2 (by digest). Teardown: `docker compose -f docker-compose.sso.yml -p bettercollected-sso down`, and drop the `polis` database to wipe Polis.
+The script generates throwaway secrets in `.sso-dev/` (gitignored), creates the `polis` database, starts `docker-compose.sso.yml` and prints the `SSO_*` lines for `backend/.env` and `auth/.env` (`SSO_POLIS_API_KEY` is `JACKSON_API_KEYS` from `.sso-dev/polis.env`). The mock IdP only issues `@example.com` and `@example.org` addresses, which domain verification refuses to claim, and there is no DNS to publish a record in. So `--seed-workspace` (or `--workspace <id>`) marks `example.com` verified for the workspace **directly in the local Mongo**; this is a local-only shortcut. Then, signed in as a workspace owner (`owner@example.com`, email code), open the workspace's Single sign-on settings, add a SAML connection by pasting the XML from `http://localhost:4000/api/saml/metadata` (a `localhost` metadata URL is refused by design), test it, enable it, and sign out. "Sign in with SSO" with any `@example.com` address then goes through the mock IdP; pick `@example.org` there to see the domain refusal. Both containers listen on `127.0.0.1` only, and mock-saml is pinned to 1.4.2 (by digest). Teardown: `docker compose -f docker-compose.sso.yml -p bettercollected-sso down`, and drop the `polis` database to wipe Polis.
 
 ## For workspace admins
 
-Settings → **Single sign-on**. Owner and Admins (`security.manage`) see the page and can **test** a connection, which never signs anyone in. **Only the workspace owner** creates, enables, disables and deletes connections and changes "require single sign-on" and the default role.
+Settings → **Single sign-on**. Owners and Admins (`security.manage`) see the page and can **test** a connection, which never signs anyone in. **Only owners** (any owner of the workspace) create, enable, disable and delete connections and change "require single sign-on" and the default role.
 
 1. **Verify your domain** under Settings → Domains first.
 2. **Register BetterCollected at your IdP** with the values the page shows: for SAML the **ACS URL** (reply URL) and the **entity ID** (audience), or the SP metadata URL; for OIDC the **redirect URI**. The IdP must send the user's email address (SAML NameID or an email attribute; OIDC `email` claim).
@@ -115,18 +115,18 @@ Settings → **Single sign-on**. Owner and Admins (`security.manage`) see the pa
 5. **Enable** the connection: only after this connection's current configuration passed a test (re-adding the same IdP updates it in Polis and asks for a new test). One connection is enabled at a time; enabling another disables the first, which allows moving to a new IdP without a gap.
 6. Optionally choose the **role for new members** and **require single sign-on**.
 
-People who sign in with SSO for the first time join the workspace with the default role: **Viewer** unless the owner chose Reviewer or Editor (Admin and Privacy officer are never given by an IdP; they are granted by hand). A workspace whose default was stored as `COLLABORATOR` before the new roles keeps it: that is Editor. Existing members keep their role. A **disabled** membership stays disabled: that person gets no session (`sso_membership_disabled`). A **removed** member who signs in with SSO again is added again, like any first SSO sign-in (that is how just-in-time membership works); to keep someone out, remove them at the IdP, or connect a directory: with [directory sync](#directory-sync-scim) the IdP deactivates people, and someone it deactivated can't sign in with SSO again (`sso_deprovisioned`). A workspace with no free seat refuses new members with a clear message and creates no account; the cap is checked before the account exists and again after the membership is written, and a sign-in that raced past the first look gives its seat back (in a tight race both may be refused, never both admitted). SSO members get no personal workspace.
+People who sign in with SSO for the first time join the workspace with the default role: **Viewer** unless an owner chose Reviewer or Editor (Owner, Admin and Privacy officer are never given by an IdP; they are granted by hand). A workspace whose default was stored as `COLLABORATOR` before the new roles keeps it: that is Editor. Existing members keep their role. A **disabled** membership stays disabled: that person gets no session (`sso_membership_disabled`). A **removed** member who signs in with SSO again is added again, like any first SSO sign-in (that is how just-in-time membership works); to keep someone out, remove them at the IdP, or connect a directory: with [directory sync](#directory-sync-scim) the IdP deactivates people, and someone it deactivated can't sign in with SSO again (`sso_deprovisioned`). A workspace with no free seat refuses new members with a clear message and creates no account; the cap is checked before the account exists and again after the membership is written, and a sign-in that raced past the first look gives its seat back (in a tight race both may be refused, never both admitted). SSO members get no personal workspace.
 
 ### Requiring single sign-on
 
 "Require single sign-on for *your domains*" refuses every other way of signing in for addresses on the workspace's SSO domains: email codes on the dashboard and on this workspace's own forms, and Google. It needs an enabled connection that passed a test and at least one SSO domain, and while it is on, the enabled connection can't be disabled or deleted.
 
-- **Existing sessions end at their next refresh** (within `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES`, 15 by default): any session for an address on those domains that did not sign in with SSO, member of the workspace or not. Exceptions: the owner's email-code sessions (break-glass) and respondent-scoped sessions (below). When you turn the requirement on you can also sign out the members on those domains at once (the owner's sessions and your own current session are kept).
+- **Existing sessions end at their next refresh** (within `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES`, 15 by default): any session for an address on those domains that did not sign in with SSO, member of the workspace or not. Exceptions: the owners' email-code sessions (break-glass) and respondent-scoped sessions (below). When you turn the requirement on you can also sign out the members on those domains at once (the owners' sessions and your own current session are kept).
 - **Respondents on other workspaces' forms.** Someone on such a domain may still verify their email with a code to answer *another* workspace's forms. That session is **respondent-scoped** (`scope: "respondent"` and the workspace it was made for): it holds no workspace permission anywhere (`authorize()` grants nothing, and every route beyond answering forms and managing the user's own respondent data depends on `get_full_user`, which answers 403 `respondent_session`: creating workspaces, import OAuth, templates, billing, actions, API keys, platform admin; `/workspaces/mine` may list workspaces but never with dashboard access), carries only the respondent role (no creator, no platform admin), creates no personal workspace, and is exempt from the refresh rule. It acts only on the workspace it was made for (`scope_workspace_id`): on any other workspace's routes it counts as not signed in, and on the SSO workspace's own forms it is refused with `sso_required`. On the SSO workspace's own forms, email codes stay refused for those addresses.
 
 The requirement is only enforced while it can be met: with SSO switched off on the instance, the workspace disabled, the connection disabled or the domain's verification lost, nothing is refused.
 
-**Break-glass:** the **workspace owner** can always sign in with an email code, even when SSO is required, so a broken or misconfigured IdP can't lock everyone out. Google stays refused for the owner too. Keep the owner's mailbox protected; to fix a broken IdP, the owner signs in with a code, turns the requirement off or switches to another connection.
+**Break-glass:** every **owner** of the workspace (with an active membership) can always sign in with an email code, even when SSO is required, so a broken or misconfigured IdP can't lock everyone out. Google stays refused for owners too. Keep the owners' mailboxes protected, and keep the number of owners small: each owner is a way around "Require single sign-on". A co-owner the directory deactivated (see Directory sync) has a disabled membership and loses the break-glass with it. To fix a broken IdP, an owner signs in with a code, turns the requirement off or switches to another connection.
 
 ### Troubleshooting
 
@@ -178,7 +178,7 @@ Users need an email address in Entra ID. Test in a private window or sign out of
 
 ## API
 
-All under `/api/v1/workspaces/{workspace_id}/sso`, all requiring `security.manage`, and the changes also the workspace owner (`AuthorizationService.require_owner`):
+All under `/api/v1/workspaces/{workspace_id}/sso`, all requiring `security.manage`, and the changes also an owner of the workspace (`AuthorizationService.require_owner`; any owner):
 
 | Method | Path | Result |
 |---|---|---|
@@ -190,7 +190,7 @@ All under `/api/v1/workspaces/{workspace_id}/sso`, all requiring `security.manag
 | GET | `/connections/{id}/test` | Owner and Admins. Browser navigation: the IdP, then back to the settings page with `?sso_test=ok` or a code |
 | PUT | `/settings` | **Owner.** `{ssoRequired?, defaultRole?, revokeSessions?}`. 409 `sso_connection_required`, `sso_connection_untested`, `sso_domain_required`; 422 `invalid_role`. Answers the settings with `revokedSessions` |
 
-The overview (`GET`) is Owner and Admins and says `canManage` (the caller is the owner).
+The overview (`GET`) is Owners and Admins and says `canManage` (the caller is an owner).
 
 Sign-in: `GET /api/v1/auth/sso/login?email=` and `GET /api/v1/auth/sso/callback` (Polis's redirect). Login error codes (`?sso_error=`): `sso_disabled`, `sso_not_configured`, `sso_failed`, `sso_expired`, `sso_bad_state`, `sso_tenant_mismatch`, `sso_email_domain_not_allowed`, `sso_email_missing`, `sso_workspace_unavailable`, `sso_seat_limit`, `sso_account_conflict`, `sso_session_mismatch`, `sso_membership_disabled`, `sso_deprovisioned`. An email code refused by the requirement answers 403 `{code: "sso_required", message}`; a refused Google sign-in returns to the login page with `login_error=sso_required`. `POST /api/v1/auth/otp/validate` takes an optional `workspace_id` (the workspace whose forms the code was asked for), which decides whether such an address gets a respondent-scoped session.
 
@@ -249,7 +249,7 @@ uv run python -m backend.scim resync --all
 uv run python -m backend.scim resync --workspace <workspace id> --force   # past the safety stop
 ```
 
-**The resync safety stop.** A resync deactivates everyone Polis no longer lists, so a broken or partial listing could empty a workspace overnight. It therefore refuses, before changing anything, when it would deactivate more than 20 % of the provisioned members and at least 5 of them, or when Polis lists nobody while members are provisioned. The refusal is recorded on the directory (`mass_deprovision_refused`, shown on the settings page; the log has ids and counts only). The owner can force it from the page (after a confirmation) or with `--force`. Listing errors (Polis down, a reply that is not a list) fail the resync instead of passing for an empty directory. One directory's failure never stops the nightly run for the others.
+**The resync safety stop.** A resync deactivates everyone Polis no longer lists, so a broken or partial listing could empty a workspace overnight. It therefore refuses, before changing anything, when it would deactivate more than 20 % of the provisioned members and at least 5 of them, or when Polis lists nobody while members are provisioned. The refusal is recorded on the directory (`mass_deprovision_refused`, shown on the settings page; the log has ids and counts only). An owner can force it from the page (after a confirmation) or with `--force`. Listing errors (Polis down, a reply that is not a list) fail the resync instead of passing for an empty directory. One directory's failure never stops the nightly run for the others.
 
 **Duplicate memberships.** A workspace has one membership per user: a unique index on (`workspace_id`, `user_id`) in `workspace_users`, so SSO, SCIM and an invitation racing to add the same person can't create two (the loser reads the existing one). Databases from before may hold duplicates. Check before deploying:
 
@@ -263,7 +263,7 @@ Resolve each pair by hand (keep the membership with the right role, delete the o
 
 ### For workspace admins
 
-Settings → **Single sign-on** → **Directory sync (SCIM)**. Owner and Admins see its status; **only the owner** creates, rotates and deletes the directory, maps groups and resyncs (a directory decides who joins and with which role, Admin included). A directory needs a verified domain, like SSO.
+Settings → **Single sign-on** → **Directory sync (SCIM)**. Owners and Admins see its status; **only owners** create, rotate and delete the directory, map groups and resync (a directory decides who joins and with which role, Admin included). A directory needs a verified domain, like SSO.
 
 1. **Create the directory**: choose your identity provider (Okta, Microsoft Entra ID, OneLogin, JumpCloud or generic SCIM 2.0). The page shows the **SCIM base URL** and the **bearer token once**: copy both now. The token is never shown again or stored by BetterCollected; if it is lost, rotate it.
 2. **At the identity provider** (the generic steps):
@@ -283,11 +283,12 @@ Settings → **Single sign-on** → **Directory sync (SCIM)**. Owner and Admins 
 | Address not on a verified domain | Ignored and listed as a failure ("not on one of this workspace's verified domains") |
 | No free seat (`API_ALLOWED_COLLABORATORS`) | Nothing is created (no account, no membership) and it is listed as a failure; the next change or a resync retries. A membership disabled **only by the directory** holds no seat (for invitations and SSO too), so re-enabling it needs a free seat; one disabled by a plan downgrade keeps its seat (an upgrade re-enables it without a check, so the cap must hold it) |
 | The auth service is unreachable | Nothing is decided for that user: the webhook answers 503 (Polis retries), a resync skips them and records `auth_unavailable` |
-| The workspace owner | Never changed (not disabled, no role change), listed as "left alone" |
+| The workspace's billing owner | Never changed (not disabled, no role change), listed as "left alone" (`owner_protected`) |
+| Another owner (a member with role Owner) | Deactivated, deleted and reactivated like any member (disabled, sessions revoked; back with their role on reactivation); their role is never changed by groups |
 | A member invited by hand | Their role is never changed by the directory ("left alone"); a deactivation does disable them (on a verified domain), and a re-activation lifts it |
 | A member who joined by SSO sign-in (just in time) | Taken over: from then on the directory manages them |
 
-**Roles.** The highest role among a member's mapped groups wins (Admin, Editor, Reviewer, Viewer, then Privacy officer); members in no mapped group get the default role (Viewer unless the owner chose Reviewer or Editor); changing the default role or a mapping re-applies roles at once. Admin may be mapped; the owner never comes from a directory. Roles are read from the role list at runtime, so new workspace roles become mappable automatically. A member the directory manages shows **"Managed by your directory"** on the members page with the role picker disabled: their role follows their groups at the identity provider, and a change by hand is refused (`PATCH /workspaces/{id}/members/{user_id}` answers 409 `managed_by_directory`) until the directory is deleted. An Editor is stored as `COLLABORATOR`, like the role picker stores it. Mapping groups to member groups (for form-level access) comes with member groups.
+**Roles.** The highest role among a member's mapped groups wins (Admin, Editor, Reviewer, Viewer, then Privacy officer); members in no mapped group get the default role (Viewer unless an owner chose Reviewer or Editor); changing the default role or a mapping re-applies roles at once. Admin may be mapped; Owner never comes from a directory, and an owner may make a directory-managed member an owner by hand, after which groups no longer change their role (deactivation still applies). Roles are read from the role list at runtime, so new workspace roles become mappable automatically. A member the directory manages shows **"Managed by your directory"** on the members page with the role picker disabled: their role follows their groups at the identity provider, and a change by hand is refused (`PATCH /workspaces/{id}/members/{user_id}` answers 409 `managed_by_directory`) until the directory is deleted. An Editor is stored as `COLLABORATOR`, like the role picker stores it. Mapping groups to member groups (for form-level access) comes with member groups.
 
 **SCIM is authoritative.** While the workspace has a directory, someone it deactivated or deleted cannot sign in with SSO (`sso_deprovisioned`), even if the identity provider still lets them through and even if their membership was removed by hand.
 
@@ -307,7 +308,7 @@ Settings → **Single sign-on** → **Directory sync (SCIM)**. Owner and Admins 
 
 ### API
 
-Under `/api/v1/workspaces/{workspace_id}/scim`; viewing needs `security.manage`, every change the workspace owner.
+Under `/api/v1/workspaces/{workspace_id}/scim`; viewing needs `security.manage`, every change an owner of the workspace.
 
 | Method | Path | Result |
 |---|---|---|
@@ -331,7 +332,7 @@ Identity group, each a Mongo collection with its Postgres twin (revision `0010`,
 - **Nothing arrives ("No change received yet"):** Polis can't reach `SCIM_WEBHOOK_URL` (check from the Polis container), or the backend refuses the signature (backend log: `SCIM webhook refused ... mismatch` means the secret differs, e.g. the directory was replaced outside BetterCollected; `expired` means the clocks differ by more than 5 minutes). Polis's own log lists failed deliveries. "Resync now" applies everything Polis holds regardless.
 - **Someone is listed as failed with "not on one of this workspace's verified domains":** verify that domain, then resync.
 - **"no free seat":** free seats or raise `API_ALLOWED_COLLABORATORS`, then resync.
-- **A member's role doesn't change:** they were invited by hand or are the owner (the directory leaves roles alone), or their groups are not pushed to the SCIM app.
+- **A member's role doesn't change:** they were invited by hand or are an owner (the directory leaves roles alone), or their groups are not pushed to the SCIM app.
 - **"it would have deactivated too many members":** the safety stop refused a resync. Check the app's assignments at the identity provider (an unassigned group, a filter); if the departures are real, resync with force.
 - **A group says "Check the role":** after a rotation several previous groups had its name, so its role was not carried over; choose it again.
 - **"The previous directory could not be deleted":** after a rotation Polis was not reachable; press Retry (or wait for the next resync). Until then the old token may still be accepted by Polis.

@@ -11,6 +11,8 @@ import DashboardIcon from '@Components/icons/dashboard';
 
 import WorkspaceAdminSelector from '@Components/hocs/workspace-admin-selector';
 
+import BillingOwnerNote from '@app/components/member/billing-owner-note';
+
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -51,7 +53,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
 
     useEffect(() => {
         if (user && user?.id) {
-            dispatch(setAuth({ ...user, isAdmin: workspace?.ownerId == user.id }));
+            dispatch(setAuth({ ...user }));
         }
     }, [user?.id]);
 
@@ -133,7 +135,15 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                                 </ActiveLink>
                             </li>
                         )}
-                        {user.stripeCustomerId && (
+                        {/* Stripe customers are per person: the portal is the
+                            billing owner's own. Other owners are told who
+                            handles billing. */}
+                        {workspace?.ownerId && workspace.ownerId !== user.id && (
+                            <li className="list-none px-[20px] py-[6px]">
+                                <BillingOwnerNote />
+                            </li>
+                        )}
+                        {user.stripeCustomerId && workspace?.ownerId === user.id && (
                             <li className="list-none">
                                 <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
                                     <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">

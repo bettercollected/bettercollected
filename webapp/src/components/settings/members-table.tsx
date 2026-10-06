@@ -10,7 +10,7 @@ import { members } from '@app/constants/locales/members';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspaceMembersDto } from '@app/models/dtos/workspace-member-dto';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
-import { WorkspaceRole, memberRole, roleLocale } from '@app/models/enums/workspace-role';
+import { WorkspaceRole, assignableRoles, isBillingOwnerOf, memberRole, roleLocale } from '@app/models/enums/workspace-role';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -28,16 +28,28 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
     const auth = useAppSelector(selectAuth);
     const { can } = useWorkspacePermissions();
     const [updateRole, { isLoading }] = useUpdateWorkspaceMemberRoleMutation();
-    const role = memberRole(member);
-    const isOwner = role === WorkspaceRole.OWNER || workspace?.ownerId === member.id;
-    // The owner's role and one's own never change; the backend refuses both.
-    // a deleted account keeps its role row but there is no one to change it for
-    const editable = can(WorkspacePermission.MEMBERS_MANAGE) && !isOwner && member.id !== auth?.id && !member.accountDeleted;
+    const isBillingOwner = isBillingOwnerOf(member, workspace);
+    const role = isBillingOwner ? WorkspaceRole.OWNER : memberRole(member);
+    const isOwner = role === WorkspaceRole.OWNER;
+    // Owners hold workspace.billing: only they make, demote or remove owners.
+    const callerIsOwner = can(WorkspacePermission.WORKSPACE_BILLING);
+    // The billing owner's role and one's own never change, and only an owner
+    // changes another owner's; the backend refuses all three. A deleted
+    // account keeps its role row but there is no one to change it for.
+    const editable = can(WorkspacePermission.MEMBERS_MANAGE) && !isBillingOwner && (!isOwner || callerIsOwner) && member.id !== auth?.id && !member.accountDeleted;
+    // A member the directory manages keeps the role their groups give, but an
+    // owner can still make them an owner (the directory never changes owners).
+    const offered = member.managedByDirectory ? (callerIsOwner ? [role, WorkspaceRole.OWNER].filter((r): r is WorkspaceRole => !!r) : []) : assignableRoles(callerIsOwner);
 
     // A member the SCIM directory manages: the role follows their groups at
     // the identity provider (the backend refuses a change, 409).
     const status = (
         <>
+            {isBillingOwner && (
+                <span className="text-[11px] font-medium text-black-500" data-testid={`billing-owner-${member.id}`}>
+                    {t(memberRoles.billingOwner)}
+                </span>
+            )}
             {member.managedByDirectory && (
                 <span className="text-[11px] font-medium text-black-500" data-testid={`managed-by-directory-${member.id}`}>
                     {t(members.managedByDirectory)}
@@ -47,12 +59,11 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
         </>
     );
 
-    if (!editable) {
-        const shown = isOwner ? WorkspaceRole.OWNER : role;
+    if (!editable || offered.length === 0) {
         return (
             <div className="flex flex-col gap-0.5 py-1">
-                <span title={shown ? t(roleLocale(shown).description) : undefined} data-testid={`member-role-${member.id}`}>
-                    {shown ? t(roleLocale(shown).name) : t(memberRoles.unknownRole)}
+                <span title={role ? t(roleLocale(role).description) : undefined} data-testid={`member-role-${member.id}`}>
+                    {role ? t(roleLocale(role).name) : t(memberRoles.unknownRole)}
                 </span>
                 {status}
             </div>
@@ -71,7 +82,7 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
 
     return (
         <div className="flex flex-col gap-0.5 py-1">
-            <RoleSelect value={role} onChange={handleChange} disabled={isLoading || !!member.managedByDirectory} ariaLabel={t(members.role)} />
+            <RoleSelect value={role} roles={offered} onChange={handleChange} disabled={isLoading} ariaLabel={t(members.role)} />
             {status}
         </div>
     );
@@ -82,6 +93,7 @@ export default function MembersTable({ data }: any) {
     const { can } = useWorkspacePermissions();
     const { t } = useTranslation();
     const canManageMembers = can(WorkspacePermission.MEMBERS_MANAGE);
+    // every owner holds workspace.billing
     const isWorkspaceOwner = can(WorkspacePermission.WORKSPACE_BILLING);
 
     const dataTableResponseColumns: any = [
@@ -129,7 +141,8 @@ export default function MembersTable({ data }: any) {
             }
         },
         {
-            cell: (member: any) => workspace?.ownerId !== member.id && (canManageMembers || isWorkspaceOwner) && <MemberOptions member={member} workspaceId={workspace?.id ?? ''} />,
+            // the billing owner is neither removed nor made billing owner again
+            cell: (member: any) => !isBillingOwnerOf(member, workspace) && (canManageMembers || isWorkspaceOwner) && <MemberOptions member={member} workspaceId={workspace?.id ?? ''} />,
             allowOverflow: true,
             button: true,
             width: '60px',

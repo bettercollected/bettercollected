@@ -111,9 +111,24 @@ def test_a_legacy_membership_without_roles_is_an_editor(roles):
     assert permissions_for(roles, is_owner=False) == EDITOR_PERMISSIONS
 
 
-@pytest.mark.parametrize("roles", [["FORM_CREATOR"], ["OWNER"], ["SOMETHING_NEW"]])
+@pytest.mark.parametrize("roles", [["FORM_CREATOR"], ["SOMETHING_NEW"]])
 def test_an_unknown_role_grants_nothing(roles):
     assert permissions_for(roles, is_owner=False) == frozenset()
+
+
+@pytest.mark.parametrize(
+    "roles",
+    [
+        ["OWNER"],
+        [WorkspaceRoles.OWNER],
+        ["OWNER", "PRIVACY_OFFICER"],
+        ["VIEWER", "OWNER"],
+    ],
+)
+def test_the_owner_role_grants_everything(roles):
+    """A second owner (role OWNER) holds what the billing owner holds,
+    whatever else the membership lists."""
+    assert permissions_for(roles, is_owner=False) == ALL_PERMISSIONS
 
 
 def test_roles_add_up_and_unknown_ones_add_nothing():

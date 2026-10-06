@@ -134,6 +134,9 @@
     "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
   },
   "DELETE_ACCOUNT": {
+    "SHARED_WORKSPACES": "Je account kan nog niet worden verwijderd: je bent factuureigenaar van werkruimtes met andere eigenaren. Er is niets verwijderd.",
+    "SHARED_MOVE_OR_REMOVE": "Maak een andere eigenaar factuureigenaar, of verwijder de andere eigenaren.",
+    "SHARED_REMOVE_OWNERS": "De factuureigenaar van deze werkruimte kan niet veranderen (betaald abonnement of je persoonlijke werkruimte): verwijder de andere eigenaren.",
     "TITLE": "Account Verwijderen",
     "DESCRIPTION": "Je staat op het punt om je bettercollected-account te verwijderen. Al je gegevens zullen worden verwijderd.",
     "WHY_DELETE": "Waarom verwijder je je account?",
@@ -885,7 +888,7 @@
   "WORKSPACE_ROLES": {
     "OWNER": {
       "NAME": "Eigenaar",
-      "DESCRIPTION": "Kan alles, ook facturering. Elke werkruimte heeft één eigenaar."
+      "DESCRIPTION": "Kan alles, ook facturering, single sign-on en het beheren van andere eigenaren. Een werkruimte kan meerdere eigenaren hebben."
     },
     "ADMIN": {
       "NAME": "Beheerder",
@@ -912,14 +915,17 @@
   "MEMBER_ROLES": {
     "ROLE_CHANGED": "Rol gewijzigd.",
     "ROLE_CHANGE_FAILED": "De rol kon niet worden gewijzigd.",
-    "TRANSFER_OWNERSHIP": "Eigendom overdragen",
-    "TRANSFER_TITLE": "Eigendom overdragen aan {{name}}?",
-    "TRANSFER_DESCRIPTION": "Zij worden eigenaar, met facturering en alle andere rechten. Jij blijft in de werkruimte als beheerder, en alleen de nieuwe eigenaar kan het terug overdragen.",
-    "TRANSFER_DONE": "Eigendom overgedragen.",
-    "TRANSFER_FAILED": "Het eigendom kon niet worden overgedragen.",
-    "TRANSFER_ONLY_ADMINS": "Eigendom kan alleen naar een beheerder. Maak diegene eerst beheerder.",
-    "TRANSFER_PERSONAL": "Je persoonlijke werkruimte kan niet worden overgedragen.",
-    "TRANSFER_PAID": "Een werkruimte met een betaald abonnement kan niet worden overgedragen, omdat het abonnement via jouw account wordt gefactureerd.",
+    "MAKE_BILLING_OWNER": "Factuureigenaar maken",
+    "BILLING_TITLE": "{{name}} factuureigenaar maken?",
+    "BILLING_DESCRIPTION": "Het abonnement van de werkruimte wordt dan via hun account gefactureerd. Alle eigenaren houden dezelfde rechten, en de huidige factuureigenaar blijft eigenaar.",
+    "BILLING_DONE": "Factuureigenaar gewijzigd.",
+    "BILLING_FAILED": "De factuureigenaar kon niet worden gewijzigd.",
+    "BILLING_ONLY_OWNERS": "Alleen een eigenaar kan factuureigenaar worden. Maak diegene eerst eigenaar.",
+    "BILLING_PERSONAL": "De factuureigenaar van een persoonlijke werkruimte kan niet veranderen.",
+    "BILLING_PAID": "Deze werkruimte heeft een betaald abonnement dat via het account van de factuureigenaar wordt gefactureerd, dus de factuureigenaar kan niet veranderen.",
+    "BILLING_OWNER": "Factuureigenaar",
+    "BILLING_HANDLED_BY": "De facturering loopt via {{name}}",
+    "BILLING_HANDLED_BY_OWNER": "De facturering loopt via de factuureigenaar van de werkruimte",
     "CANCEL": "Annuleren",
     "NO_ACCESS": "Je hebt geen toegang tot deze pagina.",
     "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. Je kunt het later wijzigen.",
@@ -931,7 +937,7 @@
     "LOAD_FAILED": "De synchronisatie met gebruikersbeheer kon niet worden geladen.",
     "TRY_AGAIN": "Opnieuw proberen",
     "NOT_ENABLED": "Synchronisatie met gebruikersbeheer is niet ingeschakeld op deze installatie. De beheerder schakelt die in (SSO_ENABLED en SCIM_WEBHOOK_URL, zie docs/sso.md).",
-    "OWNER_ONLY": "Alleen de eigenaar van de werkruimte kan de synchronisatie wijzigen. U kunt de status bekijken.",
+    "OWNER_ONLY": "Alleen een eigenaar van de werkruimte kan de synchronisatie wijzigen. U kunt de status bekijken.",
     "NO_DIRECTORY": "Er is geen gebruikersbeheer gekoppeld.",
     "CREDENTIALS_NOTICE": "Voer deze nu in bij de SCIM-instellingen van uw identiteitsprovider. Het token wordt maar één keer getoond: bent u het kwijt, vernieuw het dan.",
     "BASE_URL": "SCIM-basis-URL",
@@ -968,7 +974,7 @@
     "NEEDS_ATTENTION": "Vraagt aandacht",
     "UNKNOWN_USER": "Onbekende gebruiker",
     "GROUPS_TITLE": "Groepen en rollen",
-    "GROUPS_DESCRIPTION": "Geef een groep een rol in de werkruimte; wie in meerdere groepen zit, krijgt de hoogste. Wie in geen gekoppelde groep zit, krijgt de rol voor nieuwe leden ({{role}}, onder Beleid). De eigenaar wordt nooit gewijzigd, en de rol van leden die u zelf hebt uitgenodigd blijft ongemoeid.",
+    "GROUPS_DESCRIPTION": "Geef een groep een rol in de werkruimte; wie in meerdere groepen zit, krijgt de hoogste. Wie in geen gekoppelde groep zit, krijgt de rol voor nieuwe leden ({{role}}, onder Beleid). De factuureigenaar wordt nooit gewijzigd, de rol van eigenaren ook niet, en de rol van leden die u zelf hebt uitgenodigd blijft ongemoeid.",
     "GROUP": "Groep",
     "MEMBERS": "Leden",
     "ROLE": "Rol",

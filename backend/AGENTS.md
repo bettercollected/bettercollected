@@ -52,24 +52,28 @@ branches. Never compare `owner_id` or roles in a service, and never call the rep
 
 - **Catalogue:** `models/enum/permission.py` (`workspace.manage`, `members.manage`, `form.edit`,
   `response.read`, ...). **Roles** (`models/enum/workspace_roles.py`, mapped in
-  `ROLE_PERMISSIONS`, the doc's §2 table): the owner (`owner_id` with an active membership) holds
-  all; `ADMIN` all but `workspace.billing`; `EDITOR` forms and responses; `REVIEWER` read and
+  `ROLE_PERMISSIONS`, the doc's §2 table): every owner holds all, the billing owner (`owner_id`)
+  and each member with role `OWNER` alike (`is_owner_membership`; an active membership either
+  way); `ADMIN` all but `workspace.billing`; `EDITOR` forms and responses; `REVIEWER` read and
   annotate; `VIEWER` read; `PRIVACY_OFFICER` `form.read`, `privacy.manage`, `analytics.read`,
   `audit.read` and never `response.read/annotate/export`. Each role grants only its own set.
   `COLLABORATOR` is the stored spelling of `EDITOR` (never rewritten; write `stored_role(...)`, report
   `canonical_role(...)`); `roles: []` (legacy) is an Editor; an unknown role grants nothing.
-  A disabled membership grants nothing; in a disabled workspace (owner downgraded) only the owner
-  keeps `form.read`, `response.read/export/delete`, `privacy.manage` and `analytics.read`.
+  A disabled membership grants nothing; in a disabled workspace (billing owner downgraded) only
+  owners keep `form.read`, `response.read/export/delete`, `privacy.manage` and `analytics.read`
+  (a downgrade never disables an owner's membership).
 - **Members:** `PATCH /workspaces/{id}/members/{user_id}` changes a role (`members.manage`; never
-  the owner's or one's own, never above the caller's own permissions); invitations carry a role;
-  `POST .../members/{user_id}/transfer-ownership` (`workspace.billing`) hands the workspace to an
-  active Admin, refused for a default workspace or a paid one (billing hangs off the owner's
-  account) — `services/workspace_members_service.py`. A Privacy officer also deletes a response
+  one's own, never above the caller's own permissions, so only owners give `OWNER`; only owners
+  change or remove an owner; never the billing owner's; a workspace always keeps an active owner);
+  invitations carry a role; `POST .../members/{user_id}/make-billing-owner` (`workspace.billing`,
+  any owner; `.../transfer-ownership` is its old name) moves `owner_id` to another active owner,
+  refused for a default workspace or a paid one (billing hangs off the billing owner's account) —
+  `services/workspace_members_service.py`, rules in docs/enterprise-access-model.md "Owners". A Privacy officer also deletes a response
   with a *pending* deletion request (`privacy.manage`) and never holds the answer permissions,
   whatever other role they have. MCP/API-key calls also require the key's creator to hold the
   scope's permission at call time (`mcp/server.py` `SCOPE_PERMISSIONS`).
 - **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
-  gates controls with `useWorkspacePermissions().can(...)`, not `selectIsAdmin` (which means owner).
+  gates controls with `useWorkspacePermissions().can(...)` (owners: `workspace.billing`).
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
   requests) authorise by the submitter's identity, not through permissions. Platform admin
   (`get_logged_admin`) is separate.
@@ -208,8 +212,8 @@ free-mail and reserved domains, incl. `PLATFORM_ADMIN_EMAILS` domains) and `serv
 tenant = workspace id. Code in `services/sso/`: `polis_client.py` (Polis admin API, `SSO_POLIS_API_KEY`, never logs
 bodies), `url_guard.py` (SSRF: https, public addresses only; `fetch_public` fetches metadata/discovery documents
 ourselves, every redirect hop checked; Polis never gets an admin-typed URL), `connection_service.py` (admin API
-`/workspaces/{id}/sso/*`: view and test need `security.manage`, every change is **owner only**
-(`AuthorizationService.require_owner`); enabling needs a passed test; one enabled connection at a time;
+`/workspaces/{id}/sso/*`: view and test need `security.manage`, every change is **owners only**
+(`AuthorizationService.require_owner`, any owner); enabling needs a passed test; one enabled connection at a time;
 SSO-required + offered session revocation), `login_service.py` (`/auth/sso/login|callback`: every check before auth
 creates the account: connection enabled, workspace available, the IdP's email on *this* workspace's SSO domain, seat
 cap via `WorkspaceUserService.has_free_seat`; JIT membership with the default role, never downgrading; fixed
@@ -217,9 +221,9 @@ cap via `WorkspaceUserService.has_free_seat`; JIT membership with the default ro
 redirect quotes the workspace handle; "Test connection" records the outcome and signs nobody in, asks a SAML IdP for a fresh
 sign-in (auth's `test`/`protocol` flags; nothing for OIDC, Polis's param forwarding stays off) and, when it fails, keeps only the received address's *domain*
 (`last_test_domain`) and the IdP's claim *names* (`last_test_claims`), never addresses or values, never logged), `policy.py`
-(SSO-required refuses email codes and Google for those domains, ends non-SSO sessions at refresh; the workspace owner
-keeps email codes as break-glass; on other workspaces' forms an email code only gives a **respondent-scoped session**
-(`session_scope="respondent"`), which `authorize()` grants nothing; default SSO role Viewer; the owner may pick Reviewer or Editor, never Admin or Privacy officer). Connections: `sso_connections` + Postgres twin (revision 0008); used states: `sso_used_states` (0009). Sessions record `method="sso"`; an SSO
+(SSO-required refuses email codes and Google for those domains, ends non-SSO sessions at refresh; the workspace's owners
+keep email codes as break-glass; on other workspaces' forms an email code only gives a **respondent-scoped session**
+(`session_scope="respondent"`), which `authorize()` grants nothing; default SSO role Viewer; an owner may pick Reviewer or Editor, never Owner, Admin or Privacy officer). Connections: `sso_connections` + Postgres twin (revision 0008); used states: `sso_used_states` (0009). Sessions record `method="sso"`; an SSO
 session is never platform-admin-eligible (`session_service.platform_admin_proof`, used for `/auth/status` and
 `/auth/callback`). Tests use `tests/app/sso_helpers.py` (fake Polis and auth).
 
@@ -230,10 +234,10 @@ workspace's directory in Polis's dsync, same tenant. Code in `services/scim/`: `
 mismatch 403, dedupe in `scim_events`, a failed event releases its claim and answers 503 so Polis retries),
 `sync_service.py` (the rules: verified SSO domains only, seat cap before the account exists, auth's internal
 `POST /auth/sso/directory-account`, memberships `provisioned_by="scim"`, deactivation **disables** and
-`revoke_all_for_user(SCIM_DEPROVISIONED)`, never the owner or a member invited by hand, JIT `"sso"` memberships are
+`revoke_all_for_user(SCIM_DEPROVISIONED)`, never the billing owner (`owner_protected`; a co-owner is deactivated like anyone, their role never changed) or a member invited by hand, JIT `"sso"` memberships are
 taken over; group→role, highest wins via `roles.py`, which reads `WorkspaceRoles` at runtime (stored with `stored_role`); `update_member_role` refuses a `"scim"` membership while the directory exists (409 `managed_by_directory`); `is_deprovisioned` is
 the guard `login_service` uses to refuse `sso_deprovisioned`; `reconcile`), `directory_service.py` (admin API
-`/workspaces/{id}/scim/*`: view `security.manage`, every change owner only; create needs a verified domain; the
+`/workspaces/{id}/scim/*`: view `security.manage`, every change owners only; create needs a verified domain; the
 bearer token is returned once, the webhook secret stored encrypted with `container.crypto`; rotate replaces the
 Polis directory and matches users by email, groups by name). Resync: the button, `python -m backend.scim resync`,
 and the nightly procrastinate periodic task `scim_reconcile`. Storage: `scim_directories`, `scim_users`,

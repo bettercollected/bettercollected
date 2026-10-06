@@ -437,7 +437,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                     <div className="mt-1 flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
                         <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
                         <span>
-                            <strong>Break-glass:</strong> the workspace owner can always sign in with a code sent by email, even when single sign-on is required, so a broken identity provider can&apos;t lock everyone out. Keep the owner&apos;s mailbox
+                            <strong>Break-glass:</strong> the workspace&apos;s owners can always sign in with a code sent by email, even when single sign-on is required, so a broken identity provider can&apos;t lock everyone out. Keep the owners&apos; mailboxes
                             safe.
                         </span>
                     </div>
@@ -485,7 +485,7 @@ export default function WorkspaceSsoSection() {
             {!overview.canManage && (
                 <div role="note" className="flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
                     <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
-                    <span>Only the workspace owner can change single sign-on: a connection decides who every address on your verified domains is, the owner&apos;s included. You can view the settings and test a connection.</span>
+                    <span>Only a workspace owner can change single sign-on: a connection decides who every address on your verified domains is, the owners&apos; included. You can view the settings and test a connection.</span>
                 </div>
             )}
             {testResult && (

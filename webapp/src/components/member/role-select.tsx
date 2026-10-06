@@ -13,10 +13,12 @@ interface RoleSelectProps {
     disabled?: boolean;
     ariaLabel: string;
     className?: string;
+    // the roles offered (default: every role below Owner)
+    roles?: Array<WorkspaceRole>;
 }
 
 /** Picks a workspace role; each option carries its one-line description. */
-export default function RoleSelect({ value, onChange, disabled, ariaLabel, className }: RoleSelectProps) {
+export default function RoleSelect({ value, onChange, disabled, ariaLabel, className, roles = ASSIGNABLE_ROLES }: RoleSelectProps) {
     const { t } = useTranslation();
     return (
         <Select value={value} onValueChange={(role) => onChange(role as WorkspaceRole)} disabled={disabled}>
@@ -24,7 +26,7 @@ export default function RoleSelect({ value, onChange, disabled, ariaLabel, class
                 <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-w-[340px] bg-white">
-                {ASSIGNABLE_ROLES.map((role) => (
+                {roles.map((role) => (
                     <SelectPrimitive.Item
                         key={role}
                         value={role}

@@ -13,7 +13,6 @@ export interface UserStatus {
     stripeCustomerId?: string;
     stripePaymentId?: string;
     profileImage?: string;
-    isAdmin?: boolean;
     isLoading?: boolean;
     tags?: Array<string>;
     is401?: boolean;

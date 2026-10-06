@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
+import BillingOwnerNote from '@app/components/member/billing-owner-note';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Logo, { ProLogo } from '@app/components/ui/logo';
 import { upgradeConst } from '@app/constants/locales/upgrade';
@@ -80,6 +81,9 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                     bettercollected PRO is <span className="text-[#2456CC]">currently free</span>
                 </div>
                 <div className="p2-new text-black-700 max-w-[426px] text-center">No card needed and nothing is charged. Tell us what PRO would be worth to you — future pricing will be based on these suggestions.</div>
+                {/* An owner who isn't the billing owner upgrades only their
+                    own account: this workspace's plan is someone else's. */}
+                <BillingOwnerNote className="mt-3 max-w-[426px] text-center" />
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {prices.map((price, index) => {
                         return (

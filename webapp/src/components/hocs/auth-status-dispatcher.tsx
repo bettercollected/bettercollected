@@ -23,8 +23,7 @@ export default function AuthStatusDispatcher({ workspace, children }: IAuthStatu
         selectFromResult: ({ data, isLoading, isError }) => {
             if (isError) setIs401(true);
             if (data) {
-                const isAdmin = workspace?.ownerId === data?.id;
-                return { data: { ...data, isAdmin, isLoading }, isLoading };
+                return { data: { ...data, isLoading }, isLoading };
             }
             return { data, isLoading };
         },
