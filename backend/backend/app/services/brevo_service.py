@@ -6,7 +6,7 @@ import httpx
 import loguru
 from pydantic import BaseModel, EmailStr
 
-from backend.app.models.dtos.brevo_event_dto import UserEventDto, UserEventType
+from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.config import settings
 
 
@@ -46,16 +46,14 @@ class BrevoService:
     async def send_brevo_event(
         self, event_type: UserEventType, user_id: str, email: EmailStr
     ):
-        event_message = UserEventDto(
-            event_type=event_type, user_id=user_id, email=email
-        )
-        try:
-            await self.track_event(email=email, event_type=event_type)
-        except Exception as e:
-            loguru.logger.warning(
-                "Could not send event to Brevo, Event Message: "
-                + str(event_message.model_dump(mode='json'))
-            )
+        # A deleted account's email address must not be sent anywhere.
+        if event_type != UserEventType.ACCOUNT_DELETED:
+            try:
+                await self.track_event(email=email, event_type=event_type)
+            except Exception:
+                loguru.logger.warning(
+                    f"Could not send event to Brevo: {event_type} for user {user_id}"
+                )
 
         if settings.event_webhook_settings.enabled:
             try:
@@ -82,13 +80,12 @@ class BrevoService:
                         ],
                     },
                 )
-            except Exception as e:
+            except Exception:
                 loguru.logger.warning(
-                    "Could not send event to Webhook, Event Message: "
-                    + str(event_message.model_dump(mode='json'))
+                    f"Could not send event to Webhook: {event_type} for user {user_id}"
                 )
 
-        loguru.logger.info("Event Handled Successfully", event_type, user_id)
+        loguru.logger.info(f"Event handled: {event_type} for user {user_id}")
 
     async def send_event(
         self, event_type: UserEventType, user_id: str, email: EmailStr
