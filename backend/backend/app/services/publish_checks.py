@@ -23,6 +23,12 @@ the two in step).
   them.
 
 Internal ("for office use") fields are not respondent-facing and are skipped.
+
+"Why we ask this" is required only of forms created under these checks
+(``WorkspaceFormSettings.publish_checks_version`` set at creation): forms made
+before them were published without it and must stay publishable. For those the
+builder shows the missing reasons as a recommendation. The other two rules
+hold for every form.
 """
 
 import re
@@ -38,6 +44,10 @@ from backend.app.services.internal_fields import (
 )
 
 FORM_NOT_PUBLISHABLE = "form_not_publishable"
+
+# The version of these checks a new form is created under; a form without one
+# (created earlier) is not required to say why it asks.
+PUBLISH_CHECKS_VERSION = 1
 
 MISSING_WHY_WE_ASK = "missing_why_we_ask"
 REQUIRED_UNANSWERABLE = "required_unanswerable"
@@ -216,9 +226,21 @@ def publish_problems(form: Any) -> List[Dict[str, Optional[str]]]:
     return problems
 
 
-def ensure_publishable(form: Any) -> None:
-    """422 ``form_not_publishable`` listing every problem, or nothing."""
-    problems = publish_problems(form)
+def requires_why_we_ask(checks_version: Optional[int]) -> bool:
+    """Is a form created under ``checks_version`` held to the reason rule?"""
+    return bool(checks_version) and checks_version >= 1
+
+
+def ensure_publishable(form: Any, checks_version: Optional[int] = None) -> None:
+    """422 ``form_not_publishable`` listing every problem that blocks this
+    form, or nothing. ``checks_version``: the form's
+    ``publish_checks_version`` (None for a form created before the checks)."""
+    problems = [
+        problem
+        for problem in publish_problems(form)
+        if problem["code"] != MISSING_WHY_WE_ASK
+        or requires_why_we_ask(checks_version)
+    ]
     if problems:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,

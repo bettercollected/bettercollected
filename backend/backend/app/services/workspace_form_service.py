@@ -51,7 +51,10 @@ from backend.app.services.internal_fields import (
     strip_internal_fields,
 )
 from backend.app.services.brevo_service import event_logger_service
-from backend.app.services.publish_checks import ensure_publishable
+from backend.app.services.publish_checks import (
+    PUBLISH_CHECKS_VERSION,
+    ensure_publishable,
+)
 from backend.app.services.retention import submission_expiry
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -195,6 +198,7 @@ class WorkspaceFormService:
                     #  as it doesn't change with workspaces
                     provider=standard_form.settings.provider,
                     private=not standard_form.settings.is_public,
+                    publish_checks_version=PUBLISH_CHECKS_VERSION,
                 ),
             )
 
@@ -402,6 +406,9 @@ class WorkspaceFormService:
             response_expiration=settings.response_expiration,
             response_expiration_type=settings.response_expiration_type,
             response_data_owner_field=(settings.response_data_owner_field),
+            # Every new form (builder, template, AI, PDF import, MCP/API) is
+            # held to the current publish checks.
+            publish_checks_version=PUBLISH_CHECKS_VERSION,
         )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
@@ -752,11 +759,23 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
-        await self.check_form_exists_in_workspace(workspace_id, str(form_id))
+        workspace_form = (
+            await self.workspace_form_repository.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=str(form_id)
+            )
+        )
+        if not workspace_form:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         # Honest defaults (services/publish_checks.py): checked on the draft
-        # that is about to go live, whoever publishes it (builder, API, MCP).
+        # that is about to go live, whoever publishes it (builder, API, MCP),
+        # by the rules the form was created under.
         ensure_publishable(
-            await self.form_service.get_form_document_by_id(str(form_id))
+            await self.form_service.get_form_document_by_id(str(form_id)),
+            checks_version=(
+                workspace_form.settings.publish_checks_version
+                if workspace_form.settings
+                else None
+            ),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         return await self.form_service.publish_form(form_id=form_id)
@@ -853,7 +872,10 @@ class WorkspaceFormService:
                 form_id=str(duplicated_form.form_id),
                 workspace_id=workspace_id,
                 user_id=user.id,
-                settings=WorkspaceFormSettings(),
+                # A duplicate is a new form: current publish checks.
+                settings=WorkspaceFormSettings(
+                    publish_checks_version=PUBLISH_CHECKS_VERSION
+                ),
             )
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)

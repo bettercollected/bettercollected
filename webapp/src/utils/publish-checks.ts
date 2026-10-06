@@ -117,3 +117,16 @@ export function problemsFromPublishError(error: any): PublishProblem[] {
     if (body?.code !== 'form_not_publishable' || !Array.isArray(body?.problems)) return [];
     return body.problems.filter((problem: any) => typeof problem?.message === 'string');
 }
+
+/**
+ * Which problems stop publishing and which are only recommended. "Why we ask
+ * this" is required of forms created under the publish checks
+ * (`settings.publishChecksVersion`); forms made before them were published
+ * without it and stay publishable, so for them it is a recommendation. The
+ * other rules hold for every form (backend `ensure_publishable`).
+ */
+export function splitPublishProblems(problems: PublishProblem[], publishChecksVersion?: number | null): { blocking: PublishProblem[]; recommended: PublishProblem[] } {
+    const requiresReason = !!publishChecksVersion && publishChecksVersion >= 1;
+    const recommended = requiresReason ? [] : problems.filter((problem) => problem.code === 'missing_why_we_ask');
+    return { blocking: problems.filter((problem) => !recommended.includes(problem)), recommended };
+}

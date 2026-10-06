@@ -173,6 +173,8 @@ export interface StandardFormDto {
         /** How long answers are kept: "days" (responseExpiration = a number of days), "date" (YYYY-MM-DD) or "forever". See utils/retention.ts. */
         responseExpiration?: string;
         responseExpirationType?: 'days' | 'date' | 'forever' | null;
+        /** Set when the form was created under the publish checks (utils/publish-checks.ts); absent on older forms. */
+        publishChecksVersion?: number | null;
         disableBranding: boolean;
         hidden: boolean;
         formCloseDate?: string;

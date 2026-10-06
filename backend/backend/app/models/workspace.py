@@ -218,6 +218,10 @@ class WorkspaceFormSettings(BaseModel):
     retention_text: Optional[str] = None
     response_expiration: Optional[str] = None
     response_expiration_type: Optional[ResponseRetentionType] = None
+    # Set when the form is created: the version of the publish checks
+    # (services/publish_checks.py) the form was made under. Forms made
+    # before them have none and are held to the rules that applied then.
+    publish_checks_version: Optional[int] = None
     disable_branding: Optional[bool] = None
     form_close_date: Optional[dt.datetime | str] = None
     require_verified_identity: Optional[bool] = None

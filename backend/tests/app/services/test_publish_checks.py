@@ -26,6 +26,7 @@ from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.services.ai.ops import FormOps, apply_form_ops
 from backend.app.services.publish_checks import (
     MISSING_WHY_WE_ASK,
+    PUBLISH_CHECKS_VERSION,
     PRESET_ANSWER,
     REQUIRED_UNANSWERABLE,
     asks_for_identity,
@@ -212,12 +213,24 @@ def test_a_legacy_title_in_value_is_not_a_preset_answer():
 def test_ensure_publishable_lists_every_problem():
     form = _form(_q("e", T.EMAIL, "Email"), _q("s", T.TEXT, "Intro", required=True))
     with pytest.raises(HTTPException) as raised:
-        ensure_publishable(form)
+        ensure_publishable(form, checks_version=1)
     assert raised.value.status_code == 422
     content = raised.value.content
     assert content["code"] == "form_not_publishable"
     assert [p["fieldId"] for p in content["problems"]] == ["e", "s"]
     assert '"Email"' in content["message"]
+
+
+def test_a_form_from_before_the_checks_needs_no_reason():
+    form = _form(_q("e", T.EMAIL, "Email"))
+    ensure_publishable(form)  # no marker: publishable
+    ensure_publishable(form, checks_version=None)
+    # ...but dead ends block every form.
+    with pytest.raises(HTTPException) as raised:
+        ensure_publishable(_form(_q("s", T.TEXT, "Intro", required=True)))
+    assert [p["code"] for p in raised.value.content["problems"]] == [
+        REQUIRED_UNANSWERABLE
+    ]
 
 
 # --- through the service and the API -----------------------------------------
@@ -403,3 +416,98 @@ async def test_the_stated_retention_is_applied_to_submissions(
     )
     stored = await container.form_response_repo().get_response(response.response_id)
     assert stored.expiration is None
+
+
+# --- which forms are held to the reason rule ---------------------------------
+
+
+async def _make_legacy(workspace, form_id):
+    """A form as created before the checks: no publish_checks_version."""
+    repo = container.workspace_form_repo()
+    workspace_form = await repo.get_workspace_form_in_workspace(
+        workspace_id=workspace.id, query=str(form_id)
+    )
+    workspace_form.settings.publish_checks_version = None
+    await repo.save(workspace_form)
+
+
+async def _checks_version(workspace, form_id):
+    workspace_form = await container.workspace_form_repo().get_workspace_form_in_workspace(
+        workspace_id=workspace.id, query=str(form_id)
+    )
+    return workspace_form.settings.publish_checks_version
+
+
+async def test_a_new_form_is_created_under_the_checks(workspace):
+    form_id = await _draft_with(workspace, _q("e", T.EMAIL, "Email"))
+    assert await _checks_version(workspace, form_id) == PUBLISH_CHECKS_VERSION
+
+
+async def test_a_legacy_form_without_a_reason_still_publishes(
+    client: AsyncClient, workspace, test_user_cookies
+):
+    form_id = await _draft_with(workspace, _q("e", T.EMAIL, "Email"))
+    url = f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/publish"
+    assert (await client.post(url, cookies=test_user_cookies)).status_code == 422
+
+    await _make_legacy(workspace, form_id)
+    response = await client.post(url, cookies=test_user_cookies)
+    assert response.status_code == 200
+    # Settings changes keep the form legacy (never mark it by accident)...
+    await container.form_service().patch_settings_in_workspace_form(
+        workspace.id, form_id, SettingsPatchDto(purpose="To reply"), testUser
+    )
+    assert await _checks_version(workspace, form_id) is None
+
+
+async def test_a_legacy_form_with_a_dead_end_is_still_refused(
+    client: AsyncClient, workspace, test_user_cookies
+):
+    form_id = await _draft_with(workspace, _q("s", T.TEXT, "Intro", required=True))
+    await _make_legacy(workspace, form_id)
+    response = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/publish",
+        cookies=test_user_cookies,
+    )
+    assert response.status_code == 422
+    assert response.json()["problems"][0]["code"] == REQUIRED_UNANSWERABLE
+
+
+async def test_marker_survives_form_saves_and_settings_patches(workspace):
+    form_id = await _draft_with(workspace, _q("e", T.EMAIL, "Email"))
+    draft = await container.form_service().get_form_document_by_id(form_id)
+    await container.workspace_form_service().update_form(
+        workspace.id, form_id, StandardForm(**draft.model_dump(mode="json")), testUser
+    )
+    await container.form_service().patch_settings_in_workspace_form(
+        workspace.id,
+        form_id,
+        SettingsPatchDto(purpose="To reply", response_expiration_type="forever"),
+        testUser,
+    )
+    assert await _checks_version(workspace, form_id) == PUBLISH_CHECKS_VERSION
+
+
+async def test_a_duplicate_of_a_legacy_form_is_a_new_form(workspace):
+    form_id = await _draft_with(workspace, _q("e", T.EMAIL, "Email"))
+    await _make_legacy(workspace, form_id)
+    copy = await container.workspace_form_service().duplicate_form(
+        workspace.id, form_id, testUser
+    )
+    assert await _checks_version(workspace, copy.form_id) == PUBLISH_CHECKS_VERSION
+    with pytest.raises(HTTPException) as raised:
+        await container.workspace_form_service().publish_form(
+            workspace.id, copy.form_id, testUser
+        )
+    assert raised.value.content["problems"][0]["code"] == MISSING_WHY_WE_ASK
+
+
+async def test_a_form_from_a_template_is_created_under_the_checks(workspace):
+    form_id = await _draft_with(workspace, _q("n", T.SHORT_TEXT, "Name"))
+    template = await container.workspace_form_service().duplicate_form(
+        workspace.id, form_id, testUser, is_template=True
+    )
+    form = await container.form_template_service().create_form_from_template(
+        workspace.id, template.id, testUser
+    )
+    assert await _checks_version(workspace, form.form_id) == PUBLISH_CHECKS_VERSION
