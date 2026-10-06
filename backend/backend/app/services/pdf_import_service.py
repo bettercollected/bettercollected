@@ -81,6 +81,12 @@ class PdfImportService:
                 HTTPStatus.BAD_REQUEST,
                 {"code": refused.code, "message": refused.message},
             )
+        # an import whose process died (e.g. in a deploy) must not hold the
+        # slot forever: expire it first, under the limit check's lock
+        try:
+            await self.expire_stale(workspace_id)
+        except ImportLimitReached as reached:
+            raise self._limit_error(reached.code) from None
         # a cheap early look, so a refused upload creates nothing; the real
         # check is the atomic insert below
         await self._check_limits(workspace_id)
@@ -125,6 +131,46 @@ class PdfImportService:
             raise
         await self._dispatch(record.id)
         return record
+
+    def _stale_before(self) -> dt.datetime:
+        return dt.datetime.now(dt.timezone.utc) - dt.timedelta(
+            seconds=self._settings.STALE_AFTER_S
+        )
+
+    async def expire_stale(self, workspace_id: PydanticObjectId) -> int:
+        """Fail the workspace's imports that stopped making progress (no
+        heartbeat for ``STALE_AFTER_S``: their job's process died) with
+        ``interrupted``, under the lock the limit check takes, and remove
+        their drafts like any failed import's (a draft the user already
+        changed stays). Returns how many were expired."""
+        expired = await self._repo.expire_stale(
+            workspace_id, self._stale_before(), dt.datetime.now(dt.timezone.utc)
+        )
+        for record in expired:
+            logger.warning(
+                "form import {} expired as {}: no progress for {}s",
+                record.id,
+                record.error_code,
+                self._settings.STALE_AFTER_S,
+            )
+            form_id = record.form_id
+            await self._pipeline.discard_draft(record)
+            if record.form_id != form_id:
+                await self._repo.save(record)
+        return len(expired)
+
+    async def expire_stale_everywhere(self) -> int:
+        """The periodic sweep: expire stale imports in every workspace (each
+        under its own workspace's lock)."""
+        total = 0
+        for workspace_id in await self._repo.stale_workspaces(self._stale_before()):
+            try:
+                total += await self.expire_stale(workspace_id)
+            except Exception:  # noqa: BLE001 — one workspace never stops the sweep
+                logger.exception(
+                    "could not expire stale form imports of workspace {}", workspace_id
+                )
+        return total
 
     async def _remove_draft(self, workspace_id, form_id: str) -> None:
         try:
@@ -172,6 +218,10 @@ class PdfImportService:
         task.add_done_callback(self._running.discard)
 
     async def _run_in_process(self, import_id: PydanticObjectId) -> None:
+        # the heartbeat covers the retry waits too
+        await self._pipeline.keep_alive(import_id, self._attempts(import_id))
+
+    async def _attempts(self, import_id: PydanticObjectId) -> None:
         from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 
         for delay in RETRY_DELAYS_S + (None,):
@@ -199,6 +249,14 @@ class PdfImportService:
         record = await self._repo.get(import_id)
         if record is None or record.workspace_id != workspace_id:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Import not found.")
+        if record.is_stale(self._stale_before()):
+            # the progress screen polls this: an interrupted import says so
+            # instead of running forever
+            try:
+                if await self.expire_stale(workspace_id):
+                    record = await self._repo.get(import_id) or record
+            except Exception:  # noqa: BLE001 — reading never fails on the expiry
+                logger.exception("could not expire form import {}", import_id)
         return record
 
     async def _with_draft(self, workspace_id, import_id, user) -> FormImportDocument:

@@ -1,6 +1,7 @@
 """The Postgres twin of the import repository behaves like the Mongo original.
 Skipped unless DATABASE_URL points at a *_test database."""
 
+import asyncio
 import datetime as dt
 
 import pytest
@@ -186,3 +187,103 @@ async def test_a_start_that_waits_too_long_is_refused_as_busy(
     # once the lock is free the start goes through
     await repo.create_within_limits(new, 1, 10, since)
     assert await repo.count_active(ws) == 1
+
+
+@pytest.mark.parametrize("store", ["mongo", "postgres"])
+async def test_stale_imports_are_expired_and_healthy_ones_kept(sessions, store):
+    """Each store fails the workspace's active imports without progress since
+    the threshold (``interrupted``) and leaves everything else alone; the
+    heartbeat changes only ``heartbeat_at`` and only while active."""
+    repo = _repo(store, sessions)
+    now = dt.datetime.now(dt.timezone.utc)
+    stale_before = now - dt.timedelta(minutes=10)
+    ws, other = PydanticObjectId(), PydanticObjectId()
+
+    stuck = record(ws, "f-stuck", ImportStatus.RUNNING, minutes_ago=60)
+    stuck.heartbeat_at = now - dt.timedelta(minutes=20)
+    lost = record(ws, "f-lost", ImportStatus.QUEUED, minutes_ago=30)  # no heartbeat
+    healthy = record(ws, "f-healthy", ImportStatus.RUNNING, minutes_ago=180)
+    healthy.heartbeat_at = now - dt.timedelta(seconds=5)
+    fresh = record(ws, "f-fresh", ImportStatus.QUEUED, minutes_ago=1)
+    done = record(ws, "f-done", ImportStatus.COMPLETED, minutes_ago=600)
+    elsewhere = record(other, "f-else", ImportStatus.RUNNING, minutes_ago=60)
+    for r in (stuck, lost, healthy, fresh, done, elsewhere):
+        await repo.save(r)
+
+    assert set(await repo.stale_workspaces(stale_before)) == {ws, other}
+    expired = await repo.expire_stale(ws, stale_before, now)
+    assert {r.id for r in expired} == {stuck.id, lost.id}
+    for r in (stuck, lost):
+        stored = await repo.get(r.id)
+        assert stored.status == ImportStatus.FAILED
+        assert stored.error_code == "interrupted"
+        assert stored.report["refused"] == "interrupted"
+        assert stored.finished_at is not None
+        assert stored.form_id == r.form_id  # the service removes the draft
+    for r in (healthy, fresh, elsewhere):
+        assert (await repo.get(r.id)).status == r.status
+    assert (await repo.get(done.id)).status == ImportStatus.COMPLETED
+    assert await repo.count_active(ws) == 2
+    # nothing left to expire there
+    assert await repo.expire_stale(ws, stale_before, now) == []
+    assert await repo.stale_workspaces(stale_before) == [other]
+
+    # the heartbeat: only while active, and only that field
+    stored = await repo.get(healthy.id)
+    stored.stage = "render"
+    await repo.save(stored)
+    beat = now + dt.timedelta(seconds=1)
+    assert await repo.touch(healthy.id, beat) is True
+    touched = await repo.get(healthy.id)
+    assert touched.stage == "render" and touched.status == ImportStatus.RUNNING
+    seen = touched.heartbeat_at
+    if seen.tzinfo is None:
+        seen = seen.replace(tzinfo=dt.timezone.utc)
+    assert abs(seen - beat) < dt.timedelta(milliseconds=2)
+    assert await repo.touch(stuck.id, beat) is False
+    assert (await repo.get(stuck.id)).status == ImportStatus.FAILED
+
+
+@pytest.mark.parametrize("store", ["mongo", "postgres"])
+async def test_parallel_starts_expiring_a_stale_import_let_one_through(
+    sessions, store, monkeypatch
+):
+    """Expiry and the limit check take the same workspace lock: parallel
+    starts that each expire first and then insert still admit exactly one."""
+    from backend.app.repositories import form_import_repository as module
+    from backend.app.repositories.form_import_repository import ImportLimitReached
+
+    monkeypatch.setattr(module, "LOCK_WAIT_S", 120.0)
+    repo = _repo(store, sessions)
+    now = dt.datetime.now(dt.timezone.utc)
+    stale_before = now - dt.timedelta(minutes=10)
+    since = now - dt.timedelta(days=1)
+    ws = PydanticObjectId()
+    stuck = record(ws, "f-stuck", ImportStatus.RUNNING, minutes_ago=60)
+    await repo.save(stuck)
+    counts = repo._limit_counts
+
+    async def slow_counts(*args):
+        result = await counts(*args)
+        await asyncio.sleep(0.05)
+        return result
+
+    monkeypatch.setattr(repo, "_limit_counts", slow_counts)
+
+    async def start():
+        await repo.expire_stale(ws, stale_before, now)
+        try:
+            await repo.create_within_limits(
+                record(ws, f"f-{PydanticObjectId()}", ImportStatus.QUEUED),
+                1,
+                10,
+                since,
+            )
+            return "ok"
+        except ImportLimitReached as reached:
+            return reached.code
+
+    results = await asyncio.gather(*[start() for _ in range(5)])
+    assert sorted(results) == ["import_in_progress"] * 4 + ["ok"]
+    assert await repo.count_active(ws) == 1
+    assert (await repo.get(stuck.id)).error_code == "interrupted"

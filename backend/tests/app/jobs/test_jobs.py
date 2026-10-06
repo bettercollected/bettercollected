@@ -131,4 +131,10 @@ async def test_delete_response_job_deletes_the_response(
     )
     await app.run_worker_async(wait=False, install_signal_handlers=False)
     assert await container.form_response_repo().get_response(response_id) is None
-    assert [j["status"] for j in memory_jobs.jobs.values()] == ["succeeded"]
+    # (the worker also defers the periodic tasks that are due, e.g. the sweep
+    # of interrupted form imports)
+    assert [
+        j["status"]
+        for j in memory_jobs.jobs.values()
+        if j["task_name"] == "delete_response"
+    ] == ["succeeded"]

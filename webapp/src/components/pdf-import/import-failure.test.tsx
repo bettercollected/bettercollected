@@ -64,6 +64,19 @@ describe('ImportFailure', () => {
         expect(screen.getByText(nl.TRY_ANOTHER_FILE)).toBeInTheDocument();
     });
 
+    it('says an interrupted import can simply be tried again', () => {
+        render(<ImportFailure data={failed({ errorCode: 'interrupted' })} workspaceName="acme" />);
+        expect(screen.getByRole('alert')).toHaveTextContent(/^The import was interrupted\.\s*Please try again\.$/);
+        expect(screen.getByText(en.TRY_ANOTHER_FILE).closest('a')).toHaveAttribute('href', '/acme/dashboard/forms/create');
+    });
+
+    it('says an interrupted import can simply be tried again, in Dutch', async () => {
+        await i18n.changeLanguage('nl');
+        render(<ImportFailure data={failed({ errorCode: 'interrupted' })} workspaceName="acme" />);
+        expect(screen.getByRole('alert')).toHaveTextContent(/^Het importeren is onderbroken\.\s*Probeer het opnieuw\.$/);
+        expect(screen.getByText(nl.TRY_ANOTHER_FILE).closest('a')).toHaveAttribute('href', '/acme/dashboard/forms/create');
+    });
+
     it('never shows the raw server message or a translation key', () => {
         render(<ImportFailure data={failed({ errorCode: 'some_new_code', error: 'Internal detail' } as any)} workspaceName="acme" />);
         const alert = screen.getByRole('alert');

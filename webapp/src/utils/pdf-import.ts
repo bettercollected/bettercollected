@@ -110,7 +110,7 @@ export function describeWithheld(withheld: Record<string, number> | undefined | 
 }
 
 /** Reasons an import can stop with, each with its own message and next step (builder namespace, PDF_IMPORT.ERROR.<code>). */
-export const IMPORT_ERROR_CODES = ['encrypted', 'unreadable', 'too_many_pages', 'too_large', 'too_complex', 'timeout', 'empty', 'unsupported_type', 'no_questions', 'unavailable', 'failed'] as const;
+export const IMPORT_ERROR_CODES = ['encrypted', 'unreadable', 'too_many_pages', 'too_large', 'too_complex', 'timeout', 'empty', 'unsupported_type', 'no_questions', 'unavailable', 'interrupted', 'failed'] as const;
 export type ImportErrorCode = (typeof IMPORT_ERROR_CODES)[number];
 
 /** Reasons the upload itself can be refused with, before an import starts (PDF_IMPORT.START_ERROR.<code>). */

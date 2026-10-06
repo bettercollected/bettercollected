@@ -61,6 +61,75 @@ class FormImportRepository:
             await self.count_created_since(workspace_id, since),
         )
 
+    @write_op
+    async def touch(self, import_id: PydanticObjectId, at: dt.datetime) -> bool:
+        """The import's heartbeat: set ``heartbeat_at`` alone (never the rest of
+        the record the pipeline writes) while it is still active. False when it
+        is not, e.g. after it was expired as interrupted."""
+        result = await FormImportDocument.get_pymongo_collection().update_one(
+            {
+                "_id": PydanticObjectId(import_id),
+                "status": {"$in": list(ImportStatus.ACTIVE)},
+            },
+            {"$set": {"heartbeat_at": at}},
+        )
+        return result.matched_count > 0
+
+    @write_op(replay=True)
+    async def expire_stale(
+        self,
+        workspace_id: PydanticObjectId,
+        stale_before: dt.datetime,
+        now: dt.datetime,
+    ) -> List[FormImportDocument]:
+        """Mark the workspace's active imports without progress since
+        ``stale_before`` as failed (``interrupted``) and return them. Under the
+        lock the limit check takes, so it never races a start; each write only
+        applies if the import's heartbeat did not move since it was read."""
+        expired = []
+        async with _workspace_lock(workspace_id):
+            active = await FormImportDocument.find(
+                {
+                    "workspace_id": workspace_id,
+                    "status": {"$in": list(ImportStatus.ACTIVE)},
+                }
+            ).to_list()
+            collection = FormImportDocument.get_pymongo_collection()
+            for record in active:
+                if not record.is_stale(stale_before):
+                    continue
+                seen = record.heartbeat_at
+                record.mark_interrupted(now)
+                result = await collection.update_one(
+                    {
+                        "_id": record.id,
+                        "status": {"$in": list(ImportStatus.ACTIVE)},
+                        "heartbeat_at": seen,
+                    },
+                    {
+                        "$set": {
+                            "status": record.status,
+                            "error": record.error,
+                            "error_code": record.error_code,
+                            "report.refused": record.report["refused"],
+                            "finished_at": record.finished_at,
+                        }
+                    },
+                )
+                if result.modified_count:
+                    expired.append(record)
+        return expired
+
+    async def stale_workspaces(
+        self, stale_before: dt.datetime
+    ) -> List[PydanticObjectId]:
+        """Workspaces with an active import without progress since
+        ``stale_before`` (the periodic sweep expires them one by one)."""
+        active = await FormImportDocument.find(
+            {"status": {"$in": list(ImportStatus.ACTIVE)}}
+        ).to_list()
+        return workspaces_with_stale_imports(active, stale_before)
+
     async def get(self, import_id: PydanticObjectId) -> Optional[FormImportDocument]:
         try:
             import_id = PydanticObjectId(import_id)
@@ -94,6 +163,14 @@ class FormImportRepository:
     async def delete_by_form_ids(self, form_ids: List[str]) -> int:
         result = await FormImportDocument.find({"form_id": {"$in": form_ids}}).delete()
         return result.deleted_count if result else 0
+
+
+def workspaces_with_stale_imports(records, stale_before) -> List[PydanticObjectId]:
+    seen = []
+    for record in records:
+        if record.is_stale(stale_before) and record.workspace_id not in seen:
+            seen.append(record.workspace_id)
+    return seen
 
 
 def lock_wait_s() -> float:
