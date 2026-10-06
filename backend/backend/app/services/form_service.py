@@ -404,6 +404,12 @@ class FormService:
             workspace_form.settings.purpose = settings.purpose or None
         if settings.retention_text is not None:
             workspace_form.settings.retention_text = settings.retention_text or None
+        if settings.response_expiration_type is not None:
+            # Applies to submissions from now on (services/retention.py).
+            workspace_form.settings.response_expiration_type = (
+                settings.response_expiration_type
+            )
+            workspace_form.settings.response_expiration = settings.response_expiration
 
         if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(

@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 import random
 import re
@@ -50,6 +51,7 @@ from backend.app.services.internal_fields import (
     strip_internal_fields,
 )
 from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.retention import submission_expiry
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.repeating_groups import (
@@ -649,6 +651,14 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.UNAUTHORIZED,
                 content="Sign in to respond to this form.",
             )
+        # The retention the form states to respondents is applied here, not
+        # left to the client (services/retention.py).
+        expiry = submission_expiry(
+            workspace_form.settings if workspace_form else None,
+            dt.datetime.now(dt.timezone.utc).replace(tzinfo=None),
+        )
+        if expiry:
+            response.expiration, response.expiration_type = expiry
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         latest_version_of_form = await self.form_service.get_latest_version_of_form(
             form_id=form_id
