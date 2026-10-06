@@ -103,6 +103,9 @@ class FormTemplateService:
             workspace_id=workspace_id,
             form=StandardForm(**minified_form.model_dump(mode="json")),
             user=user,
+            # a copy: settings that no longer apply (a passed end date)
+            # are left out rather than refusing the new form
+            drop_unusable_settings=True,
         )
 
     async def create_new_template(

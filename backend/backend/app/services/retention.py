@@ -68,3 +68,41 @@ def submission_expiry(
             end = dt.datetime(day.year, day.month, day.day)
             return _iso(end), ResponseRetentionType.DATE
     return None
+
+
+def _blank(value: Any) -> bool:
+    return value is None or (isinstance(value, str) and not value.strip())
+
+
+def checked_retention(
+    kind: Any, value: Any, today: dt.date
+) -> Tuple[Optional[ResponseRetentionType], Optional[str]]:
+    """A retention setting as it may be stored: ``(type, value)``, the value
+    normalised (``days`` a whole number, ``date`` YYYY-MM-DD, ``forever`` and
+    no type without one).
+
+    Raises ``ValueError`` (with a message for the creator) when the period
+    can't be applied: days out of range, an unreadable date, or a date that
+    isn't after ``today`` (on the Postgres path a past end deletes each new
+    submission almost at once). Every path that stores the setting goes
+    through here: the settings patch, and form create and update.
+    """
+    if _blank(kind):
+        if not _blank(value):
+            raise ValueError("Choose how long answers are kept.")
+        return None, None
+    try:
+        kind = ResponseRetentionType(getattr(kind, "value", kind))
+    except ValueError:
+        raise ValueError("Choose how long answers are kept.")
+    if kind == ResponseRetentionType.FOREVER:
+        return kind, None
+    if kind == ResponseRetentionType.DAYS:
+        days = retention_days(value)
+        if days is None:
+            raise ValueError(f"Keep answers for 1 to {MAX_RETENTION_DAYS} days.")
+        return kind, str(days)
+    day = retention_date(value)
+    if day is None or day <= today:
+        raise ValueError("Choose a date in the future to keep answers until.")
+    return kind, day.isoformat()

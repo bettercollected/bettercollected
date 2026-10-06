@@ -5,11 +5,8 @@ from fastapi_camelcase import CamelModel
 from pydantic import field_validator, model_validator
 
 from backend.app.models.workspace import normalize_feedback_statuses
-from backend.app.services.retention import (
-    MAX_RETENTION_DAYS,
-    retention_date,
-    retention_days,
-)
+from backend.app.services.policy_url import checked_policy_url
+from backend.app.services.retention import checked_retention
 from common.models.consent import ResponseRetentionType
 
 
@@ -41,24 +38,22 @@ class SettingsPatchDto(CamelModel):
     def _valid_statuses(cls, statuses: Optional[List[str]]) -> Optional[List[str]]:
         return None if statuses is None else normalize_feedback_statuses(statuses)
 
+    @field_validator("privacy_policy_url")
+    @classmethod
+    def _valid_policy_url(cls, url: Optional[str]) -> Optional[str]:
+        # http(s) only: respondents get it as a link ("" clears it).
+        return checked_policy_url(url)
+
     @model_validator(mode="after")
     def _valid_retention(self) -> "SettingsPatchDto":
-        kind = self.response_expiration_type
-        if kind is None:
+        if self.response_expiration_type is None:
             if self.response_expiration is not None:
                 raise ValueError("Choose how long answers are kept.")
             return self
-        if kind == ResponseRetentionType.FOREVER:
-            self.response_expiration = None
-        elif kind == ResponseRetentionType.DAYS:
-            if retention_days(self.response_expiration) is None:
-                raise ValueError(
-                    f"Keep answers for 1 to {MAX_RETENTION_DAYS} days."
-                )
-            self.response_expiration = str(retention_days(self.response_expiration))
-        else:
-            day = retention_date(self.response_expiration)
-            if day is None or day <= datetime.date.today():
-                raise ValueError("Choose a date in the future to keep answers until.")
-            self.response_expiration = day.isoformat()
+        # The same rule as form create and update (services/retention.py).
+        self.response_expiration_type, self.response_expiration = checked_retention(
+            self.response_expiration_type,
+            self.response_expiration,
+            datetime.date.today(),
+        )
         return self

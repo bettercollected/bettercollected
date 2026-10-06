@@ -43,6 +43,7 @@ from common.models.standard_form import (
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
+from backend.app.services.policy_url import checked_policy_url
 from pydantic.alias_generators import to_camel
 
 
@@ -876,6 +877,12 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
             "Nothing to change — provide at least one of: purpose, retentionText, "
             "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber."
         )
+    if op.patch.privacy_policy_url is not None:
+        # Respondents get it as a link: http(s) only.
+        try:
+            checked_policy_url(op.patch.privacy_policy_url)
+        except ValueError as error:
+            raise OpError(str(error))
     return "Updated form settings: " + ", ".join(changed)
 
 
