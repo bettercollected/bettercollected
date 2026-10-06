@@ -26,7 +26,10 @@ as one path segment on an allow-listed origin.
 Errors go back to the login page as ``?sso_error=<code>``, codes from
 ``SSO_ERROR_CODES`` only. A "Test connection" sign-in (``purpose=test``)
 runs the same checks for an admin, records the outcome on the connection and
-never signs anyone in or creates an account.
+never signs anyone in or creates an account. A test asks the IdP for a fresh
+sign-in (the account picker, not the browser's IdP session) and a failed one
+also records what it saw: the domain of the address the IdP sent (never the
+address) and the names of the claims it sent (never their values).
 """
 
 import datetime as dt
@@ -35,7 +38,7 @@ import json
 import secrets
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from beanie import PydanticObjectId
@@ -50,6 +53,7 @@ from backend.app.repositories.sso_connection_repository import SsoConnectionRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.auth_cookie_service import set_cookie
+from backend.app.services.domains.names import domain_of
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.login_redirect import origin_of
 from backend.app.services.session_service import SSO_METHOD
@@ -75,6 +79,8 @@ SSO_ERROR_CODES = frozenset(
         "sso_bad_state",
         "sso_tenant_mismatch",
         "sso_email_domain_not_allowed",
+        # the IdP sent no (usable) email address at all
+        "sso_email_missing",
         "sso_workspace_unavailable",
         "sso_seat_limit",
         "sso_account_conflict",
@@ -152,6 +158,13 @@ def _error_code(error: Exception) -> str:
     content = getattr(error, "content", None)
     code = content.get("code") if isinstance(content, dict) else None
     return code if code in SSO_ERROR_CODES else "sso_failed"
+
+
+def _error_claims(error: Exception) -> Optional[List[str]]:
+    """The claim names auth reports with a failed test's error (names only)."""
+    content = getattr(error, "content", None)
+    names = content.get("claim_names") if isinstance(content, dict) else None
+    return names if isinstance(names, list) else None
 
 
 def _error_context(error: Exception) -> Dict[str, Any]:
@@ -298,6 +311,10 @@ class SsoLoginService:
         }
         if email:
             params["login_hint"] = email
+        if context.get("p") == PURPOSE_TEST:
+            # a fresh sign-in at the IdP (account picker) and claim names back
+            params["test"] = "true"
+            params["protocol"] = connection.type.value
         try:
             reply = await self._http.get(
                 settings.auth_settings.BASE_URL + "/auth/sso/authorize",
@@ -346,7 +363,9 @@ class SsoLoginService:
                 if await self._check_nonce(
                     context, nonce
                 ) is None and await self._may_test(context, signed_in):
-                    await self._record_test_failure(context, error_code)
+                    await self._record_test_failure(
+                        context, error_code, claims=_error_claims(error)
+                    )
                 raise SsoRefused(
                     error_code, await self._test_result(context, error_code)
                 )
@@ -419,7 +438,11 @@ class SsoLoginService:
         if workspace is None or workspace.disabled:
             raise _Code("sso_workspace_unavailable")
         email = (profile.get("email") or "").strip().lower()
-        claim = await self._domains.sso_domain_claim(email) if email else None
+        if not email:
+            # auth refuses this already (sso_email_missing); never a
+            # domain question
+            raise _Code("sso_email_missing")
+        claim = await self._domains.sso_domain_claim(email)
         if claim is None or str(claim.workspace_id) != workspace_id:
             # the IdP vouched for an address outside this workspace's verified
             # domains (unverified, lost, or another workspace's): refused
@@ -510,7 +533,18 @@ class SsoLoginService:
         try:
             connection, _workspace, _email = await self._checked(profile, context)
         except _Code as refused:
-            await self._record_test_failure(context, refused.code)
+            # the domain only for a wrong domain, never the address
+            domain = (
+                domain_of(profile.get("email") or "")
+                if refused.code == "sso_email_domain_not_allowed"
+                else None
+            )
+            await self._record_test_failure(
+                context,
+                refused.code,
+                domain=domain,
+                claims=profile.get("claim_names"),
+            )
             raise SsoRefused(
                 refused.code, await self._test_result(context, refused.code)
             )
@@ -527,11 +561,17 @@ class SsoLoginService:
             )
         )
 
-    async def _record_test_failure(self, context: dict, code: str) -> None:
+    async def _record_test_failure(
+        self,
+        context: dict,
+        code: str,
+        domain: Optional[str] = None,
+        claims: Optional[List[str]] = None,
+    ) -> None:
         connection = await self._connections.get(context.get("c"))
         if connection is not None and str(connection.workspace_id) == context.get("ws"):
             await self._connection_service.record_test(
-                connection, context.get("u") or "", code
+                connection, context.get("u") or "", code, domain=domain, claims=claims
             )
 
 
