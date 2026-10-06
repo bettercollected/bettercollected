@@ -34,8 +34,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.workspace_roles import (
     WorkspaceRoles,
     canonical_role,
-    has_owner_role,
-    is_billing_owner,
+    is_owner_membership,
 )
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
@@ -103,7 +102,7 @@ class SsoPolicyService:
         self._domains = domain_service
         self._connections = connection_repo
         self._http_client = http_client
-        # the owners besides the billing owner (members with role OWNER)
+        # the memberships: who the owners are (an enabled one each)
         self._workspace_users = workspace_user_repo
 
     async def requiring_workspace(self, email: str) -> Optional[WorkspaceDocument]:
@@ -184,26 +183,28 @@ class SsoPolicyService:
         return None
 
     async def _owner_ids(self, workspace: WorkspaceDocument) -> List[str]:
-        """The workspace's owners: the billing owner, and the members holding
-        OWNER with an enabled membership."""
-        owners = [str(workspace.owner_id)] if workspace.owner_id else []
+        """The workspace's owners with an enabled membership: the billing
+        owner and the members holding OWNER. A disabled membership (or none)
+        is no owner here, the billing owner's included, as in
+        ``authorization_service``."""
         if self._workspace_users is None:
-            return owners
+            return [str(workspace.owner_id)] if workspace.owner_id else []
+        owners = []
         for membership in await self._workspace_users.get_workspace_users(
             workspace_id=workspace.id
         ):
             if (
                 not membership.disabled
-                and has_owner_role(membership.roles)
+                and is_owner_membership(workspace, membership)
                 and str(membership.user_id) not in owners
             ):
                 owners.append(str(membership.user_id))
         return owners
 
     async def _is_owner(self, workspace: WorkspaceDocument, user_id) -> bool:
-        if is_billing_owner(workspace, user_id):
-            return True
-        return str(user_id) in await self._owner_ids(workspace)
+        return user_id is not None and str(user_id) in await self._owner_ids(
+            workspace
+        )
 
     async def _is_owner_email(self, workspace: WorkspaceDocument, email: str) -> bool:
         owner_ids = await self._owner_ids(workspace)
