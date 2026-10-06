@@ -1,7 +1,7 @@
 """form responses: AI notice spine columns
 
-Revision ID: 0012
-Revises: 0011
+Revision ID: 0014
+Revises: 0013
 Create Date: 2026-10-06
 
 AI insights analyse only responses whose page showed the AI notice (#752):
@@ -16,8 +16,8 @@ from typing import Sequence, Union
 
 from alembic import op
 
-revision: str = "0012"
-down_revision: Union[str, None] = "0011"
+revision: str = "0014"
+down_revision: Union[str, None] = "0013"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

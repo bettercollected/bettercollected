@@ -293,7 +293,7 @@ class FormResponseRow(Base, BaseRow):
     expiration = S.text("expiration")
     expiration_type = S.text("expiration_type")
     state = S.text("state")
-    # AI insights read only responses whose page showed the notice (0012)
+    # AI insights read only responses whose page showed the notice (0014)
     ai_notice_provider_name = S.text("ai_notice_provider_name")
     ai_notice_shown_at = S.ts("ai_notice_shown_at")
     __table_args__ = (
