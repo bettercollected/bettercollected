@@ -118,7 +118,7 @@ export default function DeleteAccountModal() {
                         <SelectTrigger className="w-full min-w-[167px] !rounded-md !border-gray-600 !mb-0 text-black-900 !bg-white">
                             <SelectValue placeholder="Select a reason" />
                         </SelectTrigger>
-                        <SelectContent className="z-[35001]">
+                        <SelectContent>
                             {Reasons.map((reason: any, index: number) => (
                                 <SelectItem key={reason.value} value={reason.value} className="relative">
                                     {reason.title}
@@ -154,6 +154,7 @@ export default function DeleteAccountModal() {
                         <span className="text-red-500 ml-2">*</span>
                     </div>
                     <AppInput
+                        className="w-full"
                         onCut={handleCopyPaste}
                         onPaste={handleCopyPaste}
                         onCopy={handleCopyPaste}

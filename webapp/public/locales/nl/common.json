@@ -33,6 +33,7 @@
   },
   "BUTTON": {
     "ADD": "Toevoegen",
+    "CLOSE": "Sluiten",
     "ADD_MEMBERS": "Leden toevoegen",
     "SAVE_GROUP": "Groep opslaan",
     "ADD_REGEX": "Regex toevoegen",

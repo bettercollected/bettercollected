@@ -114,7 +114,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                 </div>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[320px] p-0 overflow-hidden bg-white z-[99999]"
+                className="w-[320px] p-0 overflow-hidden bg-white"
                 align="start"
                 onClick={() => setOpen(false)}
                 onInteractOutside={() => setOpen(false)}

@@ -35,7 +35,9 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <div className="h4-new">Select form closing date</div>
+                    <div id="close-date-label" className="h4-new">
+                        Select form closing date
+                    </div>
                     <Popover
                         open={isDatePickerOpen}
                         onOpenChange={(open: boolean) => {
@@ -43,13 +45,20 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                         }}
                     >
                         <PopoverTrigger asChild>
-                            <div className="border-black-300 text-black-700 hover:border-black-400 relative flex w-[280px] cursor-pointer items-center rounded-lg border bg-white p-2 text-left font-normal transition-colors">
-                                <CalendarIcon className="text-black-500 absolute left-2 h-4 w-4" />
-                                <div className="text-black-900 ml-8">{value ? format(value, 'PPP') : <span className="text-black-500">Pick a date</span>}</div>
-                            </div>
+                            {/* A real button, so the date picker opens from the keyboard too. */}
+                            <button
+                                type="button"
+                                aria-labelledby="close-date-label close-date-value"
+                                className="border-black-300 text-black-700 hover:border-black-400 focus-visible:ring-brand-500 relative flex w-[280px] max-w-full cursor-pointer items-center rounded-lg border bg-white p-2 text-left font-normal transition-colors focus:outline-none focus-visible:ring-2"
+                            >
+                                <CalendarIcon aria-hidden="true" className="text-black-500 absolute left-2 h-4 w-4" />
+                                <span id="close-date-value" className="text-black-900 ml-8">
+                                    {value ? format(value, 'PPP') : <span className="text-black-600">Pick a date</span>}
+                                </span>
+                            </button>
                         </PopoverTrigger>
 
-                        <PopoverContent className="custom-calendar text-black-900 z-[100000000] w-auto bg-white p-0">
+                        <PopoverContent className="custom-calendar text-black-900 w-auto bg-white p-0">
                             <Calendar
                                 mode="single"
                                 selected={value ? value : undefined} // Convert Dayjs to Date or pass undefined if value is null

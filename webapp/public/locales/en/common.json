@@ -33,6 +33,7 @@
   },
   "BUTTON": {
     "ADD": "Add",
+    "CLOSE": "Close",
     "ADD_MEMBERS": "Add Members",
     "SAVE_GROUP": "Save Group",
     "ADD_REGEX": "Add Regex",

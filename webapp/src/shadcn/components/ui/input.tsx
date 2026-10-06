@@ -39,7 +39,7 @@ const AppInput = React.forwardRef<HTMLInputElement, InputProps & { icon?: React.
             {icon && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-black-400 pointer-events-none">
                 {icon}
             </span>}
-            <input type={type} className={cn(`border-black-200 focus:border-black-400  rounded-xl border px-3 py-2 text-[12px] focus:ring-transparent disabled:cursor-not-allowed disabled:opacity-80`, className, icon && "pl-10")} ref={ref} {...props} />
+            <input type={type} className={cn(`border-black-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl border px-3 py-2 text-[12px] disabled:cursor-not-allowed disabled:opacity-80`, className, icon && "pl-10")} ref={ref} {...props} />
         </span>
     );
 });

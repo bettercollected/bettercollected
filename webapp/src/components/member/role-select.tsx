@@ -25,7 +25,8 @@ export default function RoleSelect({ value, onChange, disabled, ariaLabel, class
             <SelectTrigger aria-label={ariaLabel} className={className ?? 'h-9 w-[180px] bg-white'}>
                 <SelectValue />
             </SelectTrigger>
-            <SelectContent className="max-w-[340px] bg-white">
+            {/* As wide as the trigger (never narrower, or descriptions are clipped), at least wide enough to read them, never wider than the screen. */}
+            <SelectContent className="w-[var(--radix-select-trigger-width)] min-w-[280px] max-w-[calc(100vw-2rem)] bg-white">
                 {roles.map((role) => (
                     <SelectPrimitive.Item
                         key={role}

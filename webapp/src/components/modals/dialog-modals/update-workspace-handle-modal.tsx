@@ -89,7 +89,7 @@ export default function UpdateWorkspaceHandle() {
                     {window.PUBLIC_CONFIG?.HTTP_SCHEME}
                     {window.PUBLIC_CONFIG?.FORM_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>
                 </div>
-                <AppInput value={updateText} onChange={handleUpdateChange} />
+                <AppInput className="w-full" value={updateText} onChange={handleUpdateChange} />
                 {errorMessage && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}
                 {error && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}
                 <Button className="w-full mt-2" disabled={error || isLoading} data-testid="save-button" type="submit" >

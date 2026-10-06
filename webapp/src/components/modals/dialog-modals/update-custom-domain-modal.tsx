@@ -65,6 +65,7 @@ export default function UpdateCustomDomainModal() {
                 <div className="text-start max-w-full mb-4 body4 !text-black-700">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE')}</div>
                 <h1 className={'body3 !text-black-800 mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>
                 <AppInput
+                    className="w-full"
                     placeholder={t(placeHolder.enterCustomDomain)}
                     value={updateText}
                     onChange={(e) => {

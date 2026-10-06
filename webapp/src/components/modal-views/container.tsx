@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next';
+
+import { buttonConstant } from '@app/constants/locales/button';
 import { Fragment, useCallback } from 'react';
 
 import AddActionToFormModal from '@Components/modals/dialog-modals/add-action-to-form-modal';
@@ -98,6 +101,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
 
 export default function ModalContainer() {
     const { view, isOpen, closeModal, modalProps } = useModal();
+    const { t } = useTranslation();
 
     const closeModalHandler = useCallback(() => {
         if (!modalProps?.nonClosable) closeModal();
@@ -105,7 +109,7 @@ export default function ModalContainer() {
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div" className="3xl:p-12 fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10" onClose={closeModalHandler}>
+            <Dialog as="div" className="3xl:p-12 fixed inset-0 z-modal h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10" onClose={closeModalHandler}>
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                     <DialogBackdrop className="fixed inset-0 z-40 cursor-pointer bg-gray-700 bg-opacity-60 backdrop-blur" />
                 </Transition.Child>
@@ -119,7 +123,7 @@ export default function ModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    <Button size="sm" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
+                    <Button aria-label={t(buttonConstant.close)} size="sm" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
                         <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>

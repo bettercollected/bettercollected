@@ -48,4 +48,11 @@ describe('"Before you publish" dialog', () => {
         expect(screen.getByTestId('publish-recommendations')).toHaveTextContent('"Email"');
         expect(screen.queryByRole('button', { name: 'Publish anyway' })).not.toBeInTheDocument();
     });
+
+    it('sits on an opaque surface above the backdrop, so its text stays readable', () => {
+        renderDialog([reason], undefined);
+        const dialog = screen.getByRole('dialog', { name: 'Before you publish' });
+        expect(dialog.className.split(' ')).toContain('bg-white');
+        expect(dialog.className.split(' ')).toContain('z-modal');
+    });
 });

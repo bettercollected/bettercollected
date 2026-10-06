@@ -1,6 +1,6 @@
 import SearchBySubmissionNumber from '@Components/responder-portal/search-by-submission-number';
 
-import { Close } from '@app/components/icons/close';
+import ModalCloseButton from '@app/components/modal-views/modal-close-button';
 import { useModal } from '@app/components/modal-views/context';
 
 export default function SearchBySubmissionNumberModal() {
@@ -9,9 +9,7 @@ export default function SearchBySubmissionNumberModal() {
     return (
         <div className="w-full flex justify-center">
             <div className=" relative max-w-[367px]">
-                <div className="absolute top-5 right-5" onClick={closeModal}>
-                    <Close />
-                </div>
+                <ModalCloseButton onClick={closeModal} className="absolute right-4 top-4 h-8 w-8" iconClassName="h-6 w-6" />
                 <SearchBySubmissionNumber />
             </div>
         </div>

@@ -69,7 +69,7 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
             )}
 
             <div className="flex flex-col gap-2.5">
-                <span className="text-black-500 text-xs font-medium uppercase tracking-wide">Or share on</span>
+                <span className="text-black-600 text-xs font-medium uppercase tracking-wide">Or share on</span>
                 <div className="flex items-center gap-3">
                     <TwitterShareButton url={url}>
                         <SocialButton label="Share on X">

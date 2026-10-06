@@ -75,7 +75,7 @@ export default function PageDesignTab() {
                         <SelectTrigger aria-label="Pick a theme by name" className="border-black-300 h-9 w-full bg-white text-xs">
                             <SelectValue placeholder="Pick a theme…" />
                         </SelectTrigger>
-                        <SelectContent className="z-[100000] bg-white">
+                        <SelectContent className="bg-white">
                             {savedThemes.length > 0 && (
                                 <SelectGroup>
                                     <SelectLabel className="text-black-500 text-[11px] font-semibold uppercase tracking-wide">Your themes</SelectLabel>
