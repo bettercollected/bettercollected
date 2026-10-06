@@ -412,7 +412,11 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   so parallel uploads cannot both pass. The write is `replay=True` and raises
   `ImportLimitReached` on refusal, so the mirror never re-runs the check. The
   service's earlier count is only a cheap look; a start refused at the insert
-  deletes the draft it created.
+  deletes the draft it created. A start that waits longer than `LOCK_WAIT_S`
+  for the lock is refused as `import_in_progress` in both stores (Postgres sets
+  `lock_timeout` for the transaction instead of failing with the session's).
+  `test_repository_parity.py` pauses every start between its counts and its
+  insert, so the parallel test fails every time the lock is missing.
 - **The draft form is created at upload**, and the original is stored under
   `private/<workspace>/<form>/imports/<import>/`, so deleting the form deletes it.
   Import records are deleted with their forms (`WorkspaceFormService`).
@@ -423,6 +427,15 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   record stays with `form_id = None` and a note in `report.notes`; review and page
   images then answer 404, and the webapp's failed screen says the draft was
   removed. A draft the user already edited or published is kept.
+- **Every failure has an `error_code`** (API `errorCode`) next to the English
+  `error`: the refusal code (`encrypted`, `unreadable`, `too_many_pages`,
+  `too_large`, `too_complex`, `timeout`, `empty`, ...), `no_questions` (compile
+  found nothing to ask: failing beats an empty draft), `unavailable`
+  (`give_up`), `failed` (unexpected), and `waiting_for_reader` while queued for
+  a retry. The webapp translates by code (`builder` namespace,
+  `PDF_IMPORT.ERROR.<code>`, EN + NL, `components/pdf-import/import-failure.tsx`);
+  a new code needs both locales. Logs carry the import id and code, never the
+  file name or document text.
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.

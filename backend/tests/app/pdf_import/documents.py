@@ -50,7 +50,9 @@ def _font(name: str) -> bytes:
 def text_pdf(
     lines: Optional[List[str]] = None, font: str = "Helvetica", pages: int = 1
 ) -> bytes:
-    """A vector form: text lines and one answer box per page, in ``font``."""
+    """A vector form: text lines and one answer box per page, in ``font``,
+    beside the second line (the first when there is only one), so the
+    built-in reader finds a question in it."""
     lines = lines or ["Application form", "Full name", "Email address"]
     text = b"".join(
         b"BT /F1 12 Tf 72 "
@@ -60,7 +62,8 @@ def text_pdf(
         + b") Tj ET\n"
         for i, line in enumerate(lines)
     )
-    content = text + b"200 640 250 20 re S\n"
+    box_y = 720 - 30 * min(1, len(lines) - 1) - 6
+    content = text + f"200 {box_y} 250 20 re S\n".encode()
     page_ids = [4 + 2 * i for i in range(pages)]
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",

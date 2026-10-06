@@ -36,6 +36,8 @@ class PdfImportDto(CamelModel):
     status: str
     stage: Optional[str] = None
     error: Optional[str] = None
+    # stable reason for ``error``, for the screens to translate
+    error_code: Optional[str] = None
     file_name: str
     content_type: str
     size_bytes: int
@@ -55,6 +57,7 @@ class PdfImportDto(CamelModel):
             status=record.status,
             stage=record.stage,
             error=record.error,
+            error_code=record.error_code,
             file_name=record.file_name,
             content_type=record.content_type,
             size_bytes=record.size_bytes,

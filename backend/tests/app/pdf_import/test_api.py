@@ -119,7 +119,11 @@ async def test_each_kind_of_document_gets_its_route(
         await service.wait_for_background_imports()
         for name, (_, expected) in cases.items():
             done = await finished(client, workspace, test_user_cookies, ids[name])
-            assert done["status"] == ImportStatus.COMPLETED, (name, done)
+            # without an AI provider the image routes find nothing to ask:
+            # those imports end with "no questions", not an empty draft
+            assert done["status"] == ImportStatus.COMPLETED or (
+                done["errorCode"] == "no_questions"
+            ), (name, done)
             assert [p["route"] for p in done["pages"]] == expected, name
     finally:
         limits().CONCURRENT_IMPORTS_PER_WORKSPACE = previous
@@ -258,8 +262,12 @@ async def test_photo_uploads_have_no_text_stage_work(
         client, workspace, test_user_cookies, documents.photo_png(), "photo.png"
     )
     done = await finished(client, workspace, test_user_cookies, response.json()["id"])
-    assert done["status"] == ImportStatus.COMPLETED
+    record = await container.form_import_repo().get(done["id"])
+    assert record.stages["text"]["skipped"] == "image upload: no text layer"
     assert not [k for k in store.objects if k.endswith("/text.json")]
+    # without an AI provider a photo has nothing the built-in reader can ask
+    assert done["status"] == ImportStatus.FAILED
+    assert done["errorCode"] == "no_questions" and done["formId"] is None
 
 
 async def test_layout_primitives_are_stored_next_to_the_original(
@@ -418,7 +426,10 @@ async def _import_with(client, workspace, cookies, no_real_ai_provider, **form):
         )
         assert response.status_code == 202, response.text
         done = await finished(client, workspace, cookies, response.json()["id"])
-    assert done["status"] == ImportStatus.COMPLETED, done
+    # the fake answers nothing usable: with it the import may find no questions
+    assert done["status"] == ImportStatus.COMPLETED or (
+        done["errorCode"] == "no_questions"
+    ), done
     return done, provider
 
 
@@ -936,5 +947,111 @@ async def test_giving_up_on_the_sandbox_removes_the_empty_draft(
         module.RETRY_DELAYS_S = delays
     assert done["status"] == ImportStatus.FAILED
     assert done["report"]["refused"] == "unavailable"
+    assert done["errorCode"] == "unavailable"
     assert "try again later" in done["error"]
     assert done["formId"] is None and await _gone(body["formId"])
+
+
+def _refusing_stage(code, message):
+    from backend.app.services.pdf_import.analysis import DocumentRefused
+
+    async def stage(record, data):
+        raise DocumentRefused(code, message)
+
+    return stage
+
+
+async def _crashing_stage(record, data):
+    raise RuntimeError("unexpected")
+
+
+# every way a running import can end without a draft ("unavailable" is the
+# test above): code -> (the uploaded file, what to change for it)
+FAILURES = {
+    "encrypted": lambda: (documents.encrypted_pdf(), None),
+    "unreadable": lambda: (b"%PDF-1.4\n" + b"\x00garbage" * 64, None),
+    "too_many_pages": lambda: (documents.text_pdf(pages=3), ("MAX_PAGES", 2)),
+    "timeout": lambda: (
+        documents.text_pdf(),
+        ("stage", _refusing_stage("timeout", "This document took too long to read.")),
+    ),
+    "too_complex": lambda: (
+        documents.text_pdf(),
+        ("stage", _refusing_stage("too_complex", "Too much content.")),
+    ),
+    "no_questions": lambda: (documents.photo_png(), None),
+    "failed": lambda: (documents.text_pdf(), ("stage", _crashing_stage)),
+}
+
+
+@pytest.mark.parametrize("code", sorted(FAILURES))
+async def test_every_kind_of_failed_import_says_why_and_leaves_no_draft(
+    client, workspace, test_user_cookies, store, code
+):
+    """Whatever stopped the import, the record keeps a stable error code and a
+    message for the screens, and no empty draft is left in the forms list. The
+    log never names the file or quotes the document."""
+    from loguru import logger
+
+    data, change = FAILURES[code]()
+    pipeline, settings_ = container.pdf_import_pipeline(), limits()
+    previous_pages = settings_.MAX_PAGES
+    if change and change[0] == "MAX_PAGES":
+        settings_.MAX_PAGES = change[1]
+    if change and change[0] == "stage":
+        pipeline.stages = lambda: [("analyze", change[1])]
+    lines = []
+    sink = logger.add(lambda message: lines.append(str(message)), level="DEBUG")
+    try:
+        before = await _forms_in(workspace)
+        response = await upload(
+            client, workspace, test_user_cookies, data, "Confidential intake 4711.pdf"
+        )
+        assert response.status_code == 202, response.text
+        body = response.json()
+        done = await finished(client, workspace, test_user_cookies, body["id"])
+    finally:
+        logger.remove(sink)
+        settings_.MAX_PAGES = previous_pages
+        if "stages" in vars(pipeline):
+            del pipeline.stages  # back to the class's stages
+
+    assert done["status"] == ImportStatus.FAILED, done
+    assert done["errorCode"] == code and done["error"]
+    assert done["formId"] is None and await _gone(body["formId"])
+    assert await _forms_in(workspace) == before
+    assert "The empty draft form was removed" in " ".join(done["report"]["notes"])
+    # the failed import no longer holds the workspace's import slot
+    assert await container.form_import_repo().count_active(workspace.id) == 0
+    logged = "\n".join(lines)
+    assert f"form import {body['id']}" in logged  # the sink saw the import's log
+    assert "Confidential" not in logged and "4711" not in logged
+    assert "Full name" not in logged and "Application form" not in logged
+
+
+async def test_a_retried_import_clears_the_previous_error(
+    client, workspace, test_user_cookies, store
+):
+    """An import queued again after "waiting for the reader" starts without
+    the old error, so the screen does not show a stale one."""
+    import backend.app.services.pdf_import_service as module
+
+    dispatch = module.PdfImportService._dispatch
+
+    async def no_dispatch(self, import_id):
+        return None
+
+    module.PdfImportService._dispatch = no_dispatch
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.text_pdf()
+        )
+    finally:
+        module.PdfImportService._dispatch = dispatch
+    repo = container.form_import_repo()
+    record = await repo.get(response.json()["id"])
+    record.error, record.error_code = "Waiting", "waiting_for_reader"
+    await repo.save(record)
+    done = await container.pdf_import_pipeline().run(record.id)
+    assert done.status == ImportStatus.COMPLETED
+    assert done.error is None and done.error_code is None
