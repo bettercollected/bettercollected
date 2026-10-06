@@ -11,7 +11,7 @@ const DeleteDomainDropdown = () => {
         <div>
             <DropdownMenu>
                 <DropdownMenuTrigger className="outline-none">
-                    <Button className="!p-1 outline-none" variant={'v2GhostButton'} icon={<MoreVertical width={24} height={24} className="text-black-700" />}></Button>
+                    <Button aria-label="Domain actions" className="!p-1 outline-none" variant={'v2GhostButton'} icon={<MoreVertical width={24} height={24} className="text-black-700" />}></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="!z-[1000000] bg-white">
                     <DropdownMenuItem
