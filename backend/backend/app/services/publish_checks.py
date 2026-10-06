@@ -129,9 +129,9 @@ def _unanswerable_reason(field: Any) -> Optional[str]:
     field_type = _type_value(field)
     properties = _get(field, "properties")
     if field_type in DISPLAY_ONLY_TYPES:
-        return "it shows content but has nothing to answer"
+        return "it only shows content"
     if field_type == "group" and not _get(properties, "repeat"):
-        return "it is a group heading with nothing to answer"
+        return "it is only a group heading"
     if field_type in CHOICE_TYPES:
         choices = _get(properties, "choices") or []
         if not any(_choice_text(choice) for choice in choices):

@@ -270,6 +270,38 @@ async def test_publish_endpoint_answers_422_with_the_problems(
     ]
 
 
+def test_the_builder_payload_keeps_the_reason():
+    """The builder saves camelCase through _parse_form_body's DTO."""
+    import json
+
+    from backend.app.controllers.workspace_forms import _parse_form_body
+
+    body = {
+        "title": "Form",
+        "fields": [
+            {
+                "id": "page-1",
+                "type": "slide",
+                "properties": {
+                    "fields": [
+                        {
+                            "id": "e",
+                            "type": "email",
+                            "title": "Email",
+                            "properties": {"whyWeAsk": "To send a receipt."},
+                        }
+                    ]
+                },
+            }
+        ],
+    }
+    form = _parse_form_body(json.dumps(body))
+    assert form.fields[0].properties.fields[0].properties.why_we_ask == (
+        "To send a receipt."
+    )
+    assert publish_problems(form) == []
+
+
 def test_ai_ops_set_and_clear_the_reason():
     add = {
         "op": "add_field",

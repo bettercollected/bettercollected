@@ -68,8 +68,8 @@ export function hasPresetAnswer(field: StandardFormFieldDto): boolean {
 
 function unanswerableReason(field: StandardFormFieldDto): string | null {
     const type = field?.type;
-    if (DISPLAY_ONLY_TYPES.includes(type)) return 'it shows content but has nothing to answer';
-    if (type === FieldTypes.GROUP && !field?.properties?.repeat) return 'it is a group heading with nothing to answer';
+    if (DISPLAY_ONLY_TYPES.includes(type)) return 'it only shows content';
+    if (type === FieldTypes.GROUP && !field?.properties?.repeat) return 'it is only a group heading';
     if (CHOICE_TYPES.includes(type) && !(field?.properties?.choices ?? []).some((choice) => choiceText(choice))) return 'it has no options to choose from';
     if (type === FieldTypes.MATRIX) {
         const rows = field?.properties?.fields ?? [];
