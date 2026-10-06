@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { ArrowDown } from '@Components/icons/arrow-down';
-import RequiredIcon from '@Components/icons/required';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import { Editor, EditorProvider, JSONContent, useCurrentEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -155,7 +154,16 @@ export function RichTextEditor({
     }, [debouncedInputValue]);
 
     return (
-        <div className="tiptap group relative flex w-full justify-between">
+        <div
+            className={cn(
+                'tiptap group relative flex w-full',
+                // Required: the star follows the title's last word, as respondents
+                // see it, instead of sitting at the far end of the line. A CSS
+                // marker, so it is never part of the editable title text.
+                isRequired && "[&_.ProseMirror>p:last-child]:after:ml-1.5 [&_.ProseMirror>p:last-child]:after:text-[#C43D3D] [&_.ProseMirror>p:last-child]:after:content-['*']"
+            )}
+            data-required={isRequired ? 'true' : undefined}
+        >
             <EditorProvider
                 content={getContentForEditor()}
                 extensions={editorExtensions}
@@ -184,11 +192,6 @@ export function RichTextEditor({
             >
                 {''}
             </EditorProvider>
-            {isRequired && (
-                <div className="h-5 w-5">
-                    <RequiredIcon />
-                </div>
-            )}
         </div>
     );
 }
