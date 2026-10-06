@@ -59,6 +59,13 @@ class Application(BaseSettings):
     # Comma-separated emails that are platform admins (ADMIN role), on top of
     # any ADMIN stored on the user; see app/services/platform_admins.py.
     PLATFORM_ADMIN_EMAILS: Optional[str] = ""
+    # Comma-separated URL prefixes of this instance's public storage (the
+    # backend's AWS_PUBLIC_URL or AWS_ENDPOINT_URL, plus "/<bucket>/public/").
+    # A workspace image the backend passes for a verification-code mail is
+    # shown only from there; anything else falls back to an initial.
+    MAIL_IMAGE_URL_PREFIXES: Optional[str] = (
+        "https://s3.eu-central-1.wasabisys.com/bettercollected/public/"
+    )
     # Shared with the backend (and integrations/google): every route except
     # /ready and POST /stripe/webhooks needs it in X-Internal-Key
     # (controllers/internal_key.py). Named after the first route it guarded;

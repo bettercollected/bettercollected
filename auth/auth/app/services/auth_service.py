@@ -2,6 +2,7 @@ import calendar
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import jwt
 from beanie import PydanticObjectId
@@ -15,7 +16,14 @@ from pydantic import EmailStr
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
-from auth.app.services.mail_service import MailService
+from auth.app.services.mail_service import (
+    MailService,
+    is_sender_name,
+    one_line,
+    render,
+    sender_name,
+    storage_image_url,
+)
 from auth.app.services.platform_admins import roles_for
 from auth.config import settings
 
@@ -145,8 +153,8 @@ class AuthService:
     async def send_otp_to_mail(
         self,
         receiver_mail: EmailStr,
-        workspace_title: str,
-        workspace_profile_image: str,
+        workspace_title: Optional[str],
+        workspace_profile_image: Optional[str],
         creator: bool,
     ):
         otp = self.generate_otp()
@@ -169,25 +177,27 @@ class AuthService:
                 creator=creator,
             )
 
-        template_body = {
-            "sender": workspace_title,
-            "otp": otp,
-            "workspace_profile_image": workspace_profile_image,
-            "image_alternative": workspace_title[0],
-        }
+        # From and subject are this instance's; the workspace title is
+        # caller-supplied and only shown in the body (#761)
+        product = sender_name()
+        title = one_line(workspace_title)
+        if is_sender_name(title):
+            title = None
+        image_url = storage_image_url(workspace_profile_image)
         message = MessageSchema(
-            subject=f"{workspace_title} identity verification code",
+            subject=f"Your {product} verification code",
             recipients=[receiver_mail],
-            template_body=template_body,
+            body=render(
+                "verification_code.html",
+                product=product,
+                workspace_title=title,
+                otp=otp,
+                image_url=image_url,
+                initial=(title or product)[:1].upper(),
+            ),
             subtype="html",
         )
-        mail_service = MailService(organization_name=workspace_title)
-        if workspace_profile_image:
-            await mail_service.send_async_mail(message, "verification_code.html")
-        else:
-            await mail_service.send_async_mail(
-                message, "verification_code_without_image.html"
-            )
+        await MailService().send_message(message)
 
     def generate_otp(self):
         alphabets = string.ascii_uppercase + string.digits

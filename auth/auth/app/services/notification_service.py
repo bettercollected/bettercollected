@@ -13,31 +13,26 @@ the client host, which serves every workspace's pages too.
 import re
 import time
 from collections import defaultdict, deque
-from pathlib import Path
 from typing import Deque, Dict, List, Optional, Tuple
 from urllib.parse import urlsplit
 
 from fastapi_mail import MessageSchema
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 from loguru import logger
 
-from auth.app.services.mail_service import MailService
+from auth.app.services.mail_service import (  # noqa: F401 — one_line re-exported
+    MailService,
+    one_line,
+    render,
+)
 from auth.config import settings
 
-TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 SUBMISSION_UPDATE_TEMPLATE = "submission_update.html"
 # /<workspace handle>/submissions/<response id>, as the backend builds it
 _SUBMISSION_PATH = re.compile(
     r"/[A-Za-z0-9._~%-]{1,200}/submissions/[A-Za-z0-9-]{1,64}"
 )
-MAX_TITLE_LENGTH = 200
 # Per signed-in sender and process: a burst guard, not an accounting limit.
 NOTICES_PER_HOUR = 300
-
-_environment = Environment(
-    loader=FileSystemLoader(str(TEMPLATES)),
-    autoescape=select_autoescape(default=True, default_for_string=True),
-)
 
 
 def _origin_and_prefix(base_url: Optional[str]) -> Optional[Tuple[str, str]]:
@@ -81,22 +76,14 @@ def is_allowed_submission_link(link: str) -> bool:
     return False
 
 
-def one_line(value: Optional[str], limit: int = MAX_TITLE_LENGTH) -> Optional[str]:
-    """Whitespace (line breaks included) collapsed, capped: safe for a
-    subject header and a sentence."""
-    if value is None:
-        return None
-    value = " ".join(value.split())
-    if len(value) > limit:
-        value = value[: limit - 1].rstrip() + "…"
-    return value or None
-
-
 def render_submission_update(
     form_title: str, workspace_title: Optional[str], link: str
 ) -> str:
-    return _environment.get_template(SUBMISSION_UPDATE_TEMPLATE).render(
-        form_title=form_title, workspace_title=workspace_title, link=link
+    return render(
+        SUBMISSION_UPDATE_TEMPLATE,
+        form_title=one_line(form_title),
+        workspace_title=one_line(workspace_title),
+        link=link,
     )
 
 
@@ -126,16 +113,16 @@ class NotificationService:
         the response was sent: failures are logged without the address."""
         try:
             message = MessageSchema(
-                subject=f"Update on your submission to {form_title}",
+                # fixed wording: the form and workspace titles are chosen by
+                # the workspace and appear only in the body (#761)
+                subject="Update on your submission",
                 recipients=[recipient],
                 body=render_submission_update(form_title, workspace_title, link),
                 subtype="html",
             )
-            # The sender name is always this instance's: a workspace title
-            # would let anyone with a workspace pose as any sender. It appears
-            # only in the body.
-            await MailService(
-                organization_name=settings.ORGANIZATION_NAME
-            ).send_message(message)
+            # The sender name is always this instance's (MailService): a
+            # workspace title would let anyone with a workspace pose as any
+            # sender. It appears only in the body.
+            await MailService().send_message(message)
         except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
             logger.warning(f"Submission update notice not sent ({type(exc).__name__})")

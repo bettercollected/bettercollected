@@ -88,26 +88,30 @@ class TestSubmissionUpdateNotice:
         assert response.status_code == 503
         sent.assert_not_called()
 
-    def test_the_sender_name_is_always_this_instances(self, app_runner):
-        with patch.object(
-            notification_service.MailService, "send_message", new_callable=AsyncMock
-        ), patch.object(
-            notification_service.MailService, "__init__", return_value=None
-        ) as init:
+    def test_the_sender_name_is_always_this_instances(self, app_runner, monkeypatch):
+        monkeypatch.setattr(settings, "ORGANIZATION_NAME", "BetterCollected")
+        with patch.object(notification_service, "MailService") as mail_service:
+            mail_service.return_value.send_message = AsyncMock()
             response = app_runner.post(
                 URL,
                 json=notice(workspace_title="PayPal Security"),
                 headers=bearer(),
             )
         assert response.status_code == 200, response.text
-        assert init.call_args.kwargs["organization_name"] == settings.ORGANIZATION_NAME
+        # MailService takes no sender name: it is always ORGANIZATION_NAME
+        # (see test_mail_content.py)
+        mail_service.assert_called_once_with()
+        message = mail_service.return_value.send_message.await_args.args[0]
+        assert "PayPal" not in message.subject
+        assert "PayPal Security" in message.body
 
     def test_sends_a_fixed_notice(self, app_runner, sent):
         response = app_runner.post(URL, json=notice(), headers=bearer())
         assert response.status_code == 200, response.text
         sent.assert_awaited_once()
         message = sent.await_args.args[0]
-        assert message.subject == "Update on your submission to Job application"
+        assert message.subject == "Update on your submission"
+        assert "Job application" in message.body
         assert [r.email for r in message.recipients] == ["applicant@example.com"]
         assert f'href="{LINK}"' in message.body
         assert "Acme Hiring" in message.body

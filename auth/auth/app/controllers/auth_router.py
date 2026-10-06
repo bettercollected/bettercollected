@@ -1,6 +1,7 @@
 """Auth controller implementation."""
 
 import logging
+from typing import Optional
 
 from beanie import PydanticObjectId
 
@@ -15,6 +16,7 @@ from common.models.user import (
     User,
 )
 
+from fastapi import Query
 from pydantic import EmailStr
 
 from starlette.background import BackgroundTasks
@@ -41,10 +43,12 @@ class AuthRoutes(Routable):
     async def _send_otp_to_email(
         self,
         receiver_email: EmailStr,
-        workspace_title: str,
-        workspace_profile_image: str,
         creator: bool,
         background_tasks: BackgroundTasks,
+        # shown in the mail body only, never in From or the subject (#761);
+        # the image only from this instance's storage (MAIL_IMAGE_URL_PREFIXES)
+        workspace_title: Optional[str] = Query(None, max_length=1000),
+        workspace_profile_image: Optional[str] = Query(None, max_length=2000),
     ):
         background_tasks.add_task(
             self.auth_service.send_otp_to_mail,
