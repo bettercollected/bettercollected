@@ -444,6 +444,42 @@ async def test_every_owner_keeps_the_break_glass(
         await policy.code_sign_in_scope(co_owner.sub, user_id=co_owner.id)
 
 
+async def test_a_disabled_billing_owner_has_no_break_glass(
+    client: AsyncClient, sso_workspace, sso_on
+):
+    """The billing owner's break-glass needs an enabled membership too, like
+    every other owner's (and like their permissions): a disabled one (data
+    from before several owners, or set by hand) is refused (#770)."""
+    workspace, _ = sso_workspace
+    reply = await client.put(
+        _sso(workspace, "/settings"),
+        json={"ssoRequired": True},
+        cookies=_cookies(testUser),
+    )
+    assert reply.status_code == 200, reply.text
+    # co_owner (on the SSO domain) becomes the billing owner, with ADMIN as
+    # the stored role so only owner_id makes them an owner
+    assert await container.workspace_repo().set_owner_if(
+        workspace.id, str(testUser.id), co_owner.id
+    )
+    membership = await _membership(workspace.id, co_owner)
+    membership.roles = [WorkspaceRoles.ADMIN]
+    await container.workspace_user_repo().save(membership)
+
+    policy = container.sso_policy_service()
+    assert await policy.code_sign_in_scope(co_owner.sub, user_id=co_owner.id) is None
+    otp_session = await _session(co_owner.id)
+    assert not await policy.session_must_end(co_owner.sub, otp_session, co_owner.id)
+
+    membership.disabled = True
+    await container.workspace_user_repo().save(membership)
+    with pytest.raises(Exception) as refused:
+        await policy.code_sign_in_scope(co_owner.sub, user_id=co_owner.id)
+    assert "sso_required" in str(refused.value.content)
+    assert await policy.session_must_end(co_owner.sub, otp_session, co_owner.id)
+    assert not await _permissions(co_owner, workspace.id)
+
+
 # -- the directory (SCIM) -----------------------------------------------------
 
 JANE = "jane@" + DOMAIN

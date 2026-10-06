@@ -47,8 +47,8 @@ Every workspace-scoped access decision goes through `services/authorization_serv
 (docs/enterprise-access-model.md). Services name the permission an action needs —
 `authorize(user, Permission.X, workspace_id, form_id=None)` raises 403 (then 404 when `form_id` is
 not a form of that workspace), `has_permission(...)` returns a bool for "staff view or public view"
-branches. Never compare `owner_id` or roles in a service, and never call the repository's
-`has_user_access_in_workspace` / `is_user_admin_in_workspace` for access.
+branches. Never compare `owner_id` or roles in a service, and never decide access from a
+membership read directly: access goes through `AuthorizationService`.
 
 - **Catalogue:** `models/enum/permission.py` (`workspace.manage`, `members.manage`, `form.edit`,
   `response.read`, ...). **Roles** (`models/enum/workspace_roles.py`, mapped in
