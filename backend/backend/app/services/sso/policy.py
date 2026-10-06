@@ -7,11 +7,11 @@ takes effect while the instance has SSO switched on, the workspace is
 available and it has an enabled connection: if any of those is missing the
 members could not sign in with SSO either, so nothing is refused.
 
-**Break-glass:** the workspace owner may still sign in with an email code,
-so a broken identity provider cannot lock everyone out of the workspace.
-Google sign-in stays refused for the owner too: the code proves the owner's
-mailbox; a Google account on the same address is a second path we don't
-need.
+**Break-glass:** the workspace's owners (the billing owner and every member
+with role OWNER) may still sign in with an email code, so a broken identity
+provider cannot lock everyone out of the workspace. Google sign-in stays
+refused for owners too: the code proves the owner's mailbox; a Google
+account on the same address is a second path we don't need.
 
 **Respondents:** the requirement covers the dashboard and the workspace's
 own forms. On *another* workspace's forms such an address may still verify
@@ -20,7 +20,7 @@ workspace permissions, no creator or admin role).
 
 **Refresh:** while the requirement holds, a session for an address on those
 domains that did not sign in with SSO ends at its next refresh, member or
-not, except the owner's email-code sessions and respondent-scoped ones.
+not, except the owners' email-code sessions and respondent-scoped ones.
 See docs/sso.md.
 """
 
@@ -31,7 +31,12 @@ from beanie import PydanticObjectId
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.workspace_roles import WorkspaceRoles, canonical_role
+from backend.app.models.enum.workspace_roles import (
+    WorkspaceRoles,
+    canonical_role,
+    has_owner_role,
+    is_billing_owner,
+)
 from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -51,7 +56,7 @@ SSO_REQUIRED = "sso_required"
 # The accepted design's default (docs/enterprise-access-model.md): Viewer.
 DEFAULT_SSO_ROLE = WorkspaceRoles.VIEWER
 
-# What the owner may pick as the SSO default, highest first. Admin and
+# What an owner may pick as the SSO default, highest first. Owner, Admin and
 # Privacy officer are granted by hand, never by an identity provider.
 SSO_ASSIGNABLE_ROLES = (
     WorkspaceRoles.EDITOR,
@@ -92,11 +97,14 @@ class SsoPolicyService:
         domain_service: WorkspaceDomainService,
         connection_repo: SsoConnectionRepository,
         http_client=None,
+        workspace_user_repo=None,
     ):
         self._workspace_repo = workspace_repo
         self._domains = domain_service
         self._connections = connection_repo
         self._http_client = http_client
+        # the owners besides the billing owner (members with role OWNER)
+        self._workspace_users = workspace_user_repo
 
     async def requiring_workspace(self, email: str) -> Optional[WorkspaceDocument]:
         """The workspace whose SSO requirement covers ``email``, if any."""
@@ -116,7 +124,7 @@ class SsoPolicyService:
         self, email: str, user_id: Optional[str] = None
     ) -> None:
         """Refuse a full email-code sign-in (the dashboard) for an
-        SSO-required address, unless it is the workspace owner's
+        SSO-required address, unless it is one of the workspace's owners'
         (break-glass). ``user_id``: the account, once known."""
         await self.code_sign_in_scope(email, user_id=user_id)
 
@@ -129,18 +137,18 @@ class SsoPolicyService:
         """What an email-code sign-in for ``email`` may become: None for a
         full session, ``respondent`` for a session limited to answering the
         forms of ``workspace_id`` (another workspace than the one requiring
-        SSO). Raises 403 ``sso_required`` otherwise. The workspace owner keeps
-        full email-code sign-in (break-glass)."""
+        SSO). Raises 403 ``sso_required`` otherwise. The workspace's owners
+        keep full email-code sign-in (break-glass)."""
         workspace = await self.requiring_workspace(email)
         if workspace is None:
             return None
         if user_id is not None:
-            is_owner = str(workspace.owner_id) == str(user_id)
+            is_owner = await self._is_owner(workspace, user_id)
         else:
             is_owner = await self._is_owner_email(workspace, email)
         if is_owner:
             logger.info(
-                "SSO break-glass: the owner of workspace {} used an email code",
+                "SSO break-glass: an owner of workspace {} used an email code",
                 workspace.id,
             )
             return None
@@ -151,14 +159,14 @@ class SsoPolicyService:
     async def session_must_end(self, email: str, session, user_id: str) -> bool:
         """Whether a session has to end at refresh because its address's
         domain requires single sign-on: any session that did not sign in
-        with SSO, except the owner's email-code sessions (break-glass) and
+        with SSO, except the owners' email-code sessions (break-glass) and
         respondent-scoped sessions."""
         if session.method == SSO_METHOD or session.scope == RESPONDENT_SCOPE:
             return False
         workspace = await self.requiring_workspace(email or "")
         if workspace is None:
             return False
-        if session.method == OTP_METHOD and str(workspace.owner_id) == str(user_id):
+        if session.method == OTP_METHOD and await self._is_owner(workspace, user_id):
             return False
         logger.info(
             "SSO required in workspace {}: a {} session of user {} ended at refresh",
@@ -175,13 +183,36 @@ class SsoPolicyService:
             return SSO_REQUIRED
         return None
 
+    async def _owner_ids(self, workspace: WorkspaceDocument) -> List[str]:
+        """The workspace's owners: the billing owner, and the members holding
+        OWNER with an enabled membership."""
+        owners = [str(workspace.owner_id)] if workspace.owner_id else []
+        if self._workspace_users is None:
+            return owners
+        for membership in await self._workspace_users.get_workspace_users(
+            workspace_id=workspace.id
+        ):
+            if (
+                not membership.disabled
+                and has_owner_role(membership.roles)
+                and str(membership.user_id) not in owners
+            ):
+                owners.append(str(membership.user_id))
+        return owners
+
+    async def _is_owner(self, workspace: WorkspaceDocument, user_id) -> bool:
+        if is_billing_owner(workspace, user_id):
+            return True
+        return str(user_id) in await self._owner_ids(workspace)
+
     async def _is_owner_email(self, workspace: WorkspaceDocument, email: str) -> bool:
-        if not workspace.owner_id or self._http_client is None:
+        owner_ids = await self._owner_ids(workspace)
+        if not owner_ids or self._http_client is None:
             return False
         try:
             reply = await self._http_client.get(
                 settings.auth_settings.BASE_URL + "/users",
-                params={"user_ids": [str(workspace.owner_id)]},
+                params={"user_ids": owner_ids},
                 headers=auth_service_headers(),
             )
         except Exception as error:  # noqa: BLE001 — fail closed (code refused)

@@ -78,22 +78,35 @@ class WorkspaceMembersRouter(Routable):
         body: UpdateMemberRoleRequest,
         user: User = Depends(get_logged_user),
     ):
-        """Change a member's role (members.manage). Not the owner's, and not
-        one's own."""
+        """Change a member's role (members.manage). Owners only make or
+        change owners; never the billing owner's role, nor one's own."""
         return await self.workspace_members_service.update_member_role(
             workspace_id=workspace_id, member_id=user_id, role=body.role, user=user
         )
 
-    @post("/{user_id}/transfer-ownership")
+    @post("/{user_id}/make-billing-owner")
+    async def make_billing_owner(
+        self,
+        workspace_id: PydanticObjectId,
+        user_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        """An owner makes another owner the billing owner; the previous
+        billing owner stays an owner (workspace.billing)."""
+        return await self.workspace_members_service.make_billing_owner(
+            workspace_id=workspace_id, new_owner_id=user_id, user=user
+        )
+
+    @post("/{user_id}/transfer-ownership", deprecated=True)
     async def transfer_workspace_ownership(
         self,
         workspace_id: PydanticObjectId,
         user_id: PydanticObjectId,
         user: User = Depends(get_logged_user),
     ):
-        """The owner hands the workspace to an active Admin and becomes an
-        Admin (workspace.billing)."""
-        return await self.workspace_members_service.transfer_ownership(
+        """The previous name of make-billing-owner, kept for webapps loaded
+        before the change."""
+        return await self.workspace_members_service.make_billing_owner(
             workspace_id=workspace_id, new_owner_id=user_id, user=user
         )
 

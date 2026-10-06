@@ -1,6 +1,7 @@
 """Permission matrix: each workspace endpoint that goes through
-``AuthorizationService.authorize`` against every workspace role (owner, admin,
-editor, reviewer, viewer, privacy officer), a legacy collaborator, a legacy
+``AuthorizationService.authorize`` against every workspace role (the billing
+owner, a second owner, admin, editor, reviewer, viewer, privacy officer), a
+legacy collaborator, a legacy
 membership without roles, a membership with an unknown role, a non-member and
 a disabled (admin) membership.
 
@@ -64,6 +65,8 @@ from tests.app.controllers.data import (
     testUser2,
 )
 
+# the billing owner (owner_id) and an owner by role: the same rights
+CO_OWNER = "co_owner"
 OWNER, ADMIN, EDITOR, REVIEWER, VIEWER, PRIVACY = (
     "owner",
     "admin",
@@ -81,6 +84,7 @@ COLLABORATOR, NO_ROLES, UNKNOWN_ROLE, NON_MEMBER, DISABLED = (
 )
 ROLES = (
     OWNER,
+    CO_OWNER,
     ADMIN,
     EDITOR,
     REVIEWER,
@@ -98,6 +102,7 @@ def _user(name: str) -> User:
     return User(id=str(PydanticObjectId()), sub=f"matrix-{name}@example.com")
 
 
+co_owner_user = _user("co-owner")
 admin_user = _user("admin")
 editor_user = _user("editor")
 reviewer_user = _user("reviewer")
@@ -111,6 +116,7 @@ removable_user = _user("removable")
 
 USERS: Dict[str, User] = {
     OWNER: testUser,
+    CO_OWNER: co_owner_user,
     ADMIN: admin_user,
     EDITOR: editor_user,
     REVIEWER: reviewer_user,
@@ -125,6 +131,7 @@ USERS: Dict[str, User] = {
 
 # (user, stored roles, disabled) seeded besides the owner and the collaborator
 SEEDED_MEMBERSHIPS = (
+    (co_owner_user, [WorkspaceRoles.OWNER], False),
     (admin_user, [WorkspaceRoles.ADMIN], False),
     (editor_user, [WorkspaceRoles.EDITOR], False),
     (reviewer_user, [WorkspaceRoles.REVIEWER], False),
@@ -138,9 +145,10 @@ SEEDED_MEMBERSHIPS = (
 
 P = Permission
 # Editors: the Editor role, its legacy spelling and a membership without roles
-EDITORS = frozenset({OWNER, ADMIN, EDITOR, COLLABORATOR, NO_ROLES})
-ADMINS = frozenset({OWNER, ADMIN})
-OWNER_ONLY = frozenset({OWNER})
+EDITORS = frozenset({OWNER, CO_OWNER, ADMIN, EDITOR, COLLABORATOR, NO_ROLES})
+ADMINS = frozenset({OWNER, CO_OWNER, ADMIN})
+# every owner: the billing owner and the owners by role alike
+OWNER_ONLY = frozenset({OWNER, CO_OWNER})
 MEMBERS = EDITORS | {REVIEWER, VIEWER, PRIVACY}
 
 # docs/enterprise-access-model.md §2, column by column
@@ -316,7 +324,15 @@ CASES = [
     ),
     Case(
         # past the permission check the matrix workspace (personal, paid)
-        # is refused for its billing
+        # keeps its billing owner
+        "members.make_billing_owner",
+        "POST",
+        W + "/members/{new_owner}/make-billing-owner",
+        P.WORKSPACE_BILLING,
+        ok=409,
+    ),
+    Case(
+        # the route's previous name
         "members.transfer_ownership",
         "POST",
         W + "/members/{new_owner}/transfer-ownership",
@@ -359,7 +375,7 @@ CASES = [
         ok=404,
     ),
     # --- single sign-on: viewing and testing need security.manage; changing
-    # the configuration is Owner only (an Admin must not point the domain at
+    # the configuration is owners only (an Admin must not point the domain at
     # an identity provider they control)
     Case("sso.overview", "GET", W + "/sso", ADMINS, ok=200),
     Case(
@@ -407,7 +423,7 @@ CASES = [
         ok=200,
     ),
     # --- SCIM directory sync: viewing needs security.manage; every change is
-    # Owner only (a directory decides who joins and with which role)
+    # owners only (a directory decides who joins and with which role)
     Case("scim.overview", "GET", W + "/scim", ADMINS, ok=200),
     Case(
         "scim.directory.create",
@@ -930,7 +946,7 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
         "requested": requested.response_id,
         "group": str(group.id),
         "removable": removable_user.id,
-        "new_owner": admin_user.id,
+        "new_owner": co_owner_user.id,
         "api_key": api_key.id,
         "media": str(media.media_id),
         "template": str(template.id),
@@ -1019,6 +1035,7 @@ EXPECTED_PERMISSIONS = {
 
 def test_the_expected_table_is_the_documented_one():
     assert EXPECTED_PERMISSIONS[OWNER] == ALL_PERMISSIONS
+    assert EXPECTED_PERMISSIONS[CO_OWNER] == ALL_PERMISSIONS
     assert EXPECTED_PERMISSIONS[ADMIN] == ALL_PERMISSIONS - {P.WORKSPACE_BILLING}
     assert EXPECTED_PERMISSIONS[COLLABORATOR] == EXPECTED_PERMISSIONS[EDITOR]
     assert EXPECTED_PERMISSIONS[NO_ROLES] == EXPECTED_PERMISSIONS[EDITOR]
@@ -1053,7 +1070,7 @@ async def test_effective_permissions_need_a_signed_in_user(client: AsyncClient, 
     assert response.status_code == 401
 
 
-# What the owner of a disabled workspace still reaches, and what members don't.
+# What the owners of a disabled workspace still reach, and what members don't.
 DISABLED_WORKSPACE_READS = (
     W + "/forms",
     F + "/submissions",
@@ -1073,35 +1090,41 @@ DISABLED_WORKSPACE_CHANGES = (
 async def test_a_disabled_workspace_leaves_its_owner_read_and_privacy(
     client: AsyncClient, matrix
 ):
-    """A downgraded owner still answers deletion requests and reaches their
-    respondents' data (GDPR), and changes nothing else; other members get
-    nothing."""
+    """A downgraded workspace's owners (every one of them) still answer
+    deletion requests and reach their respondents' data (GDPR), and change
+    nothing else; other members get nothing."""
     workspace = await container.workspace_repo().find_by_id(
         PydanticObjectId(matrix["ws"])
     )
     workspace.disabled = True
     await container.workspace_repo().save(workspace)
     authorization = container.authorization_service()
-    assert (
-        await authorization.effective_permissions(testUser, matrix["ws"])
-        == DISABLED_WORKSPACE_OWNER_PERMISSIONS
-    )
+    for owner in (OWNER, CO_OWNER):
+        assert (
+            await authorization.effective_permissions(USERS[owner], matrix["ws"])
+            == DISABLED_WORKSPACE_OWNER_PERMISSIONS
+        )
     for role in (ADMIN, COLLABORATOR):
         assert not await authorization.effective_permissions(USERS[role], matrix["ws"])
 
     for path in DISABLED_WORKSPACE_READS:
         url = path.format(**matrix)
-        owner = await client.get(url, cookies=_cookies(testUser))
-        assert owner.status_code == 200, (url, owner.text)
+        for owner_role in (OWNER, CO_OWNER):
+            owner = await client.get(url, cookies=_cookies(USERS[owner_role]))
+            assert owner.status_code == 200, (owner_role, url, owner.text)
         for role in (ADMIN, COLLABORATOR):
             member = await client.get(url, cookies=_cookies(USERS[role]))
             assert member.status_code == 403, (role, url)
 
     for method, path, request in DISABLED_WORKSPACE_CHANGES:
-        refused = await client.request(
-            method, path.format(**matrix), cookies=_cookies(testUser), **request
-        )
-        assert refused.status_code == 403, (method, path, refused.text)
+        for owner_role in (OWNER, CO_OWNER):
+            refused = await client.request(
+                method,
+                path.format(**matrix),
+                cookies=_cookies(USERS[owner_role]),
+                **request,
+            )
+            assert refused.status_code == 403, (method, path, refused.text)
 
 
 def test_every_case_is_named_once():

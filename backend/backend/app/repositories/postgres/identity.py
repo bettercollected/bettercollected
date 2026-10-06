@@ -26,7 +26,7 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.user_tag_enum import UserTagType
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import WorkspaceRoles, has_owner_role
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.repositories.metric_periods import (
     object_id_at,
@@ -320,6 +320,7 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
             and not workspace_user.disabled
             and (
                 WorkspaceRoles.ADMIN in workspace_user.roles
+                or has_owner_role(workspace_user.roles)
                 or workspace.owner_id == user.id
             )
             else False
@@ -361,8 +362,10 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
         for workspace_user in await self.get_workspace_users(workspace_id):
-            if workspace_user.user_id != user_id and workspace_user.disable_for(
-                DISABLED_BY_PLAN
+            if (
+                workspace_user.user_id != user_id
+                and not has_owner_role(workspace_user.roles)
+                and workspace_user.disable_for(DISABLED_BY_PLAN)
             ):
                 await self.upsert(workspace_user)
 

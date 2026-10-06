@@ -2,10 +2,10 @@
 
 Viewing the settings and testing a connection need ``security.manage``
 (Owner, Admin). Everything that changes the configuration (connections,
-"SSO required", the default role) is **Owner only**: an enabled connection
-decides who every address on the workspace's verified domains is, the
-owner's own account included, so an Admin must not be able to point it at
-an identity provider they control.
+"SSO required", the default role) is **owners only** (every owner alike): an
+enabled connection decides who every address on the workspace's verified
+domains is, the owners' own accounts included, so an Admin must not be able
+to point it at an identity provider they control.
 Connections are created in Ory Polis through its admin API; we keep a
 reference (``sso_connections``). The workspace's SSO settings (SSO required,
 default role) live on the workspace document.
@@ -25,7 +25,10 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
-from backend.app.models.enum.workspace_roles import canonical_role
+from backend.app.models.enum.workspace_roles import (
+    canonical_role,
+    is_owner_membership,
+)
 from backend.app.repositories.sso_connection_repository import (
     SsoConnectionExists,
     SsoConnectionRepository,
@@ -90,7 +93,7 @@ class UpdateSsoSettingsDto(_CamelModel):
     sso_required: Optional[bool] = None
     default_role: Optional[str] = Field(None, max_length=64)
     # with sso_required switched on: sign out the members on the SSO domains
-    # (their sessions from before the requirement); the owner and the
+    # (their sessions from before the requirement); the owners and the
     # caller's own session are kept
     revoke_sessions: bool = False
 
@@ -147,7 +150,7 @@ class SsoSettingsDto(_CamelModel):
     sso_required_changed_at: Optional[dt.datetime] = None
     default_role: str
     assignable_roles: List[str]
-    # the owner can always sign in with an email code (docs/sso.md)
+    # owners can always sign in with an email code (docs/sso.md)
     owner_break_glass: bool = True
     revoked_sessions: Optional[int] = None
 
@@ -161,7 +164,7 @@ class SsoOverviewDto(_CamelModel):
     connections: List[SsoConnectionDto] = []
     settings: SsoSettingsDto
     max_connections: int
-    # the caller may change the configuration (the workspace owner)
+    # the caller may change the configuration (an owner of the workspace)
     can_manage: bool = False
 
 
@@ -227,7 +230,7 @@ class SsoConnectionService:
         )
 
     async def _authorize_owner(self, workspace_id: PydanticObjectId, user: User):
-        """Changing the configuration: the owner only (see the module)."""
+        """Changing the configuration: owners only (see the module)."""
         await self._authorize(workspace_id, user)
         await self._authorization.require_owner(user, workspace_id)
 
@@ -660,15 +663,15 @@ class SsoConnectionService:
             )
 
     async def _revoke_member_sessions(self, workspace, user: User) -> int:
-        """Sign out the members on the SSO domains (not the owner, whose email
-        code still works, and not the caller's current session)."""
+        """Sign out the members on the SSO domains (not the owners, whose
+        email code still works, and not the caller's current session)."""
         members = await self._workspace_users.get_workspace_users(
             workspace_id=workspace.id
         )
         candidates = [
             str(m.user_id)
             for m in members
-            if not m.disabled and str(m.user_id) != str(workspace.owner_id)
+            if not m.disabled and not is_owner_membership(workspace, m)
         ]
         revoked = 0
         for user_id in await self._policy.sso_users_of(workspace.id, candidates):

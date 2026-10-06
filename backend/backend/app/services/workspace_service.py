@@ -18,7 +18,10 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.user_tag_enum import UserTagType
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import (
+    WorkspaceRoles,
+    is_owner_membership,
+)
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
     WorkspaceResponseDto,
@@ -409,12 +412,23 @@ class WorkspaceService:
             return existing_workspace is None
 
     async def get_mine_workspaces(self, user: User):
-        workspace_ids = await self._workspace_user_service.get_mine_workspaces(user.id)
+        memberships = {
+            str(membership.workspace_id): membership
+            for membership in await self._workspace_user_repo.get_mine_workspaces(
+                user_id=user.id
+            )
+            if not membership.disabled
+        }
         workspaces = await self._workspace_repo.get_workspace_by_ids(
-            workspace_ids=workspace_ids
+            workspace_ids=[m.workspace_id for m in memberships.values()]
         )
         return [
-            WorkspaceResponseDto(**workspace.model_dump(mode="json"))
+            WorkspaceResponseDto(
+                **workspace.model_dump(mode="json"),
+                is_owner=is_owner_membership(
+                    workspace, memberships.get(str(workspace.id))
+                ),
+            )
             for workspace in workspaces
         ]
 

@@ -9,8 +9,9 @@ The same rules run for a webhook event and for a resync:
   the role their groups map to, else the workspace's default SSO role, within
   the seat cap (``seat_limit`` otherwise; no account is created then). A
   deactivated or deleted user's membership is **disabled** (never deleted:
-  their forms stay with the workspace) and their sessions revoked. The owner
-  is never touched (``owner_protected``), nor is a member invited by hand
+  their forms stay with the workspace) and their sessions revoked. Owners
+  (the billing owner and every member with role OWNER) are never touched
+  (``owner_protected``), nor is a member invited by hand
   (``manual_member``); a just-in-time SSO membership is taken over.
 - **Groups**: the IdP's groups and who is in them; each group maps to at most
   one workspace role; the highest role among a user's groups wins.
@@ -34,6 +35,8 @@ from backend.app.models.enum.workspace_roles import (
     WorkspaceRoles,
     canonical_role,
     canonical_roles,
+    is_billing_owner,
+    is_owner_membership,
     stored_role,
 )
 from backend.app.repositories.scim_repository import (
@@ -74,7 +77,7 @@ REASON_MESSAGES: Dict[str, str] = {
     "verified domains.",
     "seat_limit": "The workspace has no free seat. Free a seat or raise the "
     "limit, then resync.",
-    "owner_protected": "This is the workspace owner, whom the directory never "
+    "owner_protected": "This is a workspace owner, whom the directory never "
     "changes.",
     "manual_member": "This member was invited by hand; the directory does not "
     "manage them.",
@@ -377,7 +380,8 @@ class ScimSyncService:
         account_id, conflict = await self._account(user, create=False)
         if conflict:
             return self._mark(record, ScimUserState.FAILED, "account_conflict")
-        if account_id and account_id == str(workspace.owner_id):
+        if account_id and await self._is_owner_account(workspace, account_id):
+            # the directory never changes an owner (any of them)
             record.user_id = account_id
             return self._mark(record, ScimUserState.IGNORED, "owner_protected")
         membership = (
@@ -426,7 +430,11 @@ class ScimSyncService:
         if account_id is None and user.email:
             account_id, _conflict = await self._account(user, create=False)
         record.user_id = account_id
-        if workspace is not None and account_id == str(workspace.owner_id):
+        if (
+            workspace is not None
+            and account_id
+            and await self._is_owner_account(workspace, account_id)
+        ):
             return self._mark(record, ScimUserState.IGNORED, "owner_protected")
         if workspace is not None and account_id:
             outcome = await self._disable_account(workspace, account_id, user.email)
@@ -436,16 +444,18 @@ class ScimSyncService:
 
     async def _disable_account(self, workspace, account_id: str, email: str) -> str:
         """Disable the account's membership (reason ``directory``) and end
-        all of its sessions. Never the owner's. A membership invited by hand
+        all of its sessions. Never an owner's. A membership invited by hand
         too, when the address is on this workspace's verified domains (the
         directory speaks for those). Never deletes anything."""
-        if workspace is None or account_id == str(workspace.owner_id):
+        if workspace is None or is_billing_owner(workspace, account_id):
             return "owner"
         membership = await self._workspace_user_service.find_member(
             workspace.id, account_id
         )
         if membership is None:
             return "none"
+        if is_owner_membership(workspace, membership):
+            return "owner"
         managed = membership.provisioned_by in MANAGEABLE
         if not managed and not await self._on_this_workspaces_domain(workspace, email):
             return "manual_off_domain"
@@ -468,6 +478,17 @@ class ScimSyncService:
             revoked,
         )
         return "disabled"
+
+    async def _is_owner_account(self, workspace, account_id: str) -> bool:
+        """Whether the account is one of the workspace's owners: the billing
+        owner or a member holding OWNER. The directory never grants, changes
+        or removes an owner."""
+        if is_billing_owner(workspace, account_id):
+            return True
+        return is_owner_membership(
+            workspace,
+            await self._workspace_user_service.find_member(workspace.id, account_id),
+        )
 
     # -- roles ----------------------------------------------------------------
     async def role_for(self, record: ScimUserDocument, workspace) -> WorkspaceRoles:
@@ -498,6 +519,9 @@ class ScimSyncService:
                 workspace.id, record.user_id
             )
             if membership is None or membership.provisioned_by != PROVISIONED_BY_SCIM:
+                continue
+            if is_owner_membership(workspace, membership):
+                # made an owner by hand: the directory never changes owners
                 continue
             role = await self.role_for(record, workspace)
             if canonical_roles(membership.roles) != [role.value]:

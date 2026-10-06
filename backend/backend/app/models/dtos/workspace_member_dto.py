@@ -29,6 +29,9 @@ class WorkspaceMemberDto(CamelModel):
     provisioned_by: Optional[str] = None
     # the workspace's SCIM directory controls this member's role and status
     managed_by_directory: bool = False
+    # the owner whose plan the workspace runs on (``workspace.owner_id``);
+    # every owner has the same rights, this one also pays
+    billing_owner: bool = False
 
 
 class UpdateMemberRoleRequest(CamelModel):

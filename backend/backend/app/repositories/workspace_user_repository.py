@@ -5,7 +5,7 @@ from beanie import PydanticObjectId
 from pymongo.errors import DuplicateKeyError
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.enum.workspace_roles import WorkspaceRoles, has_owner_role
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import (
     DISABLED_BY_PLAN,
@@ -47,6 +47,7 @@ class WorkspaceUserRepository:
             and not workspace_user.disabled
             and (
                 WorkspaceRoles.ADMIN in workspace_user.roles
+                or has_owner_role(workspace_user.roles)
                 or workspace.owner_id == user.id
             )
             else False
@@ -92,12 +93,17 @@ class WorkspaceUserRepository:
     async def disable_other_users_in_workspace(
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
+        """The billing owner's plan lapsed: disable every member but
+        ``user_id`` (the billing owner) and the other owners, who keep the
+        same read-only access to the disabled workspace."""
         workspace_users = await WorkspaceUserDocument.find(
             {"workspace_id": workspace_id}
         ).to_list()
         for workspace_user in workspace_users:
-            if workspace_user.user_id != user_id and workspace_user.disable_for(
-                DISABLED_BY_PLAN
+            if (
+                workspace_user.user_id != user_id
+                and not has_owner_role(workspace_user.roles)
+                and workspace_user.disable_for(DISABLED_BY_PLAN)
             ):
                 await workspace_user.save()
 
