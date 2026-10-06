@@ -343,10 +343,14 @@ documents) goes to an AI provider until the workspace has opted in. Code:
   carries `aiNoticeToken` (`services/ai/notice_token.py`: HMAC-SHA256 under a key
   derived from `AUTH_JWT_SECRET`, binding workspace, form id, provider id and
   name, `ai_insights_enabled_at` and when it was issued; valid 24 hours). The form
-  page sends it back as the multipart field `ai_notice_token` on submit and on a
-  respondent's edit; `stamp_response` clears whatever the body claims and sets
+  page sends it back as the multipart field `ai_notice_token` on submit;
+  `stamp_response` clears whatever the body claims and sets
   `ai_notice_shown_at`/`ai_notice_provider_name` only for a valid token matching
-  the current setting (an edit without one keeps the stamp). Generate reads
+  the current setting. A respondent's edit never adds the stamp (it merges
+  answers, so earlier answers would become analysable): it keeps the stored one
+  and clears what the body claims. The respondent form shows the notice in the
+  privacy strip itself, not only in the collapsed panel, wherever a token is
+  sent. Generate reads
   `list_recent_with_ai_notice` (stamped for the setting's provider name, shown
   at or after `ai_insights_enabled_at`, so turning it off and on again excludes
   earlier ones); `created_at` plays no part. Responses from before #752 carry no

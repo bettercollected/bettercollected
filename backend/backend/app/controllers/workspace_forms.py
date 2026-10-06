@@ -426,7 +426,6 @@ class WorkspaceFormsRouter(Routable):
         file_field_ids: list[str] = Form(None),
         file_ids: list[str] = Form(None),
         response: str = Form(None),
-        ai_notice_token: Optional[str] = Form(None),
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
@@ -452,7 +451,6 @@ class WorkspaceFormsRouter(Routable):
             form_files=form_files,
             response=parsed_response,
             user=user,
-            ai_notice_token=ai_notice_token,
         )
 
     @delete(

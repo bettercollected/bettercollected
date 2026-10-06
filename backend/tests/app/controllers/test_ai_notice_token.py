@@ -300,7 +300,7 @@ class TestSubmissions:
         assert stored.ai_notice_shown_at is None
         assert stored.ai_notice_provider_name is None
 
-    async def test_an_edit_keeps_the_stamp_and_a_page_with_the_notice_adds_it(
+    async def test_an_edit_never_adds_the_stamp_and_keeps_an_existing_one(
         self,
         client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -309,9 +309,10 @@ class TestSubmissions:
         test_user_cookies: dict[str, str],
         ai_on: FakeProvider,
     ):
+        """An edit merges answers: stamping it would make answers given before
+        the notice existed analysable. It keeps whatever the submission got."""
         common_url = f"/api/v1/workspaces/{workspace.id}"
         form_id = published_form.form_id
-        response_id = workspace_form_response["response_id"]
         allowed = await client.patch(
             f"{common_url}/forms/{form_id}/settings",
             json={"require_verified_identity": True, "allow_editing_response": True},
@@ -319,8 +320,12 @@ class TestSubmissions:
         )
         assert allowed.status_code == 200, allowed.text
         question = sorted(_question_ids(published_form.fields))[0]
+        claimed = {
+            "aiNoticeShownAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "aiNoticeProviderName": "Google Gemini",
+        }
 
-        async def edit(token=None, extra=None):
+        async def edit(response_id, token=None, extra=None):
             data = {
                 "response": json.dumps(
                     {
@@ -339,19 +344,35 @@ class TestSubmissions:
             assert edited.status_code == 200, edited.text
             return await container.form_response_repo().get_response(response_id)
 
-        # submitted before AI insights were allowed: no stamp, and an edit
-        # whose body claims one does not add it
+        # submitted before AI insights were allowed: an edit from a page that
+        # shows the notice, with a valid token, still adds no stamp
+        before = workspace_form_response["response_id"]
         await _allow(client, workspace, form_id, test_user_cookies)
-        stored = await edit(extra={"aiNoticeProviderName": "OpenAI"})
+        token = await _page_token(client, workspace, form_id)
+        assert token
+        stored = await edit(before, token)
         assert stored.ai_notice_shown_at is None
+        assert stored.ai_notice_provider_name is None
+        stored = await edit(before, token, extra=claimed)
+        assert stored.ai_notice_shown_at is None
+        assert stored.ai_notice_provider_name is None
 
-        # an edit from a page that showed the notice stamps it
-        stored = await edit(await _page_token(client, workspace, form_id))
-        assert stored.ai_notice_provider_name == "OpenAI"
-        stamped_at = stored.ai_notice_shown_at
-        assert stamped_at
-
-        # a later edit without a token keeps it
-        stored = await edit()
-        assert stored.ai_notice_provider_name == "OpenAI"
-        assert stored.ai_notice_shown_at == stamped_at
+        # submitted with the notice: an edit keeps the stamp as it was,
+        # whatever the body claims and with or without a token
+        submitted = await client.post(
+            f"{_public_url(workspace, form_id)}/response",
+            data={
+                "response": json.dumps({"answers": {}}),
+                "ai_notice_token": token,
+            },
+            cookies=test_user_cookies,
+        )
+        assert submitted.status_code == 200, submitted.text
+        stamped = await container.form_response_repo().get_by_submission_uuid(
+            submitted.json()
+        )
+        assert stamped.ai_notice_provider_name == "OpenAI"
+        for kwargs in ({}, {"extra": claimed}, {"token": token}):
+            stored = await edit(stamped.response_id, **kwargs)
+            assert stored.ai_notice_provider_name == "OpenAI"
+            assert stored.ai_notice_shown_at == stamped.ai_notice_shown_at

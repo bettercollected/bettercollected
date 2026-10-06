@@ -637,11 +637,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             form_id=form_id,
             data=json.dumps(answers),
         )
-        # an edit keeps the AI notice stamp, unless this edit's page showed
-        # the notice (stamped by the service from a valid token, #752)
-        if response.ai_notice_shown_at and response.ai_notice_provider_name:
-            response_document.ai_notice_shown_at = response.ai_notice_shown_at
-            response_document.ai_notice_provider_name = response.ai_notice_provider_name
+        # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
         response_document.updated_at = dt.datetime.now(dt.timezone.utc)
         return await self.upsert(response_document)

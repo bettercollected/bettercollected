@@ -593,7 +593,6 @@ class WorkspaceFormService:
         form_files: Optional[Any],
         response: StandardFormResponseCamelModel,
         user: User,
-        ai_notice_token: Optional[str] = None,
     ):
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_in_workspace(
@@ -682,9 +681,10 @@ class WorkspaceFormService:
                 form_id=str(form_id),
             )
 
-        # An edit keeps the response's AI notice stamp; a page that showed the
-        # notice (valid token, #752) stamps it now. The body never does.
-        stamp_ai_notice(response, ai_notice_token, workspace_id, workspace_form)
+        # An edit never adds the AI notice stamp (#752): it merges answers, so
+        # untouched answers given before the notice existed would become
+        # analysable. The stored stamp is kept; what the body claims is cleared.
+        stamp_ai_notice(response, None, workspace_id, workspace_form)
 
         form_response = await self.form_response_service.patch_form_response(
             workspace_id=workspace_id,
