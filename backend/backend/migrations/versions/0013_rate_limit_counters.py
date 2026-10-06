@@ -1,6 +1,6 @@
 """rate limit counters
 
-Revision ID: 0012
+Revision ID: 0013
 Revises: 0011
 Create Date: 2026-10-06
 
@@ -9,6 +9,10 @@ client, scope and window, its id a keyed hash of the three (no address is
 stored). Expired rows are deleted whenever a new counter starts. New table
 only, so expand-only. Written by hand in the shape autogenerate produces for
 a BaseRow table.
+
+Numbered 0013 because 0012 is taken by an open branch (ai notice). It
+revises 0011 while that branch is unmerged; whichever of the two merges
+second re-points its down_revision at the other, so the chain keeps one head.
 """
 
 from typing import Sequence, Union
@@ -17,7 +21,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0012"
+revision: str = "0013"
 down_revision: Union[str, None] = "0011"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

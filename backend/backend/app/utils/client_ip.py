@@ -1,10 +1,13 @@
 """The address a request came from, behind trusted proxies only.
 
 X-Forwarded-For is a list the client starts and each proxy appends to, so
-only the entries added by proxies we trust mean anything: walk it from the
-right, skipping trusted proxies, and the first other address is the client.
-A request whose own peer is not a trusted proxy is identified by that peer,
-whatever headers it sends.
+only the entries added by proxies we trust mean anything. Starting at the
+direct peer, walk leftwards through trusted proxies (loopback and private
+networks, plus ``API_TRUSTED_PROXIES``); the first other address is the hop
+that reached our edge. When that hop is a Cloudflare edge (and Cloudflare is
+trusted), the client is Cloudflare's ``CF-Connecting-IP``, which Cloudflare
+sets itself and a client can't forge through it. The header is never read
+for a request that didn't come through a Cloudflare hop.
 """
 
 import ipaddress
@@ -20,8 +23,43 @@ Address = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
 # cut there (its leftmost entries are the client's to choose anyway)
 MAX_FORWARDED_HOPS = 16
 
+# always trusted: a proxy in front of the container connects from these
+PRIVATE_NETWORKS = (
+    "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
+)
 
-@lru_cache(maxsize=8)
+# Cloudflare's published edge ranges, https://www.cloudflare.com/ips-v4 and
+# https://www.cloudflare.com/ips-v6, as of 2026-10-06. API_CLOUDFLARE_IPS
+# replaces them when Cloudflare publishes new ones.
+CLOUDFLARE_IPS = ",".join(
+    (
+        "173.245.48.0/20",
+        "103.21.244.0/22",
+        "103.22.200.0/22",
+        "103.31.4.0/22",
+        "141.101.64.0/18",
+        "108.162.192.0/18",
+        "190.93.240.0/20",
+        "188.114.96.0/20",
+        "197.234.240.0/22",
+        "198.41.128.0/17",
+        "162.158.0.0/15",
+        "104.16.0.0/13",
+        "104.24.0.0/14",
+        "172.64.0.0/13",
+        "131.0.72.0/22",
+        "2400:cb00::/32",
+        "2606:4700::/32",
+        "2803:f800::/32",
+        "2405:b500::/32",
+        "2405:8100::/32",
+        "2a06:98c0::/29",
+        "2c0f:f248::/32",
+    )
+)
+
+
+@lru_cache(maxsize=16)
 def parse_networks(spec: str) -> Tuple[Network, ...]:
     """``spec``: comma-separated addresses or CIDRs; invalid entries are ignored."""
     networks = []
@@ -50,29 +88,56 @@ def _address(value: str) -> Optional[Address]:
     return mapped or address
 
 
-def _trusted(address: Address, networks: Tuple[Network, ...]) -> bool:
+def _within(address: Address, networks: Tuple[Network, ...]) -> bool:
     return any(address.version == n.version and address in n for n in networks)
 
 
-def client_ip(request: Request, trusted_proxies: str) -> Optional[str]:
-    """The client's address as a string, or None when it can't be told."""
+def client_ip(
+    request: Request,
+    trusted_proxies: str = "",
+    cloudflare_ips: Optional[str] = None,
+) -> Optional[str]:
+    """The client's address as a string, or None when it can't be told.
+
+    ``trusted_proxies`` adds to the private networks; ``cloudflare_ips``
+    (None: Cloudflare not trusted) are the edges whose CF-Connecting-IP is
+    believed."""
     peer = _address(request.client.host) if request.client else None
     if peer is None:
         return None
-    networks = parse_networks(trusted_proxies)
-    if not _trusted(peer, networks):
+    trusted = parse_networks(f"{PRIVATE_NETWORKS},{trusted_proxies or ''}")
+    edge: Optional[Address] = None  # the first hop that isn't our proxy
+    if not _within(peer, trusted):
+        edge = peer
+    else:
+        hops = []
+        for header in request.headers.getlist("x-forwarded-for"):
+            hops.extend(header.split(","))
+        for raw in reversed(hops[-MAX_FORWARDED_HOPS:]):
+            address = _address(raw)
+            if address is None:
+                # garbage in the chain: nothing left of it can be believed
+                break
+            if not _within(address, trusted):
+                edge = address
+                break
+            peer = address
+    if edge is None:
+        # every hop was a trusted proxy (or none was named): the leftmost
+        # one we could read is as close to the client as we get
         return str(peer)
-    hops = []
-    for header in request.headers.getlist("x-forwarded-for"):
-        hops.extend(header.split(","))
-    for raw in reversed(hops[-MAX_FORWARDED_HOPS:]):
-        address = _address(raw)
-        if address is None:
-            # garbage in the chain: nothing left of it can be believed
-            break
-        if not _trusted(address, networks):
-            return str(address)
-        peer = address
-    # every hop was a trusted proxy (or none was named): the leftmost one
-    # we could read is as close to the client as we get
-    return str(peer)
+    if cloudflare_ips is not None and _within(edge, parse_networks(cloudflare_ips)):
+        connecting = _address(request.headers.get("cf-connecting-ip", ""))
+        if connecting is not None:
+            return str(connecting)
+    return str(edge)
+
+
+def request_client_ip(request: Request) -> Optional[str]:
+    """``client_ip`` with the API settings (TRUSTED_PROXIES, TRUST_CLOUDFLARE,
+    CLOUDFLARE_IPS)."""
+    from backend.config import settings
+
+    api = settings.api_settings
+    cloudflare = (api.CLOUDFLARE_IPS or CLOUDFLARE_IPS) if api.TRUST_CLOUDFLARE else None
+    return client_ip(request, api.TRUSTED_PROXIES, cloudflare)

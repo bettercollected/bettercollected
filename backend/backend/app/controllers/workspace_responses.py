@@ -35,10 +35,9 @@ from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
 from backend.app.services.user_service import get_logged_user
-from backend.app.utils.client_ip import client_ip
+from backend.app.utils.client_ip import request_client_ip
 from backend.app.utils.custom_routable import CustomRoutable
 from backend.app.utils.flow_analytics import aggregate_flow_events
-from backend.config import settings
 
 
 @router(
@@ -193,7 +192,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
             workspace_id=workspace_id,
             form_ref=form_id,
             event=event,
-            client=client_ip(request, settings.api_settings.TRUSTED_PROXIES),
+            client=request_client_ip(request),
         )
         return {"ok": True}
 

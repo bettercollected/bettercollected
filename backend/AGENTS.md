@@ -555,8 +555,11 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`
   scattered through services.
-- **Client addresses and rate limits:** read a client's address with `utils/client_ip.client_ip(request,
-  settings.api_settings.TRUSTED_PROXIES)` (X-Forwarded-For only from trusted proxies, read from the right), never the
-  raw header. `services/rate_limiter.FixedWindowRateLimiter` counts requests per scope, client and window in
-  `rate_limit_counters` (analytics group, twin revision 0012), shared by every replica; counter ids are keyed hashes,
+- **Client addresses and rate limits:** read a client's address with `utils/client_ip.request_client_ip(request)`,
+  never a raw header, and never log it. From the peer it walks X-Forwarded-For leftwards through trusted proxies
+  (loopback, private networks, `API_TRUSTED_PROXIES`); when the first other hop is a Cloudflare edge
+  (`API_TRUST_CLOUDFLARE`, default on; ranges built in as `CLOUDFLARE_IPS`, dated, overridable with
+  `API_CLOUDFLARE_IPS`) the client is `CF-Connecting-IP`, otherwise that hop. CF-Connecting-IP is never read for a
+  request that didn't come through Cloudflare. `services/rate_limiter.FixedWindowRateLimiter` counts requests per scope, client and window in
+  `rate_limit_counters` (analytics group, twin revision 0013), shared by every replica; counter ids are keyed hashes,
   so no address is stored. The public `flow-events` endpoint uses it (#767).

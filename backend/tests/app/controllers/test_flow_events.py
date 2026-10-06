@@ -228,3 +228,24 @@ async def test_the_client_address_is_not_stored(
     assert "203.0.113" not in stored
     events = await _stored_events(published_form.form_id)
     assert address not in repr([e.model_dump() for e in events])
+
+
+async def test_respondents_behind_cloudflare_are_counted_apart(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    published_form: Coroutine[Any, Any, FormDocument],
+    clock,
+    limit,
+):
+    url = _url(workspace.id, published_form.form_id)
+    edge = "172.70.1.2"  # one Cloudflare edge for everyone
+
+    def via_cloudflare(address):
+        return {"X-Forwarded-For": edge, "CF-Connecting-IP": address}
+
+    alice, bob = via_cloudflare("203.0.113.1"), via_cloudflare("203.0.113.2")
+    for _ in range(limit):
+        sent = await client.post(url, json=_event(), headers=alice)
+        assert sent.status_code == 200, sent.text
+    assert (await client.post(url, json=_event(), headers=alice)).status_code == 429
+    assert (await client.post(url, json=_event(), headers=bob)).status_code == 200
