@@ -15,6 +15,10 @@ import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-
 import { isRepeatingGroup } from '@app/utils/repeating-groups';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import { getDateRuleSources } from '@app/utils/date-rules';
+import { asksForIdentity, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
+
+// Field types that show content and collect no answer.
+const DISPLAY_ONLY_FIELD_TYPES: Array<string | null | undefined> = [FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT, FieldTypes.GROUP];
 
 export default function FieldSettings() {
     const { setActiveFieldComponent } = useActiveFieldComponent();
@@ -103,7 +107,12 @@ export default function FieldSettings() {
                     }}
                 />
             </div>
-            {activeField?.type !== FieldTypes.TEXT && !isRepeatingGroup(activeField) && (
+            {activeField && activeSlide && !activeField.internal && (asksForIdentity(activeField) || !!activeField.properties?.whyWeAsk) && (
+                <WhyWeAskSetting value={activeField.properties?.whyWeAsk ?? ''} required={asksForIdentity(activeField)} onChange={(value) => updateFieldProperty(activeField.index, activeSlide.index, 'whyWeAsk', value)} />
+            )}
+            {/* Content with nothing to answer can't be required (a dead end at
+                publish); the switch stays while it is on, so it can be turned off. */}
+            {activeField?.type !== FieldTypes.TEXT && !isRepeatingGroup(activeField) && (!DISPLAY_ONLY_FIELD_TYPES.includes(activeField?.type) || !!activeField?.validations?.required) && (
                 <div className="flex w-full items-center justify-between">
                     <div className="text-black-700 text-xs mr-4">{activeField?.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'}</div>
                     <Switch
@@ -207,5 +216,32 @@ export default function FieldSettings() {
 
             {!activeField?.internal && <FieldConditionalLogicEditor />}
         </div>
+    );
+}
+
+/**
+ * "Why we ask this" for a question that collects an email, a phone number or
+ * an ID number: shown to respondents under the question, and needed before
+ * the form can be published (utils/publish-checks.ts).
+ */
+export function WhyWeAskSetting({ value, required, onChange }: { value: string; required: boolean; onChange: (value: string) => void }) {
+    const missing = required && !value.trim();
+    return (
+        <label className="flex w-full flex-col gap-1">
+            <span className="text-black-700 text-xs font-medium">Why we ask this</span>
+            <textarea
+                value={value}
+                maxLength={WHY_WE_ASK_MAX_LENGTH}
+                rows={2}
+                placeholder="e.g. So we can send you a copy of your answers."
+                aria-invalid={missing}
+                aria-describedby="why-we-ask-help"
+                onChange={(e) => onChange(e.target.value)}
+                className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-black-300 focus:border-black-400'}`}
+            />
+            <span id="why-we-ask-help" className={`text-[11px] leading-relaxed ${missing ? 'text-amber-700' : 'text-black-500'}`}>
+                {missing ? 'This question asks for personal details. Say briefly why you need them; the form can’t be published without it.' : 'Shown to respondents under the question.'}
+            </span>
+        </label>
     );
 }

@@ -10,6 +10,7 @@ import { getGroupChildren, getRepeatSettings, newGroupChild, REPEAT_CHILD_FIELD_
 import { buildSourceFields, ConditionRow, fieldText, isConditionSource, newConditionFor, SourceField } from '@app/views/molecules/form-builder/condition-editor-shared';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import { getDateRuleSources } from '@app/utils/date-rules';
+import { asksForIdentity, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
 
 const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type === FieldTypes.TEXT ? 'Statement' : (formFieldsList.find((f) => f.type === type)?.name ?? type.replaceAll('_', ' ')) }));
 const CHOICE_TYPES: string[] = [FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN];
@@ -127,6 +128,17 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                     placeholder="Placeholder (optional)"
                                     defaultValue={child.properties?.placeholder ?? ''}
                                     onBlur={(e) => e.target.value !== (child.properties?.placeholder ?? '') && patchProps(child, { placeholder: e.target.value })}
+                                />
+                            )}
+                            {(asksForIdentity(child) || !!child.properties?.whyWeAsk) && (
+                                <input
+                                    key={`${child.id}-why-${child.properties?.whyWeAsk ?? ''}`}
+                                    aria-label="Why we ask this"
+                                    className={`${inputClass} w-full text-xs ${child.properties?.whyWeAsk?.trim() ? '' : 'border-amber-500'}`}
+                                    placeholder="Why we ask this (needed to publish)"
+                                    maxLength={WHY_WE_ASK_MAX_LENGTH}
+                                    defaultValue={child.properties?.whyWeAsk ?? ''}
+                                    onBlur={(e) => e.target.value !== (child.properties?.whyWeAsk ?? '') && patchProps(child, { whyWeAsk: e.target.value })}
                                 />
                             )}
                             {child.type !== FieldTypes.TEXT && sources.length > 0 && (

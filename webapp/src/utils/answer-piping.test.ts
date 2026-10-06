@@ -182,4 +182,9 @@ describe('getPrefillEntries', () => {
         expect(entries[0].field.id).toBe('name-field');
         expect(entries[0].value).toBe('Ada');
     });
+
+    it('never pre-answers a choice: a link cannot tick an option for the respondent', () => {
+        const entries = getPrefillEntries(SLIDES, '?field_toppings-field=Cheese&field_rating-field=5&field_email-field=a@b.test');
+        expect(entries.map((entry) => entry.field.id)).toEqual(['email-field']);
+    });
 });

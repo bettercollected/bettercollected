@@ -335,54 +335,6 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             </Button>
                         </div>
                     </div>
-                    {/* <div style={{ background: standardForm.theme?.accent }} className="border-black-200 absolute bottom-0 left-0 flex w-full flex-col gap-4 border-t bg-opacity-100 p-4 lg:hidden">
-                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
-                            <div className="flex flex-col px-5">
-                                {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                    <div className="flex flex-row gap-2 ">
-                                        <FieldInput
-                                            checked={!formResponse.anonymize}
-                                            onChange={(e: any) => {
-                                                setFormResponse({
-                                                    ...formResponse,
-                                                    anonymize: !e.target.checked
-                                                });
-                                            }}
-                                            type="checkbox"
-                                            className="h-4 w-4 border focus:border-0 focus:outline-none"
-                                        />
-                                        <div className="flex flex-col ">
-                                            <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
-                                            <span className={`p4-new text-black-600 `}>{authState?.email} </span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        <div className="flex w-full items-center gap-4">
-                            <BackButton
-                                handleClick={() => {
-                                    currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
-                                }}
-                                className="w-fit !bg-inherit"
-                                style={{
-                                    background: standardForm?.theme?.accent
-                                }}
-                            />
-                            <Button
-                                style={{
-                                    background: standardForm.theme?.secondary,
-                                    color: 'white'
-                                }}
-                                isLoading={isLoading}
-                                className=" w-full rounded"
-                                onClick={onNext}
-                                size="medium"
-                            >
-                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
-                            </Button>
-                        </div>
-                    </div> */}
                 </div>
             </SlideLayoutWrapper>
         </Controller>
