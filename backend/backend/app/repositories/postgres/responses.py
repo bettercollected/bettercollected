@@ -28,6 +28,7 @@ from backend.app.models.filter_queries.form_responses import FormResponseFilterQ
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
 from backend.app.repositories.postgres.forms import _fold, _oid, _sort_terms, _text
+from backend.app.repositories.response_scope import ResponseScope
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupFormDocument,
@@ -85,6 +86,21 @@ def _filter_terms(doc, filter_query) -> list:
     ]
 
 
+def _in_scope(row, scope: ResponseScope):
+    """``ResponseScope.mongo_filter`` for ``form_responses`` or
+    ``responses_deletion_requests`` rows."""
+    return or_(
+        and_(
+            row.workspace_id == str(scope.workspace_id),
+            row.form_id.in_(list(scope.form_ids)),
+        ),
+        and_(
+            row.workspace_id.is_(None),  # stored before #768
+            row.form_id.in_(list(scope.legacy_form_ids)),
+        ),
+    )
+
+
 class PostgresFormResponseRepository(PostgresRepositoryBase):
     row = FormResponseRow
     document = FormResponseDocument
@@ -102,25 +118,30 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         forms = await self._forms.get_forms_by_form_ids(list(form_ids))
         return {form.form_id: form.title for form in forms}
 
-    async def _form_importers(self, form_ids: List[str]) -> Dict[str, str]:
-        """form_id -> importing user (``$lookup workspace_forms`` + ``$unwind``)."""
+    async def _form_importers(
+        self, form_ids: List[str], workspace_id: PydanticObjectId
+    ) -> Dict[str, str]:
+        """form_id -> the user who imported it into ``workspace_id``
+        (``$lookup workspace_forms`` of that workspace + ``$unwind``)."""
         rows = await self._workspace_forms.get_workspace_forms_form_ids(list(form_ids))
         importers: Dict[str, str] = {}
         for workspace_form in rows:
-            importers.setdefault(workspace_form.form_id, workspace_form.user_id)
+            if str(workspace_form.workspace_id) == str(workspace_id):
+                importers.setdefault(workspace_form.form_id, workspace_form.user_id)
         return importers
 
     # -- listings -----------------------------------------------------------
     async def get_form_responses(
         self,
-        form_ids,
+        scope: ResponseScope,
         data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ) -> Page:
-        titles = await self._form_titles(form_ids)
+        titles = await self._form_titles(list(scope.form_ids))
         dr = ResponseDeletionRequestRow
         where = [
+            _in_scope(FormResponseRow, scope),
             FormResponseRow.form_id.in_(list(titles)),
             FormResponseRow.doc.has_key("answers"),
             *_filter_terms(FormResponseRow.doc, filter_query),
@@ -165,7 +186,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def get_workspace_responders(
         self,
-        form_ids: List[str],
+        scope: ResponseScope,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ):
@@ -176,7 +197,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                 func.count().label("responses"),
                 func.array_agg(r.response_id).label("response_ids"),
             )
-            .where(r.form_id.in_(list(form_ids)), r.data_owner_identifier.is_not(None))
+            .where(_in_scope(r, scope), r.data_owner_identifier.is_not(None))
             .group_by(r.data_owner_identifier)
             .subquery("grouped")
         )
@@ -254,17 +275,21 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def get_deletion_requests(
         self,
-        form_ids,
+        scope: ResponseScope,
         data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ):
         """DeletionRequestsRepository.get_deletion_requests, composed."""
-        titles = await self._form_titles(form_ids)
-        importers = await self._form_importers(list(titles))
+        titles = await self._form_titles(list(scope.form_ids))
+        importers = await self._form_importers(list(titles), scope.workspace_id)
         known = [f for f in titles if f in importers]  # both $unwinds must match
         dr, r = ResponseDeletionRequestRow, FormResponseRow
-        where = [dr.form_id.in_(known), *_filter_terms(dr.doc, filter_query)]
+        where = [
+            _in_scope(dr, scope),
+            dr.form_id.in_(known),
+            *_filter_terms(dr.doc, filter_query),
+        ]
         if data_owner_identifier is not None:
             where.append(dr.data_owner_identifier == data_owner_identifier)
         response_doc = (
@@ -299,7 +324,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def list(
         self,
-        form_ids: List[str],
+        scope: ResponseScope,
         request_for_deletion: bool,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
@@ -307,28 +332,26 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     ) -> Page:
         if data_subjects:
             return await self.get_workspace_responders(
-                form_ids=form_ids, filter_query=filter_query, sort=sort
+                scope, filter_query=filter_query, sort=sort
             )
         elif request_for_deletion:
             return await self.get_deletion_requests(
-                form_ids, filter_query=filter_query, sort=sort
+                scope, filter_query=filter_query, sort=sort
             )
         else:
             return await self.get_form_responses(
-                form_ids, filter_query=filter_query, sort=sort
+                scope, filter_query=filter_query, sort=sort
             )
 
     async def get_user_submissions(
-        self, form_ids, user: User, request_for_deletion: bool = False
+        self, scope: ResponseScope, user: User, request_for_deletion: bool = False
     ):
         if request_for_deletion:
             return await self.get_deletion_requests(
-                form_ids=form_ids, data_owner_identifier=user.sub
+                scope, data_owner_identifier=user.sub
             )
         else:
-            return await self.get_form_responses(
-                form_ids, data_owner_identifier=user.sub
-            )
+            return await self.get_form_responses(scope, data_owner_identifier=user.sub)
 
     # -- counts -------------------------------------------------------------
     async def _counts_by_form(self, row, *where) -> Dict[str, int]:
@@ -343,24 +366,24 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         return {form_id: n for form_id, n in rows}
 
     async def count_responses_with_answers_by_form_ids(
-        self, form_ids: List[str]
+        self, scope: ResponseScope
     ) -> Dict[str, int]:
         return await self._counts_by_form(
             FormResponseRow,
-            FormResponseRow.form_id.in_(form_ids),
+            _in_scope(FormResponseRow, scope),
             FormResponseRow.doc.has_key("answers"),
         )
 
     async def count_deletion_requests_by_form_ids(
-        self, form_ids: List[str]
+        self, scope: ResponseScope
     ) -> Dict[str, int]:
         return await self._counts_by_form(
             ResponseDeletionRequestRow,
-            ResponseDeletionRequestRow.form_id.in_(form_ids),
+            _in_scope(ResponseDeletionRequestRow, scope),
         )
 
-    async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
-        return await self.count(FormResponseRow.form_id.in_(form_ids))
+    async def count_responses_for_form_ids(self, scope: ResponseScope) -> int:
+        return await self.count(_in_scope(FormResponseRow, scope))
 
     # -- platform metrics (admin dashboard) ------------------------------------
     @staticmethod
@@ -400,9 +423,9 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             self._with_answers(),
         )
 
-    async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
+    async def get_deletion_requests_count_in_workspace(self, scope: ResponseScope):
         dr = ResponseDeletionRequestRow
-        in_forms = dr.form_id.in_(form_ids)
+        in_forms = _in_scope(dr, scope)
 
         async def count_where(*where):
             async with self._session() as session:
@@ -439,52 +462,58 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     # -- plain reads and writes ------------------------------------------------
     async def list_recent_by_form_id(
-        self, form_id: str, limit: int
+        self, scope: ResponseScope, limit: int
     ) -> List[FormResponseDocument]:
         return await self.many(
-            FormResponseRow.form_id == form_id,
+            _in_scope(FormResponseRow, scope),
             order_by=(FormResponseRow.created_at.desc(), FormResponseRow.id),
             limit=limit,
         )
 
     @staticmethod
-    def _ai_notice_where(form_id: str, provider_name: str, shown_since: dt.datetime):
+    def _ai_notice_where(
+        scope: ResponseScope, provider_name: str, shown_since: dt.datetime
+    ):
         # to the second (utc truncates), like the Mongo store's ISO strings
         since = utc(shown_since)
         return (
-            FormResponseRow.form_id == form_id,
+            _in_scope(FormResponseRow, scope),
             FormResponseRow.provider == "self",
             FormResponseRow.ai_notice_provider_name == provider_name,
             FormResponseRow.ai_notice_shown_at >= since,
         )
 
     async def list_recent_with_ai_notice(
-        self, form_id: str, provider_name: str, shown_since: dt.datetime, limit: int
+        self,
+        scope: ResponseScope,
+        provider_name: str,
+        shown_since: dt.datetime,
+        limit: int,
     ) -> List[FormResponseDocument]:
         return await self.many(
-            *self._ai_notice_where(form_id, provider_name, shown_since),
+            *self._ai_notice_where(scope, provider_name, shown_since),
             order_by=(FormResponseRow.created_at.desc(), FormResponseRow.id),
             limit=limit,
         )
 
     async def count_with_ai_notice(
-        self, form_id: str, provider_name: str, shown_since: dt.datetime
+        self, scope: ResponseScope, provider_name: str, shown_since: dt.datetime
     ) -> int:
         return await self.count(
-            *self._ai_notice_where(form_id, provider_name, shown_since)
+            *self._ai_notice_where(scope, provider_name, shown_since)
         )
 
     async def list_deletion_requests_for_form_ids(
-        self, form_ids: List[str]
+        self, scope: ResponseScope
     ) -> List[FormResponseDeletionRequest]:
         return await self.many(
-            ResponseDeletionRequestRow.form_id.in_(form_ids),
+            _in_scope(ResponseDeletionRequestRow, scope),
             row=ResponseDeletionRequestRow,
             document=FormResponseDeletionRequest,
         )
 
-    async def list_by_form_id(self, form_id: str) -> List[FormResponseDocument]:
-        return await self.many(FormResponseRow.form_id == form_id)
+    async def list_by_form_id(self, scope: ResponseScope) -> List[FormResponseDocument]:
+        return await self.many(_in_scope(FormResponseRow, scope))
 
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await self.upsert(response)
@@ -508,25 +537,26 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                 dataOwnerIdentifier=response.dataOwnerIdentifier,
                 anonymous_identity=response.anonymous_identity,
                 provider=response.provider,
+                workspace_id=response.workspace_id,
                 deleted_at=None,
             ),
             row=ResponseDeletionRequestRow,
         )
 
     async def delete_by_form_id_except(
-        self, form_id: str, keep_response_ids: List[str]
+        self, scope: ResponseScope, keep_response_ids: List[str]
     ):
         return await self.delete_where(
-            FormResponseRow.form_id == form_id,
+            _in_scope(FormResponseRow, scope),
             FormResponseRow.response_id.not_in(list(keep_response_ids)),
         )
 
     async def mark_deletion_requests_success_except(
-        self, form_id: str, provider: str, keep_response_ids: List[str], now
+        self, scope: ResponseScope, provider: str, keep_response_ids: List[str], now
     ) -> int:
         dr = ResponseDeletionRequestRow
         requests = await self.many(
-            dr.form_id == form_id,
+            _in_scope(dr, scope),
             dr.provider == provider,
             dr.response_id.not_in(list(keep_response_ids)),
             row=dr,
@@ -543,6 +573,13 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             request.updated_at = now
         await self.upsert_many(requests, row=dr)
         return modified
+
+    async def delete_in_scope(self, scope: ResponseScope):
+        await self.delete_where(
+            _in_scope(ResponseDeletionRequestRow, scope),
+            row=ResponseDeletionRequestRow,
+        )
+        return await self.delete_where(_in_scope(FormResponseRow, scope))
 
     async def delete_by_form_id(self, form_id):
         return await self.delete_where(FormResponseRow.form_id == form_id)
@@ -586,6 +623,8 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                     data=json.dumps(response_document.hidden_fields),
                 )
         response_document.form_id = str(form_id)
+        # collected in this workspace (#768)
+        response_document.workspace_id = PydanticObjectId(workspace_id)
         response_document.provider = "self"
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
@@ -640,6 +679,10 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
         response_document.updated_at = dt.datetime.now(dt.timezone.utc)
+        # the workspace it was collected in stays; one stored before #768
+        # gets the workspace the caller checked it against
+        if response_document.workspace_id is None:
+            response_document.workspace_id = PydanticObjectId(workspace_id)
         return await self.upsert(response_document)
 
     async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
@@ -718,23 +761,6 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def get_by_submission_uuid(self, submission_uuid: str):
         return await self.one(FormResponseRow.submission_uuid == submission_uuid)
-
-    async def verify_response_exists_in_workspace(
-        self, workspace_id: PydanticObjectId, response_id: str
-    ):
-        response = await self.one(FormResponseRow.response_id == response_id)
-        workspace_form = (
-            None
-            if response is None
-            else await self._workspace_forms.find_workspace_form(
-                workspace_id, response.form_id
-            )
-        )
-        if workspace_form is None:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                content="Response not found in workspace",
-            )
 
 
 class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):

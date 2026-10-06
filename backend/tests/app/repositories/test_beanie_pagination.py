@@ -11,13 +11,14 @@ from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
 from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 
 
-async def _seed_deletion_requests(count: int) -> list[str]:
+async def _seed_deletion_requests(count: int) -> ResponseScope:
     workspace_id = PydanticObjectId()
     await FormRepository().save_form(FormDocument(form_id="f1", title="Alpha"))
     await WorkspaceFormRepository().save(
@@ -31,7 +32,8 @@ async def _seed_deletion_requests(count: int) -> list[str]:
         ).save()
     # A request on a form outside the listed ids is never counted.
     await FormResponseDeletionRequest(form_id="other", response_id="x").save()
-    return ["f1"]
+    # stored without a workspace_id (before #768): the only workspace's
+    return ResponseScope(workspace_id, ("f1",), ("f1",))
 
 
 async def test_deletion_requests_page_totals_and_slices():
@@ -67,6 +69,8 @@ async def test_deletion_requests_filtered_total_follows_the_match():
 
 async def test_deletion_requests_empty_page():
     with set_page(Page), set_params(Params(page=1, size=10)):
-        page = await DeletionRequestsRepository.get_deletion_requests(["missing"])
+        page = await DeletionRequestsRepository.get_deletion_requests(
+            ResponseScope(PydanticObjectId(), ("missing",))
+        )
 
     assert (page.total, page.items) == (0, [])

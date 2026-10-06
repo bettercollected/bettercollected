@@ -26,6 +26,7 @@ from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
+from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.metric_periods import (
     iso_second,
     mongo_counts_per_period,
@@ -48,14 +49,14 @@ class FormResponseRepository(BaseRepository):
 
     async def get_form_responses(
         self,
-        form_ids,
+        scope: ResponseScope,
         data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ) -> Page[StandardFormResponseCamelModel]:
-        """Responses with answers to ``form_ids`` (optionally one responder's),
+        """Responses with answers in ``scope`` (optionally one responder's),
         each carrying its form's title and any deletion request's status."""
-        find_query = {"form_id": {"$in": form_ids}, "answers": {"$exists": True}}
+        find_query = {**scope.mongo_filter(), "answers": {"$exists": True}}
         if data_owner_identifier is not None:
             find_query["dataOwnerIdentifier"] = data_owner_identifier
         aggregate_query = [
@@ -96,11 +97,11 @@ class FormResponseRepository(BaseRepository):
 
     async def get_workspace_responders(
         self,
-        form_ids: List[str],
+        scope: ResponseScope,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ):
-        find_query = {"form_id": {"$in": form_ids}}
+        find_query = scope.mongo_filter()
 
         aggregate_query = [
             {"$match": {"dataOwnerIdentifier": {"$exists": True, "$ne": None}}},
@@ -175,7 +176,7 @@ class FormResponseRepository(BaseRepository):
 
     async def list(
         self,
-        form_ids: List[str],
+        scope: ResponseScope,
         request_for_deletion: bool,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
@@ -183,23 +184,23 @@ class FormResponseRepository(BaseRepository):
     ) -> Page[StandardFormResponseCamelModel]:
         if data_subjects:
             return await self.get_workspace_responders(
-                form_ids=form_ids, filter_query=filter_query, sort=sort
+                scope, filter_query=filter_query, sort=sort
             )
         elif request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(
-                form_ids,
+                scope,
                 filter_query=filter_query,
                 sort=sort,
             )
         else:
             return await self.get_form_responses(
-                form_ids,
+                scope,
                 filter_query=filter_query,
                 sort=sort,
             )
 
     async def get_user_submissions(
-        self, form_ids, user: User, request_for_deletion: bool = False
+        self, scope: ResponseScope, user: User, request_for_deletion: bool = False
     ):
         # Deliberately NOT matching anonymous_identity here: anonymity means a
         # signed-in account listing must not link anonymous submissions back to
@@ -207,21 +208,19 @@ class FormResponseRepository(BaseRepository):
         # anonymous response — which is exactly what the portal promises.
         if request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(
-                form_ids=form_ids, data_owner_identifier=user.sub
+                scope, data_owner_identifier=user.sub
             )
         else:
-            return await self.get_form_responses(
-                form_ids, data_owner_identifier=user.sub
-            )
+            return await self.get_form_responses(scope, data_owner_identifier=user.sub)
 
     async def count_responses_with_answers_by_form_ids(
-        self, form_ids: List[str]
+        self, scope: ResponseScope
     ) -> Dict[str, int]:
-        """form_id -> responses that carry an ``answers`` field (the forms list's
-        response count; deletion-only stubs have none)."""
+        """form_id -> responses in ``scope`` that carry an ``answers`` field
+        (the forms list's response count; deletion-only stubs have none)."""
         rows = (
             await FormResponseDocument.find(
-                {"form_id": {"$in": form_ids}, "answers": {"$exists": True}}
+                {**scope.mongo_filter(), "answers": {"$exists": True}}
             )
             .aggregate([{"$group": {"_id": "$form_id", "n": {"$sum": 1}}}])
             .to_list()
@@ -229,17 +228,17 @@ class FormResponseRepository(BaseRepository):
         return {row["_id"]: row["n"] for row in rows}
 
     async def count_deletion_requests_by_form_ids(
-        self, form_ids: List[str]
+        self, scope: ResponseScope
     ) -> Dict[str, int]:
         rows = (
-            await FormResponseDeletionRequest.find({"form_id": {"$in": form_ids}})
+            await FormResponseDeletionRequest.find(scope.mongo_filter())
             .aggregate([{"$group": {"_id": "$form_id", "n": {"$sum": 1}}}])
             .to_list()
         )
         return {row["_id"]: row["n"] for row in rows}
 
-    async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
-        return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).count()
+    async def count_responses_for_form_ids(self, scope: ResponseScope) -> int:
+        return await FormResponseDocument.find(scope.mongo_filter()).count()
 
     # -- platform metrics (admin dashboard) ------------------------------------
     # Responses with ``answers`` (deletion-only stubs have none), dated by
@@ -282,9 +281,9 @@ class FormResponseRepository(BaseRepository):
             match={"answers": {"$exists": True}},
         )
 
-    async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
+    async def get_deletion_requests_count_in_workspace(self, scope: ResponseScope):
         success_deletion_request = (
-            await FormResponseDeletionRequest.find({"form_id": {"$in": form_ids}})
+            await FormResponseDeletionRequest.find(scope.mongo_filter())
             .aggregate(
                 [
                     {
@@ -328,10 +327,10 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def list_recent_by_form_id(
-        self, form_id: str, limit: int
+        self, scope: ResponseScope, limit: int
     ) -> List[FormResponseDocument]:
         return (
-            await FormResponseDocument.find({"form_id": form_id})
+            await FormResponseDocument.find(scope.mongo_filter())
             .sort("-created_at")
             .limit(limit)
             .to_list()
@@ -339,24 +338,28 @@ class FormResponseRepository(BaseRepository):
 
     @staticmethod
     def _ai_notice_query(
-        form_id: str, provider_name: str, shown_since: dt.datetime
+        scope: ResponseScope, provider_name: str, shown_since: dt.datetime
     ) -> Dict[str, Any]:
         # submitted here, from a page that showed the AI notice naming
         # ``provider_name`` under the current setting (#752); timestamps are
         # stored as ISO strings, compared to the second like created_at
         return {
-            "form_id": form_id,
+            **scope.mongo_filter(),
             "provider": "self",
             "ai_notice_provider_name": provider_name,
             "ai_notice_shown_at": {"$gte": iso_second(shown_since)},
         }
 
     async def list_recent_with_ai_notice(
-        self, form_id: str, provider_name: str, shown_since: dt.datetime, limit: int
+        self,
+        scope: ResponseScope,
+        provider_name: str,
+        shown_since: dt.datetime,
+        limit: int,
     ) -> List[FormResponseDocument]:
         return (
             await FormResponseDocument.find(
-                self._ai_notice_query(form_id, provider_name, shown_since)
+                self._ai_notice_query(scope, provider_name, shown_since)
             )
             .sort("-created_at")
             .limit(limit)
@@ -364,21 +367,19 @@ class FormResponseRepository(BaseRepository):
         )
 
     async def count_with_ai_notice(
-        self, form_id: str, provider_name: str, shown_since: dt.datetime
+        self, scope: ResponseScope, provider_name: str, shown_since: dt.datetime
     ) -> int:
         return await FormResponseDocument.find(
-            self._ai_notice_query(form_id, provider_name, shown_since)
+            self._ai_notice_query(scope, provider_name, shown_since)
         ).count()
 
     async def list_deletion_requests_for_form_ids(
-        self, form_ids: List[str]
+        self, scope: ResponseScope
     ) -> List[FormResponseDeletionRequest]:
-        return await FormResponseDeletionRequest.find(
-            {"form_id": {"$in": form_ids}}
-        ).to_list()
+        return await FormResponseDeletionRequest.find(scope.mongo_filter()).to_list()
 
-    async def list_by_form_id(self, form_id: str) -> List[FormResponseDocument]:
-        return await FormResponseDocument.find({"form_id": form_id}).to_list()
+    async def list_by_form_id(self, scope: ResponseScope) -> List[FormResponseDocument]:
+        return await FormResponseDocument.find(scope.mongo_filter()).to_list()
 
     @write_op
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
@@ -399,25 +400,27 @@ class FormResponseRepository(BaseRepository):
             dataOwnerIdentifier=response.dataOwnerIdentifier,
             anonymous_identity=response.anonymous_identity,
             provider=response.provider,
+            workspace_id=response.workspace_id,
             deleted_at=None,
         ).save()
 
     @write_op
     async def delete_by_form_id_except(
-        self, form_id: str, keep_response_ids: List[str]
+        self, scope: ResponseScope, keep_response_ids: List[str]
     ):
+        """Imported-form refresh: the workspace's responses gone at the source."""
         return await FormResponseDocument.find(
-            {"form_id": form_id, "response_id": {"$nin": keep_response_ids}}
+            {**scope.mongo_filter(), "response_id": {"$nin": keep_response_ids}}
         ).delete()
 
     @write_op
     async def mark_deletion_requests_success_except(
-        self, form_id: str, provider: str, keep_response_ids: List[str], now
+        self, scope: ResponseScope, provider: str, keep_response_ids: List[str], now
     ) -> int:
         """Imported-form refresh: responses gone at the source count as deleted."""
         result = await FormResponseDeletionRequest.find(
             {
-                "form_id": form_id,
+                **scope.mongo_filter(),
                 "provider": provider,
                 "response_id": {"$nin": keep_response_ids},
             }
@@ -425,6 +428,13 @@ class FormResponseRepository(BaseRepository):
             {"$set": {"status": DeletionRequestStatus.SUCCESS, "updated_at": now}}
         )
         return result.modified_count
+
+    @write_op
+    async def delete_in_scope(self, scope: ResponseScope):
+        """A form removed from one of the workspaces it is linked to: that
+        workspace's responses and deletion requests go with it."""
+        await FormResponseDeletionRequest.find(scope.mongo_filter()).delete()
+        return await FormResponseDocument.find(scope.mongo_filter()).delete()
 
     @write_op
     async def delete_by_form_id(self, form_id):
@@ -469,6 +479,8 @@ class FormResponseRepository(BaseRepository):
                     data=json.dumps(response_document.hidden_fields),
                 )
         response_document.form_id = str(form_id)
+        # collected in this workspace (#768)
+        response_document.workspace_id = PydanticObjectId(workspace_id)
         response_document.provider = "self"
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
@@ -523,6 +535,10 @@ class FormResponseRepository(BaseRepository):
         # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
         response_document.updated_at = dt.datetime.now(dt.timezone.utc)
+        # the workspace it was collected in stays; one stored before #768
+        # gets the workspace the caller checked it against
+        if response_document.workspace_id is None:
+            response_document.workspace_id = PydanticObjectId(workspace_id)
         return await response_document.save()
 
     @write_op
@@ -603,35 +619,3 @@ class FormResponseRepository(BaseRepository):
 
     async def get_by_submission_uuid(self, submission_uuid: str):
         return await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
-
-    async def verify_response_exists_in_workspace(
-        self, workspace_id: PydanticObjectId, response_id: str
-    ):
-        workspace = (
-            await FormResponseDocument.find({"response_id": response_id})
-            .aggregate(
-                [
-                    {
-                        "$lookup": {
-                            "from": "workspace_forms",
-                            "localField": "form_id",
-                            "foreignField": "form_id",
-                            "as": "workspace_form",
-                        }
-                    },
-                    {"$match": {"workspace_form.workspace_id": workspace_id}},
-                    {
-                        "$unwind": {
-                            "path": "$workspace_form",
-                            "preserveNullAndEmptyArrays": False,
-                        }
-                    },
-                ]
-            )
-            .to_list()
-        )
-        if not len(workspace) > 0:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                content="Response not found in workspace",
-            )

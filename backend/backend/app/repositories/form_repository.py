@@ -23,7 +23,58 @@ _LOOKUP_SCAFFOLDING = [
     "form_groups",
     "versions",
     "responses_deletion_requests",
+    "_bc_form_links",
 ]
+
+# Before ``$unwind: $workspace_form``: how many workspaces the form is linked
+# to. A response stored before #768 has no workspace_id and counts for the
+# workspace only when that is one (see repositories/response_scope.py).
+_COUNT_FORM_LINKS = {"$set": {"_bc_form_links": {"$size": "$workspace_form"}}}
+
+
+def _scoped_lookup(collection: str, workspace_id: PydanticObjectId, alias: str):
+    """``$lookup`` of the form's ``collection`` documents (responses or
+    deletion requests) that belong to ``workspace_id`` (#768)."""
+    return {
+        "$lookup": {
+            "from": collection,
+            "let": {"form_id": "$form_id", "form_links": "$_bc_form_links"},
+            "pipeline": [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$and": [
+                                {"$eq": ["$form_id", "$$form_id"]},
+                                {
+                                    "$or": [
+                                        {"$eq": ["$workspace_id", workspace_id]},
+                                        {
+                                            "$and": [
+                                                {"$eq": ["$$form_links", 1]},
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$ifNull": [
+                                                                "$workspace_id",
+                                                                None,
+                                                            ]
+                                                        },
+                                                        None,
+                                                    ]
+                                                },
+                                            ]
+                                        },
+                                    ]
+                                },
+                            ]
+                        }
+                    }
+                },
+                {"$project": {"_id": 1, "answers": 1}},
+            ],
+            "as": alias,
+        }
+    }
 
 
 def detach_action(form: FormDocument, action_id: str) -> None:
@@ -54,6 +105,7 @@ class FormRepository:
                     "as": "workspace_form",
                 }
             },
+            _COUNT_FORM_LINKS,
             {"$unwind": "$workspace_form"},
             {"$match": {"workspace_form.workspace_id": workspace_id}},
             {
@@ -85,14 +137,7 @@ class FormRepository:
         if is_admin:
             aggregation_pipeline.extend(
                 [
-                    {
-                        "$lookup": {
-                            "from": "form_responses",
-                            "localField": "form_id",
-                            "foreignField": "form_id",
-                            "as": "responses",
-                        }
-                    },
+                    _scoped_lookup("form_responses", workspace_id, "responses"),
                     {
                         "$set": {
                             "responses": {
@@ -107,14 +152,11 @@ class FormRepository:
                         }
                     },
                     {"$set": {"responses": {"$size": "$responses"}}},
-                    {
-                        "$lookup": {
-                            "from": "responses_deletion_requests",
-                            "localField": "form_id",
-                            "foreignField": "form_id",
-                            "as": "responses_deletion_requests",
-                        }
-                    },
+                    _scoped_lookup(
+                        "responses_deletion_requests",
+                        workspace_id,
+                        "responses_deletion_requests",
+                    ),
                     {
                         "$set": {
                             "deletion_requests": {
@@ -182,17 +224,11 @@ class FormRepository:
                     "as": "workspace_form",
                 }
             },
+            _COUNT_FORM_LINKS,
             {"$unwind": "$workspace_form"},
             {"$match": {"workspace_form.workspace_id": workspace_id}},
             {"$set": {"settings": "$workspace_form.settings", "is_published": True}},
-            {
-                "$lookup": {
-                    "from": "form_responses",
-                    "localField": "form_id",
-                    "foreignField": "form_id",
-                    "as": "responses",
-                }
-            },
+            _scoped_lookup("form_responses", workspace_id, "responses"),
             {
                 "$set": {
                     "responses": {
@@ -205,14 +241,11 @@ class FormRepository:
                 }
             },
             {"$set": {"responses": {"$size": "$responses"}}},
-            {
-                "$lookup": {
-                    "from": "responses_deletion_requests",
-                    "localField": "form_id",
-                    "foreignField": "form_id",
-                    "as": "responses_deletion_requests",
-                }
-            },
+            _scoped_lookup(
+                "responses_deletion_requests",
+                workspace_id,
+                "responses_deletion_requests",
+            ),
             {"$set": {"deletion_requests": {"$size": "$responses_deletion_requests"}}},
         ]
         get_action_aggregation = [

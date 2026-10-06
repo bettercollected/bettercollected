@@ -8,6 +8,7 @@ from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 
 from backend.app.container import container
+from tests.app.response_helpers import unlinked_scope
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -271,7 +272,7 @@ class TestWorkspaceForm:
         delete_form = await client.delete(workspace_form_url, cookies=test_user_cookies)
 
         actual_response = await container.form_response_repo().list_by_form_id(
-            workspace_form.form_id
+            unlinked_scope(workspace.id, workspace_form.form_id)
         )
         expected_response = []
         assert actual_response == expected_response

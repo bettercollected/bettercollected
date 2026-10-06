@@ -6,6 +6,7 @@ from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardFormResponse, StandardForm
 
 from backend.app.container import container
+from tests.app.response_helpers import form_scope
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -100,7 +101,7 @@ class TestWorkspaceFormSubmission:
 
         form_response_deletion_request = (
             await container.form_response_repo().list_deletion_requests_for_form_ids(
-                [workspace_form_response["form_id"]]
+                await form_scope(workspace_form_response["form_id"])
             )
         )
         actual_response = request_response_deletion.json()

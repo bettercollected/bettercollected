@@ -143,7 +143,19 @@ to a Temporal workflow (default) or a procrastinate job on Postgres (`backend/jo
 Response `answers` **and** `hidden_fields` (captured URL parameters, see `StandardForm.hidden_fields` for the
 declared names) are encrypted at rest via `crypto_service` in `form_response_repository.save_form_response` and
 decrypted in `form_response_service.decrypt_form_response` — any new respondent-data field on
-`StandardFormResponse` must go through the same two choke points. Answer piping itself is resolved entirely
+`StandardFormResponse` must go through the same two choke points.
+
+**Responses belong to a workspace (#768):** a provider form (Google Forms, Typeform) linked to several
+workspaces has the same `form_id` in each, so every response and deletion request stores the
+`workspace_id` it was collected in or imported into (submission, provider import, respondent edits;
+Postgres spine column, revision 0015). Workspace reads never filter on `form_id` alone: list/count
+methods of the responses repositories take a `ResponseScope` (`repositories/response_scope.py`, built
+with `response_scope(workspace_form_repo, workspace_id, form_ids)` or `FormResponseService.scope`), and a
+single response fetched by id is checked with `response_in_workspace` / `FormResponseService.in_workspace`
+(404 otherwise, for staff, respondents, receipts and MCP alike). Responses stored before #768 have no
+`workspace_id`: they count for a workspace only when the form is linked to it alone, until
+`scripts/backfill_response_workspaces.py` (dry run by default) has stamped them. Unlinking a form from
+one of several workspaces deletes that workspace's responses (`delete_in_scope`). Answer piping itself is resolved entirely
 client-side (webapp `src/utils/answer-piping.ts`); the backend only stores the pipe nodes inside field titles.
 
 **Internal fields** (`StandardFormField.internal`, "for office use only"): staff fill them in on each submission

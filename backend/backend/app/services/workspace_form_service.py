@@ -330,6 +330,11 @@ class WorkspaceFormService:
         )
 
         if len(workspace_ids) > 1:
+            # the form stays in the other workspaces; the responses collected
+            # through this one go (#768)
+            await self.form_response_service.delete_workspace_form_responses(
+                workspace_id=workspace_id, form_id=form_id
+            )
             return "Form deleted from workspace."
 
         form = await self.form_service.get_form_document_by_id(form_id)
@@ -629,6 +634,8 @@ class WorkspaceFormService:
             or str(existing.form_id) != str(form_id)
             or not user
             or existing.dataOwnerIdentifier != user.sub
+            # collected through another workspace (#768)
+            or not await self.form_response_service.in_workspace(existing, workspace_id)
         ):
             raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
 

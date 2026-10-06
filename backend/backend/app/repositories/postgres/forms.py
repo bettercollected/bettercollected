@@ -39,6 +39,7 @@ from backend.app.repositories.form_import_repository import (
     lock_wait_s,
 )
 from backend.app.repositories.form_repository import detach_action
+from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.metric_periods import (
     object_id_at,
     postgres_counts_per_period,
@@ -134,10 +135,33 @@ class PostgresFormRepository(PostgresRepositoryBase):
         for form in forms:
             form["groups"] = by_form.get(form["form_id"], [])
 
-    async def _attach_counts(self, forms: List[dict]) -> None:
+    async def _attach_counts(
+        self, forms: List[dict], workspace_id: PydanticObjectId
+    ) -> None:
+        """The workspace's own response and deletion-request counts (#768)."""
         ids = [form["form_id"] for form in forms]
-        responses = await self._responses.count_responses_with_answers_by_form_ids(ids)
-        deletions = await self._responses.count_deletion_requests_by_form_ids(ids)
+        async with self._session() as session:
+            links = (
+                await session.execute(
+                    select(WorkspaceFormRow.form_id, WorkspaceFormRow.workspace_id)
+                    .where(WorkspaceFormRow.form_id.in_(ids))
+                    .distinct()
+                )
+            ).all()
+        owners: Dict[str, set] = {}
+        for form_id, linked_workspace in links:
+            owners.setdefault(form_id, set()).add(linked_workspace)
+        scope = ResponseScope(
+            workspace_id=PydanticObjectId(workspace_id),
+            form_ids=tuple(ids),
+            legacy_form_ids=tuple(
+                f for f in ids if owners.get(f) == {_oid(workspace_id)}
+            ),
+        )
+        responses = await self._responses.count_responses_with_answers_by_form_ids(
+            scope
+        )
+        deletions = await self._responses.count_deletion_requests_by_form_ids(scope)
         for form in forms:
             form["responses"] = responses.get(form["form_id"], 0)
             form["deletion_requests"] = deletions.get(form["form_id"], 0)
@@ -161,7 +185,9 @@ class PostgresFormRepository(PostgresRepositoryBase):
             .order_by(*_sort_terms(FormRow.doc, sort, (FormRow.created_at, FormRow.id)))
         )
 
-    async def _drafts(self, rows: Iterable[Any], is_admin: bool) -> List[dict]:
+    async def _drafts(
+        self, rows: Iterable[Any], is_admin: bool, workspace_id: PydanticObjectId
+    ) -> List[dict]:
         forms = []
         for form_doc, workspace_form_doc, published in rows:
             form = from_canonical_document(form_doc)
@@ -175,7 +201,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         if forms:
             await self._attach_groups(forms)
             if is_admin:
-                await self._attach_counts(forms)
+                await self._attach_counts(forms, workspace_id)
         return forms
 
     async def get_forms_in_workspace(
@@ -191,7 +217,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
                     self._drafts_statement(workspace_id, form_id_list, sort)
                 )
             ).all()
-        return await self._drafts(rows, is_admin)
+        return await self._drafts(rows, is_admin, workspace_id)
 
     async def paginate_forms_in_workspace(
         self,
@@ -201,7 +227,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         sort=None,
     ) -> Page:
         async def transform(items):
-            return await self._drafts(items, is_admin)
+            return await self._drafts(items, is_admin, workspace_id)
 
         async with self._session() as session:
             return await apaginate(
@@ -238,7 +264,9 @@ class PostgresFormRepository(PostgresRepositoryBase):
         natural = (_fn.bc_ts(latest.c.doc["created_at"]), latest.c.form_id)
         return stmt.order_by(*_sort_terms(latest.c.doc, sort, natural))
 
-    async def _published_forms(self, rows: Iterable[Any], get_actions: bool):
+    async def _published_forms(
+        self, rows: Iterable[Any], get_actions: bool, workspace_id: PydanticObjectId
+    ):
         forms = []
         for version_doc, workspace_form_doc, form_doc in rows:
             form = from_canonical_document(version_doc)
@@ -261,7 +289,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
                 )
             forms.append(form)
         if forms:
-            await self._attach_counts(forms)
+            await self._attach_counts(forms, workspace_id)
             if get_actions:
                 await self._attach_groups(forms)
         return forms
@@ -281,7 +309,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
                     )
                 )
             ).all()
-        return await self._published_forms(rows, get_actions)
+        return await self._published_forms(rows, get_actions, workspace_id)
 
     async def paginate_published_forms_in_workspace(
         self,
@@ -291,7 +319,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         get_actions=False,
     ) -> Page:
         async def transform(items):
-            return await self._published_forms(items, get_actions)
+            return await self._published_forms(items, get_actions, workspace_id)
 
         async with self._session() as session:
             return await apaginate(

@@ -485,12 +485,12 @@ class WorkspaceService:
         )
         responses_count = (
             await self.form_response_service.get_responses_count_in_workspace(
-                workspace_form_ids=form_ids
+                workspace_id=workspace_id, workspace_form_ids=form_ids
             )
         )
         deletion_count = (
             await self.form_response_service.get_deletion_requests_count_in_workspace(
-                form_ids=form_ids
+                workspace_id=workspace_id, form_ids=form_ids
             )
         )
 

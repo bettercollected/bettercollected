@@ -35,6 +35,11 @@ from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.response_scope import (
+    ResponseScope,
+    response_in_workspace,
+    response_scope,
+)
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form_response import (
@@ -117,7 +122,7 @@ class FormResponseService:
             workspace_id=workspace_id
         )
         responses_page = await self._form_response_repo.list(
-            form_ids,
+            await self.scope(workspace_id, form_ids),
             request_for_deletion,
             data_subjects=data_subjects,
             filter_query=filter_query,
@@ -138,8 +143,11 @@ class FormResponseService:
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id
         )
+        # the respondent's own submissions collected in this workspace only
         user_responses = await self._form_response_repo.get_user_submissions(
-            form_ids=form_ids, user=user, request_for_deletion=request_for_deletion
+            await self.scope(workspace_id, form_ids),
+            user=user,
+            request_for_deletion=request_for_deletion,
         )
         # A respondent's own listing never carries staff-entered values; of
         # the feedback only the current status (no staff identity).
@@ -181,7 +189,10 @@ class FormResponseService:
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
         form_responses = await self._form_response_repo.list(
-            [form_id], request_for_deletion, filter_query, sort
+            await self.scope(workspace_id, [form_id]),
+            request_for_deletion,
+            filter_query,
+            sort,
         )
         form = await self._form_repo.get_form_document_by_id(form_id)
         file_fields = []
@@ -232,7 +243,9 @@ class FormResponseService:
             raise HTTPException(
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
-        form_responses = await self._form_response_repo.list_by_form_id(form_id)
+        form_responses = await self._form_response_repo.list_by_form_id(
+            await self.scope(workspace_id, [form_id])
+        )
         return self.decrypt_form_responses(
             workspace_id=workspace_id, responses=form_responses
         )
@@ -248,6 +261,10 @@ class FormResponseService:
         response = await self._form_response_repo.get_response(response_id)
         if not response:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        # a response collected through another workspace is not found here,
+        # for staff and respondents alike (#768)
+        if not await self.in_workspace(response, workspace_id):
+            raise HTTPException(404, "Form not found in this workspace")
         if response.form_version:
             form = await self._form_repo.get_form_by_by_version(
                 response.form_id, response.form_version if response.form_version else 1
@@ -354,12 +371,9 @@ class FormResponseService:
         is_admin = await self._authorization.has_permission(
             user, Permission.PRIVACY_MANAGE, workspace_id
         )
-        # TODO : Handle case for multiple form import by other user
         response = await self._form_response_repo.get_response(response_id)
-        # Membership only counts for responses to this workspace's forms.
-        if not response or not await self._workspace_form_repo.find_workspace_form(
-            workspace_id, response.form_id
-        ):
+        # Membership only counts for responses collected in this workspace.
+        if not await self.in_workspace(response, workspace_id):
             raise HTTPException(HTTPStatus.NOT_FOUND, "Response not found in workspace")
 
         # Anonymous responses carry no dataOwnerIdentifier — their owner is
@@ -390,14 +404,42 @@ class FormResponseService:
 
         await self._form_response_repo.add_deletion_request(response, response_id)
 
-    async def get_responses_count_in_workspace(self, workspace_form_ids: List[str]):
-        return await self._form_response_repo.count_responses_for_form_ids(
-            workspace_form_ids
+    async def scope(
+        self, workspace_id: PydanticObjectId, form_ids: List[str]
+    ) -> ResponseScope:
+        """The responses of ``form_ids`` (forms of the workspace) that belong
+        to ``workspace_id`` (#768)."""
+        return await response_scope(self._workspace_form_repo, workspace_id, form_ids)
+
+    async def in_workspace(self, response, workspace_id: PydanticObjectId) -> bool:
+        """Whether a stored response belongs to ``workspace_id`` (#768)."""
+        return await response_in_workspace(
+            self._workspace_form_repo, response, workspace_id
         )
 
-    async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
+    async def get_responses_count_in_workspace(
+        self, workspace_id: PydanticObjectId, workspace_form_ids: List[str]
+    ):
+        return await self._form_response_repo.count_responses_for_form_ids(
+            await self.scope(workspace_id, workspace_form_ids)
+        )
+
+    async def get_deletion_requests_count_in_workspace(
+        self, workspace_id: PydanticObjectId, form_ids: List[str]
+    ):
         return await self._form_response_repo.get_deletion_requests_count_in_workspace(
-            form_ids
+            await self.scope(workspace_id, form_ids)
+        )
+
+    async def delete_workspace_form_responses(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ):
+        """A form unlinked from one of several workspaces: the responses and
+        deletion requests collected through that workspace go with it."""
+        return await self._form_response_repo.delete_in_scope(
+            ResponseScope(
+                workspace_id=PydanticObjectId(workspace_id), form_ids=(str(form_id),)
+            )
         )
 
     async def delete_form_responses(self, form_id):
@@ -512,6 +554,13 @@ class FormResponseService:
         response_id: str,
         workspace_id: PydanticObjectId,
     ):
+        existing = await self._form_response_repo.get_response(response_id)
+        if existing is not None and (
+            str(existing.form_id) != str(form_id)
+            or not await self.in_workspace(existing, workspace_id)
+        ):
+            # collected through another workspace (#768)
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         await self._form_response_repo.delete_form_response(
             form_id=form_id, response_id=response_id
         )
@@ -536,19 +585,22 @@ class FormResponseService:
         response = await self._form_response_repo.get_by_submission_uuid(
             submission_uuid=submission_uuid
         )
-
-        await self._form_response_repo.verify_response_exists_in_workspace(
-            workspace_id=workspace_id, response_id=response.response_id
+        # only a receipt of this workspace, with this workspace's form
+        # settings, never another workspace's (#768)
+        workspace_form = (
+            await self._workspace_form_repo.find_workspace_form(
+                workspace_id, response.form_id
+            )
+            if await self.in_workspace(response, workspace_id)
+            else None
         )
+        if workspace_form is None:
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Response not found in workspace")
         form = await self._form_repo.get_form_by_by_version(
             response.form_id, response.form_version if response.form_version else 1
         )
         if not form:
             form = await self._form_repo.get_form_document_by_id(response.form_id)
-
-        workspace_form = await self._workspace_form_repo.find_first_by_form_id(
-            form.form_id
-        )
         form.settings = workspace_form.settings
 
         # The submission-number receipt is public by design (whoever holds
@@ -582,10 +634,9 @@ class FormResponseService:
         response = await self._form_response_repo.get_by_submission_uuid(
             submission_uuid
         )
+        if not await self.in_workspace(response, workspace_id):
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Response not found in workspace")
         response_id = response.response_id
-        await self._form_response_repo.verify_response_exists_in_workspace(
-            workspace_id=workspace_id, response_id=response_id
-        )
         deletion_request = (
             await self._form_response_repo.find_deletion_request_by_response_id(
                 response_id
@@ -666,7 +717,11 @@ class FormResponseService:
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
         response = await self._form_response_repo.get_response(response_id)
-        if not response or str(response.form_id) != str(workspace_form.form_id):
+        if (
+            not response
+            or str(response.form_id) != str(workspace_form.form_id)
+            or not await self.in_workspace(response, workspace_id)
+        ):
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         if not answers:
             raise HTTPException(HTTPStatus.BAD_REQUEST, "No internal answers given.")

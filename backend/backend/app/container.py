@@ -685,6 +685,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
         workspace_repo=workspace_repo,
         form_response_repo=form_response_repo,
+        workspace_form_repo=workspace_form_repo,
     )
 
     form_schedular = providers.Singleton(
