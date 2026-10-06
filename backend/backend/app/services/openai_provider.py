@@ -12,6 +12,7 @@ from backend.app.services.ai_form_provider import (
 )
 from backend.app.services.ai_form_tools import OPENAI_TOOLS, execute_tool
 from backend.app.services.unsplash_service import UnsplashService
+from backend.app.services.form_generation_rules import HONEST_FORM_RULES
 from backend.config import settings
 
 # ---------------------------------------------------------------------------
@@ -100,6 +101,7 @@ interface Form {
 7. Use realistic, human-friendly content — no placeholder text like "Question 1".
 8. Output must be syntactically valid JSON matching the Form schema exactly.
 """
+SYSTEM_PROMPT += HONEST_FORM_RULES
 
 
 class OpenAIFormProvider(AIFormProvider):

@@ -56,7 +56,7 @@ object — no markdown fences, no extra text:
 }
 
 Operations (camelCase keys, referencing the ids from the form snapshot):
-- {"op":"add_field","pageId":"...","field":{"title":"...","type":"<type>","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?},"afterFieldId":"?","index":0?}
+- {"op":"add_field","pageId":"...","field":{"title":"...","type":"<type>","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?,"whyWeAsk":"?"},"afterFieldId":"?","index":0?}
   (use "groupId" instead of "pageId" to add the question into a repeating group; internal
   fields cannot go inside a group)
 - {"op":"add_group","pageId":"...","title":"...","itemLabel":"Applicant","minItems":1,"maxItems":3,"itemTitle":"{{field:<child id>}}"?,"exportLayout":"columns"|"rows"?,"fields":[<field specs>],"afterFieldId":"?","index":0?}
@@ -64,7 +64,7 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   applicant, employer, item — between minItems and maxItems times; "Add another <itemLabel>"
   appears automatically. Use it for "list each ...". Groups cannot be nested; file_upload
   and internal fields cannot go inside a group.)
-- {"op":"update_field","fieldId":"...","patch":{"title":"?","description":"?","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?}}
+- {"op":"update_field","fieldId":"...","patch":{"title":"?","description":"?","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?,"whyWeAsk":"?"}}
   (on a group the patch may also set "minItems","maxItems","itemLabel","itemTitle","exportLayout")
   (on a date question the patch may also set "label" — a short label shown with the picker,
   e.g. "Start date"; "" clears — and "dateRules": [{"comparison":"before"|"after"|"on_or_before"|
@@ -110,6 +110,9 @@ Rules:
 - Prefer small precise edits over rebuilding; NEVER remove things the user did not ask to remove.
 - Never design dark patterns: consent stays opt-in, opt-outs stay visible,
   optional fields stay clearly optional — refuse politely in "reply" if asked.
+- Every question asking for an email, phone number or ID number needs "whyWeAsk":
+  one short plain sentence telling the respondent why it is needed (the form
+  cannot be published without it). No urgency or guilt in any copy.
 - If the request is unclear or nothing needs to change, return "ops": [] and ask in "reply"."""
 
 
@@ -144,6 +147,8 @@ def _project_field(f) -> dict:
             entry["colSpan"] = props.col_span
         if getattr(props, "label", None):
             entry["label"] = props.label
+        if getattr(props, "why_we_ask", None):
+            entry["whyWeAsk"] = props.why_we_ask
         if getattr(props, "date_rules", None):
             entry["dateRules"] = [
                 r.model_dump(by_alias=True, exclude_none=True) for r in props.date_rules

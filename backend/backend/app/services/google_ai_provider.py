@@ -10,6 +10,7 @@ from backend.app.services.ai_form_provider import (
 )
 from backend.app.services.ai_form_tools import execute_tool, _gemini_tools
 from backend.app.services.unsplash_service import UnsplashService
+from backend.app.services.form_generation_rules import HONEST_FORM_RULES
 from backend.config import settings
 
 SYSTEM_PROMPT = """
@@ -88,6 +89,7 @@ interface Form {
 7. Use realistic, human-friendly content.
 8. Output must be syntactically valid JSON. Return ONLY the JSON — no markdown, no extra text.
 """
+SYSTEM_PROMPT += HONEST_FORM_RULES
 
 
 class GoogleAIFormProvider(AIFormProvider):

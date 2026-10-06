@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Optional
 from beanie import PydanticObjectId
 from common.models.standard_form import (
     StandardForm,
+    WHY_WE_ASK_MAX_LENGTH,
     LayoutType,
     StandardFormFieldType,
     ThankYouPageField,
@@ -300,6 +301,9 @@ class OpenAIService:
                 {"id": str(uuid.uuid4()), "label": choice, "value": choice}
                 for choice in openai_properties.get("choices")
             ]
+        why_we_ask = openai_properties.get("whyWeAsk")
+        if isinstance(why_we_ask, str) and why_we_ask.strip():
+            properties["why_we_ask"] = why_we_ask.strip()[:WHY_WE_ASK_MAX_LENGTH]
         if type is not None and type == StandardFormFieldType.YES_NO:
             properties["choices"] = [
                 {"id": str(uuid.uuid4()), "label": "Yes", "value": "Yes"},

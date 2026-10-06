@@ -51,6 +51,7 @@ from backend.app.services.internal_fields import (
     strip_internal_fields,
 )
 from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.publish_checks import ensure_publishable
 from backend.app.services.retention import submission_expiry
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -752,6 +753,11 @@ class WorkspaceFormService:
             user, Permission.FORM_EDIT, workspace_id
         )
         await self.check_form_exists_in_workspace(workspace_id, str(form_id))
+        # Honest defaults (services/publish_checks.py): checked on the draft
+        # that is about to go live, whoever publishes it (builder, API, MCP).
+        ensure_publishable(
+            await self.form_service.get_form_document_by_id(str(form_id))
+        )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         return await self.form_service.publish_form(form_id=form_id)
 
