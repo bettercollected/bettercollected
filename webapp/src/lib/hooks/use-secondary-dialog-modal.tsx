@@ -71,7 +71,7 @@ export function SecondaryDialogModalContainer() {
                 closeSecondaryDialogModal();
             }}
         >
-            <DialogContent onClickCloseIcon={closeSecondaryDialogModal} className={cn('z-[100] !bg-white !p-0 md:!min-w-[300px]', getClassName(view))}>
+            <DialogContent onClickCloseIcon={closeSecondaryDialogModal} className={cn('!bg-white !p-0 md:!min-w-[300px]', getClassName(view))}>
                 {GetModalToRender(view, props)}
             </DialogContent>
         </Dialog>

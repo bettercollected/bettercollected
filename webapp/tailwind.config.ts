@@ -1360,7 +1360,13 @@ export default {
             20: '20',
             30: '30',
             40: '40',
-            50: '50'
+            50: '50',
+            // Overlay layers (src/constants/layers.ts). Modals sit above all
+            // page chrome; anything that floats out of a modal (select,
+            // popover, menu, tooltip) sits above the modal; toasts on top.
+            modal: '2500',
+            popover: '3000',
+            toast: '4000'
         }
     },
     plugins: [

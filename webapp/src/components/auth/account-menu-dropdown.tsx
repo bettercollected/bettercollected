@@ -99,7 +99,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                 </div>
             </PopoverTrigger>
             <PopoverContent
-                className="w-full min-w-[289px] p-0 z-[999999] bg-white"
+                className="w-full min-w-[289px] p-0 bg-white"
                 align="end"
                 onClick={() => setOpen(false)}
                 onInteractOutside={() => setOpen(false)}
