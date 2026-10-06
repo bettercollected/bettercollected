@@ -39,6 +39,10 @@ class PostgresActionRepository(PostgresRepositoryBase):
 
     async def delete_action(self, action_id: PydanticObjectId):
         await self.delete_by_id(action_id)
+        # each workspace's copy of the action (with its credentials) goes too
+        await self.delete_where(
+            WorkspaceActionRow.action_id == _oid(action_id), row=WorkspaceActionRow
+        )
         return action_id
 
     async def get_all_actions(self):

@@ -56,9 +56,9 @@ from backend.db.models import (
     WorkspaceFormRow,
 )
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
-from common.db import PostgresRepositoryBase, from_canonical_document
+from common.db import PostgresRepositoryBase, from_canonical_document, from_row_doc
 from common.db.beanie_bridge import row_values
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, Trigger
 from common.models.user import User
 
 _fn = getattr(func, SCHEMA)
@@ -449,24 +449,35 @@ class PostgresFormRepository(PostgresRepositoryBase):
         return await self.one(FormRow.form_id == _oid(form_id))
 
     async def remove_action_from_all_forms(self, action_id: PydanticObjectId):
-        # Triggers hold {id, enabled}; ObjectIds sit in the canonical doc as
-        # {"$oid": hex}, so @> finds the forms. Forms holding the action's
-        # parameters or secrets (OAuth runs before attaching) match too.
+        # Forms and published versions. Triggers hold {id, enabled}; ObjectIds
+        # sit in the canonical doc as {"$oid": hex}, so @> finds them; rows
+        # holding the action's parameters or secrets (OAuth runs before
+        # attaching) match too. The rows stay locked while only this action is
+        # removed, so a concurrent edit is neither lost nor overwritten.
         key = _oid(action_id)
         marker = [{"id": {"$oid": key}}]
-        actions = FormRow.doc["actions"]
-        forms = await self.many(
-            or_(
-                actions["on_submit"].contains(marker),
-                actions["on_open"].contains(marker),
-                FormRow.doc["parameters"].has_key(key),
-                FormRow.doc["secrets"].has_key(key),
+        for row, document in (
+            (FormRow, FormDocument),
+            (FormVersionRow, FormVersionsDocument),
+        ):
+            actions = row.doc["actions"]
+            matches = or_(
+                *(actions[t.value].contains(marker) for t in Trigger),
+                row.doc["parameters"].has_key(key),
+                row.doc["secrets"].has_key(key),
             )
-        )
-        for form in forms:
-            detach_action(form, key)
-        if forms:
-            await self.upsert_many(forms)
+            async with self._session() as session, session.begin():
+                docs = (
+                    await session.execute(
+                        select(row.doc).where(matches).with_for_update()
+                    )
+                ).scalars()
+                for doc in docs.all():
+                    stored = from_row_doc(document, doc)
+                    detach_action(stored, key)
+                    await session.execute(
+                        self._upsert_statement(row_values(stored), row)
+                    )
 
     async def update_form_actions(
         self,

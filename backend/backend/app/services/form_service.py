@@ -43,7 +43,7 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
-from backend.app.services.internal_fields import strip_internal_fields
+from backend.app.services.internal_fields import respondent_view
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.app.services.internal_auth import auth_service_headers
@@ -108,7 +108,7 @@ class FormService:
         if not has_access_to_workspace:
             # Public listing: internal fields belong to the organisation.
             for form in forms_page.items:
-                strip_internal_fields(form)
+                respondent_view(form)
 
         if not published:
             user_ids = [form.imported_by for form in forms_page.items]
@@ -157,7 +157,7 @@ class FormService:
             user, Permission.FORM_READ, workspace_id
         ):
             for form in forms:
-                strip_internal_fields(form)
+                respondent_view(form)
 
         if not published:
             user_ids = [form["imported_by"] for form in forms]
@@ -196,7 +196,7 @@ class FormService:
             draft=draft,
         )
         # Respondents and the public never receive internal fields.
-        return form if is_admin else strip_internal_fields(form)
+        return form if is_admin else respondent_view(form)
 
     async def _get_form_by_id(
         self,
@@ -499,7 +499,7 @@ class FormService:
         )
         if is_admin or isinstance(form, HTTPException):
             return form
-        return strip_internal_fields(form)
+        return respondent_view(form)
 
     async def _get_form_by_version(
         self,
