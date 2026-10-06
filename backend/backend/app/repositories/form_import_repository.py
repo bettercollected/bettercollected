@@ -16,6 +16,8 @@ LOCKS = "form_import_locks"
 # a start holds the lock for a count and an insert; a lease this long only
 # matters if the process died holding it
 LOCK_LEASE = dt.timedelta(seconds=30)
+# how long a start waits for another start in the same workspace (both
+# stores) before it is refused as "an import is already running"
 LOCK_WAIT_S = 10.0
 
 
@@ -47,13 +49,17 @@ class FormImportRepository:
         document, so two parallel uploads cannot both pass the counts."""
         workspace_id = document.workspace_id
         async with _workspace_lock(workspace_id):
-            check_import_limits(
-                await self.count_active(workspace_id),
-                await self.count_created_since(workspace_id, since),
-                max_active,
-                max_per_day,
-            )
+            active, today = await self._limit_counts(workspace_id, since)
+            check_import_limits(active, today, max_active, max_per_day)
             return await document.save()
+
+    async def _limit_counts(self, workspace_id, since: dt.datetime):
+        """(running imports, imports created since ``since``): what the limits
+        are checked against, read while the workspace's lock is held."""
+        return (
+            await self.count_active(workspace_id),
+            await self.count_created_since(workspace_id, since),
+        )
 
     async def get(self, import_id: PydanticObjectId) -> Optional[FormImportDocument]:
         try:
@@ -90,6 +96,11 @@ class FormImportRepository:
         return result.deleted_count if result else 0
 
 
+def lock_wait_s() -> float:
+    """Read at call time, so tests can lengthen it on a loaded machine."""
+    return LOCK_WAIT_S
+
+
 def check_import_limits(
     active: int, today: int, max_active: int, max_per_day: int
 ) -> None:
@@ -106,7 +117,7 @@ async def _workspace_lock(workspace_id):
     to insert the same _id and fails with a duplicate key."""
     locks = FormImportDocument.get_pymongo_collection().database[LOCKS]
     key, token = str(workspace_id), secrets.token_hex(12)
-    deadline = asyncio.get_running_loop().time() + LOCK_WAIT_S
+    deadline = asyncio.get_running_loop().time() + lock_wait_s()
     while True:
         now = dt.datetime.now(dt.timezone.utc)
         try:
