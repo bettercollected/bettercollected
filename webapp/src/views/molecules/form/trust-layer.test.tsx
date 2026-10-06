@@ -67,7 +67,7 @@ describe('Privacy panel on respondent forms', () => {
         expect(row('receiver')).toHaveTextContent('Who receives your answersAcme Health');
         expect(row('purpose')).toHaveTextContent('To book your appointment');
         expect(row('retention')).toHaveTextContent('Kept for 90 days after you submit.');
-        expect(row('identity')).toHaveTextContent('You verify your email address before you can answer.');
+        expect(row('identity')).toHaveTextContent('You sign in with your email address before you can answer.');
         expect(row('rights')).toHaveTextContent('You can view your answers and ask for them to be deleted at any time.');
         expect(within(row('rights')).getByRole('link', { name: /view or delete your response/i })).toHaveAttribute('href', 'https://forms.test/acme');
     });
@@ -79,7 +79,7 @@ describe('Privacy panel on respondent forms', () => {
         fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
         expect(screen.getByRole('heading', { name: 'Wat er met je antwoorden gebeurt' })).toBeInTheDocument();
         expect(row('receiver')).toHaveTextContent('Wie je antwoorden ontvangt');
-        expect(row('retention')).toHaveTextContent('Bewaard tot 1 dag na het insturen.');
+        expect(row('retention')).toHaveTextContent('Bewaard gedurende 1 dag na het insturen.');
         expect(row('identity')).toHaveTextContent('Bevestigen is niet nodig. Je kunt antwoorden zonder in te loggen.');
         expect(row('rights')).toHaveTextContent('Je kunt je antwoorden altijd inzien en laten verwijderen.');
     });
@@ -100,7 +100,7 @@ describe('Privacy panel on respondent forms', () => {
         setBrowserLanguages(['en']);
         const { unmount } = renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true, aiInsightsProviderName: 'OpenAI' } });
         openPanel();
-        expect(row('ai')).toHaveTextContent('Your answers are processed by AI (OpenAI) to help analyse the responses.');
+        expect(row('ai')).toHaveTextContent("Your answers may be analysed by AI (OpenAI) when the form's team runs AI insights.");
         unmount();
 
         renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: false, aiInsightsProviderName: 'OpenAI' } });
@@ -113,7 +113,7 @@ describe('Privacy panel on respondent forms', () => {
         setBrowserLanguages(['nl']);
         renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true, aiInsightsProviderName: 'Mistral' } });
         openPanel();
-        expect(row('ai')).toHaveTextContent('Je antwoorden worden door AI (Mistral) verwerkt om de reacties te helpen analyseren.');
+        expect(row('ai')).toHaveTextContent('Je antwoorden kunnen door AI (Mistral) worden geanalyseerd als het team achter dit formulier AI-inzichten gebruikt.');
     });
 
     it('never invents a retention period', () => {
@@ -129,16 +129,76 @@ describe('Privacy panel on respondent forms', () => {
         expect(row('retention')).toHaveTextContent('Geen vaste termijn: bewaard tot ze worden verwijderd.');
     });
 
-    it("prefers the creator's own retention wording, and states a date period in the respondent's language", () => {
+    it("states a date period in the respondent's language", () => {
         setBrowserLanguages(['nl']);
-        const { unmount } = renderPanel({ ownerName: 'Acme', settings: { responseExpirationType: 'date', responseExpiration: '2027-03-01' } });
+        renderPanel({ ownerName: 'Acme', settings: { responseExpirationType: 'date', responseExpiration: '2027-03-01' } });
         openPanel();
         expect(row('retention')).toHaveTextContent('Bewaard tot 1 maart 2027.');
+    });
+
+    it("always states the enforced period, with the creator's explanation next to it", () => {
+        setBrowserLanguages(['en']);
+        // Text and period: both, the period first. The text never replaces it.
+        const { unmount } = renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Kept for 1 year', responseExpirationType: 'days', responseExpiration: '30' } });
+        openPanel();
+        expect(row('retention')).toHaveTextContent('How long they are keptKept for 30 days after you submit. Kept for 1 year');
+        expect(screen.getByTestId('privacy-retention-note')).toHaveTextContent('Kept for 1 year');
         unmount();
 
-        renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Tot het einde van het project', responseExpirationType: 'days', responseExpiration: '30' } });
+        // A period without text: the period alone.
+        const second = renderPanel({ ownerName: 'Acme', settings: { retentionText: '   ', responseExpirationType: 'days', responseExpiration: '30' } });
         openPanel();
-        expect(row('retention')).toHaveTextContent('Tot het einde van het project');
+        expect(row('retention')).toHaveTextContent(/^How long they are keptKept for 30 days after you submit\.$/);
+        expect(screen.queryByTestId('privacy-retention-note')).not.toBeInTheDocument();
+        second.unmount();
+
+        // Text without a period: "until deleted", then the text.
+        setBrowserLanguages(['nl']);
+        renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Tot het einde van het project', responseExpirationType: 'forever' } });
+        openPanel();
+        expect(row('retention')).toHaveTextContent('Geen vaste termijn: bewaard tot ze worden verwijderd. Tot het einde van het project');
+    });
+
+    it('says sign-in is required on a private form, in English and Dutch', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme', settings: { private: true } });
+        openPanel();
+        expect(row('identity')).toHaveTextContent('You sign in with your email address before you can answer.');
+        expect(row('identity')).not.toHaveTextContent(/without signing in/i);
+        unmount();
+
+        setBrowserLanguages(['nl']);
+        const dutch = renderPanel({ ownerName: 'Acme', settings: { private: true, requireVerifiedIdentity: false } });
+        openPanel();
+        expect(row('identity')).toHaveTextContent('Je logt in met je e-mailadres voordat je kunt antwoorden.');
+        expect(row('identity')).not.toHaveTextContent(/zonder in te loggen/);
+        dutch.unmount();
+
+        // A public form without verified identity: no sign-in.
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', settings: { private: false } });
+        openPanel();
+        expect(row('identity')).toHaveTextContent('No verification needed. You can answer without signing in.');
+    });
+
+    it('states AI use without a provider name too', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', settings: { aiInsightsEnabled: true } });
+        openPanel();
+        expect(row('ai')).toHaveTextContent("Your answers may be analysed by AI when the form's team runs AI insights.");
+    });
+
+    it('links the privacy policy only over http(s)', () => {
+        setBrowserLanguages(['en']);
+        for (const unsafe of ['javascript:alert(1)', ' JavaScript:alert(1)', 'data:text/html,<b>x</b>', '/privacy']) {
+            const { unmount } = renderPanel({ ownerName: 'Acme', settings: { privacyPolicyUrl: unsafe } });
+            openPanel();
+            expect(screen.queryByRole('link', { name: /privacy policy/i })).not.toBeInTheDocument();
+            unmount();
+        }
+        renderPanel({ ownerName: 'Acme', settings: { privacyPolicyUrl: 'http://acme.test/privacy' } });
+        openPanel();
+        expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', 'http://acme.test/privacy');
     });
 
     it('links the privacy policy only when there is one, and keeps attribution behind the branding setting', () => {

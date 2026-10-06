@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 
 import { Shield } from 'lucide-react';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import { describeRetention, MAX_RETENTION_DAYS, retentionDate, retentionDays } from '@app/utils/retention';
+import { httpUrl } from '@app/utils/http-url';
+import { MAX_RETENTION_DAYS, describeRetention, retentionDate, retentionDays, retentionExplanation } from '@app/utils/retention';
 
 type RetentionKind = 'forever' | 'days' | 'date';
 
@@ -33,6 +34,7 @@ export default function TrustSettingsEditor() {
     const [keepKind, setKeepKind] = useState<RetentionKind>((form?.settings?.responseExpirationType as RetentionKind) || 'forever');
     const [keepValue, setKeepValue] = useState(form?.settings?.responseExpiration ?? '');
     const [keepError, setKeepError] = useState('');
+    const [privacyUrlError, setPrivacyUrlError] = useState('');
     const { t: tRespondent, language } = useRespondentLanguage();
 
     useEffect(() => {
@@ -68,25 +70,27 @@ export default function TrustSettingsEditor() {
         }
         await save(kind === 'forever' ? { responseExpirationType: 'forever' } : { responseExpirationType: kind, responseExpiration: value.trim() });
     };
-    const previewRetention = describeRetention({ ...(form?.settings as any), retentionText: retention, responseExpirationType: keepKind, responseExpiration: keepValue }, tRespondent, language);
+    // The enforced period, with the creator's explanation next to it.
+    const previewRetention = [describeRetention({ ...(form?.settings as any), responseExpirationType: keepKind, responseExpiration: keepValue }, tRespondent, language), retentionExplanation({ retentionText: retention })].filter(Boolean).join(' ');
 
     const inputClass = 'border-black-300 focus:border-black-400 w-full rounded-lg border p-2 text-xs';
 
     return (
         <div className="flex flex-col gap-3 px-4 py-6">
-            <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Trust &amp; privacy</div>
-            <div className="text-black-500 text-xs">Shown to responders on every step. Plain words build trust — say why you&apos;re asking and how long you keep answers.</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-black-600">Trust &amp; privacy</div>
+            <div className="text-xs text-black-500">Shown to responders on every step. Plain words build trust — say why you&apos;re asking and how long you keep answers.</div>
 
             <label className="flex flex-col gap-1">
-                <span className="text-black-700 text-xs font-medium">Purpose</span>
+                <span className="text-xs font-medium text-black-700">Purpose</span>
                 <input type="text" placeholder="e.g. To schedule your appointment" value={purpose} onChange={(e) => setPurpose(e.target.value)} onBlur={() => save({ purpose: purpose.trim() })} className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
-                <span className="text-black-700 text-xs font-medium">Retention in your own words (optional)</span>
-                <input type="text" placeholder="Shown instead of the period below" value={retention} onChange={(e) => setRetention(e.target.value)} onBlur={() => save({ retentionText: retention.trim() })} className={inputClass} />
+                <span className="text-xs font-medium text-black-700">Why answers are kept this long (optional)</span>
+                <input type="text" placeholder="e.g. Until the project ends" value={retention} onChange={(e) => setRetention(e.target.value)} onBlur={() => save({ retentionText: retention.trim() })} className={inputClass} />
+                <span className="text-[11px] text-black-500">Explanation shown next to the period below. Respondents always see the period itself.</span>
             </label>
             <div className="flex flex-col gap-1">
-                <label htmlFor="keep-answers" className="text-black-700 text-xs font-medium">
+                <label htmlFor="keep-answers" className="text-xs font-medium text-black-700">
                     Keep answers
                 </label>
                 <select
@@ -103,31 +107,63 @@ export default function TrustSettingsEditor() {
                     <option value="days">For a number of days</option>
                     <option value="date">Until a date</option>
                 </select>
-                {keepKind === 'days' && <input type="number" min={1} max={MAX_RETENTION_DAYS} aria-label="Days to keep answers" placeholder="e.g. 90" value={keepValue} onChange={(e) => setKeepValue(e.target.value)} onBlur={() => saveRetention('days', keepValue)} className={inputClass} />}
+                {keepKind === 'days' && (
+                    <input
+                        type="number"
+                        min={1}
+                        max={MAX_RETENTION_DAYS}
+                        aria-label="Days to keep answers"
+                        placeholder="e.g. 90"
+                        value={keepValue}
+                        onChange={(e) => setKeepValue(e.target.value)}
+                        onBlur={() => saveRetention('days', keepValue)}
+                        className={inputClass}
+                    />
+                )}
                 {keepKind === 'date' && <input type="date" aria-label="Keep answers until" value={retentionDate(keepValue) ?? ''} onChange={(e) => setKeepValue(e.target.value)} onBlur={() => saveRetention('date', keepValue)} className={inputClass} />}
                 {keepError ? (
                     <span role="alert" className="text-[11px] text-amber-700">
                         {keepError}
                     </span>
                 ) : (
-                    <span className="text-black-500 text-[11px]">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
+                    <span className="text-[11px] text-black-500">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
                 )}
             </div>
             <label className="flex flex-col gap-1">
-                <span className="text-black-700 text-xs font-medium">Privacy policy link</span>
-                <input type="url" placeholder="https://…" value={privacyUrl} onChange={(e) => setPrivacyUrl(e.target.value)} onBlur={() => save({ privacyPolicyUrl: privacyUrl.trim() })} className={inputClass} />
+                <span className="text-xs font-medium text-black-700">Privacy policy link</span>
+                <input
+                    type="url"
+                    placeholder="https://…"
+                    value={privacyUrl}
+                    onChange={(e) => setPrivacyUrl(e.target.value)}
+                    onBlur={() => {
+                        // Respondents get it as a link: http(s) only.
+                        if (privacyUrl.trim() && !httpUrl(privacyUrl)) {
+                            setPrivacyUrlError('Enter a link that starts with https:// or http://.');
+                            return;
+                        }
+                        setPrivacyUrlError('');
+                        save({ privacyPolicyUrl: privacyUrl.trim() });
+                    }}
+                    className={inputClass}
+                />
+                {privacyUrlError && (
+                    <span role="alert" className="text-[11px] text-amber-700">
+                        {privacyUrlError}
+                    </span>
+                )}
             </label>
 
             {/* Live preview of the responder-facing trust strip. */}
             <div className="mt-1 flex flex-col gap-1">
-                <span className="text-black-500 text-[10px] font-medium uppercase tracking-wide">Responders will see</span>
-                <div className="border-black-200 text-black-700 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-lg border bg-white px-2.5 py-2 text-[11px]">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-black-500">Responders will see</span>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-lg border border-black-200 bg-white px-2.5 py-2 text-[11px] text-black-700">
                     <Shield className="h-3 w-3 shrink-0 text-[#2456CC]" strokeWidth={1.8} aria-hidden="true" />
                     <span>
-                        Collected by <span className="text-black-900 font-semibold">{workspace?.title || workspace?.workspaceName}</span>
+                        Collected by <span className="font-semibold text-black-900">{workspace?.title || workspace?.workspaceName}</span>
                     </span>
                     {purpose.trim() && <span>· {purpose.trim()}</span>}
-                    {privacyUrl.trim() && <span className="text-[#2456CC]">· How your data is used</span>}
+                    {httpUrl(privacyUrl) && <span className="text-[#2456CC]">· How your data is used</span>}
                     <span>· {previewRetention}</span>
                     <span>· You can view your answers and ask for them to be deleted at any time.</span>
                 </div>

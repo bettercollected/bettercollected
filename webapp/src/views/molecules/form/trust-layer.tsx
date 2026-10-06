@@ -7,7 +7,8 @@ import { Trans } from 'react-i18next';
 
 import useRespondentLanguage, { RESPONDENT_LANGUAGES } from '@app/lib/hooks/use-respondent-language';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { describeRetention } from '@app/utils/retention';
+import { httpUrl } from '@app/utils/http-url';
+import { describeRetention, retentionExplanation } from '@app/utils/retention';
 
 export interface TrustLayerProps {
     /** Who receives the answers: the workspace/organisation name. */
@@ -15,9 +16,9 @@ export interface TrustLayerProps {
     /** Optional owner logo/avatar. */
     ownerImage?: string;
     /**
-     * The form's settings: purpose, retention (own wording or the retention
-     * setting), privacy policy link, verified identity, AI insights and
-     * branding all come from here.
+     * The form's settings: purpose, retention (the enforced period, with the
+     * creator's explanation next to it), privacy policy link, verified
+     * identity or a private form, AI insights and branding all come from here.
      */
     settings?: Partial<NonNullable<StandardFormDto['settings']>>;
     /** Where a respondent views or deletes their response (the workspace portal). */
@@ -59,7 +60,11 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     };
 
     const purpose = settings?.purpose?.trim();
-    const privacyUrl = settings?.privacyPolicyUrl?.trim();
+    // Rendered as a link: http(s) only (the backend refuses anything else).
+    const privacyUrl = httpUrl(settings?.privacyPolicyUrl);
+    const retentionNote = retentionExplanation(settings);
+    // A private form is served only to signed-in members of an admitted group.
+    const signInRequired = !!(settings?.requireVerifiedIdentity || settings?.private);
     const aiUsed = !!settings?.aiInsightsEnabled;
     const aiProvider = settings?.aiInsightsProviderName?.trim();
     const showPoweredBy = poweredBy ?? !settings?.disableBranding;
@@ -68,8 +73,25 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     const rows: Array<{ key: string; term: string; detail: React.ReactNode }> = [];
     if (ownerName) rows.push({ key: 'receiver', term: t('PRIVACY.RECEIVER'), detail: ownerName });
     if (purpose) rows.push({ key: 'purpose', term: t('PRIVACY.PURPOSE'), detail: purpose });
-    rows.push({ key: 'retention', term: t('PRIVACY.RETENTION'), detail: describeRetention(settings as StandardFormDto['settings'], t, language) });
-    rows.push({ key: 'identity', term: t('PRIVACY.IDENTITY'), detail: settings?.requireVerifiedIdentity ? t('PRIVACY.IDENTITY_REQUIRED') : t('PRIVACY.IDENTITY_NOT_REQUIRED') });
+    rows.push({
+        key: 'retention',
+        term: t('PRIVACY.RETENTION'),
+        // The enforced period always; the creator's explanation next to it.
+        detail: (
+            <>
+                {describeRetention(settings as StandardFormDto['settings'], t, language)}
+                {retentionNote && (
+                    <>
+                        {' '}
+                        <span className="text-black-600" data-testid="privacy-retention-note">
+                            {retentionNote}
+                        </span>
+                    </>
+                )}
+            </>
+        )
+    });
+    rows.push({ key: 'identity', term: t('PRIVACY.IDENTITY'), detail: signInRequired ? t('PRIVACY.IDENTITY_REQUIRED') : t('PRIVACY.IDENTITY_NOT_REQUIRED') });
     if (aiUsed) rows.push({ key: 'ai', term: t('PRIVACY.AI'), detail: aiProvider ? t('PRIVACY.AI_USED', { provider: aiProvider }) : t('PRIVACY.AI_USED_NO_PROVIDER') });
     rows.push({
         key: 'rights',

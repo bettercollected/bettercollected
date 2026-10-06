@@ -25,17 +25,16 @@ export function retentionDate(value: unknown): string | null {
 }
 
 /**
- * How long a form keeps answers, in plain words for respondents.
+ * How long a form keeps answers, in plain words for respondents: always the
+ * enforced period.
  *
- * The creator's own wording (`retentionText`) wins. Otherwise it is read from
- * the form's retention setting with the backend's rules (services/retention.py,
- * which applies that period to every submission), so the stated period is the
- * enforced one. Without a readable period nothing is invented: answers are
- * kept until deleted.
+ * It is read from the form's retention setting with the backend's rules
+ * (services/retention.py, which applies that period to every submission), so
+ * the stated period is the one that is applied. Without a readable period
+ * nothing is invented: answers are kept until deleted. The creator's own
+ * wording never replaces it (see `retentionExplanation`).
  */
 export function describeRetention(settings: FormSettings | undefined, t: Translate, language: string): string {
-    const own = settings?.retentionText?.trim();
-    if (own) return own;
     if (settings?.responseExpirationType === 'days') {
         const days = retentionDays(settings.responseExpiration);
         if (days) return t('RETENTION.DAYS', { count: days });
@@ -48,4 +47,13 @@ export function describeRetention(settings: FormSettings | undefined, t: Transla
         }
     }
     return t('RETENTION.UNTIL_DELETED');
+}
+
+/**
+ * The creator's explanation of the retention period (`retentionText`, e.g.
+ * "until the project ends"), shown next to the enforced period and never
+ * instead of it; null when there is none.
+ */
+export function retentionExplanation(settings: Partial<NonNullable<FormSettings>> | undefined): string | null {
+    return settings?.retentionText?.trim() || null;
 }

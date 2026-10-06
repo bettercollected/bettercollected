@@ -7,11 +7,11 @@
         "PURPOSE": "Waarom ernaar gevraagd wordt",
         "RETENTION": "Hoe lang ze bewaard worden",
         "IDENTITY": "Je identiteit",
-        "IDENTITY_REQUIRED": "Je bevestigt je e-mailadres voordat je kunt antwoorden.",
+        "IDENTITY_REQUIRED": "Je logt in met je e-mailadres voordat je kunt antwoorden.",
         "IDENTITY_NOT_REQUIRED": "Bevestigen is niet nodig. Je kunt antwoorden zonder in te loggen.",
         "AI": "AI",
-        "AI_USED": "Je antwoorden worden door AI ({{provider}}) verwerkt om de reacties te helpen analyseren.",
-        "AI_USED_NO_PROVIDER": "Je antwoorden worden door AI verwerkt om de reacties te helpen analyseren.",
+        "AI_USED": "Je antwoorden kunnen door AI ({{provider}}) worden geanalyseerd als het team achter dit formulier AI-inzichten gebruikt.",
+        "AI_USED_NO_PROVIDER": "Je antwoorden kunnen door AI worden geanalyseerd als het team achter dit formulier AI-inzichten gebruikt.",
         "RIGHTS": "Je rechten",
         "RIGHTS_TEXT": "Je kunt je antwoorden altijd inzien en laten verwijderen.",
         "RIGHTS_LINK": "Je antwoorden inzien of verwijderen",
@@ -21,8 +21,8 @@
         "OPENS_IN_NEW_TAB": "(opent in een nieuw tabblad)"
     },
     "RETENTION": {
-        "DAYS_one": "Bewaard tot {{count}} dag na het insturen.",
-        "DAYS_other": "Bewaard tot {{count}} dagen na het insturen.",
+        "DAYS_one": "Bewaard gedurende {{count}} dag na het insturen.",
+        "DAYS_other": "Bewaard gedurende {{count}} dagen na het insturen.",
         "UNTIL_DATE": "Bewaard tot {{date}}.",
         "UNTIL_DELETED": "Geen vaste termijn: bewaard tot ze worden verwijderd."
     },
