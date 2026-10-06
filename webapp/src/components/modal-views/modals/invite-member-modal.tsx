@@ -15,7 +15,9 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import RoleSelect from '@app/components/member/role-select';
 import { memberRoles } from '@app/constants/locales/member-roles';
 import { members } from '@app/constants/locales/members';
-import { WorkspaceRole, roleLocale } from '@app/models/enums/workspace-role';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { WorkspaceRole, assignableRoles, roleLocale } from '@app/models/enums/workspace-role';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -28,6 +30,9 @@ export default function InviteMemberModal() {
     const { t } = useTranslation();
     const [invitationMail, setInvitationMail] = useState('');
     const [role, setRole] = useState<WorkspaceRole>(WorkspaceRole.EDITOR);
+    // only an owner (workspace.billing) invites an owner
+    const { can } = useWorkspacePermissions();
+    const canGiveOwner = can(WorkspacePermission.WORKSPACE_BILLING);
     const workspaceMember = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
 
     const { closeModal } = useModal();
@@ -85,7 +90,7 @@ export default function InviteMemberModal() {
                     }}
                 />
                 <div className="text-black-700 mb-2 mt-4 text-sm font-medium">{t(members.role)}</div>
-                <RoleSelect value={role} onChange={setRole} disabled={isLoading} ariaLabel={t(members.role)} className="h-10 w-full bg-white" />
+                <RoleSelect value={role} roles={assignableRoles(canGiveOwner)} onChange={setRole} disabled={isLoading} ariaLabel={t(members.role)} className="h-10 w-full bg-white" />
                 <div className="text-black-600 mt-2 text-xs leading-relaxed">{t(roleLocale(role).description)}</div>
                 <div className="text-black-500 mt-1 text-xs leading-relaxed">{t(memberRoles.inviteDescription)}</div>
                 <div className="mt-4 flex w-full flex-col justify-end">

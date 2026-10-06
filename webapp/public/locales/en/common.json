@@ -889,7 +889,7 @@
   "WORKSPACE_ROLES": {
     "OWNER": {
       "NAME": "Owner",
-      "DESCRIPTION": "Can do everything, including billing. Each workspace has one owner."
+      "DESCRIPTION": "Can do everything, including billing, single sign-on and managing other owners. A workspace can have several owners."
     },
     "ADMIN": {
       "NAME": "Admin",
@@ -916,14 +916,17 @@
   "MEMBER_ROLES": {
     "ROLE_CHANGED": "Role changed.",
     "ROLE_CHANGE_FAILED": "Couldn't change the role.",
-    "TRANSFER_OWNERSHIP": "Transfer ownership",
-    "TRANSFER_TITLE": "Transfer ownership to {{name}}?",
-    "TRANSFER_DESCRIPTION": "They become the owner, with billing and every other permission. You stay in the workspace as an Admin, and only the new owner can transfer it back.",
-    "TRANSFER_DONE": "Ownership transferred.",
-    "TRANSFER_FAILED": "Couldn't transfer ownership.",
-    "TRANSFER_ONLY_ADMINS": "Ownership can only go to an Admin. Make them an Admin first.",
-    "TRANSFER_PERSONAL": "Your personal workspace can't be transferred.",
-    "TRANSFER_PAID": "A workspace on a paid plan can't be transferred, because the plan is billed to your account.",
+    "MAKE_BILLING_OWNER": "Make billing owner",
+    "BILLING_TITLE": "Make {{name}} the billing owner?",
+    "BILLING_DESCRIPTION": "The workspace's plan will be billed to their account. Every owner keeps the same rights, and the current billing owner stays an owner.",
+    "BILLING_DONE": "Billing owner changed.",
+    "BILLING_FAILED": "Couldn't change the billing owner.",
+    "BILLING_ONLY_OWNERS": "Only an owner can become the billing owner. Make them an owner first.",
+    "BILLING_PERSONAL": "A personal workspace's billing owner can't change.",
+    "BILLING_PAID": "This workspace is on a paid plan billed to the billing owner's account, so its billing owner can't change.",
+    "BILLING_OWNER": "Billing owner",
+    "BILLING_HANDLED_BY": "Billing is handled by {{name}}",
+    "BILLING_HANDLED_BY_OWNER": "Billing is handled by the workspace's billing owner",
     "CANCEL": "Cancel",
     "NO_ACCESS": "You don't have access to this page.",
     "INVITE_DESCRIPTION": "Choose what they can do in this workspace. You can change it later.",
@@ -935,7 +938,7 @@
     "LOAD_FAILED": "Directory sync couldn't be loaded.",
     "TRY_AGAIN": "Try again",
     "NOT_ENABLED": "Directory sync is not enabled on this instance. The operator turns it on (SSO_ENABLED and SCIM_WEBHOOK_URL, see docs/sso.md).",
-    "OWNER_ONLY": "Only the workspace owner can change directory sync. You can see its status.",
+    "OWNER_ONLY": "Only a workspace owner can change directory sync. You can see its status.",
     "NO_DIRECTORY": "No directory is connected.",
     "CREDENTIALS_NOTICE": "Enter these in your identity provider's SCIM provisioning settings now. The token is shown only once: if you lose it, rotate it.",
     "BASE_URL": "SCIM base URL",
@@ -972,7 +975,7 @@
     "NEEDS_ATTENTION": "Needs attention",
     "UNKNOWN_USER": "Unknown user",
     "GROUPS_TITLE": "Groups and roles",
-    "GROUPS_DESCRIPTION": "Give a group a workspace role; someone in several groups gets the highest. People in no mapped group get the role for new members ({{role}}, under Policy). The owner is never changed, and the role of members you invited by hand is left alone.",
+    "GROUPS_DESCRIPTION": "Give a group a workspace role; someone in several groups gets the highest. People in no mapped group get the role for new members ({{role}}, under Policy). Owners are never changed, and the role of members you invited by hand is left alone.",
     "GROUP": "Group",
     "MEMBERS": "Members",
     "ROLE": "Role",

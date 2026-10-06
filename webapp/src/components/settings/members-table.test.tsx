@@ -4,9 +4,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import TransferOwnershipDialog, { transferBlocker } from '@app/components/member/transfer-ownership-dialog';
+import MakeBillingOwnerDialog, { billingOwnerBlocker } from '@app/components/member/make-billing-owner-dialog';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
-import { memberRole, toWorkspaceRole } from '@app/models/enums/workspace-role';
+import { assignableRoles, isBillingOwnerOf, memberRole, toWorkspaceRole } from '@app/models/enums/workspace-role';
 import { setAuth } from '@app/store/auth/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
@@ -19,14 +19,14 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
 }));
 
 const updateRoleMock = vi.fn();
-const transferMock = vi.fn();
+const billingMock = vi.fn();
 const inviteMock = vi.fn();
 vi.mock('@app/store/workspaces/members-n-invitations-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
         useUpdateWorkspaceMemberRoleMutation: () => [updateRoleMock, { isLoading: false }],
-        useTransferWorkspaceOwnershipMutation: () => [transferMock, { isLoading: false }],
+        useMakeBillingOwnerMutation: () => [billingMock, { isLoading: false }],
         useInviteToWorkspaceMutation: () => [inviteMock, { isLoading: false }],
         useGetWorkspaceMembersQuery: () => ({ data: [] }),
         useResendWorkspaceInvitationMutation: () => [vi.fn(), { isLoading: false }]
@@ -55,11 +55,22 @@ describe('workspace roles', () => {
         expect(memberRole({ role: null, roles: ['COLLABORATOR'] })).toBe('EDITOR');
     });
 
-    it('says why ownership cannot move', () => {
-        expect(transferBlocker({ default: true }, 'ADMIN')).toBe('MEMBER_ROLES.TRANSFER_PERSONAL');
-        expect(transferBlocker({ default: false, isPro: true }, 'ADMIN')).toBe('MEMBER_ROLES.TRANSFER_PAID');
-        expect(transferBlocker({ default: false, isPro: false }, 'EDITOR')).toBe('MEMBER_ROLES.TRANSFER_ONLY_ADMINS');
-        expect(transferBlocker({ default: false, isPro: false }, 'ADMIN')).toBeUndefined();
+    it('says why the billing owner cannot change', () => {
+        expect(billingOwnerBlocker({ default: true }, 'OWNER')).toBe('MEMBER_ROLES.BILLING_PERSONAL');
+        expect(billingOwnerBlocker({ default: false, isPro: true }, 'OWNER')).toBe('MEMBER_ROLES.BILLING_PAID');
+        expect(billingOwnerBlocker({ default: false, isPro: false }, 'ADMIN')).toBe('MEMBER_ROLES.BILLING_ONLY_OWNERS');
+        expect(billingOwnerBlocker({ default: false, isPro: false }, 'OWNER')).toBeUndefined();
+    });
+
+    it('offers Owner only to owners', () => {
+        expect(assignableRoles(false)).not.toContain('OWNER');
+        expect(assignableRoles(true)[0]).toBe('OWNER');
+    });
+
+    it('knows the billing owner from the workspace, else from the list', () => {
+        expect(isBillingOwnerOf({ id: 'a' }, { ownerId: 'a' })).toBe(true);
+        expect(isBillingOwnerOf({ id: 'b', billingOwner: true }, { ownerId: 'a' })).toBe(false);
+        expect(isBillingOwnerOf({ id: 'b', billingOwner: true }, null)).toBe(true);
     });
 });
 
@@ -79,6 +90,30 @@ describe('MembersTable', () => {
         expect(screen.getByTestId('member-role-me').textContent).toBe('WORKSPACE_ROLES.ADMIN.NAME');
         // each role's one-line description is on hand
         expect(screen.getByTestId('member-role-owner').getAttribute('title')).toBe('WORKSPACE_ROLES.OWNER.DESCRIPTION');
+    });
+
+    it('marks the billing owner and keeps other owners from Admins', () => {
+        access.permissions = ADMIN_PERMISSIONS;
+        renderWith(<MembersTable data={[...MEMBERS, member('co', 'OWNER')]} />);
+
+        expect(screen.getByTestId('billing-owner-owner')).toBeDefined();
+        expect(screen.queryByTestId('billing-owner-co')).toBeNull();
+        // an Admin changes neither owner: only the editor gets a picker
+        expect(screen.getAllByRole('combobox', { name: 'MEMBERS.ROLE' })).toHaveLength(1);
+        expect(screen.getByTestId('member-role-co').textContent).toBe('WORKSPACE_ROLES.OWNER.NAME');
+        // and has no actions on them: menus for themselves and the editor only
+        expect(screen.getAllByText('Open menu')).toHaveLength(2);
+    });
+
+    it('lets an owner change another owner, never the billing owner', () => {
+        access.permissions = OWNER_PERMISSIONS;
+        store.dispatch(setAuth({ id: 'co', email: 'co@example.com' }));
+        renderWith(<MembersTable data={[...MEMBERS, member('co', 'OWNER'), member('co2', 'OWNER')]} />);
+
+        // the Admin, the editor and the other co-owner; not the billing owner
+        // and not oneself
+        expect(screen.getAllByRole('combobox', { name: 'MEMBERS.ROLE' })).toHaveLength(3);
+        expect(screen.getByTestId('member-role-owner').textContent).toBe('WORKSPACE_ROLES.OWNER.NAME');
     });
 
     it('shows roles read-only, without member actions, to everyone else', () => {
@@ -107,34 +142,41 @@ describe('MembersTable', () => {
     });
 });
 
-describe('TransferOwnershipDialog', () => {
+describe('MakeBillingOwnerDialog', () => {
     beforeEach(() => {
-        transferMock.mockReset();
+        billingMock.mockReset();
         access.permissions = OWNER_PERMISSIONS;
         store.dispatch(setAuth({ id: 'owner', email: 'owner@example.com' }));
     });
 
-    it('asks for confirmation, then hands the workspace over', async () => {
+    it('asks for confirmation, then makes another owner the billing owner', async () => {
         store.dispatch(setWorkspace({ id: 'ws-1', ownerId: 'owner', workspaceName: 'acme', default: false, isPro: false }));
-        transferMock.mockResolvedValue({ data: { message: 'Ownership transferred.', ownerId: 'admin' } });
-        renderWith(<TransferOwnershipDialog open onOpenChange={() => {}} member={member('admin', 'ADMIN') as any} />);
+        billingMock.mockResolvedValue({ data: { message: 'Billing owner changed.', ownerId: 'co' } });
+        renderWith(<MakeBillingOwnerDialog open onOpenChange={() => {}} member={member('co', 'OWNER') as any} />);
 
-        expect(screen.getByText('MEMBER_ROLES.TRANSFER_DESCRIPTION')).toBeDefined();
-        fireEvent.click(screen.getByRole('button', { name: 'MEMBER_ROLES.TRANSFER_OWNERSHIP' }));
+        expect(screen.getByText('MEMBER_ROLES.BILLING_DESCRIPTION')).toBeDefined();
+        fireEvent.click(screen.getByRole('button', { name: 'MEMBER_ROLES.MAKE_BILLING_OWNER' }));
 
-        await waitFor(() => expect(transferMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', userId: 'admin' }));
-        await waitFor(() => expect(store.getState().workspace.ownerId).toBe('admin'));
+        await waitFor(() => expect(billingMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', userId: 'co' }));
+        await waitFor(() => expect(store.getState().workspace.ownerId).toBe('co'));
     });
 
     it('explains and refuses a workspace on a paid plan', () => {
         store.dispatch(setWorkspace({ id: 'ws-1', ownerId: 'owner', workspaceName: 'acme', default: false, isPro: true }));
-        renderWith(<TransferOwnershipDialog open onOpenChange={() => {}} member={member('admin', 'ADMIN') as any} />);
+        renderWith(<MakeBillingOwnerDialog open onOpenChange={() => {}} member={member('co', 'OWNER') as any} />);
 
-        expect(screen.getByText('MEMBER_ROLES.TRANSFER_PAID')).toBeDefined();
-        const confirm = screen.getByRole('button', { name: 'MEMBER_ROLES.TRANSFER_OWNERSHIP' }) as HTMLButtonElement;
+        expect(screen.getByText('MEMBER_ROLES.BILLING_PAID')).toBeDefined();
+        const confirm = screen.getByRole('button', { name: 'MEMBER_ROLES.MAKE_BILLING_OWNER' }) as HTMLButtonElement;
         expect(confirm.disabled).toBe(true);
         fireEvent.click(confirm);
-        expect(transferMock).not.toHaveBeenCalled();
+        expect(billingMock).not.toHaveBeenCalled();
+    });
+
+    it('refuses a member who is not an owner', () => {
+        store.dispatch(setWorkspace({ id: 'ws-1', ownerId: 'owner', workspaceName: 'acme', default: false, isPro: false }));
+        renderWith(<MakeBillingOwnerDialog open onOpenChange={() => {}} member={member('admin', 'ADMIN') as any} />);
+
+        expect(screen.getByText('MEMBER_ROLES.BILLING_ONLY_OWNERS')).toBeDefined();
     });
 });
 

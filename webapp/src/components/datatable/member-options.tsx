@@ -10,10 +10,10 @@ import { Crown, Loader2, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 
-import TransferOwnershipDialog, { transferBlocker } from '@app/components/member/transfer-ownership-dialog';
+import MakeBillingOwnerDialog, { billingOwnerBlocker } from '@app/components/member/make-billing-owner-dialog';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
-import { memberRole } from '@app/models/enums/workspace-role';
+import { WorkspaceRole, isBillingOwnerOf, memberRole } from '@app/models/enums/workspace-role';
 import { memberRoles } from '@app/constants/locales/member-roles';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -32,14 +32,20 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
     const { openModal } = useModal();
     const { can } = useWorkspacePermissions();
     const workspace = useAppSelector((state) => state.workspace);
-    const [openTransfer, setOpenTransfer] = useState(false);
-    const canManageMembers = can(WorkspacePermission.MEMBERS_MANAGE);
-    // Only the owner holds workspace.billing, which covers transfer.
-    const canTransfer = !!member && can(WorkspacePermission.WORKSPACE_BILLING);
-    const transferBlocked = member ? transferBlocker(workspace, memberRole(member)) : undefined;
+    const [openBilling, setOpenBilling] = useState(false);
+    // Every owner holds workspace.billing: they make another owner the
+    // billing owner, and only they remove an owner.
+    const callerIsOwner = can(WorkspacePermission.WORKSPACE_BILLING);
+    const memberIsOwner = !!member && memberRole(member) === WorkspaceRole.OWNER;
+    const canManageMembers = can(WorkspacePermission.MEMBERS_MANAGE) && (!memberIsOwner || callerIsOwner);
+    const canMakeBillingOwner = !!member && callerIsOwner && memberIsOwner && !isBillingOwnerOf(member, workspace);
+    const billingBlocked = member ? billingOwnerBlocker(workspace, memberRole(member)) : undefined;
 
     // Use the mutation hook
     const [resendWorkspaceInvitation] = useResendWorkspaceInvitationMutation();
+
+    // nothing this user may do here (e.g. an Admin on an owner's row)
+    if (!canManageMembers && !canMakeBillingOwner) return null;
 
     const handleResendInvitationClick = (invitation: WorkspaceInvitationDto) => {
         setSelectedInvitation(invitation);
@@ -91,15 +97,15 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                                 <span className={loading ? "text-gray-400" : "text-blue-600"}>{t(buttonConstant.resendInvitation)}</span>
                             </DropdownMenuItem>
                         )}
-                        {canTransfer && (
+                        {canMakeBillingOwner && (
                             <DropdownMenuItem
-                                onClick={() => setOpenTransfer(true)}
-                                disabled={!!transferBlocked}
-                                title={transferBlocked ? t(transferBlocked) : undefined}
+                                onClick={() => setOpenBilling(true)}
+                                disabled={!!billingBlocked}
+                                title={billingBlocked ? t(billingBlocked) : undefined}
                                 className="cursor-pointer"
                             >
                                 <Crown className="mr-2 h-4 w-4" />
-                                <span>{t(memberRoles.transferOwnership)}</span>
+                                <span>{t(memberRoles.makeBillingOwner)}</span>
                             </DropdownMenuItem>
                         )}
                         {canManageMembers && (
@@ -138,7 +144,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            {canTransfer && member && <TransferOwnershipDialog open={openTransfer} onOpenChange={setOpenTransfer} member={member} />}
+            {canMakeBillingOwner && member && <MakeBillingOwnerDialog open={openBilling} onOpenChange={setOpenBilling} member={member} />}
         </>
     );
 }

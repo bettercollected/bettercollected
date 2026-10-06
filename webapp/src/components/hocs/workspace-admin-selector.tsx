@@ -7,8 +7,8 @@ interface IWorkspaceAdminSelectorProps {
     children: React.ReactNode | React.ReactNode[];
 }
 
-/** Renders its children for the workspace owner only (workspace.billing:
- *  the plan and Stripe billing are the owner's). */
+/** Renders its children for the workspace's owners only (workspace.billing,
+ *  which every owner holds; the plan itself is the billing owner's). */
 export default function WorkspaceAdminSelector({ children }: IWorkspaceAdminSelectorProps) {
     const { can } = useWorkspacePermissions();
 
