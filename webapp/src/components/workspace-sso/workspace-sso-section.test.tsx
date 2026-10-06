@@ -85,8 +85,9 @@ describe('WorkspaceSsoSection', () => {
 
     it('shows the service provider values and the break-glass note', () => {
         renderSection();
-        expect(screen.getByText('https://sso.example.org/api/oauth/saml')).toBeTruthy();
-        expect(screen.getByText('https://saml.example.org')).toBeTruthy();
+        // the copy fields, and again in the Entra ID help
+        expect(screen.getAllByText('https://sso.example.org/api/oauth/saml')).toHaveLength(2);
+        expect(screen.getAllByText('https://saml.example.org')).toHaveLength(2);
         expect(screen.getByText(/Break-glass:/)).toBeTruthy();
         expect(screen.getByText('Require single sign-on for acme.com')).toBeTruthy();
     });
@@ -135,7 +136,7 @@ describe('WorkspaceSsoSection', () => {
     it('shows an admin the settings read-only, with testing', () => {
         query.data = overview({ canManage: false, connections: [connection({ status: 'disabled' })] });
         renderSection();
-        expect(screen.getByText(/Only the workspace owner can change single sign-on/)).toBeTruthy();
+        expect(screen.getByText(/Only a workspace owner can change single sign-on/)).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Add connection' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Require single sign-on' })).toBeNull();
@@ -175,6 +176,54 @@ describe('WorkspaceSsoSection', () => {
         expect(screen.getByRole('status').textContent).toContain('not on one of this workspace');
     });
 
+    it('shows which domain the identity provider sent for a failed test', () => {
+        query.data = overview({
+            connections: [connection({ tested: false, testedAt: null, lastTestError: 'sso_email_domain_not_allowed', lastTestAt: '2026-10-05T10:00:00Z', lastTestDomain: 'other-corp.org', lastTestClaims: ['email', 'upn'] })]
+        });
+        renderSection();
+        const card = screen.getByTestId('sso-connection-c1');
+        expect(card.textContent).toContain("Your identity provider sent an address at other-corp.org. This workspace's verified domains: acme.com.");
+        expect(card.textContent).toContain('Claims received: email, upn');
+    });
+
+    it('shows the claims received with a missing-email test result', () => {
+        searchParams = new URLSearchParams('sso_test=sso_email_missing');
+        query.data = overview({
+            connections: [connection({ id: 'c2', tested: false, testedAt: null, lastTestError: 'sso_email_missing', lastTestAt: '2026-10-05T10:00:00Z', lastTestClaims: ['preferred_username', 'upn'] })]
+        });
+        renderSection();
+        const status = screen.getByRole('status');
+        expect(status.textContent).toContain('did not send an email address');
+        expect(status.textContent).toContain('Claims received: preferred_username, upn');
+        expect(status.textContent).not.toContain('sent an address at');
+    });
+
+    it('warns that an OIDC test may reuse the IdP session, and not for SAML', () => {
+        query.data = overview({ connections: [connection(), connection({ id: 'c3', type: 'oidc', name: 'Entra' })] });
+        renderSection();
+        expect(within(screen.getByTestId('sso-connection-c3')).getByText(/may reuse this browser/).textContent).toContain('https://login.microsoftonline.com/logout.srf');
+        expect(within(screen.getByTestId('sso-connection-c1')).queryByText(/may reuse this browser/)).toBeNull();
+    });
+
+    it('shows no diagnostics once a test passed', () => {
+        query.data = overview({ connections: [connection({ lastTestError: null, lastTestDomain: null, lastTestClaims: null })] });
+        renderSection();
+        expect(screen.queryByText(/Claims received/)).toBeNull();
+    });
+
+    it("explains Entra ID and Keycloak setup with this instance's values", () => {
+        renderSection();
+        const help = screen.getByTestId('sso-entra-help');
+        expect(within(help).getByText('Setting up Microsoft Entra ID')).toBeTruthy();
+        expect(help.textContent).toContain('https://saml.example.org');
+        expect(help.textContent).toContain('https://sso.example.org/api/oauth/saml');
+        expect(within(help).getAllByText('https://sso.example.org/api/oauth/oidc')).toHaveLength(2);
+        expect(help.textContent).toContain('user.mail');
+        expect(help.textContent).toContain('optional claim');
+        expect(help.textContent).toContain('Keycloak');
+        expect(help.hasAttribute('open')).toBe(false);
+    });
+
     it('says when SSO is off on the instance', () => {
         query.data = overview({ available: false, serviceProvider: null });
         renderSection();
@@ -189,5 +238,15 @@ describe('sso messages', () => {
         expect(ssoErrorMessage(null)).toBeNull();
         expect(ssoTestMessage('ok')).toContain('worked');
         expect(ssoTestMessage('whatever')).toBe(ssoTestMessage('sso_failed'));
+    });
+
+    it('tells a missing email apart from a wrong domain', () => {
+        expect(ssoErrorMessage('sso_email_missing')).toContain("didn't send an email address");
+        expect(ssoErrorMessage('sso_email_missing')).not.toBe(ssoErrorMessage('sso_email_domain_not_allowed'));
+        const test = ssoTestMessage('sso_email_missing') ?? '';
+        expect(test).toContain('user.mail');
+        expect(test).toContain('user.userprincipalname');
+        expect(test).toContain('optional claim');
+        expect(test).toContain('Keycloak');
     });
 });

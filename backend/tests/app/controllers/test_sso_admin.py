@@ -766,6 +766,9 @@ async def test_a_changed_configuration_must_be_tested_again(client, workspace, s
     )
     stored = await container.sso_connection_repo().get(first.json()["id"])
     stored.tested_at = utcnow()
+    # what an earlier failed test saw no longer describes this configuration
+    stored.last_test_domain = "old-corp.org"
+    stored.last_test_claims = ["upn"]
     await container.sso_connection_repo().save(stored)
     # Polis updates the connection of the same IdP in place
     polis._n -= 1
@@ -777,6 +780,7 @@ async def test_a_changed_configuration_must_be_tested_again(client, workspace, s
     assert reply.status_code == 409 and reply.json()["code"] == "connection_exists"
     stored = await container.sso_connection_repo().get(first.json()["id"])
     assert not stored.is_tested and stored.last_test_error == "config_changed"
+    assert stored.last_test_domain is None and stored.last_test_claims is None
 
 
 @pytest.mark.usefixtures("domain_verified")

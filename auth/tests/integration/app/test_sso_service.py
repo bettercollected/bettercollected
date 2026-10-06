@@ -251,7 +251,105 @@ def test_no_usable_email_is_refused(email):
     _, query = start(svc)
     with pytest.raises(HTTPException) as excinfo:
         callback(svc, query)
-    assert content(excinfo)["code"] == "sso_email_domain_not_allowed"
+    # its own code: not the same as an address on the wrong domain
+    assert content(excinfo)["code"] == "sso_email_missing"
+    # a regular sign-in reports nothing about the claims
+    assert "claim_names" not in content(excinfo)
+
+
+# -- "Test connection" ----------------------------------------------------------
+def start_test(svc, protocol="saml"):
+    url = svc.authorize_url(
+        TENANT, CLIENT_ID, json.dumps(CONTEXT), None, test=True, protocol=protocol
+    )
+    return {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+
+
+def test_a_regular_sign_in_reuses_the_idp_session():
+    _, query = start(service())
+    assert "forceAuthn" not in query and "prompt" not in query
+
+
+def test_a_saml_test_asks_for_a_fresh_sign_in():
+    query = start_test(service(), "saml")
+    assert query["forceAuthn"] == "true"
+    assert "prompt" not in query
+
+
+def test_an_oidc_test_adds_no_parameter():
+    # Polis would not forward one (OPENID_REQUEST_FORWARD_PARAMS stays off)
+    query = start_test(service(), "oidc")
+    assert set(query) == {
+        "response_type",
+        "client_id",
+        "redirect_uri",
+        "state",
+        "code_challenge",
+        "code_challenge_method",
+    }
+
+
+def test_an_unknown_protocol_is_refused():
+    with pytest.raises(HTTPException) as excinfo:
+        start_test(service(), "kerberos")
+    assert content(excinfo)["code"] == "sso_failed"
+
+
+def _raw_profile(email, raw):
+    return {**profile(email), "raw": raw}
+
+
+RAW = {
+    "preferred_username": "dev@example.com",
+    "upn": "dev@example.com",
+    "http://schemas.microsoft.com/identity/claims/objectidentifier": "0000-1111",
+    "bad name with spaces": "x",
+    "dev@example.com": "a value-looking key",
+    "x" * 200: "too long",
+}
+
+
+def test_a_test_reports_claim_names_never_values():
+    svc = service(polis=FakePolis(_raw_profile("dev@example.com", RAW)))
+    query = start_test(svc)
+
+    result = callback(svc, query)
+
+    assert result["claim_names"] == [
+        "http://schemas.microsoft.com/identity/claims/objectidentifier",
+        "preferred_username",
+        "upn",
+    ]
+    assert "0000-1111" not in json.dumps(result["claim_names"])
+
+
+def test_a_missing_email_in_a_test_reports_the_claim_names():
+    raw = {k: v for k, v in RAW.items() if k in ("preferred_username", "upn")}
+    svc = service(polis=FakePolis(_raw_profile(None, raw)))
+    query = start_test(svc, "oidc")
+    with pytest.raises(HTTPException) as excinfo:
+        callback(svc, query)
+    assert content(excinfo)["code"] == "sso_email_missing"
+    assert content(excinfo)["claim_names"] == ["preferred_username", "upn"]
+    assert content(excinfo)["context"] == CONTEXT
+
+
+def test_claim_names_are_capped():
+    raw = {f"claim_{n:03d}": "v" for n in range(80)}
+    svc = service(polis=FakePolis(_raw_profile("dev@example.com", raw)))
+    result = callback(svc, start_test(svc))
+    assert len(result["claim_names"]) == sso_module.MAX_CLAIM_NAMES
+
+
+def test_no_raw_claims_reports_an_empty_list():
+    svc = service(polis=FakePolis(profile("dev@example.com")))
+    assert callback(svc, start_test(svc))["claim_names"] == []
+
+
+def test_a_regular_sign_in_never_reports_claim_names():
+    svc = service(polis=FakePolis(_raw_profile("dev@example.com", RAW)))
+    _, query = start(svc)
+    assert "claim_names" not in callback(svc, query)
 
 
 @pytest.mark.parametrize(
@@ -405,6 +503,30 @@ def test_routes_need_the_internal_key(app_runner, monkeypatch):
         "/auth/sso/authorize", params={"tenant": TENANT, "client_id": CLIENT_ID}
     )
     assert reply.status_code == 403
+
+
+def test_the_authorize_route_validates_the_test_flags(app_runner, monkeypatch):
+    monkeypatch.setattr(settings, "sso_settings", make_settings())
+    base = {"tenant": TENANT, "client_id": CLIENT_ID, "test": "true"}
+
+    reply = app_runner.get("/auth/sso/authorize", params={**base, "protocol": "oidc"})
+    assert reply.status_code == 200, reply.text
+    query = parse_qs(urlsplit(reply.json()["auth_url"]).query)
+    assert "prompt" not in query and "forceAuthn" not in query
+
+    for protocol in ("ldap", "saml&prompt=none"):
+        reply = app_runner.get(
+            "/auth/sso/authorize", params={**base, "protocol": protocol}
+        )
+        assert reply.status_code == 422
+    # anything else is not passed on
+    reply = app_runner.get(
+        "/auth/sso/authorize",
+        params={**base, "protocol": "saml", "prompt": "none", "acr_values": "x"},
+    )
+    query = parse_qs(urlsplit(reply.json()["auth_url"]).query)
+    assert query["forceAuthn"] == ["true"]
+    assert "prompt" not in query and "acr_values" not in query
 
 
 def test_account_route_creates_the_account(app_runner, monkeypatch):

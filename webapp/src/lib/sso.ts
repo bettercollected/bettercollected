@@ -9,6 +9,7 @@ export const ssoErrorMessages: Record<string, string> = {
     sso_disabled: 'Single sign-on is not enabled.',
     sso_not_configured: "Single sign-on isn't set up for this email domain. Sign in another way, or ask your workspace admin.",
     sso_email_domain_not_allowed: "Your identity provider signed you in with an email address this workspace's single sign-on doesn't cover.",
+    sso_email_missing: "Your identity provider didn't send an email address for your account. Ask your IT admin to make sure your account has one.",
     sso_workspace_unavailable: 'The workspace for this sign-in is not available.',
     sso_seat_limit: 'This workspace has no free seats for another member. Ask a workspace admin to free a seat.',
     sso_account_conflict: 'More than one account uses this email address. Contact support to have them merged.',
@@ -29,6 +30,8 @@ export function ssoErrorMessage(code?: string | null): string | null {
 export const ssoTestMessages: Record<string, string> = {
     ok: 'The test sign-in worked: your identity provider vouched for an address on one of your verified domains.',
     sso_email_domain_not_allowed: 'Your identity provider signed you in with an address that is not on one of this workspace’s verified domains. Check the email attribute your identity provider sends, or verify that domain.',
+    sso_email_missing:
+        'Your identity provider did not send an email address. SAML: send an email claim (Microsoft Entra ID: Attributes & Claims, email address → user.mail, or user.userprincipalname if your users have no mailbox). OIDC: include the email claim in the ID token (Entra ID: Token configuration → optional claim “email”; Keycloak: the “email” client scope). The user must also have an email address in your directory.',
     sso_tenant_mismatch: 'The identity provider answered for another connection. Try again; if it keeps happening, delete and re-create the connection.',
     sso_test_not_allowed: 'Only the admin who started the test can complete it. Start the test again while signed in.',
     sso_session_mismatch: 'The test was started in another browser or was already used. Start it again.',

@@ -13,6 +13,7 @@ default role) live on the workspace document.
 
 import datetime as dt
 import json
+import re
 from http import HTTPStatus
 from typing import List, Optional
 
@@ -41,7 +42,7 @@ from backend.app.schemas.sso_connection import (
     SsoConnectionType,
 )
 from backend.app.services.authorization_service import AuthorizationService
-from backend.app.services.domains.names import display_domain
+from backend.app.services.domains.names import display_domain, domain_of
 from backend.app.services.session_service import RevokeReason, SessionService
 from backend.app.services.sso.polis_client import (
     PolisAdminClient,
@@ -114,6 +115,8 @@ class SsoConnectionDto(_CamelModel):
     tested_at: Optional[dt.datetime] = None
     last_test_at: Optional[dt.datetime] = None
     last_test_error: Optional[str] = None
+    last_test_domain: Optional[str] = None
+    last_test_claims: Optional[List[str]] = None
 
     @classmethod
     def of(cls, c: SsoConnectionDocument) -> "SsoConnectionDto":
@@ -133,6 +136,10 @@ class SsoConnectionDto(_CamelModel):
             tested_at=c.tested_at,
             last_test_at=c.last_test_at,
             last_test_error=c.last_test_error,
+            last_test_domain=(
+                display_domain(c.last_test_domain) if c.last_test_domain else None
+            ),
+            last_test_claims=c.last_test_claims,
         )
 
 
@@ -166,6 +173,30 @@ class SsoOverviewDto(_CamelModel):
     max_connections: int
     # the caller may change the configuration (an owner of the workspace)
     can_manage: bool = False
+
+
+# A failed test's claim names (auth sends them only for a test): SAML
+# attribute names (often URIs) or OIDC claim names, never values.
+_CLAIM_NAME = re.compile(r"^[A-Za-z0-9_.:/#-]{1,160}$")
+MAX_TEST_CLAIMS = 50
+
+
+def failed_test_domain(value: Optional[str]) -> Optional[str]:
+    """The canonical domain to keep for a failed test, never an address."""
+    if not isinstance(value, str) or "@" in value:
+        return None
+    return domain_of(value)
+
+
+def failed_test_claims(names) -> Optional[List[str]]:
+    """Plausible claim names only, de-duplicated, sorted, capped; None when
+    there are none."""
+    if not isinstance(names, list):
+        return None
+    kept = sorted({n for n in names if isinstance(n, str) and _CLAIM_NAME.match(n)})[
+        :MAX_TEST_CLAIMS
+    ]
+    return kept or None
 
 
 def _refused(status: HTTPStatus, code: str, message: str) -> HTTPException:
@@ -375,6 +406,8 @@ class SsoConnectionService:
             if existing is not None:
                 existing.tested_at = None
                 existing.last_test_error = "config_changed"
+                existing.last_test_domain = None
+                existing.last_test_claims = None
                 existing.updated_at = _now()
                 await self._connections.save(existing)
             raise _refused(
@@ -574,11 +607,18 @@ class SsoConnectionService:
         connection: SsoConnectionDocument,
         user_id: str,
         error: Optional[str],
+        domain: Optional[str] = None,
+        claims: Optional[List[str]] = None,
     ) -> None:
-        """The outcome of a "Test connection" sign-in."""
+        """The outcome of a "Test connection" sign-in. A failure may carry
+        what the test saw: the ``domain`` of the address the IdP sent and the
+        names of the ``claims`` it sent (never an address or a value; both
+        are sanitised again here and never logged)."""
         now = _now()
         connection.last_test_at = now
         connection.last_test_error = error
+        connection.last_test_domain = failed_test_domain(domain) if error else None
+        connection.last_test_claims = failed_test_claims(claims) if error else None
         if error is None:
             connection.tested_at = now
             connection.tested_by = str(user_id)

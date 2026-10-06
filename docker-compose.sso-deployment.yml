@@ -41,6 +41,10 @@ services:
       SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:?set SSO_SAML_AUDIENCE in the root .env}
       BOXYHQ_NO_ANALYTICS: "1"
       DO_NOT_TRACK: "1"
+      # Polis's server listens on $HOSTNAME, which Docker sets to the
+      # container's name; that resolves to one network's address only, so
+      # callers on the other network are refused (the proxy answers 502).
+      HOSTNAME: 0.0.0.0
     ports:
       - '127.0.0.1:5225:5225'
     networks:
