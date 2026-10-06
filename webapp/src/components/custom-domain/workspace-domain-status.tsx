@@ -175,7 +175,9 @@ const DomainVerifiedStatus = ({ workspace, txtRecord }: { workspace: WorkspaceDt
  *  service side, so the only way forward is to remove it here and set it again
  *  (which registers it and shows the DNS records). `unregistered`: it was set
  *  up on the previous system and is still served there while the migration
- *  runs; the customer does nothing until the DNS notice arrives. */
+ *  runs. The owner can wait for the DNS notice, or move it now: removing it
+ *  releases it on both systems, and adding it again registers it and shows the
+ *  DNS records. */
 const ServiceDomainGone = ({ workspace, status }: { workspace: WorkspaceDto; status: 'removed' | 'unregistered' }) => {
     const { toast } = useToast();
     return (
@@ -184,13 +186,17 @@ const ServiceDomainGone = ({ workspace, status }: { workspace: WorkspaceDto; sta
                 <span className="text-black-600">Your domain: </span>
                 <span className="font-semibold text-blue-500">{workspace.customDomain}</span>
                 {status === 'removed' ? <StatusPill tone="bad">Removed</StatusPill> : <StatusPill tone="pending">Being migrated</StatusPill>}
-                {status === 'removed' && <DeleteDomainDropdown />}
+                <DeleteDomainDropdown />
             </div>
             {status === 'removed' ? (
                 <div className="mt-4 text-xs text-black-700">This domain was removed from the custom domain service, so it no longer serves your forms. Remove it from the menu above and add it again to get the DNS records to publish.</div>
             ) : (
                 <div className="mt-4 flex flex-col gap-2 text-xs text-black-700">
                     <span>Your domain keeps working as before. We are moving custom domains to a new setup; you will receive the DNS records to update by email, and this page will show them once your domain has been moved. Nothing to do right now.</span>
+                    <span>
+                        To move it now instead, delete it from the menu above and add it again: you will get the two DNS records to publish. Your forms stop being served on <span className="font-semibold">{workspace.customDomain}</span> until those records
+                        are in place.
+                    </span>
                     <div className="flex flex-wrap gap-2">
                         <Link href={`${environments.HTTP_SCHEME}${workspace.customDomain}`} target={'_blank'} referrerPolicy="no-referrer">
                             <Button className="!p-2" variant={'v2Button'} icon={<OpenLinkIcon />} />
