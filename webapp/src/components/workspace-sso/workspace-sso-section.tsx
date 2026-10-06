@@ -148,6 +148,12 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
                     <span className="text-xs text-black-500">{connection.testedAt ? `Last successful test ${formatTime(connection.testedAt)}` : 'Test it before you require single sign-on.'}</span>
                     {connection.lastTestError && <span className="text-xs text-[#C43D3D]">Last test failed: {ssoTestMessage(connection.lastTestError)}</span>}
                     {connection.lastTestError && <TestDiagnostics connection={connection} domains={domains} />}
+                    {connection.type === 'oidc' && (
+                        <span className="text-xs text-black-500">
+                            Testing may reuse this browser&apos;s current sign-in at your identity provider. Test in a private window, or sign out of your identity provider first (Microsoft Entra ID:{' '}
+                            <code className="break-all text-[11px]">https://login.microsoftonline.com/logout.srf</code>).
+                        </span>
+                    )}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <Button size="sm" variant="v2Button" onClick={test}>

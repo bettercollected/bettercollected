@@ -26,10 +26,12 @@ enabled connection, seats) and calls this service, which is internal-only:
 Emails are matched case-insensitively at this boundary: an existing
 ``Bob@Example.com`` account is the one ``bob@example.com`` signs in to.
 
-A "Test connection" sign-in (``test``) asks the IdP for a fresh sign-in
-(SAML ``forceAuthn``, OIDC ``prompt=select_account``) instead of reusing the
-browser's session, and its callback also reports the *names* of the claims
-the IdP sent (never their values), so an admin can see what is missing.
+A "Test connection" sign-in (``test``) asks a SAML IdP for a fresh sign-in
+(``forceAuthn``) instead of reusing the browser's session (OIDC gets no
+extra parameter: Polis forwards one only with OPENID_REQUEST_FORWARD_PARAMS,
+which stays off, see docs/sso.md), and its callback also reports the *names*
+of the claims the IdP sent (never their values), so an admin can see what is
+missing.
 """
 
 import base64
@@ -58,13 +60,13 @@ PROVIDER = "sso"
 AUTH_METHOD = "sso"
 MAX_CONTEXT_LENGTH = 2048
 
-# What a test sign-in may ask the IdP for, per protocol: a fresh sign-in
-# with the account picker instead of the browser's existing IdP session.
-# Polis reads ``forceAuthn`` for SAML connections and forwards other params
-# to an OIDC IdP (OPENID_REQUEST_FORWARD_PARAMS, docs/sso.md).
+# What a test sign-in adds to the Polis authorize URL, per protocol: a fresh
+# sign-in at a SAML IdP (Polis reads ``forceAuthn``). Nothing for OIDC: Polis
+# forwards extra params to an OIDC IdP only with OPENID_REQUEST_FORWARD_PARAMS,
+# which stays off because it forwards any caller's params (docs/sso.md).
 FRESH_SIGN_IN_PARAMS = {
     "saml": {"forceAuthn": "true"},
-    "oidc": {"prompt": "select_account"},
+    "oidc": {},
 }
 
 # Claim names reported for a test: a SAML attribute name (often a URI) or an

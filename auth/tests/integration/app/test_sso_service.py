@@ -270,18 +270,23 @@ def test_a_regular_sign_in_reuses_the_idp_session():
     assert "forceAuthn" not in query and "prompt" not in query
 
 
-@pytest.mark.parametrize(
-    "protocol,expected,absent",
-    [
-        ("saml", {"forceAuthn": "true"}, "prompt"),
-        ("oidc", {"prompt": "select_account"}, "forceAuthn"),
-    ],
-)
-def test_a_test_asks_for_a_fresh_sign_in(protocol, expected, absent):
-    query = start_test(service(), protocol)
-    for key, value in expected.items():
-        assert query[key] == value
-    assert absent not in query
+def test_a_saml_test_asks_for_a_fresh_sign_in():
+    query = start_test(service(), "saml")
+    assert query["forceAuthn"] == "true"
+    assert "prompt" not in query
+
+
+def test_an_oidc_test_adds_no_parameter():
+    # Polis would not forward one (OPENID_REQUEST_FORWARD_PARAMS stays off)
+    query = start_test(service(), "oidc")
+    assert set(query) == {
+        "response_type",
+        "client_id",
+        "redirect_uri",
+        "state",
+        "code_challenge",
+        "code_challenge_method",
+    }
 
 
 def test_an_unknown_protocol_is_refused():
@@ -507,7 +512,7 @@ def test_the_authorize_route_validates_the_test_flags(app_runner, monkeypatch):
     reply = app_runner.get("/auth/sso/authorize", params={**base, "protocol": "oidc"})
     assert reply.status_code == 200, reply.text
     query = parse_qs(urlsplit(reply.json()["auth_url"]).query)
-    assert query["prompt"] == ["select_account"]
+    assert "prompt" not in query and "forceAuthn" not in query
 
     for protocol in ("ldap", "saml&prompt=none"):
         reply = app_runner.get(

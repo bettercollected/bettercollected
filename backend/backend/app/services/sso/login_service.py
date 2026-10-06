@@ -26,9 +26,9 @@ as one path segment on an allow-listed origin.
 Errors go back to the login page as ``?sso_error=<code>``, codes from
 ``SSO_ERROR_CODES`` only. A "Test connection" sign-in (``purpose=test``)
 runs the same checks for an admin, records the outcome on the connection and
-never signs anyone in or creates an account. A test asks the IdP for a fresh
-sign-in (the account picker, not the browser's IdP session) and a failed one
-also records what it saw: the domain of the address the IdP sent (never the
+never signs anyone in or creates an account. A SAML test asks the IdP for a
+fresh sign-in (not the browser's IdP session; OIDC can't, see docs/sso.md)
+and a failed one also records what it saw: the domain of the address the IdP sent (never the
 address) and the names of the claims it sent (never their values).
 """
 
@@ -312,7 +312,7 @@ class SsoLoginService:
         if email:
             params["login_hint"] = email
         if context.get("p") == PURPOSE_TEST:
-            # a fresh sign-in at the IdP (account picker) and claim names back
+            # SAML: a fresh sign-in at the IdP; both: claim names back
             params["test"] = "true"
             params["protocol"] = connection.type.value
         try:

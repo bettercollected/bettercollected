@@ -118,12 +118,10 @@ class FakeAuth:
             query = {"client_id": params["client_id"], "state": state}
             if params.get("login_hint"):
                 query["login_hint"] = params["login_hint"]
-            # like auth: a test asks the IdP for a fresh sign-in
-            if params.get("test") == "true":
-                query[{"saml": "forceAuthn", "oidc": "prompt"}[params["protocol"]]] = {
-                    "saml": "true",
-                    "oidc": "select_account",
-                }[params["protocol"]]
+            # like auth: a SAML test asks the IdP for a fresh sign-in; an
+            # OIDC test adds nothing (Polis forwards no extra params)
+            if params.get("test") == "true" and params["protocol"] == "saml":
+                query["forceAuthn"] = "true"
             return {"auth_url": f"{POLIS_URL}/api/oauth/authorize?{urlencode(query)}"}
         if path.endswith("/auth/sso/callback"):
             try:

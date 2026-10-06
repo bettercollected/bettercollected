@@ -214,8 +214,8 @@ SSO-required + offered session revocation), `login_service.py` (`/auth/sso/login
 creates the account: connection enabled, workspace available, the IdP's email on *this* workspace's SSO domain, seat
 cap via `WorkspaceUserService.has_free_seat`; JIT membership with the default role, never downgrading; fixed
 `sso_error` codes; a `SsoNonce` cookie + single-use `sso_used_states` against login CSRF and replay; the dashboard
-redirect quotes the workspace handle; "Test connection" records the outcome and signs nobody in, asks the IdP for a fresh
-sign-in (auth's `test`/`protocol` flags) and, when it fails, keeps only the received address's *domain*
+redirect quotes the workspace handle; "Test connection" records the outcome and signs nobody in, asks a SAML IdP for a fresh
+sign-in (auth's `test`/`protocol` flags; nothing for OIDC, Polis's param forwarding stays off) and, when it fails, keeps only the received address's *domain*
 (`last_test_domain`) and the IdP's claim *names* (`last_test_claims`), never addresses or values, never logged), `policy.py`
 (SSO-required refuses email codes and Google for those domains, ends non-SSO sessions at refresh; the workspace owner
 keeps email codes as break-glass; on other workspaces' forms an email code only gives a **respondent-scoped session**

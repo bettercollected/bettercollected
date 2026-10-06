@@ -198,6 +198,13 @@ describe('WorkspaceSsoSection', () => {
         expect(status.textContent).not.toContain('sent an address at');
     });
 
+    it('warns that an OIDC test may reuse the IdP session, and not for SAML', () => {
+        query.data = overview({ connections: [connection(), connection({ id: 'c3', type: 'oidc', name: 'Entra' })] });
+        renderSection();
+        expect(within(screen.getByTestId('sso-connection-c3')).getByText(/may reuse this browser/).textContent).toContain('https://login.microsoftonline.com/logout.srf');
+        expect(within(screen.getByTestId('sso-connection-c1')).queryByText(/may reuse this browser/)).toBeNull();
+    });
+
     it('shows no diagnostics once a test passed', () => {
         query.data = overview({ connections: [connection({ lastTestError: null, lastTestDomain: null, lastTestClaims: null })] });
         renderSection();

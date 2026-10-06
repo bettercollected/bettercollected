@@ -505,14 +505,15 @@ async def run_test(client, workspace, connection, user=testUser):
 
 
 @pytest.mark.parametrize(
-    "kind,param,value",
+    "kind,extra",
     [
-        (SsoConnectionType.SAML, "forceAuthn", "true"),
-        (SsoConnectionType.OIDC, "prompt", "select_account"),
+        (SsoConnectionType.SAML, {"forceAuthn": "true"}),
+        # Polis forwards no extra params to an OIDC IdP (docs/sso.md)
+        (SsoConnectionType.OIDC, {}),
     ],
 )
-async def test_a_test_asks_the_idp_for_a_fresh_sign_in(
-    client, workspace, sso_on, kind, param, value
+async def test_a_test_asks_a_saml_idp_for_a_fresh_sign_in(
+    client, workspace, sso_on, kind, extra
 ):
     await verify_domain(workspace.id)
     connection = await add_connection(
@@ -524,7 +525,8 @@ async def test_a_test_asks_the_idp_for_a_fresh_sign_in(
 
     call = [c for c in auth.calls if c[1].endswith("/sso/authorize")][-1][2]
     assert call["test"] == "true" and call["protocol"] == kind.value
-    assert query_of(started.headers["location"])[param] == value
+    query = query_of(started.headers["location"])
+    assert {k: v for k, v in query.items() if k not in ("client_id", "state")} == extra
 
 
 async def test_a_regular_sign_in_asks_for_no_fresh_sign_in(client, sso_workspace):

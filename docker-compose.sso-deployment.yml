@@ -38,9 +38,6 @@ services:
       IDP_ENABLED: "false"
       # redirect_uri must equal the connection's (scheme, host, port and path)
       OPENID_REDIRECT_EXACT_MATCH: "true"
-      # pass extra authorize params on to OIDC IdPs: "Test connection" asks
-      # for prompt=select_account (auth sends only fixed, validated params)
-      OPENID_REQUEST_FORWARD_PARAMS: "true"
       SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:?set SSO_SAML_AUDIENCE in the root .env}
       BOXYHQ_NO_ANALYTICS: "1"
       DO_NOT_TRACK: "1"
