@@ -453,6 +453,12 @@ class FormFlowEventRow(Base, BaseRow):
     )
 
 
+class RateLimitCounterRow(Base, BaseRow):
+    __tablename__ = "rate_limit_counters"
+    expires_at = S.ts("expires_at")
+    __table_args__ = (Index(None, "expires_at"),)
+
+
 class AllowedOriginRow(Base, BaseRow):
     __tablename__ = "allowed_origins"
     origin = S.text("origin")

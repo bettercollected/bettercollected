@@ -1,6 +1,7 @@
 """Auth controller implementation."""
 
 import logging
+from typing import Optional
 
 from beanie import PydanticObjectId
 
@@ -41,10 +42,13 @@ class AuthRoutes(Routable):
     async def _send_otp_to_email(
         self,
         receiver_email: EmailStr,
-        workspace_title: str,
-        workspace_profile_image: str,
         creator: bool,
         background_tasks: BackgroundTasks,
+        # shown in the mail body only, never in From or the subject (#761).
+        # No length limits here: the title is capped by one_line, and an
+        # over-long or foreign image is dropped; neither may fail the send.
+        workspace_title: Optional[str] = None,
+        workspace_profile_image: Optional[str] = None,
     ):
         background_tasks.add_task(
             self.auth_service.send_otp_to_mail,

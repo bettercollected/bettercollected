@@ -186,10 +186,12 @@
                                         <tbody>
                                         <tr>
                                             <td style="width:60px;">
-                                                <img height="60"
-                                                     src={{ image_url }}
+                                                {% if image_url %}<img height="60"
+                                                     src="{{ image_url }}" alt=""
                                                      style="border:0;border-radius:60px;display:block;outline:none;text-decoration:none;height:60px;width:100%;font-size:13px;"
-                                                     width="60"/>
+                                                     width="60"/>{% else %}<div style="font-family:Inter;font-size:40px;font-weight:400;line-height:60px;text-align:center;color:white;background-color: #0764EB;border-radius: 60px;">
+                                                    {{ initial }}
+                                                </div>{% endif %}
                                             </td>
                                         </tr>
                                         </tbody>
@@ -201,8 +203,8 @@
                                     style="font-size:0px;padding-bottom:16px;word-break:break-word;">
                                     <div style="font-family:Inter;font-size:18px;font-weight:600;line-height:1;text-align:center;color:#000000;">
                                         <span style="color: #212529">{{ inviter_name }}</span>
-                                        <span style="color: #495057">has invited to</span>
-                                        <span style="color: #212529">{{ workspace_title }}</span>
+                                        <span style="color: #495057">has invited you to</span>
+                                        <span style="color: #212529">{{ workspace_title or "a workspace" }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -217,7 +219,7 @@
                             <tr>
                                 <td align="center" vertical-align="middle"
                                     style="font-size:0px;word-break:break-word;">
-                                    <a href={{ invitation_link }}>
+                                    <a href="{{ invitation_link }}">
                                         <table border="0" cellpadding="0" cellspacing="0" role="presentation"
                                                style="border-collapse:separate;width:219px;line-height:100%;">
                                             <tbody>

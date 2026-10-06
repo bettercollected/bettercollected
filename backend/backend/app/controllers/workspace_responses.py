@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import Any, List
 
 from beanie import PydanticObjectId
@@ -6,13 +7,14 @@ from common.models.user import User
 from fastapi import Depends
 from starlette.requests import Request
 from starlette.responses import Response
-from fastapi_camelcase import CamelModel
 from fastapi_pagination import Page
 
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.controllers.platform_metrics_router import forwarded_access_token
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
+from backend.app.models.dtos.flow_event_dto import FlowEventRequest
 from backend.app.models.dtos.form_response_dto import (
     InternalAnswersPatch,
     InternalAnswersResponse,
@@ -27,19 +29,15 @@ from backend.app.models.filter_queries.form_responses import FormResponseFilterQ
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.flow_event_repository import FlowEventRepository
 from backend.app.router import router
+from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
 from backend.app.services.user_service import get_logged_user
+from backend.app.utils.client_ip import request_client_ip
 from backend.app.utils.custom_routable import CustomRoutable
 from backend.app.utils.flow_analytics import aggregate_flow_events
-
-
-class FlowEventRequest(CamelModel):
-    session_id: str
-    from_page: str
-    to_page: str
 
 
 @router(
@@ -60,6 +58,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         respondent_feedback_service: RespondentFeedbackService = (
             container.respondent_feedback_service()
         ),
+        flow_event_service: FlowEventService = container.flow_event_service(),
         *args,
         **kwargs
     ):
@@ -67,6 +66,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         self._form_response_service = form_response_service
         self._respondent_feedback_service = respondent_feedback_service
         self._flow_event_repo = flow_event_repo
+        self._flow_event_service = flow_event_service
 
     @get(
         "/forms/{form_id}/submissions",
@@ -174,24 +174,25 @@ class WorkspaceResponsesRouter(CustomRoutable):
         workspace_id: PydanticObjectId,
         form_id: str,
         event: FlowEventRequest,
+        request: Request,
     ):
         """
         Record one anonymous navigation step from a responder. Public and
         fire-and-forget by design: no answers, no identity — see
-        FlowEventDocument. Inputs are length-capped so the open endpoint can't
-        be used to store arbitrary payloads.
+        FlowEventDocument. Only for a published form of this workspace (404
+        otherwise, the same for unknown and unpublished), between pages of
+        its published version (422), and at most
+        API_FLOW_EVENTS_PER_WINDOW per client and form per window (429).
         """
-        if (
-            len(event.session_id) > 64
-            or len(event.from_page) > 64
-            or len(event.to_page) > 64
-        ):
-            return {"ok": False}
-        await self._flow_event_repo.add(
-            form_id=form_id,
-            session_id=event.session_id,
-            from_page=event.from_page,
-            to_page=event.to_page,
+        if len(form_id) > 64:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+        await self._flow_event_service.record(
+            workspace_id=workspace_id,
+            form_ref=form_id,
+            event=event,
+            client=request_client_ip(request),
         )
         return {"ok": True}
 

@@ -198,18 +198,14 @@ async def test_workspace_users(sessions):
         [
             ("save", lambda: (owner_row,)),
             ("save", lambda: (member_row,)),
-            ("has_user_access_in_workspace", lambda: (ws.id, member)),
-            ("has_user_access_in_workspace", lambda: (ws.id, None)),
-            ("is_user_admin_in_workspace", lambda: (ws.id, owner)),
-            ("is_user_admin_in_workspace", lambda: (ws.id, member)),
             ("get_workspace_users", lambda: (ws.id,)),
             ("find_workspace_user", lambda: (ws.id, member_row.user_id)),
             ("get_mine_workspaces", lambda: (member.id,)),
             ("disable_other_users_in_workspace", lambda: (ws.id, owner_row.user_id)),
-            ("has_user_access_in_workspace", lambda: (ws.id, member)),
+            ("find_workspace_user", lambda: (ws.id, member_row.user_id)),
             ("get_workspace_users", lambda: (ws.id,)),
             ("enable_all_user_in_workspace", lambda: (ws.id,)),
-            ("has_user_access_in_workspace", lambda: (ws.id, member)),
+            ("find_workspace_user", lambda: (ws.id, member_row.user_id)),
             ("delete", lambda: (ws.id, member_row.user_id)),
             ("get_workspace_users", lambda: (ws.id,)),
             ("delete_user_form_all_workspaces", lambda: (owner,)),
@@ -221,16 +217,12 @@ async def test_workspace_users(sessions):
         lambda: mongo.delete(ws.id, member_row.user_id),
         lambda: postgres.delete(ws.id, member_row.user_id),
     )
-    gone = PydanticObjectId()
-    await both_raise(
-        NotFoundError,
-        lambda: mongo.is_user_admin_in_workspace(gone, owner),
-        lambda: postgres.is_user_admin_in_workspace(gone, owner),
-    )
 
 
-async def test_disabled_admin_membership_is_not_admin(sessions):
-    """A disabled membership grants nothing, an ADMIN role included (#770)."""
+async def test_disabled_admin_membership_is_disabled_in_both_stores(sessions):
+    """A plan downgrade disables an ADMIN membership (never the billing
+    owner's) and an upgrade enables it again, alike in both stores: the
+    authorization service then grants a disabled membership nothing (#770)."""
     owner = User(id=str(PydanticObjectId()), sub="owner@example.com")
     admin = User(id=str(PydanticObjectId()), sub="admin@example.com")
     ws = workspace("zeta", owner.id)
@@ -257,26 +249,24 @@ async def test_disabled_admin_membership_is_not_admin(sessions):
         [
             ("save", lambda: (owner_row,)),
             ("save", lambda: (admin_row,)),
-            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
             ("disable_other_users_in_workspace", lambda: (ws.id, owner_row.user_id)),
-            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
-            ("is_user_admin_in_workspace", lambda: (ws.id, owner)),
+            ("find_workspace_user", lambda: (ws.id, admin_row.user_id)),
+            ("find_workspace_user", lambda: (ws.id, owner_row.user_id)),
         ],
     )
     for repo in (mongo, postgres):
-        assert await repo.is_user_admin_in_workspace(ws.id, admin) is False
-        assert await repo.is_user_admin_in_workspace(ws.id, owner) is True
-        assert await repo.has_user_access_in_workspace(ws.id, admin) is False
+        assert (await repo.find_workspace_user(ws.id, admin_row.user_id)).disabled
+        assert not (await repo.find_workspace_user(ws.id, owner_row.user_id)).disabled
     await parity(
         mongo,
         postgres,
         [
             ("enable_all_user_in_workspace", lambda: (ws.id,)),
-            ("is_user_admin_in_workspace", lambda: (ws.id, admin)),
+            ("find_workspace_user", lambda: (ws.id, admin_row.user_id)),
         ],
     )
     for repo in (mongo, postgres):
-        assert await repo.is_user_admin_in_workspace(ws.id, admin) is True
+        assert not (await repo.find_workspace_user(ws.id, admin_row.user_id)).disabled
 
 
 async def test_invitations(sessions):

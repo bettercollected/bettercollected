@@ -47,8 +47,8 @@ Every workspace-scoped access decision goes through `services/authorization_serv
 (docs/enterprise-access-model.md). Services name the permission an action needs —
 `authorize(user, Permission.X, workspace_id, form_id=None)` raises 403 (then 404 when `form_id` is
 not a form of that workspace), `has_permission(...)` returns a bool for "staff view or public view"
-branches. Never compare `owner_id` or roles in a service, and never call the repository's
-`has_user_access_in_workspace` / `is_user_admin_in_workspace` for access.
+branches. Never compare `owner_id` or roles in a service, and never decide access from a
+membership read directly: access goes through `AuthorizationService`.
 
 - **Catalogue:** `models/enum/permission.py` (`workspace.manage`, `members.manage`, `form.edit`,
   `response.read`, ...). **Roles** (`models/enum/workspace_roles.py`, mapped in
@@ -569,3 +569,11 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`
   scattered through services.
+- **Client addresses and rate limits:** read a client's address with `utils/client_ip.request_client_ip(request)`,
+  never a raw header, and never log it. From the peer it walks X-Forwarded-For leftwards through trusted proxies
+  (loopback, private networks, `API_TRUSTED_PROXIES`); when the first other hop is a Cloudflare edge
+  (`API_TRUST_CLOUDFLARE`, default on; ranges built in as `CLOUDFLARE_IPS`, dated, overridable with
+  `API_CLOUDFLARE_IPS`) the client is `CF-Connecting-IP`, otherwise that hop. CF-Connecting-IP is never read for a
+  request that didn't come through Cloudflare. `services/rate_limiter.FixedWindowRateLimiter` counts requests per scope, client and window in
+  `rate_limit_counters` (analytics group, twin revision 0013), shared by every replica; counter ids are keyed hashes,
+  so no address is stored. The public `flow-events` endpoint uses it (#767).

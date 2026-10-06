@@ -35,13 +35,13 @@ def include_middlewares(app: "FastAPI"):
         """
         Middleware for logging requests and responses for debugging purposes.
 
-        Logs the client IP, request method, URL, and query parameters.
+        Logs the request method, URL, and query parameters; never the
+        client's address (X-Forwarded-For).
         If in development mode, also logs the response status code and body.
 
         Raises:
             Exception: If there is an error while logging the response.
         """
-        logger.info(f'Client Ip : {request.headers.get("X-Forwarded-For")}')
         logger.info(
             f"Request : Host {request.method} {request.url.path} {request.url.query}"
         )
