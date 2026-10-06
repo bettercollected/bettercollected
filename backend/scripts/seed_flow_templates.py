@@ -58,13 +58,29 @@ def _slide(fields: list, jumps: list | None = None) -> dict:
     return slide
 
 
-def _q(qtype: str, title: str, extra_props: dict | None = None, required: bool = False) -> dict:
+def _q(qtype: str, title: str, extra_props: dict | None = None, required: bool = False, why: str | None = None) -> dict:
     field = {"id": _id(), "index": 0, "type": qtype, "title": title}
     if extra_props:
         field["properties"] = extra_props
+    if why:
+        # "Why we ask this": every question for contact details says why.
+        field.setdefault("properties", {})["why_we_ask"] = why
     if required:
         field["validations"] = {"required": True}
     return field
+
+
+WHY_REPLY = "So we can reply to your request. We use it for nothing else."
+WHY_FOLLOW_UP = "So we can follow up on your enquiry."
+WHY_APPLICATION = "So we can contact you about your application."
+WHY_APPLICATION_PHONE = "So we can call you about your application, if you prefer that."
+# Reasons for templates seeded before questions said why they ask (by title).
+WHY_WE_ASK_BY_TITLE = {
+    "Where should we reply?": WHY_REPLY,
+    "Best email to reach you": WHY_FOLLOW_UP,
+    "Contact email": WHY_APPLICATION,
+    "Phone number": WHY_APPLICATION_PHONE,
+}
 
 
 def _choices(*labels: str) -> dict:
@@ -92,8 +108,9 @@ def _missing_yes_no_choices(fields) -> list:
 async def repair_yes_no_choices(template_repo, template_id) -> bool:
     """Give a seeded template's yes/no fields the Yes/No choices that earlier
     versions of this script left out (forms created from them showed the
-    question with nothing to answer). Reads and writes through the routed
-    repository, so both stores are repaired. Returns True if it changed."""
+    question with nothing to answer), and its contact questions their "why
+    we ask this" line. Reads and writes through the routed repository, so
+    both stores are repaired. Returns True if it changed."""
     from common.models.standard_form import StandardChoice, StandardFieldProperty
 
     template = await template_repo.get_template_by_id(template_id)
@@ -107,16 +124,37 @@ async def repair_yes_no_choices(template_repo, template_id) -> bool:
             StandardChoice(id=_id(), value="Yes"),
             StandardChoice(id=_id(), value="No"),
         ]
-    if missing:
+    explained = _add_missing_why_we_ask(template.fields)
+    if missing or explained:
         await template_repo.save(template)
-    return bool(missing)
+    return bool(missing or explained)
+
+
+def _add_missing_why_we_ask(fields) -> int:
+    """Give seeded contact questions their "why we ask this" line when an
+    earlier version of this script left it out; never overwrites one."""
+    from common.models.standard_form import StandardFieldProperty
+
+    added = 0
+    for field in fields or []:
+        props = field.properties
+        why = WHY_WE_ASK_BY_TITLE.get(field.title) if isinstance(field.title, str) else None
+        if why and getattr(field.type, "value", field.type) in ("email", "phone_number"):
+            if props is None:
+                props = field.properties = StandardFieldProperty()
+            if not props.why_we_ask:
+                props.why_we_ask = why
+                added += 1
+        if props and props.fields:
+            added += _add_missing_why_we_ask(props.fields)
+    return added
 
 
 def support_triage() -> dict:
     topic = _q("dropdown", "What do you need help with?", _choices("Billing", "Technical issue", "Something else"), required=True)
     billing = _slide([_q("short_text", "Which invoice or charge is this about?")])
     technical = _slide([_q("long_text", "Describe the issue — what did you expect, and what happened?")])
-    contact = _slide([_q("email", "Where should we reply?", required=True)])
+    contact = _slide([_q("email", "Where should we reply?", required=True, why=WHY_REPLY)])
     intro = _slide(
         [topic],
         jumps=[
@@ -139,7 +177,7 @@ def support_triage() -> dict:
 def lead_qualification() -> dict:
     timeline = _q("yes_no", "Are you looking to get started in the next 3 months?", _yes_no(), required=True)
     details = _slide([_q("short_text", "What's the main problem you're hoping to solve?"), _q("number", "How many people are on your team?")])
-    contact = _slide([_q("email", "Best email to reach you", required=True)])
+    contact = _slide([_q("email", "Best email to reach you", required=True, why=WHY_FOLLOW_UP)])
     intro = _slide(
         [timeline],
         # Not in the market → polite, short exit; qualified leads continue.
@@ -156,7 +194,7 @@ def lead_qualification() -> dict:
 def job_screening() -> dict:
     authorized = _q("yes_no", "Are you legally authorized to work in this role's location?", _yes_no(), required=True)
     experience = _slide([_q("long_text", "Tell us about your most relevant experience."), _q("url", "Portfolio or LinkedIn")])
-    contact = _slide([_q("email", "Contact email", required=True), _q("phone_number", "Phone number")])
+    contact = _slide([_q("email", "Contact email", required=True, why=WHY_APPLICATION), _q("phone_number", "Phone number", why=WHY_APPLICATION_PHONE)])
     intro = _slide(
         [authorized],
         jumps=[_jump(authorized["id"], "No", "__SUBMIT__", field_type="yes_no")],

@@ -127,3 +127,34 @@ async def test_seed_repairs_an_existing_template_and_leaves_the_rest():
 
     again = await seed_flow_templates(WORKSPACE_ID, template_repo=repo)
     assert again["seeded"] == [] and again["repaired"] == []
+
+
+def test_every_seeded_contact_question_says_why_it_asks():
+    from common.models.standard_form import StandardForm
+
+    from backend.app.services.publish_checks import publish_problems
+
+    for build in TEMPLATE_BUILDERS:
+        payload = build()
+        form = StandardForm(title=payload["title"], fields=payload["fields"])
+        assert publish_problems(form) == [], payload["title"]
+
+
+async def test_repair_adds_a_missing_why_we_ask_line():
+    repo = container.form_template_repo()
+    broken = await _seed_broken_lead_qualification()
+    template = await repo.get_template_by_id(broken.id)
+    for slide in template.fields:
+        for field in slide.properties.fields or []:
+            if field.properties is not None:
+                field.properties.why_we_ask = None
+    await repo.save(template)
+
+    assert await repair_yes_no_choices(repo, broken.id) is True
+    reasons = [
+        field.properties.why_we_ask
+        for slide in (await repo.get_template_by_id(broken.id)).fields
+        for field in slide.properties.fields or []
+        if getattr(field.type, "value", field.type) == "email"
+    ]
+    assert reasons == ["So we can follow up on your enquiry."]
