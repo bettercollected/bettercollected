@@ -336,6 +336,11 @@ class AuthService:
         return user, client_referer_url
 
     async def delete_user(self, user: User):
+        # before anything is deleted: the deletion job re-checks what the
+        # request checked (another owner may have been added meanwhile)
+        await self.workspace_service.refuse_deleting_billing_owner_of_shared_workspaces(
+            user
+        )
         await self.delete_credentials_from_integrations(user=user)
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
         await self.delete_user_form_auth(user=user)
@@ -375,7 +380,14 @@ class AuthService:
                 content="Could not delete the user from the auth service.",
             )
 
+    async def refuse_account_deletion_if_shared(self, user: User):
+        await self.workspace_service.refuse_deleting_billing_owner_of_shared_workspaces(
+            user
+        )
+
     async def add_workflow_to_delete_user(self, user: User):
+        # refused before the job is queued and before any session ends
+        await self.refuse_account_deletion_if_shared(user)
         await event_logger_service.send_event(
             event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub
         )

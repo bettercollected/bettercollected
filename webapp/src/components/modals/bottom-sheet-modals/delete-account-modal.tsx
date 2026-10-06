@@ -15,6 +15,21 @@ import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
 
+// A workspace the account is the billing owner of that has other owners: the
+// backend refuses the deletion (409) until billing moves or they are removed.
+interface SharedWorkspace {
+    id: string;
+    title?: string;
+    workspaceName?: string;
+    billingOwnerCanChange?: boolean;
+}
+
+export function sharedWorkspacesOf(error: any): Array<SharedWorkspace> | null {
+    const body = error?.data;
+    if (error?.status !== 409 || body?.code !== 'billing_owner_of_shared_workspaces') return null;
+    return Array.isArray(body.workspaces) ? body.workspaces : [];
+}
+
 
 export default function DeleteAccountModal() {
     const [deleteAccount] = useDeleteAccountMutation();
@@ -29,6 +44,7 @@ export default function DeleteAccountModal() {
     const [checked, setChecked] = useState(false);
 
     const [error, setError] = useState(false);
+    const [shared, setShared] = useState<Array<SharedWorkspace> | null>(null);
 
     const onClickDelete = async () => {
         if (!dropdownValue || !confirm || !checked || confirm.toUpperCase() !== 'CONFIRM' || ((dropdownValue === 'Something else' || dropdownValue === 'I have found a better alternative.') && !feedback)) {
@@ -42,6 +58,8 @@ export default function DeleteAccountModal() {
             if ('data' in response) {
                 router.push(`/`)
                 toast({ description: t(toastMessage.accountDeletion.success).toString() });
+            } else if (sharedWorkspacesOf(response.error)) {
+                setShared(sharedWorkspacesOf(response.error));
             } else {
                 toast({ description: t(toastMessage.accountDeletion.failed).toString(), variant: 'destructive' });
             }
@@ -164,6 +182,20 @@ export default function DeleteAccountModal() {
                 </div>
                 <div className="mt-[72px]">
                     {error && <div className="mb-4 text-sm text-red-500">* Please fill in all required fields or check CONFIRM field.</div>}
+                    {shared && (
+                        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-black-800" role="alert" data-testid="delete-account-shared-workspaces">
+                            <p className="font-medium">{t('DELETE_ACCOUNT.SHARED_WORKSPACES')}</p>
+                            <ul className="mt-2 list-disc pl-5">
+                                {shared.map((workspace) => (
+                                    <li key={workspace.id}>
+                                        <span className="font-medium">{workspace.title || workspace.workspaceName}</span>
+                                        {': '}
+                                        {t(workspace.billingOwnerCanChange ? 'DELETE_ACCOUNT.SHARED_MOVE_OR_REMOVE' : 'DELETE_ACCOUNT.SHARED_REMOVE_OWNERS')}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <Button variant="danger" size="medium" onClick={onClickDelete}>
                         {t('DELETE_ACCOUNT.DELETE_NOW')}
                     </Button>

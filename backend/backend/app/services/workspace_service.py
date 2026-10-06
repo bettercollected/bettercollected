@@ -2,7 +2,7 @@ import os
 import re
 import uuid
 from http import HTTPStatus
-from typing import Optional
+from typing import List, Optional
 
 import bson
 from beanie import PydanticObjectId
@@ -20,6 +20,7 @@ from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import (
     WorkspaceRoles,
+    has_owner_role,
     is_owner_membership,
 )
 from backend.app.models.workspace import (
@@ -687,7 +688,75 @@ class WorkspaceService:
             )
         return workspace_document
 
+    async def shared_workspaces_of_billing_owner(
+        self, user_id: str
+    ) -> List[WorkspaceDocument]:
+        """The workspaces ``user_id`` is the billing owner (``owner_id``) of
+        that have another active owner: deleting the account would delete
+        them under those owners."""
+        shared = []
+        for workspace in await self._workspace_repo.get_user_workspaces(
+            owner_id=str(user_id)
+        ):
+            for membership in await self._workspace_user_repo.get_workspace_users(
+                workspace_id=workspace.id
+            ):
+                if (
+                    str(membership.user_id) != str(user_id)
+                    and not membership.disabled
+                    and has_owner_role(membership.roles)
+                ):
+                    shared.append(workspace)
+                    break
+        return shared
+
+    async def refuse_deleting_billing_owner_of_shared_workspaces(self, user: User):
+        """409 ``billing_owner_of_shared_workspaces`` while the account is the
+        billing owner of a workspace with another active owner (every account
+        deletion path calls this before deleting anything). The way out: make
+        another owner the billing owner, or, on a paid or personal workspace,
+        whose billing owner can't change, remove the other owners."""
+        shared = await self.shared_workspaces_of_billing_owner(user.id)
+        if not shared:
+            return
+        names = []
+        for workspace in shared:
+            name = workspace.title or workspace.workspace_name
+            if workspace.is_pro or workspace.default:
+                names.append(f"{name} (remove its other owners)")
+            else:
+                names.append(
+                    f"{name} (make another owner the billing owner, or remove "
+                    "its other owners)"
+                )
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            content={
+                "code": "billing_owner_of_shared_workspaces",
+                "message": "You are the billing owner of workspaces that have other "
+                "owners, so your account can't be deleted yet: "
+                + "; ".join(names)
+                + ".",
+                "workspaces": [
+                    {
+                        "id": str(workspace.id),
+                        "title": workspace.title,
+                        "workspaceName": workspace.workspace_name,
+                        # a paid or personal workspace's billing owner can't
+                        # change: the only way out is removing the others
+                        "billingOwnerCanChange": not (
+                            workspace.is_pro or workspace.default
+                        ),
+                    }
+                    for workspace in shared
+                ],
+            },
+        )
+
     async def delete_workspaces_of_user_with_forms(self, user: User):
+        # never a workspace another owner still relies on (checked again by
+        # every caller before it deletes anything else)
+        await self.refuse_deleting_billing_owner_of_shared_workspaces(user)
         workspaces = await self.get_mine_workspaces(user=user)
         workspaces = [
             workspace for workspace in workspaces if workspace.owner_id == user.id

@@ -6,6 +6,7 @@ owners, the billing owner is never demoted or removed, a workspace always
 keeps an active owner, and neither the directory nor SSO ever grants or
 changes Owner."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -619,3 +620,125 @@ async def test_billing_sessions_are_always_the_callers_own(
     ]
     assert call.kwargs["params"]["user_id"] == co_owner.id
     assert testUser.id not in str(call)
+
+
+# -- deleting an account ------------------------------------------------------
+
+
+@pytest.fixture()
+def no_storage(monkeypatch):
+    """S3 is outside the test."""
+    aws = container.aws_service()
+    monkeypatch.setattr(aws, "delete_folder_from_s3", lambda *a, **k: None)
+
+
+@pytest.fixture()
+def queued_deletions(monkeypatch):
+    queued = []
+    service = container.auth_service()
+
+    async def start(deletion):
+        queued.append(deletion)
+        return "Job Started"
+
+    monkeypatch.setattr(service.temporal_service, "start_user_deletion_workflow", start)
+    monkeypatch.setattr(
+        "backend.app.services.auth_service.event_logger_service",
+        SimpleNamespace(send_event=AsyncMock()),
+    )
+    return queued
+
+
+async def _still_there(workspace_id):
+    assert await container.workspace_repo().find_by_id(workspace_id) is not None
+    assert (await _membership(workspace_id, testUser)) is not None
+    assert (await _membership(workspace_id, co_owner)).roles == [WorkspaceRoles.OWNER]
+
+
+async def test_the_deletion_request_is_refused_for_a_shared_workspace(
+    client: AsyncClient, paid_team, queued_deletions
+):
+    reply = await client.post(
+        "/api/v1/auth/user/delete/workflow",
+        json={"reasonForDeletion": "testing"},
+        cookies=_cookies(testUser),
+    )
+
+    assert reply.status_code == 409, reply.text
+    body = reply.json()
+    assert body["code"] == "billing_owner_of_shared_workspaces"
+    (named,) = body["workspaces"]
+    assert named["id"] == str(paid_team.id) and named["title"] == "Paid team"
+    # paid: the billing owner can't change, the way out is removing owners
+    assert named["billingOwnerCanChange"] is False
+    assert "Paid team (remove its other owners)" in body["message"]
+    assert queued_deletions == []
+    await _still_there(paid_team.id)
+
+
+async def test_the_deletion_job_refuses_and_deletes_nothing(
+    paid_team, no_storage, monkeypatch
+):
+    """A co-owner added after the request was queued: the job re-checks
+    before deleting anything (integrations, workspaces, the auth account)."""
+    service = container.auth_service()
+    integrations = AsyncMock()
+    auth_account = AsyncMock()
+    monkeypatch.setattr(service, "delete_credentials_from_integrations", integrations)
+    monkeypatch.setattr(service, "delete_user_form_auth", auth_account)
+
+    with pytest.raises(Exception) as refused:
+        await service.delete_user(user=testUser)
+
+    assert refused.value.content["code"] == "billing_owner_of_shared_workspaces"
+    integrations.assert_not_called()
+    auth_account.assert_not_called()
+    await _still_there(paid_team.id)
+    with pytest.raises(Exception):
+        await container.workspace_service().delete_workspaces_of_user_with_forms(
+            testUser
+        )
+    await _still_there(paid_team.id)
+
+
+async def test_a_free_shared_workspace_suggests_moving_billing_first(paid_team):
+    await container.workspace_repo().set_fields(paid_team, {"is_pro": False})
+    service = container.workspace_service()
+    with pytest.raises(Exception) as refused:
+        await service.refuse_deleting_billing_owner_of_shared_workspaces(testUser)
+    (named,) = refused.value.content["workspaces"]
+    assert named["billingOwnerCanChange"] is True
+    assert "make another owner the billing owner" in refused.value.content["message"]
+
+
+async def test_a_disabled_co_owner_does_not_block_the_deletion(paid_team):
+    membership = await _membership(paid_team.id, co_owner)
+    membership.disabled = True
+    await container.workspace_user_repo().save(membership)
+    service = container.workspace_service()
+    assert not await service.shared_workspaces_of_billing_owner(testUser.id)
+
+
+async def test_deleting_is_allowed_once_the_other_owners_are_gone(
+    client: AsyncClient, paid_team, no_storage, auth_service
+):
+    removed = await client.delete(
+        f"{_members(paid_team.id)}/{co_owner.id}", cookies=_cookies(testUser)
+    )
+    assert removed.status_code == 200, removed.text
+
+    await container.workspace_service().delete_workspaces_of_user_with_forms(testUser)
+
+    assert await container.workspace_repo().find_by_id(paid_team.id) is None
+    assert await _membership(paid_team.id, admin) is None
+
+
+async def test_a_co_owner_deleting_their_account_leaves_the_workspace(
+    paid_team, no_storage
+):
+    await container.workspace_service().delete_workspaces_of_user_with_forms(co_owner)
+
+    workspace = await container.workspace_repo().find_by_id(paid_team.id)
+    assert workspace is not None and str(workspace.owner_id) == testUser.id
+    assert await _membership(paid_team.id, co_owner) is None
+    assert await _permissions(testUser, paid_team.id) == ALL_PERMISSIONS

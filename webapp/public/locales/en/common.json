@@ -134,6 +134,9 @@
     "MESSAGE": "Once this action is completed, it can't be undone."
   },
   "DELETE_ACCOUNT": {
+    "SHARED_WORKSPACES": "Your account can't be deleted yet: you are the billing owner of workspaces that have other owners. Nothing was deleted.",
+    "SHARED_MOVE_OR_REMOVE": "Make another owner the billing owner, or remove the other owners.",
+    "SHARED_REMOVE_OWNERS": "This workspace's billing owner can't change (it is on a paid plan or is your personal workspace): remove its other owners.",
     "TITLE": "Delete Account",
     "DESCRIPTION": "You are about to delete your bettercollected account. All your data will be removed.",
     "WHY_DELETE": "Why are you deleting your account?",

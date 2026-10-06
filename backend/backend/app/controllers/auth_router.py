@@ -365,6 +365,9 @@ class AuthRoutes(Routable):
         user_feedback: UserFeedbackDto,
         user: User = Depends(get_logged_user),
     ):
+        # refused (409) while the user is the billing owner of a workspace
+        # with other owners: nothing is saved, queued or signed out
+        await self.auth_service.refuse_account_deletion_if_shared(user)
         await self.user_feedback_service.save_user_feedback(user_feedback=user_feedback)
         resp = await self.auth_service.add_workflow_to_delete_user(user=user)
         delete_token_cookie(response)

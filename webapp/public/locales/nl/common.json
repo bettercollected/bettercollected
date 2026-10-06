@@ -134,6 +134,9 @@
     "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
   },
   "DELETE_ACCOUNT": {
+    "SHARED_WORKSPACES": "Je account kan nog niet worden verwijderd: je bent factuureigenaar van werkruimtes met andere eigenaren. Er is niets verwijderd.",
+    "SHARED_MOVE_OR_REMOVE": "Maak een andere eigenaar factuureigenaar, of verwijder de andere eigenaren.",
+    "SHARED_REMOVE_OWNERS": "De factuureigenaar van deze werkruimte kan niet veranderen (betaald abonnement of je persoonlijke werkruimte): verwijder de andere eigenaren.",
     "TITLE": "Account Verwijderen",
     "DESCRIPTION": "Je staat op het punt om je bettercollected-account te verwijderen. Al je gegevens zullen worden verwijderd.",
     "WHY_DELETE": "Waarom verwijder je je account?",
