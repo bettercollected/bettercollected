@@ -46,6 +46,8 @@ export interface StandardFormFieldProperties {
     label?: string;
     /** Date questions: constraints on the chosen date (see utils/date-rules.ts). */
     dateRules?: DateRule[];
+    /** "Why we ask this": the creator's reason for an identifying question, shown to respondents under it (see utils/publish-checks.ts). */
+    whyWeAsk?: string;
 }
 
 export interface StandardFormFieldDto {
@@ -168,7 +170,9 @@ export interface StandardFormDto {
         aiInsightsProviderName?: string | null;
         aiInsightsEnabledBy?: string | null;
         aiInsightsEnabledAt?: string | null;
+        /** How long answers are kept: "days" (responseExpiration = a number of days), "date" (YYYY-MM-DD) or "forever". See utils/retention.ts. */
         responseExpiration?: string;
+        responseExpirationType?: 'days' | 'date' | 'forever' | null;
         disableBranding: boolean;
         hidden: boolean;
         formCloseDate?: string;

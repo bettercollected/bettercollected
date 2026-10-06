@@ -99,15 +99,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                             including the trust strip. Hiding it here would make
                             the drawer's "responders will see" promise a lie. */}
                         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40">
-                            <TrustLayer
-                                ownerName={workspace?.title || workspace?.workspaceName}
-                                ownerImage={workspace?.profileImage}
-                                purpose={standardForm?.settings?.purpose}
-                                retention={standardForm?.settings?.retentionText}
-                                privacyUrl={standardForm?.settings?.privacyPolicyUrl}
-                                poweredBy={!standardForm?.settings?.disableBranding}
-                                aiProviderName={standardForm?.settings?.aiInsightsEnabled ? standardForm?.settings?.aiInsightsProviderName : null}
-                            />
+                            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} />
                         </div>
                     </div>
                 ) : (
