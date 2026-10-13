@@ -32,7 +32,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.20.0",
-    "asyncpg>=0.30.0",
+    "asyncpg>=0.32.0",
     "beanie>=2.2.0",
     "cryptography>=50.0.2",
     "sqlalchemy[asyncio]>=2.0.54",
@@ -49,7 +49,7 @@ classifiers = [
 
 [dependency-groups]
 dev = [
-    "black>=26.1.0",
+    "black>=26.10.1",
     "pytest>=8.0.0",
     "pytest-asyncio>=1.4.0",
 ]
