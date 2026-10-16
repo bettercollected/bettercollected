@@ -48,7 +48,7 @@
         "VERIFY_REQUIRED": "Om dit formulier in te vullen, bevestig je eerst wie je bent.",
         "VERIFY_NOW": "Nu bevestigen",
         "VIEW_LATER": "Wil je je antwoorden later terugzien?",
-        "VERIFY_EMAIL": "Bevestig je e-mailadres",
+        "VERIFY_EMAIL": "Bevestig je e-mailadres.",
         "PRIVATE": "Besloten formulier",
         "PRIVATE_TEXT": "Alleen bepaalde mensen kunnen dit formulier invullen. Bevestig wie je bent om verder te gaan.",
         "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier.",
@@ -63,7 +63,7 @@
         "SWITCH": "Ander account gebruiken"
     },
     "ENDING": {
-        "TITLE": "Bedankt! 🎉",
+        "TITLE": "Bedankt",
         "SUBMITTED": "Je antwoorden zijn verstuurd.",
         "SUBMITTED_ANONYMOUS": "Je antwoorden zijn anoniem verstuurd.",
         "SUBMISSION_NUMBER": "Inzendnummer",

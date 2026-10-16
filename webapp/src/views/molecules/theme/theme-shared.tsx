@@ -246,6 +246,25 @@ export function softInk(theme?: Partial<FormTheme>): string {
     return contrast(candidate, theme!.accent) >= 7 ? candidate : primary;
 }
 
+/**
+ * The theme's action colour used as text (links, numerals, the page count):
+ * the secondary where it reads at 4.5:1 on the page, else the ink.
+ */
+export function actionInk(theme?: Partial<FormTheme>): string {
+    const primary = isHex(theme?.primary) ? theme!.primary : '#101828';
+    if (!isHex(theme?.secondary) || !isHex(theme?.accent)) return primary;
+    return contrast(theme!.secondary, theme!.accent) >= 4.5 ? theme!.secondary : primary;
+}
+
+/**
+ * The edge of a field that needs an answer: signal red where it reaches the
+ * 3:1 a control boundary needs on the page, else the ink.
+ */
+export function invalidEdge(theme?: Partial<FormTheme>): string {
+    const accent = isHex(theme?.accent) ? theme!.accent : '#FFFFFF';
+    return contrast(LEAFLET_SIGNAL_RED, accent) >= 3 ? LEAFLET_SIGNAL_RED : theme?.primary || '#101828';
+}
+
 /** Danger red for required markers (DESIGN.md §1). */
 export const REQUIRED_RED = '#C43D3D';
 

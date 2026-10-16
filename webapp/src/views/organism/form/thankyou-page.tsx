@@ -85,11 +85,12 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         </h2>
                         <ul className="mt-3 border-t text-base leading-[1.6]" style={{ borderColor: rule, color: theme?.primary }} lang={language}>
                             <li className="border-b py-3" style={{ borderColor: rule }}>
-                                {describeRetention(standardForm?.settings, t, language)}
+                                {/* Every row names its subject, like the "Why we ask this:" notes. */}
+                                <span className="font-semibold">{t('PRIVACY.RETENTION')}:</span> {describeRetention(standardForm?.settings, t, language)}
                                 {retentionNote && <span style={{ color: softInk(theme) }}> {retentionNote}</span>}
                             </li>
                             <li className="border-b py-3" style={{ borderColor: rule }}>
-                                {t('PRIVACY.RIGHTS_TEXT')}{' '}
+                                <span className="font-semibold">{t('PRIVACY.RIGHTS')}:</span> {t('PRIVACY.RIGHTS_TEXT')}{' '}
                                 {!isPreviewMode && (
                                     <a href={submissionUrl} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-2" style={{ color: theme?.secondary }}>
                                         {t('PRIVACY.RIGHTS_LINK')}

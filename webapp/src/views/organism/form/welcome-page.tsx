@@ -16,7 +16,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { LeafletContents, LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
-import { softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { actionInk, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
 /**
@@ -62,7 +62,7 @@ export default function WelcomePage({
     };
 
     const verifyLink = (label: string) => (
-        <Link href={isPreviewMode ? '' : responderSignInUrl} className="font-medium text-black-800 underline underline-offset-2">
+        <Link href={isPreviewMode ? '' : responderSignInUrl} className="font-medium underline underline-offset-2" style={{ color: actionInk(formTheme) }}>
             {label}
         </Link>
     );
@@ -71,7 +71,7 @@ export default function WelcomePage({
     const actions = (
         <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
             {!standardForm?.settings?.private && !auth.id && (
-                <p className="text-base text-black-700">
+                <p className="text-base" style={{ color: softInk(formTheme) }}>
                     {standardForm?.settings?.requireVerifiedIdentity ? <>{t('WELCOME.VERIFY_REQUIRED')} {verifyLink(t('WELCOME.VERIFY_NOW'))}</> : <>{t('WELCOME.VIEW_LATER')} {verifyLink(t('WELCOME.VERIFY_EMAIL'))}</>}
                 </p>
             )}
@@ -140,7 +140,7 @@ export default function WelcomePage({
                     </LeafletIntroBand>
                 )}
                 <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-8')} data-testid="welcome-column">
-                    <LeafletContents pages={standardForm?.fields} theme={formTheme} />
+                    <LeafletContents pages={standardForm?.fields} theme={formTheme} formTitle={standardForm?.title ?? ''} />
                     {actions}
                 </div>
             </>

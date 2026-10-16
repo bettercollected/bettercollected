@@ -129,6 +129,39 @@ describe('Leaflet style', () => {
         expect(within(next).getByRole('heading', { name: 'What happens next' })).toBeInTheDocument();
         expect(within(next).getByText(/Kept for 30 days after you submit/)).toBeInTheDocument();
         expect(within(next).getByText(/You can view your answers/)).toBeInTheDocument();
+        // Every row names its subject.
+        expect(
+            within(next)
+                .getAllByRole('listitem')
+                .map((row) => row.querySelector('span.font-semibold')?.textContent)
+        ).toEqual(['How long they are kept:', 'Your rights:']);
+        // The plain default title.
+        expect(screen.getByRole('heading', { level: 1, name: 'Thank you' })).toBeInTheDocument();
+    });
+
+    it('the contents list pages without a heading under their bar title (the form title)', async () => {
+        const form = (store.getState() as any).form;
+        store.dispatch(setForm({ ...form, fields: [form.fields[0], { ...form.fields[1], properties: { fields: [question('q', FieldTypes.SHORT_TEXT)] } }, form.fields[2]] } as any));
+        wrap(<WelcomePage isPreviewMode />);
+        const contents = await screen.findByTestId('leaflet-contents');
+        expect(
+            within(contents)
+                .getAllByRole('listitem')
+                .map((item) => item.textContent)
+        ).toEqual(['1Your details', '2Open day feedback', '3Booking']);
+    });
+
+    it('a question with an error marks its control invalid, describes it by the message and gives it the red edge', async () => {
+        wrap(<FormSlide index={0} isPreviewMode />);
+        act(() => {
+            fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+        });
+        const message = await screen.findByText('Please answer this question to continue.');
+        const input = screen.getByPlaceholderText('Answer');
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+        expect(input.getAttribute('aria-describedby')).toContain(message.closest('[role=alert]')!.id);
+        const group = input.closest('[data-question-wrapper]') as HTMLElement;
+        expect(group.style.getPropertyValue('--invalid-edge')).toBe('#C8102E');
     });
 
     it('other styles carry no section bar and no numbers', async () => {

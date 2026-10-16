@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 
 import parse from 'html-react-parser';
 import { AlertCircle } from 'lucide-react';
@@ -15,7 +15,7 @@ import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
 import { isAnswerableField } from '@app/utils/leaflet-sections';
-import { contrast, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
@@ -63,6 +63,29 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     const leaflet = tokens.key === 'leaflet';
     // Numerals wear the action colour where it reads as text on the page, else the ink.
     const numberColour = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
+
+    // While the error shows, the field's own controls say so too: they are
+    // marked invalid and described by the message (the inputs are rendered
+    // by each field type, so they are reached here rather than threaded
+    // through every component), and their edge turns signal red.
+    const groupRef = useRef<HTMLDivElement>(null);
+    const errorId = `q-error-${field.id}`;
+    useEffect(() => {
+        const controls = groupRef.current?.querySelectorAll<HTMLElement>('input:not([type=hidden]), textarea, select, [role=radiogroup], [role=combobox]');
+        controls?.forEach((control) => {
+            // Only this question's own controls, not those of nested questions.
+            if (control.closest('[data-question-wrapper]') !== groupRef.current) return;
+            const describedBy = (control.getAttribute('aria-describedby') ?? '').split(' ').filter((id) => id && id !== errorId);
+            if (hasError) {
+                control.setAttribute('aria-invalid', 'true');
+                control.setAttribute('aria-describedby', [...describedBy, errorId].join(' '));
+            } else {
+                control.removeAttribute('aria-invalid');
+                if (describedBy.length) control.setAttribute('aria-describedby', describedBy.join(' '));
+                else control.removeAttribute('aria-describedby');
+            }
+        });
+    });
 
     const content = (
         <>
@@ -112,7 +135,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 theme's ink (amber text fell under 4.5:1 on the tinted presets); the icon in
                 danger red marks it as a problem without relying on the colour of the words. */}
             {hasError && (
-                <div id={`q-error-${field.id}`} role="alert" className="mt-2 flex items-start gap-2 text-[15px] leading-snug font-medium" style={{ color: theme?.primary }}>
+                <div id={errorId} role="alert" className="mt-2 flex items-start gap-2 text-[15px] leading-snug font-medium" style={{ color: theme?.primary }}>
                     <AlertCircle className="mt-px h-[18px] w-[18px] shrink-0 text-[#C43D3D]" strokeWidth={2} aria-hidden="true" />
                     <span>{errorMessage || t('FIELD.ANSWER_REQUIRED')}</span>
                 </div>
@@ -127,9 +150,18 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 number ? 'grid grid-cols-[34px_minmax(0,1fr)] items-baseline' : 'flex flex-col gap-1 lg:gap-2',
                 // Wide centred pages hang the number outside the text measure.
                 number && numbering?.hang && '@min-[880px]/page:block',
-                tokens.divider && 'border-b pb-7'
+                tokens.divider && 'border-b pb-7',
+                // The field's edge (inputs, the date and dropdown triggers, the
+                // option controls) in signal red while its error shows.
+                hasError && '[&_input:not([type=checkbox])]:border-(--invalid-edge)! [&_textarea]:border-(--invalid-edge)! [&_[aria-haspopup]]:border-(--invalid-edge)! [&_[aria-expanded]]:border-(--invalid-edge)! [&_[data-choice-indicator]]:border-(--invalid-edge)!'
             )}
-            style={tokens.divider ? { borderColor: (theme?.tertiary ?? '#818CA0') + '40' } : undefined}
+            style={{
+                ...(tokens.divider ? { borderColor: (theme?.tertiary ?? '#818CA0') + '40' } : {}),
+                ...(hasError ? { ['--invalid-edge' as string]: invalidEdge(theme) } : {})
+            }}
+            ref={groupRef}
+            data-question-wrapper
+            data-invalid={hasError || undefined}
             id={field.id}
             // Give assistive tech an accessible name/description for the field.
             // Answerable fields become a labelled group so the question (and any

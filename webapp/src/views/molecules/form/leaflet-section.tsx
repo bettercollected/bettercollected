@@ -71,15 +71,17 @@ export function LeafletTopRule({ theme }: { theme?: Partial<FormTheme> }) {
 }
 
 /**
- * The cover's contents: every page's section number and title, when every
- * page opens with a heading; otherwise, honestly, just how many pages the
- * form has (a list of repeated fallback titles would say nothing).
+ * The cover's contents: every page's section number and title. A page without
+ * its own opening heading is listed under the same title its section bar
+ * shows (the form's title), so the list matches the pages. Only when no page
+ * has a heading of its own would the list just repeat the cover's title, so
+ * it states how many pages the form has instead.
  */
-export function LeafletContents({ pages, theme }: { pages: ReadonlyArray<StandardFormFieldDto> | undefined; theme?: Partial<FormTheme> }) {
+export function LeafletContents({ pages, theme, formTitle }: { pages: ReadonlyArray<StandardFormFieldDto> | undefined; theme?: Partial<FormTheme>; formTitle: string }) {
     const { t } = useRespondentLanguage();
-    const sections = (pages ?? []).map((page) => leafletSection(page?.properties?.fields ?? [], ''));
+    const sections = (pages ?? []).map((page) => leafletSection(page?.properties?.fields ?? [], formTitle));
     const rule = leafletColours(theme).rule;
-    if (!sections.length || !sections.every((section) => section.titleFromPage)) {
+    if (!sections.some((section) => section.titleFromPage)) {
         return (
             <p className="text-base" style={{ color: softInk(theme) }}>
                 {t('WELCOME.PAGE_COUNT', { count: sections.length })}

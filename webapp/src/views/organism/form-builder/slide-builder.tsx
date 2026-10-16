@@ -2,7 +2,7 @@
 
 import cn from 'classnames';
 
-import { StandardFormFieldDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -27,7 +27,7 @@ function fieldTypeLabel(type?: string) {
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
 import { LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
-import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { actionInk, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
@@ -51,14 +51,58 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const leaflet = styleTokens(theme?.style).key === 'leaflet';
     const section = leaflet ? leafletSection(slideFields ?? [], form?.title ?? '') : null;
     const numbers = leaflet ? questionNumbers(slideFields ?? [], (slide?.index ?? 0) + 1) : {};
-    const numberInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
+    const numberInk = actionInk(theme);
+    // The page's opening text block is edited where respondents see it: its
+    // heading as the title on the navy section bar, the rest on the intro
+    // band (one editor, dressed per block), instead of a second copy below.
+    const opening = leaflet && slideFields?.[0]?.type === FieldTypes.TEXT ? slideFields[0]! : null;
+    const openingDoc = opening && typeof opening.title === 'object' ? (opening.title as any) : null;
+    const headingOnBar = !!openingDoc && openingDoc.content?.[0]?.type === 'heading';
+    const sectionNumber = (slide?.index ?? 0) + 1;
+    const selectOpening = (event: React.SyntheticEvent) => {
+        event.stopPropagation();
+        if (opening) setActiveFieldComponent({ id: opening.id, index: 0 });
+    };
 
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet}>
             {leaflet && section && (
                 <div>
                     <LeafletTopRule theme={theme} />
-                    <LeafletSectionBar theme={theme} numeral={(slide?.index ?? 0) + 1} title={section.title} layout={slide.properties?.layout} />
+                    {!headingOnBar && <LeafletSectionBar theme={theme} numeral={sectionNumber} title={section.title} layout={slide.properties?.layout} />}
+                    {opening && (
+                        <div
+                            // Full width like the respondent's bar and band; the
+                            // heading's navy reaches the page edges through a
+                            // filled border image (no box, no shadow), clipped here.
+                            className={cn('-mx-5 overflow-x-clip px-5 sm:-mx-8 sm:px-8', !headingOnBar && 'py-4')}
+                            style={{ background: leafletColours(theme).band, color: theme?.primary }}
+                            data-testid="leaflet-canvas-opening"
+                        >
+                            <div
+                                tabIndex={-1}
+                                onClick={selectOpening}
+                                onFocus={selectOpening}
+                                className={cn(
+                                    FORM_COLUMN,
+                                    columnPlacementClass(slide.properties?.layout),
+                                    'relative cursor-text',
+                                    activeFieldComponent?.id === opening.id && 'outline-2 outline-offset-2 outline-[#123FC9]',
+                                    headingOnBar &&
+                                        "[&_.ProseMirror>*:first-child]:relative [&_.ProseMirror>*:first-child]:py-3.5 [&_.ProseMirror>*:first-child]:pl-[34px] [&_.ProseMirror>*:first-child]:text-[22px]! [&_.ProseMirror>*:first-child]:leading-[1.25]! [&_.ProseMirror>*:first-child]:font-semibold! [&_.ProseMirror>*:first-child]:text-white [&_.ProseMirror>*:first-child]:font-(family-name:--leaflet-serif) [&_.ProseMirror>*:first-child]:[border-image:conic-gradient(var(--leaflet-bar)_0_0)_fill_0//0_100vmax] [&_.ProseMirror>*:first-child]:before:absolute [&_.ProseMirror>*:first-child]:before:left-0 [&_.ProseMirror>*:first-child]:before:top-3.5 [&_.ProseMirror>*:first-child]:before:text-[28px] [&_.ProseMirror>*:first-child]:before:leading-none [&_.ProseMirror>*:first-child]:before:tabular-nums [&_.ProseMirror>*:first-child]:before:content-(--leaflet-numeral) [&_.ProseMirror>*:nth-child(2)]:mt-4! [&_.ProseMirror>*:last-child:not(:first-child)]:mb-4 [&_.ProseMirror]:leading-[1.6]"
+                                )}
+                                style={
+                                    {
+                                        '--leaflet-bar': theme?.secondary,
+                                        '--leaflet-serif': leafletSerif.style.fontFamily,
+                                        '--leaflet-numeral': `"${sectionNumber}"`
+                                    } as React.CSSProperties
+                                }
+                            >
+                                <RichTextEditor field={opening} slide={slide} />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
             {/* WYSIWYG: the same form column, 48px question rhythm and
@@ -77,11 +121,11 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                     <AnimatePresence>
                         {Array.isArray(slideFields) && slideFields.length ? (
                             slideFields.map((field, index) => {
+                                if (opening && field.id === opening.id) return null;
                                 // Tips show for the question being edited only, so the canvas stays calm.
                                 const showHints = !disabled && !isScaledDown && activeFieldComponent?.id === field.id;
                                 const titleHintsId = `plain-language-title-${field.id}`;
                                 const number = numbers[field.id];
-                                const onBand = leaflet && section?.openingTextId === field.id;
                                 return (
                                     <motion.div
                                         key={field.id}
@@ -102,8 +146,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                         <div
                                             key={index}
                                             tabIndex={0}
-                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', 'w-full cursor-pointer p-1', onBand && 'px-3 py-3')}
-                                            style={onBand ? { background: leafletColours(theme).band } : undefined}
+                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', 'w-full cursor-pointer p-1')}
                                             onFocus={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();

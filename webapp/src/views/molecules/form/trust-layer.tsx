@@ -9,8 +9,10 @@ import useRespondentLanguage, { RESPONDENT_LANGUAGES } from '@app/lib/hooks/use-
 import { StandardFormDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
+import { useFormState } from '@app/store/jotai/form';
 import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, FORM_GUTTER, columnPlacementClass } from '@app/views/organism/layout/form-column';
 
 export interface TrustLayerProps {
@@ -56,6 +58,10 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     // page header down to this footer.
     const column = cn(FORM_COLUMN, columnPlacementClass(layout));
     const { t, language, setLanguage } = useRespondentLanguage();
+    // The Leaflet style sets the panel's terms like its margin notes
+    // ("How long they are kept:") and marks the chosen language in its navy.
+    const { theme } = useFormState();
+    const leaflet = styleTokens(theme?.style).key === 'leaflet';
     const [expanded, setExpanded] = useState(defaultExpanded);
     const touchedRef = useRef(false);
     const toggleRef = useRef<HTMLButtonElement>(null);
@@ -198,7 +204,8 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                                         lang={option.code}
                                         aria-pressed={language === option.code}
                                         onClick={() => setLanguage(option.code)}
-                                        className={`px-2 py-1 font-medium ${language === option.code ? 'bg-black-900 text-white' : 'bg-white text-black-700 hover:bg-black-100'}`}
+                                        className={`px-2 py-1 font-medium ${language === option.code ? (leaflet ? 'text-white' : 'bg-black-900 text-white') : 'bg-white text-black-700 hover:bg-black-100'}`}
+                                        style={leaflet && language === option.code ? { background: theme?.secondary } : undefined}
                                     >
                                         {option.label}
                                     </button>
@@ -208,7 +215,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                         <dl className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2" lang={language}>
                             {rows.map((row) => (
                                 <div key={row.key} data-testid={`privacy-${row.key}`}>
-                                    <dt className="text-[12px] font-semibold tracking-wide text-black-600 uppercase">{row.term}</dt>
+                                    <dt className={leaflet ? 'text-[14px] font-semibold text-black-900' : 'text-[12px] font-semibold tracking-wide text-black-600 uppercase'}>{leaflet ? `${row.term}:` : row.term}</dt>
                                     <dd className="text-black-800">{row.detail}</dd>
                                 </div>
                             ))}

@@ -31,8 +31,8 @@ describe('ThankyouPage', () => {
         // non-null assertion + [0] here crashed the post-submit screen.
         store.dispatch(setForm({ formId: 'form-no-typ', title: 'No thankyou', thankyouPage: null, fields: [] }));
         renderPage();
-        expect(screen.getByText('Thank You! 🎉')).toBeDefined();
-        expect(screen.getByText(/successfully submitted/)).toBeDefined();
+        expect(screen.getByRole('heading', { level: 1, name: 'Thank you' })).toBeDefined();
+        expect(screen.getByText('Your answers have been sent.')).toBeDefined();
     });
 
     it('renders the custom title, message and button when set', () => {

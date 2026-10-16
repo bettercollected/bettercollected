@@ -47,8 +47,8 @@
         "VERIFY_AND_START": "Verify and Start",
         "VERIFY_REQUIRED": "To fill this form you need to verify your identity.",
         "VERIFY_NOW": "Verify Now",
-        "VIEW_LATER": "To view your response later",
-        "VERIFY_EMAIL": "Verify Email",
+        "VIEW_LATER": "Want to see your answers later?",
+        "VERIFY_EMAIL": "Verify your email address.",
         "PRIVATE": "Private Form",
         "PRIVATE_TEXT": "This form is limited to certain people only. Please verify your identity to get access.",
         "NO_ACCESS": "You do not have access to this form. Switch to a different account with access to continue. If this is a mistake contact the owner of this form.",
@@ -63,9 +63,9 @@
         "SWITCH": "Switch account"
     },
     "ENDING": {
-        "TITLE": "Thank You! 🎉",
-        "SUBMITTED": "Your response is successfully submitted.",
-        "SUBMITTED_ANONYMOUS": "Your response is anonymously submitted.",
+        "TITLE": "Thank you",
+        "SUBMITTED": "Your answers have been sent.",
+        "SUBMITTED_ANONYMOUS": "Your answers have been sent anonymously.",
         "SUBMISSION_NUMBER": "Submission Number",
         "ALL_SUBMISSIONS": "See all your submissions",
         "SUBMISSION_NUMBER_HINT": "Use this submission number to view or request deletion of this response.",
