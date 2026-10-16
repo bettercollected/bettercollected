@@ -86,7 +86,7 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                 >
                     <div className="relative h-full w-full">
                         {currentSlide === -1 && (
-                            <LayoutWrapper removePaddingXForSmallScreen showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl}>
+                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl}>
                                 <WelcomePage isPreviewMode={isPreviewMode} />
                             </LayoutWrapper>
                         )}

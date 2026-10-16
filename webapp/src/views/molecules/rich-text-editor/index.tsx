@@ -16,7 +16,7 @@ import { FontSize } from '@app/utils/richTextEditorExtenstion/font-size';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { getGroupPipeOptions, isRepeatingGroup } from '@app/utils/repeating-groups';
 import { buildSourceFields } from '@app/views/molecules/form-builder/condition-editor-shared';
-import { HEADING_CLASSES, TEXT_BLOCK_HEADING_LEVELS } from '@app/utils/text-headings';
+import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES, TEXT_BLOCK_HEADING_LEVELS } from '@app/utils/text-headings';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -177,7 +177,8 @@ export function RichTextEditor({
                     attributes: {
                         // Match the responder's question scale (24px/600) so the
                         // canvas is honest about what responders will see.
-                        class: `outline-hidden text-2xl font-semibold leading-snug w-full max-w-full min-w-[300px] ${HEADING_CLASSES}`,
+                        // A text block is content, so it shows as body text, as respondents see it.
+                        class: `outline-hidden w-full max-w-full min-w-[300px] ${field.type === FieldTypes.TEXT ? TEXT_BLOCK_BODY_CLASSES : 'text-2xl font-semibold leading-snug'} ${HEADING_CLASSES}`,
                         style: 'word-break: break-word',
                         ...(describedById ? { 'aria-describedby': describedById } : {})
                     }

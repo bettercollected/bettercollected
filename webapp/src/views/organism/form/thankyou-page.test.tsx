@@ -5,6 +5,7 @@ import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FormSlideLayout } from '@app/models/enums/form';
 import { setForm } from '@app/store/forms/slice';
 import { store } from '@app/store/store';
 import ThankyouPage from './thankyou-page';
@@ -45,5 +46,19 @@ describe('ThankyouPage', () => {
         expect(screen.getByText('Cheers!')).toBeDefined();
         expect(screen.getByText('We got it.')).toBeDefined();
         expect(screen.getByText('Visit us')).toBeDefined();
+    });
+
+    it('honours the page layout: "Centered" centres the content, "Left aligned" does not', () => {
+        store.dispatch(setForm({ formId: 'form-typ-c', title: 'Centered', fields: [], thankyouPage: [{ title: 'Done', layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }] }));
+        const { unmount } = renderPage();
+        expect(screen.getByTestId('thankyou-column').className).toContain('text-center');
+        expect(screen.getByRole('heading', { level: 1, name: 'Done' })).toBeDefined();
+        unmount();
+
+        store.dispatch(setForm({ formId: 'form-typ-l', title: 'Left', fields: [], thankyouPage: [{ title: 'Done', layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN }] }));
+        renderPage();
+        const column = screen.getByTestId('thankyou-column').className;
+        expect(column).not.toContain('text-center');
+        expect(column).toContain('mr-auto');
     });
 });

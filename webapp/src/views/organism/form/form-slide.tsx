@@ -1,27 +1,33 @@
 'use client';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { FormSlideLayout } from '@app/models/enums/form';
+import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
+import { selectResponderForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
-import { getFlowSessionId } from '@app/utils/flow-session';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
-import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
+import { getFlowSessionId } from '@app/utils/flow-session';
+import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
+import { scrollToDivById } from '@app/utils/scroll-utils';
 import { validateSlide } from '@app/utils/vvalidation-utils';
-import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
+import BackButton from '@app/views/molecules/form-builder/back-button';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
@@ -32,22 +38,16 @@ import MultipleChoiceWithMultipleSelection from '@app/views/molecules/responder-
 import PhoneNumberField from '@app/views/molecules/responder-form-fields/phone-number-field';
 import QuestionWrapper from '@app/views/molecules/responder-form-fields/question-wrapper';
 import RatingField from '@app/views/molecules/responder-form-fields/rating-field';
+import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repeating-group-field';
+import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
+import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
 import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
 
-import { selectResponderForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { scrollToDivById } from '@app/utils/scroll-utils';
-import BackButton from '@app/views/molecules/form-builder/back-button';
-import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
 import ImageField from '../form-builder/fields/image-field';
 import MatrixField from '../form-builder/fields/matrix';
 import VideoField from '../form-builder/fields/video-field';
-import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
+import { FORM_COLUMN, FORM_GUTTER, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
-import { Shield } from 'lucide-react';
-import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repeating-group-field';
-import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 
 // A #rrggbb page colour at ~90% opacity; anything else (unset, named colours)
 // falls back to a translucent white.
@@ -168,6 +168,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // Fields hidden by conditional logic given the answers so far. Recomputed each
     // render, so the form reacts live as the responder answers earlier questions.
     const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
+    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id));
 
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
@@ -251,14 +252,17 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                 {/* The bar sits over the scrolling questions: give it the page's
                     ground (translucent + blur, so it also works over gradient or image
                     backgrounds) or questions scroll through the header text. */}
-                <div className="absolute left-0 right-0 top-0 z-10 mx-auto w-full pb-3 pt-5 backdrop-blur-sm" style={{ background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent) }}>
-                    <div className="px-5 md:px-8 xl:px-10 2xl:px-20">
-                        <div className={`flex w-full max-w-[800px] items-center justify-between gap-3 px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
+                <div className="backdrop-blur-sm absolute top-0 right-0 left-0 z-10 mx-auto w-full pt-5 pb-3" style={{ background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent) }}>
+                    {/* Same gutter and column as the questions below, so Back
+                        and the progress line up with the fields' edges. */}
+                    <div className={FORM_GUTTER}>
+                        <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'flex items-center justify-between gap-3')}>
                             <BackButton
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
-                                className=" w-fit bg-inherit!"
+                                // -ml-1.5 puts the chevron, not the button's padding, on the column edge.
+                                className="-ml-1.5 w-fit bg-inherit!"
                                 style={{
                                     background: standardForm?.theme?.accent,
                                     // The theme's ink, not a fixed grey: a fixed neutral fell
@@ -268,10 +272,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             />
                             {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
-                            <div className="text-black-700 flex items-center gap-3 text-[13px]">
+                            <div className="flex items-center gap-3 text-[13px] text-black-700">
                                 {(workspace?.title || workspace?.workspaceName) && (
-                                    <span className="border-black-400 text-black-800 hidden items-center gap-1.5 rounded-full border bg-white/85 px-2.5 py-0.5 font-medium sm:inline-flex">
-                                        <Shield className="text-brand-500 h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+                                    <span className="hidden items-center gap-1.5 rounded-full border border-black-400 bg-white/85 px-2.5 py-0.5 font-medium text-black-800 sm:inline-flex">
+                                        <Shield className="h-3.5 w-3.5 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                                         {workspace?.title || workspace?.workspaceName}
                                     </span>
                                 )}
@@ -282,65 +286,61 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         </div>
                     </div>
                 </div>
-                <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
-                    {/* 48px/64px between question groups (~6-8× the 8px gap inside a
-                        group) — 120px broke proximity grouping: pairs read as
-                        separate screens, and long pages scrolled far more than
-                        their content needed. */}
-                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 py-[60px] lg:grid lg:grid-cols-12 lg:content-center lg:gap-x-6 lg:gap-y-[56px]', isPreviewMode ? '' : 'lg:px-10')}>
-                        {formSlide?.properties?.fields
-                            ?.filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id))
-                            .map((field: StandardFormFieldDto) => (
-                                // 12-grid width on desktop: adjacent spans that fit pack
-                                // into one row (two 6s sit side by side); mobile stays a
-                                // flex column, where the span style is inert.
-                                <div key={field.id} className="min-w-0" style={{ gridColumn: `span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))} / span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))}` }}>
-                                    <FormFieldComponent field={field} slideIndex={formSlide!.index} />
-                                </div>
-                            ))}
-                        <div style={{ gridColumn: 'span 12 / span 12' }}>
-                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
-                                <div className="flex flex-col lg:mb-4 ">
-                                    {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                        // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
-                                        // 15px/1.5, high contrast, green-tinted container — and unchecked by
-                                        // default, so sharing identity is a choice the person makes.
-                                        <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-[8px] border border-[#BFE0D2] bg-[#F2FAF6] p-4">
-                                            <FieldInput
-                                                checked={!effectiveAnonymize}
-                                                onChange={(e: any) => {
-                                                    setFormResponse({
-                                                        ...formResponse,
-                                                        anonymize: !e.target.checked
-                                                    });
-                                                }}
-                                                type="checkbox"
-                                                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-hidden"
-                                            />
-                                            <span className="flex flex-col gap-0.5">
-                                                <span className="text-black-900 text-[15px] font-medium leading-relaxed">Share my email with the form collector</span>
-                                                <span className="text-black-700 text-[13px]">
-                                                    {authState?.email} — leave unchecked and your response stays anonymous.
-                                                </span>
-                                            </span>
-                                        </label>
-                                    )}
-                                </div>
-                            )}
-                            <Button
-                                flat
-                                style={{
-                                    background: standardForm.theme?.secondary,
-                                    color: 'white'
-                                }}
-                                isLoading={isLoading}
-                                className="mt-4 rounded-[8px] px-8 py-3 text-base font-semibold"
-                                onClick={onNext}
-                                size="medium"
-                            >
-                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit response' : 'Continue'}
-                            </Button>
+                {/* The page's questions in the form column (form-column.ts); the
+                    layout wrapper centres a short page vertically and lets a long
+                    one scroll from the top. pt-12 clears the header bar above.
+                    48px between questions (~6× the 8px inside a question). */}
+                <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col gap-12 pt-12 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-12')}>
+                    {visibleFields.map((field: StandardFormFieldDto, position: number) => (
+                        // 12-grid width on desktop: adjacent spans that fit pack
+                        // into one row (two 6s sit side by side); mobile stays a
+                        // flex column, where the span style is inert.
+                        <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, position === visibleFields.length - 1))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
+                            <FormFieldComponent field={field} slideIndex={formSlide!.index} />
                         </div>
+                    ))}
+                    {/* The button belongs to the last answer: 32px above it,
+                        a little closer than the 48px between questions. */}
+                    <div className="-mt-4 flex flex-col items-start gap-4" style={{ gridColumn: 'span 12 / span 12' }}>
+                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
+                            <>
+                                {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
+                                    // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
+                                    // 15px/1.5, high contrast, green-tinted container — and unchecked by
+                                    // default, so sharing identity is a choice the person makes.
+                                    <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-[8px] border border-[#BFE0D2] bg-[#F2FAF6] p-4">
+                                        <FieldInput
+                                            checked={!effectiveAnonymize}
+                                            onChange={(e: any) => {
+                                                setFormResponse({
+                                                    ...formResponse,
+                                                    anonymize: !e.target.checked
+                                                });
+                                            }}
+                                            type="checkbox"
+                                            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-hidden"
+                                        />
+                                        <span className="flex flex-col gap-0.5">
+                                            <span className="text-[15px] leading-relaxed font-medium text-black-900">Share my email with the form collector</span>
+                                            <span className="text-[13px] text-black-700">{authState?.email} — leave unchecked and your response stays anonymous.</span>
+                                        </span>
+                                    </label>
+                                )}
+                            </>
+                        )}
+                        <Button
+                            flat
+                            style={{
+                                background: standardForm.theme?.secondary,
+                                color: 'white'
+                            }}
+                            isLoading={isLoading}
+                            className="rounded-[8px] px-8 py-3 text-base font-semibold"
+                            onClick={onNext}
+                            size="medium"
+                        >
+                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit response' : 'Continue'}
+                        </Button>
                     </div>
                 </div>
             </SlideLayoutWrapper>

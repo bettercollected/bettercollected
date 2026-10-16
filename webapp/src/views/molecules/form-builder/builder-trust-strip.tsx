@@ -4,7 +4,8 @@ import { Shield } from 'lucide-react';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useActiveFieldComponent } from '@app/store/jotai/active-builder-component';
+import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
@@ -18,8 +19,11 @@ import TrustLayer from '@app/views/molecules/form/trust-layer';
 export function BuilderTrustStrip() {
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
+    // The strip shares the page's column, so it follows the page being edited.
+    const { activeSlideComponent } = useActiveSlideComponent();
+    const { layout } = useGetPageAttributes(activeSlideComponent?.index ?? -10);
     return (
-        <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} />
+        <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layout} />
     );
 }
 

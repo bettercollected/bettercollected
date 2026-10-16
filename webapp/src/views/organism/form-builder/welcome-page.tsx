@@ -1,12 +1,12 @@
 import cn from 'classnames';
 
-import { FormSlideLayout } from '@app/models/enums/form';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
 import { useEffect, useState } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
+import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
 import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
@@ -22,12 +22,16 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
 
     return (
         <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
-            <div className={cn('flex h-full flex-col justify-center bg-transparent', formState.welcomePage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? ' items-start' : ' items-center')}>
-                <div className={cn('flex w-full max-w-[800px] flex-col items-start')}>
+            {/* WYSIWYG with the respondent's welcome page: same column,
+                alignment (the page's Layout setting) and rhythm. */}
+            <div className="w-full">
+                <div className={cn(FORM_COLUMN, columnPlacementClass(formState.welcomePage?.layout), 'flex flex-col pt-6', greetingAlignClass(formState.welcomePage?.layout))}>
                     <AutosizeTextarea
                         style={{ resize: 'none' }}
                         placeholder="Form Title"
-                        className=" w-full border-0 px-0 py-0 text-[40px] font-bold leading-[60px]"
+                        aria-label="Form title"
+                        // Textareas don't inherit text-align; [text-align:inherit] follows the column.
+                        className="w-full border-0 bg-transparent px-0 py-0 text-[40px] font-bold leading-[48px] [text-align:inherit]"
                         value={formState.title}
                         onChange={(event) => {
                             setFormTitle(event.target.value);
@@ -39,14 +43,15 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                                 placeholder="Add description"
                                 style={{ resize: 'none' }}
                                 value={description}
-                                className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-hidden"
+                                aria-label="Description"
+                                className="ring-none text-black-700 mt-4 w-full border-0 bg-transparent px-0 text-base leading-relaxed outline-hidden [text-align:inherit]"
                                 onChange={(e: any) => setDescription(e.target.value)}
                             />
                         </>
                     ) : (
                         <></>
                     )}
-                    <Button size={'medium'} className="z-10 mt-12 rounded px-8 py-3" style={{ background: theme?.secondary }}>
+                    <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={{ background: theme?.secondary }}>
                         {formState.welcomePage?.buttonText || 'Start'}
                     </Button>
                 </div>

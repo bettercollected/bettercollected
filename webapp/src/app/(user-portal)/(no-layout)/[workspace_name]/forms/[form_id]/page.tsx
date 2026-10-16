@@ -15,6 +15,7 @@ import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-p
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
+import { layoutOfPage } from '@app/views/organism/layout/form-column';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useRef, useState } from 'react';
 
@@ -45,7 +46,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const router = useRouter();
     const trackedViewRef = useRef(false);
     const { currentSlide } = useResponderState();
-    const roomy = useMinViewportHeight(640);
+    const roomy = useMinViewportSize(640);
 
     useEffect(() => {
         if (trackedViewRef.current) return;
@@ -152,17 +153,27 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     }
 
     return (
-        <div className="relative h-screen w-screen">
-            {data?.builderVersion === 'v2' && <Form />}
+        // The form above, the trust strip (and its panel) below, in flow: the
+        // page is centred in the space the strip leaves, and an open panel
+        // never covers the form's button. dvh keeps the strip on screen under
+        // a phone's browser bars.
+        <div className="relative flex h-dvh w-screen flex-col">
             {data?.builderVersion === 'v2' && (
-                <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
+                <div className="relative min-h-0 flex-1">
+                    <Form />
+                </div>
+            )}
+            {data?.builderVersion === 'v2' && (
+                <div className="relative z-40 shrink-0">
                     <TrustLayer
                         ownerName={workspace?.title || workspace?.workspaceName}
                         ownerImage={workspace?.profileImage}
                         settings={data?.settings}
                         portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
-                        // Open on the welcome page, where there is room before
-                        // the first question; a strip with the toggle elsewhere.
+                        layout={layoutOfPage(data, currentSlide)}
+                        // Open on the welcome page when the screen has room for
+                        // both; a strip with the toggle elsewhere, and on phones,
+                        // where the open panel would take half the screen.
                         defaultExpanded={currentSlide === -1 && roomy}
                     />
                 </div>
@@ -171,11 +182,11 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     );
 };
 
-/** Whether the viewport is at least `px` tall (false on the server). */
-function useMinViewportHeight(px: number) {
+/** Whether the viewport is at least `px` tall and wide (false on the server). */
+function useMinViewportSize(px: number) {
     const [matches, setMatches] = useState(false);
     useEffect(() => {
-        const query = window.matchMedia(`(min-height: ${px}px)`);
+        const query = window.matchMedia(`(min-height: ${px}px) and (min-width: ${px}px)`);
         const update = () => setMatches(query.matches);
         update();
         query.addEventListener?.('change', update);

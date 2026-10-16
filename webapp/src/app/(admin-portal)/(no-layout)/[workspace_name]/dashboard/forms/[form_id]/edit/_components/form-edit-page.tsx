@@ -174,16 +174,19 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                 outline: '1px solid #D0D5DD'
                             }}
                         >
-                            <div className="relative mx-auto h-full w-full rounded-lg">
-                                {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
-                                {!activeSlideComponent?.id && <div>Add a slide to start</div>}
-                                {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
+                            <div className="relative mx-auto flex h-full w-full flex-col rounded-lg">
+                                <div className="relative min-h-0 flex-1">
+                                    {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
+                                    {!activeSlideComponent?.id && <div>Add a slide to start</div>}
+                                    {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
-                                {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
+                                    {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
+                                </div>
                                 {/* The trust strip, exactly where responders see it —
-                                    on every page. An empty strip in plain sight is the
-                                    incentive to author the trust content. */}
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+                                    on every page, below the form as on the live page.
+                                    An empty strip in plain sight is the incentive to
+                                    author the trust content. */}
+                                <div className="pointer-events-none relative z-10 shrink-0">
                                     <BuilderTrustStrip />
                                 </div>
                             </div>
