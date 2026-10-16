@@ -86,14 +86,14 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         id={buttonId}
                         type="button"
                         className={cn(
-                            'flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-4 py-3 text-base outline-hidden transition duration-150 hover:border-(--hover-border)! hover:shadow-[0_1px_3px_rgba(16,24,38,0.10)] focus-visible:ring-2 lg:text-lg',
+                            'flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-4 py-3 text-base outline-hidden transition duration-150 hover:border-(--hover-border)! focus-visible:ring-2 lg:text-lg',
                             isBuilder && 'pointer-events-none'
                         )}
                         style={{
-                            ['--hover-border' as string]: tertiaryColor ?? '#8A94A6',
-                            borderColor: '#E3E3E3',
+                            ['--hover-border' as string]: theme?.primary ?? '#101828',
+                            borderColor: tertiaryColor ?? '#818CA0',
                             // Chosen date is content (ink); empty state a legible neutral.
-                            color: date ? theme?.primary : '#657085'
+                            color: date ? theme?.primary : '#667085'
                         }}
                     >
                         <CalendarIcon
@@ -104,7 +104,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                             // The chosen date is the answer — ink, not the action colour.
                             <span style={{ color: theme?.primary }}>{format(date, 'PPP')}</span>
                         ) : (
-                            <span style={{ color: '#657085' }}>Pick a date</span>
+                            <span style={{ color: '#667085' }}>Pick a date</span>
                         )}
                     </button>
                 </PopoverTrigger>

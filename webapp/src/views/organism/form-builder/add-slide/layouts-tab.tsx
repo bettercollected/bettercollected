@@ -23,7 +23,7 @@ const Layout = (props: { Icon: any; name: string; image: string; style?: FormSli
         <button data-umami-event={`${props.name} Button`} data-umami-event-email={authState.email}>
             <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
                 <div
-                    className="border-black-300 relative mb-1 overflow-hidden rounded-xl border "
+                    className="border-black-300 relative mb-1 overflow-hidden rounded border "
                     style={{
                         width: '168px',
                         height: '94px'
@@ -92,7 +92,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                 <div className="mb-2 text-sm font-medium">Blank</div>
                 <button data-umami-event={'Add Blank Page Button'} data-umami-event-email={authState.email}>
                     <div
-                        className="hover:bg-black-200 border-black-200 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
+                        className="hover:bg-black-200 border-black-300 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
                         onClick={() => {
                             addSlideOfStyle(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN, true);
                         }}
@@ -175,8 +175,8 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
 const BlankLayout = () => {
     return (
         <svg width="28" height="27" viewBox="0 0 28 27" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="13" width="2" height="27" rx="1" fill="#FE3678" />
-            <rect x="0.5" y="14.5" width="2" height="27" rx="1" transform="rotate(-90 0.5 14.5)" fill="#FE3678" />
+            <rect x="13" width="2" height="27" rx="1" fill="#123FC9" />
+            <rect x="0.5" y="14.5" width="2" height="27" rx="1" transform="rotate(-90 0.5 14.5)" fill="#123FC9" />
         </svg>
     );
 };

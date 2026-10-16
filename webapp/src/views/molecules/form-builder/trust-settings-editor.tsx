@@ -16,7 +16,7 @@ import { MAX_RETENTION_DAYS, describeRetention, retentionDate, retentionDays, re
 type RetentionKind = 'forever' | 'days' | 'date';
 
 /**
- * Trust & privacy, authored where the form is built (Design-Language §4):
+ * Trust & privacy, authored where the form is built (DESIGN.md §4):
  * why the data is collected, how long it's kept, and where the policy lives.
  * Feeds the responder-facing trust strip on every step — the live preview
  * below shows exactly what responders will read.
@@ -73,12 +73,12 @@ export default function TrustSettingsEditor() {
     // The enforced period, with the creator's explanation next to it.
     const previewRetention = [describeRetention({ ...(form?.settings as any), responseExpirationType: keepKind, responseExpiration: keepValue }, tRespondent, language), retentionExplanation({ retentionText: retention })].filter(Boolean).join(' ');
 
-    const inputClass = 'border-black-300 focus:border-black-400 w-full rounded-lg border p-2 text-xs';
+    const inputClass = 'border-control focus:border-black-400 w-full rounded-lg border p-2 text-xs';
 
     return (
         <div className="flex flex-col gap-3 px-4 py-6">
             <div className="text-xs font-semibold uppercase tracking-wide text-black-600">Trust &amp; privacy</div>
-            <div className="text-xs text-black-500">Shown to responders on every step. Plain words build trust — say why you&apos;re asking and how long you keep answers.</div>
+            <div className="text-xs text-black-600">Shown to responders on every step. Plain words build trust — say why you&apos;re asking and how long you keep answers.</div>
 
             <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-black-700">Purpose</span>
@@ -87,7 +87,7 @@ export default function TrustSettingsEditor() {
             <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-black-700">Why answers are kept this long (optional)</span>
                 <input type="text" placeholder="e.g. Until the project ends" value={retention} onChange={(e) => setRetention(e.target.value)} onBlur={() => save({ retentionText: retention.trim() })} className={inputClass} />
-                <span className="text-[11px] text-black-500">Explanation shown next to the period below. Respondents always see the period itself.</span>
+                <span className="text-[11px] text-black-600">Explanation shown next to the period below. Respondents always see the period itself.</span>
             </label>
             <div className="flex flex-col gap-1">
                 <label htmlFor="keep-answers" className="text-xs font-medium text-black-700">
@@ -126,7 +126,7 @@ export default function TrustSettingsEditor() {
                         {keepError}
                     </span>
                 ) : (
-                    <span className="text-[11px] text-black-500">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
+                    <span className="text-[11px] text-black-600">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
                 )}
             </div>
             <label className="flex flex-col gap-1">
@@ -156,8 +156,8 @@ export default function TrustSettingsEditor() {
 
             {/* Live preview of the responder-facing trust strip. */}
             <div className="mt-1 flex flex-col gap-1">
-                <span className="text-[10px] font-medium uppercase tracking-wide text-black-500">Responders will see</span>
-                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-lg border border-black-200 bg-white px-2.5 py-2 text-[11px] text-black-700">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-black-600">Responders will see</span>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded border border-black-300 bg-white px-2.5 py-2 text-[11px] text-black-700">
                     <Shield className="h-3 w-3 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                     <span>
                         Collected by <span className="font-semibold text-black-900">{workspace?.title || workspace?.workspaceName}</span>

@@ -18,7 +18,7 @@ export default function WorkspaceSsoPage() {
     if (!ssoEnabled) {
         return (
             <div className="px-5 py-6 lg:px-10">
-                <p className="text-sm text-black-500">Single sign-on is not enabled on this instance.</p>
+                <p className="text-sm text-black-600">Single sign-on is not enabled on this instance.</p>
             </div>
         );
     }
@@ -26,7 +26,7 @@ export default function WorkspaceSsoPage() {
     if (!can(WorkspacePermission.SECURITY_MANAGE)) {
         return (
             <div className="px-5 py-6 lg:px-10">
-                <p className="text-sm text-black-500">Only workspace admins can manage single sign-on.</p>
+                <p className="text-sm text-black-600">Only workspace admins can manage single sign-on.</p>
             </div>
         );
     }

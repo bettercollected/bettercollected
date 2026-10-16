@@ -48,7 +48,7 @@ const renderWrapper = (f: StandardFormFieldDto, opts: { invalid?: Record<string,
     );
 };
 
-describe('QuestionWrapper — no-dark-patterns contracts (Design-Language §5)', () => {
+describe('QuestionWrapper — no-dark-patterns contracts (DESIGN.md §5)', () => {
     it('marks optional answerable fields explicitly — optionality is never hidden', () => {
         renderWrapper(field());
         expect(screen.getByText('Optional')).toBeInTheDocument();

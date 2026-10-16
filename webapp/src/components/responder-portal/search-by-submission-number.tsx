@@ -40,13 +40,13 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
     return (
         <form onSubmit={handleSubmit} className={className}>
             {/* Fluid width — the parent column (sidebar) decides how wide. */}
-            <div className="flex w-full flex-col items-center justify-center rounded-xl bg-white px-6 py-8">
+            <div className="flex w-full flex-col items-center justify-center rounded bg-white px-6 py-8">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100" aria-hidden="true">
                     <SearchIcon className="text-brand-500" width={22} height={22} strokeWidth={2} />
                 </div>
 
                 <div className="mt-4">
-                    <div className="h4-new text-new-black-800 text-center font-medium">Find a response by its number</div>
+                    <div className="h4-new text-black-800 text-center font-medium">Find a response by its number</div>
                     <div className="p2-new text-black-700 mt-2 text-center!">Every submission gets a receipt number — enter it to view (or request deletion of) that response.</div>
                 </div>
                 <div className="mt-4 flex w-full gap-4">
@@ -62,7 +62,7 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
                         className="w-full flex-1"
                     />
 
-                    <button type="submit" aria-label="Search" className="flex items-center justify-center rounded bg-brand-500 p-3 hover:bg-[#1E49AD]">
+                    <button type="submit" aria-label="Search" className="flex items-center justify-center rounded bg-action p-3 hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)]">
                         <SearchIcon className="text-white" width={16} height={16} strokeWidth={2} />
                     </button>
                 </div>

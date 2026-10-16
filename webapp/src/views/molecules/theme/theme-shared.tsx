@@ -117,12 +117,12 @@ export const ContrastNotes = ({ theme }: { theme: FormTheme }) => {
     if (isImage) notes.push('Contrast can’t be checked over an image — preview the form to confirm the text stays readable.');
 
     if (notes.length === 0) {
-        return <p className="mt-1 text-[11px] font-medium text-[#0E8A5F]">Looks legible — contrast passes everywhere it matters.</p>;
+        return <p className="mt-1 text-[11px] font-medium text-success-700">Looks legible — contrast passes everywhere it matters.</p>;
     }
     return (
-        <div className="mt-1 flex flex-col gap-1 rounded-md bg-[#FBF3E4] px-2.5 py-2">
+        <div className="mt-1 flex flex-col gap-1 rounded-md bg-brand-accent-100 px-2.5 py-2">
             {notes.map((note) => (
-                <p key={note} className="text-[11px] leading-relaxed text-[#B26B00]">
+                <p key={note} className="text-[11px] leading-relaxed text-brand-olive">
                     {note}
                 </p>
             ))}
@@ -191,7 +191,7 @@ export const ThemeStyleEditor = ({ value, onChange }: { value?: ThemeStyle; onCh
                     </button>
                 ))}
             </div>
-            <p className="text-black-500 text-[11px] leading-relaxed">{STYLE_OPTIONS.find((o) => o.key === current)?.hint}</p>
+            <p className="text-black-600 text-[11px] leading-relaxed">{STYLE_OPTIONS.find((o) => o.key === current)?.hint}</p>
         </div>
     );
 };
@@ -245,7 +245,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                 ))}
             </div>
 
-            {type === 'color' && <p className="text-black-500 text-[11px] leading-relaxed">Uses the background colour above.</p>}
+            {type === 'color' && <p className="text-black-600 text-[11px] leading-relaxed">Uses the background colour above.</p>}
 
             {type === 'gradient' && bg?.type === 'gradient' && (
                 <div className="flex flex-col gap-2">
@@ -258,7 +258,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                         <div key={stop.key} className="flex items-center justify-between gap-3">
                             <span className="text-black-700 text-xs">{stop.label}</span>
                             <span className="flex items-center gap-2">
-                                <span className="text-black-500 text-[11px] uppercase tabular-nums">{bg[stop.key]}</span>
+                                <span className="text-black-600 text-[11px] uppercase tabular-nums">{bg[stop.key]}</span>
                                 <input type="color" aria-label={`Gradient ${stop.label.toLowerCase()} colour`} value={bg[stop.key]} onChange={(e) => onChange({ ...bg, [stop.key]: e.target.value })} className="border-black-300 h-7 w-9 cursor-pointer rounded border bg-white p-0.5" />
                             </span>
                         </div>
@@ -266,8 +266,8 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                     <div className="flex items-center justify-between gap-3">
                         <span className="text-black-700 text-xs">Angle</span>
                         <span className="flex items-center gap-2">
-                            <input type="range" min={0} max={360} step={45} aria-label="Gradient angle" value={bg.gradientAngle ?? 135} onChange={(e) => onChange({ ...bg, gradientAngle: Number(e.target.value) })} className="w-24 accent-[#2456CC]" />
-                            <span className="text-black-500 w-8 text-right text-[11px] tabular-nums">{bg.gradientAngle ?? 135}°</span>
+                            <input type="range" min={0} max={360} step={45} aria-label="Gradient angle" value={bg.gradientAngle ?? 135} onChange={(e) => onChange({ ...bg, gradientAngle: Number(e.target.value) })} className="w-24 accent-[#123FC9]" />
+                            <span className="text-black-600 w-8 text-right text-[11px] tabular-nums">{bg.gradientAngle ?? 135}°</span>
                         </span>
                     </div>
                 </div>
@@ -281,7 +281,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                             type="button"
                             aria-pressed={bg.pattern === pattern.key}
                             onClick={() => onChange({ ...bg, pattern: pattern.key })}
-                            className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-brand-500 shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 hover:border-black-400')}
+                            className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-300 hover:border-black-400')}
                         >
                             <span className="block h-8 w-full" style={themeBackgroundStyle({ ...theme, background: { type: 'pattern', pattern: pattern.key } })} aria-hidden="true" />
                             <span className="text-black-700 block bg-white py-1 text-[10px] font-medium">{pattern.label}</span>
@@ -298,9 +298,9 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                         placeholder="https://…"
                         value={bg.imageUrl ?? ''}
                         onChange={(e) => onChange({ ...bg, imageUrl: e.target.value.trim() })}
-                        className="border-black-300 text-black-800 placeholder:text-black-400 focus:border-brand-500 w-full rounded-md border bg-white px-2.5 py-1.5 text-xs outline-hidden"
+                        className="border-black-300 text-black-800 placeholder:text-black-600 focus:border-brand-500 w-full rounded-md border bg-white px-2.5 py-1.5 text-xs outline-hidden"
                     />
-                    <p className="text-black-500 text-[11px] leading-relaxed">Paste an image address. The background colour shows while it loads.</p>
+                    <p className="text-black-600 text-[11px] leading-relaxed">Paste an image address. The background colour shows while it loads.</p>
                 </div>
             )}
         </div>

@@ -72,13 +72,13 @@ export default function PageDesignTab() {
             <ScrollArea className="max-h-design-content flex-1 overflow-y-auto border-t">
                 <div className="flex flex-col gap-3 p-3">
                     <Select value={selectValue} onValueChange={handleSelect}>
-                        <SelectTrigger aria-label="Pick a theme by name" className="border-black-300 h-9 w-full bg-white text-xs">
+                        <SelectTrigger aria-label="Pick a theme by name" className="border-control h-9 w-full bg-white text-xs">
                             <SelectValue placeholder="Pick a theme…" />
                         </SelectTrigger>
                         <SelectContent className="bg-white">
                             {savedThemes.length > 0 && (
                                 <SelectGroup>
-                                    <SelectLabel className="text-black-500 text-[11px] font-semibold uppercase tracking-wide">Your themes</SelectLabel>
+                                    <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">Your themes</SelectLabel>
                                     {savedThemes.map((saved) => (
                                         <SelectItem key={`saved:${saved.title}`} value={`saved:${saved.title}`} className="text-xs">
                                             <span className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function PageDesignTab() {
                                 </SelectGroup>
                             )}
                             <SelectGroup>
-                                <SelectLabel className="text-black-500 text-[11px] font-semibold uppercase tracking-wide">Presets</SelectLabel>
+                                <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">Presets</SelectLabel>
                                 {ThemeColors.map((preset) => (
                                     <SelectItem key={`preset:${preset.title}`} value={`preset:${preset.title}`} className="text-xs">
                                         <span className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function PageDesignTab() {
                                 ))}
                             </SelectGroup>
                             <SelectGroup>
-                                <SelectLabel className="text-black-500 text-[11px] font-semibold uppercase tracking-wide">One-off</SelectLabel>
+                                <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">One-off</SelectLabel>
                                 <SelectItem value="custom" className="text-xs">
                                     <span className="flex items-center gap-2">
                                         <Swatch color={custom.secondary} />
@@ -119,7 +119,7 @@ export default function PageDesignTab() {
                         catalogue; this shows what the form actually wears. */}
                     <div className="border-black-300 overflow-hidden rounded-lg border">
                         <ThemePreview color={isCustom ? custom : activeTheme} />
-                        <div className="border-t-black-200 flex items-center justify-between border-t bg-white px-3 py-2">
+                        <div className="border-t-black-300 flex items-center justify-between border-t bg-white px-3 py-2">
                             <span className="text-black-800 truncate text-xs font-medium">{isCustom ? 'Custom' : activeTheme.title}</span>
                             <span className="flex shrink-0 gap-1">
                                 <Swatch color={(isCustom ? custom : activeTheme).primary} />
@@ -135,7 +135,7 @@ export default function PageDesignTab() {
                                 <div key={field.key} className="flex items-center justify-between gap-3">
                                     <span className="text-black-700 text-xs">{field.label}</span>
                                     <span className="flex items-center gap-2">
-                                        <span className="text-black-500 text-[11px] uppercase tabular-nums">{custom[field.key]}</span>
+                                        <span className="text-black-600 text-[11px] uppercase tabular-nums">{custom[field.key]}</span>
                                         <input
                                             type="color"
                                             aria-label={field.label}
@@ -152,7 +152,7 @@ export default function PageDesignTab() {
                     )}
 
                     {/* Where themes are made: the workspace Themes page. */}
-                    <p className="text-black-600 border-t-black-200 border-t pt-3 text-[11px] leading-relaxed">
+                    <p className="text-black-600 border-t-black-300 border-t pt-3 text-[11px] leading-relaxed">
                         Save your own palette to reuse across forms on the{' '}
                         <Link href={`/${workspace?.workspaceName}/dashboard/themes`} className="text-brand-500 hover:text-brand-600 font-medium underline underline-offset-2">
                             Themes page

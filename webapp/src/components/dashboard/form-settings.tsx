@@ -313,7 +313,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 );
             case 'DEFAULT':
                 return (
-                    <div className="divide-black-200 flex flex-col divide-y">
+                    <div className="divide-black-300 flex flex-col divide-y">
                         {form?.importedFormId && (
                             <SettingRow title="Show original form" description="Show the original Google Form in embed mode instead of the bettercollected renderer.">
                                 <Switch

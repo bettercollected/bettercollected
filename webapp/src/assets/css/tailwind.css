@@ -45,51 +45,52 @@
     --default-transition-duration: 150ms;
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-ring-width: 3px;
-    --default-ring-color: rgb(59 130 246 / 0.5);
+    --default-ring-color: rgb(18 63 201 / 0.5);
 
-    /* Product colours */
-    --color-brand-100: #E9EFFC;
-    --color-brand-200: #C7D7F5;
+    /*
+     * Product colours — the Sireto palette (see DESIGN.md at the repository root).
+     * One blue ramp (`brand-*`) and one neutral ramp (`black-*`); nothing else
+     * carries product meaning.
+     */
+    --color-brand-100: #E0E8FF; /* blue tint: selected rows, chips */
+    --color-brand-200: #BFD0FF; /* blue soft: active-nav fill, soft borders */
     --color-brand-300: #A8C0EA;
     --color-brand-400: #6E8FD8;
-    --color-brand-500: #2456CC;
-    --color-brand-600: #1E49AD;
-    --color-brand-700: #19398A;
+    --color-brand-500: #123FC9; /* Sireto blue: links, focus, active nav, icons */
+    --color-brand-600: #1035A8; /* text links, hover */
+    --color-brand-700: #0E2D8F; /* pressed */
     --color-brand-800: #132C6B;
     --color-brand-900: #0E204E;
-    --color-brand-accent-500: #F8B940;
-    --color-brand-accent-600: #E79B0B;
-    --color-brand-accent: #F8B940;
-    --color-brand: #2456CC;
-    --color-black-100: #F6F8FC;
-    --color-black-200: #E9EEF5;
-    --color-black-300: #E2E8F2;
-    --color-black-400: #CBD5E6;
+    --color-brand: #123FC9;
+    /* Primary button face: a step brighter than Sireto blue so a filled button
+       reads as the one action on the page. Hover and pressed walk down the ramp. */
+    --color-action: #1649E2;
+    --color-action-hover: #123FC9;
+    --color-action-pressed: #0E2D8F;
+    /* Yellow accent: a fill only. Yellow text on a light ground fails contrast,
+       so text in that role is olive. */
+    --color-brand-accent: #E5AE00;
+    --color-brand-accent-100: #FFF7DB; /* yellow tint: status pills behind olive text */
+    --color-brand-olive: #8A6800;
+    --color-success: #039855; /* icons, fills, dots */
+    --color-success-700: #027A48; /* success text: #039855 is 3.7:1 on white */
+    --color-black-100: #F5F7FB; /* paper mist: app background */
+    --color-black-200: #F2F4F7; /* paper band: hover fills, table heads */
+    --color-black-300: #EAECF0; /* hairline */
+    --color-black-400: #D0D5DD; /* strong hairline: dividers, card edges on paper */
     --color-black-500: #8A94A6;
-    --color-black-600: #657085;
-    --color-black-700: #3A465A;
+    --color-black-600: #667085; /* labels and captions */
+    --color-black-700: #344054; /* emphasised body */
     --color-black-800: #27303F;
-    --color-black-900: #101826;
-    --color-black: #101826;
+    --color-black-900: #101828; /* ink */
+    --color-black: #101828;
+    --color-body: #5A6478; /* running text */
+    /* Control edge: the border of anything you type into or toggle (inputs,
+       selects, checkboxes, radios, switches). 3.2:1 on paper mist, 3.4:1 on
+       white, so the control's boundary passes WCAG 1.4.11 where a hairline
+       would not. */
+    --color-control: #818CA0;
     --color-white: #fff;
-    --color-new-black-100: #F6F8FC;
-    --color-new-black-200: #E9EEF5;
-    --color-new-black-300: #E2E8F2;
-    --color-new-black-400: #CBD5E6;
-    --color-new-black-500: #8A94A6;
-    --color-new-black-600: #657085;
-    --color-new-black-700: #3A465A;
-    --color-new-black-800: #27303F;
-    --color-new-black-900: #101826;
-    --color-new-black: #101826;
-    --color-new-blue-100: #F2F7FF;
-    --color-new-blue-200: #B8D5FF;
-    --color-new-blue-300: #A2C5F8;
-    --color-new-blue-500: #0764EB;
-    --color-new-pink: #FE3678;
-    --color-new-orange: #FFA716;
-    --color-new-white-100: #FFFFFF;
-    --color-new-white-200: #F7F8FA;
     --color-dark: #1c1917;
     --color-light-dark: #171e2e;
 
@@ -339,12 +340,12 @@
 
 
     /* Typography */
-    --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    /* Instrument Sans and JetBrains Mono are self-hosted by next/font (src/app/layout.tsx). */
+    --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --font-comfortaa: Comfortaa, sans-serif;
-    --font-inter: var(--font-public-sans), Open Sans, sans-serif;
-    --font-roboto: var(--font-public-sans), Open Sans, sans-serif;
+    /* Respondent forms keep Public Sans (DESIGN.md §2): `font-form`. */
+    --font-form: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --text-xs: 0.75rem;
     --text-xs--line-height: 1rem;
     --text-sm: 0.875rem;
@@ -386,6 +387,10 @@
     --tracking-wide: 0.025em;
     --tracking-wider: 0.05em;
     --tracking-widest: 0.1em;
+    /* Page titles (DESIGN.md, Type): tighter as they get larger. */
+    --tracking-title-sm: -0.018em;
+    --tracking-title: -0.022em;
+    --tracking-title-lg: -0.028em;
     --leading-3: .75rem;
     --leading-4: 1rem;
     --leading-5: 1.25rem;
@@ -483,51 +488,26 @@
     --max-width-screen-2xl: 1536px;
     --max-width-289-calc-289: calc(100vw - 592px);
 
-    /* Radii, borders, shadows, blur */
+    /*
+     * Radii. 6px is the one UI radius: cards, buttons, inputs, menus, dialogs
+     * (`rounded`, `rounded-md` and `rounded-lg` are all 6px). Images take
+     * `rounded-image` (8px). Respondent-form renderers pin their own pixel radii,
+     * since form looks are the creator's choice.
+     */
     --radius-sm: 0.125rem;
-    --radius: 0.25rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.5rem;
+    --radius: 6px;
+    --radius-md: 6px;
+    --radius-lg: 6px;
+    --radius-image: 8px;
     --radius-xl: 0.75rem;
     --radius-2xl: 1rem;
     --radius-3xl: 1.5rem;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    --shadow-v2: 0px -4px 4px 0px #0000001A;
-    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
-    --shadow-tooltip: 0px 0px 6px 0px #00000026;
-    --shadow-blue-hue: 0px 0px 16px 0px #0764EB29;
-    --shadow-bubble: -4px 0px 12px 0px #0000001A;
-    --shadow-slide: 0px 0px 6px 0px #00000026;
-    --shadow-floating-button: 0px 4px 24px 0px rgba(0, 0, 0, 0.15);
-    --shadow-workspace-card: 0px 0px 30px 0px #03035014;
-    --shadow-settings: 0px 4px 8px 0px #00000017;
-    --shadow-main: 0px 6px 18px rgba(0, 0, 0, 0.04);
-    --shadow-overview: 0px 0px 30px 0px rgba(3, 3, 80, 0.08);
-    --shadow-light: 0px 4px 4px rgba(0, 0, 0, 0.08);
-    --shadow-large: 0px 8px 16px rgba(17, 24, 39, 0.1);
-    --shadow-card: 0px 2px 6px rgba(0, 0, 0, 0.06);
-    --shadow-transaction: 0px 8px 16px rgba(17, 24, 39, 0.06);
-    --shadow-formCardDefault: 0px 0px 16px rgba(186, 186, 186, 0.16);
-    --shadow-formCard: 0px 0px 40px 0px rgba(19, 73, 179, 0.25);
-    --shadow-button: 0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1);
-    --shadow-logoCard: 0px 0px 40px 0px rgba(19, 73, 179, 0.25);
-    --shadow-hover: 0px 0px 8px 0px rgba(0, 0, 0, 0.25);
-    --shadow-input: 0px 0px 12px 0px rgba(7, 100, 235, 0.45);
-    --shadow-powered-by: 0px 0px 16px 0px #0764EB29;
-    --shadow-suggestion-price: 0px 0px 12px 0px #0764EB73;
-    --blur-sm: 4px;
-    --blur: 8px;
-    --blur-md: 12px;
-    --blur-lg: 16px;
-    --blur-xl: 24px;
-    --blur-2xl: 40px;
-    --blur-3xl: 64px;
-    --blur-dashboardBackground: 105px;
+    /*
+     * Depth. Surfaces are separated by 1px hairlines (`border-black-300`), not
+     * shadows. The one shadow is for layers that genuinely float above the page:
+     * popovers, menus, tooltips, toasts, sheets and dialogs.
+     */
+    --shadow-large: 0px 8px 24px rgba(16, 24, 40, 0.12);
 
     /* Misc */
     --aspect-video: 16 / 9;
@@ -541,7 +521,6 @@
     --aspect-new-workspace-banner: 10.5882352941/1;
     --background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
     --background-image-sign-in: url('/images/background.png');
-    --background-image-floating-button: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%);
     --scale-form-preview-slide: calc(50vw / 2880px);
     --z-index-modal: 2500;
     --z-index-popover: 3000;
@@ -694,22 +673,6 @@
     }
 }
 
-/*
- * Drop shadows are inlined: several are two shadows, which `drop-shadow()` only
- * takes as separate filter functions, and Tailwind can split them only when it
- * sees the value itself rather than a variable.
- */
-@theme inline {
-    --drop-shadow-sm: 0 1px 1px rgb(0 0 0 / 0.05);
-    --drop-shadow: 0 1px 2px rgb(0 0 0 / 0.1), 0 1px 1px rgb(0 0 0 / 0.06);
-    --drop-shadow-md: 0 4px 3px rgb(0 0 0 / 0.07), 0 2px 2px rgb(0 0 0 / 0.06);
-    --drop-shadow-lg: 0 10px 8px rgb(0 0 0 / 0.04), 0 4px 3px rgb(0 0 0 / 0.1);
-    --drop-shadow-xl: 0 20px 13px rgb(0 0 0 / 0.03), 0 8px 5px rgb(0 0 0 / 0.08);
-    --drop-shadow-2xl: 0 25px 25px rgb(0 0 0 / 0.15);
-    --drop-shadow-paper: 0px 0px 15px rgba(0, 0, 0, 0.15);
-    --drop-shadow-main: 0px 4px 8px rgba(0, 0, 0, 0.08);
-}
-
 /* Tailwind 3 preflight defaults that Tailwind 4's reset changed. */
 @layer base {
     *,
@@ -807,6 +770,22 @@
     }
 }
 
+/*
+ * The key edge (DESIGN.md, Buttons): a 3px inset bottom edge in a darker tone
+ * of the button, set per variant through `--key-edge`. Pressing moves the face
+ * down 1px and removes the edge; a disabled button has no edge.
+ */
+@utility key-edge {
+    box-shadow: inset 0 -3px 0 0 var(--key-edge, rgb(16 24 40 / 0.3));
+    &:active:not(:disabled) {
+        box-shadow: none;
+        transform: translateY(1px);
+    }
+    &:disabled {
+        box-shadow: none;
+    }
+}
+
 @utility text-case-inherit {
     text-transform: inherit;
 }
@@ -841,9 +820,17 @@
  * Tailwind 3 emitted `@layer base`: they override the reset and the forms
  * plugin, and utility classes still override them.
  */
+/*
+ * On respondent routes the body itself wears the form typeface, so popovers,
+ * menus and toasts that portal out of the form match it (RespondentTypeface).
+ */
+body.respondent-typeface {
+    font-family: var(--font-form);
+}
+
 html,
 body {
-    @apply bg-brand-100 font-inter dark:bg-dark antialiased dark:text-white;
+    @apply bg-black-100 font-sans dark:bg-dark antialiased dark:text-white;
 }
 
 .dynamic-html h6 {
@@ -899,6 +886,20 @@ input[type='number']::-webkit-outer-spin-button {
 
 @tailwind utilities source(none);
 
+/*
+ * Focus (DESIGN.md): a 2px Sireto-blue outline, 3px off the element, on every
+ * interactive element reached by keyboard (and on text fields, which always
+ * match :focus-visible). `!important` because many components still carry
+ * `outline-hidden` / `focus:outline-none` from before; a focus indicator must
+ * not be something a utility class can switch off. Menu items and listbox
+ * options are left out: they show focus as the highlighted row. Respondent forms set
+ * `--focus-ring` to the form theme's action colour.
+ */
+:where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex='-1']), [role='button'], [role='checkbox'], [role='radio'], [role='switch'], [role='tab'], [role='combobox'], [role='slider']):focus-visible {
+    outline: 2px solid var(--focus-ring, var(--color-brand-500)) !important;
+    outline-offset: 3px !important;
+}
+
 /* Hide spin button for input type number */
 input.spin-button-hidden::-webkit-outer-spin-button,
 input.spin-button-hidden::-webkit-inner-spin-button {
@@ -912,32 +913,32 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 
 .h1 {
     line-height: 130px;
-    @apply text-black-900 text-[96px] font-semibold tracking-[-1%];
+    @apply text-black-900 text-[96px] font-semibold tracking-title-lg;
 }
 
 .h2 {
     line-height: 72px;
-    @apply text-black-900 text-[48px] font-semibold;
+    @apply text-black-900 text-[48px] font-semibold tracking-title-lg;
 }
 
 .h2-new {
     line-height: 36px;
-    @apply text-black-900 text-[24px] font-semibold;
+    @apply text-black-900 text-[24px] font-semibold tracking-title;
 }
 
 .h3 {
     line-height: 54px;
-    @apply text-black-900 text-[36px] font-semibold;
+    @apply text-black-900 text-[36px] font-semibold tracking-title-lg;
 }
 
 .h3-new {
     line-height: 30px;
-    @apply text-black-900 text-[20px] font-semibold;
+    @apply text-black-900 text-[20px] font-semibold tracking-title-sm;
 }
 
 .h4 {
     line-height: 36px;
-    @apply text-black-900 text-[24px] font-semibold;
+    @apply text-black-900 text-[24px] font-semibold tracking-title;
 }
 
 .h4-new {
@@ -947,7 +948,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 
 .h5 {
     line-height: 30px;
-    @apply text-black-900 text-[20px] font-semibold;
+    @apply text-black-900 text-[20px] font-semibold tracking-title-sm;
 }
 
 .h5-new {
@@ -963,7 +964,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 .sh1 {
     leading-trim: both;
     line-height: 30px;
-    @apply text-black-900 text-[20px] font-semibold;
+    @apply text-black-900 text-[20px] font-semibold tracking-title-sm;
 }
 
 .sh2 {
@@ -1011,11 +1012,12 @@ input.spin-button-hidden::-webkit-inner-spin-button {
     @apply text-black-900 text-[14px] font-medium;
 }
 
-p {
-    leading-trim: both;
-    line-height: 30px;
-    @apply text-black-900 text-[18px] font-normal;
-}
+/*
+ * Paragraphs inherit: the body sets 1rem on a 1.55 line in ink (globals.css),
+ * and a container's own size wins inside it (the builder's 24px question
+ * titles are TipTap paragraphs). Running text that should read as body copy
+ * takes `text-body` (#5A6478) explicitly — DESIGN.md, Type.
+ */
 
 .p1 {
     @apply text-[16px] font-normal;
@@ -1067,14 +1069,14 @@ p {
     leading-trim: both;
     /*z-index: 100 !important;*/
     line-height: 30px;
-    @apply bg-brand-500 hover:bg-brand-600 flex cursor-pointer items-center justify-center gap-1 rounded-[4px] px-[16px] py-[12px] text-[16px] font-normal text-white no-underline;
+    @apply bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] flex cursor-pointer items-center justify-center gap-1 rounded px-[16px] py-[12px] text-[16px] font-normal text-white no-underline;
 }
 
 .primary-outline-btn {
     leading-trim: both;
     /*z-index: 100 !important;*/
     line-height: 30px;
-    @apply border-brand-500 text-brand-500 hover:bg-brand-500 flex cursor-pointer items-center justify-center gap-1 rounded-[4px] border bg-transparent px-[16px] py-[12px] text-[16px] font-normal no-underline hover:text-white;
+    @apply border-brand-500 text-brand-500 hover:bg-brand-100 key-edge [--key-edge:var(--color-brand-700)] flex cursor-pointer items-center justify-center gap-1 rounded border bg-white px-[16px] py-[12px] text-[16px] font-normal no-underline;
 }
 
 .secondary-pill {
@@ -1248,7 +1250,6 @@ p {
 }
 
 .heading4 {
-    font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 600;
     font-size: 24px;

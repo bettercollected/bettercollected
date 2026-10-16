@@ -146,7 +146,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             selector: (responder: WorkspaceResponderDto) => responder.email,
             minWidth: '300px',
             style: {
-                color: '#101826',
+                color: '#101828',
                 fontSize: '14px',
                 fontWeight: 500,
                 paddingLeft: '16px',
@@ -158,7 +158,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             name: t(formConstant.responses),
             selector: (responder: WorkspaceResponderDto) => responder.responses,
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }
@@ -167,7 +167,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             name: t(formConstant.deletionRequests),
             selector: (responder: WorkspaceResponderDto) => responder.deletionRequests,
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }
@@ -176,7 +176,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             name: t(groupConstant.default),
             selector: (responder: WorkspaceResponderDto) => ShowResponderGroups(responder.email),
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }

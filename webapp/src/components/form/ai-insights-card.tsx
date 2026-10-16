@@ -100,7 +100,7 @@ export default function AIInsightsCard() {
     const importedForm = !!form?.settings?.provider && form.settings.provider !== 'self';
     if (importedForm) {
         return (
-            <div className="mb-6 flex flex-col gap-2 rounded-lg border border-black-200 bg-white p-5">
+            <div className="mb-6 flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
                 <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-brand-500" />
                     <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
@@ -112,7 +112,7 @@ export default function AIInsightsCard() {
 
     if (!canReadResponses) {
         return (
-            <div className="mb-6 flex flex-col gap-2 rounded-lg border border-black-200 bg-white p-5">
+            <div className="mb-6 flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
                 <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-brand-500" />
                     <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
@@ -123,14 +123,14 @@ export default function AIInsightsCard() {
     }
 
     return (
-        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-black-200 bg-white p-5">
+        <div className="mb-6 flex flex-col gap-3 rounded border border-black-300 bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-brand-500" />
                     <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
                 </div>
                 {insight && aiEnabled && formAllows && (
-                    <button type="button" disabled={isGenerating} onClick={handleGenerate} className="flex items-center gap-1 text-xs text-black-500 transition-colors disabled:opacity-60 hover:text-black-800">
+                    <button type="button" disabled={isGenerating} onClick={handleGenerate} className="flex items-center gap-1 text-xs text-black-600 transition-colors disabled:opacity-60 hover:text-black-800">
                         <RefreshCw className={`h-3 w-3 ${isGenerating ? 'animate-spin' : ''}`} />
                         {isGenerating ? 'Summarizing…' : 'Refresh'}
                     </button>
@@ -151,7 +151,7 @@ export default function AIInsightsCard() {
                             Allow AI insights on responses
                         </Button>
                     ) : (
-                        <p className="text-xs text-black-500">A workspace admin can allow them for this form.</p>
+                        <p className="text-xs text-black-600">A workspace admin can allow them for this form.</p>
                     )}
                 </div>
             ) : !insight ? (
@@ -168,7 +168,7 @@ export default function AIInsightsCard() {
                             Summarize responses
                         </Button>
                         {canManageAI && (
-                            <button type="button" disabled={isUpdating} onClick={() => setAllowed(false)} className="text-xs text-black-500 underline decoration-dotted underline-offset-2 hover:text-black-800">
+                            <button type="button" disabled={isUpdating} onClick={() => setAllowed(false)} className="text-xs text-black-600 underline decoration-dotted underline-offset-2 hover:text-black-800">
                                 Stop allowing AI insights
                             </button>
                         )}
@@ -194,9 +194,9 @@ export default function AIInsightsCard() {
                             <span className="text-black-700">{insight.actionable.join(' · ')}</span>
                         </div>
                     )}
-                    {insight.sentiment && <p className="text-xs text-black-500">{insight.sentiment}</p>}
+                    {insight.sentiment && <p className="text-xs text-black-600">{insight.sentiment}</p>}
                     {error && <p className="text-xs text-[#7A2E2E]">{error}</p>}
-                    <p className="text-[10.5px] text-black-400">
+                    <p className="text-[10.5px] text-black-600">
                         Based on {insight.responseCount === insight.totalResponses ? `all ${insight.totalResponses}` : `${insight.responseCount} of ${insight.totalResponses}`} responses
                         {insight.analysedSince ? ` (submitted with the AI notice, shown since ${new Date(insight.analysedSince).toLocaleString()})` : ''}
                         {typeof insight.noticeShownResponses === 'number' && insight.noticeShownResponses < insight.totalResponses

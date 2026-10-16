@@ -66,7 +66,7 @@ const AddWorkspaceDomainForm = () => {
                 // Free plan: the upgrade note IS the whole section. Showing the
                 // domain form too was misleading — filling it in only bounced
                 // you to the upgrade modal.
-                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-[#FBF3E4] px-3 py-2.5 text-sm text-[#B26B00]">
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-brand-accent-100 px-3 py-2.5 text-sm text-brand-olive">
                     <span>Custom domains are a Pro feature.</span>
                     <button type="button" onClick={() => openModal('UPGRADE_TO_PRO')} className="font-semibold underline underline-offset-2">
                         Upgrade to connect your domain
@@ -101,7 +101,7 @@ const AddWorkspaceDomainForm = () => {
                         </Button>
                     </form>
                     <div className="max-w-[440px]">
-                        {message.message && <div className={cn(message.error ? 'text-[#C43D3D]' : 'text-[#B26B00]', 'whitespace-pre-wrap text-wrap text-xs')}>{message.message}</div>}
+                        {message.message && <div className={cn(message.error ? 'text-[#C43D3D]' : 'text-brand-olive', 'whitespace-pre-wrap text-wrap text-xs')}>{message.message}</div>}
                         {warned && (
                             <Button variant="ghost" isLoading={isLoading} className="mt-2 cursor-pointer text-xs" onClick={addDomain}>
                                 Add anyway

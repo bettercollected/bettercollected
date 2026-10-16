@@ -91,7 +91,7 @@ export default function TabularInputField({
   };
 
   return (
-    <div className="w-full overflow-hidden rounded-lg shadow-sm">
+    <div className="w-full overflow-hidden rounded border border-black-300">
       <div 
         className={cn(
           "overflow-x-auto rounded-lg border custom-scrollbar", 
@@ -103,7 +103,7 @@ export default function TabularInputField({
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead
-                className="sticky left-0 z-20 min-w-24 max-w-40 border-r border-b border-t-[2px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"
+                className="sticky left-0 z-20 min-w-24 max-w-40 border-r border-b border-t-[2px] border-black-300"
                 style={sharedHeaderStyle}
               />
               {localColTitles.map((col, idx) => (
@@ -142,7 +142,7 @@ export default function TabularInputField({
               <TableRow key={rowIdx} className="hover:bg-muted/10 transition-colors">
                 <TableCell
                   className={cn(
-                    "sticky left-0 z-10 min-w-24 max-w-40 px-3 py-2 font-medium text-center border-r border-b shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]",
+                    "sticky left-0 z-10 min-w-24 max-w-40 px-3 py-2 font-medium text-center border-r border-b border-black-300",
                     rowIdx === tableData.length - 1 && "rounded-bl-lg border-b-[2px]"
                   )}
                   style={sharedHeaderStyle}

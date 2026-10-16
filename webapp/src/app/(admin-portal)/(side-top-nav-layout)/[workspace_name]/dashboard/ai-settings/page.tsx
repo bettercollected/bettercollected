@@ -56,7 +56,7 @@ export default function AISettingsPage() {
     };
 
     if (isLoading || !settings) {
-        return <div className="px-5 py-6 text-sm text-black-500 lg:px-10">Loading…</div>;
+        return <div className="px-5 py-6 text-sm text-black-600 lg:px-10">Loading…</div>;
     }
 
     return (
@@ -67,7 +67,7 @@ export default function AISettingsPage() {
                 </p>
             </div>
 
-            <section className="flex flex-col gap-3 rounded-lg border border-black-200 p-4" aria-labelledby="ai-workspace-heading">
+            <section className="flex flex-col gap-3 rounded-lg border border-black-400 p-4" aria-labelledby="ai-workspace-heading">
                 <h2 id="ai-workspace-heading" className="text-sm font-semibold text-black-900">
                     AI features for this workspace
                 </h2>
@@ -75,7 +75,7 @@ export default function AISettingsPage() {
                     <p className="text-sm text-black-700">
                         On, with <span className="font-medium">{settings.providerName}</span>
                         {settings.enabledAt && (
-                            <span className="text-black-500">
+                            <span className="text-black-600">
                                 {' '}
                                 · turned on {settings.enabledBy === auth?.id ? 'by you' : 'by a workspace admin'} on {new Date(settings.enabledAt).toLocaleString()}
                             </span>
@@ -104,7 +104,7 @@ export default function AISettingsPage() {
                             </Button>
                         </div>
                     ) : configured.length === 0 ? (
-                        <p className="text-xs text-black-500">No AI provider is set up on this server.</p>
+                        <p className="text-xs text-black-600">No AI provider is set up on this server.</p>
                     ) : (
                         <div className="flex flex-wrap items-center gap-2">
                             {configured.length > 1 && (
@@ -122,11 +122,11 @@ export default function AISettingsPage() {
                         </div>
                     )
                 ) : (
-                    <p className="text-xs text-black-500">Only workspace admins can change this.</p>
+                    <p className="text-xs text-black-600">Only workspace admins can change this.</p>
                 )}
             </section>
 
-            <section className="flex flex-col gap-2 rounded-lg border border-black-200 p-4" aria-labelledby="ai-learning-heading">
+            <section className="flex flex-col gap-2 rounded-lg border border-black-400 p-4" aria-labelledby="ai-learning-heading">
                 <h2 id="ai-learning-heading" className="text-sm font-semibold text-black-900">
                     Learn my preferences
                 </h2>

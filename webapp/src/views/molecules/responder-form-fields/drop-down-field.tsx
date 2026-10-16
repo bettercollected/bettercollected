@@ -56,8 +56,9 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                 color: theme?.primary
             };
         }
-        // Placeholder state: calm light border at rest, legible neutral text.
-        return { borderColor: '#E3E3E3', color: '#657085' };
+        // Placeholder state: the theme's border colour (3:1 on its ground),
+        // legible neutral text.
+        return { borderColor: theme?.tertiary || '#818CA0', color: '#667085' };
     };
 
     return (
@@ -70,8 +71,8 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                         affordance, a different species from the rest of the form. */}
                     <button
                         type="button"
-                        style={{ ...getTextStyle(), ['--hover-border' as string]: theme?.tertiary ?? '#8A94A6' }}
-                        className="flex w-full cursor-pointer items-center justify-between gap-4 rounded-md border bg-white px-4 py-3 text-left text-base outline-hidden transition duration-150 hover:border-(--hover-border)! hover:shadow-[0_1px_3px_rgba(16,24,38,0.10)] focus-visible:ring-2 lg:text-lg"
+                        style={{ ...getTextStyle(), ['--hover-border' as string]: theme?.primary ?? '#101828' }}
+                        className="flex w-full cursor-pointer items-center justify-between gap-4 rounded-md border bg-white px-4 py-3 text-left text-base outline-hidden transition duration-150 hover:border-(--hover-border)! focus-visible:ring-2 lg:text-lg"
                     >
                         <span className="truncate">{choiceValue ? choiceValue : 'Select an option'}</span>
                         <ChevronDown className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />

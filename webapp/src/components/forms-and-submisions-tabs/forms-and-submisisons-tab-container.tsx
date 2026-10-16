@@ -62,7 +62,7 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
 
     return (
         <div className="flex flex-col md:pl-12 pb-4!">
-            <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
+            <div className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0">
                 {paramTabs.map((tab) => {
                     const isActive = activeTab === tab.path;
                     return (

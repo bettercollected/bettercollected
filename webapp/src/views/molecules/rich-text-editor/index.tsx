@@ -243,13 +243,13 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
                 @ Answer
             </div>
             {open && (
-                <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-72 overflow-auto rounded-lg border bg-white py-1 text-left shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+                <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-72 overflow-auto rounded border border-black-300 bg-white py-1 text-left shadow-large" onMouseDown={(e) => e.preventDefault()}>
                     {items.map((item) => {
                         const header = item.group !== lastGroup ? item.group : null;
                         lastGroup = item.group;
                         return (
                             <React.Fragment key={`${item.kind}:${item.pipeKey}`}>
-                                {header && <div className="px-3 py-1 text-xs uppercase tracking-wide text-black-500">{header}</div>}
+                                {header && <div className="px-3 py-1 text-xs uppercase tracking-wide text-black-600">{header}</div>}
                                 <div role="button" tabIndex={0} className="cursor-pointer truncate px-3 py-1.5 text-sm text-black-800 hover:bg-gray-100" onClick={() => insertPipe(item)}>
                                     {item.label}
                                 </div>
@@ -285,7 +285,7 @@ const HeadingButtons = ({ editor }: { editor: Editor }) => (
 
 const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) => {
     const editorRef = useCurrentEditor();
-    // Constrain label sizing to the type scale (Design-Language.md §2) so creators
+    // Constrain label sizing to the type scale (DESIGN.md §2) so creators
     // stay on a coherent hierarchy: Meta 12 · Helper/Consent 15 · Body/Input 16 ·
     // Question 24 · Display 32. No off-scale steps that break the reading rhythm.
     const FontSizes = [12, 15, 16, 24, 32];
@@ -305,7 +305,7 @@ const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: S
     return (
         // A div, not a <button>: the bar hosts interactive children (the insert-
         // answer dropdown), and interactive elements can't nest inside a button.
-        <div className={cn(`absolute -top-14 mb-2 hidden items-center rounded-lg bg-white px-4 py-1 shadow-tooltip`, 'group-focus-within:flex')} tabIndex={0}>
+        <div className={cn(`absolute -top-14 mb-2 hidden items-center rounded border border-black-300 bg-white px-4 py-1 shadow-large`, 'group-focus-within:flex')} tabIndex={0}>
             <div className="flex flex-row items-center justify-center gap-4">
                 <span className="p3-new font-medium">Text</span>
                 <div className="flex items-center gap-1">

@@ -138,7 +138,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                             {items.map((item, index) => {
                                 const itemContext = { ...pipeContext, answers: itemScopeAnswers(response.answers, { groupId: field.id, index, childIds: children.map((c) => c.id) }) };
                                 return (
-                                    <section key={index} className="border-black-300 flex flex-col gap-3 rounded-lg border bg-white p-3" aria-label={getItemHeader(field, index, pipeContext)}>
+                                    <section key={index} className="border-black-300 flex flex-col gap-3 rounded border bg-white p-3" aria-label={getItemHeader(field, index, pipeContext)}>
                                         <span className="text-black-800 text-[13px] font-semibold">{getItemHeader(field, index, pipeContext)}</span>
                                         {children.map((child) => {
                                             const answerText = getItemAnswer(item, child);
@@ -254,7 +254,7 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
                     <MoreVertical className={cn('cursor-pointer')} width={16} height={16} />
                 </div>
             </PopoverTrigger>
-            <PopoverContent side="left" align="start" className="w-[180px] bg-white p-0 shadow-lg">
+            <PopoverContent side="left" align="start" className="w-[180px] bg-white p-0 shadow-large">
                 <div className=" p2 my-2!  flex cursor-pointer items-center gap-2 px-4 py-2 text-[#C43D3D]! hover:bg-[#FBEFEF]" onClick={handleDelete}>
                     <DeleteIcon className="text-[#C43D3D]" />
                     Delete response

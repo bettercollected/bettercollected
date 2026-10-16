@@ -55,7 +55,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     className={cn(
                         'h-full w-full',
                         layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-0' : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-1' : '',
-                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'rounded-lg opacity-50 backdrop-blur-lg' : 'opacity-100'
+                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'rounded-[8px] opacity-50 backdrop-blur-lg' : 'opacity-100'
                     )}
                     src={imageUrl}
                     alt={altImage + ' image'}
@@ -72,10 +72,10 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
 
                 {(showControls || layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) && !disabled && (
                     <div className={cn('absolute flex h-full w-full items-start justify-end gap-4 p-2', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? '' : '')}>
-                        <div className="shadow-bubble z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                        <div className="shadow-large z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
                             <DeleteIcon width={24} height={24} />
                         </div>
-                        <div className=" shadow-bubble z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                        <div className=" shadow-large z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
                             <SwitchIcon />
                         </div>
                     </div>
@@ -88,11 +88,16 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             <div
                 style={{
                     backgroundColor: theme?.accent,
+                    // Focus outlines inside a form wear the theme's action colour
+                    // (the global focus rule in tailwind.css reads --focus-ring).
+                    ...(theme?.secondary ? { ['--focus-ring' as string]: theme.secondary } : {}),
                     ...style
                 }}
                 className={cn(
                     showDesktopLayout ? 'grid' : 'flex lg:grid',
-                    'relative  h-full w-full grow overflow-hidden bg-transparent! lg:rounded-lg',
+                    // Forms keep their own typeface (Public Sans): the app's Instrument
+                    // Sans stays out of what respondents see (DESIGN.md §2, §9).
+                    'font-form relative h-full w-full grow overflow-hidden bg-transparent! lg:rounded-[8px]',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse justify-end' : 'flex-col justify-end',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'grid-cols-2' : 'grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''
@@ -126,7 +131,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                             'relative',
                             showDesktopLayout ? 'h-auto ' : ' h-[30%] lg:h-auto',
                             (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) || (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT) ? 'grid-cols-1' : '',
-                            imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : 'bg-neutral-100 shadow hover:cursor-default'
+                            imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : 'bg-neutral-100 hover:cursor-default'
                         )}
                         // onClick={disabled ? () => {} : handleGridClick}
                         onMouseOver={disabled ? () => { } : () => setShowControls(true)}

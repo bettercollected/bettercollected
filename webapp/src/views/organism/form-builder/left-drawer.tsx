@@ -49,8 +49,8 @@ function RailPageItem({
                 role="button"
                 tabIndex={0}
                 className={cn(
-                    'flex min-h-[64px] w-full cursor-pointer flex-col justify-center gap-1 overflow-hidden rounded-lg border bg-white px-3 py-2 transition-colors',
-                    selected ? 'border-brand-500 shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 hover:border-black-400'
+                    'flex min-h-[64px] w-full cursor-pointer flex-col justify-center gap-1 overflow-hidden rounded border bg-white px-3 py-2 transition-colors',
+                    selected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-300 hover:border-black-400'
                 )}
                 onClick={onSelect}
                 onKeyDown={(e) => {
@@ -58,7 +58,7 @@ function RailPageItem({
                 }}
             >
                 {primaryText ? <span className="text-black-800 line-clamp-2 text-[11px] font-medium leading-snug">{primaryText}</span> : null}
-                <span className="text-black-500 text-[10px]">{secondaryText}</span>
+                <span className="text-black-600 text-[10px]">{secondaryText}</span>
             </div>
         </div>
     );

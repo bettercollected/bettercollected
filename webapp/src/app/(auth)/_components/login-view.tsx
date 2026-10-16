@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Globe, ShieldCheck, Trash2 } from 'lucide-react';
 
+import SiretoFooter from '@app/components/layout/sireto-footer';
 import Logo from '@app/components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
@@ -58,8 +59,8 @@ export default function LoginView() {
     return (
         <TopNavLayout className="min-h-screen mt-0! p-0!">
             <div className="flex h-full w-full flex-col lg:flex-row">
-                <div className="order-2 flex w-full flex-col justify-center gap-8 bg-[#101826] px-8 py-14 lg:order-1 lg:min-h-screen lg:w-1/2 lg:px-16">
-                    <h1 className="max-w-[480px] text-[26px] font-semibold leading-snug text-white lg:text-[32px]">{panel.title}</h1>
+                <div className="order-2 flex w-full flex-col justify-center gap-8 bg-[#101828] px-8 py-14 lg:order-1 lg:min-h-screen lg:w-1/2 lg:px-16">
+                    <h1 className="tracking-title max-w-[480px] text-[26px] font-semibold leading-snug text-white lg:text-[32px]">{panel.title}</h1>
                     <p className="max-w-[440px] text-[15px] leading-relaxed text-[#A8B3C4]">{panel.description}</p>
                     {panel.bullets && (
                         <ul className="flex max-w-[460px] flex-col gap-5">
@@ -80,7 +81,10 @@ export default function LoginView() {
 
                     <div className="w-full">{!email ? <OtpEmailForm setEmail={setEmail} isSignup={isSignup} /> : <OtpCodeForm email={email} setEmail={setEmail} />}</div>
 
-                    <TermsAndCondition isSignup={isSignup} />
+                    <div className="mt-24 flex w-full flex-col gap-4 lg:mt-0">
+                        <TermsAndCondition isSignup={isSignup} />
+                        <SiretoFooter className="text-left" />
+                    </div>
                 </div>
             </div>
         </TopNavLayout>
@@ -90,7 +94,7 @@ export default function LoginView() {
 const TermsAndCondition = ({ isSignup }: { isSignup: boolean }) => {
     const { t } = useTranslation();
     return (
-        <div className="body4 mt-24 lg:mt-0">
+        <div className="body4">
             {t(isSignup ? signUpScreen.signUpAgreementDescription : signInScreen.signinAgreementDescription)}
             <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
                 {t(localesCommon.termsOfServices.title)}

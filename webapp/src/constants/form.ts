@@ -36,9 +36,9 @@ export const defaultForm: StandardFormDto = {
     ],
     theme: {
         title: 'Default',
-        primary: '#101826',
-        secondary: '#2456CC',
+        primary: '#101828',
+        secondary: '#1649E2',
         tertiary: '#818CA0',
-        accent: '#F6F8FC'
+        accent: '#F5F7FB'
     }
 };

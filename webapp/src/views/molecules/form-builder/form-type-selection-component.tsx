@@ -8,22 +8,19 @@ interface IFormTypes {
     icon: React.ReactNode;
     title: string;
     description: string;
-    theme: string;
 }
 const FormTypes: IFormTypes[] = [
     {
         type: 'Modern Form',
         icon: <MultiPageFormIcon />,
         title: 'Multi-Page Form',
-        description: 'Show single form field per page',
-        theme: '#FE3678'
+        description: 'Show single form field per page'
     },
     {
         type: 'Classic Form',
         icon: <SinglePageFormIcon />,
         title: 'Single Page Form',
-        description: 'Show all form fields in a single page',
-        theme: '#FFA716'
+        description: 'Show all form fields in a single page'
     }
 ];
 
@@ -53,14 +50,14 @@ export default FormTypeSelectionComponent;
 
 const FormTypeCard = ({ item, handleClick }: { item: IFormTypes; handleClick: (type: string) => void }) => {
     return (
-        <div onClick={() => handleClick(item.type)} className="border-black-200 hover:shadow-input flex w-[375px] cursor-pointer flex-col rounded-2xl border ">
-            <div className=" rounded-t-2xl p-4" style={{ background: item.theme }}>
-                <div className="w-fit rounded-3xl bg-white px-2 py-1 text-xs" style={{ color: item.theme }}>
+        <div onClick={() => handleClick(item.type)} className="border-black-400 hover:border-brand-500 flex w-[375px] cursor-pointer flex-col overflow-hidden rounded border transition-colors">
+            <div className="bg-brand-100 p-4">
+                <div className="text-brand-600 w-fit rounded bg-white px-2 py-1 text-xs font-medium">
                     {item.type}
                 </div>
                 <div className="flex justify-center">{item.icon}</div>
             </div>
-            <div className="flex flex-col gap-1 rounded-b-2xl bg-white px-8 py-4">
+            <div className="flex flex-col gap-1 bg-white px-8 py-4">
                 <span className="text-black-800 font-medium">{item.title}</span>
                 <span className="text-black-600 text-sm font-normal">{item.description}</span>
             </div>

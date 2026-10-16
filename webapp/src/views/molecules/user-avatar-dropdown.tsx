@@ -27,7 +27,7 @@ export default function UserAvatarDropDown({ responderSignInUrl = '', disabled =
                 </div>
             </PopoverTrigger>
             {!disabled && (
-                <PopoverContent className="p2-new text-black-700 shadow-blue-hue z-[10] mt-2 max-w-[270px] cursor-pointer rounded-lg bg-white p-4">
+                <PopoverContent className="p2-new text-black-700 shadow-large border border-black-300 z-[10] mt-2 max-w-[270px] cursor-pointer rounded bg-white p-4">
                     {authState?.id ? (
                         <SwitchUserComponent authState={authState} responderSignInUrl={responderSignInUrl}></SwitchUserComponent>
                     ) : (

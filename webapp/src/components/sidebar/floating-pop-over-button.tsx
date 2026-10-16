@@ -34,7 +34,7 @@ const FloatingPopOverButton = ({ content, children, className }: { content: Reac
                     <span className="text-xs font-medium text-white">Help</span>
                 </div>
             )}
-            {isPopoverOpen && <div className={`shadow-floating-button absolute bottom-16 right-0 flex w-[172px] cursor-pointer flex-col gap-1 rounded-2xl bg-white p-2 ${className}`}>{children}</div>}
+            {isPopoverOpen && <div className={`shadow-large border border-black-300 absolute bottom-16 right-0 flex w-[172px] cursor-pointer flex-col gap-1 rounded bg-white p-2 ${className}`}>{children}</div>}
         </div>
     );
 };

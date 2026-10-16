@@ -31,14 +31,14 @@ const NODE_W = 300;
 const NODE_H = 96;
 const GAP_Y = 72;
 const COL_X = 120;
-const JUMP_COLOR = '#2456CC';
+const JUMP_COLOR = '#123FC9';
 const NEXT_COLOR = '#c2cad9';
 
 const defaultPos = (k: number) => ({ x: COL_X, y: 40 + k * (NODE_H + GAP_Y) });
 
 /* ----------------------------- custom nodes ------------------------------ */
 
-// Dot styling for the click-to-connect flow: armed dots swell and glow.
+// Dot styling for the click-to-connect flow: armed dots swell and get a ring.
 // The transparent border is a hit-area extender: at fit zoom the visual dot
 // shrinks to ~7px on screen — too small a Fitts target for the view's primary
 // gesture — so the clickable box is roughly double the visible dot.
@@ -49,7 +49,8 @@ const dotStyle = (isArmed: boolean): React.CSSProperties => ({
     width: isArmed ? 28 : 24,
     height: isArmed ? 28 : 24,
     cursor: 'pointer',
-    boxShadow: isArmed ? '0 0 0 5px rgba(36,86,204,0.25)' : undefined,
+    outline: isArmed ? '2px solid #123FC9' : undefined,
+    outlineOffset: isArmed ? 1 : undefined,
     transition: 'all 120ms ease'
 });
 
@@ -66,7 +67,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
     return (
         <div
             aria-label={`Page ${data.pageNumber}: ${data.label} — ${data.questionCount} question${data.questionCount === 1 ? '' : 's'}`}
-            className={'flex w-[300px] flex-col gap-1 rounded-xl border bg-white px-4 py-3 shadow-sm transition-shadow ' + (selected ? 'border-brand-500 shadow-bubble' : 'border-black-200 hover:border-brand-300')}
+            className={'flex w-[300px] flex-col gap-1 rounded border bg-white px-4 py-3 transition-colors ' + (selected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-400 hover:border-brand-300')}
         >
             <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
             <Handle
@@ -105,7 +106,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                 </span>
                 {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{data.showHideCount} show/hide</span>}
                 {data.questionCount === 0 && (
-                    <span className="inline-flex items-center gap-0.5 rounded bg-[#FBF3E4] px-1.5 py-[1px] font-medium text-[#B26B00]" title="Responders will see a blank page — add a question or delete it">
+                    <span className="inline-flex items-center gap-0.5 rounded bg-brand-accent-100 px-1.5 py-[1px] font-medium text-brand-olive" title="Responders will see a blank page — add a question or delete it">
                         <AlertTriangle className="h-3 w-3" /> empty page
                     </span>
                 )}
@@ -120,7 +121,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     </span>
                 )}
                 {data.dropOffs > 0 && (
-                    <span className="rounded bg-[#FBF3E4] px-1.5 py-[1px] font-semibold text-[#B26B00]" title="Responders whose last activity was on this page — they never submitted">
+                    <span className="rounded bg-brand-accent-100 px-1.5 py-[1px] font-semibold text-brand-olive" title="Responders whose last activity was on this page — they never submitted">
                         {data.dropOffs} dropped here
                     </span>
                 )}
@@ -147,7 +148,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
 function TerminalNode({ id, data }: NodeProps<Node<any>>) {
     const isEnd = data.kind === 'end';
     return (
-        <div className="bg-new-white-200 border-black-200 text-black-600 flex w-[300px] flex-col gap-0.5 rounded-xl border px-4 py-3">
+        <div className="bg-black-100 border-black-300 text-black-600 flex w-[300px] flex-col gap-0.5 rounded border px-4 py-3">
             {isEnd && <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />}
             {isEnd && (
                 <Handle
@@ -199,7 +200,7 @@ function BracketEdge({ id, sourceX, sourceY, targetX, targetY, style, markerEnd,
                 <EdgeLabelRenderer>
                     <div
                         className="nodrag nopan pointer-events-none absolute rounded-md border bg-white px-1.5 py-0.5 text-[11px] font-semibold"
-                        style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, color: JUMP_COLOR, borderColor: '#C7D7F5' }}
+                        style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, color: JUMP_COLOR, borderColor: '#BFD0FF' }}
                     >
                         {label}
                     </div>
@@ -332,7 +333,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 selectable: false,
                 focusable: false,
                 label: count !== undefined ? String(count) : undefined,
-                labelStyle: { fill: '#657085', fontSize: 11, fontWeight: 600 },
+                labelStyle: { fill: '#667085', fontSize: 11, fontWeight: 600 },
                 labelBgStyle: { fill: '#ffffff', stroke: NEXT_COLOR },
                 labelBgPadding: [5, 2] as [number, number],
                 labelBgBorderRadius: 6,
@@ -370,7 +371,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     deletable: true,
                     style: { stroke: JUMP_COLOR, strokeWidth: count ? Math.min(1.75 + (3 * count) / Math.max(traffic!.total, 1), 4.75) : 1.75 },
                     labelStyle: { fill: JUMP_COLOR, fontSize: 11, fontWeight: 600 },
-                    labelBgStyle: { fill: '#ffffff', stroke: '#C7D7F5' },
+                    labelBgStyle: { fill: '#ffffff', stroke: '#BFD0FF' },
                     labelBgPadding: [6, 3] as [number, number],
                     labelBgBorderRadius: 6,
                     markerEnd: { type: MarkerType.ArrowClosed, color: JUMP_COLOR, width: 18, height: 18 }
@@ -538,7 +539,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     return (
         <div className="relative flex h-full w-full flex-col bg-white">
             {/* header */}
-            <div className="border-b-black-200 flex items-center justify-between border-b px-6 py-3">
+            <div className="border-b-black-300 flex items-center justify-between border-b px-6 py-3">
                 <div>
                     <div className="text-black-900 text-base font-semibold">Flow</div>
                     {/* aria-live: screen readers announce entering/leaving connect mode */}
@@ -556,7 +557,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     {/* The navbar's save indicator is hidden while Flow is fullscreen —
                         carry the same reassurance here. */}
                     {autosaveStatus.state !== 'idle' && (
-                        <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (autosaveStatus.state === 'error' ? 'text-[#B26B00]' : 'text-black-600')}>
+                        <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (autosaveStatus.state === 'error' ? 'text-brand-olive' : 'text-black-600')}>
                             {autosaveStatus.state === 'saving' && 'Saving…'}
                             {autosaveStatus.state === 'saved' && 'Saved'}
                             {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
@@ -577,7 +578,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             · journeys: {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
                         </span>
                     )}
-                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
+                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-600 mr-1 text-xs">No responses yet</span>}
                     <button
                         onClick={() => setShowInsights((v) => !v)}
                         title="Overlay how submitted responses travelled each branch"
@@ -594,7 +595,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     <button onClick={() => clearSlidePositions()} title="Reset the layout" className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                         <LayoutGrid className="h-3.5 w-3.5" /> Auto-arrange
                     </button>
-                    <button aria-label="Close flow view" onClick={onClose} className="text-black-500 hover:text-black-900 ml-2 rounded-md p-1">
+                    <button aria-label="Close flow view" onClick={onClose} className="text-black-600 hover:text-black-900 ml-2 rounded-md p-1">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -654,15 +655,15 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         {/* A minimap earns its canvas space only once the graph outgrows
                             the viewport — for a handful of nodes it reads as a broken
                             placeholder box. */}
-                        {nodes.length > 8 && <MiniMap pannable zoomable className="h-[110px]! w-[150px]!" nodeColor={() => '#CBD5E6'} maskColor="rgba(233, 238, 245, 0.65)" />}
+                        {nodes.length > 8 && <MiniMap pannable zoomable className="h-[110px]! w-[150px]!" nodeColor={() => '#D0D5DD'} maskColor="rgba(233, 238, 245, 0.65)" />}
                     </ReactFlow>
                 </div>
 
                 {/* side panel */}
-                <div className="border-l-black-200 flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l bg-white">
+                <div className="border-l-black-300 flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l bg-white">
                     {selectedSlide ? (
                         <>
-                            <div className="border-b-black-200 flex flex-col gap-2 border-b px-4 py-4">
+                            <div className="border-b-black-300 flex flex-col gap-2 border-b px-4 py-4">
                                 <div>
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {selectedIndex + 1}</div>
                                     {/* The canvas card may truncate the question; the panel is
@@ -670,7 +671,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     <div className="text-black-900 wrap-break-word text-sm font-semibold leading-snug">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-brand-500 hover:bg-brand-600 flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-white">
+                                    <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium text-white">
                                         <PencilLine className="h-3.5 w-3.5" /> Edit content
                                     </button>
                                     <button
@@ -708,16 +709,16 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             {/* Page-editor overlay — edit content without leaving the flow */}
             {overlaySlide && (
                 <div role="dialog" aria-modal="true" aria-label={`Edit page ${overlayIndex + 1}`} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
-                    <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex min-h-0 flex-1 overflow-hidden rounded bg-white shadow-large" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-                            <div className="border-b-black-200 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
+                            <div className="border-b-black-300 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
                                 <div className="min-w-0">
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {overlayIndex + 1}</div>
                                     <div className="text-black-900 truncate text-sm font-semibold">{pageLabel(overlaySlide, overlayIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-3">
                                     {/* Live save state beats the static "changes save automatically" claim. */}
-                                    <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (autosaveStatus.state === 'error' ? 'font-medium text-[#B26B00]' : 'text-black-600')}>
+                                    <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (autosaveStatus.state === 'error' ? 'font-medium text-brand-olive' : 'text-black-600')}>
                                         {autosaveStatus.state === 'saving' && 'Saving…'}
                                         {autosaveStatus.state === 'saved' && 'Saved'}
                                         {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
@@ -730,16 +731,17 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             </div>
                             {/* Same mat + floating-sheet treatment as the main canvas, so
                                 "edit a page" looks identical wherever it happens. */}
-                            <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-[#E9EEF5] px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
+                            <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-[#F2F4F7] px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
                                 <div className="m-auto shrink-0" style={{ width: SLIDE_W * overlayScale, height: SLIDE_H * overlayScale }}>
                                     <div
-                                        className="border-black-400 overflow-hidden rounded-lg border bg-white"
+                                        className="border-black-400 overflow-hidden rounded border bg-white"
                                         style={{
                                             width: SLIDE_W,
                                             height: SLIDE_H,
                                             transform: `scale(${overlayScale})`,
                                             transformOrigin: 'top left',
-                                            boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
+                                            // A hairline, not a shadow (DESIGN.md §6).
+                                            outline: '1px solid #D0D5DD'
                                         }}
                                     >
                                         <SlideBuilder slide={overlaySlide} />
@@ -747,7 +749,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="border-l-black-200 w-[300px] shrink-0 overflow-y-auto border-l bg-white">
+                        <div className="border-l-black-300 w-[300px] shrink-0 overflow-y-auto border-l bg-white">
                             <PropertiesDrawer />
                         </div>
                     </div>

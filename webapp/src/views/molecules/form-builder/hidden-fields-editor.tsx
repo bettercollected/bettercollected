@@ -50,7 +50,7 @@ export default function HiddenFieldsEditor() {
     return (
         <div className="px-4 py-6">
             <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Hidden fields</div>
-            <div className="text-black-500 mt-1 text-xs">
+            <div className="text-black-600 mt-1 text-xs">
                 Values passed in the share link (<span className="font-mono">?utm_source=…</span>) are saved with each response and can be piped into questions. Form-wide setting.
             </div>
             <div className="mt-3 flex flex-col gap-2">

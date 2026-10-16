@@ -57,7 +57,7 @@ interface DisclosureProps {
 export function AIDisclosure({ sends, className }: DisclosureProps) {
     const { workspace, providerName } = useWorkspaceAI();
     return (
-        <p className={className ?? 'text-[10.5px] leading-relaxed text-black-500'}>
+        <p className={className ?? 'text-[10.5px] leading-relaxed text-black-600'}>
             Sent to {providerName}: {sends}.{' '}
             <Link href={aiSettingsUrl(workspace?.workspaceName)} className="underline decoration-dotted underline-offset-2">
                 AI settings
@@ -96,7 +96,7 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
     };
 
     return (
-        <div className={`flex flex-col gap-2 rounded-lg border border-black-200 bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label="AI is off for this workspace">
+        <div className={`flex flex-col gap-2 rounded border border-black-300 bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label="AI is off for this workspace">
             <div className="flex items-center gap-1.5 text-[13px] font-semibold text-black-900">
                 <Sparkles className="h-3.5 w-3.5 text-brand-500" />
                 AI is off for this workspace
@@ -105,7 +105,7 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
                 {feature} uses an external AI provider. Nothing is sent to one until a workspace admin turns AI on. Once on, it sends {sends} to {providerName}.
             </p>
             {!settings ? null : !configured ? (
-                <p className="text-xs text-black-500">No AI provider is set up on this server.</p>
+                <p className="text-xs text-black-600">No AI provider is set up on this server.</p>
             ) : settings.canManage ? (
                 <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" variant="v2Button" isLoading={isLoading} onClick={turnOn}>
@@ -116,7 +116,7 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
                     </Link>
                 </div>
             ) : (
-                <p className="text-xs text-black-500">
+                <p className="text-xs text-black-600">
                     Ask a workspace admin to turn it on in{' '}
                     <Link href={aiSettingsUrl(workspace?.workspaceName)} className="underline decoration-dotted underline-offset-2">
                         AI settings

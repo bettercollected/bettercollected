@@ -34,7 +34,7 @@ export default function TemplatesClient({ predefined_templates }: { predefined_t
             )}
             {isEmpty && !isLoading && (
                 <div className="flex min-h-[320px] w-full flex-col items-center justify-center gap-3 text-center">
-                    <LayoutTemplate className="text-black-500 h-10 w-10" strokeWidth={1.5} />
+                    <LayoutTemplate className="text-black-600 h-10 w-10" strokeWidth={1.5} />
                     <div className="h5-new text-black-800">No templates yet</div>
                     <p className="body4 text-black-600 max-w-[360px]">
                         Ready-made form templates will appear here. In the meantime, start from scratch or import an

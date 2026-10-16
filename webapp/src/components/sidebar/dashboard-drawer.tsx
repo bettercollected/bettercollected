@@ -15,7 +15,7 @@ const Drawer = ({ navGroups, can }: any) => {
                 and the navbar read as one continuous bar. No product logo:
                 the workspace's own identity leads; bettercollected keeps a
                 quiet attribution at the very bottom instead. */}
-            <div className="border-b-black-200 flex h-[77px] shrink-0 items-center border-b px-4">
+            <div className="border-b-black-300 flex h-[77px] shrink-0 items-center border-b px-4">
                 <WorkspaceMenuDropdown fullWidth />
             </div>
             <div className="flex-1 overflow-auto h-full scrollbar-hide">
@@ -30,7 +30,7 @@ const Drawer = ({ navGroups, can }: any) => {
                             if (!items.length) return null;
                             return (
                                 <div key={group.label} className="pb-1">
-                                    <div className="text-black-500 px-4 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider">{group.label}</div>
+                                    <div className="text-black-600 px-4 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider">{group.label}</div>
                                     <NavigationList navigationList={items} />
                                 </div>
                             );
@@ -41,7 +41,7 @@ const Drawer = ({ navGroups, can }: any) => {
                         the responder surfaces carry, in place of the old
                         upgrade upsell. */}
                     <div className="px-4 pb-6 pt-4">
-                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-500 hover:text-black-700 flex items-center justify-center px-4 text-xs">
+                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 flex items-center justify-center px-4 text-xs">
                             Powered by&nbsp;<span className="font-semibold">bettercollected</span>
                         </a>
                     </div>

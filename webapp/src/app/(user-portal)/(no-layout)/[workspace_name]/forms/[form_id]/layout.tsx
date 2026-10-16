@@ -1,4 +1,5 @@
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
+import RespondentTypeface from '@app/components/form/respondent-typeface';
 import environments from '@app/configs/environments';
 import { getFormById, getWorkspaceByName } from '@app/lib/server/api';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
@@ -80,7 +81,7 @@ export default async function CustomDomainLayout({ children, params }: { childre
 
     return (
         <WorkspaceDispatcher workspace={workspace}>
-            {children}
+            <RespondentTypeface>{children}</RespondentTypeface>
         </WorkspaceDispatcher>
     );
 }

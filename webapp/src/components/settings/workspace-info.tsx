@@ -152,7 +152,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.DESCRIPTION')}</div>
                 <Textarea
-                    className="border-black-300 focus:shadow-input rounded focus:border-[#B8E8FF]! focus:outline-transparent focus:ring-transparent resize-none"
+                    className="border-control rounded focus:border-brand-500! focus:ring-transparent resize-none"
                     rows={3}
                     onChange={onChange}
                     value={workspaceInfo.description}

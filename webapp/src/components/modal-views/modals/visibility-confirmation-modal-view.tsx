@@ -36,7 +36,7 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
     };
 
     return (
-        <div className={'rounded-xl bg-white md:w-[466px]'}>
+        <div className={'rounded bg-white md:w-[466px]'}>
             <div className={'flex justify-between p-4'}>
                 <h1 className={'text-black-800 text-sm font-normal'}>{t('VISIBILITY_MODAL.TITLE')}</h1>
                 <ModalCloseButton onClick={closeModal} className="absolute right-5 top-3 h-8 w-8" iconClassName="h-6 w-6" />

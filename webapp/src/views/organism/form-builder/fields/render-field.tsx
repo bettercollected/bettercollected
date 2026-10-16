@@ -34,10 +34,10 @@ export const RenderImage = ({ field, isBuilder = false }: { field: StandardFormF
     return field?.imageUrl ? (
         <div className={`relative my-4 max-h-[168px] w-full ${isBuilder ? 'group' : ''}`}>
             <div className={cn('absolute hidden h-full w-full items-start justify-start gap-4 p-2 group-hover:flex')}>
-                <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                <div className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
                     <DeleteIcon width={16} height={16} />
                 </div>
-                <div className=" shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                <div className=" shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
                     <SwitchIcon width={16} height={16} />
                 </div>
             </div>

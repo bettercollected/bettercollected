@@ -114,7 +114,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
             <div className="flex w-full space-x-2">
                 {/* Tinted fill + ink text — a solid tertiary block under ink text is
                     the same legibility defect the yes/no chips had. */}
-                <div style={{ backgroundColor: theme?.tertiary + '55', color: theme?.primary }} className="p1 flex w-full cursor-pointer items-center justify-between rounded px-3 py-2" onClick={downloadFormFile}>
+                <div style={{ backgroundColor: theme?.tertiary + '55', color: theme?.primary }} className="p1 flex w-full cursor-pointer items-center justify-between rounded-[4px] px-3 py-2" onClick={downloadFormFile}>
                     <p className="mr-5 flex-1 truncate">{fileMetaData?.name}</p>
                     <p className="text-sm">{formatFileSizeMb(fileMetaData?.size)}</p>
                 </div>
@@ -126,7 +126,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                         backgroundColor: theme?.tertiary + '55',
                         color: theme?.primary
                     }}
-                    className="items-center justify-center rounded p-2"
+                    className="items-center justify-center rounded-[4px] p-2"
                     onClick={handleDeleteFile}
                 >
                     <DeleteIcon />

@@ -179,7 +179,7 @@ export default function PagePropertiesTab({ }: {}) {
                                 <div
                                     className={cn(
                                         'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-lg border p-2 transition-colors hover:border-brand-500 hover:bg-[#F4F7FD]',
-                                        layout && layout === item.style ? 'border-brand-500 bg-[#F4F7FD] shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 bg-white'
+                                        layout && layout === item.style ? 'border-brand-500 bg-[#F4F7FD] ring-1 ring-brand-500' : 'border-black-300 bg-white'
                                     )}
                                     onClick={() => handleSlideLayoutChange(activeSlideComponent?.id, item.style)}
                                 >
@@ -227,7 +227,7 @@ export default function PagePropertiesTab({ }: {}) {
                                                     placeholder="Try bettercollected"
                                                     value={(formState.thankyouPage && formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonText) ?? ''}
                                                     onChange={(e: any) => setThankYouPageButtonText(activeThankYouPageComponent?.index || 0, e.target.value)}
-                                                    className="borer-[1px] border-black-300 focus:border-black-300 active:border-black-300 rounded-lg p-2 text-xs"
+                                                    className="border border-control focus:border-brand-500 rounded p-2 text-xs"
                                                 />
                                                 <div className="flex flex-row justify-between">
                                                     <div className="text-black-700 text-xs">Button Link</div>
@@ -244,7 +244,7 @@ export default function PagePropertiesTab({ }: {}) {
                                                         placeholder="Enter your link here"
                                                         value={formState.thankyouPage && formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonLink}
                                                         onChange={(e: any) => setThankYouPageButtonLink(activeThankYouPageComponent?.index || 0, e.target.value)}
-                                                        className="borer-[1px] border-black-300 focus:border-black-300 active:border-black-300 rounded-lg p-2 text-xs"
+                                                        className="border border-control focus:border-brand-500 rounded p-2 text-xs"
                                                     />
                                                 )}
                                             </>
@@ -258,7 +258,7 @@ export default function PagePropertiesTab({ }: {}) {
                                             placeholder="Start"
                                             value={formState.welcomePage?.buttonText || ''}
                                             onChange={(e: any) => setWelcomePageButtonText(e.target.value)}
-                                            className="borer-[1px] border-black-300 focus:border-black-300 active:border-black-300 rounded-lg p-2 text-xs"
+                                            className="border border-control focus:border-brand-500 rounded p-2 text-xs"
                                         />
                                     </div>
                                 )}
@@ -269,15 +269,15 @@ export default function PagePropertiesTab({ }: {}) {
                     </div>
                 </>
             )}
-            <div className={cn('border-black-200 flex justify-between border-b px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
+            <div className={cn('border-black-300 flex justify-between border-b px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
                 <span className="text-black-600 text-xs font-semibold uppercase tracking-wide">Layout Image</span>
                 {slide?.imageUrl ? (
                     <div className={`group relative my-4 max-h-[168px] w-full`}>
                         <div className={cn('absolute hidden h-full w-full items-start justify-start gap-2 p-2 group-hover:flex')}>
-                            <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={() => handleRemoveImage(activeSlideComponent?.id)}>
+                            <div className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={() => handleRemoveImage(activeSlideComponent?.id)}>
                                 <DeleteIcon width={16} height={16} />
                             </div>
-                            <div className=" shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                            <div className=" shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
                                 <SwitchIcon width={16} height={16} />
                             </div>
                         </div>

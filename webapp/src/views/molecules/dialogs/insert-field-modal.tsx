@@ -54,7 +54,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                     type: FieldTypes.SLIDE,
                     // Default new pages to a calm single-column layout with no
                     // decorative image. Creators opt into the image / two-column
-                    // split via the Layout panel (see Design-Language.md §3).
+                    // split via the Layout panel (see DESIGN.md §3).
                     properties: {
                         layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
                         fields: [getNewField(field, fieldId, formFields.length)]
@@ -91,9 +91,9 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
     };
     return (
         <div id="fields-option" className="h-[552px] w-[410px] bg-white">
-            <div className="border-b-black-300 border-b p-4 text-xs font-semibold uppercase tracking-wide text-[#657085]">Insert field</div>
+            <div className="border-b-black-300 border-b p-4 text-xs font-semibold uppercase tracking-wide text-[#667085]">Insert field</div>
             <div className="border-r-black-300 w-full bg-white">
-                <div className=" border-black-300 bg-new-white-200 flex w-full justify-center gap-6 border-b p-4">
+                <div className=" border-black-300 bg-black-100 flex w-full justify-center gap-6 border-b p-4">
                     <div className="flex gap-2 ">
                         <input
                             type="radio"
@@ -102,7 +102,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                             onChange={() => { }}
                             name="multi-page"
                             className="h-5 w-5 cursor-pointer focus:ring-0 focus:ring-offset-0"
-                            style={{ accentColor: '#2456CC' }}
+                            style={{ accentColor: '#123FC9' }}
                             onClick={(e: any) => {
                                 setCurrentPage(false);
                                 setNavbarState({
@@ -132,7 +132,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                             name="multi-page"
                             value={'False'}
                             className="h-5 w-5 cursor-pointer focus:ring-0 focus:ring-offset-0"
-                            style={{ accentColor: '#2456CC' }}
+                            style={{ accentColor: '#123FC9' }}
                         />
                         <label htmlFor="single-page" className="p4-new text-black-700 cursor-pointer">
                             Insert in current page
@@ -168,7 +168,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                                                     setNavbarState({ ...navbarState, insertClicked: false });
                                                 }, 1000);
                                             }}
-                                            className="border-black-300 flex h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border bg-white text-[#3A465A] transition-colors hover:border-brand-500 hover:bg-[#F4F7FD] focus-visible:border-brand-500 focus-visible:outline-hidden"
+                                            className="border-black-300 flex h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded border bg-white text-[#344054] transition-colors hover:border-brand-500 hover:bg-[#F4F7FD] focus-visible:border-brand-500 focus-visible:outline-hidden"
                                         >
                                             {field.icon}
                                             <span className="text-xs font-medium">{field.name}</span>

@@ -46,7 +46,7 @@ export default function FeedbackStatusesEditor({ statuses, onSave }: FeedbackSta
                         value={item}
                         onChange={(e) => setItems((prev) => prev.map((value, i) => (i === index ? e.target.value : value)))}
                     />
-                    <button type="button" aria-label={`Remove ${item || `status ${index + 1}`}`} className="rounded p-1 text-black-500 hover:text-black-800" onClick={() => setItems((prev) => prev.filter((_, i) => i !== index))}>
+                    <button type="button" aria-label={`Remove ${item || `status ${index + 1}`}`} className="rounded p-1 text-black-600 hover:text-black-800" onClick={() => setItems((prev) => prev.filter((_, i) => i !== index))}>
                         <X className="h-4 w-4" />
                     </button>
                 </div>

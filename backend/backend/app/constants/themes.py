@@ -2,12 +2,14 @@
 from common.models.standard_form import Theme
 
 theme_dict = {
+    # Same values as the webapp's Default preset (webapp/src/constants/theme.ts,
+    # DESIGN.md §9), so AI-created forms match forms created in the builder.
     "Default": {
         "title": "Default",
-        "primary": "#2E2E2E",
-        "secondary": "#0764EB",
-        "tertiary": "#A2C5F8",
-        "accent": "#F2F7FF",
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#818CA0",
+        "accent": "#F5F7FB",
     },
     "Blue": {
         "title": "Blue",

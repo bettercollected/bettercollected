@@ -87,7 +87,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
 
 
     return (
-        <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded-md bg-white py-10 text-sm shadow-md md:max-w-[560px]">
+        <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded border border-black-300 bg-white py-10 text-sm md:max-w-[560px]">
             {closable && <CloseModal />}
             <div className="mt-0! flex flex-col items-center justify-between">
                 <CheckedCircle />
@@ -101,7 +101,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
                             <>
                                 <Disclosure.Button className="body6 text-black-800 flex w-full items-center justify-between border-t px-8 py-3 text-left font-medium focus:outline-hidden focus-visible:ring focus-visible:ring-blue-500/75">
                                     <span>
-                                        {unauthorizedScopes && unauthorizedScopes.length > 0 && <span className={`mr-2 text-lg ${unauthorizedScopes?.includes(permission.scope || '') ? 'text-black-400' : 'text-green-500'}`}>✔</span>}
+                                        {unauthorizedScopes && unauthorizedScopes.length > 0 && <span className={`mr-2 text-lg ${unauthorizedScopes?.includes(permission.scope || '') ? 'text-black-600' : 'text-green-500'}`}>✔</span>}
                                         {permission.name}
                                     </span>
                                     <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />

@@ -151,7 +151,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     feeds back into the Fit scale and shrinks the card. */}
                 <div
                     ref={canvasMatRef}
-                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#E9EEF5] px-8 py-10"
+                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#F2F4F7] px-8 py-10"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
@@ -164,13 +164,14 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                             surface is near the mat's tone, so the edge comes from a
                             hairline + a soft elevation shadow, not from contrast. */}
                         <div
-                            className="border-black-400 overflow-hidden rounded-lg border bg-white"
+                            className="border-black-400 overflow-hidden rounded border bg-white"
                             style={{
                                 width: CANVAS_WIDTH,
                                 height: CANVAS_HEIGHT,
                                 transform: `scale(${canvasScale})`,
                                 transformOrigin: 'top left',
-                                boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
+                                // A hairline, not a shadow, sets the page off the canvas (DESIGN.md §6).
+                                outline: '1px solid #D0D5DD'
                             }}
                         >
                             <div className="relative mx-auto h-full w-full rounded-lg">
@@ -191,7 +192,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
                         <TrustStripNudge />
                     </div>
-                    <div className="border-black-300 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded-lg border bg-white text-xs font-medium shadow-sm" onClick={(e) => e.stopPropagation()}>
+                    <div className="border-black-400 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded border border-black-400 bg-white text-xs font-medium" onClick={(e) => e.stopPropagation()}>
                         <button className={canvasZoom === 'fit' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('fit')}>
                             Fit
                         </button>

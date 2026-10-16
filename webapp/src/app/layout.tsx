@@ -1,7 +1,7 @@
 import React from 'react';
 
 import type { Metadata } from 'next';
-import { Public_Sans } from 'next/font/google';
+import { Instrument_Sans, JetBrains_Mono, Public_Sans } from 'next/font/google';
 
 import '@app/assets/css/globals.css';
 import SwRegister from '@app/components/common/sw-register';
@@ -19,8 +19,15 @@ import ThemeProvider from '@app/shared/hocs/theme-provider';
 import BaseModalContainer from '@Components/modals/containers/base-modal-container';
 import { Viewport } from 'next';
 
-// One honest, humanist face used everywhere (see Design-Language.md §2).
-// Public Sans is self-hosted by next/font — no external font request at runtime.
+// Instrument Sans for everything you read, JetBrains Mono for anything that
+// names a value (IDs, slugs, URLs, keys, payloads) — see DESIGN.md, Type.
+// next/font downloads both at build time and serves them from this app: no
+// request goes to Google's font servers at runtime.
+const instrumentSans = Instrument_Sans({ subsets: ['latin'], weight: ['400', '500', '600'], display: 'swap', variable: '--font-instrument-sans' });
+const jetBrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['500', '600'], display: 'swap', variable: '--font-jetbrains-mono' });
+// Respondent forms keep the typeface they were published with: Public Sans,
+// loaded exactly as before (all weights, latin) and also self-hosted. It is the
+// `font-form` utility, applied by the form renderers and the respondent routes.
 const publicSans = Public_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-public-sans' });
 
 export const viewport: Viewport = {
@@ -80,8 +87,10 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" suppressHydrationWarning>
-            <body className={cn('max-h-screen overflow-auto', publicSans.variable, publicSans.className)}>
+        // The font variables sit on <html>: the theme's --font-sans / --font-mono
+        // (tailwind.css) are defined on :root and resolve these there.
+        <html lang="en" className={cn(instrumentSans.variable, jetBrainsMono.variable, publicSans.variable)} suppressHydrationWarning>
+            <body className={cn('max-h-screen overflow-auto', instrumentSans.className)}>
                 {environments.UMAMI_SCRIPT_URL && environments.UMAMI_WEBSITE_ID && (
                     // Plain <script> like /api/config below, NOT next/script: next/script
                     // only injects after hydration completes, so any client-side stall

@@ -23,7 +23,7 @@ export const CustomDomainCard = () => {
 
 export default function CustomDomainClient() {
     return (
-        <div className=" rounded-2xl bg-white p-8">
+        <div className=" rounded bg-white p-8">
             <CustomDomainCard />
         </div>
     );

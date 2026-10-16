@@ -15,7 +15,7 @@ export default function WorkspaceDomainsPage() {
     if (!can(WorkspacePermission.SECURITY_MANAGE)) {
         return (
             <div className="px-5 py-6 lg:px-10">
-                <p className="text-sm text-black-500">Only workspace admins can manage domains.</p>
+                <p className="text-sm text-black-600">Only workspace admins can manage domains.</p>
             </div>
         );
     }

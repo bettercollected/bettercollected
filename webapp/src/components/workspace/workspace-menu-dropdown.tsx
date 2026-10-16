@@ -150,7 +150,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                             <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(space)}</p>
                                         </div>
                                     </div>
-                                    {workspace.id === space.id && <Check color="#0764EB" />}
+                                    {workspace.id === space.id && <Check color="#123FC9" />}
                                 </div>
                             );
                         })
@@ -171,7 +171,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                     <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
                                 </div>
                             </div>
-                            <Check color="#0764EB" />
+                            <Check color="#123FC9" />
                         </div>
                     )}
                 </div>
@@ -179,7 +179,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                     <div>
                         <Divider className="my-2" />
                         <div
-                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-500! cursor-not-allowed' : 'text-black-800!'
+                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-600! cursor-not-allowed' : 'text-black-800!'
                                 }`}
                             onClick={(e) => {
                                 e.stopPropagation();

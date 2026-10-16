@@ -36,7 +36,7 @@ function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery, place
             <label className=" w-full relative">
                 <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <Input
-                    className="placeholder:text-black-400 border-black-200 focus-visible:ring-0 focus-visible:border-black-400 h-10 w-full rounded-lg pl-9 py-2 pr-3 sm:text-sm bg-white"
+                    className="placeholder:text-black-600 border-control focus-visible:ring-0 focus-visible:border-black-400 h-10 w-full rounded pl-9 py-2 pr-3 sm:text-sm bg-white"
                     placeholder={placeholder ? placeholder : 'Search'}
                     type="text"
                     name="search"

@@ -67,7 +67,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                         <div className="flex w-full flex-row flex-wrap ">
                             {templates?.map((template) => (
                                 <div
-                                    className=" border-black-200 mb-2 flex w-fit cursor-pointer flex-col gap-1 rounded-lg border border-transparent p-1 transition-all"
+                                    className=" border-black-300 mb-2 flex w-fit cursor-pointer flex-col gap-1 rounded-lg border border-transparent p-1 transition-all"
                                     key={template?.id}
                                     onClick={() => {
                                         setSelectedTemplate(template);

@@ -70,7 +70,7 @@ const initialFormResponse: FormResponse = {
     formId: '',
     answers: {}
     // `anonymize` starts UNDEFINED (not false): identity sharing is opt-in
-    // (Design-Language §5), so until the responder touches the checkbox, the
+    // (DESIGN.md §5), so until the responder touches the checkbox, the
     // effective value is decided at submit time — anonymous when identity is
     // optional, attached when the form requires a verified identity.
 };

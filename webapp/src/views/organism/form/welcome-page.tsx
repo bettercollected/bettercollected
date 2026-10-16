@@ -96,7 +96,7 @@ export default function WelcomePage({
                                         This form is limited to certain people only. Please verify your identity to get access.
                                         <span>
                                             <Link href={isPreviewMode ? '' : responderSignInUrl} className="text-black-800 font-medium underline">
-                                                <Button className="mt-4 px-6" size="medium">
+                                                <Button className="mt-4 rounded-[8px] px-6" size="medium">
                                                     {' '}
                                                     Verify now
                                                 </Button>
@@ -113,8 +113,9 @@ export default function WelcomePage({
                     {(!standardForm?.settings?.private || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
                         <div>
                             <Button
+                                flat
                                 style={{ background: formTheme?.secondary }}
-                                className="z-10 mt-2 rounded-lg px-8 py-3 text-base font-semibold"
+                                className="z-10 mt-2 rounded-[8px] px-8 py-3 text-base font-semibold"
                                 size="medium"
                                 onClick={() => {
                                     if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
@@ -132,10 +133,10 @@ export default function WelcomePage({
                     )}
                 </div>
             </div>
-            {/* <div className="border-black-200 flex absolute bottom-0 w-full border-t p-4 lg:hidden" style={{ background: formTheme?.accent }}>
+            {/* <div className="border-black-300 flex absolute bottom-0 w-full border-t p-4 lg:hidden" style={{ background: formTheme?.accent }}>
                 <Button
                     style={{ background: formTheme?.secondary }}
-                    className="z-10 mt-2 w-full rounded px-8 py-3"
+                    className="z-10 mt-2 w-full rounded-[4px] px-8 py-3"
                     size="medium"
                     onClick={() => {
                         if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
