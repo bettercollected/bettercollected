@@ -30,5 +30,89 @@
     },
     "QUESTION": {
         "WHY_WE_ASK": "Why we ask this:"
+    },
+    "NAV": {
+        "BACK": "Back",
+        "PAGE_OF": "Page {{current}} of {{total}}",
+        "CONTINUE": "Continue",
+        "SUBMIT": "Submit response",
+        "SUBMIT_ERROR": "Your response could not be sent. Please try again."
+    },
+    "CONSENT": {
+        "SHARE_EMAIL": "Share my email with the form collector",
+        "SHARE_EMAIL_HINT": "{{email}} — leave unchecked and your response stays anonymous."
+    },
+    "WELCOME": {
+        "START": "Start",
+        "VERIFY_AND_START": "Verify and Start",
+        "VERIFY_REQUIRED": "To fill this form you need to verify your identity.",
+        "VERIFY_NOW": "Verify Now",
+        "VIEW_LATER": "To view your response later",
+        "VERIFY_EMAIL": "Verify Email",
+        "PRIVATE": "Private Form",
+        "PRIVATE_TEXT": "This form is limited to certain people only. Please verify your identity to get access.",
+        "NO_ACCESS": "You do not have access to this form. Switch to a different account with access to continue. If this is a mistake contact the owner of this form."
+    },
+    "ACCOUNT": {
+        "LABEL": "Account",
+        "TRACK": "Do you wish to track your form response for future reference?",
+        "SIGN_IN": "Sign In",
+        "SWITCH": "Switch account"
+    },
+    "ENDING": {
+        "TITLE": "Thank You! 🎉",
+        "SUBMITTED": "Your response is successfully submitted.",
+        "SUBMITTED_ANONYMOUS": "Your response is anonymously submitted.",
+        "SUBMISSION_NUMBER": "Submission Number",
+        "ALL_SUBMISSIONS": "See all your submissions",
+        "SUBMISSION_NUMBER_HINT": "Use this submission number to view or request deletion of this response.",
+        "COPY": "Copy submission number",
+        "COPIED": "Copied"
+    },
+    "FIELD": {
+        "REQUIRED": "(required)",
+        "OPTIONAL": "Optional",
+        "ANSWER_REQUIRED": "Please answer this question to continue.",
+        "YES": "Yes",
+        "NO": "No",
+        "OTHER": "Other",
+        "OTHER_CHOICE": "Other Choice",
+        "SELECT_OPTION": "Select an option",
+        "PLACEHOLDER_ANSWER": "Answer",
+        "PLACEHOLDER_EMAIL": "name@gmail.com",
+        "RATE": "Rate {{value}} of {{total}}"
+    },
+    "DATE": {
+        "PICK": "Pick a date",
+        "INVALID": "Please pick a valid date.",
+        "MUST_BE_before": "Must be before {{label}}.",
+        "MUST_BE_after": "Must be after {{label}}.",
+        "MUST_BE_on_or_before": "Must be on or before {{label}}.",
+        "MUST_BE_on_or_after": "Must be on or after {{label}}.",
+        "TODAY": "today ({{date}})",
+        "OTHER_DATE": "the other date"
+    },
+    "FILE": {
+        "CHOOSE": "Choose your file or drag file",
+        "RELEASE": "Release to drop",
+        "MAX_SIZE": "Max size limit: {{size}} MB",
+        "TOO_LARGE": "File must be less than {{size}} MB",
+        "DOWNLOAD_ERROR": "Error downloading file",
+        "REMOVE": "Remove uploaded file"
+    },
+    "GROUP": {
+        "ITEM": "Item",
+        "ADD": "Add {{item}}",
+        "ADD_ANOTHER": "Add another {{item}}",
+        "REMOVE": "Remove",
+        "REMOVE_LABEL": "Remove {{header}}",
+        "ENTRIES_one": "{{count}} entry",
+        "ENTRIES_other": "{{count}} entries",
+        "ENTRIES_RANGE": "{{min}}–{{max}} entries",
+        "ADDED": "{{count}} added",
+        "MAX_ITEMS_one": "Please keep at most {{count}} entry.",
+        "MAX_ITEMS_other": "Please keep at most {{count}} entries.",
+        "MIN_ITEMS_one": "Please add at least {{count}} entry to continue.",
+        "MIN_ITEMS_other": "Please add at least {{count}} entries to continue."
     }
 }

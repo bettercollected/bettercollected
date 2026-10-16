@@ -30,5 +30,89 @@
     },
     "QUESTION": {
         "WHY_WE_ASK": "Waarom we dit vragen:"
+    },
+    "NAV": {
+        "BACK": "Vorige",
+        "PAGE_OF": "Pagina {{current}} van {{total}}",
+        "CONTINUE": "Volgende",
+        "SUBMIT": "Antwoorden versturen",
+        "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer."
+    },
+    "CONSENT": {
+        "SHARE_EMAIL": "Mijn e-mailadres delen met wie dit formulier verzamelt",
+        "SHARE_EMAIL_HINT": "{{email}} — zet je geen vinkje, dan blijven je antwoorden anoniem."
+    },
+    "WELCOME": {
+        "START": "Beginnen",
+        "VERIFY_AND_START": "Bevestigen en beginnen",
+        "VERIFY_REQUIRED": "Om dit formulier in te vullen, bevestig je eerst wie je bent.",
+        "VERIFY_NOW": "Nu bevestigen",
+        "VIEW_LATER": "Wil je je antwoorden later terugzien?",
+        "VERIFY_EMAIL": "Bevestig je e-mailadres",
+        "PRIVATE": "Besloten formulier",
+        "PRIVATE_TEXT": "Alleen bepaalde mensen kunnen dit formulier invullen. Bevestig wie je bent om verder te gaan.",
+        "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier."
+    },
+    "ACCOUNT": {
+        "LABEL": "Account",
+        "TRACK": "Wil je je antwoorden later nog kunnen bekijken?",
+        "SIGN_IN": "Inloggen",
+        "SWITCH": "Ander account gebruiken"
+    },
+    "ENDING": {
+        "TITLE": "Bedankt! 🎉",
+        "SUBMITTED": "Je antwoorden zijn verstuurd.",
+        "SUBMITTED_ANONYMOUS": "Je antwoorden zijn anoniem verstuurd.",
+        "SUBMISSION_NUMBER": "Inzendnummer",
+        "ALL_SUBMISSIONS": "Al je inzendingen bekijken",
+        "SUBMISSION_NUMBER_HINT": "Met dit nummer kun je je antwoorden bekijken of laten verwijderen.",
+        "COPY": "Inzendnummer kopiëren",
+        "COPIED": "Gekopieerd"
+    },
+    "FIELD": {
+        "REQUIRED": "(verplicht)",
+        "OPTIONAL": "Niet verplicht",
+        "ANSWER_REQUIRED": "Beantwoord deze vraag om verder te gaan.",
+        "YES": "Ja",
+        "NO": "Nee",
+        "OTHER": "Anders",
+        "OTHER_CHOICE": "Anders, namelijk",
+        "SELECT_OPTION": "Kies een antwoord",
+        "PLACEHOLDER_ANSWER": "Antwoord",
+        "PLACEHOLDER_EMAIL": "naam@voorbeeld.nl",
+        "RATE": "{{value}} van {{total}} geven"
+    },
+    "DATE": {
+        "PICK": "Kies een datum",
+        "INVALID": "Kies een geldige datum.",
+        "MUST_BE_before": "Moet vóór {{label}} zijn.",
+        "MUST_BE_after": "Moet na {{label}} zijn.",
+        "MUST_BE_on_or_before": "Moet op of vóór {{label}} zijn.",
+        "MUST_BE_on_or_after": "Moet op of na {{label}} zijn.",
+        "TODAY": "vandaag ({{date}})",
+        "OTHER_DATE": "de andere datum"
+    },
+    "FILE": {
+        "CHOOSE": "Kies een bestand of sleep het hierheen",
+        "RELEASE": "Laat los om het bestand toe te voegen",
+        "MAX_SIZE": "Maximaal {{size}} MB",
+        "TOO_LARGE": "Het bestand moet kleiner zijn dan {{size}} MB",
+        "DOWNLOAD_ERROR": "Het bestand kon niet worden gedownload",
+        "REMOVE": "Bestand verwijderen"
+    },
+    "GROUP": {
+        "ITEM": "Item",
+        "ADD": "{{item}} toevoegen",
+        "ADD_ANOTHER": "Nog een {{item}} toevoegen",
+        "REMOVE": "Verwijderen",
+        "REMOVE_LABEL": "{{header}} verwijderen",
+        "ENTRIES_one": "{{count}} item",
+        "ENTRIES_other": "{{count}} items",
+        "ENTRIES_RANGE": "{{min}}–{{max}} items",
+        "ADDED": "{{count}} toegevoegd",
+        "MAX_ITEMS_one": "Vul er maximaal {{count}} in.",
+        "MAX_ITEMS_other": "Vul er maximaal {{count}} in.",
+        "MIN_ITEMS_one": "Vul er minimaal {{count}} in om verder te gaan.",
+        "MIN_ITEMS_other": "Vul er minimaal {{count}} in om verder te gaan."
     }
 }

@@ -36,6 +36,23 @@ export function getPlaceholderValueForField(fieldType?: FieldTypes) {
     }
 }
 
+/**
+ * The placeholder a respondent sees when the creator set none, in the
+ * respondent's language (`t` from useRespondentLanguage). Number, link and
+ * phone examples read the same in every language.
+ */
+export function getRespondentPlaceholder(fieldType: FieldTypes | undefined, t: (key: string) => string): string {
+    switch (fieldType) {
+        case FieldTypes.SHORT_TEXT:
+        case FieldTypes.LONG_TEXT:
+            return t('FIELD.PLACEHOLDER_ANSWER');
+        case FieldTypes.EMAIL:
+            return t('FIELD.PLACEHOLDER_EMAIL');
+        default:
+            return getPlaceholderValueForField(fieldType);
+    }
+}
+
 const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
 
 /** The respondent-answered questions of a v2 form (internal fields excluded — see utils/internal-fields). */

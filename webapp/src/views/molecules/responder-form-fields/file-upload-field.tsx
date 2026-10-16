@@ -12,6 +12,10 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { downloadFile, formatFileSizeMb, generateFileMetaData } from '@app/utils/file-utils';
 import DeleteIcon from '@Components/icons/delete';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+
+/** Largest file a respondent can upload, in MB. */
+const MAX_FILE_MB = 25;
 import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 
 import { selectForm } from '@app/store/forms/slice';
@@ -30,6 +34,7 @@ const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
 
 export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
     const { toast } = useToast();
+    const { t } = useRespondentLanguage();
     const { formResponse, addFieldFileAnswer, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
 
@@ -61,8 +66,8 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
 
     const updateAndDispatchFile = (file: File) => {
         const fMetaData = generateFileMetaData(file, fileMetaData.id);
-        if (fMetaData.size! > 25.0) {
-            toast({ description: 'File must be less than 25 MB', variant: 'destructive' });
+        if (fMetaData.size! > MAX_FILE_MB) {
+            toast({ description: t('FILE.TOO_LARGE', { size: MAX_FILE_MB }), variant: 'destructive' });
             return;
         }
         setFileMetadata({ ...fMetaData });
@@ -92,7 +97,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
         try {
             ans?.file_metadata?.url && downloadFile(ans?.file_metadata?.url, fileMetaData.name ?? fileMetaData.id);
         } catch (err) {
-            toast({ description: 'Error downloading file', variant: 'destructive' });
+            toast({ description: t('FILE.DOWNLOAD_ERROR'), variant: 'destructive' });
         }
     };
     const handleDeleteFile = () => {
@@ -121,7 +126,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
 
                 <button
                     type="button"
-                    aria-label="Remove uploaded file"
+                    aria-label={t('FILE.REMOVE')}
                     style={{
                         backgroundColor: theme?.tertiary + '55',
                         color: theme?.primary
@@ -160,9 +165,9 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                             />
                             <input ref={inputFileRef} type="file" id={`${fileMetaData.id}-file-input`} className="hidden" onChange={handleFileInputChange} />
                             <div style={{ color: theme?.secondary }} className="flex w-full flex-col items-center space-y-2 text-sm ">
-                                <span className="font-semibold leading-4">{isDragging ? 'Release to drop' : 'Choose your file or drag file'}</span>
+                                <span className="font-semibold leading-4">{isDragging ? t('FILE.RELEASE') : t('FILE.CHOOSE')}</span>
                                 <span className="text-center text-xs leading-5">
-                                    <span className="block">Max size limit: 25 MB</span>
+                                    <span className="block">{t('FILE.MAX_SIZE', { size: MAX_FILE_MB })}</span>
                                 </span>
                             </div>
                         </div>

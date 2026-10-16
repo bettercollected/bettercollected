@@ -8,10 +8,13 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import QuestionWrapper from './question-wrapper';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+
 export default function MultipleChoiceWithMultipleSelection({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     const { addFieldChoicesAnswer, addOtherChoicesAnswer, formResponse, removeAnswer } = useFormResponse();
 
     const { theme } = useFormState();
+    const { t } = useRespondentLanguage();
 
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
@@ -59,7 +62,8 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
                     <FieldInput
                         type="text"
                         value={otherOption}
-                        placeholder={`Other Choice`}
+                        placeholder={t('FIELD.OTHER_CHOICE')}
+                        aria-label={t('FIELD.OTHER')}
                         onChange={(e: any) => {
                             if (!e.target.value && !formResponse.answers[field.id]) {
                                 removeAnswer(field.id);

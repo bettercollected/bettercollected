@@ -8,6 +8,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import Choice from '@app/views/atoms/choice';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -18,6 +19,7 @@ import QuestionWrapper from './question-wrapper';
 export default function DropDownField({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { theme } = useFormState();
+    const { t } = useRespondentLanguage();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
 
     const form = useAppSelector(selectForm);
@@ -74,7 +76,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                         style={{ ...getTextStyle(), ['--hover-border' as string]: theme?.primary ?? '#101828' }}
                         className="flex w-full cursor-pointer items-center justify-between gap-4 rounded-md border bg-white px-4 py-3 text-left text-base outline-hidden transition duration-150 hover:border-(--hover-border)! focus-visible:ring-2 lg:text-lg"
                     >
-                        <span className="truncate">{choiceValue ? choiceValue : 'Select an option'}</span>
+                        <span className="truncate">{choiceValue ? choiceValue : t('FIELD.SELECT_OPTION')}</span>
                         <ChevronDown className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                     </button>
                 </CollapsibleTrigger>

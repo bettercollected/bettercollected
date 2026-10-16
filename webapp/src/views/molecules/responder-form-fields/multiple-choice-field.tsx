@@ -7,11 +7,13 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import QuestionWrapper from './question-wrapper';
 
 const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) => {
     const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
+    const { t } = useRespondentLanguage();
 
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
@@ -43,7 +45,8 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                     <FieldInput
                         type="text"
                         value={otherOption}
-                        placeholder={`Other`}
+                        placeholder={t('FIELD.OTHER')}
+                        aria-label={t('FIELD.OTHER')}
                         onChange={(e: any) => {
                             if (!e.target.value) {
                                 removeAnswer(field.id);

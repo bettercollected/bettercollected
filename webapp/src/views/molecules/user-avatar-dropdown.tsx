@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { ChevronDown, UserRoundPlus } from 'lucide-react';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { cn } from '@app/shadcn/util/lib';
@@ -17,12 +18,13 @@ import { SwitchIcon } from '@Components/icons/switch-icon';
 export default function UserAvatarDropDown({ responderSignInUrl = '', disabled = false }: { responderSignInUrl?: string; disabled?: boolean }) {
     const [popOverOpen, setPopoverOpen] = useState(false);
     const authState = useAppSelector(selectAuth);
+    const { t } = useRespondentLanguage();
 
     return (
         <Popover open={popOverOpen} onOpenChange={setPopoverOpen}>
             {/* Pinned to the form's side gutter (form-column.ts); the welcome
                 and ending pages leave room for it above their titles. */}
-            <PopoverTrigger className="absolute right-5 top-4 z-10 sm:right-8" aria-label="Account">
+            <PopoverTrigger className="absolute right-5 top-4 z-10 sm:right-8" aria-label={t('ACCOUNT.LABEL')}>
                 <div className={cn('flex cursor-pointer  items-center rounded-full p-1 transition', popOverOpen ? 'bg-black-400' : 'bg-white/50')}>
                     <UserAvatar authState={authState} />
                     <ChevronDown className={cn(' text-black-600 pt-1 transition', !disabled && popOverOpen && 'rotate-180')} />
@@ -34,10 +36,10 @@ export default function UserAvatarDropDown({ responderSignInUrl = '', disabled =
                         <SwitchUserComponent authState={authState} responderSignInUrl={responderSignInUrl}></SwitchUserComponent>
                     ) : (
                         <span>
-                            Do you wish to track your form response for future reference? <br />
+                            {t('ACCOUNT.TRACK')} <br />
                             <span>
                                 <Link href={responderSignInUrl} className="text-blue-500 ">
-                                    Sign In
+                                    {t('ACCOUNT.SIGN_IN')}
                                 </Link>
                             </span>
                         </span>
@@ -51,6 +53,7 @@ export default function UserAvatarDropDown({ responderSignInUrl = '', disabled =
 const SwitchUserComponent = ({ authState, responderSignInUrl }: { authState: UserStatus; responderSignInUrl: string }) => {
     const router = useRouter();
     const [trigger] = useLazyLogOutQuery();
+    const { t } = useRespondentLanguage();
     const handleSwitchAccount = () => {
         responderSignInUrl && trigger('').then(() => router.push(responderSignInUrl));
     };
@@ -61,7 +64,9 @@ const SwitchUserComponent = ({ authState, responderSignInUrl }: { authState: Use
                 <UserAvatar authState={authState} />
                 <span className="text-xs">{authState.email}</span>
             </div>
-            <SwitchIcon onClick={handleSwitchAccount} />
+            <button type="button" aria-label={t('ACCOUNT.SWITCH')} title={t('ACCOUNT.SWITCH')} onClick={handleSwitchAccount}>
+                <SwitchIcon aria-hidden="true" />
+            </button>
         </div>
     );
 };

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
 
 import { FormTheme } from '@app/constants/theme';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -16,6 +17,16 @@ import { getFlowSessionId } from '@app/utils/flow-session';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
+/**
+ * The start button's text: the creator's own wording as written, else the
+ * default in the respondent's language. A button left at the default
+ * ("Start") counts as the default.
+ */
+export function startButtonText(creatorText: string | undefined, translatedDefault: string): string {
+    const text = creatorText?.trim();
+    return text && text !== 'Start' ? text : translatedDefault;
+}
+
 export default function WelcomePage({
     isPreviewMode,
     welcomePageData,
@@ -26,6 +37,7 @@ export default function WelcomePage({
     theme?: FormTheme;
 }>) {
     const standardForm = useAppSelector(selectResponderForm);
+    const { t } = useRespondentLanguage();
     const { nextSlide } = useResponderState();
     const router = useRouter();
     const pathname = usePathname();
@@ -71,7 +83,7 @@ export default function WelcomePage({
                 <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
                     {!standardForm?.settings?.private && !auth.id && (
                         <p className="text-base text-black-700">
-                            {standardForm?.settings?.requireVerifiedIdentity ? <>To fill this form you need to verify your identity. {verifyLink('Verify Now')}</> : <>To view your response later {verifyLink('Verify Email')}</>}
+                            {standardForm?.settings?.requireVerifiedIdentity ? <>{t('WELCOME.VERIFY_REQUIRED')} {verifyLink(t('WELCOME.VERIFY_NOW'))}</> : <>{t('WELCOME.VIEW_LATER')} {verifyLink(t('WELCOME.VERIFY_EMAIL'))}</>}
                         </p>
                     )}
 
@@ -83,17 +95,17 @@ export default function WelcomePage({
                                         <div className="rounded-full bg-black-900 p-2 text-white">
                                             <Lock width={24} height={24} className="text-white" />
                                         </div>
-                                        <span>Private Form</span>
+                                        <span>{t('WELCOME.PRIVATE')}</span>
                                     </div>
-                                    <p className="max-w-[339px] text-xs text-black-700">This form is limited to certain people only. Please verify your identity to get access.</p>
+                                    <p className="max-w-[339px] text-xs text-black-700">{t('WELCOME.PRIVATE_TEXT')}</p>
                                     <Link href={isPreviewMode ? '' : responderSignInUrl} className="font-medium text-black-800 underline">
                                         <Button className="mt-2 rounded-[8px] px-6" size="medium">
-                                            Verify now
+                                            {t('WELCOME.VERIFY_NOW')}
                                         </Button>
                                     </Link>
                                 </div>
                             ) : (
-                                <>{standardForm?.unauthorized && <p>You do not have access to this form. Switch to a different account with access to continue. If this is a mistake contact the owner of this form.</p>}</>
+                                <>{standardForm?.unauthorized && <p>{t('WELCOME.NO_ACCESS')}</p>}</>
                             )}
                         </>
                     )}
@@ -115,7 +127,7 @@ export default function WelcomePage({
                                     }
                                 }}
                             >
-                                {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? 'Verify and Start' : standardForm?.welcomePage?.buttonText || 'Start'}
+                                {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? t('WELCOME.VERIFY_AND_START') : startButtonText(standardForm?.welcomePage?.buttonText, t('WELCOME.START'))}
                             </Button>
                         </div>
                     )}

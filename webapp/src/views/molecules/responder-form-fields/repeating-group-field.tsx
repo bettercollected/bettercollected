@@ -5,6 +5,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { v4 } from 'uuid';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -51,6 +52,7 @@ function GroupItem({
 }) {
     const { formResponse } = useFormResponse();
     const { theme } = useFormState();
+    const { t } = useRespondentLanguage();
     const children = getGroupChildren(group);
     const childIds = children.map((c) => c.id).join('|');
     // Stable per item, so the scoped answers view is memoised correctly.
@@ -65,9 +67,9 @@ function GroupItem({
                     {header}
                 </h3>
                 {removable && (
-                    <button type="button" onClick={onRemove} className="text-black-700 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-black/5" aria-label={`Remove ${header}`}>
+                    <button type="button" onClick={onRemove} className="text-black-700 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-black/5" aria-label={t('GROUP.REMOVE_LABEL', { header })}>
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        Remove
+                        {t('GROUP.REMOVE')}
                     </button>
                 )}
             </div>
@@ -98,7 +100,10 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
     const { hiddenValues } = useHiddenFieldValues();
     const { theme } = useFormState();
     const standardForm = useAppSelector(selectForm);
-    const { itemLabel, minItems, maxItems } = getRepeatSettings(field);
+    const { t } = useRespondentLanguage();
+    const { minItems, maxItems } = getRepeatSettings(field);
+    // The creator's item name as written; the default one in the respondent's language.
+    const itemLabel = field.properties?.repeat?.itemLabel?.trim() || t('GROUP.ITEM');
     const answers = formResponse.answers ?? {};
     const count = getDisplayedItemCount(field, answers);
 
@@ -134,7 +139,7 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
     };
 
     const countError = formResponse.invalidFields?.[field.id]?.[0];
-    const errorMessage = countError === 'MAX_ITEMS' ? `Please keep at most ${maxItems} entries.` : countError === 'MIN_ITEMS' ? `Please add at least ${minItems} entries to continue.` : '';
+    const errorMessage = countError === 'MAX_ITEMS' ? t('GROUP.MAX_ITEMS', { count: maxItems }) : countError === 'MIN_ITEMS' ? t('GROUP.MIN_ITEMS', { count: minItems }) : '';
     const pipeContext = { slides: standardForm?.fields, answers, hiddenValues };
     const addable = canAddItem(field, answers);
     const removable = canRemoveItem(field, answers);
@@ -143,7 +148,7 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
         <QuestionWrapper field={field} errorMessage={errorMessage}>
             <div className="mt-2 flex flex-col gap-4">
                 {itemKeys.map((key, index) => (
-                    <GroupItem key={key} group={field} index={index} header={getItemHeader(field, index, pipeContext)} removable={removable} onRemove={() => remove(index)} renderChild={renderChild} />
+                    <GroupItem key={key} group={field} index={index} header={getItemHeader(field, index, pipeContext, itemLabel)} removable={removable} onRemove={() => remove(index)} renderChild={renderChild} />
                 ))}
                 <div className="flex flex-wrap items-center gap-3">
                     <button
@@ -154,10 +159,10 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
                         style={{ borderColor: theme?.secondary ?? '#1649E2', color: theme?.secondary ?? '#1649E2' }}
                     >
                         <Plus className="h-4 w-4" aria-hidden="true" />
-                        {count ? `Add another ${itemLabel}` : `Add ${itemLabel}`}
+                        {count ? t('GROUP.ADD_ANOTHER', { item: itemLabel }) : t('GROUP.ADD', { item: itemLabel })}
                     </button>
                     <span className="text-black-700 text-xs" aria-live="polite">
-                        {minItems === maxItems ? `${maxItems} ${maxItems === 1 ? 'entry' : 'entries'}` : `${minItems}–${maxItems} entries`} · {count} added
+                        {minItems === maxItems ? t('GROUP.ENTRIES', { count: maxItems }) : t('GROUP.ENTRIES_RANGE', { min: minItems, max: maxItems })} · {t('GROUP.ADDED', { count })}
                     </span>
                 </div>
             </div>

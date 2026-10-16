@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Copy } from 'lucide-react';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
@@ -20,6 +21,7 @@ import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/view
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const { toast } = useToast();
+    const { t } = useRespondentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
@@ -30,7 +32,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const { hiddenValues } = useHiddenFieldValues();
 
     function getThankYouMessage() {
-        const message = standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : formResponse.anonymize ? 'Your response is anonymously submitted.' : 'Your response is successfully submitted.';
+        const message = standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : formResponse.anonymize ? t('ENDING.SUBMITTED_ANONYMOUS') : t('ENDING.SUBMITTED');
         // Thank-you text supports text-token piping: "Thanks, {{field:<id>}}!"
         return resolvePipesInText(message, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues });
     }
@@ -39,14 +41,14 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     // greeting stays as the default for forms that never set one.
     function getThankYouTitle() {
         const title = standardForm?.thankyouPage?.[0]?.title;
-        if (!title) return 'Thank You! 🎉';
+        if (!title) return t('ENDING.TITLE');
         return resolvePipesInText(title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues });
     }
 
     const handleOnCopy = (copyValue: string) => {
         copyToClipboard(copyValue);
         toast({
-            description: 'Copied'
+            description: t('ENDING.COPIED')
         });
     };
     // Forms created outside the builder (API/MCP) may have no thank-you page
@@ -71,20 +73,24 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                 {auth.id && standardForm.settings?.showSubmissionNumber && (
                     <div className="p2-new mt-8 flex w-full max-w-[400px] flex-col gap-2 rounded-[8px] bg-white/50 p-4 text-left">
                         <div className="flex flex-row justify-between">
-                            <span className="p3-new text-black-800">Submission Number</span>
+                            <span className="p3-new text-black-800">{t('ENDING.SUBMISSION_NUMBER')}</span>
                             <Link href={isPreviewMode ? '' : submissionUrl} className="text-blue-500">
-                                See all your submissions
+                                {t('ENDING.ALL_SUBMISSIONS')}
                             </Link>
                         </div>
-                        <span className="p4-new text-black-700">Use this submission number to view or request deletion of this response.</span>
+                        <span className="p4-new text-black-700">{t('ENDING.SUBMISSION_NUMBER_HINT')}</span>
                         <div className="flex justify-between rounded-[8px] bg-black-100/50 px-4 py-2">
                             <span className="p4-new text-black-700">{responderId}</span>
-                            <Copy
-                                className="h-4 w-4 cursor-pointer text-brand-500"
+                            <button
+                                type="button"
+                                aria-label={t('ENDING.COPY')}
+                                className="cursor-pointer text-brand-500"
                                 onClick={() => {
                                     responderId && handleOnCopy(responderId);
                                 }}
-                            />
+                            >
+                                <Copy className="h-4 w-4" aria-hidden="true" />
+                            </button>
                         </div>
                     </div>
                 )}
