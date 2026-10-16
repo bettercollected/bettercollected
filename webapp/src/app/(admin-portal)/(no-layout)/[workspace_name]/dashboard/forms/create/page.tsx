@@ -75,7 +75,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
         const isMultiPage = type === 'Modern Form';
         resetFields();
         // New forms default to a calm, single-column layout with no decorative
-        // image (see Design-Language.md §3). Creators opt into the image / split
+        // image (see DESIGN.md §3). Creators opt into the image / split
         // layout per page via the Layout panel.
         const updatedForm = { ...defaultForm };
         const formBody = { ...updatedForm, builderVersion: 'v2', isMultiPage };

@@ -75,6 +75,21 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed
 
+- **The webapp adopts the Sireto design system** (see `DESIGN.md`): one blue
+  ramp around Sireto blue `#123FC9` with a `#1649E2` primary button face, one
+  neutral ramp (the duplicate `new-*` colours, the old `#0764EB` / `#2456CC`
+  blues, pink and orange decoration are gone), Instrument Sans and JetBrains
+  Mono self-hosted through `next/font` (the five Google Fonts imports are
+  removed, so no page contacts Google's font servers), a 6px radius, hairlines
+  instead of decorative shadows with one shadow left for floating layers, a 2px
+  Sireto-blue focus outline on every interactive element, the "key edge" on
+  buttons, mono type for IDs, slugs, URLs and keys, and stronger borders on
+  controls (3:1). The Default form theme is retuned (`#1649E2` / `#101828` /
+  `#F5F7FB`); forms keep the theme colours stored on them. Public and auth
+  pages carry the Sireto trademark line. Respondent field borders now rest on
+  the theme's border colour (tertiary) in every theme, and the form's "Back"
+  link uses the theme's ink, which brings it from 4.09:1 to AA on tinted
+  themes.
 - **Forms and responses are now unlimited on every plan.** Removed the
   per-workspace 100-form cap for non-Pro accounts (backend
   `check_if_user_can_import_more_forms` no longer gates); responses were
@@ -126,7 +141,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   confirmation; the canvas gained Fit/100% zoom; the properties drawer is
   300px with a "‹ Back to page" affordance and Esc-to-deselect; Publish wears
   trust blue and the help button dropped its amber.
-- **Trust & privacy authored in the builder** (Design-Language §4): a new
+- **Trust & privacy authored in the builder** (DESIGN.md §4): a new
   drawer section sets the form's purpose, plain-words retention, and privacy
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the

@@ -54,7 +54,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                     type: FieldTypes.SLIDE,
                     // Default new pages to a calm single-column layout with no
                     // decorative image. Creators opt into the image / two-column
-                    // split via the Layout panel (see Design-Language.md §3).
+                    // split via the Layout panel (see DESIGN.md §3).
                     properties: {
                         layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
                         fields: [getNewField(field, fieldId, formFields.length)]

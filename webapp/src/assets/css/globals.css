@@ -18,13 +18,13 @@
 }
 
 html,
-/* Paper mist ground, ink text, 1rem on a 1.55 line (DESIGN.md). */
 body {
     padding: 0;
     margin: 0;
     font-family: var(--font-sans);
 }
 
+/* Paper mist ground, ink text, 1rem on a 1.55 line (DESIGN.md). */
 body {
     background: var(--color-black-100);
     background-color: var(--color-black-100);

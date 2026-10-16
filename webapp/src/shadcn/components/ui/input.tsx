@@ -19,7 +19,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
             style={{
                 // The answer is the responder's own words — it wears ink (theme
                 // primary), never the accent/action colour. 16px floor, and never
-                // larger than the 24px question (Design-Language §2).
+                // larger than the 24px question (DESIGN.md, Type).
                 color: theme?.primary
             }}
             type={type}

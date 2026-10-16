@@ -16,7 +16,7 @@ import { MAX_RETENTION_DAYS, describeRetention, retentionDate, retentionDays, re
 type RetentionKind = 'forever' | 'days' | 'date';
 
 /**
- * Trust & privacy, authored where the form is built (Design-Language §4):
+ * Trust & privacy, authored where the form is built (DESIGN.md §4):
  * why the data is collected, how long it's kept, and where the policy lives.
  * Feeds the responder-facing trust strip on every step — the live preview
  * below shows exactly what responders will read.

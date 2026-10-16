@@ -37,7 +37,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
     const { closeModal } = useFullScreenModal();
 
     // One calm treatment for every card — the pastel-rainbow tints were the
-    // "playful" palette the trust language retires (Design-Language §1).
+    // "playful" palette the trust language retires (DESIGN.md §1).
     // Unlimited forms is NOT listed — forms and responses are free for
     // everyone, so it can't be a Pro differentiator.
     const features = [
@@ -76,7 +76,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                 {/* One honest claim, stated once. The old copy said "is Free"
                     up top and "Free for 90 days!" at the bottom — but the
                     upgrade has no expiry in code, so the 90-day line was a
-                    surprise waiting to be discovered (Design-Language §5). */}
+                    surprise waiting to be discovered (DESIGN.md §5). */}
                 <div className="h2-new mb-2 text-center">
                     bettercollected PRO is <span className="text-brand-500">currently free</span>
                 </div>

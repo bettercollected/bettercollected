@@ -285,7 +285,7 @@ const HeadingButtons = ({ editor }: { editor: Editor }) => (
 
 const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) => {
     const editorRef = useCurrentEditor();
-    // Constrain label sizing to the type scale (Design-Language.md §2) so creators
+    // Constrain label sizing to the type scale (DESIGN.md §2) so creators
     // stay on a coherent hierarchy: Meta 12 · Helper/Consent 15 · Body/Input 16 ·
     // Question 24 · Display 32. No off-scale steps that break the reading rhythm.
     const FontSizes = [12, 15, 16, 24, 32];

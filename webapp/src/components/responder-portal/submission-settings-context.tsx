@@ -21,7 +21,7 @@ export default function SubmissionSettingsContent() {
 
     return (
         // The deletion right, stated in plain words and kept calm — this is a
-        // trust surface, not a danger zone (Design-Language §4/§5).
+        // trust surface, not a danger zone (DESIGN.md §4/§5).
         <div className="flex max-w-[640px] flex-col gap-4">
             <div className="flex items-start gap-2 rounded-lg bg-[#F4F7FD] px-3 py-2.5">
                 <Shield className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
