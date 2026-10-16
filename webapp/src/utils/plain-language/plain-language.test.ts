@@ -132,6 +132,10 @@ describe('jargon', () => {
             ['in order to', 'to']
         ]);
         expect(checkJargon('UTILISE the form prior to Monday.', ['en']).map((hint) => hint.suggestion)).toEqual(['use', 'before']);
+        expect(checkJargon('We can assist if you provide us with your details.', ['en']).map((hint) => [hint.match, hint.suggestion])).toEqual([
+            ['assist', 'help'],
+            ['provide us with', 'give us, send us']
+        ]);
     });
 
     it('only matches whole words', () => {
