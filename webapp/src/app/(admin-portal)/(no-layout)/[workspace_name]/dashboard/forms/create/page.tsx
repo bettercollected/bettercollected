@@ -199,7 +199,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapper
             <span className="p3-new mb-1 mt-2 text-black-800">{content}</span>
             {content !== 'Import Google Form' && content !== 'Import a PDF form' && <OnlyAvailableInDesktopVersion />}
             {addSoon && <SoonComponent msg={soonMsg} />}
-            {content === 'Start with AI' && <div className="absolute -right-0.5 -top-0.5 hidden rounded-lg bg-new-pink px-2 py-1 text-xs font-semibold text-white lg:flex">beta</div>}
+            {content === 'Start with AI' && <div className="absolute right-2 top-2 hidden rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-600 lg:flex">beta</div>}
         </div>
     );
 };

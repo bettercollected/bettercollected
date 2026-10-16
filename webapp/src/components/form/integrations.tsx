@@ -63,8 +63,8 @@ export default function FormIntegrations() {
                                                             (parameter) =>
                                                                 parameter?.required && (
                                                                     <div key={parameter.name} className="p2-new mt-4 flex items-center gap-2 text-sm">
-                                                                        <div className="whitespace-nowrap text-sm font-bold">{parameter.name}</div>:
-                                                                        <div className="text-black-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-sm lg:max-w-md">
+                                                                        <div className="whitespace-nowrap font-mono text-[13px] font-semibold">{parameter.name}</div>:
+                                                                        <div className="text-black-700 font-mono text-[13px] max-w-xs overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-sm lg:max-w-md">
                                                                             {form?.parameters?.[integration.id]?.find((param: any) => param.name === parameter.name)?.value || 'N/A'}
                                                                         </div>
                                                                     </div>

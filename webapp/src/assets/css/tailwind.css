@@ -335,12 +335,10 @@
 
 
     /* Typography */
-    --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    /* Instrument Sans and JetBrains Mono are self-hosted by next/font (src/app/layout.tsx). */
+    --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --font-comfortaa: Comfortaa, sans-serif;
-    --font-inter: var(--font-public-sans), Open Sans, sans-serif;
-    --font-roboto: var(--font-public-sans), Open Sans, sans-serif;
+    --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --text-xs: 0.75rem;
     --text-xs--line-height: 1rem;
     --text-sm: 0.875rem;
@@ -388,6 +386,10 @@
     --leading-6: 1.5rem;
     --leading-7: 1.75rem;
     --leading-8: 2rem;
+    /* Page titles (DESIGN.md, Type): tighter as they get larger. */
+    --tracking-title-sm: -0.018em;
+    --tracking-title: -0.022em;
+    --tracking-title-lg: -0.028em;
     --leading-9: 2.25rem;
     --leading-10: 2.5rem;
     --leading-none: 1;
@@ -838,7 +840,7 @@
  */
 html,
 body {
-    @apply bg-brand-100 font-inter dark:bg-dark antialiased dark:text-white;
+    @apply bg-black-100 font-sans dark:bg-dark antialiased dark:text-white;
 }
 
 .dynamic-html h6 {
@@ -907,32 +909,32 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 
 .h1 {
     line-height: 130px;
-    @apply text-black-900 text-[96px] font-semibold tracking-[-1%];
+    @apply text-black-900 text-[96px] font-semibold tracking-title-lg;
 }
 
 .h2 {
     line-height: 72px;
-    @apply text-black-900 text-[48px] font-semibold;
+    @apply text-black-900 text-[48px] font-semibold tracking-title-lg;
 }
 
 .h2-new {
     line-height: 36px;
-    @apply text-black-900 text-[24px] font-semibold;
+    @apply text-black-900 text-[24px] font-semibold tracking-title;
 }
 
 .h3 {
     line-height: 54px;
-    @apply text-black-900 text-[36px] font-semibold;
+    @apply text-black-900 text-[36px] font-semibold tracking-title-lg;
 }
 
 .h3-new {
     line-height: 30px;
-    @apply text-black-900 text-[20px] font-semibold;
+    @apply text-black-900 text-[20px] font-semibold tracking-title-sm;
 }
 
 .h4 {
     line-height: 36px;
-    @apply text-black-900 text-[24px] font-semibold;
+    @apply text-black-900 text-[24px] font-semibold tracking-title;
 }
 
 .h4-new {
@@ -942,7 +944,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 
 .h5 {
     line-height: 30px;
-    @apply text-black-900 text-[20px] font-semibold;
+    @apply text-black-900 text-[20px] font-semibold tracking-title-sm;
 }
 
 .h5-new {
@@ -958,7 +960,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 .sh1 {
     leading-trim: both;
     line-height: 30px;
-    @apply text-black-900 text-[20px] font-semibold;
+    @apply text-black-900 text-[20px] font-semibold tracking-title-sm;
 }
 
 .sh2 {
@@ -1006,11 +1008,12 @@ input.spin-button-hidden::-webkit-inner-spin-button {
     @apply text-black-900 text-[14px] font-medium;
 }
 
-p {
-    leading-trim: both;
-    line-height: 30px;
-    @apply text-black-900 text-[18px] font-normal;
-}
+/*
+ * Paragraphs inherit: the body sets 1rem on a 1.55 line in ink (globals.css),
+ * and a container's own size wins inside it (the builder's 24px question
+ * titles are TipTap paragraphs). Running text that should read as body copy
+ * takes `text-body` (#5A6478) explicitly — DESIGN.md, Type.
+ */
 
 .p1 {
     @apply text-[16px] font-normal;
@@ -1243,7 +1246,6 @@ p {
 }
 
 .heading4 {
-    font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 600;
     font-size: 24px;

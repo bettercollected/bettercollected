@@ -71,11 +71,11 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
             <div className={'flex flex-col gap-2 max-w-[660px]!'}>
                 <h1 className={'h4-new'}>{t(formPage.linksSlugEnterSlug)}</h1>
                 <p className={'text-sm font-normal text-black-700'}>{t(formPage.linksSlugAvoidUsing)}</p>
-                <p className={'text-sm font-normal text-black-700'}>
+                <p className={'font-mono text-[13px] font-normal text-black-700'}>
                     {' '}
                     {link}/<span className="text-brand-600">{slug}</span>
                 </p>
-                <AppInput value={slug} onChange={(event) => handleOnchange(event)} className="w-full" />
+                <AppInput value={slug} onChange={(event) => handleOnchange(event)} className="w-full font-mono" />
                 {!slug.match(slugRegex) && isError && <p className="body4 text-red-500! h-[10px]">{t(validationMessage.slug)}</p>}
             </div>
             <Button type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant="secondary">

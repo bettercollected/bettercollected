@@ -54,7 +54,7 @@ export default function FormPublishedModal(props: any) {
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div className="border-black-300 bg-black-100 flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3.5 py-3">
-                    <span className="text-black-800 min-w-0 flex-1 truncate text-sm" title={shareUrl}>
+                    <span className="text-black-800 min-w-0 flex-1 truncate font-mono text-[13px]" title={shareUrl}>
                         {shareUrl}
                     </span>
                     <a

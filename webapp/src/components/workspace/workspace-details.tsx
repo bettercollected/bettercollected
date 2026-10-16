@@ -33,7 +33,7 @@ export default function WorkspaceDetails({ showUrlRow = true }: { showUrlRow?: b
                         toast({ description: 'Copied' });
                     }}
                 >
-                    <span className="p2-new text-black-700">{getWorkspaceShareURL(workspace)}</span>
+                    <span className="text-black-700 font-mono text-[13px]">{getWorkspaceShareURL(workspace)}</span>
                     <Copy className="text-black-700" />
                 </div>
                 <div className="flex gap-2 md:gap-6">
