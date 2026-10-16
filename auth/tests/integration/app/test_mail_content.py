@@ -256,3 +256,35 @@ def test_otp_send_needs_no_workspace_values(app_runner):
         )
     assert response.status_code == 200, response.text
     assert send.await_args.kwargs["workspace_title"] is None
+
+
+class TestMailBranding:
+    """Mails load no web fonts (a font CDN would learn who opened the mail),
+    carry the Sireto line and set the sign-in code in a monospace stack."""
+
+    CONTEXT = {
+        "verification_code.html": dict(
+            otp="482913", product="BetterCollected", initial="A"
+        ),
+        "invitation_mail.html": dict(
+            inviter_name="Ann", invitation_link="https://x.example.com", initial="A"
+        ),
+        "submission_update.html": dict(form_title="Form", link="https://x.example.com"),
+    }
+
+    @pytest.mark.parametrize("template", sorted(CONTEXT))
+    def test_no_font_cdn_and_sireto_footer(self, template):
+        body = mail_service.render(template, **self.CONTEXT[template])
+        assert "googleapis" not in body and "gstatic" not in body
+        assert "@import" not in body
+        assert '<a href="https://sireto.com"' in body
+        assert "A product of Sireto B.V.</a>" in body
+        assert "Sireto&reg; is a registered trademark of Sireto B.V." in body
+
+    def test_code_is_set_in_monospace(self):
+        body = mail_service.render(
+            "verification_code.html", **self.CONTEXT["verification_code.html"]
+        )
+        code = re.search(r'<span style="([^"]*)">482913</span>', body)
+        assert code and "'JetBrains Mono'" in code.group(1)
+        assert "letter-spacing" in code.group(1)

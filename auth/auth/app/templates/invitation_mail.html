@@ -10,29 +10,26 @@
     <!--<![endif]-->
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
-          rel="stylesheet"/>
     <style type="text/css">
         #outlook a {
             padding: 0;
         }
 
         * {
-            font-family: 'Inter', Arial, sans-serif !important;
-            --font-sans-serif: 'Inter', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-sans-serif: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             --font-serif: Georgia, Times, serif;
-            --font-mono: Menlo, Courier, monospace;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
 
         html,
         body {
             padding: 0;
             margin: 0;
-            font-family: 'Inter', Arial, sans-serif;
-            --font-sans-serif: 'Inter', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-sans-serif: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             --font-serif: Georgia, Times, serif;
-            --font-mono: Menlo, Courier, monospace;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
 
         table,
@@ -120,8 +117,8 @@
     </style>
 </head>
 
-<body style="word-spacing:normal;background-color:#F2F7FF;">
-<div style="background-color:#F2F7FF;">
+<body style="word-spacing:normal;background-color:#F5F7FB;">
+<div style="background-color:#F5F7FB;">
     <!--[if mso | IE]>
     <table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;"
            width="600">
@@ -144,7 +141,7 @@
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-top:52px;padding-bottom:40px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:30px;font-weight:bold;line-height:1;text-align:center;color:#000000;">
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:30px;font-weight:600;line-height:1;text-align:center;color:#101828;">
                                         <img src="https://s3.eu-central-1.wasabisys.com/bettercollected/public/logo-200-20.png" alt="logo">
                                     </div>
                                 </td>
@@ -163,9 +160,9 @@
        width="600" bgcolor="#ffffff">
     <tr>
         <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-    <div style="background:#ffffff;background-color:#ffffff;margin:0px auto;border-radius:8px;max-width:600px;">
+    <div style="background:#ffffff;background-color:#ffffff;margin:0px auto;border:1px solid #EAECF0;border-radius:6px;max-width:600px;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
-               style="background:#ffffff;background-color:#ffffff;width:100%;border-radius:8px;">
+               style="background:#ffffff;background-color:#ffffff;width:100%;border-radius:6px;">
             <tbody>
             <tr>
                 <td style="direction:ltr;font-size:0px;text-align:center;">
@@ -189,7 +186,7 @@
                                                 {% if image_url %}<img height="60"
                                                      src="{{ image_url }}" alt=""
                                                      style="border:0;border-radius:60px;display:block;outline:none;text-decoration:none;height:60px;width:100%;font-size:13px;"
-                                                     width="60"/>{% else %}<div style="font-family:Inter;font-size:40px;font-weight:400;line-height:60px;text-align:center;color:white;background-color: #0764EB;border-radius: 60px;">
+                                                     width="60"/>{% else %}<div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:40px;font-weight:400;line-height:60px;text-align:center;color:white;background-color: #123FC9;border-radius: 60px;">
                                                     {{ initial }}
                                                 </div>{% endif %}
                                             </td>
@@ -201,17 +198,17 @@
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:16px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:18px;font-weight:600;line-height:1;text-align:center;color:#000000;">
-                                        <span style="color: #212529">{{ inviter_name }}</span>
-                                        <span style="color: #495057">has invited you to</span>
-                                        <span style="color: #212529">{{ workspace_title or "a workspace" }}</span>
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:18px;font-weight:600;line-height:1;text-align:center;color:#101828;">
+                                        <span style="color: #101828">{{ inviter_name }}</span>
+                                        <span style="color: #5A6478">has invited you to</span>
+                                        <span style="color: #101828">{{ workspace_title or "a workspace" }}</span>
                                     </div>
                                 </td>
                             </tr>
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:40px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:16px;font-weight:400;line-height:1;text-align:center;color:#495057;">
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:16px;font-weight:400;line-height:1;text-align:center;color:#5A6478;">
                                         Join workspace and start to collaborate
                                     </div>
                                 </td>
@@ -225,10 +222,10 @@
                                             <tbody>
                                             <tr>
 
-                                                <td align="center" bgcolor="#0764EB" role="presentation"
-                                                    style="border:none;border-radius:4px;cursor:auto;height:63px;mso-padding-alt:10px 25px;background:#0764EB;"
+                                                <td align="center" bgcolor="#1649E2" role="presentation"
+                                                    style="border:none;border-bottom:3px solid #0E2D8F;border-radius:6px;cursor:auto;height:60px;mso-padding-alt:10px 25px;background:#1649E2;"
                                                     valign="middle">
-                                                    <p style="display:inline-block;width:169px;background:#0764EB;color:#ffffff;font-family:Inter;font-size:20px;font-weight:600;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:10px 25px;mso-padding-alt:0px;border-radius:4px;">
+                                                    <p style="display:inline-block;width:169px;background:#1649E2;color:#ffffff;font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:20px;font-weight:600;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:10px 25px;mso-padding-alt:0px;border-radius:6px;">
                                                         Join Workspace </p>
                                                 </td>
                                             </tr>
@@ -240,7 +237,7 @@
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-top:20px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#343A40;">
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#344054;">
                                         This link will expire in 7 days
                                     </div>
                                 </td>
@@ -248,7 +245,7 @@
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-top:40px;padding-bottom:8px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#212529;">
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#101828;">
                                         Efficiently organize, manage and build
                                     </div>
                                 </td>
@@ -256,11 +253,9 @@
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:40px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#000000;">
-                                        <span style="color: #212529">trust with your form submissions.</span>
-                                        <a href="https://bettercollected.com/">
-                                            <span style="color: #0764EB">Learn more</span>
-                                        </a>
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#101828;">
+                                        <span style="color: #101828">trust with your form submissions.</span>
+                                        <a href="https://bettercollected.com/" style="color:#123FC9;text-decoration:underline;"><span style="color: #123FC9">Learn more</span></a>
                                     </div>
                                 </td>
                             </tr>
@@ -295,7 +290,7 @@
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-top:40px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#000000;">
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#5A6478;">
                                         Copyright 2024 BetterCollected, All rights reserved.
                                     </div>
                                 </td>
@@ -303,19 +298,25 @@
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-top:20px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:13px;font-weight:400;line-height:1;text-align:center;color:#000000;">
-                                        <span style="color: #495057">Visit</span>
-                                        <a href="https://bettercollected.com/">
-                                            <span style="color: #0764EB">bettercollected</span>
-                                        </a>
-                                        <span style="color: #495057">for more information</span>
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;font-weight:400;line-height:1;text-align:center;color:#101828;">
+                                        <span style="color: #5A6478">Visit</span>
+                                        <a href="https://bettercollected.com/" style="color:#123FC9;text-decoration:underline;"><span style="color: #123FC9">bettercollected</span></a>
+                                        <span style="color: #5A6478">for more information</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center"
+                                    style="font-size:0px;padding-top:16px;word-break:break-word;">
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:12px;font-weight:400;line-height:18px;text-align:center;color:#667085;">
+                                        <a href="https://sireto.com" style="color:#667085;text-decoration:underline;">A product of Sireto B.V.</a> &middot; Sireto&reg; is a registered trademark of Sireto B.V.
                                     </div>
                                 </td>
                             </tr>
                             <tr>
                                 <td align="center"
                                     style="font-size:0px;padding-top:40px;padding-bottom:148px;word-break:break-word;">
-                                    <div style="font-family:Inter;font-size:15px;font-weight:bold;line-height:1;text-align:center;color:#000000;">
+                                    <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:15px;font-weight:600;line-height:1;text-align:center;color:#101828;">
                                           <img src="https://s3.eu-central-1.wasabisys.com/bettercollected/public/logo-200-20.png" alt="logo">
                                     </div>
                                 </td>

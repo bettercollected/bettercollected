@@ -5,9 +5,6 @@
     <title>Title</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
-          rel="stylesheet"/>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -20,8 +17,8 @@
     <![endif]-->
 </head>
 
-<body>
-<table>
+<body style="margin:0;padding:16px;background-color:#F5F7FB;font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;color:#101828;">
+<table style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;color:#101828;">
     {% if form['cover_image'] %}
         <tr>
             <td>
@@ -36,11 +33,11 @@
             </td>
         </tr>
     {% endif %}
-    <tr style="font-size: 28px; font-weight: bold">
+    <tr style="font-size: 28px; font-weight: 600; color: #101828">
         {{ form['title'] or 'Untitled Form' }}
     </tr>
 
-    <tr style="font-size: 14px;">
+    <tr style="font-size: 14px; color: #5A6478;">
         {{ form['description'] or '' }}
     </tr>
 
@@ -49,12 +46,12 @@
             <td>
                 <div style="display: flex; flex-direction: column">
                     {% if  field["value"] %}
-                        <div style="font-size: 16px; font-weight: bolder">
+                        <div style="font-size: 16px; font-weight: 600; color: #344054">
                             {{ field["value"] }}
                         </div>
                     {% endif %}
                     {% if field["answer"] %}
-                        <div style="border: solid; border: 2px; border-color: black; border-radius: 8px; max-width: 500px; width: 100%; font-weight: normal">
+                        <div style="border: 1px solid #EAECF0; border-radius: 6px; background-color: #ffffff; padding: 12px 16px; max-width: 500px; width: 100%; font-weight: normal">
                             {{ field["answer"] }}
                         </div>
                     {% endif %}
@@ -63,6 +60,12 @@
             </td>
         </tr>
     {% endfor %}
+    <tr>
+        <td style="padding-top: 24px; font-size: 12px; line-height: 18px; color: #667085;">
+            <a href="https://sireto.com" style="color: #667085; text-decoration: underline;">A product of Sireto B.V.</a>
+            &middot; Sireto&reg; is a registered trademark of Sireto B.V.
+        </td>
+    </tr>
 
 </table>
 </body>
