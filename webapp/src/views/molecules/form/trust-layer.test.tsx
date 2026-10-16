@@ -56,6 +56,35 @@ describe('Privacy panel on respondent forms', () => {
         expect(screen.queryByRole('region')).not.toBeInTheDocument();
     });
 
+    it('never opens by default over the primary action, and leaves a respondent-toggled panel alone', () => {
+        setBrowserLanguages(['en']);
+        // A welcome page whose Start button sits 700px down an 860px area: an
+        // open panel (any height, here measured as 0 in jsdom, so force it)
+        // would not leave room.
+        const page = document.createElement('div');
+        page.innerHTML = '<div data-fit-area><div><div data-primary-content><button data-primary-action>Start</button></div></div></div>';
+        document.body.appendChild(page);
+        const content = page.querySelector('[data-primary-content]') as HTMLElement;
+        const action = page.querySelector('[data-primary-action]') as HTMLElement;
+        content.getBoundingClientRect = () => ({ top: 0, bottom: 900 }) as DOMRect;
+        action.getBoundingClientRect = () => ({ top: 850, bottom: 900 }) as DOMRect;
+        Object.defineProperty(page.querySelector('[data-fit-area]')!, 'clientHeight', { value: 860 });
+
+        render(<TrustLayer ownerName="Acme" defaultExpanded protectPrimaryAction />, { wrapper: Wrapper });
+        expect(screen.queryByRole('region')).not.toBeInTheDocument();
+        // The respondent can still open it.
+        fireEvent.click(screen.getByRole('button', { name: 'Your privacy' }));
+        expect(screen.getByRole('region')).toBeInTheDocument();
+        page.remove();
+    });
+
+    it('opens by default with the primary action protected when it fits', () => {
+        setBrowserLanguages(['en']);
+        render(<TrustLayer ownerName="Acme" defaultExpanded protectPrimaryAction />, { wrapper: Wrapper });
+        // No primary action on the page: nothing to protect.
+        expect(screen.getByRole('region')).toBeInTheDocument();
+    });
+
     it('states who, why, how long, identity and rights in English', () => {
         setBrowserLanguages(['en-US']);
         renderPanel({

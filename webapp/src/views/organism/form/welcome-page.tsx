@@ -88,7 +88,7 @@ export default function WelcomePage({
                             </div>
                             <p className="max-w-[339px] text-xs text-black-700">{t('WELCOME.PRIVATE_TEXT')}</p>
                             <Link href={isPreviewMode ? '' : responderSignInUrl} className="font-medium text-black-800 underline">
-                                <Button className="mt-2 rounded-[8px] px-6" size="medium">
+                                <Button className="mt-2 rounded-[8px] px-6" size="medium" data-primary-action>
                                     {t('WELCOME.VERIFY_NOW')}
                                 </Button>
                             </Link>
@@ -105,6 +105,8 @@ export default function WelcomePage({
                         flat
                         style={{ background: formTheme?.secondary }}
                         className={cn('z-10 min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
+                        // The welcome page's primary action: the privacy panel never opens over it.
+                        data-primary-action
                         size="medium"
                         onClick={() => {
                             if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
@@ -129,7 +131,10 @@ export default function WelcomePage({
         return (
             <>
                 <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />
-                {/* The same top row as the question pages: a hairline under 56px. */}
+                {/* The same top row as the question pages: a hairline under 56px.
+                    data-primary-content: where the content the trust panel must
+                    leave in view begins (utils/panel-fit.ts). */}
+                <div data-primary-content>
                 <LeafletTopRule theme={formTheme} />
                 <LeafletSectionBar theme={formTheme} title={standardForm?.title} layout={welcomePage?.layout} headingLevel={1} />
                 {welcomePage?.description && (
@@ -143,6 +148,7 @@ export default function WelcomePage({
                     <LeafletContents pages={standardForm?.fields} theme={formTheme} />
                     {actions}
                 </div>
+                </div>
             </>
         );
     }
@@ -155,7 +161,7 @@ export default function WelcomePage({
                 centres everything, "Left aligned" keeps one left edge); the
                 layout wrapper centres the block vertically. pt-6 keeps the
                 title clear of the account button in the top corner. */}
-            <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-6', align)} data-testid="welcome-column">
+            <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-6', align)} data-testid="welcome-column" data-primary-content>
                 {/* Title and introduction in the theme's ink (the introduction a
                     step lighter, still 7:1), on a measure that keeps long titles
                     to a few balanced lines. */}
