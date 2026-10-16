@@ -14,6 +14,7 @@ import { scrollToDivById } from '@app/utils/scroll-utils';
 import { Check } from 'lucide-react';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { yesNoChoices } from '@app/utils/yes-no-choices';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import QuestionWrapper from './question-wrapper';
 
 const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
@@ -32,6 +33,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
     const form = useAppSelector(selectForm);
     const tokens = styleTokens(theme?.style);
     const { currentSlide } = useResponderState();
+    const { t } = useRespondentLanguage();
 
     // null (not undefined) when unanswered, so the RadioGroup stays controlled.
     const getValue = () => formResponse?.answers?.[field.id]?.boolean ?? null;
@@ -68,7 +70,8 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                             }}
                                             className={`flex min-w-[100px] max-w-full cursor-pointer items-center justify-between gap-2 border p-2 px-4 transition duration-150`}
                                         >
-                                            {choice.value}
+                                            {/* The stored values stay "Yes"/"No" (they map to true/false); only the label follows the respondent's language. */}
+                                            {choice.value === 'Yes' ? t('FIELD.YES') : choice.value === 'No' ? t('FIELD.NO') : choice.value}
                                             {checked && <Check className="h-5 w-5 shrink-0" style={{ color: tokens.solidSelection ? '#ffffff' : theme?.secondary }} />}
                                         </StyledDiv>
                                     );

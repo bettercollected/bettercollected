@@ -82,11 +82,11 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                                     {' '}
                                     *
                                 </span>
-                                <span className="sr-only"> (required)</span>
+                                <span className="sr-only"> {t('FIELD.REQUIRED')}</span>
                             </>
                         )}
                     </div>
-                    {isAnswerable && !isRequired && <span className="text-black-700 text-xs font-normal tracking-wide">Optional</span>}
+                    {isAnswerable && !isRequired && <span className="text-black-700 text-xs font-normal tracking-wide">{t('FIELD.OPTIONAL')}</span>}
                 </div>
                 {resolvedDescription && (
                     <div id={`q-desc-${field.id}`} className="text-black-700 mt-1.5 max-w-[62ch] text-[15px] leading-relaxed">
@@ -108,7 +108,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 and avoid alarm colours/urgency (DESIGN.md §5). */}
             {hasError && (
                 <div id={`q-error-${field.id}`} role="alert" className="mt-2 text-sm text-amber-700">
-                    {errorMessage || 'Please answer this question to continue.'}
+                    {errorMessage || t('FIELD.ANSWER_REQUIRED')}
                 </div>
             )}
         </div>

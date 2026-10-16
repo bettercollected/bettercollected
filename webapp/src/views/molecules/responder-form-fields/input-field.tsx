@@ -1,6 +1,7 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { getPlaceholderValueForField } from '@app/utils/form-utils';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { getRespondentPlaceholder } from '@app/utils/form-utils';
 
 import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { selectForm } from '@app/store/forms/slice';
@@ -14,6 +15,7 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
 
     const form: StandardFormDto = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
+    const { t } = useRespondentLanguage();
     const handleChange = (value: any) => {
         if (!value) {
             removeAnswer(field.id);
@@ -68,7 +70,7 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
                 <FieldInputWrapper
                     id={`input-field-${field.id}`}
                     type={TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT) ? 'text' : field.type}
-                    placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
+                    placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
                     multiple={field.type === FieldTypes.LONG_TEXT}
                     value={getFieldValue()}
                     onChange={(value: any) => handleChange(value)}

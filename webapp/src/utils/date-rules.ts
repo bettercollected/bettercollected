@@ -33,6 +33,7 @@ export const DATE_RULE_COMPARISON_LABELS: Record<DateRuleComparison, string> = {
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_NL = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** Is `value` a real calendar date written exactly as YYYY-MM-DD? */
@@ -63,11 +64,11 @@ export function isoToLocalDate(value: string): Date | undefined {
     return new Date(year, month - 1, day);
 }
 
-/** `2026-03-12` → `12 Mar 2026` (same wording as the backend's messages). */
-export function formatIsoDate(value: string): string {
+/** `2026-03-12` → `12 Mar 2026` (same wording as the backend's messages), or `12 mrt 2026` in Dutch. */
+export function formatIsoDate(value: string, language: 'en' | 'nl' = 'en'): string {
     if (!isIsoDate(value)) return value;
     const [year, month, day] = value.split('-').map(Number);
-    return `${day} ${MONTHS[month - 1]} ${year}`;
+    return `${day} ${(language === 'nl' ? MONTHS_NL : MONTHS)[month - 1]} ${year}`;
 }
 
 /** Does the date `value` break "must be <comparison> `bound`"? Both YYYY-MM-DD. */
@@ -97,6 +98,14 @@ export interface DateRuleContext {
     fieldsById: Record<string, StandardFormFieldDto>;
     /** The respondent's today, YYYY-MM-DD. */
     today: string;
+    /** Respondent-facing wording (the `respondent` namespace); English when absent. */
+    messages?: DateRuleMessages;
+}
+
+/** Translator and language for the messages a respondent sees. */
+export interface DateRuleMessages {
+    t: (key: string, options?: Record<string, unknown>) => string;
+    language: 'en' | 'nl';
 }
 
 /** A rule that applies right now, with the date it compares against. */
@@ -122,32 +131,36 @@ export function dateQuestionTitle(field: StandardFormFieldDto | undefined): stri
 }
 
 /** Short name of a date question in messages: its label, else its title, else a neutral phrase. */
-export function dateFieldName(field: StandardFormFieldDto | undefined): string {
+export function dateFieldName(field: StandardFormFieldDto | undefined, messages?: DateRuleMessages): string {
     const label = field?.properties?.label?.trim();
-    return label || ownTitle(field) || 'the other date';
+    return label || ownTitle(field) || (messages ? messages.t('DATE.OTHER_DATE') : 'the other date');
 }
 
 /** The field's rules that apply given the answers so far, with their bounds. */
 export function resolveDateRuleBounds(field: StandardFormFieldDto, context: DateRuleContext): DateRuleBound[] {
     const bounds: DateRuleBound[] = [];
+    const { messages } = context;
+    const formatDate = (value: string) => formatIsoDate(value, messages?.language);
     getDateRules(field).forEach((rule) => {
         if (rule.target === 'date') {
-            if (isIsoDate(rule.date)) bounds.push({ rule, bound: rule.date, label: formatIsoDate(rule.date) });
+            if (isIsoDate(rule.date)) bounds.push({ rule, bound: rule.date, label: formatDate(rule.date) });
         } else if (rule.target === 'today') {
-            bounds.push({ rule, bound: context.today, label: `today (${formatIsoDate(context.today)})` });
+            const today = formatDate(context.today);
+            bounds.push({ rule, bound: context.today, label: messages ? messages.t('DATE.TODAY', { date: today }) : `today (${today})` });
         } else if (rule.target === 'field' && rule.fieldId) {
             const source = context.fieldsById[rule.fieldId];
             // Unanswered, hidden by logic or gone: the rule does not apply.
             if (!source || source.type !== FieldTypes.DATE || isFieldHiddenByLogic(source, context.answers)) return;
             const value = context.answers?.[rule.fieldId]?.date;
             if (!isIsoDate(value)) return;
-            bounds.push({ rule, bound: value, label: `${dateFieldName(source)} (${formatIsoDate(value)})` });
+            bounds.push({ rule, bound: value, label: `${dateFieldName(source, messages)} (${formatDate(value)})` });
         }
     });
     return bounds;
 }
 
-export function describeDateRuleViolation(violation: DateRuleBound): string {
+export function describeDateRuleViolation(violation: DateRuleBound, messages?: DateRuleMessages): string {
+    if (messages) return messages.t(`DATE.MUST_BE_${violation.rule.comparison}`, { label: violation.label });
     return `Must be ${DATE_RULE_COMPARISON_LABELS[violation.rule.comparison]} ${violation.label}.`;
 }
 
@@ -166,9 +179,9 @@ export function getDateRuleError(field: StandardFormFieldDto, context: DateRuleC
     if (!getDateRules(field).length) return undefined;
     const value = context.answers?.[answerId]?.date;
     if (value === undefined || value === null || value === '') return undefined;
-    if (!isIsoDate(value)) return 'Please pick a valid date.';
+    if (!isIsoDate(value)) return context.messages ? context.messages.t('DATE.INVALID') : 'Please pick a valid date.';
     const [first] = getDateRuleViolations(field, value, context);
-    return first ? describeDateRuleViolation(first) : undefined;
+    return first ? describeDateRuleViolation(first, context.messages) : undefined;
 }
 
 /** A day-picker matcher: true for the days the field's rules rule out. */

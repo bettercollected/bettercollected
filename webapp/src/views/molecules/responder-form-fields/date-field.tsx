@@ -1,7 +1,9 @@
 import { format } from 'date-fns';
+import { nl as dutch } from 'date-fns/locale/nl';
 import { CalendarIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { cn } from '@app/shadcn/util/lib';
@@ -27,7 +29,8 @@ function useDateRuleContext(): DateRuleContext {
     const { formResponse } = useFormResponse();
     const standardForm = useAppSelector(selectForm);
     const fieldsById = useMemo(() => getInputFieldsById(standardForm?.fields), [standardForm?.fields]);
-    return { answers: formResponse.answers ?? {}, fieldsById, today: todayIso() };
+    const { t, language } = useRespondentLanguage();
+    return { answers: formResponse.answers ?? {}, fieldsById, today: todayIso(), messages: { t: t as any, language } };
 }
 
 function DateFieldSection({ field, isBuilder }: IDateField) {
@@ -36,6 +39,9 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
     const answer = (formResponse.answers && formResponse.answers[field.id]?.date) || '';
     const { nextField } = useResponderState();
     const ruleContext = useDateRuleContext();
+    const { t, language } = useRespondentLanguage();
+    // date-fns' and the calendar's Dutch locale; English is their default.
+    const locale = language === 'nl' ? dutch : undefined;
 
     // Answers are calendar days (YYYY-MM-DD): read them as local dates, so
     // the picker never shows the day before west of UTC.
@@ -102,14 +108,14 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         />
                         {date ? (
                             // The chosen date is the answer — ink, not the action colour.
-                            <span style={{ color: theme?.primary }}>{format(date, 'PPP')}</span>
+                            <span style={{ color: theme?.primary }}>{format(date, 'PPP', { locale })}</span>
                         ) : (
-                            <span style={{ color: '#667085' }}>Pick a date</span>
+                            <span style={{ color: '#667085' }}>{t('DATE.PICK')}</span>
                         )}
                     </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                    <ThemedCalendar mode="single" selected={date} onSelect={handleSelect} disabled={disabled} defaultMonth={defaultMonth} autoFocus />
+                    <ThemedCalendar mode="single" locale={locale} selected={date} onSelect={handleSelect} disabled={disabled} defaultMonth={defaultMonth} autoFocus />
                 </PopoverContent>
             </Popover>
         </div>

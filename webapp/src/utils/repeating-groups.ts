@@ -302,9 +302,10 @@ export function getGroupPipeOptions(field: StandardFormFieldDto, groupLabel: str
  * template when it has content ("Applicant 2: Sita Sharma"). The template's
  * sibling pipes resolve against this item.
  */
-export function getItemHeader(field: StandardFormFieldDto, index: number, context: PipeContext): string {
+export function getItemHeader(field: StandardFormFieldDto, index: number, context: PipeContext, label?: string): string {
     const { itemLabel, itemTitle } = getRepeatSettings(field);
-    const base = `${itemLabel} ${index + 1}`;
+    // `label`: the item name as the respondent reads it (the default one translated).
+    const base = `${label ?? itemLabel} ${index + 1}`;
     if (!itemTitle?.trim()) return base;
     const scope = { groupId: field.id, index, childIds: getGroupChildren(field).map((c) => c.id) };
     // The group's own questions are always resolvable, even when the caller's

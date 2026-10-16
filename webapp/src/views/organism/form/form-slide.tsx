@@ -18,6 +18,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
@@ -107,6 +108,7 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
 
 export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean }) {
     const { toast } = useToast();
+    const { t, language } = useRespondentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
@@ -189,7 +191,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     });
                 })
                 .catch((e) => {
-                    toast({ description: 'Error Submitting Response', variant: 'destructive' });
+                    toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
                 });
     };
 
@@ -258,6 +260,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     <div className={FORM_GUTTER}>
                         <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'flex items-center justify-between gap-3')}>
                             <BackButton
+                                label={t('NAV.BACK')}
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
@@ -279,8 +282,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                         {workspace?.title || workspace?.workspaceName}
                                     </span>
                                 )}
-                                <span className="whitespace-nowrap tabular-nums">
-                                    Page {Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1)} of {standardForm?.fields?.length || 1}
+                                <span className="whitespace-nowrap tabular-nums" lang={language}>
+                                    {t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
                                 </span>
                             </div>
                         </div>
@@ -321,8 +324,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                             className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-hidden"
                                         />
                                         <span className="flex flex-col gap-0.5">
-                                            <span className="text-[15px] leading-relaxed font-medium text-black-900">Share my email with the form collector</span>
-                                            <span className="text-[13px] text-black-700">{authState?.email} — leave unchecked and your response stays anonymous.</span>
+                                            <span className="text-[15px] leading-relaxed font-medium text-black-900">{t('CONSENT.SHARE_EMAIL')}</span>
+                                            <span className="text-[13px] text-black-700">{t('CONSENT.SHARE_EMAIL_HINT', { email: authState?.email })}</span>
                                         </span>
                                     </label>
                                 )}
@@ -339,7 +342,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             onClick={onNext}
                             size="medium"
                         >
-                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit response' : 'Continue'}
+                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? t('NAV.SUBMIT') : t('NAV.CONTINUE')}
                         </Button>
                     </div>
                 </div>

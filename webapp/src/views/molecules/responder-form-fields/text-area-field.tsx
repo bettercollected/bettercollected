@@ -6,7 +6,8 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { getPlaceholderValueForField } from '@app/utils/form-utils';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { getRespondentPlaceholder } from '@app/utils/form-utils';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -50,6 +51,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
 
     const form: StandardFormDto = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
+    const { t } = useRespondentLanguage();
     const { theme } = useFormState();
 
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
@@ -86,7 +88,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                         resize: 'none'
                     }}
                     id={`input-field-${field.id}`}
-                    placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
+                    placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
                 />
             </form>
         </QuestionWrapper>

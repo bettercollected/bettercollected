@@ -1,3 +1,5 @@
+// Respondent text resolves through the app's i18n instance.
+import '@app/shared/hocs/i18n-provider';
 import React from 'react';
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

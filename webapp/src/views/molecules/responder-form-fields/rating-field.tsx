@@ -10,6 +10,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 
 import QuestionWrapper from './question-wrapper';
@@ -18,6 +19,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const [hovered, setHovered] = useState(-1);
+    const { t } = useRespondentLanguage();
 
     const form = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
@@ -35,7 +37,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                 return (
                     <button
                         type="button"
-                        aria-label={`Rate ${index + 1} of ${steps}`}
+                        aria-label={t('FIELD.RATE', { value: index + 1, total: steps })}
                         aria-pressed={index <= (answer ?? 0) - 1}
                         key={index}
                         disabled={isBuilder}
