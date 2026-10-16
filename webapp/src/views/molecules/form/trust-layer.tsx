@@ -97,7 +97,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
         // The enforced period always; the creator's explanation next to it.
         detail: (
             <>
-                {describeRetention(settings as StandardFormDto['settings'], t, language)}
+                {describeRetention(settings as StandardFormDto['settings'], t, language, 'value')}
                 {retentionNote && (
                     <>
                         {' '}
