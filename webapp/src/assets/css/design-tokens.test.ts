@@ -78,8 +78,9 @@ describe('type', () => {
         // Every surface that renders a form for respondents (and the builder
         // canvas and previews, which reuse them) wears the form typeface.
         const read = (path: string) => readFileSync(resolve(SRC, path), 'utf8');
-        expect(read('views/organism/layout/layout-wrapper.tsx')).toMatch(/'font-form /);
-        expect(read('views/molecules/form/trust-layer.tsx')).toMatch(/className="font-form /);
+        // Class order is Prettier's to choose; only the class itself matters.
+        expect(read('views/organism/layout/layout-wrapper.tsx')).toMatch(/['" ]font-form['" ]/);
+        expect(read('views/molecules/form/trust-layer.tsx')).toMatch(/className="[^"]*\bfont-form\b[^"]*"/);
         expect(read('components/form/respondent-typeface.tsx')).toMatch(/className="font-form contents"/);
         expect(read('app/(user-portal)/(no-layout)/[workspace_name]/forms/[form_id]/layout.tsx')).toMatch(/<RespondentTypeface>/);
         expect(read('app/(custom-domain)/(no-layout)/forms/[form_id]/layout.tsx')).toMatch(/<RespondentTypeface>/);
