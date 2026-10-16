@@ -8,6 +8,7 @@ import React from 'react';
 import { ChevronLeft, Eye, Shield as ShieldIcon, Trash2 } from 'lucide-react';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import SiretoFooter from '@app/components/layout/sireto-footer';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
@@ -63,7 +64,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // Keep the workspace-branded shell while loading — swapping the whole
         // page for a white full-screen loader read as a flicker on every open.
         return (
-            <div className="flex min-h-screen w-full flex-col bg-[#F6F8FC]!">
+            <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!">
                 <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
                     <div className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                         <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
@@ -72,7 +73,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                 </header>
                 <div className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
                     <div className="bg-black-200 h-5 w-36 animate-pulse rounded" />
-                    <div className="w-full rounded-xl bg-white p-6">
+                    <div className="w-full rounded bg-white p-6">
                         <div className="bg-black-100 h-7 w-64 animate-pulse rounded" />
                         <div className="bg-black-100 mt-3 h-4 w-80 animate-pulse rounded" />
                         <div className="bg-black-100 mt-8 h-40 w-full animate-pulse rounded" />
@@ -90,7 +91,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // custom domain). The platform wordmark up top read as a jarring brand
         // switch mid-journey — the workspace's own identity leads instead, and
         // bettercollected stays where the portal keeps it: a quiet caption.
-        <div className="flex min-h-screen w-full flex-col bg-[#F6F8FC]!">
+        <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!">
             <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
                 <Link href={`${portalBase}/forms`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                     <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
@@ -105,7 +106,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
 
                 {/* The receipt header: the same identity the list card shows,
                     so responders know they opened the right response. */}
-                <div className="w-full rounded-xl bg-white p-6">
+                <div className="w-full rounded bg-white p-6">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-black-900 h3-new">{form?.form?.title || 'Untitled Form'}</span>
                         {response?.submissionUuid && (
@@ -117,12 +118,12 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                     <div className="text-black-600 mt-2 flex flex-wrap items-center gap-2 text-sm">
                         <span>Submitted: {utcToLocalDateTIme(response?.createdAt)}</span>
                         {isAnonymous && (
-                            <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-[#0E8A5F]" title="Submitted without your identity attached">
+                            <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-success-700" title="Submitted without your identity attached">
                                 <ShieldIcon className="h-3 w-3" strokeWidth={2} />
                                 Anonymous
                             </span>
                         )}
-                        {!!response?.deletionStatus && <span className="rounded bg-[#FBF3E4] px-2 py-0.5 text-xs font-medium text-[#B26B00]">Deletion requested</span>}
+                        {!!response?.deletionStatus && <span className="rounded bg-brand-accent-100 px-2 py-0.5 text-xs font-medium text-brand-olive">Deletion requested</span>}
                     </div>
 
                     {/* The organisation's updates on this submission: the
@@ -167,9 +168,12 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                 </div>
             </div>
             {!hasCustomDomain && (
-                <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-500 hover:text-black-700 mx-auto pb-6 text-center text-xs">
-                    Powered by <span className="font-semibold">bettercollected</span>
-                </a>
+                <div className="flex flex-col items-center gap-2 px-5 pb-6">
+                    <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 text-center text-xs">
+                        Powered by <span className="font-semibold">bettercollected</span>
+                    </a>
+                    <SiretoFooter />
+                </div>
             )}
         </div>
     );

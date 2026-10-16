@@ -19,6 +19,7 @@ import { Logout } from '@app/components/icons/logout-icon';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
+import SiretoFooter from '@app/components/layout/sireto-footer';
 import PoweredBy from '@app/components/ui/powered-by';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -77,11 +78,11 @@ export default function ResponderPortalLayoutClient({
         // only the central content column scrolls, the tab bar stays affixed,
         // and a stable scrollbar gutter stops the layout flicker that used to
         // happen the moment content grew past a screenful.
-        <div className={`max-w-screen bg-[#F6F8FC]! flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? 'pb-20!' : ''}`}>
+        <div className={`max-w-screen bg-[#F5F7FB]! flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? 'pb-20!' : ''}`}>
             <div className="max-w-screen w-full md:max-h-full md:w-[320px] md:max-w-[320px] md:overflow-y-auto">
                 <WorkspaceDetailsCard workspace={workspace} />
                 {!auth.id && !auth.isLoading && (
-                    <div className="mt-6 flex flex-col rounded-xl bg-white p-6">
+                    <div className="mt-6 flex flex-col rounded bg-white p-6">
                         <div className="h4-new">See your submissions</div>
                         <div className="p2-new text-black-600 mt-2">Verify your email to see every response you&apos;ve submitted to this workspace — and request deletion of any of them.</div>
                         <Button
@@ -98,11 +99,11 @@ export default function ResponderPortalLayoutClient({
                         >
                             Verify email
                         </Button>
-                        <div className="p4-new text-black-500 mt-3">Submitted anonymously? Use your submission number instead.</div>
+                        <div className="p4-new text-black-600 mt-3">Submitted anonymously? Use your submission number instead.</div>
                     </div>
                 )}
                 {auth.id && (
-                    <div className="mt-6 w-full  rounded-xl bg-white ">
+                    <div className="mt-6 w-full  rounded bg-white ">
                         <Disclosure>
                             {({ open }) => (
                                 <>
@@ -130,7 +131,7 @@ export default function ResponderPortalLayoutClient({
                                             </>
                                         )}
                                         <Divider className="text-black-200" />
-                                        <div className="text-black-600 hover:bg-new-blue-100 m-2 flex cursor-pointer gap-2 rounded p-2 active:bg-blue-100" onClick={handleLogout}>
+                                        <div className="text-black-600 hover:bg-brand-100 m-2 flex cursor-pointer gap-2 rounded p-2 active:bg-blue-100" onClick={handleLogout}>
                                             <Logout width={24} height={24} />
                                             <span>{t(profileMenu.logout)}</span>
                                         </div>
@@ -148,9 +149,12 @@ export default function ResponderPortalLayoutClient({
                 {/* Attribution, not advertisement: a quiet caption, not a card
                     competing with the workspace's own identity. */}
                 {!hasCustomDomain && (
-                    <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-500 hover:text-black-700 mt-6 hidden w-full justify-center text-xs md:flex">
-                        Powered by&nbsp;<span className="font-semibold">bettercollected</span>
-                    </a>
+                    <>
+                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 mt-6 hidden w-full justify-center text-xs md:flex">
+                            Powered by&nbsp;<span className="font-semibold">bettercollected</span>
+                        </a>
+                        <SiretoFooter className="mt-2 hidden md:block" />
+                    </>
                 )}
             </div>
             <div className="flex flex-1 flex-col pb-4! md:min-h-0 md:min-w-0 md:pl-12">
@@ -180,6 +184,7 @@ export default function ResponderPortalLayoutClient({
                     <div className="min-w-0 flex-1 md:min-h-0 md:overflow-y-auto md:scrollbar-gutter-stable">{children}</div>
                 </div>
             </div>
+            {!hasCustomDomain && <SiretoFooter className="mt-6 md:hidden" />}
             <div className="lg:hidden">
                 <PoweredBy />
             </div>
