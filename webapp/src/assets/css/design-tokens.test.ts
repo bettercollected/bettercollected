@@ -65,7 +65,24 @@ describe('type', () => {
         expect(token('font-mono')).toMatch(/^var\(--font-jetbrains-mono\)/);
         expect(globals).not.toMatch(/fonts\.googleapis|fonts\.gstatic/);
         const layout = readFileSync(resolve(SRC, 'app/layout.tsx'), 'utf8');
-        expect(layout).toMatch(/Instrument_Sans, JetBrains_Mono } from 'next\/font\/google'/);
+        expect(layout).toMatch(/Instrument_Sans, JetBrains_Mono, Public_Sans } from 'next\/font\/google'/);
+    });
+
+    it('keeps Public Sans, self-hosted, for respondent forms', () => {
+        const layout = readFileSync(resolve(SRC, 'app/layout.tsx'), 'utf8');
+        // Loaded exactly as before this design system: all weights, latin, swap.
+        expect(layout).toContain("Public_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-public-sans' })");
+        expect(layout).toMatch(/publicSans\.variable/);
+        expect(token('font-form')).toMatch(/^var\(--font-public-sans\)/);
+        expect(css).toMatch(/body\.respondent-typeface \{\s*font-family: var\(--font-form\);/);
+        // Every surface that renders a form for respondents (and the builder
+        // canvas and previews, which reuse them) wears the form typeface.
+        const read = (path: string) => readFileSync(resolve(SRC, path), 'utf8');
+        expect(read('views/organism/layout/layout-wrapper.tsx')).toMatch(/'font-form /);
+        expect(read('views/molecules/form/trust-layer.tsx')).toMatch(/className="font-form /);
+        expect(read('components/form/respondent-typeface.tsx')).toMatch(/className="font-form contents"/);
+        expect(read('app/(user-portal)/(no-layout)/[workspace_name]/forms/[form_id]/layout.tsx')).toMatch(/<RespondentTypeface>/);
+        expect(read('app/(custom-domain)/(no-layout)/forms/[form_id]/layout.tsx')).toMatch(/<RespondentTypeface>/);
     });
 
     it('has no leftover font aliases', () => {
@@ -75,9 +92,11 @@ describe('type', () => {
 });
 
 describe('shape and depth', () => {
-    it('sets the UI radius to 6px', () => {
+    it('sets the UI radius to 6px and keeps 8px for images', () => {
         expect(token('radius')).toBe('6px');
-        expect(token('radius-lg')).toBe('8px');
+        expect(token('radius-md')).toBe('6px');
+        expect(token('radius-lg')).toBe('6px');
+        expect(token('radius-image')).toBe('8px');
     });
 
     it('defines exactly one shadow, for floating layers', () => {

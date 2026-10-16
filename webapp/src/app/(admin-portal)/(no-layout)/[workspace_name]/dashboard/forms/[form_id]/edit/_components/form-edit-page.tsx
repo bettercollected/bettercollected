@@ -170,7 +170,8 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                 height: CANVAS_HEIGHT,
                                 transform: `scale(${canvasScale})`,
                                 transformOrigin: 'top left',
-                                boxShadow: '0px 1px 3px rgba(16, 24, 40, 0.06), 0px 12px 32px rgba(16, 24, 40, 0.12)'
+                                // A hairline, not a shadow, sets the page off the canvas (DESIGN.md §6).
+                                outline: '1px solid #D0D5DD'
                             }}
                         >
                             <div className="relative mx-auto h-full w-full rounded-lg">

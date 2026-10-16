@@ -61,14 +61,14 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                 </div>
                 <div className="p2-new text-black-700 mt-4">{getThankYouMessage()}</div>
                 {thankyouPage?.buttonText && (
-                    <Button flat style={{ background: standardForm.theme?.secondary }} className="mt-14">
+                    <Button flat style={{ background: standardForm.theme?.secondary }} className="mt-14 rounded-[8px]">
                         <Link href={isPreviewMode ? '' : thankyouPage.buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
                             {thankyouPage.buttonText}
                         </Link>
                     </Button>
                 )}
                 {auth.id && standardForm.settings?.showSubmissionNumber && (
-                    <div className="p2-new mt-10 flex max-w-[400px] flex-col gap-2 rounded-lg bg-white/50 p-4 ">
+                    <div className="p2-new mt-10 flex max-w-[400px] flex-col gap-2 rounded-[8px] bg-white/50 p-4 ">
                         <div className="flex flex-row justify-between">
                             <span className="p3-new text-black-800">Submission Number</span>
                             <Link href={isPreviewMode ? '' : submissionUrl} className="text-blue-500">
@@ -76,7 +76,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                             </Link>
                         </div>
                         <span className="p4-new text-black-700">Use this submission number to view or request deletion of this response.</span>
-                        <div className="bg-black-100/50 flex justify-between rounded-lg px-4 py-2">
+                        <div className="bg-black-100/50 flex justify-between rounded-[8px] px-4 py-2">
                             <span className="p4-new text-black-700">{responderId}</span>
                             <Copy
                                 className="text-brand-500 h-4 w-4 cursor-pointer"

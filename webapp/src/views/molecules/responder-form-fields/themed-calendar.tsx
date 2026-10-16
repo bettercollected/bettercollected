@@ -53,9 +53,9 @@ function ThemedCalendar({ className, classNames, showOutsideDays = true, ...prop
                 // attribute land on this cell in react-day-picker v10, not on
                 // day_button, so the aria-selected variant below stays here.
                 day: 'h-9 w-9 text-center text-sm p-0 relative aria-selected:opacity-100 focus-within:relative focus-within:z-20',
-                day_button: 'h-9 w-9 rounded p-0 font-normal',
+                day_button: 'h-9 w-9 rounded-[4px] p-0 font-normal',
                 selected: '',
-                today: 'rounded',
+                today: 'rounded-[4px]',
                 outside: 'opacity-50 aria-selected:opacity-30',
                 disabled: 'opacity-50',
                 range_middle: '',

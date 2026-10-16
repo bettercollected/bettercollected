@@ -150,7 +150,7 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
                         type="button"
                         onClick={add}
                         disabled={!addable}
-                        className="inline-flex w-fit items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex w-fit items-center gap-2 rounded-[8px] border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                         style={{ borderColor: theme?.secondary ?? '#1649E2', color: theme?.secondary ?? '#1649E2' }}
                     >
                         <Plus className="h-4 w-4" aria-hidden="true" />

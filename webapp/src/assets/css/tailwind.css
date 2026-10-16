@@ -343,6 +343,8 @@
     /* Instrument Sans and JetBrains Mono are self-hosted by next/font (src/app/layout.tsx). */
     --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    /* Respondent forms keep Public Sans (DESIGN.md §2): `font-form`. */
+    --font-form: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --text-xs: 0.75rem;
     --text-xs--line-height: 1rem;
@@ -487,13 +489,16 @@
     --max-width-289-calc-289: calc(100vw - 592px);
 
     /*
-     * Radii. `--radius` (the `rounded` utility) is the one UI radius: cards,
-     * buttons, inputs, menus and dialogs. Images take `rounded-lg` (8px).
+     * Radii. 6px is the one UI radius: cards, buttons, inputs, menus, dialogs
+     * (`rounded`, `rounded-md` and `rounded-lg` are all 6px). Images take
+     * `rounded-image` (8px). Respondent-form renderers pin their own pixel radii,
+     * since form looks are the creator's choice.
      */
     --radius-sm: 0.125rem;
     --radius: 6px;
     --radius-md: 6px;
-    --radius-lg: 8px;
+    --radius-lg: 6px;
+    --radius-image: 8px;
     --radius-xl: 0.75rem;
     --radius-2xl: 1rem;
     --radius-3xl: 1.5rem;
@@ -815,6 +820,14 @@
  * Tailwind 3 emitted `@layer base`: they override the reset and the forms
  * plugin, and utility classes still override them.
  */
+/*
+ * On respondent routes the body itself wears the form typeface, so popovers,
+ * menus and toasts that portal out of the form match it (RespondentTypeface).
+ */
+body.respondent-typeface {
+    font-family: var(--font-form);
+}
+
 html,
 body {
     @apply bg-black-100 font-sans dark:bg-dark antialiased dark:text-white;

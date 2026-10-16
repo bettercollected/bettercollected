@@ -79,15 +79,22 @@ trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
 ## 2. Type
 
 - **Faces.** [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans)
-  (400, 500, 600) for everything you read; JetBrains Mono (500, 600) for
+  (400, 500, 600) for everything you read in the app; JetBrains Mono (500, 600) for
   anything that names a value: form and field IDs, slugs, URLs, API keys and
   their prefixes, action parameters, webhook and MCP endpoints. Both load
   through `next/font` in `webapp/src/app/layout.tsx`, which downloads them at
   build time and serves them from the app. No page requests fonts.googleapis.com
   or fonts.gstatic.com — a privacy-friendly form builder doesn't tell Google who
   opened a form.
-- **Utilities.** `font-sans` (the default) and `font-mono`. `<code>`, `<kbd>`,
-  `<pre>` and `<samp>` use the mono face automatically.
+- **Respondent forms keep their typeface: Public Sans**, loaded the same way
+  (self-hosted through `next/font`, all weights). It is the `font-form`
+  utility, worn by the form renderers (`LayoutWrapper`, the trust strip) and
+  by the respondent routes (`RespondentTypeface`, which also puts it on
+  `<body>` so popovers and toasts that portal out of a form match). The builder
+  canvas and previews reuse the renderers, so creators see the respondents'
+  typeface. A published form's computed font family is the same as before.
+- **Utilities.** `font-sans` (the default), `font-mono` and `font-form`.
+  `<code>`, `<kbd>`, `<pre>` and `<samp>` use the mono face automatically.
 - **Body.** 1rem on a 1.55 line, set on `<body>`. Paragraphs inherit, so a
   container's own size wins (the builder's 24px question titles are TipTap
   paragraphs). Running text that should read as body copy takes `text-body`.
@@ -139,9 +146,11 @@ action, styled as one.
 
 ## 6. Shape and depth
 
-- **Radius.** `--radius` is 6px: the `rounded` utility, used by cards, buttons,
-  inputs, menus, popovers and dialogs (`rounded-md` is the same 6px). Images
-  take `rounded-lg` (8px). Checkboxes use 4px. Pills stay `rounded-full`.
+- **Radius.** 6px: `rounded`, `rounded-md` and `rounded-lg` are all 6px, used
+  by cards, buttons, inputs, menus, popovers and dialogs. Images take
+  `rounded-image` (8px). Checkboxes use 4px. Pills stay `rounded-full`.
+  Respondent-form renderers pin their own pixel radii (`rounded-[4px]`,
+  `rounded-[8px]`), so the app's radius never reshapes a published form.
 - **Shadows.** Surfaces are separated by 1px hairlines. There is one shadow,
   `shadow-large` (`0 8px 24px rgb(16 24 40 / 0.12)`), for layers that genuinely
   float above the page: popovers, menus, select lists, tooltips, toasts, sheets,
@@ -195,8 +204,11 @@ on the form when it is saved, so forms that already use the old Default keep
 their colours; only forms set to Default from now on (and forms with no stored
 theme at all) get the new values.
 
-Inside a form, field borders rest on the theme's `tertiary`, step to its
-`primary` on hover and commit to its `secondary` on focus. Every preset keeps
+What changes inside forms, in every theme: field borders rest on the theme's
+`tertiary`, step to its `primary` on hover and commit to its `secondary` on
+focus (with the focus outline in the theme's `secondary`); the "Back" control
+wears the theme's `primary`. The typeface (Public Sans), radii and button
+shapes stay as they were. Every preset keeps
 `tertiary` at 3:1 or more on its own `accent`, so the field edge passes WCAG
 1.4.11 in every theme. Respondent buttons are flat (no key edge).
 

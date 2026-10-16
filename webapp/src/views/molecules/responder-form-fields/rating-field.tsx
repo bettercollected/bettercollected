@@ -50,7 +50,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                                 }, 200);
                             }
                         }}
-                        className="cursor-pointer rounded outline-hidden focus-visible:ring-2"
+                        className="cursor-pointer rounded-[4px] outline-hidden focus-visible:ring-2"
                         onMouseOver={() => {
                             if (!isBuilder) setHovered(index);
                         }}

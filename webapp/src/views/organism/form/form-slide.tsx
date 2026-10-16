@@ -305,7 +305,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                         // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
                                         // 15px/1.5, high contrast, green-tinted container — and unchecked by
                                         // default, so sharing identity is a choice the person makes.
-                                        <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-lg border border-[#BFE0D2] bg-[#F2FAF6] p-4">
+                                        <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-[8px] border border-[#BFE0D2] bg-[#F2FAF6] p-4">
                                             <FieldInput
                                                 checked={!effectiveAnonymize}
                                                 onChange={(e: any) => {
@@ -334,7 +334,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     color: 'white'
                                 }}
                                 isLoading={isLoading}
-                                className="mt-4 rounded-lg px-8 py-3 text-base font-semibold"
+                                className="mt-4 rounded-[8px] px-8 py-3 text-base font-semibold"
                                 onClick={onNext}
                                 size="medium"
                             >

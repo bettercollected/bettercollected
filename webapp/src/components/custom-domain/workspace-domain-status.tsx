@@ -90,7 +90,7 @@ const WorkspaceDomainStatus = () => {
 };
 
 const StatusPill = ({ tone, children }: { tone: 'ok' | 'pending' | 'bad'; children: React.ReactNode }) => (
-    <div className={cn('rounded px-2 py-1 text-xs', tone === 'ok' && 'bg-green-100 text-green-600', tone === 'pending' && 'bg-yellow-100 text-yellow-600', tone === 'bad' && 'bg-red-100 text-red-600')}>{children}</div>
+    <div className={cn('rounded px-2 py-1 text-xs', tone === 'ok' && 'bg-[#E7F4EE] text-success-700', tone === 'pending' && 'bg-brand-accent-100 text-brand-olive', tone === 'bad' && 'bg-red-100 text-red-700')}>{children}</div>
 );
 
 const STATUS_LABEL: Record<string, { label: string; tone: 'ok' | 'pending' | 'bad' }> = {
@@ -274,7 +274,7 @@ const ServiceDomainPending = ({ workspace, status, records, checks, isFetching, 
             <div className="mt-4 flex flex-col gap-1">
                 {checks.map((check) => (
                     <div key={check.type} className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className={cn('h-2 w-2 rounded-full', check.status === 'passing' && 'bg-green-600', check.status === 'failing' && 'bg-red-500', check.status === 'pending' && 'bg-yellow-500')} />
+                        <span className={cn('h-2 w-2 rounded-full', check.status === 'passing' && 'bg-success', check.status === 'failing' && 'bg-red-500', check.status === 'pending' && 'bg-brand-accent')} />
                         <span className="font-medium text-black-800">{CHECK_LABEL[check.type] || check.type}</span>
                         {check.message && <span className="text-black-600">— {check.message}</span>}
                     </div>

@@ -77,7 +77,7 @@ export default function StartWithAi() {
         return (
             <div className="flex flex-col items-center justify-center py-10">
                 <div>
-                    <Image width={60} height={60} style={{ objectFit: 'cover' }} className="rounded-lg" src="/gifs/loading.gif" alt="Loading" />
+                    <Image width={60} height={60} style={{ objectFit: 'cover' }} className="rounded-image" src="/gifs/loading.gif" alt="Loading" />
                 </div>
                 <div className="mt-10 font-semibold">Opening your draft</div>
                 <div className="mt-2 text-xs text-black-700">Your prompt waits in the editor&apos;s assistant until you press send</div>

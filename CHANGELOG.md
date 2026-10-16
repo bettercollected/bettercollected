@@ -86,10 +86,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   buttons, mono type for IDs, slugs, URLs and keys, and stronger borders on
   controls (3:1). The Default form theme is retuned (`#1649E2` / `#101828` /
   `#F5F7FB`); forms keep the theme colours stored on them. Public and auth
-  pages carry the Sireto trademark line. Respondent field borders now rest on
-  the theme's border colour (tertiary) in every theme, and the form's "Back"
-  link uses the theme's ink, which brings it from 4.09:1 to AA on tinted
-  themes.
+  pages carry the Sireto trademark line. The backend's Default theme for
+  AI-created forms uses the same values.
+  **Respondent forms:** they keep their typeface (Public Sans, self-hosted),
+  radii and button shapes. Only the Default preset's colours change, and in
+  every theme field borders are now more visible (they rest on the theme's
+  border colour, tertiary, at 3:1 or more instead of a fixed light grey), the
+  focus outline wears the theme's action colour, and the "Back" link uses the
+  theme's ink (4.09:1 → AA on tinted themes).
 - **Forms and responses are now unlimited on every plan.** Removed the
   per-workspace 100-form cap for non-Pro accounts (backend
   `check_if_user_can_import_more_forms` no longer gates); responses were

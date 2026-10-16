@@ -55,7 +55,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     className={cn(
                         'h-full w-full',
                         layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-0' : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-1' : '',
-                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'rounded-lg opacity-50 backdrop-blur-lg' : 'opacity-100'
+                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'rounded-[8px] opacity-50 backdrop-blur-lg' : 'opacity-100'
                     )}
                     src={imageUrl}
                     alt={altImage + ' image'}
@@ -95,7 +95,9 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 }}
                 className={cn(
                     showDesktopLayout ? 'grid' : 'flex lg:grid',
-                    'relative  h-full w-full grow overflow-hidden bg-transparent! lg:rounded-lg',
+                    // Forms keep their own typeface (Public Sans): the app's Instrument
+                    // Sans stays out of what respondents see (DESIGN.md §2, §9).
+                    'font-form relative h-full w-full grow overflow-hidden bg-transparent! lg:rounded-[8px]',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse justify-end' : 'flex-col justify-end',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'grid-cols-2' : 'grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''

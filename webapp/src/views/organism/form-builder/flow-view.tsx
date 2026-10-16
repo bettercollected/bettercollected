@@ -38,7 +38,7 @@ const defaultPos = (k: number) => ({ x: COL_X, y: 40 + k * (NODE_H + GAP_Y) });
 
 /* ----------------------------- custom nodes ------------------------------ */
 
-// Dot styling for the click-to-connect flow: armed dots swell and glow.
+// Dot styling for the click-to-connect flow: armed dots swell and get a ring.
 // The transparent border is a hit-area extender: at fit zoom the visual dot
 // shrinks to ~7px on screen — too small a Fitts target for the view's primary
 // gesture — so the clickable box is roughly double the visible dot.
@@ -49,7 +49,8 @@ const dotStyle = (isArmed: boolean): React.CSSProperties => ({
     width: isArmed ? 28 : 24,
     height: isArmed ? 28 : 24,
     cursor: 'pointer',
-    boxShadow: isArmed ? '0 0 0 5px rgba(18, 63, 201,0.25)' : undefined,
+    outline: isArmed ? '2px solid #123FC9' : undefined,
+    outlineOffset: isArmed ? 1 : undefined,
     transition: 'all 120ms ease'
 });
 
@@ -739,7 +740,8 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                             height: SLIDE_H,
                                             transform: `scale(${overlayScale})`,
                                             transformOrigin: 'top left',
-                                            boxShadow: '0px 1px 3px rgba(16, 24, 40, 0.06), 0px 12px 32px rgba(16, 24, 40, 0.12)'
+                                            // A hairline, not a shadow (DESIGN.md §6).
+                                            outline: '1px solid #D0D5DD'
                                         }}
                                     >
                                         <SlideBuilder slide={overlaySlide} />
