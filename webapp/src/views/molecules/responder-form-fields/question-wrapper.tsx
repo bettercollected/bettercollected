@@ -34,7 +34,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // ambiguous. We mark required fields (asterisk) AND label optional ones, so
     // no one is nudged into answering something they could skip. Display-only
     // fields (statements, images) collect nothing, so they carry no marker.
-    // (Design-Language.md §5: "Don't hide which fields are optional to coerce answers".)
+    // (DESIGN.md §5: "Don't hide which fields are optional to coerce answers".)
     const isAnswerable = field?.type ? V2InputFields.includes(field.type) || ALSO_ANSWERABLE.includes(field.type) : false;
     const isRequired = !!field?.validations?.required;
 
@@ -102,7 +102,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
             <RenderImage field={field} />
             {children}
             {/* Honest, non-alarmist validation: say what to do, not just that something is wrong,
-                and avoid alarm colours/urgency (Design-Language.md §5). */}
+                and avoid alarm colours/urgency (DESIGN.md §5). */}
             {hasError && (
                 <div id={`q-error-${field.id}`} role="alert" className="mt-2 text-sm text-amber-700">
                     {errorMessage || 'Please answer this question to continue.'}

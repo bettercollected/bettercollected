@@ -120,7 +120,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const { files } = useFormAtom();
     const authState = useAppSelector(selectAuth);
 
-    // Identity sharing is opt-in (Design-Language §5 — "leave consent unchecked;
+    // Identity sharing is opt-in (DESIGN.md §5 — "leave consent unchecked;
     // the person opts in"): until the responder touches the checkbox, a logged-in
     // responder on an identity-optional form stays anonymous. Forms that require
     // a verified identity keep it attached, as they state up front.
@@ -260,10 +260,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 }}
                                 className=" w-fit bg-inherit!"
                                 style={{
-                                    background: standardForm?.theme?.accent
+                                    background: standardForm?.theme?.accent,
+                                    // The theme's ink, not a fixed grey: a fixed neutral fell
+                                    // under 4.5:1 on tinted grounds (4.09:1 on Ocean).
+                                    color: standardForm?.theme?.primary
                                 }}
                             />
-                            {/* Provenance + progress where the eye starts (Design-Language §3):
+                            {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
                             <div className="text-black-700 flex items-center gap-3 text-[13px]">
                                 {(workspace?.title || workspace?.workspaceName) && (
@@ -299,7 +302,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                 <div className="flex flex-col lg:mb-4 ">
                                     {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                        // Consent gets a calm, legible home of its own (Design-Language §2/§4):
+                                        // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
                                         // 15px/1.5, high contrast, green-tinted container — and unchecked by
                                         // default, so sharing identity is a choice the person makes.
                                         <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-lg border border-[#BFE0D2] bg-[#F2FAF6] p-4">
@@ -325,6 +328,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 </div>
                             )}
                             <Button
+                                flat
                                 style={{
                                     background: standardForm.theme?.secondary,
                                     color: 'white'

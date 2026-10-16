@@ -61,7 +61,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                 </div>
                 <div className="p2-new text-black-700 mt-4">{getThankYouMessage()}</div>
                 {thankyouPage?.buttonText && (
-                    <Button style={{ background: standardForm.theme?.secondary }} className="mt-14">
+                    <Button flat style={{ background: standardForm.theme?.secondary }} className="mt-14">
                         <Link href={isPreviewMode ? '' : thankyouPage.buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
                             {thankyouPage.buttonText}
                         </Link>

@@ -113,6 +113,7 @@ export default function WelcomePage({
                     {(!standardForm?.settings?.private || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
                         <div>
                             <Button
+                                flat
                                 style={{ background: formTheme?.secondary }}
                                 className="z-10 mt-2 rounded-lg px-8 py-3 text-base font-semibold"
                                 size="medium"

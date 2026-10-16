@@ -1,4 +1,4 @@
-// Default = the trust palette (Design-Language.md §1): calm neutral surface,
+// Default = the Sireto palette (DESIGN.md, Form themes): paper-mist surface,
 // ink for words, one confident blue for actions. Saturated full-bleed colour
 // stays available through the other themes — it's opt-in, not the default.
 //
@@ -19,10 +19,10 @@
 // values are stored inline on the form, so renaming a preset never changes an
 // already-published form.
 export const ThemeColor = {
-    accent: '#F6F8FC',
+    accent: '#F5F7FB',
     tertiary: '#818CA0',
-    secondary: '#2456CC',
-    primary: '#101826'
+    secondary: '#1649E2',
+    primary: '#101828'
 };
 
 // How the form is DRESSED, independent of its colours/background. 'classic'
@@ -60,10 +60,10 @@ export interface FormTheme {
 export const ThemeColors: Array<FormTheme> = [
     {
         title: 'Default',
-        primary: '#101826',
-        secondary: '#2456CC',
+        primary: '#101828',
+        secondary: '#1649E2',
         tertiary: '#818CA0',
-        accent: '#F6F8FC'
+        accent: '#F5F7FB'
     },
     {
         // Warm cream ground with espresso ink — the "printed page" look.

@@ -72,10 +72,10 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
 
                 {(showControls || layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) && !disabled && (
                     <div className={cn('absolute flex h-full w-full items-start justify-end gap-4 p-2', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? '' : '')}>
-                        <div className="shadow-bubble z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                        <div className="shadow-large z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
                             <DeleteIcon width={24} height={24} />
                         </div>
-                        <div className=" shadow-bubble z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                        <div className=" shadow-large z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
                             <SwitchIcon />
                         </div>
                     </div>
@@ -88,6 +88,9 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             <div
                 style={{
                     backgroundColor: theme?.accent,
+                    // Focus outlines inside a form wear the theme's action colour
+                    // (the global focus rule in tailwind.css reads --focus-ring).
+                    ...(theme?.secondary ? { ['--focus-ring' as string]: theme.secondary } : {}),
                     ...style
                 }}
                 className={cn(
@@ -126,7 +129,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                             'relative',
                             showDesktopLayout ? 'h-auto ' : ' h-[30%] lg:h-auto',
                             (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) || (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT) ? 'grid-cols-1' : '',
-                            imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : 'bg-neutral-100 shadow hover:cursor-default'
+                            imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : 'bg-neutral-100 hover:cursor-default'
                         )}
                         // onClick={disabled ? () => {} : handleGridClick}
                         onMouseOver={disabled ? () => { } : () => setShowControls(true)}

@@ -28,19 +28,18 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
         // Short/long text previously opted back into an underline-only look,
         // which fragmented the input language and had no focus indicator.
         background: '#ffffff',
-        // Rest light and calm; hover steps to the theme's border colour; focus
-        // commits with the ring (matches shadcn/ui/input.tsx).
-        borderColor: '#E3E3E3',
+        // Rest on the theme's border colour (3:1 on its ground); hover steps to
+        // ink; focus commits to the action colour (matches shadcn/ui/input.tsx).
+        borderColor: themeColor || '#818CA0',
         color: $formTheme?.primary,
         '&::placeholder': {
-            color: '#657085 !important'
+            color: '#667085 !important'
         },
         '&:hover:not(:focus)': {
-            borderColor: themeColor || '#8A94A6'
+            borderColor: $formTheme?.primary || '#101828'
         },
         '&:focus': {
-            borderColor: secondaryColor,
-            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}33` : undefined
+            borderColor: secondaryColor
         }
     };
 });
