@@ -12,7 +12,7 @@ import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-fr
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
-import { HEADING_CLASSES } from '@app/utils/text-headings';
+import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 // Answer fields that V2InputFields (used elsewhere) leaves out; without them
@@ -37,6 +37,9 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // (DESIGN.md §5: "Don't hide which fields are optional to coerce answers".)
     const isAnswerable = field?.type ? V2InputFields.includes(field.type) || ALSO_ANSWERABLE.includes(field.type) : false;
     const isRequired = !!field?.validations?.required;
+    // A text block is content, not a question: it reads as body text (its
+    // own headings keep their sizes), not in the question-label style.
+    const isTextBlock = field?.type === FieldTypes.TEXT;
 
     // Answer piping: swap pipe tokens for the responder's earlier answers (or
     // captured hidden-field values) before the title/description hit the DOM.
@@ -71,7 +74,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 <div className="relative flex flex-wrap items-baseline gap-x-2.5">
                     {/* Labels: weight and contrast carry the hierarchy, not size
                         (ratified 2026-07-08 against the form-redesign mocks). */}
-                    <div id={`q-title-${field.id}`} className={`${tokens.labelClass} [&_p]:inline ${HEADING_CLASSES}`}>
+                    <div id={`q-title-${field.id}`} className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`}>
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
                         {isAnswerable && isRequired && (
                             <>

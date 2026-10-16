@@ -16,6 +16,8 @@ import getFormShareURL from '@app/utils/form-utils';
 import { DesktopIcon } from '@Components/icons/desktop-icon';
 import { MobileIcon } from '@Components/icons/mobile-icon';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
+import { layoutOfPage } from '@app/views/organism/layout/form-column';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import ShareIcon from '@Components/icons/share-icon';
 import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
@@ -33,6 +35,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const isMobile = useIsMobile();
     const { openModal } = useModal();
     const authState = useAppSelector(selectAuth);
+    const { currentSlide } = useResponderState();
 
     useEffect(() => {
         setIFrameLoaded(false);
@@ -93,13 +96,14 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
             <Separator />
             <div className=" h-full lg:mx-10 lg:py-10 lg:pb-24 ">
                 {isDesktopView ? (
-                    <div className={`relative flex aspect-video max-w-full flex-col gap-2 lg:mx-auto lg:max-h-full! ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
-                        {children}
+                    <div className={`relative flex aspect-video max-w-full flex-col lg:mx-auto lg:max-h-full! ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
+                        <div className="relative min-h-0 flex-1">{children}</div>
                         {/* Preview must show exactly what responders will see —
-                            including the trust strip. Hiding it here would make
-                            the drawer's "responders will see" promise a lie. */}
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40">
-                            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} />
+                            including the trust strip, in flow below the form as
+                            on the live page. Hiding it here would make the
+                            drawer's "responders will see" promise a lie. */}
+                        <div className="relative z-40 shrink-0">
+                            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layoutOfPage(standardForm, currentSlide)} />
                         </div>
                     </div>
                 ) : (

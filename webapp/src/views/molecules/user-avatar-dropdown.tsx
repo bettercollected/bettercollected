@@ -20,7 +20,9 @@ export default function UserAvatarDropDown({ responderSignInUrl = '', disabled =
 
     return (
         <Popover open={popOverOpen} onOpenChange={setPopoverOpen}>
-            <PopoverTrigger className="absolute right-10 top-4">
+            {/* Pinned to the form's side gutter (form-column.ts); the welcome
+                and ending pages leave room for it above their titles. */}
+            <PopoverTrigger className="absolute right-5 top-4 z-10 sm:right-8" aria-label="Account">
                 <div className={cn('flex cursor-pointer  items-center rounded-full p-1 transition', popOverOpen ? 'bg-black-400' : 'bg-white/50')}>
                     <UserAvatar authState={authState} />
                     <ChevronDown className={cn(' text-black-600 pt-1 transition', !disabled && popOverOpen && 'rotate-180')} />

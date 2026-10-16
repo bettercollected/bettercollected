@@ -7,8 +7,11 @@ import { Trans } from 'react-i18next';
 
 import useRespondentLanguage, { RESPONDENT_LANGUAGES } from '@app/lib/hooks/use-respondent-language';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
+import { cn } from '@app/shadcn/util/lib';
 import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
+import { FORM_COLUMN, FORM_GUTTER, columnPlacementClass } from '@app/views/organism/layout/form-column';
 
 export interface TrustLayerProps {
     /** Who receives the answers: the workspace/organisation name. */
@@ -33,6 +36,12 @@ export interface TrustLayerProps {
      * the respondent opens or closes it themselves.
      */
     defaultExpanded?: boolean;
+    /**
+     * The page's layout, so the strip and panel content sit in the same
+     * column as the form above them ("Left aligned" pages keep the column
+     * against the left gutter).
+     */
+    layout?: FormSlideLayout | null;
 }
 
 /**
@@ -42,7 +51,10 @@ export interface TrustLayerProps {
  * identity is needed, whether AI is used on them, and the respondent's rights.
  * Dutch and English (`respondent` namespace), in the respondent's language.
  */
-export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl, poweredBy, defaultExpanded = false }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl, poweredBy, defaultExpanded = false, layout }: TrustLayerProps) {
+    // The form's column (form-column.ts): one left and right edge from the
+    // page header down to this footer.
+    const column = cn(FORM_COLUMN, columnPlacementClass(layout));
     const { t, language, setLanguage } = useRespondentLanguage();
     const [expanded, setExpanded] = useState(defaultExpanded);
     const touchedRef = useRef(false);
@@ -112,50 +124,55 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     return (
         // The strip comes first in the DOM, so after the toggle the keyboard
         // moves into the panel; flex-col-reverse shows the panel above it.
-        <div className="font-form flex w-full flex-col-reverse" data-testid="privacy-panel">
+        <div className="flex w-full flex-col-reverse font-form" data-testid="privacy-panel">
             {/* 13px legible strip: who is collecting, and the way into the panel. */}
-            <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t border-t-black-400 bg-white/90 px-4 py-2 text-[13px] backdrop-blur-sm" lang={language}>
-                <Shield className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
-                {ownerName && (
-                    <span className="inline-flex items-center gap-1.5 text-black-700">
-                        {ownerImage ? <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
-                        <span>
-                            <Trans t={t} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: ownerName }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
+            <div className={cn('backdrop-blur-sm w-full border-t border-t-black-400 bg-white/90 py-2 text-[13px]', FORM_GUTTER)} lang={language}>
+                {/* Items wrap freely on phones. The dividers only show from `sm`
+                    up, where the strip fits on one line: a wrapped line never
+                    ends (or starts) with a stray divider. */}
+                <div className={cn(column, 'flex flex-wrap items-center gap-x-4 gap-y-1.5 sm:gap-x-3')}>
+                    <Shield className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
+                    {ownerName && (
+                        <span className="inline-flex items-center gap-1.5 text-black-700">
+                            {ownerImage ? <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
+                            <span>
+                                <Trans t={t} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: ownerName }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
+                            </span>
                         </span>
-                    </span>
-                )}
-                {aiUsed && (
-                    // The AI notice is part of what every respondent sees, not
-                    // only inside the panel (#752): its own line on phones.
-                    <>
-                        <span className="hidden h-3 w-px bg-black-400 sm:inline-block" aria-hidden="true" />
-                        <span className="w-full text-center text-black-700 sm:w-auto" data-testid="privacy-strip-ai">
-                            {aiProvider ? t('PRIVACY.STRIP_AI_USED', { provider: aiProvider }) : t('PRIVACY.STRIP_AI_USED_NO_PROVIDER')}
-                        </span>
-                    </>
-                )}
-                {/* on phones the AI line ends a row: no divider starting the next */}
-                <span className={`h-3 w-px bg-black-400 ${aiUsed ? 'hidden sm:inline-block' : ''}`} aria-hidden="true" />
-                <button
-                    ref={toggleRef}
-                    id={toggleId}
-                    type="button"
-                    aria-expanded={expanded}
-                    aria-controls={panelId}
-                    onClick={toggle}
-                    className="pointer-events-auto inline-flex items-center gap-1 rounded-[4px] px-1.5 py-0.5 font-semibold text-black-900 underline decoration-dotted underline-offset-2 hover:bg-black-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
-                >
-                    {t('PRIVACY.TOGGLE')}
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : 'rotate-180'}`} aria-hidden="true" />
-                </button>
-                {showPoweredBy && (
-                    <>
-                        <span className="h-3 w-px bg-black-400" aria-hidden="true" />
-                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-black-600 hover:text-black-900">
-                            <Trans t={t} i18nKey="PRIVACY.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
-                        </a>
-                    </>
-                )}
+                    )}
+                    {aiUsed && (
+                        // The AI notice is part of what every respondent sees, not
+                        // only inside the panel (#752): its own line on phones.
+                        <>
+                            <span className="hidden h-3 w-px bg-black-400 sm:inline-block" aria-hidden="true" />
+                            <span className="w-full text-black-700 sm:w-auto" data-testid="privacy-strip-ai">
+                                {aiProvider ? t('PRIVACY.STRIP_AI_USED', { provider: aiProvider }) : t('PRIVACY.STRIP_AI_USED_NO_PROVIDER')}
+                            </span>
+                        </>
+                    )}
+                    <span className="hidden h-3 w-px bg-black-400 sm:inline-block" aria-hidden="true" />
+                    <button
+                        ref={toggleRef}
+                        id={toggleId}
+                        type="button"
+                        aria-expanded={expanded}
+                        aria-controls={panelId}
+                        onClick={toggle}
+                        // -ml-1.5: the label, not the hover padding, lines up when it starts a line.
+                        className="pointer-events-auto -ml-1.5 inline-flex items-center gap-1 rounded-[4px] px-1.5 py-0.5 font-semibold text-black-900 underline decoration-dotted underline-offset-2 hover:bg-black-100 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                    >
+                        {t('PRIVACY.TOGGLE')}
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : 'rotate-180'}`} aria-hidden="true" />
+                    </button>
+                    {showPoweredBy && (
+                        <>
+                            <span className="hidden h-3 w-px bg-black-400 sm:inline-block" aria-hidden="true" />
+                            <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-black-600 hover:text-black-900">
+                                <Trans t={t} i18nKey="PRIVACY.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
+                            </a>
+                        </>
+                    )}
+                </div>
             </div>
             {expanded && (
                 <section
@@ -168,9 +185,9 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                             toggleRef.current?.focus();
                         }
                     }}
-                    className="pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white px-4 py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+                    className={cn('pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]', FORM_GUTTER)}
                 >
-                    <div className="mx-auto flex max-w-[800px] flex-col gap-3">
+                    <div className={cn(column, 'flex flex-col gap-3')}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <h2 className="text-[15px] font-semibold text-black-900">{t('PRIVACY.PANEL_LABEL')}</h2>
                             <div role="group" aria-label={t('PRIVACY.LANGUAGE')} className="flex overflow-hidden rounded-md border border-black-300 text-[12px]">
@@ -191,7 +208,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                         <dl className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2" lang={language}>
                             {rows.map((row) => (
                                 <div key={row.key} data-testid={`privacy-${row.key}`}>
-                                    <dt className="text-[12px] font-semibold uppercase tracking-wide text-black-600">{row.term}</dt>
+                                    <dt className="text-[12px] font-semibold tracking-wide text-black-600 uppercase">{row.term}</dt>
                                     <dd className="text-black-800">{row.detail}</dd>
                                 </div>
                             ))}

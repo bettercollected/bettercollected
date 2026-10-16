@@ -3,7 +3,6 @@
 import cn from 'classnames';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { FormSlideLayout } from '@app/models/enums/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -26,6 +25,7 @@ function fieldTypeLabel(type?: string) {
     return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
 }
 import { RichTextEditor } from '../../molecules/rich-text-editor';
+import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 import FieldDescription from './fields/field-description';
 import renderFieldWrapper from './fields/render-field';
@@ -43,16 +43,17 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
 
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
-            {/* 64px between question groups — the same rhythm the responder
-                sees (WYSIWYG). The old stack doubled up: gap-20 twice, py-[10vh]
-                on top of LayoutWrapper's own py-[60px], and px-6 twice. */}
-            <div className="flex h-full w-full flex-col justify-center px-6 py-4">
+            {/* WYSIWYG: the same form column, 48px question rhythm and
+                vertical placement as the respondent page (form-column.ts);
+                pt-12 matches the space the respondent page keeps for its
+                header bar. */}
+            <div className="w-full pt-12">
                 <div
                     className={cn(
-                        'flex w-full max-w-[800px] flex-col gap-16 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-16',
-                        // The grid IS the 800px question column (same as the runtime);
-                        // page alignment positions the column, not each field.
-                        slide.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'
+                        FORM_COLUMN,
+                        // Page alignment positions the column, not each field.
+                        columnPlacementClass(slide.properties?.layout),
+                        'flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-12'
                     )}
                 >
                     <AnimatePresence>
@@ -71,10 +72,10 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                             transition: { duration: 0.5 },
                                             id: disabled ? field.id : `scroll-field-${field.id}`,
                                             // WYSIWYG: the canvas packs columns exactly like the runtime.
-                                            style: { gridColumn: `span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))} / span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))}` },
+                                            style: { gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` },
                                             // Rows size to content — h-full made every row stretch to an
                                             // equal share of the slide, so spacing changed with field count.
-                                            className: 'relative flex w-full min-w-0 flex-row items-center'
+                                            className: cn('relative flex w-full min-w-0 flex-row items-center', fieldSpacingClass(field, index === slideFields.length - 1))
                                         } as any)
                                         }
                                     >
