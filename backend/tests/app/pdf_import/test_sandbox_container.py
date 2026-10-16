@@ -14,6 +14,7 @@ Skipped unless docker and the image are available. Build the image first:
 """
 
 import base64
+import io
 import json
 import os
 import pathlib
@@ -24,11 +25,13 @@ import time
 import uuid
 
 import pytest
+from PIL import Image
 
 from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.sandbox import (
     run_analysis,
     run_layout,
+    run_logo,
     run_render,
     run_text_layer,
 )
@@ -163,6 +166,12 @@ async def test_every_mode_works_under_the_profile(container):
     with pytest.raises(DocumentRefused) as raised:
         await run_analysis(documents.encrypted_pdf(), "application/pdf", **kw)
     assert raised.value.code == "encrypted"
+    # the organisation logo mode: PNG, JPEG and WebP decoded and re-encoded
+    for fmt, kind in (("PNG", "png"), ("JPEG", "jpeg"), ("WEBP", "webp")):
+        buffer = io.BytesIO()
+        Image.new("RGB", (120, 48), (11, 61, 145)).save(buffer, format=fmt)
+        logo = await run_logo(buffer.getvalue(), **kw)
+        assert logo["format"] == kind and (logo["width"], logo["height"]) == (120, 48)
 
 
 PROBE = r"""

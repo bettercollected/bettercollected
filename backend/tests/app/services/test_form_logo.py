@@ -1,10 +1,17 @@
 """The organisation logo of a form (services/form_logo.py): which files are
-taken, where they are stored, and that replacing, removing, copying and
-deleting a form never leave a respondent page pointing at a missing file or
-at someone else's server."""
+taken, that the API never decodes them (the document sandbox does, and only
+its re-encoding is stored), where they are stored, and that replacing,
+removing, copying and deleting a form never leave a respondent page pointing
+at a missing file or at someone else's server.
 
+The sandbox is replaced by a fake here; the real operation is tested in
+tests/app/pdf_import/test_logo_image.py."""
+
+import ast
+import base64
 import io
 import json
+import pathlib
 
 import pytest
 from httpx import AsyncClient
@@ -14,12 +21,15 @@ from common.models.standard_form import StandardForm
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.services import form_logo
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_logo import (
     LOGO_MAX_BYTES,
     check_logo_bytes,
     sniff_image_format,
 )
+from backend.app.services.pdf_import.analysis import DocumentRefused
+from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 from tests.app.controllers.data import formData, testUser
 
 
@@ -33,6 +43,41 @@ SVG = (
     b'<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg">'
     b"<script>alert(1)</script></svg>"
 )
+_CONTENT_TYPES = {"png": "image/png", "jpeg": "image/jpeg", "webp": "image/webp"}
+
+
+class FakeSandbox:
+    """Answers like the sandbox's logo mode with a recognisably different
+    file of the same format, so a test can tell what got stored."""
+
+    def __init__(self):
+        self.calls = []
+        self.raises = None
+        self.result = None
+
+    async def __call__(self, data: bytes) -> dict:
+        self.calls.append(data)
+        if self.raises:
+            raise self.raises
+        if self.result is not None:
+            return self.result
+        kind = sniff_image_format(data)
+        fmt = {"png": "PNG", "jpeg": "JPEG", "webp": "WEBP"}[kind]
+        reencoded = image_bytes(fmt, size=(120, 48), colour=(1, 2, 3))
+        return {
+            "format": kind,
+            "content_type": _CONTENT_TYPES[kind],
+            "width": 120,
+            "height": 48,
+            "data": base64.b64encode(reencoded).decode("ascii"),
+        }
+
+
+@pytest.fixture(autouse=True)
+def fake_sandbox(monkeypatch):
+    fake = FakeSandbox()
+    monkeypatch.setattr(form_logo, "_process_in_sandbox", fake)
+    return fake
 
 
 # --- which files are taken -----------------------------------------------------
@@ -46,12 +91,18 @@ SVG = (
         ("WEBP", "webp", "image/webp"),
     ],
 )
-def test_png_jpeg_and_webp_are_taken(fmt, kind, content_type):
-    data = image_bytes(fmt)
-    assert sniff_image_format(data) == kind
-    checked = check_logo_bytes(data)
+async def test_png_jpeg_and_webp_are_taken_as_the_sandbox_reencoded_them(
+    fake_sandbox, fmt, kind, content_type
+):
+    upload = image_bytes(fmt)
+    assert sniff_image_format(upload) == kind
+    checked = await check_logo_bytes(upload)
+    assert fake_sandbox.calls == [upload]
     assert checked.content_type == content_type
     assert (checked.width, checked.height) == (120, 48)
+    # what is kept is the sandbox's encoding, never the upload
+    assert checked.data != upload
+    assert checked.data == base64.b64decode((await fake_sandbox(upload))["data"])
 
 
 @pytest.mark.parametrize(
@@ -62,28 +113,105 @@ def test_png_jpeg_and_webp_are_taken(fmt, kind, content_type):
         (image_bytes("GIF"), 415),
         (image_bytes("BMP"), 415),
         (b"", 422),
-        # starts like a PNG, is not one
-        (b"\x89PNG\r\n\x1a\n" + b"\x00" * 64, 422),
-        (image_bytes("PNG", size=(3001, 40)), 422),
-        (image_bytes("PNG", size=(10, 10)), 422),
         (b"\x89PNG\r\n\x1a\n" + b"\x00" * LOGO_MAX_BYTES, 413),
     ],
-    ids=[
-        "svg",
-        "html",
-        "gif",
-        "bmp",
-        "empty",
-        "fake-png",
-        "too-wide",
-        "too-small",
-        "over-1mb",
+    ids=["svg", "html", "gif", "bmp", "empty", "over-1mb"],
+)
+async def test_other_files_are_refused_before_the_sandbox(fake_sandbox, data, status):
+    with pytest.raises(HTTPException) as refused:
+        await check_logo_bytes(data)
+    assert refused.value.status_code == status
+    assert fake_sandbox.calls == []
+
+
+@pytest.mark.parametrize(
+    "code,status",
+    [
+        ("bad_size", 422),
+        ("unreadable", 422),
+        ("unsupported_type", 415),
+        ("too_large", 422),
     ],
 )
-def test_other_files_are_refused(data, status):
+async def test_sandbox_refusals_become_plain_answers(fake_sandbox, code, status):
+    fake_sandbox.raises = DocumentRefused(code, "no")
     with pytest.raises(HTTPException) as refused:
-        check_logo_bytes(data)
+        await check_logo_bytes(image_bytes())
     assert refused.value.status_code == status
+
+
+async def test_without_the_sandbox_uploads_are_refused_not_decoded(fake_sandbox):
+    fake_sandbox.raises = SandboxUnavailable("down")
+    with pytest.raises(HTTPException) as refused:
+        await check_logo_bytes(image_bytes())
+    assert refused.value.status_code == 503
+    assert "unavailable" in str(refused.value.content)
+
+
+async def test_without_a_configured_sandbox_the_real_client_refuses(monkeypatch):
+    # the real client with no socket configured: native work never runs locally
+    monkeypatch.undo()
+    monkeypatch.setattr(form_logo.settings.pdf_import, "SANDBOX_SOCKET", "")
+    with pytest.raises(HTTPException) as refused:
+        await check_logo_bytes(image_bytes())
+    assert refused.value.status_code == 503
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        ["not", "a", "dict"],
+        {"format": "jpeg", "width": 120, "height": 48, "data": ""},
+        {"format": "png", "width": "120", "height": 48, "data": ""},
+        {"format": "png", "width": 120, "height": 48, "data": "not base64!"},
+        {
+            "format": "png",
+            "width": 120,
+            "height": 48,
+            "data": base64.b64encode(SVG).decode("ascii"),
+        },
+        {
+            "format": "png",
+            "width": 9000,
+            "height": 48,
+            "data": base64.b64encode(image_bytes()).decode("ascii"),
+        },
+    ],
+    ids=[
+        "nothing",
+        "other-format",
+        "bad-width",
+        "bad-base64",
+        "not-an-image",
+        "too-wide",
+    ],
+)
+async def test_what_the_sandbox_returns_is_checked(fake_sandbox, result):
+    fake_sandbox.result = result
+    with pytest.raises(HTTPException) as refused:
+        await check_logo_bytes(image_bytes())
+    assert refused.value.status_code == 422
+
+
+def test_the_api_never_imports_an_image_decoder():
+    source = pathlib.Path(form_logo.__file__).read_text()
+    imported = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            imported |= {alias.name.split(".")[0] for alias in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module.split(".")[0])
+    assert "PIL" not in imported
+    assert "MAX_IMAGE_PIXELS" not in source
+    assert "Image.open" not in source
+    # nor does anything else in the API outside the sandbox's own modules
+    app = pathlib.Path(form_logo.__file__).parents[1]
+    for path in app.rglob("*.py"):
+        if "pdf_import" in path.parts:
+            continue
+        text = path.read_text()
+        assert "MAX_IMAGE_PIXELS" not in text, path
+        assert "from PIL" not in text and "import PIL" not in text, path
 
 
 def test_only_urls_in_our_own_public_storage_are_ours():
@@ -414,19 +542,3 @@ async def test_deleting_a_form_deletes_its_logo_files(
     )
     assert reply.status_code == 200, reply.text
     assert not bucket.has(url)
-
-
-def test_a_huge_image_is_refused_by_its_size_not_decoded():
-    data = image_bytes("PNG", size=(6000, 6000))
-    assert len(data) < LOGO_MAX_BYTES
-    with pytest.raises(HTTPException) as refused:
-        check_logo_bytes(data)
-    assert refused.value.status_code == 422
-    assert "pixels" in str(refused.value.content)
-
-
-def test_the_check_does_not_depend_on_pillows_process_wide_limit(monkeypatch):
-    # Other code (the PDF import) sets Image.MAX_IMAGE_PIXELS for itself.
-    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 2000)
-    assert check_logo_bytes(image_bytes("PNG")).width == 120
-    assert Image.MAX_IMAGE_PIXELS == 2000

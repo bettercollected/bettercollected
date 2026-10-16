@@ -2,37 +2,49 @@
 
 Rules (DESIGN.md §9, "Organisation logo"):
 
-- PNG, JPEG or WebP only, recognised by their first bytes and decoded once to
-  be sure; never SVG (it can carry scripts) or anything else, whatever the
-  file is called or the browser says it is.
-- At most 1 MB and 3000 px on either side, at least 16 px.
+- PNG, JPEG or WebP only, recognised here by their first bytes; never SVG (it
+  can carry scripts) or anything else, whatever the file is called or the
+  browser says it is.
+- At most 1 MB and 16–3000 px on each side.
+- This process never decodes an upload. The document sandbox (the PDF
+  import's isolated container, ``pdf_import/logo_image.py``) decodes it,
+  checks its size and re-encodes it without metadata (EXIF, GPS, XMP, ICC);
+  only those re-encoded bytes are stored. Without the sandbox, uploads are
+  refused (503), never decoded here.
 - Stored in our own bucket, under ``public/form-logos/<form id>/``, and read
   from there: a form never points at a logo somewhere else, so respondent
   pages make no third-party request for it.
 """
 
-import io
+import base64
+import binascii
 import uuid
-import warnings
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Optional
 
-from PIL import Image
+from loguru import logger
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.pdf_import.analysis import DocumentRefused
+from backend.app.services.pdf_import.logo_image import (
+    LOGO_FORMATS,
+    LOGO_MAX_SIDE,
+    LOGO_MIN_SIDE,
+    SIZE_MESSAGE,
+    sniff_logo_format,
+)
+from backend.app.services.pdf_import import sandbox
+from backend.app.services.pdf_import.sandbox import SandboxUnavailable
+from backend.config import settings
 
 LOGO_MAX_BYTES = 1024 * 1024
-LOGO_MAX_SIDE = 3000
-LOGO_MIN_SIDE = 16
+# the re-encoded file may come out a little larger than the upload
+LOGO_STORED_MAX_BYTES = 2 * LOGO_MAX_BYTES
 LOGO_FOLDER = "public/form-logos"
+_EXTENSIONS = {"png": "png", "jpeg": "jpg", "webp": "webp"}
 
-# format -> (file extension, content type, Pillow's name for it)
-_FORMATS = {
-    "png": ("png", "image/png", "PNG"),
-    "jpeg": ("jpg", "image/jpeg", "JPEG"),
-    "webp": ("webp", "image/webp", "WEBP"),
-}
+# kept for callers that sniff before reading the whole upload
+sniff_image_format = sniff_logo_format
 
 
 @dataclass(frozen=True)
@@ -44,81 +56,103 @@ class CheckedLogo:
     height: int
 
 
-def sniff_image_format(data: bytes) -> Optional[str]:
-    """The format the file's own first bytes declare, if it is one we take."""
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "png"
-    if data.startswith(b"\xff\xd8\xff"):
-        return "jpeg"
-    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        return "webp"
-    return None
-
-
 def _refuse(status: HTTPStatus, message: str):
     raise HTTPException(status_code=status, content=message)
 
 
-def check_logo_bytes(data: bytes) -> CheckedLogo:
-    """Accept a logo file or raise: 413 too large, 415 not PNG/JPEG/WebP,
-    422 unreadable or out of the size limits."""
+def precheck_logo_bytes(data: bytes) -> str:
+    """The cheap checks, without decoding: size and the first bytes. Returns
+    the declared format, or raises 413/415/422."""
     if not data:
         _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, "The logo file is empty.")
     if len(data) > LOGO_MAX_BYTES:
         _refuse(
             HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "The logo must be 1 MB or smaller."
         )
-    kind = sniff_image_format(data)
+    kind = sniff_logo_format(data)
     if kind is None:
         _refuse(
             HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
             "The logo must be a PNG, JPEG or WebP image.",
         )
-    extension, content_type, pil_name = _FORMATS[kind]
-    size_problem = (
-        f"The logo must be between {LOGO_MIN_SIDE} and "
-        f"{LOGO_MAX_SIDE} pixels on each side."
+    return kind
+
+
+async def _process_in_sandbox(data: bytes) -> dict:
+    """The sandbox's re-encoding (``pdf_import/logo_image.py``). Tests replace it."""
+    s = settings.pdf_import
+    return await sandbox.run_logo(
+        data,
+        max_pages=1,
+        max_pixels=LOGO_MAX_SIDE * LOGO_MAX_SIDE,
+        timeout_s=30,
+        memory_mb=512,
+        max_parallel=s.MAX_PARALLEL_SANDBOXES,
+        max_result_bytes=4 * LOGO_STORED_MAX_BYTES,
+        socket_path=s.SANDBOX_SOCKET,
+        require_isolated=True,
     )
-    # Pillow's decompression-bomb limit is process-wide (the PDF import sets
-    # it too): hold it at the largest logo while this one is opened, so the
-    # check never depends on what ran before. No await in between.
-    previous_limit = Image.MAX_IMAGE_PIXELS
-    Image.MAX_IMAGE_PIXELS = LOGO_MAX_SIDE * LOGO_MAX_SIDE
+
+
+def _accept_result(kind: str, result: dict) -> CheckedLogo:
+    """The sandbox parsed an attacker's file: check everything it returns."""
+    unreadable = (HTTPStatus.UNPROCESSABLE_ENTITY, "The logo image could not be read.")
+    if not isinstance(result, dict) or result.get("format") != kind:
+        _refuse(*unreadable)
+    width, height = result.get("width"), result.get("height")
+    if not all(isinstance(v, int) and not isinstance(v, bool) for v in (width, height)):
+        _refuse(*unreadable)
+    if not (
+        LOGO_MIN_SIDE <= min(width, height) and max(width, height) <= LOGO_MAX_SIDE
+    ):
+        _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, SIZE_MESSAGE)
+    encoded = result.get("data")
+    if not isinstance(encoded, str) or len(encoded) > 2 * LOGO_STORED_MAX_BYTES:
+        _refuse(*unreadable)
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", Image.DecompressionBombWarning)
-            with Image.open(io.BytesIO(data)) as image:
-                if image.format != pil_name:
-                    raise ValueError("format mismatch")
-                width, height = image.size
-                if (
-                    max(width, height) > LOGO_MAX_SIDE
-                    or min(width, height) < LOGO_MIN_SIDE
-                ):
-                    _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, size_problem)
-                # Decode it once: a file that only starts like an image is refused.
-                image.load()
-    except HTTPException:
-        raise
-    except (Image.DecompressionBombError, Image.DecompressionBombWarning):
-        _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, size_problem)
-    except Exception:
-        _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, "The logo image could not be read.")
-    finally:
-        Image.MAX_IMAGE_PIXELS = previous_limit
+        data = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError):
+        _refuse(*unreadable)
+    if not data or len(data) > LOGO_STORED_MAX_BYTES or sniff_logo_format(data) != kind:
+        _refuse(*unreadable)
     return CheckedLogo(
         data=data,
-        extension=extension,
-        content_type=content_type,
+        extension=_EXTENSIONS[kind],
+        content_type=LOGO_FORMATS[kind][1],
         width=width,
         height=height,
     )
 
 
+async def check_logo_bytes(data: bytes) -> CheckedLogo:
+    """Accept a logo or raise: 413 too large, 415 not PNG/JPEG/WebP, 422
+    unreadable or out of the size limits, 503 when the sandbox is unavailable.
+    The returned bytes are the sandbox's re-encoding, never the upload."""
+    kind = precheck_logo_bytes(data)
+    try:
+        result = await _process_in_sandbox(data)
+    except SandboxUnavailable:
+        logger.warning("Logo upload refused: the document sandbox is unavailable.")
+        _refuse(
+            HTTPStatus.SERVICE_UNAVAILABLE,
+            "Logo processing is unavailable. Try again in a moment.",
+        )
+    except DocumentRefused as refused:
+        if refused.code == "bad_size":
+            _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, SIZE_MESSAGE)
+        if refused.code == "unsupported_type":
+            _refuse(
+                HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+                "The logo must be a PNG, JPEG or WebP image.",
+            )
+        _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, "The logo image could not be read.")
+    return _accept_result(kind, result)
+
+
 async def read_logo_upload(upload) -> CheckedLogo:
     """Read an uploaded logo (at most one byte over the limit) and check it."""
     data = await upload.read(LOGO_MAX_BYTES + 1)
-    return check_logo_bytes(data)
+    return await check_logo_bytes(data)
 
 
 def logo_key(owner: str, extension: str) -> str:
