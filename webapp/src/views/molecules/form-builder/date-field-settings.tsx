@@ -76,7 +76,7 @@ export default function DateFieldSettings({
                 {rules.map((rule, index) => {
                     const known = rule.target !== 'field' || sources.some((s) => s.id === rule.fieldId);
                     return (
-                        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-black-200 bg-white p-2" data-testid="date-rule">
+                        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-black-300 bg-white p-2" data-testid="date-rule">
                             <div className="flex items-center gap-1.5">
                                 <span className="shrink-0 text-xs text-black-600">Must be</span>
                                 <select aria-label={`Rule ${index + 1} comparison`} className={selectClass} value={rule.comparison} onChange={(e) => patchRule(index, { ...rule, comparison: e.target.value as DateRuleComparison })}>

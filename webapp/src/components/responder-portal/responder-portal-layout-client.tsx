@@ -158,7 +158,7 @@ export default function ResponderPortalLayoutClient({
                 )}
             </div>
             <div className="flex flex-1 flex-col pb-4! md:min-h-0 md:min-w-0 md:pl-12">
-                <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
+                <div className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0">
                     {tabs.map((tab) => {
                         const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
                         return (

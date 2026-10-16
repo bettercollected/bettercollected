@@ -92,7 +92,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                 <div className="mb-2 text-sm font-medium">Blank</div>
                 <button data-umami-event={'Add Blank Page Button'} data-umami-event-email={authState.email}>
                     <div
-                        className="hover:bg-black-200 border-black-200 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
+                        className="hover:bg-black-200 border-black-300 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
                         onClick={() => {
                             addSlideOfStyle(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN, true);
                         }}

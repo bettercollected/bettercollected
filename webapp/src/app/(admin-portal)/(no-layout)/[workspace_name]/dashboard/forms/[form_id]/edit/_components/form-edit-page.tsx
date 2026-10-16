@@ -191,7 +191,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
                         <TrustStripNudge />
                     </div>
-                    <div className="border-black-300 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded border border-black-300 bg-white text-xs font-medium" onClick={(e) => e.stopPropagation()}>
+                    <div className="border-black-400 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded border border-black-400 bg-white text-xs font-medium" onClick={(e) => e.stopPropagation()}>
                         <button className={canvasZoom === 'fit' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('fit')}>
                             Fit
                         </button>

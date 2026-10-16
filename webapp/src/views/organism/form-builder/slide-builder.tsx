@@ -118,7 +118,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                     // shouldn't be the selection's only (or loudest) affordance.
                                                     <div className="border-black-300 shadow-large absolute -top-12 right-0 z-10 flex items-center overflow-hidden rounded border bg-white">
                                                         <span className="text-black-600 px-2.5 text-[11px] font-semibold uppercase tracking-wide">{fieldTypeLabel(field.type)}</span>
-                                                        <span className="bg-black-200 h-5 w-px" aria-hidden="true" />
+                                                        <span className="bg-black-400 h-5 w-px" aria-hidden="true" />
                                                         <button
                                                             type="button"
                                                             title="Duplicate question"

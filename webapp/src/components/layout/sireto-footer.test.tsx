@@ -13,6 +13,8 @@ describe('Sireto footer', () => {
         const link = screen.getByRole('link', { name: 'A product of Sireto B.V.' });
         expect(link.getAttribute('href')).toBe('https://sireto.com');
         expect(link.getAttribute('rel')).toContain('noopener');
+        // A link in running text is marked by more than colour (WCAG 1.4.1).
+        expect(link.className).toMatch(/(^|\s)underline(\s|$)/);
         expect(screen.getByText('Sireto® is a registered trademark of Sireto B.V.')).toBeTruthy();
         expect(screen.getByRole('contentinfo')).toBeTruthy();
     });

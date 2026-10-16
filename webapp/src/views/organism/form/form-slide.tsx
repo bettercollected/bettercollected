@@ -270,7 +270,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 who is asking, and how much is left — no surprises. */}
                             <div className="text-black-700 flex items-center gap-3 text-[13px]">
                                 {(workspace?.title || workspace?.workspaceName) && (
-                                    <span className="border-black-300 text-black-800 hidden items-center gap-1.5 rounded-full border bg-white/85 px-2.5 py-0.5 font-medium sm:inline-flex">
+                                    <span className="border-black-400 text-black-800 hidden items-center gap-1.5 rounded-full border bg-white/85 px-2.5 py-0.5 font-medium sm:inline-flex">
                                         <Shield className="text-brand-500 h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
                                         {workspace?.title || workspace?.workspaceName}
                                     </span>

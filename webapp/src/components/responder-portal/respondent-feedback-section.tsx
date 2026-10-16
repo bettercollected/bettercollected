@@ -17,7 +17,7 @@ export default function RespondentFeedbackSection({ feedback, workspaceTitle }: 
     const author = feedbackAuthor(feedback.author, workspaceTitle);
 
     return (
-        <section aria-labelledby="respondent-feedback-heading" className="mt-6 flex flex-col gap-3 rounded-lg border border-black-200 p-4">
+        <section aria-labelledby="respondent-feedback-heading" className="mt-6 flex flex-col gap-3 rounded-lg border border-black-400 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <span id="respondent-feedback-heading" className="text-sm font-semibold text-black-900">
                     Response from {author}
@@ -29,7 +29,7 @@ export default function RespondentFeedbackSection({ feedback, workspaceTitle }: 
             ) : (
                 <ol className="flex flex-col gap-3">
                     {[...entries].reverse().map((entry, index) => (
-                        <li key={`${entry.createdAt}-${index}`} className="flex flex-col gap-1 border-l-2 border-black-200 pl-3">
+                        <li key={`${entry.createdAt}-${index}`} className="flex flex-col gap-1 border-l-2 border-black-300 pl-3">
                             <span className="text-xs text-black-600">{utcToLocalDateTIme(entry.createdAt)}</span>
                             {entry.status && (
                                 <span className="text-sm text-black-700">

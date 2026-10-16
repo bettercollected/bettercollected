@@ -147,7 +147,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
 function TerminalNode({ id, data }: NodeProps<Node<any>>) {
     const isEnd = data.kind === 'end';
     return (
-        <div className="bg-black-100 border-black-200 text-black-600 flex w-[300px] flex-col gap-0.5 rounded border px-4 py-3">
+        <div className="bg-black-100 border-black-300 text-black-600 flex w-[300px] flex-col gap-0.5 rounded border px-4 py-3">
             {isEnd && <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />}
             {isEnd && (
                 <Handle
@@ -538,7 +538,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     return (
         <div className="relative flex h-full w-full flex-col bg-white">
             {/* header */}
-            <div className="border-b-black-200 flex items-center justify-between border-b px-6 py-3">
+            <div className="border-b-black-300 flex items-center justify-between border-b px-6 py-3">
                 <div>
                     <div className="text-black-900 text-base font-semibold">Flow</div>
                     {/* aria-live: screen readers announce entering/leaving connect mode */}
@@ -659,10 +659,10 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 </div>
 
                 {/* side panel */}
-                <div className="border-l-black-200 flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l bg-white">
+                <div className="border-l-black-300 flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l bg-white">
                     {selectedSlide ? (
                         <>
-                            <div className="border-b-black-200 flex flex-col gap-2 border-b px-4 py-4">
+                            <div className="border-b-black-300 flex flex-col gap-2 border-b px-4 py-4">
                                 <div>
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {selectedIndex + 1}</div>
                                     {/* The canvas card may truncate the question; the panel is
@@ -710,7 +710,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 <div role="dialog" aria-modal="true" aria-label={`Edit page ${overlayIndex + 1}`} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
                     <div className="flex min-h-0 flex-1 overflow-hidden rounded bg-white shadow-large" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-                            <div className="border-b-black-200 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
+                            <div className="border-b-black-300 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
                                 <div className="min-w-0">
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {overlayIndex + 1}</div>
                                     <div className="text-black-900 truncate text-sm font-semibold">{pageLabel(overlaySlide, overlayIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
@@ -747,7 +747,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="border-l-black-200 w-[300px] shrink-0 overflow-y-auto border-l bg-white">
+                        <div className="border-l-black-300 w-[300px] shrink-0 overflow-y-auto border-l bg-white">
                             <PropertiesDrawer />
                         </div>
                     </div>

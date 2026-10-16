@@ -47,8 +47,8 @@ illustrations and charts that use them.
 |---|---|---|
 | `black-100` | `#F5F7FB` | Paper mist: the app background |
 | `black-200` | `#F2F4F7` | Paper band: hover fills, table heads |
-| `black-300` | `#EAECF0` | Hairline: card and section edges |
-| `black-400` | `#D0D5DD` | Strong hairline: dividers, outlined-button edges |
+| `black-300` | `#EAECF0` | Hairline: edges and separators on white |
+| `black-400` | `#D0D5DD` | Strong hairline: separators and dividers on paper mist, outlined-button edges |
 | `black-500` | `#8A94A6` | Disabled text only — fails AA as text |
 | `black-600` | `#667085` | Labels, captions, placeholders (4.6:1 on paper mist) |
 | `black-700` | `#344054` | Emphasised body |
@@ -101,8 +101,15 @@ trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
 ## 3. Layout and surfaces
 
 - The app sits on paper mist (`black-100`). Cards and panels are white with a
-  1px hairline (`black-300`); sections inside a panel are divided by hairlines,
-  not by shadows or tinted bands.
+  1px hairline (`black-300`); sections inside a white panel are divided by
+  `black-300` hairlines, not by shadows or tinted bands.
+- A line that sits on paper mist itself — a divider, a tab bar's baseline, the
+  sidebar or header edge, a table's outer edge, the trust strip's top edge —
+  takes the strong hairline (`black-400`): `#EAECF0` on `#F5F7FB` is 1.1:1 and
+  disappears. `black-200` is a fill, never a line.
+- **Links** inside running text are underlined at rest (WCAG 1.4.1); colour
+  alone doesn't mark them. Hover changes the colour. Standalone links (a list
+  of next steps, navigation, tab bars) may go without the underline.
 - Provenance first: a respondent sees who is asking and how much is left
   before anything else (the header of every form page).
 - **No eyebrows and no wash inside the app.** Sireto's marketing pages open

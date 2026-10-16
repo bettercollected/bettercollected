@@ -102,7 +102,7 @@ export default function ThemesPage() {
                         {savedThemes.map((theme, index) => (
                             <div key={theme.title} className="border-black-300 group flex flex-col overflow-hidden rounded border bg-white">
                                 <ThemePreview color={theme} />
-                                <div className="border-t-black-200 flex items-center justify-between border-t px-3 py-2">
+                                <div className="border-t-black-300 flex items-center justify-between border-t px-3 py-2">
                                     <span className="text-black-800 truncate text-xs font-medium">{theme.title}</span>
                                     <span className="flex shrink-0 items-center gap-1">
                                         <button
@@ -130,7 +130,7 @@ export default function ThemesPage() {
                                 setNameError('');
                                 setEditing({ index: 'new', draft: { title: '', ...NEW_THEME_SEED } });
                             }}
-                            className="border-black-300 text-black-600 hover:border-brand-400 hover:text-brand-600 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed bg-white text-sm font-medium transition-colors"
+                            className="border-black-400 text-black-600 hover:border-brand-400 hover:text-brand-600 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed bg-white text-sm font-medium transition-colors"
                         >
                             <Plus className="h-5 w-5" />
                             New theme
@@ -182,7 +182,7 @@ export default function ThemesPage() {
 
                             <div className="rounded-lg">
                                 <div className="text-black-600 mb-1.5 text-xs font-medium uppercase tracking-wide">Preview</div>
-                                <div className="border-black-200 overflow-hidden rounded-lg border">
+                                <div className="border-black-300 overflow-hidden rounded-lg border">
                                     <ThemePreview color={editing.draft} />
                                 </div>
                                 <ContrastNotes theme={editing.draft} />
@@ -217,7 +217,7 @@ export default function ThemesPage() {
                     {ThemeColors.map((theme) => (
                         <div key={theme.title} className="border-black-300 flex flex-col overflow-hidden rounded border bg-white">
                             <ThemePreview color={theme} />
-                            <div className="border-t-black-200 border-t px-3 py-2">
+                            <div className="border-t-black-300 border-t px-3 py-2">
                                 <span className="text-black-800 text-xs font-medium">{theme.title}</span>
                             </div>
                         </div>

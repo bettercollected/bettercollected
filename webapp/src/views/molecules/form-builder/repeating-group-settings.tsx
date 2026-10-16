@@ -51,7 +51,7 @@ export default function RepeatingGroupSettings({ field, slide }: { field: Standa
     const autoLayout = settings.maxItems <= REPEAT_COLUMNS_EXPORT_MAX ? 'columns' : 'rows';
 
     return (
-        <div className="border-black-200 flex flex-col gap-3 border-t pt-4">
+        <div className="border-black-300 flex flex-col gap-3 border-t pt-4">
             <div>
                 <div className="text-black-700 text-xs font-medium">Repeating group</div>
                 <div className="text-black-600 text-[11px]">Respondents answer the group&apos;s questions once per item.</div>

@@ -232,7 +232,7 @@ export default function FormDashboardLayoutClient({
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
                     <div className="md:px-10 lg:px-28 pt-4">
-                        <div ref={tabsContainerRef} className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
+                        <div ref={tabsContainerRef} className="flex space-x-1 border-b border-black-400 overflow-x-auto">
                             {tabMenu.map((tab) => {
                                 const isActive = tab.matches.some((m) => pathname?.includes(`/${m}`));
                                 return (
@@ -253,7 +253,7 @@ export default function FormDashboardLayoutClient({
                         {children}
                     </div>
                     {form?.isPublished && (
-                        <div className="border-black-200 text-black-600 mx-4 mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t py-4 text-[13px] md:mx-10 lg:mx-28">
+                        <div className="border-black-300 text-black-600 mx-4 mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t py-4 text-[13px] md:mx-10 lg:mx-28">
                             {typeof (form as any)?.version === 'number' && <span>Version {(form as any).version}</span>}
                             {typeof (form as any)?.version === 'number' && <span className="text-black-600">·</span>}
                             <a href={getFormShareURL(workspaceForm ?? form, workspace)} target="_blank" rel="noopener noreferrer" className="hover:text-black-900 underline decoration-dotted underline-offset-2">

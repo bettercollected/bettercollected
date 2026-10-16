@@ -13,7 +13,7 @@ export interface ICustomizeUrlModalProps {
 export default function CustomizeUrlModal({ url, form }: ICustomizeUrlModalProps) {
     const { closeModal } = useModal();
     return (
-        <div className="border-black-200 relative w-[calc(100vw-2rem)] max-w-[540px] rounded border border-black-300 bg-white p-6 text-left shadow-large sm:w-[540px] sm:p-8">
+        <div className="border-black-300 relative w-[calc(100vw-2rem)] max-w-[540px] rounded border border-black-300 bg-white p-6 text-left shadow-large sm:w-[540px] sm:p-8">
             <button
                 onClick={closeModal}
                 aria-label="Close"

@@ -30,7 +30,7 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
             <div className="flex flex-col md:flex-row justify-between items-start  md:items-center">
                 <p className="h4-new font-medium!">{t(groupConstant.regex.title)}</p>
             </div>
-            <div className="border-y-black-200 border-y py-4 mt-4">
+            <div className="border-y-black-300 border-y py-4 mt-4">
                 <div className="flex justify-between">
                     <div>
                         <p className="body4 text-black-700!">{t(groupConstant.regex.description)}</p>

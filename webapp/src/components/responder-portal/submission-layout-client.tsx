@@ -65,7 +65,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // page for a white full-screen loader read as a flicker on every open.
         return (
             <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!">
-                <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
+                <header className="border-b-black-300 sticky top-0 z-20 border-b bg-white">
                     <div className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                         <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
                         <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
@@ -92,7 +92,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // switch mid-journey — the workspace's own identity leads instead, and
         // bettercollected stays where the portal keeps it: a quiet caption.
         <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!">
-            <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
+            <header className="border-b-black-300 sticky top-0 z-20 border-b bg-white">
                 <Link href={`${portalBase}/forms`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                     <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
                     <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
@@ -143,7 +143,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                         </div>
                     )}
 
-                    <div className="border-b-black-200 mt-6 flex space-x-1 overflow-x-auto border-b pb-0">
+                    <div className="border-b-black-300 mt-6 flex space-x-1 overflow-x-auto border-b pb-0">
                         {tabs.map((tab) => {
                             const isActive = pathname?.endsWith(`/${tab.path}`);
                             return (

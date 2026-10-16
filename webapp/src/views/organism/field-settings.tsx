@@ -203,7 +203,7 @@ export default function FieldSettings() {
             )}
 
             {activeField && activeSlide && activeField.type === FieldTypes.DATE && (
-                <div className="border-t border-black-200 pt-4">
+                <div className="border-t border-black-300 pt-4">
                     <DateFieldSettings
                         field={activeField}
                         sources={getDateRuleSources(formFields || [], activeField.id)}

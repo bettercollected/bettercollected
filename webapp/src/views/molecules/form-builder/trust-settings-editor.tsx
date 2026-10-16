@@ -157,7 +157,7 @@ export default function TrustSettingsEditor() {
             {/* Live preview of the responder-facing trust strip. */}
             <div className="mt-1 flex flex-col gap-1">
                 <span className="text-[10px] font-medium uppercase tracking-wide text-black-600">Responders will see</span>
-                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded border border-black-200 bg-white px-2.5 py-2 text-[11px] text-black-700">
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded border border-black-300 bg-white px-2.5 py-2 text-[11px] text-black-700">
                     <Shield className="h-3 w-3 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                     <span>
                         Collected by <span className="font-semibold text-black-900">{workspace?.title || workspace?.workspaceName}</span>

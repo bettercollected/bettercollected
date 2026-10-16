@@ -78,7 +78,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                 const logic = child.properties?.logic as FieldConditionalLogic | undefined;
                 const sources = sourcesFor(index);
                 return (
-                    <div key={child.id} className="border-black-200 flex flex-col gap-2 rounded border bg-white p-3" data-testid="group-child">
+                    <div key={child.id} className="border-black-300 flex flex-col gap-2 rounded border bg-white p-3" data-testid="group-child">
                         <div className="flex items-center gap-2">
                             <input
                                 key={`${child.id}-${typeof child.title === 'string' ? child.title : ''}`}

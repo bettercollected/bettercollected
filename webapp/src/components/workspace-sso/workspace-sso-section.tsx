@@ -44,7 +44,7 @@ export function CopyField({ label, value, hint }: { label: string; value: string
     return (
         <div className="flex flex-col gap-1">
             <span className="text-[11px] font-medium uppercase tracking-wide text-black-600">{label}</span>
-            <div className="flex items-center justify-between gap-3 rounded-md border border-black-200 bg-white px-3 py-2">
+            <div className="flex items-center justify-between gap-3 rounded-md border border-black-300 bg-white px-3 py-2">
                 <code className="break-all text-[13px] text-black-800">{value}</code>
                 <button
                     type="button"
@@ -127,7 +127,7 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
     const test = () => navigateWithReferrer(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/sso/connections/${connection.id}/test`);
 
     return (
-        <li className="flex flex-col gap-3 rounded border border-black-200 bg-white p-4" data-testid={`sso-connection-${connection.id}`}>
+        <li className="flex flex-col gap-3 rounded border border-black-300 bg-white p-4" data-testid={`sso-connection-${connection.id}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -224,7 +224,7 @@ function AddConnectionForm({ workspaceId, workspaceName, onDone }: { workspaceId
     };
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4 rounded border border-black-200 bg-white p-4" noValidate>
+        <form onSubmit={submit} className="flex flex-col gap-4 rounded border border-black-300 bg-white p-4" noValidate>
             <fieldset className="flex flex-wrap gap-4">
                 <legend className="mb-2 text-xs font-semibold text-black-800">Protocol</legend>
                 {(['saml', 'oidc'] as SsoConnectionType[]).map((value) => (
@@ -316,7 +316,7 @@ function Value({ children }: { children: React.ReactNode }) {
  * with this instance's own service-provider values. */
 export function EntraSetupHelp({ sp }: { sp: SsoServiceProviderDto }) {
     return (
-        <details className="group rounded-md border border-black-200 bg-white p-3 text-xs text-black-700" data-testid="sso-entra-help">
+        <details className="group rounded-md border border-black-300 bg-white p-3 text-xs text-black-700" data-testid="sso-entra-help">
             <summary className="cursor-pointer text-xs font-semibold text-black-900">Setting up Microsoft Entra ID</summary>
             <div className="mt-3 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -389,7 +389,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
 
     return (
         <Section title="Policy">
-            <div className="flex flex-col gap-4 rounded border border-black-200 bg-white p-4">
+            <div className="flex flex-col gap-4 rounded border border-black-300 bg-white p-4">
                 <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
                     Role for new members
                     <select className={cn(inputClass, 'sm:max-w-[240px]')} value={settings.defaultRole} disabled={isLoading || !canManage} onChange={(e) => save({ defaultRole: e.target.value })}>
@@ -472,7 +472,7 @@ export default function WorkspaceSsoSection() {
         );
     }
     if (!overview.available) {
-        return <p className="rounded-md border border-dashed border-black-200 px-3 py-4 text-xs text-black-600">Single sign-on is not enabled on this instance. The operator turns it on (SSO_ENABLED, see docs/sso.md).</p>;
+        return <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600">Single sign-on is not enabled on this instance. The operator turns it on (SSO_ENABLED, see docs/sso.md).</p>;
     }
 
     const sp = overview.serviceProvider;
@@ -502,14 +502,14 @@ export default function WorkspaceSsoSection() {
                 {overview.domains.length ? (
                     <ul className="flex flex-wrap gap-2">
                         {overview.domains.map((domain) => (
-                            <li key={domain} className="flex items-center gap-1.5 rounded-md border border-black-200 bg-white px-2.5 py-1 text-xs font-medium text-black-800">
+                            <li key={domain} className="flex items-center gap-1.5 rounded-md border border-black-300 bg-white px-2.5 py-1 text-xs font-medium text-black-800">
                                 <ShieldCheck className="h-3.5 w-3.5 text-success" />
                                 {domain}
                             </li>
                         ))}
                     </ul>
                 ) : (
-                    <p className="rounded-md border border-dashed border-black-200 px-3 py-3 text-xs text-black-600">
+                    <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">
                         No verified domain yet.{' '}
                         <Link className="text-brand-500 underline" href={`/${workspace?.workspaceName}/dashboard/domains`}>
                             Verify your organisation&apos;s domain
@@ -541,7 +541,7 @@ export default function WorkspaceSsoSection() {
                     </ul>
                 )}
                 {!overview.canManage ? null : overview.domains.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-black-200 px-3 py-3 text-xs text-black-600">
+                    <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">
                         A connection needs a verified email domain. <DomainsLink workspaceName={workspace?.workspaceName} /> first.
                     </p>
                 ) : adding ? (

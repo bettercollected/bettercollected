@@ -77,7 +77,7 @@ function RecordField({ label, value, copyLabel }: { label: string; value: string
     return (
         <div className="flex flex-col gap-1">
             <span className="text-[11px] font-medium uppercase tracking-wide text-black-600">{label}</span>
-            <div className="flex items-center justify-between gap-3 rounded-md border border-black-200 bg-white px-3 py-2">
+            <div className="flex items-center justify-between gap-3 rounded-md border border-black-300 bg-white px-3 py-2">
                 <code className="break-all text-[13px] text-black-800">{value}</code>
                 <CopyButton value={value} label={copyLabel} />
             </div>
@@ -123,7 +123,7 @@ function DomainCard({ domain, workspaceId }: { domain: WorkspaceDomainDto; works
     };
 
     return (
-        <li className="flex flex-col gap-4 rounded border border-black-200 bg-white p-4" data-testid={`domain-${domain.domain}`}>
+        <li className="flex flex-col gap-4 rounded border border-black-300 bg-white p-4" data-testid={`domain-${domain.domain}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-1" aria-live="polite">
                     <div className="flex flex-wrap items-center gap-2">
@@ -255,7 +255,7 @@ export default function WorkspaceDomainsSection() {
                         </Button>
                     </div>
                 ) : domains.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-black-200 px-3 py-4 text-center text-xs text-black-600">No domains yet. Add your organisation&apos;s email domain above.</p>
+                    <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-center text-xs text-black-600">No domains yet. Add your organisation&apos;s email domain above.</p>
                 ) : (
                     <ul className="flex flex-col gap-3">
                         {domains.map((domain) => (

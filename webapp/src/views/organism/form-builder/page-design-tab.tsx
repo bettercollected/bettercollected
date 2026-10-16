@@ -119,7 +119,7 @@ export default function PageDesignTab() {
                         catalogue; this shows what the form actually wears. */}
                     <div className="border-black-300 overflow-hidden rounded-lg border">
                         <ThemePreview color={isCustom ? custom : activeTheme} />
-                        <div className="border-t-black-200 flex items-center justify-between border-t bg-white px-3 py-2">
+                        <div className="border-t-black-300 flex items-center justify-between border-t bg-white px-3 py-2">
                             <span className="text-black-800 truncate text-xs font-medium">{isCustom ? 'Custom' : activeTheme.title}</span>
                             <span className="flex shrink-0 gap-1">
                                 <Swatch color={(isCustom ? custom : activeTheme).primary} />
@@ -152,7 +152,7 @@ export default function PageDesignTab() {
                     )}
 
                     {/* Where themes are made: the workspace Themes page. */}
-                    <p className="text-black-600 border-t-black-200 border-t pt-3 text-[11px] leading-relaxed">
+                    <p className="text-black-600 border-t-black-300 border-t pt-3 text-[11px] leading-relaxed">
                         Save your own palette to reuse across forms on the{' '}
                         <Link href={`/${workspace?.workspaceName}/dashboard/themes`} className="text-brand-500 hover:text-brand-600 font-medium underline underline-offset-2">
                             Themes page

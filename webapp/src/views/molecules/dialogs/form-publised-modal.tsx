@@ -82,7 +82,7 @@ export default function FormPublishedModal(props: any) {
                 </Button>
             </div>
 
-            <div className="border-t-black-200 flex flex-col gap-2.5 border-t pt-5">
+            <div className="border-t-black-300 flex flex-col gap-2.5 border-t pt-5">
                 <span className="text-black-600 text-xs font-medium uppercase tracking-wide">Next steps</span>
                 <div className="text-black-700 flex flex-col gap-2 text-sm">
                     <a href={settingsUrl} data-umami-event={'PublishModal Goto Settings Link'} data-umami-event-email={authState.email} className="hover:text-brand-600 text-brand-500 w-fit font-medium underline-offset-2 hover:underline">

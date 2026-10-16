@@ -17,20 +17,20 @@ interface IDividerProps {
 
 export default function Divider({ className, orientation = 'horizontal', children, textAlign = 'center', ...props }: IDividerProps) {
     if (orientation === 'vertical') {
-        return <div className={cn("inline-flex h-full min-h-[1em] w-[1px] self-stretch bg-black-300 mx-2", className)} {...props} />;
+        return <div className={cn("inline-flex h-full min-h-[1em] w-[1px] self-stretch bg-black-400 mx-2", className)} {...props} />;
     }
 
     if (children) {
         return (
             <div className={cn("relative flex items-center w-full my-4", className)}>
-                {textAlign !== 'left' && <div className="grow border-t border-black-300"></div>}
+                {textAlign !== 'left' && <div className="grow border-t border-black-400"></div>}
                 <span className={cn("shrink text-black-600 text-xs font-semibold uppercase", textAlign === 'center' ? "mx-4" : textAlign === 'left' ? "mr-4" : "ml-4")}>
                     {children}
                 </span>
-                {textAlign !== 'right' && <div className="grow border-t border-black-300"></div>}
+                {textAlign !== 'right' && <div className="grow border-t border-black-400"></div>}
             </div>
         );
     }
 
-    return <hr className={cn("shrink-0 bg-black-300 h-[1px] w-full border-none my-2", className)} {...props} />;
+    return <hr className={cn("shrink-0 bg-black-400 h-[1px] w-full border-none my-2", className)} {...props} />;
 }

@@ -148,7 +148,7 @@ export function PublishProblemsDialog({
     const list = (items: PublishProblem[], testId: string) => (
         <ul className="flex flex-col gap-2" data-testid={testId}>
             {items.map((problem) => (
-                <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-black-200 p-3 text-sm">
+                <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-black-300 p-3 text-sm">
                     <span className="text-black-800">{problem.message}</span>
                     {canShowQuestion(problem.fieldId) && (
                         <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">

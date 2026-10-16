@@ -45,7 +45,7 @@ export function TrustStripNudge() {
                 setActiveFieldComponent(null);
                 setPropertiesTab('form');
             }}
-            className="border-black-300 hover:border-brand-500 flex max-w-[90%] items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs transition-colors"
+            className="border-black-400 hover:border-brand-500 flex max-w-[90%] items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs transition-colors"
         >
             <Shield className="h-3.5 w-3.5 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
             <span className="text-black-700 truncate">Responders see this footer on every page — say why you&apos;re collecting and how long you keep answers.</span>

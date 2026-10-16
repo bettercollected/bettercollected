@@ -120,7 +120,7 @@ export default function APIKeysPage() {
             <div className="flex flex-col gap-2">
                 <h2 className="text-black-900 text-sm font-semibold">MCP endpoint</h2>
                 <p className="text-black-600 text-xs leading-relaxed">Point your AI tool&apos;s MCP configuration at this URL, using an API key below as the Bearer token.</p>
-                <div className="border-black-200 bg-black-50 flex items-center justify-between gap-3 rounded-md border px-3.5 py-2.5">
+                <div className="border-black-400 bg-black-50 flex items-center justify-between gap-3 rounded-md border px-3.5 py-2.5">
                     <code className="text-black-800 truncate text-[13px]">{mcpUrl}</code>
                     <CopyButton value={mcpUrl} label="Copy MCP endpoint URL" />
                 </div>
@@ -130,7 +130,7 @@ export default function APIKeysPage() {
                 <div className="flex flex-col gap-2 rounded-md border border-[#B7E0CD] bg-[#F0FAF5] p-4">
                     <p className="text-black-900 text-sm font-semibold">Copy the key for “{freshToken.name}” now</p>
                     <p className="text-black-600 text-xs leading-relaxed">This is the only time it will be shown. Store it somewhere safe — if you lose it, revoke this key and create a new one.</p>
-                    <div className="border-black-200 flex items-center justify-between gap-3 rounded-md border bg-white px-3.5 py-2.5">
+                    <div className="border-black-300 flex items-center justify-between gap-3 rounded-md border bg-white px-3.5 py-2.5">
                         <code className="text-black-800 truncate text-[13px]">{freshToken.token}</code>
                         <CopyButton value={freshToken.token} label="Copy API key" />
                     </div>
@@ -187,11 +187,11 @@ export default function APIKeysPage() {
                 {isLoading ? (
                     <p className="text-black-600 text-xs">Loading…</p>
                 ) : keys.length === 0 ? (
-                    <p className="text-black-600 border-black-200 rounded-md border border-dashed px-3 py-4 text-center text-xs">No keys yet — create one above to connect an AI tool.</p>
+                    <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">No keys yet — create one above to connect an AI tool.</p>
                 ) : (
                     <ul className="flex flex-col gap-2">
                         {(keys as APIKey[]).map((key) => (
-                            <li key={key.id} className={`border-black-200 flex items-start justify-between gap-3 rounded-md border px-3.5 py-3 ${key.revoked ? 'opacity-60' : ''}`}>
+                            <li key={key.id} className={`border-black-300 flex items-start justify-between gap-3 rounded-md border px-3.5 py-3 ${key.revoked ? 'opacity-60' : ''}`}>
                                 <div className="flex min-w-0 flex-col gap-1">
                                     <div className="flex items-center gap-2">
                                         <KeyRound className="text-black-600 h-3.5 w-3.5 shrink-0" />

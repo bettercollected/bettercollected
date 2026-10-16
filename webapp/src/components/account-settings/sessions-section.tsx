@@ -67,7 +67,7 @@ export default function SessionsSection() {
     };
 
     return (
-        <div className="border-black-200 flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
+        <div className="border-black-300 flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
             <div className="flex flex-col gap-1">
                 <h2 className="text-black-900 text-sm font-semibold">Where you&apos;re signed in</h2>
                 <p className="text-black-600 text-xs leading-relaxed">Sign out a browser you no longer use. It loses access within a few minutes.</p>
@@ -78,7 +78,7 @@ export default function SessionsSection() {
             ) : (
                 <ul className="flex flex-col gap-1.5">
                     {(sessions as AuthSession[]).map((session) => (
-                        <li key={session.id} className="border-black-200 flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                        <li key={session.id} className="border-black-300 flex items-center justify-between gap-3 rounded-md border px-3 py-2">
                             <div className="min-w-0">
                                 <p className="text-black-800 text-[13px] leading-relaxed">
                                     {describeUserAgent(session.userAgent)}

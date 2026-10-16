@@ -157,7 +157,7 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
     };
 
     return (
-        <section aria-labelledby="internal-fields-heading" className="border-black-200 bg-black-100 flex flex-col gap-4 rounded-lg border p-4">
+        <section aria-labelledby="internal-fields-heading" className="border-black-300 bg-black-100 flex flex-col gap-4 rounded-lg border p-4">
             <div className="flex flex-col gap-0.5">
                 <span id="internal-fields-heading" className="text-black-800 flex items-center gap-1.5 text-sm font-semibold">
                     <Lock className="h-3.5 w-3.5" aria-hidden="true" />

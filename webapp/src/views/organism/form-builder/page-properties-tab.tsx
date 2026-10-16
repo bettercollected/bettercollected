@@ -269,7 +269,7 @@ export default function PagePropertiesTab({ }: {}) {
                     </div>
                 </>
             )}
-            <div className={cn('border-black-200 flex justify-between border-b px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
+            <div className={cn('border-black-300 flex justify-between border-b px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
                 <span className="text-black-600 text-xs font-semibold uppercase tracking-wide">Layout Image</span>
                 {slide?.imageUrl ? (
                     <div className={`group relative my-4 max-h-[168px] w-full`}>

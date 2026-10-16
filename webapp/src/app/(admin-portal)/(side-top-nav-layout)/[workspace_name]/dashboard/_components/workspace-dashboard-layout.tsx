@@ -248,7 +248,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                 )}
             >
                 <div className="flex w-full flex-col">
-                    <div className="border-b-black-200 sticky top-[68px] z-1000 flex w-full items-center justify-between border-b bg-white px-5 py-3 lg:top-0 lg:px-10">
+                    <div className="border-b-black-400 sticky top-[68px] z-1000 flex w-full items-center justify-between border-b bg-white px-5 py-3 lg:top-0 lg:px-10">
                         <span className="h3-new">{getHeader()}</span>
                         <div className="hidden gap-4 lg:flex lg:items-center">
                             <Popover>

@@ -38,7 +38,7 @@ export default function MembersLayout({
     return (
         <div className="flex flex-col">
             <div className="mb-[38px]">
-                <div className="border-black-300 flex space-x-1 overflow-x-auto border-b pb-0">
+                <div className="border-black-400 flex space-x-1 overflow-x-auto border-b pb-0">
                     {tabs.map((tab) => {
                         const isActive = pathname?.includes(`/${tab.path}`);
                         return (

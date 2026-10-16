@@ -4,8 +4,10 @@
 export const dataTableCustomStyles = {
     table: {
         style: {
-            borderTop: '1px solid #EAECF0',
-            borderBottom: '1px solid #EAECF0'
+            // The table sits on the paper-mist page: its outer edges take the
+            // strong hairline, inner cell lines stay on white.
+            borderTop: '1px solid #D0D5DD',
+            borderBottom: '1px solid #D0D5DD'
         }
     },
     headRow: {

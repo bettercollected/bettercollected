@@ -57,7 +57,7 @@ export default function RespondentFeedbackPanel({ workspaceId, formId, responseI
     };
 
     return (
-        <section aria-labelledby="respondent-feedback-heading" className="flex flex-col gap-4 rounded border border-black-200 bg-white p-4">
+        <section aria-labelledby="respondent-feedback-heading" className="flex flex-col gap-4 rounded border border-black-300 bg-white p-4">
             <div className="flex flex-col gap-0.5">
                 <span id="respondent-feedback-heading" className="flex items-center gap-1.5 text-sm font-semibold text-black-800">
                     <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
@@ -70,7 +70,7 @@ export default function RespondentFeedbackPanel({ workspaceId, formId, responseI
             {entries.length > 0 ? (
                 <ol className="flex flex-col gap-3" aria-label="Updates sent">
                     {entries.map((entry, index) => (
-                        <li key={entry.id ?? index} className="flex flex-col gap-1 border-l-2 border-black-200 pl-3">
+                        <li key={entry.id ?? index} className="flex flex-col gap-1 border-l-2 border-black-300 pl-3">
                             {entry.status && <FeedbackStatusChip status={entry.status} />}
                             {entry.message && <p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-black-900">{entry.message}</p>}
                             <span className="text-[11px] text-black-600">

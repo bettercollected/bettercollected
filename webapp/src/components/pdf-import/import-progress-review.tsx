@@ -38,7 +38,7 @@ function PageWithBoxes({ workspaceId, importId, page, selected, onSelect }: any)
     }, []);
     const height = page.width ? (width * page.height) / page.width : 0;
     return (
-        <div ref={holder} className="relative w-full overflow-hidden rounded-md border border-black-200 bg-white" style={{ height: height || undefined }}>
+        <div ref={holder} className="relative w-full overflow-hidden rounded-md border border-black-300 bg-white" style={{ height: height || undefined }}>
             {page.has_image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={pageImageUrl(workspaceId, importId, page.number)} alt={`Page ${page.number} of the uploaded document`} className="block w-full" />
@@ -131,7 +131,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                 </Link>
                 <p className="text-xs text-black-600">{aiStructuringNote(data.aiConsent)}</p>
                 {selectedBox && (
-                    <div className="rounded-md border border-black-200 p-3 text-sm">
+                    <div className="rounded-md border border-black-300 p-3 text-sm">
                         <div className="font-medium text-black-800">{selectedBox.label || 'Untitled'}</div>
                         <div className="text-xs text-black-600">{selectedBox.type === 'staff_only' ? 'Staff-only part' : selectedBox.kind?.replace(/_/g, ' ')}</div>
                         {isAiWording(selectedBox) && <div className="mt-1 text-xs text-orange-700">Wording written by the AI, not copied from the document. Check it.</div>}

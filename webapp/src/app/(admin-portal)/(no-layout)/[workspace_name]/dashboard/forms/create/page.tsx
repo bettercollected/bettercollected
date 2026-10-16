@@ -153,7 +153,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                             <div
                                                 data-umami-event={'Create Form With Template'}
                                                 data-umami-event-email={authState.email}
-                                                className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-black-200"
+                                                className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-black-300"
                                                 onClick={() => createFormFromTemplate(template.id)}
                                             >
                                                 <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>

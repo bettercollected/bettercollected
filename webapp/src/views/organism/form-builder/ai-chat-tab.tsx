@@ -292,7 +292,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             disabled={isReviewing || (!!aiSettings && !aiEnabled)}
                             onClick={runReview}
                             title="Sends this form's questions and settings and the workspace AI profile to the AI provider"
-                            className="flex items-center gap-1.5 rounded-md border border-black-200 bg-white px-2 py-1 text-[11px] font-medium text-black-600 transition-colors disabled:text-black-400 hover:bg-black-100"
+                            className="flex items-center gap-1.5 rounded-md border border-black-300 bg-white px-2 py-1 text-[11px] font-medium text-black-600 transition-colors disabled:text-black-400 hover:bg-black-100"
                         >
                             <ShieldCheck className="h-3 w-3" />
                             {isReviewing ? 'Reviewing…' : 'Review'}
@@ -301,7 +301,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             type="button"
                             aria-expanded={showMemory}
                             onClick={() => setShowMemory((open) => !open)}
-                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-200 bg-white text-black-600 hover:bg-black-100'}`}
+                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-300 bg-white text-black-600 hover:bg-black-100'}`}
                         >
                             <BookOpen className="h-3 w-3" />
                             Memory{memoryEntries.length > 0 ? ` (${memoryEntries.length})` : ''}
@@ -312,7 +312,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             </div>
 
             {showMemory && (
-                <div className="mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded border border-black-200 bg-white p-3">
+                <div className="mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded border border-black-300 bg-white p-3">
                     <p className="text-[11px] leading-relaxed text-black-600">
                         Everything the assistant remembers about your style — used at the lowest priority, below your request and your organization&apos;s rules. Nothing here is hidden; forget any line, anytime.
                     </p>
@@ -321,7 +321,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         <span>Learn my preferences: after each turn, your message and the reply are sent once more to note lasting style preferences here. Off unless you turn it on.</span>
                     </label>
                     {(memoryEntries as MemoryEntry[]).length === 0 ? (
-                        <p className="rounded-md border border-dashed border-black-200 px-2 py-2.5 text-center text-[11px] text-black-600">Nothing remembered yet — it fills in as you work.</p>
+                        <p className="rounded-md border border-dashed border-black-300 px-2 py-2.5 text-center text-[11px] text-black-600">Nothing remembered yet — it fills in as you work.</p>
                     ) : (
                         <ul className="flex flex-col gap-1">
                             {(memoryEntries as MemoryEntry[]).map((entry) => (
@@ -351,14 +351,14 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleAddMemory();
                             }}
-                            className="h-7 w-full rounded-md border border-black-200 bg-white px-2 text-[11px] text-black-900 outline-hidden transition placeholder:text-black-600 focus:border-brand-500"
+                            className="h-7 w-full rounded-md border border-black-300 bg-white px-2 text-[11px] text-black-900 outline-hidden transition placeholder:text-black-600 focus:border-brand-500"
                         />
                         <button
                             type="button"
                             aria-label="Add preference"
                             disabled={!memoryDraft.trim() || isAddingMemory}
                             onClick={handleAddMemory}
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-black-200 text-black-600 transition disabled:text-black-300 hover:bg-black-100"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-black-300 text-black-600 transition disabled:text-black-300 hover:bg-black-100"
                         >
                             <Plus className="h-3.5 w-3.5" />
                         </button>
@@ -381,7 +381,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     key={prompt}
                                     type="button"
                                     onClick={() => send(prompt)}
-                                    className="rounded-md border border-black-200 bg-white px-2.5 py-1.5 text-left transition-colors hover:border-brand-300 hover:bg-[#F6F9FF] hover:text-black-800"
+                                    className="rounded-md border border-black-300 bg-white px-2.5 py-1.5 text-left transition-colors hover:border-brand-300 hover:bg-[#F6F9FF] hover:text-black-800"
                                 >
                                     “{prompt}”
                                 </button>
@@ -395,7 +395,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     {turn.content}
                                 </div>
                             ) : turn.role === 'review' ? (
-                                <div key={i} className="self-stretch rounded border border-black-200 bg-white px-3 py-2.5 text-[13px] leading-relaxed">
+                                <div key={i} className="self-stretch rounded border border-black-300 bg-white px-3 py-2.5 text-[13px] leading-relaxed">
                                     <div className="flex items-start gap-1.5 font-medium text-black-800">
                                         <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                                         <span>Compliance review</span>
@@ -434,7 +434,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     )}
                                 </div>
                             ) : turn.role === 'memory' ? (
-                                <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-black-200 px-3 py-2 text-xs leading-relaxed">
+                                <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-black-300 px-3 py-2 text-xs leading-relaxed">
                                     {turn.forgotten ? (
                                         <span className="text-black-600">Forgotten — the assistant won&apos;t keep that.</span>
                                     ) : (
@@ -451,7 +451,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     )}
                                 </div>
                             ) : (
-                                <div key={i} className={`mr-6 self-start rounded rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-200 bg-white text-black-800'}`}>
+                                <div key={i} className={`mr-6 self-start rounded rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-300 bg-white text-black-800'}`}>
                                     <div>{turn.content}</div>
                                     {turn.error && turn.retryMessage && (
                                         <button type="button" onClick={() => send(turn.retryMessage)} className="mt-1.5 rounded-md border border-[#E9CFCF] bg-white px-2 py-0.5 text-[11px] font-medium text-[#7A2E2E] transition-colors hover:bg-[#FBEFEF]">
@@ -473,7 +473,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         )}
                         {isLoading && <div className="mr-6 animate-pulse self-start px-1 text-xs text-black-600">Thinking…</div>}
                         {isReviewing && (
-                            <div className="animate-pulse self-stretch rounded border border-black-200 bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
+                            <div className="animate-pulse self-stretch rounded border border-black-300 bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
                                 <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-success" />
                                 Reviewing this form against your organization&apos;s compliance profile and baseline privacy checks — usually under half a minute…
                             </div>

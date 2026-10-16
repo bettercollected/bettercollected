@@ -34,7 +34,7 @@ export default function FieldConditionalLogicEditor() {
 
     if (sources.length === 0) {
         return (
-            <div className="border-black-200 flex flex-col gap-1 border-t pt-4">
+            <div className="border-black-300 flex flex-col gap-1 border-t pt-4">
                 <div className="text-black-700 text-xs font-medium">Logic</div>
                 <div className="text-black-600 text-xs">Add a question before this one to show or hide this field based on an earlier answer.</div>
             </div>
@@ -42,7 +42,7 @@ export default function FieldConditionalLogicEditor() {
     }
 
     return (
-        <div className="border-black-200 flex flex-col gap-3 border-t pt-4">
+        <div className="border-black-300 flex flex-col gap-3 border-t pt-4">
             <div className="flex w-full items-center justify-between">
                 <div>
                     <div className="text-black-700 text-xs font-medium">Logic</div>

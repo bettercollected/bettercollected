@@ -64,7 +64,7 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
                         query={query}
                         setQuery={setQuery}
                     />
-                    <label htmlFor="upload-media" className="bg-rblack-800 hover:bg-rblack-900 flex h-9! cursor-pointer items-center justify-center rounded px-4 py-2 text-white">
+                    <label htmlFor="upload-media" className="bg-black-800 hover:bg-black-900 flex h-9! cursor-pointer items-center justify-center rounded px-4 py-2 text-white">
                         <span className="p3-new"> Upload New</span>
                     </label>
                     <input type="file" hidden id="upload-media" onChange={handleAddMedia} accept="image/*" />

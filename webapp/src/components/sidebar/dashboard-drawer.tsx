@@ -15,7 +15,7 @@ const Drawer = ({ navGroups, can }: any) => {
                 and the navbar read as one continuous bar. No product logo:
                 the workspace's own identity leads; bettercollected keeps a
                 quiet attribution at the very bottom instead. */}
-            <div className="border-b-black-200 flex h-[77px] shrink-0 items-center border-b px-4">
+            <div className="border-b-black-300 flex h-[77px] shrink-0 items-center border-b px-4">
                 <WorkspaceMenuDropdown fullWidth />
             </div>
             <div className="flex-1 overflow-auto h-full scrollbar-hide">

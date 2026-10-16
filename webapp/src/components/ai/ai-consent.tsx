@@ -96,7 +96,7 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
     };
 
     return (
-        <div className={`flex flex-col gap-2 rounded border border-black-200 bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label="AI is off for this workspace">
+        <div className={`flex flex-col gap-2 rounded border border-black-300 bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label="AI is off for this workspace">
             <div className="flex items-center gap-1.5 text-[13px] font-semibold text-black-900">
                 <Sparkles className="h-3.5 w-3.5 text-brand-500" />
                 AI is off for this workspace

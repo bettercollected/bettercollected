@@ -26,7 +26,7 @@ interface Props {
 const SocialButton = ({ children, label }: { children: ReactNode; label: string }) => (
     <span
         aria-label={label}
-        className="border-black-200 text-black-700 hover:border-brand-300 hover:bg-brand-100 flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-colors"
+        className="border-black-300 text-black-700 hover:border-brand-300 hover:bg-brand-100 flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-colors"
     >
         {children}
     </span>

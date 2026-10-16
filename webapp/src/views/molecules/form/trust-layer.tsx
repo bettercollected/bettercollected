@@ -114,7 +114,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
         // moves into the panel; flex-col-reverse shows the panel above it.
         <div className="flex w-full flex-col-reverse" data-testid="privacy-panel">
             {/* 13px legible strip: who is collecting, and the way into the panel. */}
-            <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t border-t-black-200 bg-white/90 px-4 py-2 text-[13px] backdrop-blur-sm" lang={language}>
+            <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t border-t-black-400 bg-white/90 px-4 py-2 text-[13px] backdrop-blur-sm" lang={language}>
                 <Shield className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                 {ownerName && (
                     <span className="inline-flex items-center gap-1.5 text-black-700">
@@ -128,14 +128,14 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                     // The AI notice is part of what every respondent sees, not
                     // only inside the panel (#752): its own line on phones.
                     <>
-                        <span className="hidden h-3 w-px bg-black-200 sm:inline-block" aria-hidden="true" />
+                        <span className="hidden h-3 w-px bg-black-400 sm:inline-block" aria-hidden="true" />
                         <span className="w-full text-center text-black-700 sm:w-auto" data-testid="privacy-strip-ai">
                             {aiProvider ? t('PRIVACY.STRIP_AI_USED', { provider: aiProvider }) : t('PRIVACY.STRIP_AI_USED_NO_PROVIDER')}
                         </span>
                     </>
                 )}
                 {/* on phones the AI line ends a row: no divider starting the next */}
-                <span className={`h-3 w-px bg-black-200 ${aiUsed ? 'hidden sm:inline-block' : ''}`} aria-hidden="true" />
+                <span className={`h-3 w-px bg-black-400 ${aiUsed ? 'hidden sm:inline-block' : ''}`} aria-hidden="true" />
                 <button
                     ref={toggleRef}
                     id={toggleId}
@@ -150,7 +150,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                 </button>
                 {showPoweredBy && (
                     <>
-                        <span className="h-3 w-px bg-black-200" aria-hidden="true" />
+                        <span className="h-3 w-px bg-black-400" aria-hidden="true" />
                         <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="pointer-events-auto text-black-600 hover:text-black-900">
                             <Trans t={t} i18nKey="PRIVACY.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
                         </a>
@@ -168,7 +168,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                             toggleRef.current?.focus();
                         }
                     }}
-                    className="pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-200 bg-white px-4 py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+                    className="pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white px-4 py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
                 >
                     <div className="mx-auto flex max-w-[800px] flex-col gap-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
