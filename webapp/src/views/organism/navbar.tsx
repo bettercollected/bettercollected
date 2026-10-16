@@ -251,7 +251,7 @@ const Navbar = () => {
                     <span
                         aria-live="polite"
                         title={autosaveStatus.savedAt ? `Last saved ${new Date(autosaveStatus.savedAt).toLocaleTimeString()}` : undefined}
-                        className={cn('mr-1 whitespace-nowrap text-xs font-medium', autosaveStatus.state === 'error' ? 'text-[#B26B00]' : 'text-black-600')}
+                        className={cn('mr-1 whitespace-nowrap text-xs font-medium', autosaveStatus.state === 'error' ? 'text-brand-olive' : 'text-black-600')}
                     >
                         {autosaveStatus.state === 'saving' && 'Saving…'}
                         {autosaveStatus.state === 'saved' && 'Saved'}

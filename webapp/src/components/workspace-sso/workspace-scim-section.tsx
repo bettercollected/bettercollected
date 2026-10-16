@@ -77,7 +77,7 @@ function CreateDirectoryForm({ overview, workspaceId, onCreated }: { overview: S
                     ))}
                 </select>
             </label>
-            {!overview.hasVerifiedDomain && <p className="text-xs text-black-500">{t(scim.VERIFY_DOMAIN_FIRST)}</p>}
+            {!overview.hasVerifiedDomain && <p className="text-xs text-black-600">{t(scim.VERIFY_DOMAIN_FIRST)}</p>}
             {error && (
                 <p role="alert" className="text-xs text-[#C43D3D]">
                     {error}
@@ -234,13 +234,13 @@ export default function WorkspaceScimSection() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="flex min-w-0 flex-col gap-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <Users className="h-4 w-4 shrink-0 text-[#0E8A5F]" />
+                                    <Users className="h-4 w-4 shrink-0 text-success" />
                                     <span className="text-sm font-semibold text-black-900">{directory.typeLabel}</span>
                                     <span className="rounded bg-[#E7F6EE] px-1.5 py-0.5 text-[11px] font-medium text-[#0E8A5F]">{t(scim.SYNCING)}</span>
                                 </div>
-                                <span className="text-xs text-black-500">{directory.lastEventAt ? t(scim.LAST_CHANGE, { time: formatTime(directory.lastEventAt), type: directory.lastEventType }) : t(scim.NO_CHANGE)}</span>
+                                <span className="text-xs text-black-600">{directory.lastEventAt ? t(scim.LAST_CHANGE, { time: formatTime(directory.lastEventAt), type: directory.lastEventType }) : t(scim.NO_CHANGE)}</span>
                                 {directory.lastResyncAt && (
-                                    <span className="text-xs text-black-500">
+                                    <span className="text-xs text-black-600">
                                         {directory.lastResyncError
                                             ? t(scim.LAST_RESYNC_FAILED, { time: formatTime(directory.lastResyncAt), reason: t(RESYNC_ERRORS[directory.lastResyncError] ?? RESYNC_ERRORS.resync_failed) })
                                             : t(scim.LAST_RESYNC, { time: formatTime(directory.lastResyncAt) })}
@@ -276,7 +276,7 @@ export default function WorkspaceScimSection() {
                         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                             {COUNT_KEYS.map((key) => (
                                 <div key={key} className="bg-black-50 rounded-md px-3 py-2">
-                                    <dt className="text-[11px] uppercase tracking-wide text-black-500">{t(scim.COUNTS[key])}</dt>
+                                    <dt className="text-[11px] uppercase tracking-wide text-black-600">{t(scim.COUNTS[key])}</dt>
                                     <dd className={cn('text-lg font-semibold', key === 'failed' && (overview.counts[key] ?? 0) > 0 ? 'text-[#C43D3D]' : 'text-black-900')}>{overview.counts[key] ?? 0}</dd>
                                 </div>
                             ))}
@@ -303,7 +303,7 @@ export default function WorkspaceScimSection() {
                         {overview.groups.length ? (
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="text-[11px] uppercase tracking-wide text-black-500">
+                                    <tr className="text-[11px] uppercase tracking-wide text-black-600">
                                         <th className="pb-1 font-medium">{t(scim.GROUP)}</th>
                                         <th className="pb-1 font-medium">{t(scim.MEMBERS)}</th>
                                         <th className="pb-1 font-medium">{t(scim.ROLE)}</th>

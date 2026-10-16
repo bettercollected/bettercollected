@@ -173,14 +173,14 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
                         <label htmlFor={`internal-${field.id}`} className="text-black-700 text-[13px] font-medium leading-snug">
                             {fieldText(field)}
                             {field.validations?.required && (
-                                <span className="text-black-500 ml-1 text-[11px] font-normal" title="Required for your team, not for respondents">
+                                <span className="text-black-600 ml-1 text-[11px] font-normal" title="Required for your team, not for respondents">
                                     (required)
                                 </span>
                             )}
                         </label>
                         <InternalFieldInput field={field} value={values[field.id]} onChange={(value) => setValues((prev) => ({ ...prev, [field.id]: value }))} />
                         {fieldMeta?.updated_at && (
-                            <span className="text-black-500 text-[11px]">
+                            <span className="text-black-600 text-[11px]">
                                 Last changed by {fieldMeta.updated_by_email || 'a team member'} · {utcToLocalDateTIme(fieldMeta.updated_at)}
                             </span>
                         )}
@@ -190,7 +190,7 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
             </fieldset>
             {canAnnotate && (
             <div className="flex items-center justify-between gap-2">
-                <span className="text-black-500 text-[11px]">{missingRequired.length > 0 ? `${missingRequired.length} required field${missingRequired.length > 1 ? 's' : ''} still empty` : ''}</span>
+                <span className="text-black-600 text-[11px]">{missingRequired.length > 0 ? `${missingRequired.length} required field${missingRequired.length > 1 ? 's' : ''} still empty` : ''}</span>
                 <Button variant="primary" size="sm" isLoading={isLoading} disabled={changedFields.length === 0 || isLoading} onClick={save}>
                     Save
                 </Button>

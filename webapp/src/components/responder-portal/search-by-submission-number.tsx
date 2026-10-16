@@ -46,7 +46,7 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
                 </div>
 
                 <div className="mt-4">
-                    <div className="h4-new text-new-black-800 text-center font-medium">Find a response by its number</div>
+                    <div className="h4-new text-rblack-800 text-center font-medium">Find a response by its number</div>
                     <div className="p2-new text-black-700 mt-2 text-center!">Every submission gets a receipt number — enter it to view (or request deletion of) that response.</div>
                 </div>
                 <div className="mt-4 flex w-full gap-4">

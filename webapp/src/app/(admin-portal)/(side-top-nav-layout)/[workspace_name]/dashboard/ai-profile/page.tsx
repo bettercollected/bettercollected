@@ -76,7 +76,7 @@ export default function AIProfilePage() {
                         <label htmlFor={`ai-profile-${section.key}`} className="text-black-900 text-sm font-semibold">
                             {section.label}
                         </label>
-                        <span className="text-black-500 shrink-0 text-xs tabular-nums">
+                        <span className="text-black-600 shrink-0 text-xs tabular-nums">
                             {draft[section.key].length.toLocaleString()} / {MAX_SECTION_CHARS.toLocaleString()}
                         </span>
                     </div>
@@ -102,10 +102,10 @@ export default function AIProfilePage() {
                     <Button size="medium" variant="primary" isLoading={isSaving} disabled={!dirty} onClick={handleSave}>
                         Save profile
                     </Button>
-                    {dirty && <span className="text-black-500 text-xs">Unsaved changes</span>}
+                    {dirty && <span className="text-black-600 text-xs">Unsaved changes</span>}
                 </div>
             ) : (
-                <p className="text-black-500 text-xs">Only workspace admins can edit the AI profile.</p>
+                <p className="text-black-600 text-xs">Only workspace admins can edit the AI profile.</p>
             )}
         </div>
     );

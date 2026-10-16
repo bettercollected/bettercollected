@@ -101,7 +101,7 @@ const AddWorkspaceDomainForm = () => {
                         </Button>
                     </form>
                     <div className="max-w-[440px]">
-                        {message.message && <div className={cn(message.error ? 'text-[#C43D3D]' : 'text-[#B26B00]', 'whitespace-pre-wrap text-wrap text-xs')}>{message.message}</div>}
+                        {message.message && <div className={cn(message.error ? 'text-[#C43D3D]' : 'text-brand-olive', 'whitespace-pre-wrap text-wrap text-xs')}>{message.message}</div>}
                         {warned && (
                             <Button variant="ghost" isLoading={isLoading} className="mt-2 cursor-pointer text-xs" onClick={addDomain}>
                                 Add anyway

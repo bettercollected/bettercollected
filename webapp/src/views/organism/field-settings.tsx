@@ -96,7 +96,7 @@ export default function FieldSettings() {
                         );
                     })}
                 </div>
-                <p className="text-black-500 text-[11px] leading-relaxed">Fields that fit side by side share a row. Phones always stack.</p>
+                <p className="text-black-600 text-[11px] leading-relaxed">Fields that fit side by side share a row. Phones always stack.</p>
             </div>
             <div className="flex w-full items-center justify-between">
                 <div className="text-black-700 text-xs">Description</div>
@@ -135,7 +135,7 @@ export default function FieldSettings() {
                             }}
                         />
                     </div>
-                    <p className="text-black-500 text-[11px] leading-relaxed">
+                    <p className="text-black-600 text-[11px] leading-relaxed">
                         {activeField?.internal
                             ? 'Respondents never see this field. Your team fills it in on each response. Required applies to your team, not respondents.'
                             : 'For office use only: hide this field from respondents and fill it in on each response.'}
@@ -242,7 +242,7 @@ export function WhyWeAskSetting({ value, required, onChange }: { value: string; 
                 onChange={(e) => onChange(e.target.value)}
                 className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-black-300 focus:border-black-400'}`}
             />
-            <span id="why-we-ask-help" className={`text-[11px] leading-relaxed ${missing ? 'text-amber-700' : 'text-black-500'}`}>
+            <span id="why-we-ask-help" className={`text-[11px] leading-relaxed ${missing ? 'text-amber-700' : 'text-black-600'}`}>
                 {missing ? 'This question asks for personal details. Say briefly why you need them; the form can’t be published without it.' : 'Shown to respondents under the question.'}
             </span>
         </div>

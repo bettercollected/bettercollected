@@ -249,7 +249,7 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
                         lastGroup = item.group;
                         return (
                             <React.Fragment key={`${item.kind}:${item.pipeKey}`}>
-                                {header && <div className="px-3 py-1 text-xs uppercase tracking-wide text-black-500">{header}</div>}
+                                {header && <div className="px-3 py-1 text-xs uppercase tracking-wide text-black-600">{header}</div>}
                                 <div role="button" tabIndex={0} className="cursor-pointer truncate px-3 py-1.5 text-sm text-black-800 hover:bg-gray-100" onClick={() => insertPipe(item)}>
                                     {item.label}
                                 </div>

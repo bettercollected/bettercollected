@@ -57,7 +57,7 @@ interface DisclosureProps {
 export function AIDisclosure({ sends, className }: DisclosureProps) {
     const { workspace, providerName } = useWorkspaceAI();
     return (
-        <p className={className ?? 'text-[10.5px] leading-relaxed text-black-500'}>
+        <p className={className ?? 'text-[10.5px] leading-relaxed text-black-600'}>
             Sent to {providerName}: {sends}.{' '}
             <Link href={aiSettingsUrl(workspace?.workspaceName)} className="underline decoration-dotted underline-offset-2">
                 AI settings
@@ -105,7 +105,7 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
                 {feature} uses an external AI provider. Nothing is sent to one until a workspace admin turns AI on. Once on, it sends {sends} to {providerName}.
             </p>
             {!settings ? null : !configured ? (
-                <p className="text-xs text-black-500">No AI provider is set up on this server.</p>
+                <p className="text-xs text-black-600">No AI provider is set up on this server.</p>
             ) : settings.canManage ? (
                 <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" variant="v2Button" isLoading={isLoading} onClick={turnOn}>
@@ -116,7 +116,7 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
                     </Link>
                 </div>
             ) : (
-                <p className="text-xs text-black-500">
+                <p className="text-xs text-black-600">
                     Ask a workspace admin to turn it on in{' '}
                     <Link href={aiSettingsUrl(workspace?.workspaceName)} className="underline decoration-dotted underline-offset-2">
                         AI settings

@@ -130,7 +130,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             {showPinned && form?.settings?.pinned && (
                                 <>
                                     <DotIcon />
-                                    <span className="text-sm font-medium text-[#B26B00]">{t('FORM.PINNED')}</span>
+                                    <span className="text-sm font-medium text-brand-olive">{t('FORM.PINNED')}</span>
                                 </>
                             )}
                         </div>
@@ -178,7 +178,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         {(form?.isPublished || isResponderPortal) && showPinned && form?.settings?.pinned && (
                             <>
                                 <DotIcon />
-                                <span className="text-sm text-[#FE3678]">{t('FORM.PINNED')}</span>
+                                <span className="text-brand-600 text-sm">{t('FORM.PINNED')}</span>
                             </>
                         )}
                     </div>

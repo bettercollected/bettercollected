@@ -182,7 +182,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                 >
                                     <span className="text-2xl leading-none">＋</span>
                                     Add a question
-                                    <span className="text-black-500 text-xs font-normal">Pick a field type from the Insert menu</span>
+                                    <span className="text-black-600 text-xs font-normal">Pick a field type from the Insert menu</span>
                                 </button>
                             </div>
                         ) : (

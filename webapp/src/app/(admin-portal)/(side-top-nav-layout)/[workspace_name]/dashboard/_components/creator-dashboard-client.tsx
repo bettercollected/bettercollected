@@ -126,7 +126,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
             {/* The "page": the portal's surface colour and content. Like the
                 portal, the left column and the tabs stay affixed — only the
                 tab content scrolls inside the frame (desktop); mobile flows. */}
-            <div className={cn('flex-col gap-4 bg-[#F6F8FC] p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
+            <div className={cn('flex-col gap-4 bg-[#F5F7FB] p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
                 <div className="flex flex-col gap-4 md:w-[320px] md:max-w-[320px] lg:min-h-0 lg:overflow-y-auto">
                     <WorkspaceDetailsCard workspace={workspace} />
                     {/* Same sidebar placement as the portal: one utility

@@ -72,7 +72,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                     <Button size="sm" onClick={handleVerify}>
                         Verify email
                     </Button>
-                    <p className="text-black-500 max-w-[360px] text-xs">Submitted anonymously? Your submission number is the only way to find that response — that&apos;s what keeps it anonymous.</p>
+                    <p className="text-black-600 max-w-[360px] text-xs">Submitted anonymously? Your submission number is the only way to find that response — that&apos;s what keeps it anonymous.</p>
                 </div>
             )}
             {submissions?.length === 0 && !!auth.id && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : 'No submissions yet'} description={getEmptyMessage()} className="pb-[20px]!" />}

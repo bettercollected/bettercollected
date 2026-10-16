@@ -8,22 +8,19 @@ interface IFormTypes {
     icon: React.ReactNode;
     title: string;
     description: string;
-    theme: string;
 }
 const FormTypes: IFormTypes[] = [
     {
         type: 'Modern Form',
         icon: <MultiPageFormIcon />,
         title: 'Multi-Page Form',
-        description: 'Show single form field per page',
-        theme: '#FE3678'
+        description: 'Show single form field per page'
     },
     {
         type: 'Classic Form',
         icon: <SinglePageFormIcon />,
         title: 'Single Page Form',
-        description: 'Show all form fields in a single page',
-        theme: '#FFA716'
+        description: 'Show all form fields in a single page'
     }
 ];
 

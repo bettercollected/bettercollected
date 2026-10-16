@@ -52,7 +52,7 @@ export default function AIMemorySection() {
             </div>
 
             {isLoading ? (
-                <p className="text-black-500 text-xs">Loading…</p>
+                <p className="text-black-600 text-xs">Loading…</p>
             ) : entries.length === 0 ? (
                 <p className="text-black-500 border-black-200 rounded-md border border-dashed px-3 py-4 text-center text-xs">Nothing remembered yet — it fills in as you build forms with the assistant.</p>
             ) : (
@@ -61,7 +61,7 @@ export default function AIMemorySection() {
                         <li key={entry.id} className="group border-black-200 flex items-start justify-between gap-3 rounded-md border px-3 py-2">
                             <div className="min-w-0">
                                 <p className="text-black-800 text-[13px] leading-relaxed">{entry.text}</p>
-                                <p className="text-black-400 text-[10.5px]">
+                                <p className="text-black-600 text-[10.5px]">
                                     {entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}
                                     {entry.at ? ` · ${new Date(entry.at).toLocaleDateString()}` : ''}
                                 </p>

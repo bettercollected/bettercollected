@@ -42,7 +42,7 @@ export default function OnboardingClient({ workspace, createWorkspace }: onBoard
                     {t(localesCommon.hey)} {user?.firstName || user?.email}!
                 </p>
                 <p className="text-black-800 pt-2 text-base">{t(onBoarding.welcomeMessage)}</p>
-                <Button className="bg-new-blue-500 hover:bg-brand-600 mt-12 py-3! px-8" size="medium" onClick={increaseStep}>
+                <Button className="mt-12 py-3! px-8" size="medium" onClick={increaseStep}>
                     {t(onBoarding.addYourOrganization)}
                 </Button>
             </div>

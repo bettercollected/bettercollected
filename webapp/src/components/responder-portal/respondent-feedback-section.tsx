@@ -30,7 +30,7 @@ export default function RespondentFeedbackSection({ feedback, workspaceTitle }: 
                 <ol className="flex flex-col gap-3">
                     {[...entries].reverse().map((entry, index) => (
                         <li key={`${entry.createdAt}-${index}`} className="flex flex-col gap-1 border-l-2 border-black-200 pl-3">
-                            <span className="text-xs text-black-500">{utcToLocalDateTIme(entry.createdAt)}</span>
+                            <span className="text-xs text-black-600">{utcToLocalDateTIme(entry.createdAt)}</span>
                             {entry.status && (
                                 <span className="text-sm text-black-700">
                                     Status: <FeedbackStatusChip status={entry.status} />

@@ -1,26 +1,26 @@
-// Shared admin-table treatment on the trust ramp: hairline borders (#E2E8F2),
-// surface header (#F6F8FC), ink text — the old pure greys (#DBDBDB/#2E2E2E)
+// Shared admin-table treatment on the trust ramp: hairline borders (#EAECF0),
+// surface header (#F5F7FB), ink text — the old pure greys (#DBDBDB/#2E2E2E)
 // sat outside the blue-biased neutral system every other surface uses.
 export const dataTableCustomStyles = {
     table: {
         style: {
-            borderTop: '1px solid #E2E8F2',
-            borderBottom: '1px solid #E2E8F2'
+            borderTop: '1px solid #EAECF0',
+            borderBottom: '1px solid #EAECF0'
         }
     },
     headRow: {
         style: {
             border: 'none',
-            backgroundColor: '#F6F8FC',
+            backgroundColor: '#F5F7FB',
             fontSize: '14px',
-            color: '#3A465A !important',
+            color: '#344054 !important',
             height: '50px !important'
         }
     },
     headCells: {
         style: {
-            borderRight: '1px solid #E2E8F2',
-            color: '#3A465A !important',
+            borderRight: '1px solid #EAECF0',
+            color: '#344054 !important',
             fontSize: '14px',
             paddingTop: '5px',
             paddingBottom: '5px',
@@ -32,15 +32,15 @@ export const dataTableCustomStyles = {
         style: {
             padding: '0',
             fontSize: '18px',
-            color: '#101826 !important',
-            borderRight: '1px solid #E2E8F2',
+            color: '#101828 !important',
+            borderRight: '1px solid #EAECF0',
             paddingTop: '8px',
             paddingBottom: '8px'
         }
     },
     rows: {
         style: {
-            color: '#657085',
+            color: '#667085',
             outlineWidth: '0',
             borderRadius: '4px',
             paddingLeft: '0',
@@ -68,7 +68,7 @@ export const simpleDataTableStyles = {
     headRow: {
         style: {
             border: 'none',
-            backgroundColor: '#F6F8FC',
+            backgroundColor: '#F5F7FB',
             fontSize: '12px',
             padding: '0px 24px',
             color: '#2E2E2E !important',

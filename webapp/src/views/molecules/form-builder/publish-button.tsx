@@ -108,7 +108,7 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
 
     return (
         <>
-            <Button isLoading={isLoading || waiting} onClick={publishForm} className="bg-brand-500! text-white hover:bg-[#1E49AD]!" data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
+            <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
                 Publish
             </Button>
             <PublishProblemsDialog
@@ -186,7 +186,7 @@ export function PublishProblemsDialog({
                         <Button variant="secondary" onClick={onClose}>
                             Not now
                         </Button>
-                        <Button onClick={onPublishAnyway} className="bg-brand-500! text-white hover:bg-[#1E49AD]!">
+                        <Button onClick={onPublishAnyway} className="text-white">
                             Publish anyway
                         </Button>
                     </div>

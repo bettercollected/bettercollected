@@ -78,7 +78,7 @@ export default function TrustSettingsEditor() {
     return (
         <div className="flex flex-col gap-3 px-4 py-6">
             <div className="text-xs font-semibold uppercase tracking-wide text-black-600">Trust &amp; privacy</div>
-            <div className="text-xs text-black-500">Shown to responders on every step. Plain words build trust — say why you&apos;re asking and how long you keep answers.</div>
+            <div className="text-xs text-black-600">Shown to responders on every step. Plain words build trust — say why you&apos;re asking and how long you keep answers.</div>
 
             <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-black-700">Purpose</span>
@@ -87,7 +87,7 @@ export default function TrustSettingsEditor() {
             <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-black-700">Why answers are kept this long (optional)</span>
                 <input type="text" placeholder="e.g. Until the project ends" value={retention} onChange={(e) => setRetention(e.target.value)} onBlur={() => save({ retentionText: retention.trim() })} className={inputClass} />
-                <span className="text-[11px] text-black-500">Explanation shown next to the period below. Respondents always see the period itself.</span>
+                <span className="text-[11px] text-black-600">Explanation shown next to the period below. Respondents always see the period itself.</span>
             </label>
             <div className="flex flex-col gap-1">
                 <label htmlFor="keep-answers" className="text-xs font-medium text-black-700">
@@ -126,7 +126,7 @@ export default function TrustSettingsEditor() {
                         {keepError}
                     </span>
                 ) : (
-                    <span className="text-[11px] text-black-500">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
+                    <span className="text-[11px] text-black-600">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
                 )}
             </div>
             <label className="flex flex-col gap-1">

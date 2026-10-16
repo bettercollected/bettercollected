@@ -63,7 +63,7 @@ class PipeSuggestionList {
             if (item.group !== lastGroup) {
                 lastGroup = item.group;
                 const header = document.createElement('div');
-                header.className = 'text-black-500 px-3 py-1 text-xs uppercase tracking-wide';
+                header.className = 'text-black-600 px-3 py-1 text-xs uppercase tracking-wide';
                 header.textContent = item.group;
                 this.container.appendChild(header);
             }

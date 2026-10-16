@@ -175,8 +175,8 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
 const BlankLayout = () => {
     return (
         <svg width="28" height="27" viewBox="0 0 28 27" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="13" width="2" height="27" rx="1" fill="#FE3678" />
-            <rect x="0.5" y="14.5" width="2" height="27" rx="1" transform="rotate(-90 0.5 14.5)" fill="#FE3678" />
+            <rect x="13" width="2" height="27" rx="1" fill="#123FC9" />
+            <rect x="0.5" y="14.5" width="2" height="27" rx="1" transform="rotate(-90 0.5 14.5)" fill="#123FC9" />
         </svg>
     );
 };

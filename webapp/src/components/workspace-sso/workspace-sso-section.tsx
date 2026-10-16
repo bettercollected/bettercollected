@@ -43,7 +43,7 @@ export function CopyField({ label, value, hint }: { label: string; value: string
     const [copied, setCopied] = useState(false);
     return (
         <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-black-500">{label}</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-black-600">{label}</span>
             <div className="flex items-center justify-between gap-3 rounded-md border border-black-200 bg-white px-3 py-2">
                 <code className="break-all text-[13px] text-black-800">{value}</code>
                 <button
@@ -60,13 +60,13 @@ export function CopyField({ label, value, hint }: { label: string; value: string
                     }}
                     className="shrink-0 rounded p-1 text-black-500 transition-colors hover:text-black-800"
                 >
-                    {copied ? <Check className="h-4 w-4 text-[#0E8A5F]" /> : <Copy className="h-4 w-4" />}
+                    {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                     <span className="sr-only" aria-live="polite">
                         {copied ? 'Copied' : ''}
                     </span>
                 </button>
             </div>
-            {hint && <span className="text-[11px] text-black-500">{hint}</span>}
+            {hint && <span className="text-[11px] text-black-600">{hint}</span>}
         </div>
     );
 }
@@ -131,7 +131,7 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
-                        <KeyRound className={cn('h-4 w-4 shrink-0', enabled ? 'text-[#0E8A5F]' : 'text-black-500')} />
+                        <KeyRound className={cn('h-4 w-4 shrink-0', enabled ? 'text-success' : 'text-black-600')} />
                         <span className="break-all text-sm font-semibold text-black-900">{connection.name}</span>
                         <span className="rounded bg-black-100 px-1.5 py-0.5 text-[11px] font-medium uppercase text-black-600">{connection.type}</span>
                         <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium', enabled ? 'bg-[#E7F6EE] text-[#0E8A5F]' : 'bg-black-100 text-black-600')}>{enabled ? 'Enabled' : 'Disabled'}</span>
@@ -141,15 +141,15 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
                             <span className="rounded bg-[#FDF3E3] px-1.5 py-0.5 text-[11px] font-medium text-[#9A5B00]">Not tested</span>
                         )}
                     </div>
-                    <span className="break-all text-xs text-black-500">
+                    <span className="break-all text-xs text-black-600">
                         {connection.idpEntityId || connection.oidcDiscoveryUrl || connection.metadataUrl || ''}
                         {connection.oidcClientId ? ` · client ${connection.oidcClientId}` : ''}
                     </span>
-                    <span className="text-xs text-black-500">{connection.testedAt ? `Last successful test ${formatTime(connection.testedAt)}` : 'Test it before you require single sign-on.'}</span>
+                    <span className="text-xs text-black-600">{connection.testedAt ? `Last successful test ${formatTime(connection.testedAt)}` : 'Test it before you require single sign-on.'}</span>
                     {connection.lastTestError && <span className="text-xs text-[#C43D3D]">Last test failed: {ssoTestMessage(connection.lastTestError)}</span>}
                     {connection.lastTestError && <TestDiagnostics connection={connection} domains={domains} />}
                     {connection.type === 'oidc' && (
-                        <span className="text-xs text-black-500">
+                        <span className="text-xs text-black-600">
                             Testing may reuse this browser&apos;s current sign-in at your identity provider. Test in a private window, or sign out of your identity provider first (Microsoft Entra ID:{' '}
                             <code className="break-all text-[11px]">https://login.microsoftonline.com/logout.srf</code>).
                         </span>
@@ -255,7 +255,7 @@ function AddConnectionForm({ workspaceId, workspaceName, onDone }: { workspaceId
                         <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
                             Metadata URL
                             <input className={inputClass} type="url" value={metadataUrl} placeholder="https://idp.example.com/app/metadata" onChange={(e) => setMetadataUrl(e.target.value)} />
-                            <span className="font-normal text-black-500">Must be https and on the public internet.</span>
+                            <span className="font-normal text-black-600">Must be https and on the public internet.</span>
                         </label>
                     ) : (
                         <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
@@ -277,7 +277,7 @@ function AddConnectionForm({ workspaceId, workspaceName, onDone }: { workspaceId
                     <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
                         Client secret
                         <input className={inputClass} type="password" value={clientSecret} autoComplete="new-password" onChange={(e) => setClientSecret(e.target.value)} />
-                        <span className="font-normal text-black-500">Stored by the single sign-on service only; it is never shown again.</span>
+                        <span className="font-normal text-black-600">Stored by the single sign-on service only; it is never shown again.</span>
                     </label>
                 </>
             )}
@@ -399,7 +399,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                             </option>
                         ))}
                     </select>
-                    <span className="font-normal text-black-500">Someone signing in with single sign-on for the first time joins this workspace with this role. Existing members keep theirs.</span>
+                    <span className="font-normal text-black-600">Someone signing in with single sign-on for the first time joins this workspace with this role. Existing members keep theirs.</span>
                 </label>
 
                 <div className="flex flex-col gap-2 border-t border-black-100 pt-4">
@@ -421,18 +421,18 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                         )}
                     </div>
                     {settings.ssoRequired ? (
-                        <p className="flex items-center gap-2 text-xs text-[#0E8A5F]">
+                        <p className="flex items-center gap-2 text-xs text-success-700">
                             <CircleCheck className="h-4 w-4" /> Required since {formatTime(settings.ssoRequiredChangedAt)}.
                         </p>
                     ) : !canManage ? (
-                        <p className="text-xs text-black-500">Not required.</p>
+                        <p className="text-xs text-black-600">Not required.</p>
                     ) : canRequire ? (
                         <label className="flex items-start gap-2 text-xs text-black-700">
                             <input type="checkbox" className="mt-0.5" checked={revokeSessions} onChange={(e) => setRevokeSessions(e.target.checked)} />
                             Also sign out members on these domains now, so their next sign-in goes through your identity provider (your own session stays).
                         </label>
                     ) : (
-                        <p className="text-xs text-black-500">Verify a domain, enable a connection and test it successfully first.</p>
+                        <p className="text-xs text-black-600">Verify a domain, enable a connection and test it successfully first.</p>
                     )}
                     <div className="mt-1 flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
                         <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
@@ -460,7 +460,7 @@ export default function WorkspaceSsoSection() {
     const { data: overview, isLoading, isError, refetch } = useGetWorkspaceSsoQuery(workspaceId, { skip: !workspaceId });
     const [adding, setAdding] = useState(false);
 
-    if (isLoading) return <p className="text-xs text-black-500">Loading…</p>;
+    if (isLoading) return <p className="text-xs text-black-600">Loading…</p>;
     if (isError || !overview) {
         return (
             <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#F3D1D1] bg-[#FBEFEF] px-3 py-3 text-xs text-[#C43D3D]">
@@ -503,7 +503,7 @@ export default function WorkspaceSsoSection() {
                     <ul className="flex flex-wrap gap-2">
                         {overview.domains.map((domain) => (
                             <li key={domain} className="flex items-center gap-1.5 rounded-md border border-black-200 bg-white px-2.5 py-1 text-xs font-medium text-black-800">
-                                <ShieldCheck className="h-3.5 w-3.5 text-[#0E8A5F]" />
+                                <ShieldCheck className="h-3.5 w-3.5 text-success" />
                                 {domain}
                             </li>
                         ))}
@@ -527,7 +527,7 @@ export default function WorkspaceSsoSection() {
                         <CopyField label="SAML SP metadata" value={sp.spMetadataUrl} hint="Some identity providers can read the two values above from this." />
                         <CopyField label="OIDC redirect URI" value={sp.oidcRedirectUri} />
                     </div>
-                    <p className="text-[11px] text-black-500">Your identity provider must send the user&apos;s email address (SAML: the NameID or an email attribute; OIDC: the email claim).</p>
+                    <p className="text-[11px] text-black-600">Your identity provider must send the user&apos;s email address (SAML: the NameID or an email attribute; OIDC: the email claim).</p>
                     <EntraSetupHelp sp={sp} />
                 </Section>
             )}

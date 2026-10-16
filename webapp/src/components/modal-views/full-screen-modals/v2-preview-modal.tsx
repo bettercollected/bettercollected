@@ -41,7 +41,7 @@ export const PreviewFullModalView = () => {
     };
 
     return (
-        <div className="flex h-screen w-full flex-col bg-[#F6F8FC]">
+        <div className="flex h-screen w-full flex-col bg-[#F5F7FB]">
             <header className="border-black-300 z-10 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b bg-white px-4">
                 <BackButton handleClick={handleClickClose} />
                 <div className="flex min-w-0 items-center gap-2 text-sm">

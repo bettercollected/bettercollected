@@ -29,10 +29,12 @@ import NavBar from '@app/views/molecules/form-builder/navbar';
 import WelcomePage from '@app/views/organism/form/welcome-page';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
+// One quiet card for every way to start a form: Sireto blue icons, a hairline
+// edge that turns blue on hover. No per-card accent colours (see DESIGN.md).
 const CardVariants = {
-    blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
-    purple: 'text-purple-500 hover:bg-purple-100 transition  hover:border-purple-100',
-    pink: 'text-pink-500 hover:bg-pink-100 hover:border-pink-100 transition-all'
+    blue: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors',
+    purple: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors',
+    pink: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors'
 };
 
 export default function CreateFormPage(props: { searchParams: Promise<{ modal?: string }> }) {
@@ -121,16 +123,16 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
 
                         <Card
                             variant={'purple'}
-                            icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-purple-500" />}
+                            icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-brand-500" />}
                             content={'Import Google Form'}
                             onClick={() => {
                                 openModal('IMPORT_FORMS', { nonClosable: true });
                             }}
                         />
-                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-blue-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
+                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-brand-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
                         <Card
                             variant={'pink'}
-                            icon={<AIIcon className="text-[#FE3678]" />}
+                            icon={<AIIcon className="text-brand-500" />}
                             content={'Start with AI'}
                             onClick={() => {
                                 if (!isMobile) openDialogModal('START_WITH_AI');
@@ -212,18 +214,15 @@ const SoonComponent = ({ msg }: { msg?: string }) => {
 
 const OnlyAvailableInDesktopVersion = () => {
     return (
-        <div className="absolute -right-10 bottom-3 flex h-auto w-[200px] rotate-[-30deg] flex-col items-center justify-center gap-1 bg-new-pink py-2 text-[10px] font-medium leading-none text-white lg:hidden">
-            <span className="md:ml-4">Only available in</span>
-            <span className="md:ml-4">desktop version</span>
-        </div>
+        <div className="absolute bottom-2 text-xs text-black-600 lg:hidden">Only available on desktop</div>
     );
 };
 
 const PlusIcon = () => {
     return (
         <svg width="41" height="40" viewBox="0 0 41 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 11L20 29" stroke="#0764EB" strokeWidth="2" strokeLinecap="round" />
-            <path d="M11 20H29" stroke="#0764EB" strokeWidth="2" strokeLinecap="round" />
+            <path d="M20 11L20 29" stroke="#123FC9" strokeWidth="2" strokeLinecap="round" />
+            <path d="M11 20H29" stroke="#123FC9" strokeWidth="2" strokeLinecap="round" />
         </svg>
     );
 };

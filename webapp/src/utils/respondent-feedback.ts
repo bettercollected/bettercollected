@@ -47,7 +47,7 @@ export function statusTone(status: string | null | undefined): StatusTone {
 }
 
 export const statusToneClass: Record<StatusTone, string> = {
-    positive: 'bg-[#E7F4EE] text-[#0E8A5F]',
+    positive: 'bg-[#E7F4EE] text-success-700',
     negative: 'bg-[#FBEFEF] text-[#C43D3D]',
     neutral: 'bg-[#EAF0FD] text-brand-500'
 };

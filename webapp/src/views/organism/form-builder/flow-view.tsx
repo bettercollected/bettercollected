@@ -31,7 +31,7 @@ const NODE_W = 300;
 const NODE_H = 96;
 const GAP_Y = 72;
 const COL_X = 120;
-const JUMP_COLOR = '#2456CC';
+const JUMP_COLOR = '#123FC9';
 const NEXT_COLOR = '#c2cad9';
 
 const defaultPos = (k: number) => ({ x: COL_X, y: 40 + k * (NODE_H + GAP_Y) });
@@ -49,7 +49,7 @@ const dotStyle = (isArmed: boolean): React.CSSProperties => ({
     width: isArmed ? 28 : 24,
     height: isArmed ? 28 : 24,
     cursor: 'pointer',
-    boxShadow: isArmed ? '0 0 0 5px rgba(36,86,204,0.25)' : undefined,
+    boxShadow: isArmed ? '0 0 0 5px rgba(18, 63, 201,0.25)' : undefined,
     transition: 'all 120ms ease'
 });
 
@@ -199,7 +199,7 @@ function BracketEdge({ id, sourceX, sourceY, targetX, targetY, style, markerEnd,
                 <EdgeLabelRenderer>
                     <div
                         className="nodrag nopan pointer-events-none absolute rounded-md border bg-white px-1.5 py-0.5 text-[11px] font-semibold"
-                        style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, color: JUMP_COLOR, borderColor: '#C7D7F5' }}
+                        style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, color: JUMP_COLOR, borderColor: '#BFD0FF' }}
                     >
                         {label}
                     </div>
@@ -332,7 +332,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 selectable: false,
                 focusable: false,
                 label: count !== undefined ? String(count) : undefined,
-                labelStyle: { fill: '#657085', fontSize: 11, fontWeight: 600 },
+                labelStyle: { fill: '#667085', fontSize: 11, fontWeight: 600 },
                 labelBgStyle: { fill: '#ffffff', stroke: NEXT_COLOR },
                 labelBgPadding: [5, 2] as [number, number],
                 labelBgBorderRadius: 6,
@@ -370,7 +370,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     deletable: true,
                     style: { stroke: JUMP_COLOR, strokeWidth: count ? Math.min(1.75 + (3 * count) / Math.max(traffic!.total, 1), 4.75) : 1.75 },
                     labelStyle: { fill: JUMP_COLOR, fontSize: 11, fontWeight: 600 },
-                    labelBgStyle: { fill: '#ffffff', stroke: '#C7D7F5' },
+                    labelBgStyle: { fill: '#ffffff', stroke: '#BFD0FF' },
                     labelBgPadding: [6, 3] as [number, number],
                     labelBgBorderRadius: 6,
                     markerEnd: { type: MarkerType.ArrowClosed, color: JUMP_COLOR, width: 18, height: 18 }
@@ -556,7 +556,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     {/* The navbar's save indicator is hidden while Flow is fullscreen —
                         carry the same reassurance here. */}
                     {autosaveStatus.state !== 'idle' && (
-                        <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (autosaveStatus.state === 'error' ? 'text-[#B26B00]' : 'text-black-600')}>
+                        <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (autosaveStatus.state === 'error' ? 'text-brand-olive' : 'text-black-600')}>
                             {autosaveStatus.state === 'saving' && 'Saving…'}
                             {autosaveStatus.state === 'saved' && 'Saved'}
                             {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
@@ -577,7 +577,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             · journeys: {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
                         </span>
                     )}
-                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
+                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-600 mr-1 text-xs">No responses yet</span>}
                     <button
                         onClick={() => setShowInsights((v) => !v)}
                         title="Overlay how submitted responses travelled each branch"
@@ -654,7 +654,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         {/* A minimap earns its canvas space only once the graph outgrows
                             the viewport — for a handful of nodes it reads as a broken
                             placeholder box. */}
-                        {nodes.length > 8 && <MiniMap pannable zoomable className="h-[110px]! w-[150px]!" nodeColor={() => '#CBD5E6'} maskColor="rgba(233, 238, 245, 0.65)" />}
+                        {nodes.length > 8 && <MiniMap pannable zoomable className="h-[110px]! w-[150px]!" nodeColor={() => '#D0D5DD'} maskColor="rgba(233, 238, 245, 0.65)" />}
                     </ReactFlow>
                 </div>
 
@@ -717,7 +717,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 </div>
                                 <div className="flex shrink-0 items-center gap-3">
                                     {/* Live save state beats the static "changes save automatically" claim. */}
-                                    <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (autosaveStatus.state === 'error' ? 'font-medium text-[#B26B00]' : 'text-black-600')}>
+                                    <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (autosaveStatus.state === 'error' ? 'font-medium text-brand-olive' : 'text-black-600')}>
                                         {autosaveStatus.state === 'saving' && 'Saving…'}
                                         {autosaveStatus.state === 'saved' && 'Saved'}
                                         {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
@@ -730,7 +730,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             </div>
                             {/* Same mat + floating-sheet treatment as the main canvas, so
                                 "edit a page" looks identical wherever it happens. */}
-                            <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-[#E9EEF5] px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
+                            <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-[#F2F4F7] px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
                                 <div className="m-auto shrink-0" style={{ width: SLIDE_W * overlayScale, height: SLIDE_H * overlayScale }}>
                                     <div
                                         className="border-black-400 overflow-hidden rounded-lg border bg-white"
@@ -739,7 +739,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                             height: SLIDE_H,
                                             transform: `scale(${overlayScale})`,
                                             transformOrigin: 'top left',
-                                            boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
+                                            boxShadow: '0px 1px 3px rgba(16, 24, 40, 0.06), 0px 12px 32px rgba(16, 24, 40, 0.12)'
                                         }}
                                     >
                                         <SlideBuilder slide={overlaySlide} />

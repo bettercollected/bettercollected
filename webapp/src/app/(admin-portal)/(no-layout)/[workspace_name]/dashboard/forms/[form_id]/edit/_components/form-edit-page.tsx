@@ -151,7 +151,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     feeds back into the Fit scale and shrinks the card. */}
                 <div
                     ref={canvasMatRef}
-                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#E9EEF5] px-8 py-10"
+                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#F2F4F7] px-8 py-10"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
@@ -170,7 +170,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                 height: CANVAS_HEIGHT,
                                 transform: `scale(${canvasScale})`,
                                 transformOrigin: 'top left',
-                                boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
+                                boxShadow: '0px 1px 3px rgba(16, 24, 40, 0.06), 0px 12px 32px rgba(16, 24, 40, 0.12)'
                             }}
                         >
                             <div className="relative mx-auto h-full w-full rounded-lg">

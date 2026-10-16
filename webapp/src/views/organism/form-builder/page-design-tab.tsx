@@ -78,7 +78,7 @@ export default function PageDesignTab() {
                         <SelectContent className="bg-white">
                             {savedThemes.length > 0 && (
                                 <SelectGroup>
-                                    <SelectLabel className="text-black-500 text-[11px] font-semibold uppercase tracking-wide">Your themes</SelectLabel>
+                                    <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">Your themes</SelectLabel>
                                     {savedThemes.map((saved) => (
                                         <SelectItem key={`saved:${saved.title}`} value={`saved:${saved.title}`} className="text-xs">
                                             <span className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function PageDesignTab() {
                                 </SelectGroup>
                             )}
                             <SelectGroup>
-                                <SelectLabel className="text-black-500 text-[11px] font-semibold uppercase tracking-wide">Presets</SelectLabel>
+                                <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">Presets</SelectLabel>
                                 {ThemeColors.map((preset) => (
                                     <SelectItem key={`preset:${preset.title}`} value={`preset:${preset.title}`} className="text-xs">
                                         <span className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function PageDesignTab() {
                                 ))}
                             </SelectGroup>
                             <SelectGroup>
-                                <SelectLabel className="text-black-500 text-[11px] font-semibold uppercase tracking-wide">One-off</SelectLabel>
+                                <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">One-off</SelectLabel>
                                 <SelectItem value="custom" className="text-xs">
                                     <span className="flex items-center gap-2">
                                         <Swatch color={custom.secondary} />
@@ -135,7 +135,7 @@ export default function PageDesignTab() {
                                 <div key={field.key} className="flex items-center justify-between gap-3">
                                     <span className="text-black-700 text-xs">{field.label}</span>
                                     <span className="flex items-center gap-2">
-                                        <span className="text-black-500 text-[11px] uppercase tabular-nums">{custom[field.key]}</span>
+                                        <span className="text-black-600 text-[11px] uppercase tabular-nums">{custom[field.key]}</span>
                                         <input
                                             type="color"
                                             aria-label={field.label}

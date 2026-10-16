@@ -328,7 +328,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                 <li key={entry.id} className="flex items-start justify-between gap-2 rounded-md border border-black-100 px-2 py-1.5">
                                     <div className="min-w-0">
                                         <p className="text-xs leading-relaxed text-black-800">{entry.text}</p>
-                                        <p className="text-[10px] text-black-400">{entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}</p>
+                                        <p className="text-[10px] text-black-600">{entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}</p>
                                     </div>
                                     <button
                                         type="button"
@@ -369,12 +369,12 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             {aiSettings && !aiEnabled ? (
                 <div className="flex-1 overflow-y-auto border-t px-3 py-3">
                     <AIOptIn feature="The form assistant" sends={CHAT_SENDS} compact />
-                    {input && <p className="mt-3 px-1 text-xs leading-relaxed text-black-500">Your Start with AI prompt is kept. It is only sent when you press send, once AI is on.</p>}
+                    {input && <p className="mt-3 px-1 text-xs leading-relaxed text-black-600">Your Start with AI prompt is kept. It is only sent when you press send, once AI is on.</p>}
                 </div>
             ) : (
                 <div ref={listRef} aria-live="polite" className="flex-1 overflow-y-auto border-t px-3 py-3">
                     {turns.length === 0 && !isLoading && (
-                        <div className="flex flex-col items-start gap-2 px-1 py-2 text-xs leading-relaxed text-black-500">
+                        <div className="flex flex-col items-start gap-2 px-1 py-2 text-xs leading-relaxed text-black-600">
                             <span>Try:</span>
                             {EXAMPLE_PROMPTS.map((prompt) => (
                                 <button
@@ -397,11 +397,11 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             ) : turn.role === 'review' ? (
                                 <div key={i} className="self-stretch rounded-lg border border-black-200 bg-white px-3 py-2.5 text-[13px] leading-relaxed">
                                     <div className="flex items-start gap-1.5 font-medium text-black-800">
-                                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0E8A5F]" />
+                                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                                         <span>Compliance review</span>
                                     </div>
                                     <p className="mt-1 text-black-700">{turn.content}</p>
-                                    {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-[#0E8A5F]">No issues found.</p>}
+                                    {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-success-700">No issues found.</p>}
                                     {!!turn.findings?.length && (
                                         <ul className="mt-2 flex flex-col gap-2 border-t border-black-100 pt-2">
                                             {turn.findings.map((finding, j) => (
@@ -412,7 +412,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                                     </div>
                                                     {finding.fix &&
                                                         (finding.applied ? (
-                                                            <span className="ml-1 flex items-center gap-1 text-xs text-[#0E8A5F]">
+                                                            <span className="ml-1 flex items-center gap-1 text-xs text-success-700">
                                                                 <Check className="h-3 w-3" strokeWidth={3} /> Fixed — {finding.fix.description}
                                                             </span>
                                                         ) : (
@@ -436,14 +436,14 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             ) : turn.role === 'memory' ? (
                                 <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-black-200 px-3 py-2 text-xs leading-relaxed">
                                     {turn.forgotten ? (
-                                        <span className="text-black-500">Forgotten — the assistant won&apos;t keep that.</span>
+                                        <span className="text-black-600">Forgotten — the assistant won&apos;t keep that.</span>
                                     ) : (
                                         <>
                                             <span className="text-black-600">
                                                 <BookOpen className="mr-1.5 inline h-3 w-3 align-[-1px]" />
                                                 Remembered: <span className="text-black-800">“{turn.content}”</span>
                                             </span>
-                                            <span className="text-black-400"> · shapes future AI edits</span>
+                                            <span className="text-black-600"> · shapes future AI edits</span>
                                             <button type="button" onClick={() => forgetFromNotice(i, turn.entryId!)} className="ml-2 font-medium text-black-600 underline decoration-dotted underline-offset-2 hover:text-[#C43D3D]">
                                                 Forget
                                             </button>
@@ -462,7 +462,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                         <ul className="mt-2 flex flex-col gap-1 border-t border-black-100 pt-2">
                                             {turn.results.map((result, j) => (
                                                 <li key={j} className="flex items-start gap-1.5 text-xs">
-                                                    {result.ok ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#0E8A5F]" strokeWidth={3} /> : <X className="mt-0.5 h-3 w-3 shrink-0 text-[#C43D3D]" strokeWidth={3} />}
+                                                    {result.ok ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" strokeWidth={3} /> : <X className="mt-0.5 h-3 w-3 shrink-0 text-[#C43D3D]" strokeWidth={3} />}
                                                     <span className={result.ok ? 'text-black-700' : 'text-[#7A2E2E]'}>{result.message}</span>
                                                 </li>
                                             ))}
@@ -471,7 +471,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                 </div>
                             )
                         )}
-                        {isLoading && <div className="mr-6 animate-pulse self-start px-1 text-xs text-black-500">Thinking…</div>}
+                        {isLoading && <div className="mr-6 animate-pulse self-start px-1 text-xs text-black-600">Thinking…</div>}
                         {isReviewing && (
                             <div className="animate-pulse self-stretch rounded-lg border border-black-200 bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
                                 <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-[#0E8A5F]" />
@@ -515,7 +515,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             <Send className="h-3.5 w-3.5" />
                         </button>
                     </div>
-                    <AIDisclosure sends={`${CHAT_SENDS}. No responses are sent`} className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-black-400" />
+                    <AIDisclosure sends={`${CHAT_SENDS}. No responses are sent`} className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-black-600" />
                 </div>
             )}
         </div>

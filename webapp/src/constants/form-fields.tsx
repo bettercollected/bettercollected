@@ -18,7 +18,7 @@ import { Repeat, Table2 } from 'lucide-react';
 // its own pastel tile + coloured icon — a rainbow, which is exactly what the
 // design language retires (§1): everything saturated must carry meaning, and
 // "email is purple, rating is pink" carries none.
-const INK_2 = '#3A465A';
+const INK_2 = '#344054';
 
 export const formFieldsList = [
     {

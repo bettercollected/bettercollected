@@ -58,7 +58,7 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
                         <span className="text-black-800 min-w-0 flex-1 truncate text-sm" title={url}>
                             {url}
                         </span>
-                        <a href={url} target="_blank" rel="noopener noreferrer" aria-label="Open form in a new tab" className="text-black-500 hover:text-brand-500 shrink-0 transition-colors">
+                        <a href={url} target="_blank" rel="noopener noreferrer" aria-label="Open form in a new tab" className="text-black-600 hover:text-brand-500 shrink-0 transition-colors">
                             <ExternalLink className="h-4 w-4" />
                         </a>
                     </div>

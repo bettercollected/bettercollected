@@ -48,9 +48,13 @@
     --default-ring-width: 3px;
     --default-ring-color: rgb(59 130 246 / 0.5);
 
-    /* Product colours */
-    --color-brand-100: #E9EFFC;
-    --color-brand-200: #C7D7F5;
+    /*
+     * Product colours — the Sireto palette (see DESIGN.md at the repository root).
+     * One blue ramp (`brand-*`) and one neutral ramp (`black-*`); nothing else
+     * carries product meaning.
+     */
+    --color-brand-100: #E0E8FF; /* blue tint: selected rows, chips */
+    --color-brand-200: #BFD0FF; /* blue soft: active-nav fill, soft borders */
     --color-brand-300: #A8C0EA;
     --color-brand-400: #6E8FD8;
     --color-brand-500: #2456CC;
@@ -58,39 +62,30 @@
     --color-brand-700: #19398A;
     --color-brand-800: #132C6B;
     --color-brand-900: #0E204E;
-    --color-brand-accent-500: #F8B940;
-    --color-brand-accent-600: #E79B0B;
-    --color-brand-accent: #F8B940;
-    --color-brand: #2456CC;
-    --color-black-100: #F6F8FC;
-    --color-black-200: #E9EEF5;
-    --color-black-300: #E2E8F2;
-    --color-black-400: #CBD5E6;
+    --color-brand: #123FC9;
+    /* Primary button face: a step brighter than Sireto blue so a filled button
+       reads as the one action on the page. Hover and pressed walk down the ramp. */
+    --color-action: #1649E2;
+    --color-action-hover: #123FC9;
+    --color-action-pressed: #0E2D8F;
+    /* Yellow accent: a fill only. Yellow text on a light ground fails contrast,
+       so text in that role is olive. */
+    --color-brand-accent: #E5AE00;
+    --color-brand-accent-100: #FFF7DB; /* yellow tint: status pills behind olive text */
+    --color-brand-olive: #8A6800;
+    --color-success: #039855; /* icons, fills, dots */
+    --color-success-700: #027A48; /* success text: #039855 is 3.7:1 on white */
+    --color-black-100: #F5F7FB; /* paper mist: app background */
+    --color-black-200: #F2F4F7; /* paper band: hover fills, table heads */
+    --color-black-300: #EAECF0; /* hairline */
+    --color-black-400: #D0D5DD; /* strong hairline: dividers, card edges on paper */
     --color-black-500: #8A94A6;
-    --color-black-600: #657085;
-    --color-black-700: #3A465A;
+    --color-black-600: #667085; /* labels and captions */
+    --color-black-700: #344054; /* emphasised body */
     --color-black-800: #27303F;
     --color-black-900: #101826;
     --color-black: #101826;
     --color-white: #fff;
-    --color-new-black-100: #F6F8FC;
-    --color-new-black-200: #E9EEF5;
-    --color-new-black-300: #E2E8F2;
-    --color-new-black-400: #CBD5E6;
-    --color-new-black-500: #8A94A6;
-    --color-new-black-600: #657085;
-    --color-new-black-700: #3A465A;
-    --color-new-black-800: #27303F;
-    --color-new-black-900: #101826;
-    --color-new-black: #101826;
-    --color-new-blue-100: #F2F7FF;
-    --color-new-blue-200: #B8D5FF;
-    --color-new-blue-300: #A2C5F8;
-    --color-new-blue-500: #0764EB;
-    --color-new-pink: #FE3678;
-    --color-new-orange: #FFA716;
-    --color-new-white-100: #FFFFFF;
-    --color-new-white-200: #F7F8FA;
     --color-dark: #1c1917;
     --color-light-dark: #171e2e;
 
@@ -542,7 +537,6 @@
     --aspect-new-workspace-banner: 10.5882352941/1;
     --background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
     --background-image-sign-in: url('/images/background.png');
-    --background-image-floating-button: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%);
     --scale-form-preview-slide: calc(50vw / 2880px);
     --z-index-modal: 2500;
     --z-index-popover: 3000;

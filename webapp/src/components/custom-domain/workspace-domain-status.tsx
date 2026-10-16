@@ -338,7 +338,7 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                         ))}
                     </div>
                 ) : (
-                    <span className="text-xs text-gray-400">—</span>
+                    <span className="text-xs text-black-600">—</span>
                 )
         },
         {

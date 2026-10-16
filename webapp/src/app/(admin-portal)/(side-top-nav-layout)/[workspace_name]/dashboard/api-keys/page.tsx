@@ -45,7 +45,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
             }}
             className="text-black-500 hover:text-black-800 shrink-0 rounded p-1 transition-colors"
         >
-            {copied ? <Check className="h-4 w-4 text-[#0E8A5F]" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
         </button>
     );
 }
@@ -104,7 +104,7 @@ export default function APIKeysPage() {
     if (!canManageKeys) {
         return (
             <div className="px-5 py-6 lg:px-10">
-                <p className="text-black-500 text-sm">Only workspace admins can manage API keys.</p>
+                <p className="text-black-600 text-sm">Only workspace admins can manage API keys.</p>
             </div>
         );
     }
@@ -157,7 +157,7 @@ export default function APIKeysPage() {
                             <input type="checkbox" checked={scopes.includes(scope.key)} onChange={() => toggleScope(scope.key)} className="mt-0.5 h-4 w-4 cursor-pointer" />
                             <span className="flex flex-col">
                                 <span className="text-black-800 text-[13px] font-medium">{scope.label}</span>
-                                <span className="text-black-500 text-xs">{scope.hint}</span>
+                                <span className="text-black-600 text-xs">{scope.hint}</span>
                             </span>
                         </label>
                     ))}
@@ -185,7 +185,7 @@ export default function APIKeysPage() {
             <div className="flex flex-col gap-3">
                 <h2 className="text-black-900 text-sm font-semibold">Your keys</h2>
                 {isLoading ? (
-                    <p className="text-black-500 text-xs">Loading…</p>
+                    <p className="text-black-600 text-xs">Loading…</p>
                 ) : keys.length === 0 ? (
                     <p className="text-black-500 border-black-200 rounded-md border border-dashed px-3 py-4 text-center text-xs">No keys yet — create one above to connect an AI tool.</p>
                 ) : (
@@ -194,9 +194,9 @@ export default function APIKeysPage() {
                             <li key={key.id} className={`border-black-200 flex items-start justify-between gap-3 rounded-md border px-3.5 py-3 ${key.revoked ? 'opacity-60' : ''}`}>
                                 <div className="flex min-w-0 flex-col gap-1">
                                     <div className="flex items-center gap-2">
-                                        <KeyRound className="text-black-500 h-3.5 w-3.5 shrink-0" />
+                                        <KeyRound className="text-black-600 h-3.5 w-3.5 shrink-0" />
                                         <span className="text-black-900 truncate text-[13px] font-medium">{key.name}</span>
-                                        <code className="text-black-500 text-xs">{key.prefix}…</code>
+                                        <code className="text-black-600 text-xs">{key.prefix}…</code>
                                         {key.revoked && <span className="rounded bg-[#FBEFEF] px-1.5 py-0.5 text-[10.5px] font-medium text-[#C43D3D]">Revoked</span>}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5">
@@ -205,8 +205,8 @@ export default function APIKeysPage() {
                                                 {scope}
                                             </span>
                                         ))}
-                                        <span className="text-black-400 text-[10.5px]">{key.lastUsedAt ? `Last used ${new Date(key.lastUsedAt).toLocaleString()}` : 'Never used'}</span>
-                                        {key.responsesReadAcknowledgedAt && <span className="text-black-400 text-[10.5px]">· unredacted answers acknowledged {new Date(key.responsesReadAcknowledgedAt).toLocaleDateString()}</span>}
+                                        <span className="text-black-600 text-[10.5px]">{key.lastUsedAt ? `Last used ${new Date(key.lastUsedAt).toLocaleString()}` : 'Never used'}</span>
+                                        {key.responsesReadAcknowledgedAt && <span className="text-black-600 text-[10.5px]">· unredacted answers acknowledged {new Date(key.responsesReadAcknowledgedAt).toLocaleDateString()}</span>}
                                     </div>
                                 </div>
                                 {!key.revoked && (

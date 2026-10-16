@@ -20,7 +20,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, percentage }) => 
         colorClass = 'text-red-500';
         icon = <FaArrowDown />;
     } else if (percentValue === 0) {
-        colorClass = 'text-yellow-500';
+        colorClass = 'text-brand-olive';
     }
 
     return (

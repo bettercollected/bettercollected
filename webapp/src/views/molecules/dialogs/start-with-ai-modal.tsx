@@ -49,7 +49,7 @@ const GradiantBorderDiv = styled.div`
         z-index: -1;
         inset: 0;
         position: absolute;
-        background: linear-gradient(135.6deg, #fe3678 0%, #0764eb 98.97%);
+        background: var(--color-brand-500);
         transition: opacity 0.25s linear;
     }
 
@@ -153,12 +153,12 @@ export default function StartWithAi() {
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
+                    <Button data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
                         <div className="z-10 flex items-center gap-2">
-                            <AIIcon className="transition-all group-hover:scale-125" />
+                            <AIIcon />
                             Generate
                         </div>
-                    </GenerateButton>
+                    </Button>
                 </div>
                 {aiEnabled && (
                     <p className="text-xs leading-relaxed text-black-600">

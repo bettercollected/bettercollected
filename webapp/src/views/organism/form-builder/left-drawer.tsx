@@ -58,7 +58,7 @@ function RailPageItem({
                 }}
             >
                 {primaryText ? <span className="text-black-800 line-clamp-2 text-[11px] font-medium leading-snug">{primaryText}</span> : null}
-                <span className="text-black-500 text-[10px]">{secondaryText}</span>
+                <span className="text-black-600 text-[10px]">{secondaryText}</span>
             </div>
         </div>
     );

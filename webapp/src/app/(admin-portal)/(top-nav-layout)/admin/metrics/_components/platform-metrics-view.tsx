@@ -20,10 +20,10 @@ import { WEEKLY_SERIES, WeeklySeriesKey, formatCount, formatShare, providerName,
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
-const BRAND_500 = '#2456CC';
-const BRAND_600 = '#1E49AD';
-const GRID = '#E9EEF5'; // black-200
-const INK_MUTED = '#657085'; // black-600
+const BRAND_500 = '#123FC9';
+const BRAND_600 = '#1035A8';
+const GRID = '#F2F4F7'; // black-200
+const INK_MUTED = '#667085'; // black-600
 
 interface IStat {
     label: string;
@@ -44,7 +44,7 @@ function StatGroup({ title, description, stats, children }: { title: string; des
                         <div key={stat.label} className="min-w-0">
                             <dt className="text-xs font-medium text-black-600">{stat.label}</dt>
                             <dd className={`mt-1 font-semibold tabular-nums text-black-900 ${index === 0 ? 'text-2xl' : 'text-xl'}`}>{formatCount(stat.value)}</dd>
-                            {stat.hint && <dd className="mt-0.5 text-xs text-black-500">{stat.hint}</dd>}
+                            {stat.hint && <dd className="mt-0.5 text-xs text-black-600">{stat.hint}</dd>}
                         </div>
                     ))}
                 </dl>
@@ -296,7 +296,7 @@ function MetricsGrid({ metrics }: { metrics: PlatformMetrics }) {
                         { label: 'Active, last 30 days', value: users?.activeLast30Days }
                     ]}
                 >
-                    {users ? <Breakdown label="By plan" counts={users.byPlan} total={users.total} /> : <p className="mt-3 text-xs text-black-500">{usersError?.message ?? 'User counts are unavailable.'}</p>}
+                    {users ? <Breakdown label="By plan" counts={users.byPlan} total={users.total} /> : <p className="mt-3 text-xs text-black-600">{usersError?.message ?? 'User counts are unavailable.'}</p>}
                 </StatGroup>
                 <StatGroup
                     title="Organizations"

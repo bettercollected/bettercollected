@@ -145,7 +145,7 @@ export default function FormDashboardLayoutClient({
                                     <button type="button" onClick={handleBackClick} className="hover:text-black-900 hover:underline">
                                         Forms
                                     </button>
-                                    <span className="text-black-400">/</span>
+                                    <span className="text-black-600">/</span>
                                     <span className="text-black-800 max-w-[320px] truncate font-medium">{formTitle}</span>
                                 </nav>
                                 {isMobile ? <h1 className="hp3-new">{formTitle}</h1> : <h1 className="h2-new">{formTitle}</h1>}
@@ -168,7 +168,7 @@ export default function FormDashboardLayoutClient({
                                         <Button
                                             variant="primary"
                                             icon={<Share2 className="h-5 w-5" />}
-                                            className="bg-brand-500! hover:bg-[#1E49AD]! px-0! text-white sm:px-5!"
+                                            className="px-0! text-white sm:px-5!"
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
@@ -225,7 +225,7 @@ export default function FormDashboardLayoutClient({
                                     <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-semibold">Draft</span>
                                 )}
                                 <span className="tabular-nums">{form?.responses ?? 0} responses</span>
-                                <span className="text-black-400">·</span>
+                                <span className="text-black-600">·</span>
                                 <span>{formProvenance(form)}</span>
                             </div>
                         )}
@@ -255,7 +255,7 @@ export default function FormDashboardLayoutClient({
                     {form?.isPublished && (
                         <div className="border-black-200 text-black-600 mx-4 mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t py-4 text-[13px] md:mx-10 lg:mx-28">
                             {typeof (form as any)?.version === 'number' && <span>Version {(form as any).version}</span>}
-                            {typeof (form as any)?.version === 'number' && <span className="text-black-400">·</span>}
+                            {typeof (form as any)?.version === 'number' && <span className="text-black-600">·</span>}
                             <a href={getFormShareURL(workspaceForm ?? form, workspace)} target="_blank" rel="noopener noreferrer" className="hover:text-black-900 underline decoration-dotted underline-offset-2">
                                 Open form ↗
                             </a>

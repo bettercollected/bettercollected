@@ -65,13 +65,13 @@ export default function DateFieldSettings({
                         if (next !== (field.properties?.label ?? '')) onChange({ label: next || undefined });
                     }}
                 />
-                <span className="text-[11px] text-black-500">Shown above the date picker, apart from the question.</span>
+                <span className="text-[11px] text-black-600">Shown above the date picker, apart from the question.</span>
             </label>
 
             <div className="flex flex-col gap-2">
                 <div>
                     <div className="text-xs font-medium text-black-700">Date rules</div>
-                    <div className="text-[11px] text-black-500">Dates outside the rules can&apos;t be picked. A rule on another question applies once it is answered.</div>
+                    <div className="text-[11px] text-black-600">Dates outside the rules can&apos;t be picked. A rule on another question applies once it is answered.</div>
                 </div>
                 {rules.map((rule, index) => {
                     const known = rule.target !== 'field' || sources.some((s) => s.id === rule.fieldId);
@@ -116,7 +116,7 @@ export default function DateFieldSettings({
                         + Add date rule
                     </button>
                 )}
-                {sources.length === 0 && <span className="text-[11px] text-black-500">{sourceHint}</span>}
+                {sources.length === 0 && <span className="text-[11px] text-black-600">{sourceHint}</span>}
             </div>
         </div>
     );

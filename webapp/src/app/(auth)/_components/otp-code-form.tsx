@@ -106,7 +106,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
 
             <div className="mt-8 flex items-center justify-between text-base">
                 <p className="text-black-900 font-normal">{constants.didnotReceiveCode}</p>
-                <div onClick={counter === 0 ? resendOtpCode : undefined} className={`font-semibold cursor-pointer ${counter === 0 ? 'text-brand-500 hover:text-brand-600' : 'text-black-400 cursor-not-allowed'}`}>
+                <div onClick={counter === 0 ? resendOtpCode : undefined} className={`font-semibold cursor-pointer ${counter === 0 ? 'text-brand-500 hover:text-brand-600' : 'text-black-600 cursor-not-allowed'}`}>
                     Resend {counter > 0 ? `(${counter}s)` : ''}
                 </div>
             </div>

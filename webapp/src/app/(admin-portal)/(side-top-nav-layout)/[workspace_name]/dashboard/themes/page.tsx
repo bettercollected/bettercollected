@@ -163,7 +163,7 @@ export default function ThemesPage() {
                                     <div key={field.key} className="flex items-center justify-between gap-3">
                                         <span className="text-black-700 text-sm">{field.label}</span>
                                         <span className="flex items-center gap-2">
-                                            <span className="text-black-500 text-xs uppercase tabular-nums">{editing.draft[field.key]}</span>
+                                            <span className="text-black-600 text-xs uppercase tabular-nums">{editing.draft[field.key]}</span>
                                             <input
                                                 type="color"
                                                 aria-label={field.label}

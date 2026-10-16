@@ -24,6 +24,7 @@
 }
 
 html,
+/* Paper mist ground, ink text, 1rem on a 1.55 line (DESIGN.md). */
 body {
     padding: 0;
     margin: 0;
@@ -46,7 +47,7 @@ body {
 .mark-down-text {
     word-break: break-word;
     white-space: break-spaces;
-    color: #484848;
+    color: var(--color-body);
     font: inherit;
     font-size: inherit;
     line-height: inherit;
@@ -55,14 +56,14 @@ body {
 .mark-down-text p {
     white-space: pre-wrap;
     word-break: break-word;
-    color: #484848;
+    color: var(--color-body);
     font: inherit;
     font-size: inherit;
     line-height: inherit;
 }
 
 .mark-down-text p a {
-    color: #3b82f6 !important;
+    color: var(--color-brand-600) !important;
 }
 
 .mark-down-text p:last-child {
@@ -120,7 +121,7 @@ b {
     margin-bottom: 0 !important;
     margin-left: 0;
     background: #fff;
-    border: 1px solid #cacaca;
+    border: 1px solid #818ca0;
     border-radius: 4px;
     line-height: 25px;
     height: 46px !important;
@@ -178,12 +179,9 @@ div::-webkit-scrollbar-thumb:hover {
 }
 
 .prompt-input-wrapper {
-    &:hover {
-        background-image: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%) !important;
-    }
-
+    &:hover,
     &:focus-within {
-        background-image: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%) !important;
+        background-color: var(--color-brand-500) !important;
     }
 }
 
@@ -238,7 +236,7 @@ div::-webkit-scrollbar-thumb:hover {
     z-index: 4;
 }
 .responders-frozen-table .rdt_TableCol:nth-child(-n + 3) {
-    background-color: #E9EEF5; /* matches headRow background */
+    background-color: var(--color-black-200); /* matches headRow background */
     z-index: 5;
 }
 /* Rows must span the full content width: react-data-table rows are flex
@@ -251,7 +249,7 @@ div::-webkit-scrollbar-thumb:hover {
 
 /* Cohesive hover: colour every cell so the frozen (opaque) cells match. */
 .responders-frozen-table .rdt_TableRow:hover .rdt_TableCell {
-    background-color: #f6f8fc;
+    background-color: var(--color-black-100);
 }
 
 /* React Flow chrome (Logic/Flow view) — theme the default zoom controls to
@@ -264,7 +262,7 @@ div::-webkit-scrollbar-thumb:hover {
 }
 .react-flow__controls-button {
     background: #ffffff;
-    border-bottom: 1px solid #e2e8f2;
+    border-bottom: 1px solid var(--color-black-300);
     width: 28px;
     height: 28px;
 }
@@ -272,8 +270,8 @@ div::-webkit-scrollbar-thumb:hover {
     border-bottom: none;
 }
 .react-flow__controls-button:hover {
-    background: #f6f8fc;
+    background: var(--color-black-100);
 }
 .react-flow__controls-button svg {
-    fill: #3a465a;
+    fill: var(--color-black-700);
 }

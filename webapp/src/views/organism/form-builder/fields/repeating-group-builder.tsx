@@ -230,7 +230,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                     ))}
                 </select>
             </label>
-            <div className="text-black-500 flex items-center gap-2 text-xs" aria-hidden="true">
+            <div className="text-black-600 flex items-center gap-2 text-xs" aria-hidden="true">
                 <span className="rounded-md border border-dashed px-2 py-1">+ Add another {itemLabel}</span>
                 respondents see this below each group of answers
             </div>

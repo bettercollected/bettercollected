@@ -91,9 +91,9 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
     };
     return (
         <div id="fields-option" className="h-[552px] w-[410px] bg-white">
-            <div className="border-b-black-300 border-b p-4 text-xs font-semibold uppercase tracking-wide text-[#657085]">Insert field</div>
+            <div className="border-b-black-300 border-b p-4 text-xs font-semibold uppercase tracking-wide text-[#667085]">Insert field</div>
             <div className="border-r-black-300 w-full bg-white">
-                <div className=" border-black-300 bg-new-white-200 flex w-full justify-center gap-6 border-b p-4">
+                <div className=" border-black-300 bg-black-100 flex w-full justify-center gap-6 border-b p-4">
                     <div className="flex gap-2 ">
                         <input
                             type="radio"
@@ -102,7 +102,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                             onChange={() => { }}
                             name="multi-page"
                             className="h-5 w-5 cursor-pointer focus:ring-0 focus:ring-offset-0"
-                            style={{ accentColor: '#2456CC' }}
+                            style={{ accentColor: '#123FC9' }}
                             onClick={(e: any) => {
                                 setCurrentPage(false);
                                 setNavbarState({
@@ -132,7 +132,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                             name="multi-page"
                             value={'False'}
                             className="h-5 w-5 cursor-pointer focus:ring-0 focus:ring-offset-0"
-                            style={{ accentColor: '#2456CC' }}
+                            style={{ accentColor: '#123FC9' }}
                         />
                         <label htmlFor="single-page" className="p4-new text-black-700 cursor-pointer">
                             Insert in current page

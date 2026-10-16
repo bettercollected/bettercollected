@@ -74,7 +74,7 @@ export default function SessionsSection() {
             </div>
 
             {isLoading ? (
-                <p className="text-black-500 text-xs">Loading…</p>
+                <p className="text-black-600 text-xs">Loading…</p>
             ) : (
                 <ul className="flex flex-col gap-1.5">
                     {(sessions as AuthSession[]).map((session) => (
@@ -82,10 +82,10 @@ export default function SessionsSection() {
                             <div className="min-w-0">
                                 <p className="text-black-800 text-[13px] leading-relaxed">
                                     {describeUserAgent(session.userAgent)}
-                                    {session.method === 'sso' && <span className="text-black-500"> · Single sign-on</span>}
-                                    {session.current && <span className="text-black-500"> · This browser</span>}
+                                    {session.method === 'sso' && <span className="text-black-600"> · Single sign-on</span>}
+                                    {session.current && <span className="text-black-600"> · This browser</span>}
                                 </p>
-                                <p className="text-black-400 text-[10.5px]">
+                                <p className="text-black-600 text-[10.5px]">
                                     Signed in {formatDate(session.createdAt)}
                                     {session.lastRefreshedAt ? ` · Last active ${formatDate(session.lastRefreshedAt)}` : ''}
                                 </p>

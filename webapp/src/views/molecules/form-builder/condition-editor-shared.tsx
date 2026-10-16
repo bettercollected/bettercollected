@@ -145,7 +145,7 @@ export function ConditionRow({
     return (
         <div className="border-black-200 bg-new-white-200 relative flex flex-col gap-1.5 rounded-md border p-2">
             {onRemove && (
-                <button aria-label="Remove condition" className="text-black-400 hover:text-black-700 absolute right-1.5 top-1.5" onClick={onRemove}>
+                <button aria-label="Remove condition" className="text-black-600 hover:text-black-700 absolute right-1.5 top-1.5" onClick={onRemove}>
                     <X className="h-3.5 w-3.5" />
                 </button>
             )}
