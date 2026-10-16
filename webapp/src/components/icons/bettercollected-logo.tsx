@@ -4,7 +4,7 @@ export default function BetterCollectedLogo(props: React.SVGAttributes<any>) {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 187.28 19" {...props}>
             <defs>
-                <style>{`.cls-1{fill:#0764eb;}`}</style>
+                <style>{`.cls-1{fill:#123FC9;}`}</style>
             </defs>
             <g id="Layer_2" data-name="Layer 2">
                 <g id="Layer_1-2" data-name="Layer 1">
