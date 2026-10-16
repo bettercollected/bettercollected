@@ -32,6 +32,7 @@ import { actionInk, leafletColours, styleTokens } from '@app/views/molecules/the
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
+import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import FieldDescription from './fields/field-description';
 import renderFieldWrapper from './fields/render-field';
 
@@ -41,6 +42,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();
+    const logo = useBuilderFormLogo();
     const { navbarState, setNavbarState } = useNavbarState();
     // Plain-language tips use the form's declared language when it has one.
     const form = useAppSelector(selectForm);
@@ -66,7 +68,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     };
 
     return (
-        <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet}>
+        <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet} logo={logo}>
             {leaflet && section && (
                 <div style={marginVar}>
                     <LeafletTopRule theme={theme} />

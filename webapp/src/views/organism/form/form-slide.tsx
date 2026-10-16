@@ -25,6 +25,7 @@ import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/vi
 import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
 import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
+import { ResolvedFormLogo } from '@app/utils/form-logo';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
@@ -109,7 +110,7 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
     }
 }
 
-export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean }) {
+export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout, logo }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean; logo?: ResolvedFormLogo | null }) {
     const { toast } = useToast();
     const { t, language } = useRespondentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
@@ -271,7 +272,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     return (
         <Controller>
-            <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled topAligned={leaflet}>
+            <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled topAligned={leaflet} logo={logo}>
                 {/* The bar sits over the scrolling questions: give it the page's
                     ground (translucent + blur, so it also works over gradient or image
                     backgrounds) or questions scroll through the header text. */}

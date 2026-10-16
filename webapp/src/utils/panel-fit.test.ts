@@ -46,4 +46,15 @@ describe('measurePrimaryActionFit', () => {
         page({ contentTop: 0, actionBottom: 500, area: 620 });
         expect(measurePrimaryActionFit(document, { panelHeight: 240, openPanelHeight: 240 })).toBe(true);
     });
+
+    it('takes the organisation logo strip off the room the page has', () => {
+        // 524 + 96 fits 860 - 240 exactly; a 96px logo strip above the page does not.
+        page({ contentTop: 0, actionBottom: 524, area: 860 });
+        expect(measurePrimaryActionFit(document, { panelHeight: 240, openPanelHeight: 0 })).toBe(true);
+        const strip = document.createElement('div');
+        strip.setAttribute('data-fit-reserve', '');
+        rect(strip, 0, 96);
+        document.querySelector('[data-fit-area]')!.prepend(strip);
+        expect(measurePrimaryActionFit(document, { panelHeight: 240, openPanelHeight: 0 })).toBe(false);
+    });
 });

@@ -18,7 +18,8 @@ export function panelFits({ contentHeight, paddingY, formAreaHeight, panelHeight
  * the padding of the box around it, and the area marked `[data-fit-area]`.
  * `openPanelHeight` is the height of the panel when it is already open (it
  * has taken that space from the area). A page without a primary action has
- * nothing to protect.
+ * nothing to protect. Bands marked `[data-fit-reserve]` (the organisation
+ * logo strip) sit in the area above the page and are taken off its room.
  */
 export function measurePrimaryActionFit(root: Document, { panelHeight, openPanelHeight }: { panelHeight: number; openPanelHeight: number }): boolean {
     const action = root.querySelector<HTMLElement>('[data-primary-action]');
@@ -28,10 +29,14 @@ export function measurePrimaryActionFit(root: Document, { panelHeight, openPanel
     const gutter = content.parentElement;
     const style = gutter ? getComputedStyle(gutter) : null;
     const paddingY = style ? (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0) : 0;
+    let reserved = 0;
+    area.querySelectorAll<HTMLElement>('[data-fit-reserve]').forEach((band) => {
+        reserved += band.getBoundingClientRect().height;
+    });
     return panelFits({
         contentHeight: action.getBoundingClientRect().bottom - content.getBoundingClientRect().top,
         paddingY,
-        formAreaHeight: area.clientHeight + openPanelHeight,
+        formAreaHeight: area.clientHeight + openPanelHeight - reserved,
         panelHeight
     });
 }

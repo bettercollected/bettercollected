@@ -62,6 +62,10 @@ export const slice = createSlice({
         setFormSettings: (state, action) => {
             return { ...state, settings: action.payload };
         },
+        /** The draft's organisation logo URL after an upload or removal (null: none). */
+        setFormLogo: (state, action: { payload: string | null | undefined }) => {
+            return { ...state, logo: action.payload || undefined };
+        },
         resetSingleForm: () => {
             return initFormState;
         }
@@ -86,6 +90,6 @@ export const selectForm = (state: RootState) => state.form;
  * their own form never sees staff-only fields either.
  */
 export const selectResponderForm = createSelector([selectForm], (form) => stripInternalFields(form));
-export const { setForm, setFormSettings, resetSingleForm } = slice.actions;
+export const { setForm, setFormSettings, setFormLogo, resetSingleForm } = slice.actions;
 
 export default reducerObj;

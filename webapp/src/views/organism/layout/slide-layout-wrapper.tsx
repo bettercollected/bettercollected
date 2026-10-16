@@ -5,6 +5,7 @@ import React from 'react';
 import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { ResolvedFormLogo } from '@app/utils/form-logo';
 
 import LayoutWrapper from './layout-wrapper';
 
@@ -16,9 +17,11 @@ interface ISlideLayoutWrapperProps {
     scrollDivId?: string;
     showDesktopLayout?: boolean;
     topAligned?: boolean;
+    /** The organisation logo strip at the top of the page (form-logo-strip.tsx). */
+    logo?: ResolvedFormLogo | null;
 }
 
-export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId, showDesktopLayout, topAligned }: ISlideLayoutWrapperProps) {
+export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId, showDesktopLayout, topAligned, logo }: ISlideLayoutWrapperProps) {
     const { updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
 
     // A slide-level theme (when present) wins over the form theme — resolved
@@ -41,6 +44,7 @@ export default function SlideLayoutWrapper({ slide, children, theme, disabled = 
             theme={effectiveTheme}
             scrollDivId={scrollDivId}
             topAligned={topAligned}
+            logo={logo}
         >
             {children}
         </LayoutWrapper>

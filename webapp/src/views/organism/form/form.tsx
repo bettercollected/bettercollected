@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
+import { useResponderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 
 import { selectResponderForm } from '@app/store/forms/slice';
@@ -45,6 +46,8 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const standardForm = useAppSelector(selectResponderForm);
     // Leaflet pages start with a full-width bar at the top edge.
     const topAligned = styleTokens(standardForm?.theme?.style).key === 'leaflet';
+    // The organisation logo strip on every page (DESIGN.md §9), larger on the cover.
+    const logo = useResponderFormLogo();
 
     const getProgressValue = () => {
         const totalSlides = (standardForm?.fields?.length || 0) + 2;
@@ -91,13 +94,13 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                 >
                     <div className="relative h-full w-full">
                         {currentSlide === -1 && (
-                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl} topAligned={topAligned}>
+                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl} topAligned={topAligned} logo={logo} logoSize="cover">
                                 <WelcomePage isPreviewMode={isPreviewMode} />
                             </LayoutWrapper>
                         )}
-                        {currentSlide >= 0 && <FormSlide showDesktopLayout={showDesktopLayout} index={currentSlide} isPreviewMode={isPreviewMode} />}
+                        {currentSlide >= 0 && <FormSlide showDesktopLayout={showDesktopLayout} index={currentSlide} isPreviewMode={isPreviewMode} logo={logo} />}
                         {currentSlide === -2 && (
-                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm?.thankyouPage?.[0]?.layout} imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl} topAligned={topAligned}>
+                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm?.thankyouPage?.[0]?.layout} imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl} topAligned={topAligned} logo={logo}>
                                 <ThankyouPage isPreviewMode={isPreviewMode} />
                             </LayoutWrapper>
                         )}
