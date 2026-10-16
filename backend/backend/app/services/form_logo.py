@@ -75,6 +75,15 @@ def check_logo_bytes(data: bytes) -> CheckedLogo:
             "The logo must be a PNG, JPEG or WebP image.",
         )
     extension, content_type, pil_name = _FORMATS[kind]
+    size_problem = (
+        f"The logo must be between {LOGO_MIN_SIDE} and "
+        f"{LOGO_MAX_SIDE} pixels on each side."
+    )
+    # Pillow's decompression-bomb limit is process-wide (the PDF import sets
+    # it too): hold it at the largest logo while this one is opened, so the
+    # check never depends on what ran before. No await in between.
+    previous_limit = Image.MAX_IMAGE_PIXELS
+    Image.MAX_IMAGE_PIXELS = LOGO_MAX_SIDE * LOGO_MAX_SIDE
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
@@ -86,17 +95,17 @@ def check_logo_bytes(data: bytes) -> CheckedLogo:
                     max(width, height) > LOGO_MAX_SIDE
                     or min(width, height) < LOGO_MIN_SIDE
                 ):
-                    _refuse(
-                        HTTPStatus.UNPROCESSABLE_ENTITY,
-                        f"The logo must be between {LOGO_MIN_SIDE} and "
-                        f"{LOGO_MAX_SIDE} pixels on each side.",
-                    )
+                    _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, size_problem)
                 # Decode it once: a file that only starts like an image is refused.
                 image.load()
     except HTTPException:
         raise
+    except (Image.DecompressionBombError, Image.DecompressionBombWarning):
+        _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, size_problem)
     except Exception:
         _refuse(HTTPStatus.UNPROCESSABLE_ENTITY, "The logo image could not be read.")
+    finally:
+        Image.MAX_IMAGE_PIXELS = previous_limit
     return CheckedLogo(
         data=data,
         extension=extension,

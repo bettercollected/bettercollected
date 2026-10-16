@@ -414,3 +414,19 @@ async def test_deleting_a_form_deletes_its_logo_files(
     )
     assert reply.status_code == 200, reply.text
     assert not bucket.has(url)
+
+
+def test_a_huge_image_is_refused_by_its_size_not_decoded():
+    data = image_bytes("PNG", size=(6000, 6000))
+    assert len(data) < LOGO_MAX_BYTES
+    with pytest.raises(HTTPException) as refused:
+        check_logo_bytes(data)
+    assert refused.value.status_code == 422
+    assert "pixels" in str(refused.value.content)
+
+
+def test_the_check_does_not_depend_on_pillows_process_wide_limit(monkeypatch):
+    # Other code (the PDF import) sets Image.MAX_IMAGE_PIXELS for itself.
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 2000)
+    assert check_logo_bytes(image_bytes("PNG")).width == 120
+    assert Image.MAX_IMAGE_PIXELS == 2000
