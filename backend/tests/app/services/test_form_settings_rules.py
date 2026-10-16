@@ -8,13 +8,17 @@ import json
 import pytest
 from httpx import AsyncClient
 
-from common.models.standard_form import StandardForm, StandardFormSettings
+from common.models.standard_form import (
+    StandardForm,
+    StandardFormSettings,
+    ThankYouPageField,
+)
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.services.ai.ops import FormOps, apply_form_ops
-from backend.app.services.policy_url import checked_policy_url
+from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.retention import checked_retention
 from tests.app.controllers.data import testUser
 
@@ -325,3 +329,65 @@ def test_ai_settings_op_refuses_a_script_policy_link():
         ).ops,
     )
     assert results[0].ok
+
+
+# --- the ending page's button link -------------------------------------------
+
+
+def _form_with_ending_link(link):
+    return StandardForm(
+        title="Form",
+        fields=[],
+        thankyou_page=[ThankYouPageField(buttonText="Visit us", buttonLink=link)],
+    )
+
+
+def test_button_links_follow_the_policy_link_rule():
+    assert (
+        checked_button_link(" https://example.org/next ") == "https://example.org/next"
+    )
+    assert checked_button_link("") == ""
+    assert checked_button_link(None) is None
+    for url in ("javascript:alert(1)", "data:text/html,x", "/relative", "ftp://x.org"):
+        with pytest.raises(ValueError):
+            checked_button_link(url)
+
+
+async def test_create_refuses_a_script_button_link(workspace):
+    with pytest.raises(HTTPException) as raised:
+        await container.workspace_form_service().create_form(
+            workspace.id, _form_with_ending_link("javascript:alert(1)"), testUser
+        )
+    assert raised.value.status_code == 422
+
+
+async def test_create_keeps_an_http_button_link(workspace):
+    form = await container.workspace_form_service().create_form(
+        workspace.id, _form_with_ending_link(" https://example.org/next "), testUser
+    )
+    assert form.thankyou_page[0].buttonLink == "https://example.org/next"
+
+
+async def test_a_copy_drops_a_script_button_link(workspace):
+    form = await container.workspace_form_service().create_form(
+        workspace.id,
+        _form_with_ending_link("javascript:alert(1)"),
+        testUser,
+        drop_unusable_settings=True,
+    )
+    assert form.thankyou_page[0].buttonLink is None
+
+
+async def test_update_refuses_a_new_script_button_link(workspace):
+    service = container.workspace_form_service()
+    form = await service.create_form(
+        workspace.id, _form_with_ending_link("https://example.org/next"), testUser
+    )
+    with pytest.raises(HTTPException) as raised:
+        await service.update_form(
+            workspace.id,
+            form.form_id,
+            _form_with_ending_link("javascript:alert(1)"),
+            testUser,
+        )
+    assert raised.value.status_code == 422

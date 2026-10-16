@@ -50,6 +50,25 @@ describe('ThankyouPage', () => {
         expect(screen.getByText('Visit us')).toBeDefined();
     });
 
+    it('opens only an http(s) button link and leaves out any other', () => {
+        const page = (buttonLink: string) =>
+            render(
+                <ReduxProvider store={store}>
+                    <Provider>
+                        <ThankyouPage isPreviewMode={false} />
+                    </Provider>
+                </ReduxProvider>
+            );
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        store.dispatch(setForm({ formId: 'form-typ-l', title: 'Links', fields: [], thankyouPage: [{ buttonText: 'Visit us', buttonLink: 'https://example.com/next' }] }));
+        const { unmount } = page('');
+        expect(screen.getByRole('link', { name: 'Visit us' }).getAttribute('href')).toBe('https://example.com/next');
+        unmount();
+        store.dispatch(setForm({ formId: 'form-typ-x', title: 'Links', fields: [], thankyouPage: [{ buttonText: 'Visit us', buttonLink: 'javascript:alert(1)' }] }));
+        page('');
+        expect(screen.queryByText('Visit us')).toBeNull();
+    });
+
     it('honours the page layout: "Centered" centres the content, "Left aligned" does not', () => {
         store.dispatch(setForm({ formId: 'form-typ-c', title: 'Centered', fields: [], thankyouPage: [{ title: 'Done', layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }] }));
         const { unmount } = renderPage();

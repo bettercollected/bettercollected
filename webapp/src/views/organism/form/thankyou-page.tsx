@@ -16,6 +16,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { resolvePipesInText } from '@app/utils/answer-piping';
+import { httpUrl } from '@app/utils/http-url';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
@@ -60,6 +61,10 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     // crashed the post-submit screen with "Cannot read properties of null").
     const thankyouPage = standardForm?.thankyouPage?.[0];
     const theme = standardForm?.theme;
+    // The creator's button link opens only as an absolute http(s) URL (like
+    // the privacy policy link); anything else is not rendered. No link at all
+    // keeps the old default.
+    const buttonHref = thankyouPage?.buttonLink?.trim() ? httpUrl(thankyouPage.buttonLink) : 'https://bettercollected.com';
     // A quiet edge for the receipt card: the theme's border colour, softened.
     const cardEdge = theme?.tertiary && theme?.accent && /^#[0-9a-fA-F]{6}$/.test(theme.tertiary) && /^#[0-9a-fA-F]{6}$/.test(theme.accent) ? mixHex(theme.tertiary, theme.accent, 0.45) : '#D0D5DD';
     const receipt = auth.id && standardForm.settings?.showSubmissionNumber;
@@ -101,9 +106,9 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         </ul>
                         {receipt && <SubmissionReceipt className="mt-6" edge={rule} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
                     </section>
-                    {thankyouPage?.buttonText && (
+                    {thankyouPage?.buttonText && buttonHref !== null && (
                         <Button flat style={{ background: theme?.secondary }} className="mt-8 min-h-12 rounded-[4px] px-8 text-base font-semibold">
-                            <Link href={isPreviewMode ? '' : thankyouPage.buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
+                            <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
                                 {thankyouPage.buttonText}
                             </Link>
                         </Button>
@@ -125,9 +130,9 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                 <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ color: softInk(theme) }}>
                     {getThankYouMessage()}
                 </p>
-                {thankyouPage?.buttonText && (
+                {thankyouPage?.buttonText && buttonHref !== null && (
                     <Button flat style={{ background: theme?.secondary }} className="mt-8 min-h-12 rounded-[8px] px-8 text-base font-semibold">
-                        <Link href={isPreviewMode ? '' : thankyouPage.buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
+                        <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
                             {thankyouPage.buttonText}
                         </Link>
                     </Button>
