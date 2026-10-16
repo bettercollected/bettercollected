@@ -52,9 +52,7 @@
         "PRIVATE": "Besloten formulier",
         "PRIVATE_TEXT": "Alleen bepaalde mensen kunnen dit formulier invullen. Bevestig wie je bent om verder te gaan.",
         "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier.",
-        "CONTENTS": "In dit formulier",
-        "PAGE_COUNT_one": "Dit formulier heeft {{count}} pagina.",
-        "PAGE_COUNT_other": "Dit formulier heeft {{count}} pagina's."
+        "CONTENTS": "In dit formulier"
     },
     "ACCOUNT": {
         "LABEL": "Account",
@@ -119,5 +117,14 @@
         "MAX_ITEMS_other": "Vul er maximaal {{count}} in.",
         "MIN_ITEMS_one": "Vul er minimaal {{count}} in om verder te gaan.",
         "MIN_ITEMS_other": "Vul er minimaal {{count}} in om verder te gaan."
+    },
+    "LEAFLET": {
+        "SECTION": "Deel {{n}}"
+    },
+    "RETENTION_VALUE": {
+        "DAYS_one": "{{count}} dag na het insturen.",
+        "DAYS_other": "{{count}} dagen na het insturen.",
+        "UNTIL_DATE": "Tot {{date}}.",
+        "UNTIL_DELETED": "Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd."
     }
 }

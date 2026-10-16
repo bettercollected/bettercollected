@@ -140,7 +140,7 @@ export default function WelcomePage({
                     </LeafletIntroBand>
                 )}
                 <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-8')} data-testid="welcome-column">
-                    <LeafletContents pages={standardForm?.fields} theme={formTheme} formTitle={standardForm?.title ?? ''} />
+                    <LeafletContents pages={standardForm?.fields} theme={formTheme} />
                     {actions}
                 </div>
             </>

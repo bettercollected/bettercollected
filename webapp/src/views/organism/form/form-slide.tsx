@@ -21,7 +21,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
-import { leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
 import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
 import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -184,12 +184,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const section = leaflet
         ? leafletSection(
               visibleFields.map((field, position) => (position === 0 && field.type === FieldTypes.TEXT ? { ...field, title: resolvePipesInTitle(field.title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues }) as any } : field)),
-              standardForm?.title ?? ''
+              t('LEAFLET.SECTION', { n: index + 1 })
           )
         : null;
     const pageFields = section?.openingTextId ? visibleFields.filter((field) => field.id !== section.openingTextId) : visibleFields;
     const numbering = leaflet ? { numbers: questionNumbers(pageFields, index + 1), hang: leafletNumbersHang(pageLayout) } : null;
     const theme = standardForm?.theme;
+    const marginVar = numbering ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbering.numbers, index + 1)}px` } as React.CSSProperties) : undefined;
     // The header's words in the action colour where it reads as text on the page.
     const leafletHeaderInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
@@ -317,8 +318,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                 {/* Leaflet: the numbered section bar and the intro band, full
                     width, straight under the header (pt-14 clears it). */}
                 {leaflet && section && (
-                    <div className="pt-14">
-                        <LeafletSectionBar theme={theme} numeral={index + 1} title={section.title} layout={pageLayout} />
+                    <div className="pt-14" style={marginVar}>
+                        <LeafletSectionBar theme={theme} numeral={index + 1} title={section.shortTitle} fullTitle={section.title} layout={pageLayout} />
                         {section.intro && (
                             <LeafletIntroBand theme={theme} layout={pageLayout}>
                                 <FormFieldComponent field={section.intro} slideIndex={formSlide!.index} />
@@ -330,7 +331,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     layout wrapper centres a short page vertically and lets a long
                     one scroll from the top. pt-12 clears the header bar above.
                     48px between questions (~6× the 8px inside a question). */}
-                <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6', leaflet ? 'gap-10 pt-7 lg:gap-y-10' : 'gap-12 pt-12 lg:gap-y-12')}>
+                <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6', leaflet ? 'gap-10 pt-7 lg:gap-y-10' : 'gap-12 pt-12 lg:gap-y-12')} style={marginVar}>
                     <QuestionNumberContext.Provider value={numbering}>
                         {pageFields.map((field: StandardFormFieldDto, position: number) => (
                             // 12-grid width on desktop: adjacent spans that fit pack
@@ -345,7 +346,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         a little closer than the 48px between questions. */}
                     <div
                         // Leaflet: the button lines up with the question text, past the margin column.
-                        className={cn('-mt-4 flex flex-col items-start gap-4', leaflet && 'ml-[34px]', leaflet && numbering?.hang && '@min-[880px]/page:ml-0')}
+                        className={cn('-mt-4 flex flex-col items-start gap-4', leaflet && 'ml-[var(--leaflet-margin,34px)]', leaflet && numbering?.hang && '@min-[880px]/page:ml-0')}
                         style={{ gridColumn: 'span 12 / span 12' }}
                     >
                         {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (

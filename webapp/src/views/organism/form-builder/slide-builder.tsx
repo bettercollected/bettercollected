@@ -25,7 +25,7 @@ function fieldTypeLabel(type?: string) {
     return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
 }
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
-import { leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
 import { LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { actionInk, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
@@ -49,7 +49,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     // the opening text block on the intro band, n.m numbers in the margin.
     // The canvas shows every field, so numbering follows the page's order.
     const leaflet = styleTokens(theme?.style).key === 'leaflet';
-    const section = leaflet ? leafletSection(slideFields ?? [], form?.title ?? '') : null;
+    const section = leaflet ? leafletSection(slideFields ?? [], `Section ${(slide?.index ?? 0) + 1}`) : null;
     const numbers = leaflet ? questionNumbers(slideFields ?? [], (slide?.index ?? 0) + 1) : {};
     const numberInk = actionInk(theme);
     // The page's opening text block is edited where respondents see it: its
@@ -59,6 +59,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const openingDoc = opening && typeof opening.title === 'object' ? (opening.title as any) : null;
     const headingOnBar = !!openingDoc && openingDoc.content?.[0]?.type === 'heading';
     const sectionNumber = (slide?.index ?? 0) + 1;
+    const marginVar = leaflet ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbers, sectionNumber)}px` } as React.CSSProperties) : undefined;
     const selectOpening = (event: React.SyntheticEvent) => {
         event.stopPropagation();
         if (opening) setActiveFieldComponent({ id: opening.id, index: 0 });
@@ -67,9 +68,9 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet}>
             {leaflet && section && (
-                <div>
+                <div style={marginVar}>
                     <LeafletTopRule theme={theme} />
-                    {!headingOnBar && <LeafletSectionBar theme={theme} numeral={sectionNumber} title={section.title} layout={slide.properties?.layout} />}
+                    {!headingOnBar && <LeafletSectionBar theme={theme} numeral={sectionNumber} title={section.shortTitle} fullTitle={section.title} layout={slide.properties?.layout} />}
                     {opening && (
                         <div
                             // Full width like the respondent's bar and band; the
@@ -89,7 +90,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                     'relative cursor-text',
                                     activeFieldComponent?.id === opening.id && 'outline-2 outline-offset-2 outline-[#123FC9]',
                                     headingOnBar &&
-                                        "[&_.ProseMirror>*:first-child]:relative [&_.ProseMirror>*:first-child]:py-3.5 [&_.ProseMirror>*:first-child]:pl-[34px] [&_.ProseMirror>*:first-child]:text-[22px]! [&_.ProseMirror>*:first-child]:leading-[1.25]! [&_.ProseMirror>*:first-child]:font-semibold! [&_.ProseMirror>*:first-child]:text-white [&_.ProseMirror>*:first-child]:font-(family-name:--leaflet-serif) [&_.ProseMirror>*:first-child]:[border-image:conic-gradient(var(--leaflet-bar)_0_0)_fill_0//0_100vmax] [&_.ProseMirror>*:first-child]:before:absolute [&_.ProseMirror>*:first-child]:before:left-0 [&_.ProseMirror>*:first-child]:before:top-3.5 [&_.ProseMirror>*:first-child]:before:text-[28px] [&_.ProseMirror>*:first-child]:before:leading-none [&_.ProseMirror>*:first-child]:before:tabular-nums [&_.ProseMirror>*:first-child]:before:content-(--leaflet-numeral) [&_.ProseMirror>*:nth-child(2)]:mt-4! [&_.ProseMirror>*:last-child:not(:first-child)]:mb-4 [&_.ProseMirror]:leading-[1.6]"
+                                        "[&_.ProseMirror>*:first-child]:relative [&_.ProseMirror>*:first-child]:py-3.5 [&_.ProseMirror>*:first-child]:pl-[var(--leaflet-margin,34px)] [&_.ProseMirror>*:first-child]:text-[22px]! [&_.ProseMirror>*:first-child]:leading-[1.25]! [&_.ProseMirror>*:first-child]:font-semibold! [&_.ProseMirror>*:first-child]:text-white [&_.ProseMirror>*:first-child]:font-(family-name:--leaflet-serif) [&_.ProseMirror>*:first-child]:[border-image:conic-gradient(var(--leaflet-bar)_0_0)_fill_0//0_100vmax] [&_.ProseMirror>*:first-child]:before:absolute [&_.ProseMirror>*:first-child]:before:left-0 [&_.ProseMirror>*:first-child]:before:top-3.5 [&_.ProseMirror>*:first-child]:before:text-[28px] [&_.ProseMirror>*:first-child]:before:leading-none [&_.ProseMirror>*:first-child]:before:tabular-nums [&_.ProseMirror>*:first-child]:before:content-(--leaflet-numeral) [&_.ProseMirror>*:nth-child(2)]:mt-4! [&_.ProseMirror>*:last-child:not(:first-child)]:mb-4 [&_.ProseMirror]:leading-[1.6]"
                                 )}
                                 style={
                                     {
@@ -109,7 +110,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                 vertical placement as the respondent page (form-column.ts);
                 pt-12 matches the space the respondent page keeps for its
                 header bar. */}
-            <div className={cn('w-full', leaflet ? 'pt-7' : 'pt-12')}>
+            <div className={cn('w-full', leaflet ? 'pt-7' : 'pt-12')} style={marginVar}>
                 <div
                     className={cn(
                         FORM_COLUMN,
@@ -213,8 +214,8 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                         <MoveUpDown slideIndex={slide.index} field={field} />
                                                     </div>
                                                 )}
-                                                <div className={cn('mb-2 w-full', number && '[&>*:not(:first-child)]:pl-[34px]')}>
-                                                    <div className={cn('relative w-full', number ? 'grid grid-cols-[34px_minmax(0,1fr)] items-baseline' : 'flex items-center gap-2')}>
+                                                <div className={cn('mb-2 w-full', number && '[&>*:not(:first-child)]:pl-[var(--leaflet-margin,34px)]')}>
+                                                    <div className={cn('relative w-full', number ? 'grid grid-cols-[var(--leaflet-margin,34px)_minmax(0,1fr)] items-baseline' : 'flex items-center gap-2')}>
                                                         {number && (
                                                             <span aria-hidden="true" className="text-[16px] leading-[1.4] tabular-nums" style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberInk }}>
                                                                 {number}
@@ -232,7 +233,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                     {showHints && <PlainLanguageHints id={titleHintsId} value={field.title} {...plainLanguage} />}
                                                     <FieldDescription field={field} disabled={disabled} hints={showHints ? plainLanguage : undefined} />
                                                 </div>
-                                                <div className={cn('w-full', number && 'pl-[34px]')}>{renderFieldWrapper(field, slide, disabled)}</div>
+                                                <div className={cn('w-full', number && 'pl-[var(--leaflet-margin,34px)]')}>{renderFieldWrapper(field, slide, disabled)}</div>
                                             </div>
                                         </div>
                                     </motion.div>

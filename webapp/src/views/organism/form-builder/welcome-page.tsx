@@ -64,7 +64,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         </div>
                     )}
                     <div className={cn(FORM_COLUMN, columnPlacementClass(layout), 'flex flex-col items-start pt-8')}>
-                        <LeafletContents pages={form?.fields} theme={theme} formTitle={formState.title ?? ''} />
+                        <LeafletContents pages={form?.fields} theme={theme} />
                         <Button size={'medium'} className="z-10 mt-8 min-h-12 rounded-[4px] px-8 py-3 text-base font-semibold" style={{ background: theme?.secondary }}>
                             {formState.welcomePage?.buttonText || 'Start'}
                         </Button>

@@ -147,7 +147,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
         <div
             className={cn(
                 'relative',
-                number ? 'grid grid-cols-[34px_minmax(0,1fr)] items-baseline' : 'flex flex-col gap-1 lg:gap-2',
+                number ? 'grid grid-cols-[var(--leaflet-margin,34px)_minmax(0,1fr)] items-baseline' : 'flex flex-col gap-1 lg:gap-2',
                 // Wide centred pages hang the number outside the text measure.
                 number && numbering?.hang && '@min-[880px]/page:block',
                 tokens.divider && 'border-b pb-7',

@@ -4,7 +4,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Comparison, LogicalOperator } from '@app/models/types/form-builder-shared';
 import { getHiddenFieldIds } from '@app/utils/conditional-logic';
 
-import { isNumberedQuestion, leafletSection, questionNumbers } from './leaflet-sections';
+import { isNumberedQuestion, leafletMarginWidth, leafletSection, questionNumbers, shortenLabel } from './leaflet-sections';
 
 const field = (id: string, type: string = FieldTypes.SHORT_TEXT, properties: StandardFormFieldDto['properties'] = {}, title?: any): StandardFormFieldDto => ({ id, index: 0, type: type as FieldTypes, properties, title });
 const text = (id: string, content: any[]) => field(id, FieldTypes.TEXT, {}, { type: 'doc', content });
@@ -48,7 +48,7 @@ describe('question numbers', () => {
 describe('leaflet sections', () => {
     it('takes the bar title from the opening heading and leaves the rest for the band', () => {
         const opening = text('intro', [heading('About your visit'), paragraph('Tell us how it went.')]);
-        const section = leafletSection([opening, field('q')], 'Visit form');
+        const section = leafletSection([opening, field('q')], 'Section 2');
         expect(section.title).toBe('About your visit');
         expect(section.titleFromPage).toBe(true);
         expect(section.openingTextId).toBe('intro');
@@ -56,17 +56,44 @@ describe('leaflet sections', () => {
     });
 
     it('a heading-only opening block becomes the bar, with no band', () => {
-        const section = leafletSection([text('intro', [heading('Your details')]), field('q')], 'Visit form');
+        const section = leafletSection([text('intro', [heading('Your details')]), field('q')], 'Section 2');
         expect(section).toMatchObject({ title: 'Your details', intro: null, openingTextId: 'intro' });
     });
 
-    it('falls back to the form title when the page opens without a heading', () => {
-        expect(leafletSection([field('q')], 'Visit form')).toMatchObject({ title: 'Visit form', titleFromPage: false, intro: null, openingTextId: null });
+    it('a page without a heading is named after its first question, never the form title', () => {
+        const q = field('q', FieldTypes.SHORT_TEXT, {}, 'What is your name?');
+        expect(leafletSection([q], 'Section 2')).toMatchObject({ title: 'What is your name?', shortTitle: 'What is your name?', titleFromPage: false, intro: null, openingTextId: null });
+    });
+
+    it('a page opening with a text block without a heading uses its first question too', () => {
         const plain = text('intro', [paragraph('Just some text.')]);
-        expect(leafletSection([plain, field('q')], 'Visit form')).toMatchObject({ title: 'Visit form', titleFromPage: false, intro: plain, openingTextId: 'intro' });
+        const q = field('q', FieldTypes.EMAIL, {}, { type: 'doc', content: [paragraph('Your email address')] });
+        expect(leafletSection([plain, field('pic', FieldTypes.IMAGE_CONTENT), q], 'Section 2')).toMatchObject({ title: 'Your email address', titleFromPage: false, intro: plain, openingTextId: 'intro' });
+    });
+
+    it('a page with no questions falls back to "Section n"', () => {
+        expect(leafletSection([text('intro', [paragraph('Only text here.')])], 'Section 2').title).toBe('Section 2');
+        expect(leafletSection([], 'Deel 4').title).toBe('Deel 4');
+    });
+
+    it('shortens a long question label with an ellipsis and keeps the full text', () => {
+        const long = 'How did you hear about the open day at our new community centre in the city centre this spring?';
+        const section = leafletSection([field('q', FieldTypes.SHORT_TEXT, {}, long)], 'Section 1');
+        expect(section.title).toBe(long);
+        expect(section.shortTitle.endsWith('…')).toBe(true);
+        expect(section.shortTitle.length).toBeLessThanOrEqual(60);
+        expect(shortenLabel('Short enough')).toBe('Short enough');
     });
 
     it('ignores a text block that is not first', () => {
-        expect(leafletSection([field('q'), text('later', [heading('Later')])], 'Visit form').openingTextId).toBeNull();
+        expect(leafletSection([field('q'), text('later', [heading('Later')])], 'Section 2').openingTextId).toBeNull();
+    });
+});
+
+describe('margin column', () => {
+    it('widens for four-character numbers so 2.10 never touches its question', () => {
+        expect(leafletMarginWidth({ a: '2.1', b: '2.9' }, 2)).toBe(34);
+        expect(leafletMarginWidth({ a: '2.1', b: '2.10' }, 2)).toBe(44);
+        expect(leafletMarginWidth({ a: '10.1' }, 10)).toBe(44);
     });
 });

@@ -61,8 +61,10 @@ export function nodeText(node: JSONContent | undefined): string {
 const hasText = (node: JSONContent) => nodeText(node).trim().length > 0;
 
 export interface LeafletSection {
-    /** The section bar's title. */
+    /** The section bar's title, in full (also the accessible name). */
     title: string;
+    /** The title as shown: long fallback titles are shortened with an ellipsis. */
+    shortTitle: string;
     /** Whether the title came from the page's own opening heading. */
     titleFromPage: boolean;
     /**
@@ -75,34 +77,75 @@ export interface LeafletSection {
     openingTextId: string | null;
 }
 
+/** Longest section label shown before it is shortened. */
+export const SECTION_LABEL_MAX = 60;
+
+/** Shorten a label at a word boundary, with an ellipsis, when it runs past `max`. */
+export function shortenLabel(text: string, max = SECTION_LABEL_MAX): string {
+    const clean = text.replace(/\s+/g, ' ').trim();
+    if (clean.length <= max) return clean;
+    const cut = clean.slice(0, max - 1);
+    const space = cut.lastIndexOf(' ');
+    return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:.\-]+$/, '')}…`;
+}
+
+/** Plain text of a field's title (TipTap JSON or a plain string). */
+export function fieldTitleText(field: StandardFormFieldDto | undefined): string {
+    const title = field?.title;
+    if (!title) return '';
+    return (typeof title === 'string' ? title : nodeText(title as JSONContent)).replace(/\s+/g, ' ').trim();
+}
+
 /**
  * What a page shows in its section bar and intro band. A page that opens
  * with a text block gives the bar its first heading and the band the rest of
- * the text; a page without an opening heading uses `fallbackTitle` (the
- * form's title, like the running title of a leaflet).
+ * the text.
+ *
+ * A page without a heading of its own is named after its first question, as
+ * the builder's page list names pages; a page with no questions at all gets
+ * `emptyLabel` ("Section 3"). The form's title is never a section label.
  *
  * `visibleFields` should already have answer pipes resolved when the page is
  * shown to a respondent.
  */
-export function leafletSection(visibleFields: ReadonlyArray<StandardFormFieldDto>, fallbackTitle: string): LeafletSection {
+export function leafletSection(visibleFields: ReadonlyArray<StandardFormFieldDto>, emptyLabel: string): LeafletSection {
+    const fallback = (): Pick<LeafletSection, 'title' | 'shortTitle' | 'titleFromPage'> => {
+        const question = visibleFields.find((field) => isNumberedQuestion(field) && fieldTitleText(field));
+        const title = question ? fieldTitleText(question) : emptyLabel;
+        return { title, shortTitle: shortenLabel(title), titleFromPage: false };
+    };
     const first = visibleFields[0];
-    if (!first || first.type !== FieldTypes.TEXT) return { title: fallbackTitle, titleFromPage: false, intro: null, openingTextId: null };
+    if (!first || first.type !== FieldTypes.TEXT) return { ...fallback(), intro: null, openingTextId: null };
 
     const doc = first.title;
     if (!doc || typeof doc === 'string') {
-        return { title: fallbackTitle, titleFromPage: false, intro: doc && String(doc).trim() ? first : null, openingTextId: first.id };
+        return { ...fallback(), intro: doc && String(doc).trim() ? first : null, openingTextId: first.id };
     }
     const blocks = (doc as JSONContent).content ?? [];
     const headingIndex = blocks.findIndex((block) => hasText(block));
     const heading = headingIndex >= 0 && blocks[headingIndex].type === 'heading' ? blocks[headingIndex] : undefined;
     if (!heading) {
-        return { title: fallbackTitle, titleFromPage: false, intro: blocks.some(hasText) ? first : null, openingTextId: first.id };
+        return { ...fallback(), intro: blocks.some(hasText) ? first : null, openingTextId: first.id };
     }
     const rest = blocks.slice(headingIndex + 1);
+    const title = nodeText(heading).trim();
     return {
-        title: nodeText(heading).trim(),
+        title,
+        // The creator's own heading is shown in full.
+        shortTitle: title,
         titleFromPage: true,
         intro: rest.some(hasText) ? { ...first, title: { ...(doc as JSONContent), content: rest } } : null,
         openingTextId: first.id
     };
+}
+
+/**
+ * Width of the margin column for a page's numbers: 34px, or 44px once a
+ * number needs four characters ("2.10", "10.1"), so the number never runs
+ * into the question it labels and every question on the page keeps one
+ * left edge.
+ */
+export function leafletMarginWidth(numbers: Record<string, string>, sectionNumber: number): number {
+    const longest = Math.max(String(sectionNumber).length, ...Object.values(numbers).map((n) => n.length));
+    return longest >= 4 ? 44 : 34;
 }

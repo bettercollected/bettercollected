@@ -1,7 +1,7 @@
 // Respondent text resolves through the app's i18n instance.
 import React from 'react';
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -127,7 +127,8 @@ describe('Leaflet style', () => {
         wrap(<ThankyouPage isPreviewMode />);
         const next = await screen.findByTestId('leaflet-next');
         expect(within(next).getByRole('heading', { name: 'What happens next' })).toBeInTheDocument();
-        expect(within(next).getByText(/Kept for 30 days after you submit/)).toBeInTheDocument();
+        // The period alone after its label, not "Kept for ...".
+        expect(within(next).getAllByRole('listitem')[0].textContent).toBe('How long they are kept: 30 days after you submit.');
         expect(within(next).getByText(/You can view your answers/)).toBeInTheDocument();
         // Every row names its subject.
         expect(
@@ -139,7 +140,7 @@ describe('Leaflet style', () => {
         expect(screen.getByRole('heading', { level: 1, name: 'Thank you' })).toBeInTheDocument();
     });
 
-    it('the contents list pages without a heading under their bar title (the form title)', async () => {
+    it('the contents list a page without a heading under its first question, like its bar', async () => {
         const form = (store.getState() as any).form;
         store.dispatch(setForm({ ...form, fields: [form.fields[0], { ...form.fields[1], properties: { fields: [question('q', FieldTypes.SHORT_TEXT)] } }, form.fields[2]] } as any));
         wrap(<WelcomePage isPreviewMode />);
@@ -148,7 +149,25 @@ describe('Leaflet style', () => {
             within(contents)
                 .getAllByRole('listitem')
                 .map((item) => item.textContent)
-        ).toEqual(['1Your details', '2Open day feedback', '3Booking']);
+        ).toEqual(['1Your details', '2Question q', '3Booking']);
+    });
+
+    it('in Dutch, the ending row reads the period alone after its label', async () => {
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=nl');
+        store.dispatch(setForm({ ...(store.getState() as any).form, settings: { responseExpirationType: 'days', responseExpiration: '1' } } as any));
+        wrap(<ThankyouPage isPreviewMode />);
+        const next = await screen.findByTestId('leaflet-next');
+        await waitFor(() => expect(within(next).getAllByRole('listitem')[0].textContent).toBe('Hoe lang ze bewaard worden: 1 dag na het insturen.'));
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('a page without a heading names its bar after its first question', async () => {
+        const form = (store.getState() as any).form;
+        store.dispatch(setForm({ ...form, fields: [{ ...form.fields[0], properties: { fields: [question('name', FieldTypes.SHORT_TEXT)] } }, form.fields[1], form.fields[2]] } as any));
+        wrap(<FormSlide index={0} isPreviewMode />);
+        const bar = await screen.findByTestId('leaflet-section-bar');
+        expect(within(bar).getByRole('heading', { level: 2 }).textContent).toBe('1Question name');
+        expect(within(bar).queryByText('Open day feedback')).toBeNull();
     });
 
     it('a question with an error marks its control invalid, describes it by the message and gives it the red edge', async () => {
