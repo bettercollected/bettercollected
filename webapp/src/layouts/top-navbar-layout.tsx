@@ -35,7 +35,7 @@ export default function TopNavLayout({
     navContainerClassName
 }: React.PropsWithChildren<LayoutProps>) {
     return (
-        <div className="!bg-black-200 dark:bg-dark z-20 !min-h-screen !min-w-full">
+        <div className="bg-black-200! dark:bg-dark z-20 min-h-screen! min-w-full!">
             {showNavbar && (
                 <AuthNavbar
                     isFooter={isFooter}
@@ -52,7 +52,7 @@ export default function TopNavLayout({
             <main
                 className={cn(
                     "bg-black-100 float-none flex w-full px-5 lg:float-right lg:px-10",
-                    showNavbar ? "min-h-screen lg:min-h-[calc(100vh-68px)] !mt-[68px]" : "min-h-screen",
+                    showNavbar ? "min-h-screen lg:min-h-[calc(100vh-68px)] mt-[68px]!" : "min-h-screen",
                     className
                 )}
             >

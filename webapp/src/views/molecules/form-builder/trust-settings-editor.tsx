@@ -158,12 +158,12 @@ export default function TrustSettingsEditor() {
             <div className="mt-1 flex flex-col gap-1">
                 <span className="text-[10px] font-medium uppercase tracking-wide text-black-500">Responders will see</span>
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-lg border border-black-200 bg-white px-2.5 py-2 text-[11px] text-black-700">
-                    <Shield className="h-3 w-3 shrink-0 text-[#2456CC]" strokeWidth={1.8} aria-hidden="true" />
+                    <Shield className="h-3 w-3 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                     <span>
                         Collected by <span className="font-semibold text-black-900">{workspace?.title || workspace?.workspaceName}</span>
                     </span>
                     {purpose.trim() && <span>· {purpose.trim()}</span>}
-                    {httpUrl(privacyUrl) && <span className="text-[#2456CC]">· How your data is used</span>}
+                    {httpUrl(privacyUrl) && <span className="text-brand-500">· How your data is used</span>}
                     <span>· {previewRetention}</span>
                     <span>· You can view your answers and ask for them to be deleted at any time.</span>
                 </div>

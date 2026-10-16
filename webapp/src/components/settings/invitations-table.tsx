@@ -62,7 +62,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
                 <StatusBadge status={status} />
                 {status.toLowerCase() === 'expired' && (
                     <div className="truncate">
-                        <span className="body4 !text-brand-500 cursor-pointer" onClick={() => handleInvitation({ email, role })}>
+                        <span className="body4 text-brand-500! cursor-pointer" onClick={() => handleInvitation({ email, role })}>
                             Resend Invitation
                         </span>
                     </div>
@@ -139,7 +139,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
     if (invitations && invitations.length > 0)
         return (
             <>
-                <DataTable className="mt-2 !overflow-auto p-0" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                <DataTable className="mt-2 overflow-auto! p-0" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
             </>
         );
     return EmptyPendingRequest();

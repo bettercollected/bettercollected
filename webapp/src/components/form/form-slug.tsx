@@ -68,7 +68,7 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
                 <h1 className={'h2-new'}>{t(formPage.linksSlugTitle)}</h1>
                 <p className={'text-sm font-normal text-black-700'}>{t(formPage.linksSlugDescription)}</p>
             </div>
-            <div className={'flex flex-col gap-2 !max-w-[660px]'}>
+            <div className={'flex flex-col gap-2 max-w-[660px]!'}>
                 <h1 className={'h4-new'}>{t(formPage.linksSlugEnterSlug)}</h1>
                 <p className={'text-sm font-normal text-black-700'}>{t(formPage.linksSlugAvoidUsing)}</p>
                 <p className={'text-sm font-normal text-black-700'}>
@@ -76,7 +76,7 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
                     {link}/<span className={'text-pink-500'}>{slug}</span>
                 </p>
                 <AppInput value={slug} onChange={(event) => handleOnchange(event)} className="w-full" />
-                {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
+                {!slug.match(slugRegex) && isError && <p className="body4 text-red-500! h-[10px]">{t(validationMessage.slug)}</p>}
             </div>
             <Button type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant="secondary">
                 {t(formPage.linksSlugSaveChanges)}

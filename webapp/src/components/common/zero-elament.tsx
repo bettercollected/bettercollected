@@ -13,7 +13,7 @@ export default function ZeroElement({ title, description, className = '' }: IZer
             <EmptyFormIcon />
             <div>
                 <h1 className="h4-new mt-2">{title}</h1>
-                <p className="p2-new mt-1 max-w-[290px] md:max-w-[316px] !text-black-700">{description}</p>
+                <p className="p2-new mt-1 max-w-[290px] md:max-w-[316px] text-black-700!">{description}</p>
             </div>
         </div>
     );

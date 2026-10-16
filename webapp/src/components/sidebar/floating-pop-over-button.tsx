@@ -26,7 +26,7 @@ const FloatingPopOverButton = ({ content, children, className }: { content: Reac
 
     return (
         <div ref={popoverRef} className="p3-new text-black-600 group fixed bottom-5 right-5">
-            <button onMouseOver={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onClick={() => setIsPopoverOpen(!isPopoverOpen)} className=" focus:outline-none">
+            <button onMouseOver={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onClick={() => setIsPopoverOpen(!isPopoverOpen)} className=" focus:outline-hidden">
                 {content}
             </button>
             {!isPopoverOpen && hovered && (

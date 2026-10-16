@@ -118,7 +118,7 @@ export function isConditionComplete(c: LogicCondition | undefined): boolean {
     return true;
 }
 
-export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-xs outline-none';
+export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-xs outline-hidden';
 const invalidSelectClass = selectClass.replace('border-black-300', 'border-amber-400');
 
 /** One condition row: [source field] [comparison] [value], with an optional remove button. */

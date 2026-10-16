@@ -50,7 +50,7 @@ function RailPageItem({
                 tabIndex={0}
                 className={cn(
                     'flex min-h-[64px] w-full cursor-pointer flex-col justify-center gap-1 overflow-hidden rounded-lg border bg-white px-3 py-2 transition-colors',
-                    selected ? 'border-[#2456CC] shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 hover:border-black-400'
+                    selected ? 'border-brand-500 shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 hover:border-black-400'
                 )}
                 onClick={onSelect}
                 onKeyDown={(e) => {
@@ -98,7 +98,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                 label={`Page ${index + 1}`}
                                                 chips={
                                                     slideHasLogic(slide) ? (
-                                                        <span title="This page has logic" className="inline-flex items-center gap-0.5 rounded bg-[#E9EFFC] px-1 py-[1px] text-[9px] font-semibold text-[#2456CC]">
+                                                        <span title="This page has logic" className="inline-flex items-center gap-0.5 rounded bg-brand-100 px-1 py-[1px] text-[9px] font-semibold text-brand-500">
                                                             <LogicOutlinedIcon className="h-2.5 w-2.5" />
                                                             Logic
                                                         </span>

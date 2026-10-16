@@ -50,7 +50,7 @@ const ResponderGroupDropdown = ({
             <PopoverTrigger asChild>
                 <div className="text-black-600 flex items-center gap-1 cursor-pointer">
                     <Plus className="h-4 w-4" />
-                    <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>
+                    <p className="body5 text-black-600!">{t(buttonConstant.add)}</p>
                 </div>
             </PopoverTrigger>
             <PopoverContent className="w-[180px] p-0 bg-white" align="start">
@@ -68,7 +68,7 @@ const ResponderGroupDropdown = ({
                             }}
                         >
                             <span className="truncate pr-2">{group.name}</span>
-                            {isEmailInGroup(group, email) && <Check className="h-4 w-4 text-brand-500 flex-shrink-0" />}
+                            {isEmailInGroup(group, email) && <Check className="h-4 w-4 text-brand-500 shrink-0" />}
                         </div>
                     ))}
                 </div>
@@ -102,7 +102,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
         <Tooltip label={!onClick ? t(localesCommon.noGroupFound) : ''}>
             <div onClick={onClick} className={cn('text-black-600 flex items-center  gap-1', !onClick && 'cursor-not-allowed opacity-30')}>
                 <Plus className="h-4 w-4 " />
-                <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>
+                <p className="body5 text-black-600!">{t(buttonConstant.add)}</p>
             </div>
         </Tooltip>
     );
@@ -119,7 +119,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                                     handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id })
                                 })
                             }
-                            className={cn('bg-brand-200 body5 !text-brand-500 group flex w-fit cursor-pointer items-center gap-2 rounded p-1 leading-none', !canManageGroups && 'pointer-events-none')}
+                            className={cn('bg-brand-200 body5 text-brand-500! group flex w-fit cursor-pointer items-center gap-2 rounded p-1 leading-none', !canManageGroups && 'pointer-events-none')}
                         >
                             <span className="body5 text-black-8000">{group.name}</span>
                             {canManageGroups && <Close className="hidden h-2 w-2 group-hover:block " />}
@@ -195,7 +195,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
         if (data?.items && data?.items.length > 0)
             return (
                 <>
-                    <DataTable className="mt-4 !overflow-auto p-0" columns={dataTableResponseColumns} data={data?.items || []} customStyles={customStyles} highlightOnHover={false} pointerOnHover={false} />
+                    <DataTable className="mt-4 overflow-auto! p-0" columns={dataTableResponseColumns} data={data?.items || []} customStyles={customStyles} highlightOnHover={false} pointerOnHover={false} />
                     {Array.isArray(data?.items) && data?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
                             <StyledPagination shape="rounded" count={data?.pages || 0} page={query.page || 1} onChange={handlePageChange} />

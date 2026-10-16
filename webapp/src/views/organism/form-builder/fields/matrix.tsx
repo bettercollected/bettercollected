@@ -46,7 +46,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                         return (
                             <div
                                 className={cn(
-                                    'relative flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-t-[2px]  bg-opacity-20 p-2',
+                                    'relative flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border border-t-[2px] p-2',
                                     index === 0 && 'rounded-tl-lg border-l-[2px]',
                                     field?.properties?.fields?.[0]?.properties?.choices?.length === index + 1 && 'rounded-tr-lg border-r-[2px]'
                                 )}
@@ -67,7 +67,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                         }}
                                     />
                                 ) : (
-                                    <div className="max-h-full max-w-full break-words text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
+                                    <div className="max-h-full max-w-full wrap-break-word text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
                                 )}
 
                                 {disabled && activeField?.id === field.id && (
@@ -107,7 +107,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     opacity: 1
                                 }}
                                 className={cn(
-                                    'relative z-10 flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-l-[2px] p-2',
+                                    'relative z-10 flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border border-l-[2px] p-2',
                                     index === 0 && 'rounded-tl-lg border-t-[2px]',
                                     field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
                                 )}
@@ -122,7 +122,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                         }}
                                     />
                                 ) : (
-                                    <div className="max-h-full max-w-full break-words text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
+                                    <div className="max-h-full max-w-full wrap-break-word text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
                                 )}
                                 {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
                                     <div
@@ -143,7 +143,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                         borderColor: borderColor
                                     }}
                                     className={cn(
-                                        'flex h-full  flex-col items-center justify-center border-[1px] border-gray-200',
+                                        'flex h-full  flex-col items-center justify-center border border-gray-200',
                                         index + 1 === row?.properties?.choices?.length && 'border-r-[2px]',
                                         row!.index + 1 === field?.properties?.fields?.length && 'border-b-[2px]'
                                     )}
@@ -194,7 +194,7 @@ const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: 
     return (
         <StyledMatrixHeaderInput
             $theme={theme}
-            className={cn('ring-none focus:ring-none items-center border-none bg-transparent text-center text-sm outline-none focus:!border-none focus:outline-none focus-visible:outline-none active:outline-none', disabled && 'pointer-events-none')}
+            className={cn('ring-none focus:ring-none items-center border-none bg-transparent text-center text-sm outline-hidden focus:border-none! focus:outline-hidden focus-visible:outline-hidden active:outline-hidden', disabled && 'pointer-events-none')}
             placeholder={placeholder || 'Header'}
             value={inputVal}
             onChange={(event) => {
@@ -232,7 +232,7 @@ const MatrixCheckbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitiv
         style={{
             borderColor: theme?.secondary
         }}
-        className={cn('h-5 w-5 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed', className)}
+        className={cn('h-5 w-5 rounded border focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed', className)}
         {...props}
     >
         <CheckboxPrimitive.Indicator
@@ -267,7 +267,7 @@ const RadioGroupItem = React.forwardRef<React.ElementRef<typeof RadioGroupPrimit
         <RadioGroupPrimitive.Item
             ref={ref}
             className={cn(
-                'text-primary border-primary ring-offset-background focus-visible:ring-ring flex aspect-square !h-7 !w-7 flex-col items-center justify-center rounded-full !border focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed',
+                'text-primary border-primary ring-offset-background focus-visible:ring-ring flex aspect-square h-7! w-7! flex-col items-center justify-center rounded-full border! focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed',
                 className
             )}
             {...props}

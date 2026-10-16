@@ -72,7 +72,7 @@ export default function RespondentFeedbackPanel({ workspaceId, formId, responseI
                     {entries.map((entry, index) => (
                         <li key={entry.id ?? index} className="flex flex-col gap-1 border-l-2 border-black-200 pl-3">
                             {entry.status && <FeedbackStatusChip status={entry.status} />}
-                            {entry.message && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-black-900">{entry.message}</p>}
+                            {entry.message && <p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-black-900">{entry.message}</p>}
                             <span className="text-[11px] text-black-500">
                                 {entry.createdByEmail || 'A team member'} · {utcToLocalDateTIme(entry.createdAt)}
                             </span>

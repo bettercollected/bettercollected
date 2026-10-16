@@ -75,7 +75,7 @@ export default function InviteMemberModal() {
         closeModal();
     };
     return (
-        <SettingsCard className="relative !space-y-0 px-6 py-6 pb-8 sm:px-10 sm:pb-10">
+        <SettingsCard className="relative space-y-0! px-6 py-6 pb-8 sm:px-10 sm:pb-10">
             <ModalCloseButton onClick={closeModal} className="absolute right-2 top-2 h-8 w-8" />
             <div className="text-black-900 pr-6 text-lg font-semibold leading-snug">{t(inviteCollaborator.default)}</div>
             <div className="text-black-600 pt-3 text-sm leading-relaxed">{t(inviteCollaborator.description)}</div>

@@ -23,8 +23,8 @@ export default function BottomSheetModalWrapper({ children, className }: { child
                 }
             }}
         >
-            <ModalCloseButton onClick={closeModals} className="!bg-white fixed right-10 top-20 z-[3000] h-16 w-16 rounded-full opacity-100 shadow-lg" iconClassName="h-8 w-8" />
-            <div className={cn(' w-full !bg-white cursor-auto h-bottom-sheet-container overflow-auto rounded-t-3xl !opacity-100 px-5 md:px-20 lg:px-30 !mt-0 !pt-12 overflow-y-auto scroll-mt-6', className)}>{children}</div>
+            <ModalCloseButton onClick={closeModals} className="bg-white! fixed right-10 top-20 z-3000 h-16 w-16 rounded-full opacity-100 shadow-lg" iconClassName="h-8 w-8" />
+            <div className={cn(' w-full bg-white! cursor-auto h-bottom-sheet-container overflow-auto rounded-t-3xl opacity-100! px-5 md:px-20 lg:px-30 mt-0! pt-12! overflow-y-auto scroll-mt-6', className)}>{children}</div>
         </div>
     );
 }

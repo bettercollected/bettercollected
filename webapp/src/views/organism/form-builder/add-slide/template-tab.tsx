@@ -36,7 +36,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                         <span className="text-xs font-medium ">{selectedTemplate?.title || 'Untitled'}</span>
                     </div>
                     <ScrollArea className="h-[495px] overflow-auto">
-                        <div className="flex !h-full w-full flex-row flex-wrap gap-2 overflow-auto">
+                        <div className="flex h-full! w-full flex-row flex-wrap gap-2 overflow-auto">
                             {selectedTemplate?.fields?.map((slide, index) => (
                                 <button key={slide?.id} data-umami-event={'Add Page From Template Button'} data-umami-event-email={authState.email}>
                                     <div

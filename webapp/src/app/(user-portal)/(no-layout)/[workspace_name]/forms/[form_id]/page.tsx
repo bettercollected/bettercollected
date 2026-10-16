@@ -140,8 +140,8 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     if (data?.importedFormId && data.settings?.showOriginalForm) {
         return (
             <>
-                <div className="relative !min-h-screen">
-                    <div className="!m-0' absolute bottom-0 left-0 right-0 top-0 !p-0">
+                <div className="relative min-h-screen!">
+                    <div className="m-0!' absolute bottom-0 left-0 right-0 top-0 p-0!">
                         <iframe ref={iframeRef} src={`${data?.settings?.embedUrl}?embedded=true`} width="100%" height="100%">
                             <Loader />
                         </iframe>

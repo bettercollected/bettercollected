@@ -36,7 +36,7 @@ const MarkdownText = ({ text, className, markDownClassName }: IMarkdownText) => 
                     li: (props) => <li className="mb-2" {...props} />,
                     input: (props) => <input type="checkbox" className="mr-2" {...props} />,
                     blockquote: (props) => <blockquote style={{ width: '100%' }}
-                                                       className="border-l-4 pl-4 border-gray-300 italic my-4 p-1 !w-full" {...props} />,
+                                                       className="border-l-4 pl-4 border-gray-300 italic my-4 p-1 w-full!" {...props} />,
                     pre: (props) => <pre className="mb-4" {...props} />
                 }}
             >

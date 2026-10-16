@@ -152,7 +152,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.DESCRIPTION')}</div>
                 <Textarea
-                    className="border-black-300 focus:shadow-input rounded focus:!border-[#B8E8FF] focus:outline-transparent focus:ring-transparent resize-none"
+                    className="border-black-300 focus:shadow-input rounded focus:border-[#B8E8FF]! focus:outline-transparent focus:ring-transparent resize-none"
                     rows={3}
                     onChange={onChange}
                     value={workspaceInfo.description}
@@ -162,13 +162,13 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
             </div>
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">Privacy Policy URL</div>
-                <AppInput className={`w-full ${urlErrors.privacy_policy ? '!border-[#C43D3D]' : ''}`} onChange={onChange} value={workspaceInfo.privacy_policy} name="privacy_policy" placeholder={'https://yoursite.com/privacy'} />
+                <AppInput className={`w-full ${urlErrors.privacy_policy ? 'border-[#C43D3D]!' : ''}`} onChange={onChange} value={workspaceInfo.privacy_policy} name="privacy_policy" placeholder={'https://yoursite.com/privacy'} />
                 {urlErrors.privacy_policy && <div className="text-xs text-[#C43D3D]">{urlErrors.privacy_policy}</div>}
                 <div className="p4-new text-black-600">Linked from your site and from the trust footer on every form — it tells responders how their data is used.</div>
             </div>
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">Terms of Service URL</div>
-                <AppInput className={`w-full ${urlErrors.terms_of_service ? '!border-[#C43D3D]' : ''}`} onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'https://yoursite.com/terms'} />
+                <AppInput className={`w-full ${urlErrors.terms_of_service ? 'border-[#C43D3D]!' : ''}`} onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'https://yoursite.com/terms'} />
                 {urlErrors.terms_of_service && <div className="text-xs text-[#C43D3D]">{urlErrors.terms_of_service}</div>}
                 <div className="p4-new text-black-600">Shown alongside the privacy policy on your site.</div>
             </div>

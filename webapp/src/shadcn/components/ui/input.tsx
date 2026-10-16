@@ -23,7 +23,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
                 color: theme?.primary
             }}
             type={type}
-            className={cn(`w-full rounded-md border bg-white px-4 py-3 text-base outline-none transition duration-150 disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
+            className={cn(`w-full rounded-md border bg-white px-4 py-3 text-base outline-hidden transition duration-150 disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
             ref={ref}
             // Coerce null -> '' so a controlled input never receives a null value.
             value={value === null ? '' : value}

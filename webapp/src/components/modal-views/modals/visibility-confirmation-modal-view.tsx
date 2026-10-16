@@ -43,7 +43,7 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
             </div>
             <Divider />
             <div className={'flex flex-col gap-3 p-10 pt-6'}>
-                <h1 className={'h4-new !text-black-800'}>
+                <h1 className={'h4-new text-black-800!'}>
                     {title[visibilityType][0]} <span className={'text-pink-500'}>{title[visibilityType][1]} </span> {title[visibilityType][1] ? '?' : '.'}
                 </h1>
                 <h2 className={'text-black-700 mb-3 text-sm font-normal'}>{description[visibilityType]}</h2>

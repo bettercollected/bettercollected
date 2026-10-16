@@ -5,6 +5,7 @@ module.exports = {
     trailingComma: 'none',
     importOrder: ['^(?:react)$', '^(?:next|next/?.*)$', '^(?:_|clsx|fs|lodash/?.*|path)$', '<THIRD_PARTY_MODULES>', '^@app/(.*)$', '^[./]'],
     tailwindAttributes: ['className'],
+    tailwindStylesheet: './src/assets/css/globals.css',
     plugins: ['@trivago/prettier-plugin-sort-imports', 'prettier-plugin-tailwindcss'],
     importOrderSeparation: true,
     importOrderSortSpecifiers: true

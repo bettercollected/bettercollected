@@ -63,7 +63,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // Keep the workspace-branded shell while loading — swapping the whole
         // page for a white full-screen loader read as a flicker on every open.
         return (
-            <div className="flex min-h-screen w-full flex-col !bg-[#F6F8FC]">
+            <div className="flex min-h-screen w-full flex-col bg-[#F6F8FC]!">
                 <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
                     <div className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                         <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
@@ -90,7 +90,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // custom domain). The platform wordmark up top read as a jarring brand
         // switch mid-journey — the workspace's own identity leads instead, and
         // bettercollected stays where the portal keeps it: a quiet caption.
-        <div className="flex min-h-screen w-full flex-col !bg-[#F6F8FC]">
+        <div className="flex min-h-screen w-full flex-col bg-[#F6F8FC]!">
             <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
                 <Link href={`${portalBase}/forms`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                     <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
@@ -150,8 +150,8 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                                     key={tab.path}
                                     href={`${basePath}/${tab.path}`}
                                     className={cn(
-                                        'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium focus:outline-none',
-                                        isActive ? 'text-black-900 border-[#2456CC]' : 'text-black-600 hover:text-black-900 border-transparent'
+                                        'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium focus:outline-hidden',
+                                        isActive ? 'text-black-900 border-brand-500' : 'text-black-600 hover:text-black-900 border-transparent'
                                     )}
                                 >
                                     {tab.icon}

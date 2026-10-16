@@ -31,7 +31,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     return (
         <div className={`flex min-w-[150px] flex-col gap-2 md:min-w-[186px] ${template?.builderVersion !== 'v2' && 'w-[150px]'}`}>
             <div
-                className={`border-black-200  hover:shadow-hover relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? '!h-[157px] w-[281px]' : 'flex h-[170px] items-center justify-center bg-gradient-to-b from-blue-400 to-blue-800 '
+                className={`border-black-200  hover:shadow-hover relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? 'h-[157px]! w-[281px]' : 'flex h-[170px] items-center justify-center bg-linear-to-b/srgb from-blue-400 to-blue-800 '
                     }`}
             // onClick={handleClickCard}
             >
@@ -54,7 +54,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                     </div>
                     // <div className="flex cursor-pointer flex-col rounded-lg border border-transparent p-1 hover:border-pink-500" key={template?.id}>
 
-                    //     <div className="p2-new mt-2 !font-medium">{template.title}</div>
+                    //     <div className="p2-new mt-2 font-medium!">{template.title}</div>
                     // </div>
                 )}
             </div>
@@ -80,7 +80,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                             onClick={() => setOpen(false)}
                             onInteractOutside={() => setOpen(false)}
                         >
-                            <ul className="list-none m-0 p-0 bg-white rounded shadow-[0px_0px_12px_0px_rgba(7,100,235,0.45)]">
+                            <ul className="list-none m-0 p-0 bg-white rounded shadow-input">
                                 {template?.builderVersion !== 'v2' && (
                                     <li
                                         onClick={(e) => {

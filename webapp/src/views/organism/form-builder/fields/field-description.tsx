@@ -24,7 +24,7 @@ export default function FieldDescription({ field, disabled = false, hints }: { f
                     placeholder={'Enter description'}
                     aria-label="Question description"
                     aria-describedby={hints ? hintsId : undefined}
-                    className={'text-md -left-1 mt-1 w-full resize-none overflow-hidden border-0 !bg-inherit px-0 py-0 text-black-800 shadow-none outline-none focus-visible:ring-0'}
+                    className={'text-md -left-1 mt-1 w-full resize-none overflow-hidden border-0 bg-inherit! px-0 py-0 text-black-800 shadow-none outline-hidden focus-visible:ring-0'}
                     style={{ resize: 'none' }}
                     value={field.description}
                     onChange={(e: any) => updateDescription(field.index, slide!.index, e.target.value)}

@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 import { LAYERS } from '@app/constants/layers';
 import { cn } from '@app/shadcn/util/lib';
 
-import tailwindConfig from '../../../../tailwind.config';
 import { Dialog, DialogContent, DialogDescription } from './dialog';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
@@ -19,10 +18,12 @@ describe('overlay stacking scale', () => {
     });
 
     it('is the scale tailwind generates z-modal / z-popover / z-toast from', () => {
-        const zIndex = (tailwindConfig.theme as any).zIndex;
-        expect(zIndex.modal).toBe(String(LAYERS.modal));
-        expect(zIndex.popover).toBe(String(LAYERS.popover));
-        expect(zIndex.toast).toBe(String(LAYERS.toast));
+        // The @theme tokens in tailwind.css define the classes; LAYERS mirrors them for JS.
+        const css = readFileSync(resolve(__dirname, '../../../assets/css/tailwind.css'), 'utf8');
+        const token = (name: string) => css.match(new RegExp(`--z-index-${name}:\\s*(\\d+);`))?.[1];
+        expect(token('modal')).toBe(String(LAYERS.modal));
+        expect(token('popover')).toBe(String(LAYERS.popover));
+        expect(token('toast')).toBe(String(LAYERS.toast));
     });
 
     it('lets a call site override a layer instead of emitting both classes', () => {
@@ -76,7 +77,7 @@ describe('overlay surfaces', () => {
         expect(screen.getByTestId('popover').className).toContain('z-popover');
     });
 
-    // The tailwind config uses `presets: []` and defines no shadcn colour
+    // The @theme in tailwind.css loads no default theme and defines no shadcn colour
     // tokens, so classes like `bg-background` silently generate nothing and
     // leave an overlay transparent over its dark backdrop.
     it.each(['dialog', 'alert-dialog', 'sheet', 'popover', 'select', 'dropdown-menu', 'command'])('%s uses no undefined colour tokens', (name) => {

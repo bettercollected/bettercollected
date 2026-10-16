@@ -153,7 +153,7 @@ const Navbar = () => {
     };
 
     return (
-        <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] p-4">
+        <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b p-4">
             <div className={'flex flex-1 items-center gap-[2px]'}>
                 {/* Workspace identity, not the product logo (de-brand decision —
                     same rule as the top navbar). Still the "back to forms" target. */}
@@ -178,7 +178,7 @@ const Navbar = () => {
                     onChange={(event) => {
                         setFormTitle(event.target.value);
                     }}
-                    className="hover:border-black-300 focus:border-black-400 w-full resize-none overflow-clip text-ellipsis border border-transparent !text-sm font-medium"
+                    className="hover:border-black-300 focus:border-black-400 w-full resize-none overflow-clip text-ellipsis border border-transparent text-sm! font-medium"
                 />
             </div>
             <div className={'flex min-w-fit flex-1 items-center justify-center gap-1'}>

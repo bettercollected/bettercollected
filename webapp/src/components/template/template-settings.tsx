@@ -79,13 +79,13 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="Public" id="public" />
                             <Label htmlFor="public" className="cursor-pointer">
-                                <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                <div className="flex body6 text-black-800! items-center gap-[6px]">
                                     <Globe className="h-[18px] w-[18px]" />
                                     {t(formConstant.settings.visibility.public)}
                                 </div>
                             </Label>
                         </div>
-                        {/* <span className=" body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span> */}
+                        {/* <span className=" body4 text-black-700! ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span> */}
                         {/* {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />} */}
                     </div>
                     <Divider className={'text-black-200'} />
@@ -93,13 +93,13 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="Private" id="private" />
                             <Label htmlFor="private" className="cursor-pointer">
-                                <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                <div className="flex body6 text-black-800! items-center gap-[6px]">
                                     <Lock className="h-[18px] w-[18px]" />
                                     {t(formConstant.settings.visibility.private)}
                                 </div>
                             </Label>
                         </div>
-                        {/* <span className="body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span> */}
+                        {/* <span className="body4 text-black-700! ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span> */}
                     </div>
                     <Divider className={'text-black-200'} />
                 </RadioGroup>

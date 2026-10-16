@@ -19,7 +19,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                         borderColor: slide.properties?.theme?.tertiary || theme?.tertiary,
                         color: slide.properties?.theme?.tertiary || theme?.tertiary
                     }}
-                    className="mb-2 flex w-full items-center justify-between border-0 border-b-[1px] py-2 text-3xl "
+                    className="mb-2 flex w-full items-center justify-between border-0 border-b py-2 text-3xl "
                 >
                     <h1>Select an option</h1>
                     <ArrowDown
@@ -87,7 +87,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                     // background: slide.properties?.theme?.tertiary || theme?.tertiary
                 }}
                 onClick={() => addChoiceField(field.index, slide.index)}
-                className="p2-new mt-4 flex items-center gap-2 !font-semibold"
+                className="p2-new mt-4 flex items-center gap-2 font-semibold!"
             >
                 <PlusIcon className="h-4 w-4" />
                 Add Option

@@ -10,12 +10,12 @@ const DeleteDomainDropdown = () => {
     return (
         <div>
             <DropdownMenu>
-                <DropdownMenuTrigger className="outline-none">
-                    <Button aria-label="Domain actions" className="!p-1 outline-none" variant={'v2GhostButton'} icon={<MoreVertical width={24} height={24} className="text-black-700" />}></Button>
+                <DropdownMenuTrigger className="outline-hidden">
+                    <Button aria-label="Domain actions" className="p-1! outline-hidden" variant={'v2GhostButton'} icon={<MoreVertical width={24} height={24} className="text-black-700" />}></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-white">
                     <DropdownMenuItem
-                        className="hover:bg-black-200 flex cursor-pointer items-center gap-2 outline-none"
+                        className="hover:bg-black-200 flex cursor-pointer items-center gap-2 outline-hidden"
                         onClick={() => {
                             openModal('DELETE_CUSTOM_DOMAIN');
                         }}

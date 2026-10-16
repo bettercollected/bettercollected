@@ -107,7 +107,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                         </div>
                     </div>
                     {showExpandMore && (
-                        <div className={`shrink-0 ${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
+                        <div className={`shrink-0 ${open ? 'rotate-180!' : '-rotate-0!'} transition-all duration-300`}>
                             <ChevronRight className="text-black-600 h-5 w-5" />
                         </div>
                     )}
@@ -179,7 +179,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                     <div>
                         <Divider className="my-2" />
                         <div
-                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
+                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-500! cursor-not-allowed' : 'text-black-800!'
                                 }`}
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -192,7 +192,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                         >
                             <div className="flex items-center gap-3">
                                 <Plus />
-                                <p className={`body3 !not-italic`}>{t(menuDropdown.createWorkspace)}</p>
+                                <p className={`body3 not-italic!`}>{t(menuDropdown.createWorkspace)}</p>
                             </div>
                         </div>
                     </div>

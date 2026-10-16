@@ -92,7 +92,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                 >
                     <span className="flex items-center gap-2">{newMenuContent}</span>
                     {shouldShowExpandMore && (
-                        <div className={`${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
+                        <div className={`${open ? 'rotate-180!' : '-rotate-0!'} transition-all duration-300`}>
                             <ChevronRight />
                         </div>
                     )}
@@ -189,7 +189,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                     </li>
                     <li
                         onClick={handleLogout}
-                        className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 !text-[#C43D3D] hover:bg-[#FBEFEF] cursor-pointer"
+                        className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 text-[#C43D3D]! hover:bg-[#FBEFEF] cursor-pointer"
                     >
                         <div className="flex items-center justify-center">
                             <LogOut width={20} height={20} />

@@ -244,7 +244,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 e.preventDefault();
                 setOpen((open) => !open);
             }}>
-                <div className={`${className} !text-black-900 cursor-pointer p-2 hover:bg-gray-100 rounded-md`}>
+                <div className={`${className} text-black-900! cursor-pointer p-2 hover:bg-gray-100 rounded-md`}>
                     <MoreVertical className="w-4 h-4" />
                 </div>
             </PopoverTrigger>

@@ -41,14 +41,14 @@ export default function AddSlidePopover() {
                                     transition: { duration: 0.2 }
                                 } as any)}
                             >
-                                <div className="!z-[1000] max-h-[640px] w-full rounded bg-white shadow-lg">
+                                <div className="z-1000! max-h-[640px] w-full rounded bg-white shadow-lg">
                                     <Tabs defaultValue="layout" className="h-full w-full">
                                         <TabsList className=" flex h-auto w-full gap-2 p-4">
                                             <TabsTrigger value="layout">Layout</TabsTrigger>
                                             <TabsTrigger value="template">Template</TabsTrigger>
                                         </TabsList>
                                         <Separator />
-                                        <TabsContent value="layout" className="p-4 !pr-0">
+                                        <TabsContent value="layout" className="p-4 pr-0!">
                                             <LayoutsTab closePopover={closePopover} />
                                         </TabsContent>
                                         <TabsContent value="template" className="p-4">

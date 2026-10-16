@@ -143,7 +143,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                     aria-expanded={expanded}
                     aria-controls={panelId}
                     onClick={toggle}
-                    className="pointer-events-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold text-black-900 underline decoration-dotted underline-offset-2 hover:bg-black-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    className="pointer-events-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold text-black-900 underline decoration-dotted underline-offset-2 hover:bg-black-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                     {t('PRIVACY.TOGGLE')}
                     <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : 'rotate-180'}`} aria-hidden="true" />

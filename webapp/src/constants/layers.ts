@@ -1,5 +1,6 @@
 /**
- * The overlay stacking scale, mirrored by `theme.zIndex` in tailwind.config.ts
+ * The overlay stacking scale, mirrored by the `--z-index-*` tokens in the `@theme` of
+ * src/assets/css/tailwind.css
  * (`z-modal`, `z-popover`, `z-toast`).
  *
  * Every modal, dialog and sheet uses `z-modal`. Every piece of floating content

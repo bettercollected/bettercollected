@@ -43,7 +43,7 @@ function ThemedCalendar({ className, classNames, showOutsideDays = true, ...prop
                 month_caption: 'flex justify-center pt-1 items-center',
                 caption_label: 'text-sm font-medium',
                 nav: 'pointer-events-none absolute inset-x-0 top-1 z-10 flex items-center justify-between px-1',
-                button_previous: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', 'hover:!opacity-50 disabled:cursor-not-allowed'),
+                button_previous: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', 'hover:opacity-50! disabled:cursor-not-allowed'),
                 button_next: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'),
                 month_grid: 'w-full border-collapse space-y-1',
                 weekdays: 'flex',

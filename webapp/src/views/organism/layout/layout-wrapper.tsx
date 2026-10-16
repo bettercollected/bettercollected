@@ -92,7 +92,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 }}
                 className={cn(
                     showDesktopLayout ? 'grid' : 'flex lg:grid',
-                    'relative  h-full w-full flex-grow overflow-hidden !bg-transparent lg:rounded-lg',
+                    'relative  h-full w-full grow overflow-hidden bg-transparent! lg:rounded-lg',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse justify-end' : 'flex-col justify-end',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'grid-cols-2' : 'grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''
@@ -111,9 +111,9 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     className={cn(
                         removePaddingXForSmallScreen ? 'px-0 lg:px-8' : 'px-8 md:px-10 ',
                         'relative xl:px-10 2xl:px-20',
-                        'flex-grow lg:min-h-[100%]',
+                        'grow lg:min-h-[100%]',
                         disabled ? 'overflow-hidden' : '',
-                        layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'z-10 !bg-transparent' : '',
+                        layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'z-10 bg-transparent!' : '',
                         layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-1' : layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-0' : ''
                     )}
                 >
@@ -126,7 +126,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                             'relative',
                             showDesktopLayout ? 'h-auto ' : ' h-[30%] lg:h-auto',
                             (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) || (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT) ? 'grid-cols-1' : '',
-                            imageUrl && !disabled ? 'hover:cursor-pointer hover:!bg-black/30' : 'bg-neutral-100 shadow hover:cursor-default'
+                            imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : 'bg-neutral-100 shadow hover:cursor-default'
                         )}
                         // onClick={disabled ? () => {} : handleGridClick}
                         onMouseOver={disabled ? () => { } : () => setShowControls(true)}
@@ -153,7 +153,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 <div
                     className={cn(
                         'relative',
-                        imageUrl && !disabled ? 'hover:cursor-pointer hover:!bg-black/30' : 'bg-neutral-100 hover:cursor-default',
+                        imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : 'bg-neutral-100 hover:cursor-default',
                         layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute inset-0' : '',
                         disabled ? 'h-full' : ''
                     )}
@@ -166,7 +166,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                         <DisplayImageWithControls imageUrl={imageUrl} />
                     ) : (
                         !disabled && (
-                            <div className={cn('flex h-full items-center justify-center text-lg font-semibold', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute -top-[52%] left-0' : '')}>
+                            <div className={cn('flex h-full items-center justify-center text-lg font-semibold', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute top-[-52%] left-0' : '')}>
                                 <Button variant="secondary" onClick={handleChangeImage}>
                                     Select Layout Image
                                 </Button>

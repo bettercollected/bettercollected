@@ -17,7 +17,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateSsoConnectionMutation, useDeleteSsoConnectionMutation, useGetWorkspaceSsoQuery, useSetSsoConnectionEnabledMutation, useUpdateSsoSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export const inputClass = 'h-10 w-full rounded-md border border-black-300 bg-white px-3.5 py-0 text-sm text-black-900 outline-none transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]';
+export const inputClass = 'h-10 w-full rounded-md border border-black-300 bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]';
 
 export const ROLE_LABELS: Record<string, string> = {
     ADMIN: 'Admin',

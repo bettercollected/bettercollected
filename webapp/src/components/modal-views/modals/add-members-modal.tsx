@@ -59,7 +59,7 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                         <div className="items-center  w-full mt-6 flex md:max-w-[660px] max-w-full flex-wrap gap-4 ">
                             {emails.map((email) => {
                                 return (
-                                    <div className="p-2 rounded flex items-center gap-2 leading-none bg-brand-200 border border-brand-300 body5 !text-brand-500" key={email}>
+                                    <div className="p-2 rounded flex items-center gap-2 leading-none bg-brand-200 border border-brand-300 body5 text-brand-500!" key={email}>
                                         <span className="leading-none">{email}</span>
                                         <Close
                                             className="h-3 w-3 cursor-pointer"

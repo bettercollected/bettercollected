@@ -44,15 +44,15 @@ export function SignInModal(props: MyLoginProps) {
     );
 
     return (
-        <div className="!mt-0">
+        <div className="mt-0!">
             <div className="absolute top-0 left-0 w-full flex flex-col xl:flex-row ">
                 <div className={`bg-brand-500 xl:rounded-l-lg relative xl:order-1 overflow-hidden w-screen xl:w-[547px] xl:h-[687px] pt-16 xl:px-[60px] xl:py-[80px] hidden xl:flex xl:flex-col xl:justify-start`}>
                     <div className="flex flex-col px-8 xl:max-h-[300px] mb-[105px]">
-                        <h1 className="mb-6 text-2xl font-semibold !text-black-100">{features.heading}</h1>
+                        <h1 className="mb-6 text-2xl font-semibold text-black-100!">{features.heading}</h1>
                         {features.paragraphs.map((paragraph: string, idx: number) => (
                             <div key={idx} className="flex items-center gap-3 mb-4 last:mb-0">
                                 <Check className="text-black-300" />
-                                <p className="body2 !text-black-300">{paragraph}</p>
+                                <p className="body2 text-black-300!">{paragraph}</p>
                             </div>
                         ))}
                     </div>
@@ -62,7 +62,7 @@ export function SignInModal(props: MyLoginProps) {
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col order-1 !bg-brand-100 xl:order-2 items-start justify-between py-5 px-8 xl:py-[28px] h-screen xl:h-[687px] w-screen xl:w-[547px]">
+                <div className="flex flex-col order-1 bg-brand-100! xl:order-2 items-start justify-between py-5 px-8 xl:py-[28px] h-screen xl:h-[687px] w-screen xl:w-[547px]">
                     <Logo isLink={false} />
                     {!email ? <OtpEmailForm setEmail={setEmail} isModal={true} /> : <OtpCodeForm email={email} setEmail={setEmail} isModal={true} />}
                     <TermsAndCondition />

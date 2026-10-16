@@ -46,7 +46,7 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
     };
     return (
         <div className="mt-12 mb-6">
-            <p className="mt-10 mb-2 h4-new !font-medium">
+            <p className="mt-10 mb-2 h4-new font-medium!">
                 {t(groupConstant.memberAdded)} ({group?.emails?.length || emails.length || 0})
             </p>
             <div className="border-y border-y-black-200 py-4">

@@ -78,7 +78,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                     {t(localesCommon.slug)}
                     <span className="text-[#C43D3D]"> *</span>
                 </label>
-                <AppInput id="slug" value={slug} onChange={handleOnchange} className={`w-full !text-sm ${isError && isInvalid ? '!border-[#C43D3D]' : ''}`} />
+                <AppInput id="slug" value={slug} onChange={handleOnchange} className={`w-full text-sm! ${isError && isInvalid ? 'border-[#C43D3D]!' : ''}`} />
                 {isError && isInvalid && <p className="text-sm text-[#C43D3D]">{t(validationMessage.slug)}</p>}
             </div>
 

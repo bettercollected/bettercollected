@@ -36,7 +36,7 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                     <li key={element.key}
                         className={cn(
                             "cursor-pointer rounded-lg text-sm transition-colors",
-                            active ? "bg-[#E9EFFC] text-[#2456CC] font-medium" : "text-black-700 hover:bg-black-100 hover:text-black-900"
+                            active ? "bg-brand-100 text-brand-500 font-medium" : "text-black-700 hover:bg-black-100 hover:text-black-900"
                         )}
                         onClick={() => {
                             if (element.onClick) {
@@ -48,7 +48,7 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                     >
                         <div className="flex items-center px-4 py-2 w-full">
                             {element.icon && (
-                                <span className={cn("mr-3 flex h-5 w-5 items-center justify-center", active ? "text-[#2456CC]" : "text-black-600")}>
+                                <span className={cn("mr-3 flex h-5 w-5 items-center justify-center", active ? "text-brand-500" : "text-black-600")}>
                                     {element?.icon}
                                 </span>
                             )}

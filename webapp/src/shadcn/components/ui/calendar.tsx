@@ -30,7 +30,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
                 month_caption: 'flex justify-center pt-1 items-center',
                 caption_label: 'text-sm font-medium',
                 nav: 'pointer-events-none absolute inset-x-0 top-1 z-10 flex items-center justify-between px-1',
-                button_previous: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', 'hover:!opacity-50 disabled:cursor-not-allowed'),
+                button_previous: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', 'hover:opacity-50! disabled:cursor-not-allowed'),
                 button_next: cn('pointer-events-auto h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'),
                 month_grid: 'w-full border-collapse space-y-1 ',
                 weekdays: 'flex',
@@ -44,7 +44,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
                 day_button: cn('h-9 w-9 rounded p-0 font-normal bg-transparent hover:bg-gray-100'),
                 range_end: 'rounded-r-md',
                 selected:
-                    'bg-primary text-primary-foreground bg-black text-white hover:!bg-black hover:!text-white focus-within:bg-primary focus-within:text-primary-foreground first:rounded-l-md last:rounded-r-md',
+                    'bg-primary text-primary-foreground bg-black text-white hover:bg-black! hover:text-white! focus-within:bg-primary focus-within:text-primary-foreground first:rounded-l-md last:rounded-r-md',
                 today: 'bg-accent text-accent-foreground bg-gray-100 rounded aria-selected:bg-black aria-selected:text-white',
                 outside: 'text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
                 disabled: 'text-muted-foreground opacity-50',

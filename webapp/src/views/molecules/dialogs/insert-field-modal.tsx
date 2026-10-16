@@ -93,7 +93,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
         <div id="fields-option" className="h-[552px] w-[410px] bg-white">
             <div className="border-b-black-300 border-b p-4 text-xs font-semibold uppercase tracking-wide text-[#657085]">Insert field</div>
             <div className="border-r-black-300 w-full bg-white">
-                <div className=" border-black-300 bg-new-white-200 flex w-full justify-center gap-6 border-b-[1px] p-4">
+                <div className=" border-black-300 bg-new-white-200 flex w-full justify-center gap-6 border-b p-4">
                     <div className="flex gap-2 ">
                         <input
                             type="radio"
@@ -168,7 +168,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                                                     setNavbarState({ ...navbarState, insertClicked: false });
                                                 }, 1000);
                                             }}
-                                            className="border-black-300 flex h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border bg-white text-[#3A465A] transition-colors hover:border-[#2456CC] hover:bg-[#F4F7FD] focus-visible:border-[#2456CC] focus-visible:outline-none"
+                                            className="border-black-300 flex h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border bg-white text-[#3A465A] transition-colors hover:border-brand-500 hover:bg-[#F4F7FD] focus-visible:border-brand-500 focus-visible:outline-hidden"
                                         >
                                             {field.icon}
                                             <span className="text-xs font-medium">{field.name}</span>

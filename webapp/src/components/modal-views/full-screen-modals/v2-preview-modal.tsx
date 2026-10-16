@@ -46,7 +46,7 @@ export const PreviewFullModalView = () => {
                 <BackButton handleClick={handleClickClose} />
                 <div className="flex min-w-0 items-center gap-2 text-sm">
                     <span className="text-black-800 max-w-[200px] truncate font-medium sm:max-w-[320px]">{standardForm?.title || 'Untitled'}</span>
-                    <span className="rounded-full bg-[#E9EFFC] px-2 py-0.5 text-xs font-semibold text-[#2456CC]">Preview</span>
+                    <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-500">Preview</span>
                     <span className="text-black-600 hidden text-xs md:inline">Answers aren&apos;t saved</span>
                 </div>
                 <div className="flex items-center gap-2">

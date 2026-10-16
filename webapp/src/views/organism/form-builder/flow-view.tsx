@@ -654,7 +654,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         {/* A minimap earns its canvas space only once the graph outgrows
                             the viewport — for a handful of nodes it reads as a broken
                             placeholder box. */}
-                        {nodes.length > 8 && <MiniMap pannable zoomable className="!h-[110px] !w-[150px]" nodeColor={() => '#CBD5E6'} maskColor="rgba(233, 238, 245, 0.65)" />}
+                        {nodes.length > 8 && <MiniMap pannable zoomable className="h-[110px]! w-[150px]!" nodeColor={() => '#CBD5E6'} maskColor="rgba(233, 238, 245, 0.65)" />}
                     </ReactFlow>
                 </div>
 
@@ -667,7 +667,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {selectedIndex + 1}</div>
                                     {/* The canvas card may truncate the question; the panel is
                                         where the full text belongs — wrap, don't clip. */}
-                                    <div className="text-black-900 break-words text-sm font-semibold leading-snug">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
+                                    <div className="text-black-900 wrap-break-word text-sm font-semibold leading-snug">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-brand-500 hover:bg-brand-600 flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-white">

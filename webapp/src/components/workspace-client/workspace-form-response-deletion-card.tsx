@@ -46,7 +46,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
     return (
         <Component
             href={pathname}
-            className={`relative flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${disabled ? 'opacity-60 !text-black-600' : 'shadow-formCardDefault hover:border-brand-200  hover:shadow-formCard'
+            className={`relative flex flex-col items-start justify-between h-full bg-white border border-brand-100 ${disabled ? 'opacity-60 text-black-600!' : 'shadow-formCardDefault hover:border-brand-200  hover:shadow-formCard'
                 } rounded ${className}`}
         >
             <div className="rounded w-full px-5 py-4 flex flex-col gap-3 items-start justify-between">

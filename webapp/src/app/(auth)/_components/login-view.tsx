@@ -56,7 +56,7 @@ export default function LoginView() {
             };
 
     return (
-        <TopNavLayout className="min-h-screen !mt-0 !p-0">
+        <TopNavLayout className="min-h-screen mt-0! p-0!">
             <div className="flex h-full w-full flex-col lg:flex-row">
                 <div className="order-2 flex w-full flex-col justify-center gap-8 bg-[#101826] px-8 py-14 lg:order-1 lg:min-h-screen lg:w-1/2 lg:px-16">
                     <h1 className="max-w-[480px] text-[26px] font-semibold leading-snug text-white lg:text-[32px]">{panel.title}</h1>
@@ -75,7 +75,7 @@ export default function LoginView() {
                 <div className="relative order-1 flex min-h-fit w-full flex-col items-start justify-between px-8 py-7 sm:min-h-screen lg:order-2 lg:max-w-[50%] lg:py-8 xl:pl-[90px] xl:pr-28">
                     <div className="mb-20 lg:mb-0">
                         <Logo isLink={false} />
-                        <h1 className="body4 !text-black-800 mt-2">{t(signUpScreen.logoDescription)}</h1>
+                        <h1 className="body4 text-black-800! mt-2">{t(signUpScreen.logoDescription)}</h1>
                     </div>
 
                     <div className="w-full">{!email ? <OtpEmailForm setEmail={setEmail} isSignup={isSignup} /> : <OtpCodeForm email={email} setEmail={setEmail} />}</div>

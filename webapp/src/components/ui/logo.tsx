@@ -35,7 +35,7 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
     );
 
     return isLink ? (
-        <Link href={url} target={isCustomDomain && isFooter ? '_blank' : undefined} className="w-fit outline-none" {...props}>
+        <Link href={url} target={isCustomDomain && isFooter ? '_blank' : undefined} className="w-fit outline-hidden" {...props}>
             {logo}
         </Link>
     ) : (

@@ -23,7 +23,7 @@ export default function HeaderModalWrapper({ headerTitle = '', children, showClo
                 {showClose && <ModalCloseButton onClick={closeModal} className="absolute right-5 top-3 h-8 w-8" iconClassName="h-6 w-6" />}
             </div>
             <Divider />
-            <div className={cn('flex flex-col p-10 !pt-6', className)}>{children}</div>
+            <div className={cn('flex flex-col p-10 pt-6!', className)}>{children}</div>
         </div>
     );
 }

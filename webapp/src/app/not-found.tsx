@@ -15,7 +15,7 @@ export default function NotFound() {
             <div className="flex flex-col items-center gap-3">
                 <span className="text-brand-500 text-sm font-semibold uppercase tracking-wide">Error 404</span>
                 <h1 className="text-black-900 text-2xl font-semibold sm:text-3xl">This page isn&apos;t here</h1>
-                <p className="text-black-600 max-w-md text-sm leading-relaxed sm:text-base">
+                <p className="text-black-600 max-w-md text-sm leading-relaxed sm:text-base sm:leading-6">
                     The page you&apos;re looking for may have been moved, renamed, or never existed. If you followed a link to a form, it may have been unpublished by its owner.
                 </p>
             </div>

@@ -127,7 +127,7 @@ export default function TabularInputField({
                     <Input
                       value={col ?? ''}
                       onChange={(e) => handleColTitleChange(idx, e.target.value)}
-                      className="text-center font-semibold !text-sm bg-transparent border-none focus:ring-0 h-8"
+                      className="text-center font-semibold text-sm! bg-transparent border-none focus:ring-0 h-8"
                     />
                   ) : (
                     <span className="text-sm">{col}</span>
@@ -159,7 +159,7 @@ export default function TabularInputField({
                     <Input
                       value={localRowTitles[rowIdx] ?? ''}
                       onChange={(e) => handleRowTitleChange(rowIdx, e.target.value)}
-                      className="text-center font-semibold !text-sm bg-transparent border-none focus:ring-0 h-8"
+                      className="text-center font-semibold text-sm! bg-transparent border-none focus:ring-0 h-8"
                     />
                   ) : (
                     <span className="text-sm">{localRowTitles[rowIdx]}</span>
@@ -184,7 +184,7 @@ export default function TabularInputField({
                       value={cell ?? ''}
                       disabled={disabled}
                       onChange={(e) => handleInputChange(rowIdx, colIdx, e.target.value)}
-                      className="text-center !text-sm bg-transparent border-none focus:ring-0 h-8"
+                      className="text-center text-sm! bg-transparent border-none focus:ring-0 h-8"
                     />
                   </TableCell>
                 ))}

@@ -95,19 +95,19 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                         event.stopPropagation();
                         downloadFormFile(ans);
                     }}
-                    className={cn('!text-black-600 p2-new w-[180px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}
+                    className={cn('text-black-600! p2-new w-[180px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer!' : '')}
                 >
                     {getAnswerForField(response, field)}
                 </div>
             );
         }
-        return <div className={cn('!text-black-600 p2-new w-[180px] truncate')}>{getAnswerForField(response, field)}</div>;
+        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerForField(response, field)}</div>;
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="flex w-fit flex-col gap-1 ">
             {response?.dataOwnerIdentifier ? (
-                <p className={cn('!text-black-800 p2-new w-fit max-w-[200px] truncate')}>{response.dataOwnerIdentifier}</p>
+                <p className={cn('text-black-800! p2-new w-fit max-w-[200px] truncate')}>{response.dataOwnerIdentifier}</p>
             ) : (
                 // Anonymity is the product's promise — show it as a state, not
                 // as missing data ("- -").
@@ -123,7 +123,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
         const title = getTitleForHeader(field, form);
         return (
-            <span title={title} className="p3-new !text-black-800 w-[180px] truncate">
+            <span title={title} className="p3-new text-black-800! w-[180px] truncate">
                 {title}
             </span>
         );
@@ -197,11 +197,11 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         // labelled so they are never mistaken for what the respondent said.
         ...getInternalFields(form).map((field) => ({
             name: (
-                <span title={getInternalColumnTitle(field)} className="p3-new !text-black-600 w-[180px] truncate italic">
+                <span title={getInternalColumnTitle(field)} className="p3-new text-black-600! w-[180px] truncate italic">
                     {getInternalColumnTitle(field)}
                 </span>
             ),
-            selector: (response: StandardFormResponseDto) => <div className={cn('!text-black-600 p2-new w-[180px] truncate')}>{getInternalAnswerText(response, field)}</div>,
+            selector: (response: StandardFormResponseDto) => <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getInternalAnswerText(response, field)}</div>,
             style: cellStyle,
             width: '200px'
         }))

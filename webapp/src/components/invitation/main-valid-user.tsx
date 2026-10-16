@@ -71,11 +71,11 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
             <div className="mt-36 flex w-full flex-col items-center rounded">
                 <div className="flex flex-col md:max-w-[620px]">
                     <div className="flex flex-col items-center justify-center rounded bg-white p-10 md:max-w-[620px]">
-                        <div className="sh3 !text-black-700 mb-4 mt-6 text-center text-2xl !font-normal">
+                        <div className="sh3 text-black-700! mb-4 mt-6 text-center text-2xl font-normal!">
                             {t(invitationConstant.title1)}
                             <span className="text-black-900 font-bold">{` ${workspace?.title || 'Untitled'}`}</span>
                         </div>
-                        <div className="body3 !text-black-700 mb-10">{t(invitationConstant.title2)}</div>
+                        <div className="body3 text-black-700! mb-10">{t(invitationConstant.title2)}</div>
 
                         <div className="mb-4">
                             <button className={`rounded-md px-4 py-2 text-white ${isSwitchOn ? 'bg-blue-500' : 'bg-gray-500'}`} onClick={toggleSwitch}>
@@ -92,7 +92,7 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
                                     {t(buttonConstant.decline)}
                                 </Button>
                             </div>
-                            <div className="body3 !text-black-700 mt-5">{t(invitationConstant.expiryLink)}</div>
+                            <div className="body3 text-black-700! mt-5">{t(invitationConstant.expiryLink)}</div>
                         </div>
                     </div>
                     <div className="ml-10 mt-8">

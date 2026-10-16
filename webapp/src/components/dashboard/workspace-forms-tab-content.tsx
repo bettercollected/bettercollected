@@ -78,7 +78,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
         return (
             // <SearchByUUIDWrapper>
-            <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />
+            <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="pb-[20px]!" />
             // </SearchByUUIDWrapper>
         );
 

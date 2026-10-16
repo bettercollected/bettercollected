@@ -53,7 +53,7 @@ const ViewResponseFullModalView = ({ response, formFields, form, formId, workspa
                 initial: { x: '100%', opacity: 0 },
                 animate: { x: 0, opacity: 1 },
                 transition: { ease: 'easeInOut', duration: 0.5 },
-                className: 'h-response-view absolute bottom-0 right-0 flex w-full flex-col overflow-hidden rounded-tl-xl !bg-white md:w-[420px]'
+                className: 'h-response-view absolute bottom-0 right-0 flex w-full flex-col overflow-hidden rounded-tl-xl bg-white! md:w-[420px]'
             } as any)}
         >
             <div className="flex flex-row justify-between p-4">
@@ -200,7 +200,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                         <div className="flex flex-col gap-1.5" key={field.id}>
                             {getTitleForHeaderForTable(field)}
                             {ans?.file_metadata ? (
-                                <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new w-[140px] truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer' : 'cursor-default')}>
+                                <div onClick={() => downloadFormFile(ans)} className={cn('text-black-600! p2-new w-[140px] truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer' : 'cursor-default')}>
                                     {getAnswerForField(response, field)}
                                 </div>
                             ) : (
@@ -255,7 +255,7 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
                 </div>
             </PopoverTrigger>
             <PopoverContent side="left" align="start" className="w-[180px] bg-white p-0 shadow-lg">
-                <div className=" p2 !my-2  flex cursor-pointer items-center gap-2 px-4 py-2 !text-[#C43D3D] hover:bg-[#FBEFEF]" onClick={handleDelete}>
+                <div className=" p2 my-2!  flex cursor-pointer items-center gap-2 px-4 py-2 text-[#C43D3D]! hover:bg-[#FBEFEF]" onClick={handleDelete}>
                     <DeleteIcon className="text-[#C43D3D]" />
                     Delete response
                 </div>

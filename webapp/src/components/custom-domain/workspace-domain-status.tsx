@@ -117,7 +117,7 @@ const CopyCell = ({ value, toast }: { value: string; toast: (v: { description: s
             toast({ description: 'Copied' });
         }}
     >
-        <ToolTip label={value} triggerClassName="!max-w-[220px] truncate">
+        <ToolTip label={value} triggerClassName="max-w-[220px]! truncate">
             <span>{value}</span>
         </ToolTip>
         <div>
@@ -137,7 +137,7 @@ const DomainVerifiedStatus = ({ workspace, txtRecord }: { workspace: WorkspaceDt
                     {workspace.customDomain}
                 </div>
                 <Link href={`${environments.HTTP_SCHEME}${workspace.customDomain}`} target={'_blank'} referrerPolicy="no-referrer">
-                    <Button className="!p-2" variant={'v2Button'} icon={<OpenLinkIcon />} />
+                    <Button className="p-2!" variant={'v2Button'} icon={<OpenLinkIcon />} />
                 </Link>
                 <Button
                     variant={'v2Button'}
@@ -199,7 +199,7 @@ const ServiceDomainGone = ({ workspace, status }: { workspace: WorkspaceDto; sta
                     </span>
                     <div className="flex flex-wrap gap-2">
                         <Link href={`${environments.HTTP_SCHEME}${workspace.customDomain}`} target={'_blank'} referrerPolicy="no-referrer">
-                            <Button className="!p-2" variant={'v2Button'} icon={<OpenLinkIcon />} />
+                            <Button className="p-2!" variant={'v2Button'} icon={<OpenLinkIcon />} />
                         </Link>
                         <Button
                             variant={'v2Button'}

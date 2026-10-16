@@ -57,17 +57,17 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
 export const statusProps = (status: string, t: any) => {
     const normalized = status.toLowerCase();
     let currentStatus = status;
-    let cName = 'bg-black-200 !text-black-800';
+    let cName = 'bg-black-200 text-black-800!';
     let dotCName = 'bg-black-600';
     if (normalized === 'pending') {
         currentStatus = t(formConstant.status.pending);
-        cName = 'bg-[#FBF3E4] !text-[#B26B00]';
+        cName = 'bg-[#FBF3E4] text-[#B26B00]!';
         dotCName = 'bg-[#B26B00]';
     } else if (normalized === 'success' || normalized === 'deleted') {
         // The backend marks a fulfilled deletion request "success"; to the
         // person reading the table the fact is that the response is deleted.
         currentStatus = t('FORM.STATUS_DELETED');
-        cName = 'bg-[#E7F4EE] !text-[#0E8A5F]';
+        cName = 'bg-[#E7F4EE] text-[#0E8A5F]!';
         dotCName = 'bg-[#0E8A5F]';
     } else if (normalized === 'expired') {
         currentStatus = t(formConstant.status.expired);

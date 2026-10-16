@@ -23,11 +23,11 @@ export default function Divider({ className, orientation = 'horizontal', childre
     if (children) {
         return (
             <div className={cn("relative flex items-center w-full my-4", className)}>
-                {textAlign !== 'left' && <div className="flex-grow border-t border-slate-200"></div>}
-                <span className={cn("flex-shrink text-slate-500 text-xs font-semibold uppercase", textAlign === 'center' ? "mx-4" : textAlign === 'left' ? "mr-4" : "ml-4")}>
+                {textAlign !== 'left' && <div className="grow border-t border-slate-200"></div>}
+                <span className={cn("shrink text-slate-500 text-xs font-semibold uppercase", textAlign === 'center' ? "mx-4" : textAlign === 'left' ? "mr-4" : "ml-4")}>
                     {children}
                 </span>
-                {textAlign !== 'right' && <div className="flex-grow border-t border-slate-200"></div>}
+                {textAlign !== 'right' && <div className="grow border-t border-slate-200"></div>}
             </div>
         );
     }

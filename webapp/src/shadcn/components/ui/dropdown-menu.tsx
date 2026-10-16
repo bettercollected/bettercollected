@@ -55,7 +55,7 @@ DropdownMenu.Item = function DropdownMenu({ children, className, onClick }: { ch
     return (
         <DropdownMenuPrimitive.Item
             onClick={onClick}
-            className={cn('hover:bg-black-200 relative flex cursor-default select-none items-center rounded-sm px-4 py-1.5 outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50', className)}
+            className={cn('hover:bg-black-200 relative flex cursor-default select-none items-center rounded-sm px-4 py-1.5 outline-hidden transition-colors data-disabled:pointer-events-none data-disabled:opacity-50', className)}
         >
             {children}
         </DropdownMenuPrimitive.Item>
@@ -68,7 +68,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
         inset?: boolean;
     }
 >(({ className, inset, children, ...props }, ref) => (
-    <DropdownMenuPrimitive.SubTrigger ref={ref} className={cn('focus:bg-black-100 data-[state=open]:bg-black-100 flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none', inset && 'pl-8', className)} {...props}>
+    <DropdownMenuPrimitive.SubTrigger ref={ref} className={cn('focus:bg-black-100 data-[state=open]:bg-black-100 flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden', inset && 'pl-8', className)} {...props}>
         {children}
         <ChevronRight className="ml-auto h-4 w-4" />
     </DropdownMenuPrimitive.SubTrigger>
@@ -103,7 +103,7 @@ const DropdownMenuItem = React.forwardRef<
     <DropdownMenuPrimitive.Item
         ref={ref}
         className={cn(
-            'focus:bg-black-100 focus:text-black-900 relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+            'focus:bg-black-100 focus:text-black-900 relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden transition-colors data-disabled:pointer-events-none data-disabled:opacity-50',
             inset && 'pl-8',
             className
         )}
@@ -116,7 +116,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<React.ElementRef<typeof Dropdo
     <DropdownMenuPrimitive.CheckboxItem
         ref={ref}
         className={cn(
-            'focus:bg-black-100 focus:text-black-900 relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+            'focus:bg-black-100 focus:text-black-900 relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-hidden transition-colors data-disabled:pointer-events-none data-disabled:opacity-50',
             className
         )}
         checked={checked}
@@ -136,7 +136,7 @@ const DropdownMenuRadioItem = React.forwardRef<React.ElementRef<typeof DropdownM
     <DropdownMenuPrimitive.RadioItem
         ref={ref}
         className={cn(
-            'focus:bg-black-100 focus:text-black-900 relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+            'focus:bg-black-100 focus:text-black-900 relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-hidden transition-colors data-disabled:pointer-events-none data-disabled:opacity-50',
             className
         )}
         {...props}

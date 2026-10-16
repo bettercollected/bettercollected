@@ -34,11 +34,11 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
             <form onSubmit={handleSubmit}>
                 <h4 className="h4-new">{t(groupConstant.regex.modal.title)}</h4>
                 <p className="my-2">
-                    <span className="!text-black-700 p2-new text-sm !font-normal">
+                    <span className="text-black-700! p2-new text-sm font-normal!">
                         Use <span className="text-pink-500">*@yourcompany.com</span> to add all employees with email addresses ending in &apos;@yourcompany.com&apos;.{' '}
                     </span>
                 </p>
-                <Label className="h4-new mb-2 !font-medium" htmlFor="regex">
+                <Label className="h4-new mb-2 font-medium!" htmlFor="regex">
                     {t(groupConstant.regex.modal.label)}
                 </Label>
                 <div className="pt-2">

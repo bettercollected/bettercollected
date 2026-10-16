@@ -89,17 +89,17 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
     return (
         <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded-md bg-white py-10 text-sm shadow-md md:max-w-[560px]">
             {closable && <CloseModal />}
-            <div className="!mt-0 flex flex-col items-center justify-between">
+            <div className="mt-0! flex flex-col items-center justify-between">
                 <CheckedCircle />
                 <h2 className="text-black-900 mt-6 whitespace-pre-wrap text-center text-lg font-semibold md:text-xl">{defaultContent.permissionText}</h2>
             </div>
 
-            <div className="w-full border-b-[1px]">
+            <div className="w-full border-b">
                 {defaultContent.permissions.map((permission, index) => (
                     <Disclosure key={permission.name} defaultOpen={false}>
                         {({ open }) => (
                             <>
-                                <Disclosure.Button className="body6 text-black-800 flex w-full items-center justify-between border-t-[1px] px-8 py-3 text-left font-medium focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
+                                <Disclosure.Button className="body6 text-black-800 flex w-full items-center justify-between border-t px-8 py-3 text-left font-medium focus:outline-hidden focus-visible:ring focus-visible:ring-blue-500/75">
                                     <span>
                                         {unauthorizedScopes && unauthorizedScopes.length > 0 && <span className={`mr-2 text-lg ${unauthorizedScopes?.includes(permission.scope || '') ? 'text-black-400' : 'text-green-500'}`}>✔</span>}
                                         {permission.name}
@@ -121,7 +121,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
                     , including the Limited Use requirements.
                 </p>
             )}
-            <div className="!mt-3 flex w-full px-8 items-center space-x-3">
+            <div className="mt-3! flex w-full px-8 items-center space-x-3">
                 <Checkbox
                     id="consent"
                     checked={isConsentGiven}

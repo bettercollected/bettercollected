@@ -37,12 +37,12 @@ export default function OnboardingClient({ workspace, createWorkspace }: onBoard
                 <p className="text-black-800 text-xs">{t(onBoarding.privacyFriendly)}</p>
             </div>
             <div className="mt-[136px] flex h-full w-full flex-col items-center">
-                <AuthAccountProfileImage image={user?.profileImage} name={user?.firstName || user?.lastName || user?.email} size={100} typography="!text-6xl" />
+                <AuthAccountProfileImage image={user?.profileImage} name={user?.firstName || user?.lastName || user?.email} size={100} typography="text-6xl!" />
                 <p className="text-black-900 pt-10 text-center text-2xl font-semibold">
                     {t(localesCommon.hey)} {user?.firstName || user?.email}!
                 </p>
                 <p className="text-black-800 pt-2 text-base">{t(onBoarding.welcomeMessage)}</p>
-                <Button className="bg-new-blue-500 hover:bg-brand-600 mt-12 !py-3 px-8" size="medium" onClick={increaseStep}>
+                <Button className="bg-new-blue-500 hover:bg-brand-600 mt-12 py-3! px-8" size="medium" onClick={increaseStep}>
                     {t(onBoarding.addYourOrganization)}
                 </Button>
             </div>

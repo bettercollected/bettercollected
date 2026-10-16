@@ -35,7 +35,7 @@ export default function PoweredBy({ isFormCreatorPortal }: IPoweredByProps) {
                 isProUser ? (
                     <ToolTipBranding title={title} />
                 ) : (
-                    <AnchorLink href={'/pricing-plans'} target="_blank" className="w-fit outline-none">
+                    <AnchorLink href={'/pricing-plans'} target="_blank" className="w-fit outline-hidden">
                         <ToolTipBranding title={title} />
                     </AnchorLink>
                 )
