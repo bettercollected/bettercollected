@@ -73,7 +73,7 @@ describe('passive voice — Dutch', () => {
         ['Wat is uw geslacht?'],
         ['Wat is uw gewicht in kilo?'],
         ['Wat zijn de kosten die u heeft gemaakt?'],
-        ['Bent u ingeschreven bij de gemeente?'],
+        ['Bent u ingeschreven bij de bibliotheek?'],
         ['Wat is uw e-mailadres?'],
         ['Hoe tevreden bent u over ons?']
     ])('does not flag "%s"', (text) => {
@@ -234,7 +234,7 @@ describe('language detection', () => {
 
     it('checks both languages when unsure', () => {
         expect(languagesToCheck('Naam')).toEqual(['nl', 'en']);
-        // "Indien" is Dutch officialese; a one-word title still gets the hint.
+        // "Indien" is stiff, formal Dutch; a one-word title still gets the hint.
         expect(rules('Indien?')).toEqual(['jargon']);
     });
 });

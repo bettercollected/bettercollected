@@ -66,7 +66,7 @@ describe('PlainLanguageHints in the builder', () => {
     it('shows a tip under the title, linked to the title by aria-describedby', async () => {
         renderTitle('Indien u vragen heeft, belt u ons.');
         await waitFor(() => expect(tipsList()).toBeInTheDocument());
-        expect(tipsList()).toHaveTextContent('“Indien” is officialese. Plainer: “als”.');
+        expect(tipsList()).toHaveTextContent('“Indien” is formal wording. Plainer: “als”.');
 
         const titleInput = await waitFor(() => {
             const element = document.querySelector('[contenteditable="true"]');
@@ -74,7 +74,7 @@ describe('PlainLanguageHints in the builder', () => {
             return element as HTMLElement;
         });
         expect(titleInput).toHaveAttribute('aria-describedby', 'plain-language-title-q1');
-        expect(document.getElementById('plain-language-title-q1')).toHaveTextContent('“Indien” is officialese');
+        expect(document.getElementById('plain-language-title-q1')).toHaveTextContent('“Indien” is formal wording');
         // Advisory only: the title is never marked invalid.
         expect(titleInput).not.toHaveAttribute('aria-invalid');
     });
@@ -87,7 +87,7 @@ describe('PlainLanguageHints in the builder', () => {
         act(() => api!.updateTitle(0, 0, doc('Your receipt will be sent by email in order to confirm it.') as any));
         expect(api!.formFields[0].properties!.fields![0].title).toEqual(doc('Your receipt will be sent by email in order to confirm it.'));
 
-        await waitFor(() => expect(tipsList()).toHaveTextContent('“in order to” is officialese. Plainer: “to”.'));
+        await waitFor(() => expect(tipsList()).toHaveTextContent('“in order to” is formal wording. Plainer: “to”.'));
         expect(tipsList()).toHaveTextContent('“be sent” is passive.');
         // No tip disables anything; the only controls are the dismiss buttons.
         expect(screen.getAllByRole('button', { name: 'Dismiss tip' })).toHaveLength(2);
@@ -123,7 +123,7 @@ describe('plain-language strings', () => {
     it('exist in English and Dutch', () => {
         expect(Object.keys(nlBuilder.PLAIN_LANGUAGE).sort()).toEqual(Object.keys(enBuilder.PLAIN_LANGUAGE).sort());
         const tNl = i18n.getFixedT('nl', 'builder');
-        expect(tNl('PLAIN_LANGUAGE.JARGON', { match: 'middels', suggestion: 'met, via' })).toBe('“middels” is ambtelijk. Eenvoudiger: “met, via”.');
+        expect(tNl('PLAIN_LANGUAGE.JARGON', { match: 'middels', suggestion: 'met, via' })).toBe('“middels” is formele taal. Eenvoudiger: “met, via”.');
         expect(tNl('PLAIN_LANGUAGE.ANNOUNCE', { count: 2 })).toBe('2 tips voor duidelijke taal bij deze tekst');
     });
 });

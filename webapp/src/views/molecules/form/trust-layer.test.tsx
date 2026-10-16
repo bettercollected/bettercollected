@@ -74,7 +74,7 @@ describe('Privacy panel on respondent forms', () => {
 
     it('speaks Dutch to a Dutch browser', () => {
         setBrowserLanguages(['nl-NL', 'en']);
-        renderPanel({ ownerName: 'Gemeente Voorbeeld', settings: { purpose: 'Om uw afspraak te plannen', responseExpirationType: 'days', responseExpiration: '1' } });
+        renderPanel({ ownerName: 'Vereniging Voorbeeld', settings: { purpose: 'Om uw afspraak te plannen', responseExpirationType: 'days', responseExpiration: '1' } });
         expect(screen.getByText(/Verzameld door/)).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
         expect(screen.getByRole('heading', { name: 'Wat er met je antwoorden gebeurt' })).toBeInTheDocument();

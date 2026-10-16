@@ -1,5 +1,5 @@
 {
-    "$comment": "Dutch officialese (ambtelijke taal) with plainer B1 alternatives. Each entry lists the forms to match (case-insensitive, whole words; spaces match any whitespace) and the suggestion shown to the creator. Add entries freely; keep suggestions short.",
+    "$comment": "Dutch stiff, formal wording with plainer B1 alternatives. Each entry lists the forms to match (case-insensitive, whole words; spaces match any whitespace) and the suggestion shown to the creator. Add entries freely; keep suggestions short.",
     "entries": [
         { "terms": ["middels"], "suggestion": "met, via" },
         { "terms": ["teneinde"], "suggestion": "om" },

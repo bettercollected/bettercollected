@@ -1,5 +1,5 @@
 {
-    "$comment": "English officialese with plainer alternatives, drawn from the Plain English Campaign's A to Z of alternative words and the GOV.UK style guide's words to avoid. Each entry lists the forms to match (case-insensitive, whole words; spaces match any whitespace) and the suggestion shown to the creator. Add entries freely; keep suggestions short.",
+    "$comment": "English stiff, formal wording with plainer alternatives, drawn from common plain-English lists of alternative words and words to avoid. Each entry lists the forms to match (case-insensitive, whole words; spaces match any whitespace) and the suggestion shown to the creator. Add entries freely; keep suggestions short.",
     "entries": [
         { "terms": ["utilise", "utilises", "utilised", "utilising", "utilize", "utilizes", "utilized", "utilizing", "utilisation", "utilization"], "suggestion": "use" },
         { "terms": ["in order to"], "suggestion": "to" },
