@@ -149,7 +149,7 @@ export default function APIKeysPage() {
                     maxLength={60}
                     placeholder="What will use this key? e.g. “Claude Desktop”"
                     onChange={(e) => setName(e.target.value)}
-                    className="border-black-300 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-none transition duration-150 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]"
+                    className="border-black-300 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]"
                 />
                 <div className="flex flex-col gap-1.5">
                     {SCOPES.map((scope) => (

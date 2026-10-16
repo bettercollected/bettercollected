@@ -30,7 +30,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
     // is a new type on every render, so each hover remounted every star — the
     // click could land on a detached button and keyboard focus was lost.
     const ratingSection = (
-        <div className="relative !mb-0 flex w-fit flex-wrap gap-3">
+        <div className="relative mb-0! flex w-fit flex-wrap gap-3">
             {_.range(steps).map((index) => {
                 return (
                     <button
@@ -50,7 +50,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                                 }, 200);
                             }
                         }}
-                        className="cursor-pointer rounded outline-none focus-visible:ring-2"
+                        className="cursor-pointer rounded outline-hidden focus-visible:ring-2"
                         onMouseOver={() => {
                             if (!isBuilder) setHovered(index);
                         }}

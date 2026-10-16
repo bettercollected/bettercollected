@@ -28,7 +28,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             <div className="flex flex-col items-center gap-3">
                 <span className="text-brand-500 text-sm font-semibold uppercase tracking-wide">{isStaleChunk ? 'Update available' : 'Something went wrong'}</span>
                 <h1 className="text-black-900 text-2xl font-semibold sm:text-3xl">{isStaleChunk ? 'This tab is out of date' : 'We hit an unexpected problem'}</h1>
-                <p className="text-black-600 max-w-md text-sm leading-relaxed sm:text-base">
+                <p className="text-black-600 max-w-md text-sm leading-relaxed sm:text-base sm:leading-6">
                     {isStaleChunk
                         ? 'A newer version was published while this tab was open. Reload to pick up the latest — your work is saved on the server.'
                         : 'This one is on us. Your data is safe. Try again, and if it keeps happening, reload the page.'}

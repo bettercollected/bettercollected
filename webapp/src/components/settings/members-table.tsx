@@ -155,7 +155,7 @@ export default function MembersTable({ data }: any) {
 
     return (
         <>
-            <DataTable className="mt-2 !overflow-auto p-0" columns={dataTableResponseColumns} data={data || []} customStyles={customDataTableStyles} highlightOnHover={false} pointerOnHover={false} />
+            <DataTable className="mt-2 overflow-auto! p-0" columns={dataTableResponseColumns} data={data || []} customStyles={customDataTableStyles} highlightOnHover={false} pointerOnHover={false} />
         </>
     );
 }

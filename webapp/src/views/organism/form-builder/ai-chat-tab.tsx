@@ -351,7 +351,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleAddMemory();
                             }}
-                            className="h-7 w-full rounded-md border border-black-200 bg-white px-2 text-[11px] text-black-900 outline-none transition placeholder:text-black-400 focus:border-brand-500"
+                            className="h-7 w-full rounded-md border border-black-200 bg-white px-2 text-[11px] text-black-900 outline-hidden transition placeholder:text-black-400 focus:border-brand-500"
                         />
                         <button
                             type="button"
@@ -503,7 +503,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     send();
                                 }
                             }}
-                            className="max-h-32 w-full resize-none bg-transparent text-[13px] leading-relaxed text-black-900 outline-none placeholder:text-black-400"
+                            className="max-h-32 w-full resize-none bg-transparent text-[13px] leading-relaxed text-black-900 outline-hidden placeholder:text-black-400"
                         />
                         <button
                             type="button"

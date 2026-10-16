@@ -29,10 +29,10 @@ export default function WorkspaceDetailsCard({ workspace }: IWorkspaceDetailsCar
                     tabs and the "See your submissions" card, so it no longer
                     floats here as standalone prose. */}
                 <div className="text-new-black-600 p4-new mt-6 flex justify-between gap-6">
-                    <ActiveLink target="_blank" className="p4-new !text-black-600 !not-italic !leading-none" href={workspace.termsOfService ?? `https://bettercollected.com/terms-of-service/`}>
+                    <ActiveLink target="_blank" className="p4-new text-black-600! not-italic! leading-none!" href={workspace.termsOfService ?? `https://bettercollected.com/terms-of-service/`}>
                         {t(localesCommon.termsOfServices.title)}
                     </ActiveLink>
-                    <ActiveLink target="_blank" className="p4-new !text-black-600 !not-italic !leading-none" href={workspace.privacyPolicy ?? `https://bettercollected.com/privacy-policy/`}>
+                    <ActiveLink target="_blank" className="p4-new text-black-600! not-italic! leading-none!" href={workspace.privacyPolicy ?? `https://bettercollected.com/privacy-policy/`}>
                         {t(localesCommon.privacyPolicy.title)}
                     </ActiveLink>
                 </div>

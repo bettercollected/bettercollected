@@ -88,11 +88,11 @@ const getClassName = (view?: DIALOG_MODALS) => {
     switch (view) {
         case 'FORM_PUBLISHED':
             // Matches the Share modal's width — this is the same link-forward moment.
-            return 'md:!min-w-[540px] md:!max-w-[540px]';
+            return 'md:min-w-[540px]! md:max-w-[540px]!';
         case 'SHARE_FORM_MODAL':
-            return 'md:!min-w-fit';
+            return 'md:min-w-fit!';
         case 'UNSPLASH_IMAGE_PICKER':
-            return 'md:min-w-[550px] md:max-w-[550px] md:max-h-screen md:h-[520px] !rounded-lg';
+            return 'md:min-w-[550px] md:max-w-[550px] md:max-h-screen md:h-[520px] rounded-lg!';
         default:
             return <></>;
     }
@@ -115,7 +115,7 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent onClickCloseIcon={closeDialogModal} className={cn('!bg-white !p-0', getClassName(view))}>
+            <DialogContent onClickCloseIcon={closeDialogModal} className={cn('bg-white! p-0!', getClassName(view))}>
                 {GetModalToRender(view, props)}
             </DialogContent>
         </Dialog>

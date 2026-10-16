@@ -23,7 +23,7 @@ interface InternalFieldsPanelProps {
     workspaceId: string;
 }
 
-const inputClass = 'w-full !text-sm';
+const inputClass = 'w-full text-sm!';
 
 function InternalFieldInput({ field, value, onChange }: { field: StandardFormFieldDto; value: InternalInputValue; onChange: (value: InternalInputValue) => void }) {
     const id = `internal-${field.id}`;

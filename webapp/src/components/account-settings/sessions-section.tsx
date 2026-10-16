@@ -100,7 +100,7 @@ export default function SessionsSection() {
 
             {others.length > 0 && (
                 <div>
-                    <Button variant="ghost" disabled={isRevokingOthers} className="rounded bg-red-100 px-4 py-3 text-xs !text-red-500 hover:bg-red-200" onClick={handleRevokeOthers}>
+                    <Button variant="ghost" disabled={isRevokingOthers} className="rounded bg-red-100 px-4 py-3 text-xs text-red-500! hover:bg-red-200" onClick={handleRevokeOthers}>
                         Sign out everywhere else
                     </Button>
                 </div>

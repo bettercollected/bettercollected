@@ -48,7 +48,7 @@ export default function MembersLayout({
                                 className={cn(
                                     'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors',
                                     isActive
-                                        ? 'border-[#2456CC] text-[#2456CC]'
+                                        ? 'border-brand-500 text-brand-500'
                                         : 'text-black-600 hover:text-black-800 border-transparent'
                                 )}
                             >

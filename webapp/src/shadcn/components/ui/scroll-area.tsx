@@ -12,7 +12,7 @@ type ExtendedScrollbarProps = React.ComponentPropsWithoutRef<typeof ScrollAreaPr
 
 const ScrollArea = React.forwardRef<React.ElementRef<typeof ScrollAreaPrimitive.Root>, React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & ExtendedScrollbarProps>(({ className, children, asChild, id, thumbBg, ...props }, ref) => (
     <ScrollAreaPrimitive.Root ref={ref} className={cn('relative overflow-hidden', className)} {...props}>
-        <ScrollAreaPrimitive.Viewport style={{ display: 'block !important' }} asChild={asChild} id={id} className="!block h-full w-full rounded-[inherit]">
+        <ScrollAreaPrimitive.Viewport style={{ display: 'block !important' }} asChild={asChild} id={id} className="block! h-full w-full rounded-[inherit]">
             {children}
         </ScrollAreaPrimitive.Viewport>
         <ScrollBar thumbBg={thumbBg} />

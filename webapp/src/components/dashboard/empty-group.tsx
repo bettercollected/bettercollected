@@ -20,7 +20,7 @@ export default function EmptyGroup({ formId }: { formId?: string }) {
     return (
         <div className="my-[119px] flex flex-col items-center">
             <UserMore />
-            <p className="body2 text-center !font-medium sm:w-[252px] mt-7 mb-6">{t(groupConstant.title)}</p>
+            <p className="body2 text-center font-medium! sm:w-[252px] mt-7 mb-6">{t(groupConstant.title)}</p>
             <Tooltip label={!canManageGroups ? t(toolTipConstant.noAccessToGroup) : ''}>
                 <Button
                     disabled={!canManageGroups}

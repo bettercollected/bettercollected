@@ -146,7 +146,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                 {templates?.map((template) => (
                                     // Plain div: the scaled WelcomePage preview inside contains buttons,
                                     // and <button> can't nest inside <button> (hydration error).
-                                    <div key={template?.id} className="outline-none" data-umami-event={'Create Form With Template'} data-umami-event-email={authState.email}>
+                                    <div key={template?.id} className="outline-hidden" data-umami-event={'Create Form With Template'} data-umami-event-email={authState.email}>
                                         <div className="flex flex-col rounded-lg border border-transparent">
                                             <div
                                                 data-umami-event={'Create Form With Template'}
@@ -161,7 +161,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                                 </div>
                                                 <div className="absolute inset-0 z-10 bg-black-800 opacity-0 hover:opacity-20" />
                                             </div>
-                                            <div className="p2-new mt-2 !font-medium">{template.title}</div>
+                                            <div className="p2-new mt-2 font-medium!">{template.title}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -204,7 +204,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapper
 
 const SoonComponent = ({ msg }: { msg?: string }) => {
     return (
-        <div className="absolute bottom-0 left-1/3 flex h-fit w-full -rotate-[30deg] items-center justify-center bg-new-pink text-[10px] font-medium leading-none text-white">
+        <div className="absolute bottom-0 left-1/3 flex h-fit w-full rotate-[-30deg] items-center justify-center bg-new-pink text-[10px] font-medium leading-none text-white">
             <span className="ml-14 md:ml-4">{msg || 'Soon'}</span>
         </div>
     );
@@ -212,7 +212,7 @@ const SoonComponent = ({ msg }: { msg?: string }) => {
 
 const OnlyAvailableInDesktopVersion = () => {
     return (
-        <div className="absolute -right-10 bottom-3 flex h-auto w-[200px] -rotate-[30deg] flex-col items-center justify-center gap-1 bg-new-pink py-2 text-[10px] font-medium leading-none text-white lg:hidden">
+        <div className="absolute -right-10 bottom-3 flex h-auto w-[200px] rotate-[-30deg] flex-col items-center justify-center gap-1 bg-new-pink py-2 text-[10px] font-medium leading-none text-white lg:hidden">
             <span className="md:ml-4">Only available in</span>
             <span className="md:ml-4">desktop version</span>
         </div>

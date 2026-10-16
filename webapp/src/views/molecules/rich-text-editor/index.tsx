@@ -177,7 +177,7 @@ export function RichTextEditor({
                     attributes: {
                         // Match the responder's question scale (24px/600) so the
                         // canvas is honest about what responders will see.
-                        class: `outline-none text-2xl font-semibold leading-snug w-full max-w-full min-w-[300px] ${HEADING_CLASSES}`,
+                        class: `outline-hidden text-2xl font-semibold leading-snug w-full max-w-full min-w-[300px] ${HEADING_CLASSES}`,
                         style: 'word-break: break-word',
                         ...(describedById ? { 'aria-describedby': describedById } : {})
                     }

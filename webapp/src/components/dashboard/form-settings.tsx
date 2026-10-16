@@ -218,39 +218,39 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="Public" id="public" />
                                     <Label htmlFor="public" className="cursor-pointer">
-                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                        <div className="body6 text-black-800! flex items-center gap-[6px]">
                                             <Globe className="h-[18px] w-[18px]" />
                                             {t(formConstant.settings.visibility.public)}
                                         </div>
                                     </Label>
                                 </div>
-                                <span className="body4 !text-black-700 ml-6 mt-1">{t(formPage.visibilityPublic)}</span>
+                                <span className="body4 text-black-700! ml-6 mt-1">{t(formPage.visibilityPublic)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="Private" id="private" />
                                     <Label htmlFor="private" className="cursor-pointer">
-                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                        <div className="body6 text-black-800! flex items-center gap-[6px]">
                                             <Lock className="h-[18px] w-[18px]" />
                                             {t(formConstant.settings.visibility.private)}
                                         </div>
                                     </Label>
                                 </div>
-                                <span className="body4 !text-black-700 ml-6 mt-1">{t(formPage.visibilityPrivate)}</span>
+                                <span className="body4 text-black-700! ml-6 mt-1">{t(formPage.visibilityPrivate)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="Group" id="group" />
                                     <Label htmlFor="group" className="cursor-pointer">
-                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                        <div className="body6 text-black-800! flex items-center gap-[6px]">
                                             <GroupIcon className="h-[18px] w-[18px]" />
                                             {t(formPage.visibilityGroupsTitle)}
                                         </div>
                                     </Label>
                                 </div>
-                                <span className="body4 !text-black-700 ml-6 mt-1">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
+                                <span className="body4 text-black-700! ml-6 mt-1">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
                                 {currentVisibility === 'Group' && <FormGroups groups={form?.groups || []} />}
                             </div>
                             <Divider />
@@ -263,11 +263,11 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 let lastPart = parts.pop();
                 let firstPart = parts.join('/');
                 return (
-                    <FormSettingsCard className={'!mt-0 !space-y-0'}>
-                        <p className="body4 !text-black-700 w-full lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
+                    <FormSettingsCard className={'mt-0! space-y-0!'}>
+                        <p className="body4 text-black-700! w-full lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
                         <div className={'mt-1 flex flex-col items-start  gap-2 py-1 '}>
                             <Tooltip label={t('CLICK_TO_COPY')}>
-                                <p className="body4 !text-black-700 max-w-full cursor-pointer truncate" onClick={handleOnCopy}>
+                                <p className="body4 text-black-700! max-w-full cursor-pointer truncate" onClick={handleOnCopy}>
                                     {firstPart}/ <span className="text-black-900 font-medium">{lastPart}</span>
                                 </p>
                             </Tooltip>
@@ -275,7 +275,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 <Button
                                     data-umami-event="Customize Form Link Button"
                                     data-umami-event-email={auth.email}
-                                    className={'!py-0'}
+                                    className={'py-0!'}
                                     icon={<Pencil className="h-4 w-4" />}
                                     onClick={() => {
                                         // The trust-styled Customize-URL modal (same one the form
@@ -293,7 +293,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <Button
                                         data-umami-event="Generate QR button"
                                         data-umami-event-email={auth.email}
-                                        className={'!py-0'}
+                                        className={'py-0!'}
                                         icon={<QrCode className="h-5 w-5" />}
                                         onClick={() => {
                                             openModal('GENERATE_QR');

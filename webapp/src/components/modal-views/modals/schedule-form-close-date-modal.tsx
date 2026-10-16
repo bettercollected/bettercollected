@@ -30,7 +30,7 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                 <div>
                     <div className="h2-new">Close Form</div>
                     <div className="flex w-full flex-row items-center justify-between gap-4">
-                        <div className="!text-black-700 text-sm">This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.</div>
+                        <div className="text-black-700! text-sm">This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.</div>
                     </div>
                 </div>
 
@@ -49,7 +49,7 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                             <button
                                 type="button"
                                 aria-labelledby="close-date-label close-date-value"
-                                className="border-black-300 text-black-700 hover:border-black-400 focus-visible:ring-brand-500 relative flex w-[280px] max-w-full cursor-pointer items-center rounded-lg border bg-white p-2 text-left font-normal transition-colors focus:outline-none focus-visible:ring-2"
+                                className="border-black-300 text-black-700 hover:border-black-400 focus-visible:ring-brand-500 relative flex w-[280px] max-w-full cursor-pointer items-center rounded-lg border bg-white p-2 text-left font-normal transition-colors focus:outline-hidden focus-visible:ring-2"
                             >
                                 <CalendarIcon aria-hidden="true" className="text-black-500 absolute left-2 h-4 w-4" />
                                 <span id="close-date-value" className="text-black-900 ml-8">

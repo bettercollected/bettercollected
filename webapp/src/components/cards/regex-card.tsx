@@ -28,13 +28,13 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start  md:items-center">
-                <p className="h4-new !font-medium">{t(groupConstant.regex.title)}</p>
+                <p className="h4-new font-medium!">{t(groupConstant.regex.title)}</p>
             </div>
             <div className="border-y-black-200 border-y py-4 mt-4">
                 <div className="flex justify-between">
                     <div>
-                        <p className="body4 !text-black-700">{t(groupConstant.regex.description)}</p>
-                        <p className="body4 !text-black-700">
+                        <p className="body4 text-black-700!">{t(groupConstant.regex.description)}</p>
+                        <p className="body4 text-black-700!">
                             Eg: johndoe@<span className=" underline underline-offset-[6px]">yourdomain.any</span>
                         </p>
                     </div>
@@ -49,7 +49,7 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                     <>
                         <p className="body1 mt-7 mb-3">{t(localesCommon.added)}</p>
                         <div className="px-2 py-3 border-2 border-black-400  rounded flex items-center justify-between md:w-[400px] body4">
-                            <p className="!text-black-800 truncate">
+                            <p className="text-black-800! truncate">
                                 {regex}
                             </p>
                             {canManageGroups && (

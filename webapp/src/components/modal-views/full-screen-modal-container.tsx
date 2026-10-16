@@ -41,7 +41,7 @@ export default function FullScreenModalContainer() {
             <Transition appear show={isOpen} as={Fragment}>
                 <Dialog as="div" className="fixed inset-0 z-modal h-full w-full overflow-y-auto overflow-x-hidden  text-center" onClose={closeModalHandler}>
                     <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <DialogBackdrop className={`fixed inset-0 z-40  ${view === 'UPGRADE_TO_PRO' ? '!bg-white' : 'bg-gray-700 bg-opacity-60'}   cursor-pointer`} />
+                        <DialogBackdrop className={`fixed inset-0 z-40  ${view === 'UPGRADE_TO_PRO' ? 'bg-white!' : 'bg-gray-700/60'}   cursor-pointer`} />
                     </Transition.Child>
 
                     {/* This element is need to fix FocusTap headless-ui warning issue */}
@@ -54,7 +54,7 @@ export default function FullScreenModalContainer() {
                     <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
                         <div
                             data-testid="modal-view"
-                            className={`relative z-50 flex min-h-screen !w-full flex-col content-center  items-center  ${view === 'UPGRADE_TO_PRO' ? '!bg-white' : ''} text-left align-middle md:w-fit`}
+                            className={`relative z-50 flex min-h-screen w-full! flex-col content-center  items-center  ${view === 'UPGRADE_TO_PRO' ? 'bg-white!' : ''} text-left align-middle md:w-fit`}
                         >
                             {
                                 //@ts-ignore

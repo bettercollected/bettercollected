@@ -34,7 +34,7 @@ export default function SlideOptions({ slideIndex }: { slideIndex: number }) {
             </PopoverTrigger>
             <PopoverContent side="right" align="start" className=" w-[220px]  bg-white p-0 shadow-lg">
                 <div
-                    className="p2 !mt-2 flex cursor-pointer items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                    className="p2 mt-2! flex cursor-pointer items-center gap-2 px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
                         duplicateSlide(slideIndex);
                         close();
@@ -44,7 +44,7 @@ export default function SlideOptions({ slideIndex }: { slideIndex: number }) {
                     Duplicate
                 </div>
                 {!confirmingDelete ? (
-                    <div className=" p2 !mb-2  flex cursor-pointer items-center gap-2 px-4 py-2 !text-red-500 hover:bg-red-50" onClick={() => setConfirmingDelete(true)}>
+                    <div className=" p2 mb-2!  flex cursor-pointer items-center gap-2 px-4 py-2 text-red-500! hover:bg-red-50" onClick={() => setConfirmingDelete(true)}>
                         <DeleteIcon className="text-red-500" />
                         Delete
                     </div>

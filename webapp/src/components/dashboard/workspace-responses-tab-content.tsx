@@ -67,7 +67,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                 <div className="px-13 flex h-full min-h-[290px] w-full flex-col items-center justify-center gap-4 rounded-xl bg-white py-[60px] text-center">
                     <div>
                         <h1 className="h4-new mt-2">Find your submissions</h1>
-                        <p className="p2-new !text-black-700 mt-1 max-w-[290px] md:max-w-[360px]">Verify your email to see responses you&apos;ve submitted, or enter a submission number in the search panel.</p>
+                        <p className="p2-new text-black-700! mt-1 max-w-[290px] md:max-w-[360px]">Verify your email to see responses you&apos;ve submitted, or enter a submission number in the search panel.</p>
                     </div>
                     <Button size="sm" onClick={handleVerify}>
                         Verify email
@@ -75,7 +75,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                     <p className="text-black-500 max-w-[360px] text-xs">Submitted anonymously? Your submission number is the only way to find that response — that&apos;s what keeps it anonymous.</p>
                 </div>
             )}
-            {submissions?.length === 0 && !!auth.id && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : 'No submissions yet'} description={getEmptyMessage()} className="!pb-[20px]" />}
+            {submissions?.length === 0 && !!auth.id && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : 'No submissions yet'} description={getEmptyMessage()} className="pb-[20px]!" />}
 
             {submissions?.length !== 0 && (
                 <div className="w-full">

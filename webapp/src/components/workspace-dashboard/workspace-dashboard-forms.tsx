@@ -27,8 +27,8 @@ function EmptyFormsView() {
         <div className="flex flex-col items-center gap-[72px]">
             <div className="mt-8 flex w-full flex-col items-center gap-2">
                 <EmptyFormIcon />
-                <div className="h4-new text-black-800 mt-4 !leading-normal">{t('HAVE_NOT_IMPORTED_OR_CREATED')}</div>
-                <div className="p2-new text-black-700 !leading-normal">{t('CREATE_OR_IMPORT')}</div>
+                <div className="h4-new text-black-800 mt-4 leading-normal!">{t('HAVE_NOT_IMPORTED_OR_CREATED')}</div>
+                <div className="p2-new text-black-700 leading-normal!">{t('CREATE_OR_IMPORT')}</div>
                 <div className="mt-4 flex gap-4">
                     <NewFormButton />
                     {/* <div className={'flex flex-row gap-4'}>

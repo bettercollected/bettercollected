@@ -88,7 +88,7 @@ export default function AIMemorySection() {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAdd();
                     }}
-                    className="border-black-300 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-9 w-full rounded-md border bg-white px-3 text-[13px] outline-none transition duration-150 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]"
+                    className="border-black-300 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-9 w-full rounded-md border bg-white px-3 text-[13px] outline-hidden transition duration-150 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]"
                 />
                 <Button size="sm" variant="v2Button" isLoading={isAdding} disabled={!draft.trim()} onClick={handleAdd} icon={<Plus className="h-4 w-4" />}>
                     Add

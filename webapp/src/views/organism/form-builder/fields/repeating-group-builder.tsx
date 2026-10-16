@@ -16,7 +16,7 @@ const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type =
 const CHOICE_TYPES: string[] = [FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN];
 const PLACEHOLDER_TYPES: string[] = [FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.EMAIL, FieldTypes.NUMBER, FieldTypes.LINK, FieldTypes.PHONE_NUMBER];
 
-const inputClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-sm outline-none';
+const inputClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-sm outline-hidden';
 const iconButton = 'text-black-600 hover:bg-black-100 rounded p-1 disabled:opacity-30';
 
 /**

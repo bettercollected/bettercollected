@@ -26,7 +26,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                         <AutosizeTextarea
                             placeholder="Your response has been successfully submitted"
                             value={formState.thankyouPage![activeThankYouPageComponent?.index || 0].message}
-                            className="ring-none text-black-600 w-full border-0 px-0 text-base outline-none"
+                            className="ring-none text-black-600 w-full border-0 px-0 text-base outline-hidden"
                             onChange={(e: any) => setThankYouPageDescription(activeThankYouPageComponent?.index || 0, e.target.value)}
                         />
                     ) : (

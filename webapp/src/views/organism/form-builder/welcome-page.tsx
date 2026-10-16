@@ -39,7 +39,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                                 placeholder="Add description"
                                 style={{ resize: 'none' }}
                                 value={description}
-                                className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-none"
+                                className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-hidden"
                                 onChange={(e: any) => setDescription(e.target.value)}
                             />
                         </>

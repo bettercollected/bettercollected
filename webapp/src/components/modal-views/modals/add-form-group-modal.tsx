@@ -47,7 +47,7 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
         <div className="relative rounded-[8px] bg-white p-10 md:w-[658px]">
             <ModalCloseButton onClick={closeModal} className="absolute right-2 top-2 h-8 w-8" />
             <h4 className="h4">{t(buttonConstant.addForm)}</h4>
-            <p className="body4 !text-black-700 mb-8  mt-2">{t(groupConstant.form.description)}</p>
+            <p className="body4 text-black-700! mb-8  mt-2">{t(groupConstant.form.description)}</p>
             {forms && (
                 <div className="mb-6 mt-5">
                     <Popover open={open} onOpenChange={setOpen}>

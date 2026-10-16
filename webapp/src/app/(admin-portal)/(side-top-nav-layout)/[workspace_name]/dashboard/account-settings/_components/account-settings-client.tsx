@@ -33,8 +33,8 @@ export default function AccountSettingsClient() {
             <div className="mt-[30px] flex gap-4 mb-10">
                 <AuthAccountProfileImage size={80} image={authStatus.profileImage} name={displayName} />
                 <div className="flex flex-col gap-2 justify-center">
-                    <p className="h4 !leading-none">{displayName}</p>
-                    {hasName && <p className="body4 text-black-700 !leading-none">{authStatus.email}</p>}
+                    <p className="h4 leading-none!">{displayName}</p>
+                    {hasName && <p className="body4 text-black-700 leading-none!">{authStatus.email}</p>}
                 </div>
             </div>
             <div className="flex flex-col gap-6">
@@ -45,7 +45,7 @@ export default function AccountSettingsClient() {
                 <div className="my-6">
                     <Button
                         variant="ghost"
-                        className="bg-red-100 px-4 !leading-none py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm !text-red-500"
+                        className="bg-red-100 px-4 leading-none! py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm text-red-500!"
                         onClick={() => {
                             openBottomSheetModal('DELETE_ACCOUNT');
                         }}

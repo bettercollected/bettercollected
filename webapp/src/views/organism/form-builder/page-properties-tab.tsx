@@ -178,8 +178,8 @@ export default function PagePropertiesTab({ }: {}) {
                             <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email} className="flex flex-col items-center gap-1">
                                 <div
                                     className={cn(
-                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-lg border p-2 transition-colors hover:border-[#2456CC] hover:bg-[#F4F7FD]',
-                                        layout && layout === item.style ? 'border-[#2456CC] bg-[#F4F7FD] shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 bg-white'
+                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-lg border p-2 transition-colors hover:border-brand-500 hover:bg-[#F4F7FD]',
+                                        layout && layout === item.style ? 'border-brand-500 bg-[#F4F7FD] shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 bg-white'
                                     )}
                                     onClick={() => handleSlideLayoutChange(activeSlideComponent?.id, item.style)}
                                 >
@@ -284,7 +284,7 @@ export default function PagePropertiesTab({ }: {}) {
                         <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" src={slide.imageUrl} alt={' image'} height={0} width={0} priority />
                     </div>
                 ) : (
-                    <div className="border-black-300 hover:bg-black-300 cursor-pointer rounded border-[1px] p-1" onClick={handleClickMedia}>
+                    <div className="border-black-300 hover:bg-black-300 cursor-pointer rounded border p-1" onClick={handleClickMedia}>
                         <PlusIcon className="h-4 w-4" />
                     </div>
                 )}
@@ -326,7 +326,7 @@ export default function PagePropertiesTab({ }: {}) {
                                                 title="Field width (12-column grid)"
                                                 value={String(Math.min(12, Math.max(1, field?.properties?.colSpan ?? 12)))}
                                                 onChange={(e) => updateFieldColSpan(field.index, activeSlideComponent.index, Number(e.target.value))}
-                                                className="border-black-300 text-black-700 hover:border-black-400 h-5 cursor-pointer rounded border bg-white px-0.5 text-[10px] outline-none"
+                                                className="border-black-300 text-black-700 hover:border-black-400 h-5 cursor-pointer rounded border bg-white px-0.5 text-[10px] outline-hidden"
                                             >
                                                 <option value="12">Full</option>
                                                 <option value="8">2/3</option>

@@ -60,7 +60,7 @@ export default function RespondersGroupsLayoutClient({ children, workspaceName }
                             className={cn(
                                 'flex items-center px-1 py-4 text-sm font-medium border-b-2 transition-colors duration-200 mb-[-1px]',
                                 isActive
-                                    ? 'border-[#2456CC] text-[#2456CC]'
+                                    ? 'border-brand-500 text-brand-500'
                                     : 'border-transparent text-black-600 hover:text-black-800'
                             )}
                         >

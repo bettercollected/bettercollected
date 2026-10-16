@@ -94,7 +94,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         <div className="w-full">
             <form className={`w-full ${isModal ? 'mt-16' : ''}`} onSubmit={handleEmailInputForCreator}>
                 {loginErrorMessage && (
-                    <p role="alert" className="body4 mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 !text-red-700">
+                    <p role="alert" className="body4 mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700!">
                         {loginErrorMessage}
                     </p>
                 )}
@@ -114,14 +114,14 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
                         </div>
                         <div className="my-10 flex w-full items-center gap-4 pt-8">
                             <Separator className="flex-1 shrink-0 bg-black-200" />
-                            <span className="body4 whitespace-nowrap !text-black-700">{constants.orSignInUsing}</span>
+                            <span className="body4 whitespace-nowrap text-black-700!">{constants.orSignInUsing}</span>
                             <Separator className="flex-1 shrink-0 bg-black-200" />
                         </div>
                     </>
                 )}
 
                 <p className="mb-3 mt-[44px] text-base font-semibold text-black-900">{constants.emailInputLabel}</p>
-                <Input autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="!text-base lg:!text-base" />
+                <Input autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
                 <Button type="submit" variant="primary" isLoading={isLoading} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
                     {constants.sendCodeButton}
                 </Button>

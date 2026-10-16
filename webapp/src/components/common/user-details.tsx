@@ -16,7 +16,7 @@ export default function UserDetails({ user }: IUserDetailsProps) {
             <AuthAccountProfileImage image={user.profileImage} name={displayName} size={40} />
             <div className="flex flex-col">
                 <div className="body3">{displayName}</div>
-                {displayName !== user.email && <div className="body5 !text-black-600">{user.email}</div>}
+                {displayName !== user.email && <div className="body5 text-black-600!">{user.email}</div>}
             </div>
         </div>
     );

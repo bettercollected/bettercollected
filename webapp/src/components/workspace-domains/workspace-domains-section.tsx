@@ -228,7 +228,7 @@ export default function WorkspaceDomainsSection() {
                             setDraft(e.target.value);
                             setClaimError(null);
                         }}
-                        className="h-10 w-full rounded-md border border-black-300 bg-white px-3.5 text-sm text-black-900 outline-none transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)] sm:max-w-[360px]"
+                        className="h-10 w-full rounded-md border border-black-300 bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)] sm:max-w-[360px]"
                     />
                     <Button type="submit" size="sm" variant="primary" isLoading={isClaiming} disabled={!draft.trim()}>
                         Add domain

@@ -54,8 +54,8 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
                     <Image height={72} width={72} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
                 ) : (
                     <>
-                        <Camera className="!text-white" />
-                        <h1 className="p4-new !text-white">{t('WORKSPACE.SETTINGS.DETAILS.ADD_LOGO')}</h1>
+                        <Camera className="text-white!" />
+                        <h1 className="p4-new text-white!">{t('WORKSPACE.SETTINGS.DETAILS.ADD_LOGO')}</h1>
                     </>
                 )}
             </div>
@@ -66,7 +66,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
                         top: dropdownTopPosition
                     }}
                 >
-                    <div className="flex justify-between !font-semibold mb-4">
+                    <div className="flex justify-between font-semibold! mb-4">
                         <h1 className="body1 text-black-900">Logo</h1>
                         <Close
                             onClick={() => {
@@ -79,7 +79,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
                         <span className="text-black-100 text-xs sm:text-sm">{t('LOGO.UPDATE')}</span>
                     </label>
                     {showRemove && (
-                        <Button className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onRemoveLogo}>
+                        <Button className="text-black-900! font-semibold bg-black-300! hover:bg-black-400! " onClick={onRemoveLogo}>
                             {t('LOGO.REMOVE')}
                         </Button>
                     )}

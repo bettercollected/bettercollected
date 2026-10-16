@@ -258,7 +258,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
-                                className=" w-fit !bg-inherit"
+                                className=" w-fit bg-inherit!"
                                 style={{
                                     background: standardForm?.theme?.accent
                                 }}
@@ -312,7 +312,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                                     });
                                                 }}
                                                 type="checkbox"
-                                                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-none"
+                                                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-hidden"
                                             />
                                             <span className="flex flex-col gap-0.5">
                                                 <span className="text-black-900 text-[15px] font-medium leading-relaxed">Share my email with the form collector</span>

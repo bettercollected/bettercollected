@@ -26,7 +26,7 @@ export default function ModalCloseButton({ onClick, className, iconClassName, la
             type="button"
             onClick={onClick}
             aria-label={label ?? t(buttonConstant.close)}
-            className={cn('flex items-center justify-center rounded-md text-black-700 hover:bg-black-200 hover:text-black-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500', className)}
+            className={cn('flex items-center justify-center rounded-md text-black-700 hover:bg-black-200 hover:text-black-900 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500', className)}
         >
             <Close aria-hidden="true" className={cn('h-4 w-4', iconClassName)} />
         </button>

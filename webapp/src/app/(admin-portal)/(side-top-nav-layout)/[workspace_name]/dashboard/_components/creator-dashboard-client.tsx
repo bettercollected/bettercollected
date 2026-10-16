@@ -103,7 +103,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                     onClick={() => setSettingsViewOpen(!settingsViewOpen)}
                     className={cn(
                         'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                        settingsViewOpen ? 'bg-[#E9EFFC] text-[#2456CC]' : 'text-black-600 hover:text-black-900 hover:bg-black-100'
+                        settingsViewOpen ? 'bg-brand-100 text-brand-500' : 'text-black-600 hover:text-black-900 hover:bg-black-100'
                     )}
                 >
                     <Settings className="h-[18px] w-[18px]" />
@@ -143,8 +143,8 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                                     type="button"
                                     onClick={() => setActiveTab(tab.key)}
                                     className={cn(
-                                        'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors focus:outline-none',
-                                        isActive ? 'border-[#2456CC] text-black-900' : 'text-black-600 hover:text-black-900 border-transparent'
+                                        'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors focus:outline-hidden',
+                                        isActive ? 'border-brand-500 text-black-900' : 'text-black-600 hover:text-black-900 border-transparent'
                                     )}
                                 >
                                     {tab.icon}
@@ -153,7 +153,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                             );
                         })}
                     </div>
-                    <div className="mt-4 min-w-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
+                    <div className="mt-4 min-w-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:scrollbar-gutter-stable">
                         {activeTab === 'forms' && <WorkspaceFormsTabContent workspace={workspace} publicBaseUrl={publicUrl} />}
                         {activeTab === 'my-submissions' && <WorkspaceResponsesTabContent workspace={workspace} />}
                         {activeTab === 'deletion-requests' && <WorkspaceResponsesTabContent workspace={workspace} deletionRequests />}

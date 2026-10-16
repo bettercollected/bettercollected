@@ -78,7 +78,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                     upgrade has no expiry in code, so the 90-day line was a
                     surprise waiting to be discovered (Design-Language §5). */}
                 <div className="h2-new mb-2 text-center">
-                    bettercollected PRO is <span className="text-[#2456CC]">currently free</span>
+                    bettercollected PRO is <span className="text-brand-500">currently free</span>
                 </div>
                 <div className="p2-new text-black-700 max-w-[426px] text-center">No card needed and nothing is charged. Tell us what PRO would be worth to you — future pricing will be based on these suggestions.</div>
                 {/* An owner who isn't the billing owner upgrades only their
@@ -96,7 +96,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                 }}
                                 className={cn(
                                     'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-500 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
-                                    price === activeSuggestion && 'shadow-suggestion-price !text-black-800 bg-white'
+                                    price === activeSuggestion && 'shadow-suggestion-price text-black-800! bg-white'
                                 )}
                             >
                                 ${price}
@@ -114,7 +114,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                             onChange={(event) => {
                                 setCustomPrice(event.target.value);
                             }}
-                            className={cn('placeholder-black-500 w-[82px] rounded-r-lg border-0 bg-white !p-2 text-left text-sm font-medium outline-none')}
+                            className={cn('placeholder-black-500 w-[82px] rounded-r-lg border-0 bg-white p-2! text-left text-sm font-medium outline-hidden')}
                             placeholder="Amount"
                         />
                     </div>

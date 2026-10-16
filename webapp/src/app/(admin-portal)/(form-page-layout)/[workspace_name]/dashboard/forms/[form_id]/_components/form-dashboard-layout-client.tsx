@@ -135,7 +135,7 @@ export default function FormDashboardLayoutClient({
     }
 
     return (
-        <TopNavLayout isCustomDomain={false} isClientDomain={false} showNavbar={true} workspaceIdentity hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0" navContainerClassName="px-4 md:px-10 lg:px-28">
+        <TopNavLayout isCustomDomain={false} isClientDomain={false} showNavbar={true} workspaceIdentity hideMenu={false} showAuthAccount={true} className="flex w-full flex-col bg-white! p-0!" navContainerClassName="px-4 md:px-10 lg:px-28">
             <div className="my-2 w-full">
                 <div className="mt-6 flex flex-col gap-1 sm:mt-12">
                     <FormPageLayer className="px-4 md:px-10 lg:px-28">
@@ -155,7 +155,7 @@ export default function FormDashboardLayoutClient({
                                     <Button
                                         icon={<Edit2 className="h-5 w-5" />}
                                         variant="v2Button"
-                                        className="!px-0 sm:!px-5"
+                                        className="px-0! sm:px-5!"
                                         onClick={() => {
                                             router.push(getEditFormURL(workspace, form));
                                         }}
@@ -168,7 +168,7 @@ export default function FormDashboardLayoutClient({
                                         <Button
                                             variant="primary"
                                             icon={<Share2 className="h-5 w-5" />}
-                                            className="!bg-[#2456CC] hover:!bg-[#1E49AD] !px-0 text-white sm:!px-5"
+                                            className="bg-brand-500! hover:bg-[#1E49AD]! px-0! text-white sm:px-5!"
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
@@ -239,7 +239,7 @@ export default function FormDashboardLayoutClient({
                                     <Link key={tab.path} data-tab-active={isActive} href={`/${params.workspace_name}/dashboard/forms/${params.form_id}/${tab.path}`} className={cn(
                                         'flex items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm',
                                         isActive
-                                            ? 'border-[#2456CC] text-black-900 font-semibold'
+                                            ? 'border-brand-500 text-black-900 font-semibold'
                                             : 'text-black-600 hover:text-black-900 border-transparent font-medium'
                                     )}>
                                         {tab.title}

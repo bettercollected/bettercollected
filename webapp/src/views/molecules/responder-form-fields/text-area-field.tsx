@@ -82,7 +82,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                     onChange={(e) => setInputVal(e.target.value)}
                     // leaving the field (e.g. to click Submit) must not wait for the debounce
                     onBlur={() => commit(inputVal)}
-                    className="rounded-md border px-4 py-3 text-base leading-normal outline-none transition-shadow lg:text-lg"
+                    className="rounded-md border px-4 py-3 text-base leading-normal outline-hidden transition-shadow lg:text-lg lg:leading-7"
                     style={{
                         resize: 'none'
                     }}

@@ -72,7 +72,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                                 }, 200);
                             }
                         }}
-                        className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border-[1px]"
+                        className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border"
                     >
                         <span>{index}</span>
                     </StyledRatingButton>

@@ -24,7 +24,7 @@ const MediaItem = ({ media, updatePageImage }: { media: MediaLibrary; updatePage
         <div className="group relative h-auto cursor-pointer overflow-hidden" key={media.mediaId}>
             <ImageWithLoader media={media} />
             <div
-                className="absolute inset-0 z-[1000] hidden h-full w-full items-end justify-center transition-all duration-300 group-hover:flex group-hover:bg-black/60 md:p-4"
+                className="absolute inset-0 z-1000 hidden h-full w-full items-end justify-center transition-all duration-300 group-hover:flex group-hover:bg-black/60 md:p-4"
                 onClick={() => {
                     updatePageImage(media.mediaUrl);
                     closeDialogModal();
@@ -32,7 +32,7 @@ const MediaItem = ({ media, updatePageImage }: { media: MediaLibrary; updatePage
             >
                 <span className="p4-new text-white">{media.mediaName}</span>
             </div>
-            <div className="invisible absolute right-2 top-2 z-[10000] group-hover:visible ">
+            <div className="invisible absolute right-2 top-2 z-10000 group-hover:visible ">
                 <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={() => handleDeleteMedia(media.mediaId)}>
                     <DeleteIcon width={14} height={14} />
                 </div>

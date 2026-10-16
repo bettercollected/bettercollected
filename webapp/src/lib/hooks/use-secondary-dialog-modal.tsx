@@ -50,7 +50,7 @@ const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
 const getClassName = (view?: DIALOG_MODALS) => {
     switch (view) {
         case 'DELETE_MEDIA':
-            return 'md:!w-[450px]';
+            return 'md:w-[450px]!';
     }
 };
 
@@ -71,7 +71,7 @@ export function SecondaryDialogModalContainer() {
                 closeSecondaryDialogModal();
             }}
         >
-            <DialogContent onClickCloseIcon={closeSecondaryDialogModal} className={cn('!bg-white !p-0 md:!min-w-[300px]', getClassName(view))}>
+            <DialogContent onClickCloseIcon={closeSecondaryDialogModal} className={cn('bg-white! p-0! md:min-w-[300px]!', getClassName(view))}>
                 {GetModalToRender(view, props)}
             </DialogContent>
         </Dialog>

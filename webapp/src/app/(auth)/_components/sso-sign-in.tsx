@@ -57,13 +57,13 @@ export default function SsoSignIn({ initialEmail, notice }: SsoSignInProps) {
                 Work email
             </label>
             {notice && (
-                <p role="status" className="body4 rounded-lg border border-[#F0D9B5] bg-[#FDF8EF] px-4 py-3 !text-black-800">
+                <p role="status" className="body4 rounded-lg border border-[#F0D9B5] bg-[#FDF8EF] px-4 py-3 text-black-800!">
                     {notice}
                 </p>
             )}
-            <Input id="sso-email" type="email" required autoFocus placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="!text-base lg:!text-base" />
+            <Input id="sso-email" type="email" required autoFocus placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
             {errorMessage && (
-                <p role="alert" className="body4 !text-red-600">
+                <p role="alert" className="body4 text-red-600!">
                     {errorMessage}
                 </p>
             )}

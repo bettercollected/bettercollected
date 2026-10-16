@@ -149,7 +149,7 @@ export default function ThemesPage() {
                                     id="theme-name"
                                     value={editing.draft.title}
                                     placeholder="e.g. Acme brand"
-                                    className={`!text-sm ${nameError ? '!border-[#C43D3D]' : ''}`}
+                                    className={`text-sm! ${nameError ? 'border-[#C43D3D]!' : ''}`}
                                     onChange={(e) => {
                                         setNameError('');
                                         setEditing({ ...editing, draft: { ...editing.draft, title: e.target.value } });

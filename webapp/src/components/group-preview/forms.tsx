@@ -49,14 +49,14 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
         <div>
             <div className="flex items-center  mb-10 md:max-w-[618px]  justify-between">
                 <div className="flex flex-col gap-4">
-                    <p className="body1 !leading-none">
+                    <p className="body1 leading-none!">
                         {t(localesCommon.forms)} ({group.forms?.length})
                     </p>
-                    <p className="body4 leading-none   !text-black-700 ">{t(groupConstant.form.description)}</p>
+                    <p className="body4 leading-none   text-black-700! ">{t(groupConstant.form.description)}</p>
                 </div>
                 <Button disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} variant="ghost">
                     <Plus className="h-4 w-4" />
-                    <span className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</span>
+                    <span className="text-brand-500! min-w-[65px]  body6"> {t(buttonConstant.addForm)}</span>
                 </Button>
             </div>
             {group.forms.length > 0 && (

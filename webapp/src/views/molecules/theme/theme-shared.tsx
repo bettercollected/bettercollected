@@ -141,7 +141,7 @@ export function styleTokens(style?: ThemeStyle) {
         case 'sheet':
             return {
                 key: 'sheet' as const,
-                labelClass: 'font-serif text-[17px] font-medium leading-snug lg:text-lg',
+                labelClass: 'font-serif text-[17px] font-medium leading-snug lg:text-lg lg:leading-7',
                 inputRadius: '4px',
                 divider: true, // ruled rows, like a printed questionnaire
                 solidSelection: false
@@ -157,7 +157,7 @@ export function styleTokens(style?: ThemeStyle) {
         default:
             return {
                 key: 'classic' as const,
-                labelClass: 'text-base font-semibold leading-snug lg:text-lg',
+                labelClass: 'text-base font-semibold leading-snug lg:text-lg lg:leading-7',
                 inputRadius: '6px',
                 divider: false,
                 solidSelection: false
@@ -281,7 +281,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                             type="button"
                             aria-pressed={bg.pattern === pattern.key}
                             onClick={() => onChange({ ...bg, pattern: pattern.key })}
-                            className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-[#2456CC] shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 hover:border-black-400')}
+                            className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-brand-500 shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 hover:border-black-400')}
                         >
                             <span className="block h-8 w-full" style={themeBackgroundStyle({ ...theme, background: { type: 'pattern', pattern: pattern.key } })} aria-hidden="true" />
                             <span className="text-black-700 block bg-white py-1 text-[10px] font-medium">{pattern.label}</span>
@@ -298,7 +298,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                         placeholder="https://…"
                         value={bg.imageUrl ?? ''}
                         onChange={(e) => onChange({ ...bg, imageUrl: e.target.value.trim() })}
-                        className="border-black-300 text-black-800 placeholder:text-black-400 focus:border-brand-500 w-full rounded-md border bg-white px-2.5 py-1.5 text-xs outline-none"
+                        className="border-black-300 text-black-800 placeholder:text-black-400 focus:border-brand-500 w-full rounded-md border bg-white px-2.5 py-1.5 text-xs outline-hidden"
                     />
                     <p className="text-black-500 text-[11px] leading-relaxed">Paste an image address. The background colour shows while it loads.</p>
                 </div>

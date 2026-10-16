@@ -71,7 +71,7 @@ export default function ProfileImageComponent(props: { workspace: any; isFormCre
                 </div>
                 {selectedFile && isFormCreator && (
                     <div className="flex justify-between mt-2">
-                        <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" onClick={onClickCancelButton}>
+                        <Button className="text-white! flex bg-black-600! hover:bg-black-700! mr-2" onClick={onClickCancelButton}>
                             {t(buttonConstant.cancel)}
                         </Button>
                         <Button isLoading={isLoading} onClick={onClickSaveButton}>

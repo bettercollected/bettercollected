@@ -6,7 +6,7 @@ import WorkspaceSettingsContent from '@Components/workspace/workspace-settings-c
 // Workspace frame, rendering the same WorkspaceSettingsContent.
 export default function WorkspaceSettingsModal({ initialIndex = 0 }: { initialIndex?: number }) {
     return (
-        <BottomSheetModalWrapper className="!px-0 pb-10">
+        <BottomSheetModalWrapper className="px-0! pb-10">
             <WorkspaceSettingsContent initialIndex={initialIndex} />
         </BottomSheetModalWrapper>
     );

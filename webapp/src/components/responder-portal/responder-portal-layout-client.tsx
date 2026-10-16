@@ -77,7 +77,7 @@ export default function ResponderPortalLayoutClient({
         // only the central content column scrolls, the tab bar stays affixed,
         // and a stable scrollbar gutter stops the layout flicker that used to
         // happen the moment content grew past a screenful.
-        <div className={`max-w-screen !bg-[#F6F8FC] flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? '!pb-20' : ''}`}>
+        <div className={`max-w-screen bg-[#F6F8FC]! flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? 'pb-20!' : ''}`}>
             <div className="max-w-screen w-full md:max-h-full md:w-[320px] md:max-w-[320px] md:overflow-y-auto">
                 <WorkspaceDetailsCard workspace={workspace} />
                 {!auth.id && !auth.isLoading && (
@@ -109,10 +109,10 @@ export default function ResponderPortalLayoutClient({
                                     <Disclosure.Button className="flex w-full cursor-pointer items-center justify-between gap-2 p-4">
                                         <div className="flex gap-2">
                                             <AuthAccountProfileImage size={36} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
-                                            <div className="!text-black-700 flex flex-col justify-center gap-2 pr-1 text-start">
-                                                <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
+                                            <div className="text-black-700! flex flex-col justify-center gap-2 pr-1 text-start">
+                                                <span className="body6 leading-none!">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
                                                 {/* Only repeat the email when the first line is a real name. */}
-                                                {!!getFullNameFromUser(auth)?.trim() && getFullNameFromUser(auth)?.trim() !== auth?.email && <span className="body5 !leading-none">{auth?.email} </span>}
+                                                {!!getFullNameFromUser(auth)?.trim() && getFullNameFromUser(auth)?.trim() !== auth?.email && <span className="body5 leading-none!">{auth?.email} </span>}
                                             </div>
                                         </div>
                                         <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
@@ -153,7 +153,7 @@ export default function ResponderPortalLayoutClient({
                     </a>
                 )}
             </div>
-            <div className="flex flex-1 flex-col !pb-4 md:min-h-0 md:min-w-0 md:pl-12">
+            <div className="flex flex-1 flex-col pb-4! md:min-h-0 md:min-w-0 md:pl-12">
                 <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
                     {tabs.map((tab) => {
                         const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
@@ -162,9 +162,9 @@ export default function ResponderPortalLayoutClient({
                                 key={tab.path}
                                 href={`${basePath}/${tab.path}`}
                                 className={cn(
-                                    'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-none',
+                                    'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-hidden',
                                     isActive
-                                        ? 'text-black-900 border-b-2 border-[#2456CC]'
+                                        ? 'text-black-900 border-b-2 border-brand-500'
                                         : 'text-black-600 hover:text-black-900 hover:border-black-300'
                                 )}
                             >
@@ -177,7 +177,7 @@ export default function ResponderPortalLayoutClient({
                 <div className="mt-4 flex flex-col gap-6 md:min-h-0 md:flex-1">
                     {/* Only the content column scrolls; the sidebar column
                         (identity + receipt search) stays put. */}
-                    <div className="min-w-0 flex-1 md:min-h-0 md:overflow-y-auto md:[scrollbar-gutter:stable]">{children}</div>
+                    <div className="min-w-0 flex-1 md:min-h-0 md:overflow-y-auto md:scrollbar-gutter-stable">{children}</div>
                 </div>
             </div>
             <div className="lg:hidden">

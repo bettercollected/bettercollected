@@ -83,7 +83,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <div className={cn('!text-black-900 body3 truncate', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')}>
+            <div className={cn('text-black-900! body3 truncate', !requestForDeletion && 'hover:text-brand-500! cursor-pointer hover:underline')}>
                 {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
             </div>
@@ -100,7 +100,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <div className="!text-black-900 body3 truncate">
+            <div className="text-black-900! body3 truncate">
                 {response?.formTitle ?? 'Untitled'}
             </div>
         </div>
@@ -146,7 +146,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     {canReadResponses && (
                     <Button
                         variant="ghost"
-                        className="!px-2"
+                        className="px-2!"
                         onClick={() => {
                             triggerSingleResponse({
                                 workspace_id: workspace?.id ?? '',
@@ -161,7 +161,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     </Button>
                     )}
                     {canDeleteResponses && (
-                    <Button variant="dangerGhost" className="!px-2" onClick={() => openConfirmModal('DELETE_RESPONSE', { workspace, formId: response.formId, responseId: response.responseId })}>
+                    <Button variant="dangerGhost" className="px-2!" onClick={() => openConfirmModal('DELETE_RESPONSE', { workspace, formId: response.formId, responseId: response.responseId })}>
                         Delete response
                     </Button>
                     )}
@@ -172,7 +172,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         return (
             <div className="truncate">
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
-                    <Button variant="ghost" className="!p-0">
+                    <Button variant="ghost" className="p-0!">
                         {t(localesCommon.goToResponse)}
                         <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
                     </Button>
@@ -274,7 +274,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             return (
                 <>
                     <DataTable
-                        // className="p-0 mt-2 h-full !overflow-auto"
+                        // className="p-0 mt-2 h-full overflow-auto!"
                         columns={dataTableResponseColumns}
                         data={submissions.items || []}
                         customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}

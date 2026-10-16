@@ -41,7 +41,7 @@ export default function FeedbackStatusesEditor({ statuses, onSave }: FeedbackSta
                 <div key={index} className="flex items-center gap-2">
                     <AppInput
                         aria-label={`Status ${index + 1}`}
-                        className="w-full max-w-[320px] !text-sm"
+                        className="w-full max-w-[320px] text-sm!"
                         maxLength={MAX_FEEDBACK_STATUS_LENGTH}
                         value={item}
                         onChange={(e) => setItems((prev) => prev.map((value, i) => (i === index ? e.target.value : value)))}

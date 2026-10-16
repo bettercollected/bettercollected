@@ -93,7 +93,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
             <Separator />
             <div className=" h-full drop-shadow-xl lg:mx-10 lg:py-10 lg:pb-24 ">
                 {isDesktopView ? (
-                    <div className={`relative flex aspect-video max-w-full flex-col gap-2 lg:mx-auto lg:!max-h-full ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
+                    <div className={`relative flex aspect-video max-w-full flex-col gap-2 lg:mx-auto lg:max-h-full! ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
                         {children}
                         {/* Preview must show exactly what responders will see —
                             including the trust strip. Hiding it here would make
@@ -103,13 +103,13 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         </div>
                     </div>
                 ) : (
-                    <div className="relative mx-auto aspect-[9/16] h-full rounded-lg drop-shadow-xl">
+                    <div className="relative mx-auto aspect-9/16 h-full rounded-lg drop-shadow-xl">
                         <iframe
                             onLoad={() => {
                                 setIFrameLoaded(true);
                             }}
                             key={key.toString()}
-                            className="absolute inset-0 aspect-[9/16] h-full"
+                            className="absolute inset-0 aspect-9/16 h-full"
                             title="responder-mobile-view"
                             src={mobileViewPreviewUrl}
                         />

@@ -148,7 +148,7 @@ const WorkspaceNameInputHandler = ({ formData, setFormData, handleOnChange, crea
                         {errorMessage}
                     </div>
                     {workspaceNameSuggestion && (
-                        <div className={'flex items-center flex-wrap !mt-2'}>
+                        <div className={'flex items-center flex-wrap mt-2!'}>
                             <p className={'text-sm'}>{t(onBoarding.workspaceNameAvailable)}: &nbsp; </p>
                             <p
                                 className={'text-sm font-semibold text-blue-500 cursor-pointer'}

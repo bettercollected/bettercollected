@@ -44,8 +44,8 @@ export default function WorkspaceSettingsContent({ initialIndex = 0, showUrlRow 
                             key={tab.path}
                             onClick={() => setActiveTab(tab.path)}
                             className={cn(
-                                'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer whitespace-nowrap border-b-2 transition-colors focus:outline-none',
-                                isActive ? 'border-[#2456CC] text-black-900' : 'text-black-600 hover:text-black-800 border-transparent'
+                                'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer whitespace-nowrap border-b-2 transition-colors focus:outline-hidden',
+                                isActive ? 'border-brand-500 text-black-900' : 'text-black-600 hover:text-black-800 border-transparent'
                             )}
                         >
                             {tab.title}

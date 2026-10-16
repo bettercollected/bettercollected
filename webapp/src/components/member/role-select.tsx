@@ -26,12 +26,12 @@ export default function RoleSelect({ value, onChange, disabled, ariaLabel, class
                 <SelectValue />
             </SelectTrigger>
             {/* As wide as the trigger (never narrower, or descriptions are clipped), at least wide enough to read them, never wider than the screen. */}
-            <SelectContent className="w-[var(--radix-select-trigger-width)] min-w-[280px] max-w-[calc(100vw-2rem)] bg-white">
+            <SelectContent className="w-(--radix-select-trigger-width) min-w-[280px] max-w-[calc(100vw-2rem)] bg-white">
                 {roles.map((role) => (
                     <SelectPrimitive.Item
                         key={role}
                         value={role}
-                        className="relative flex w-full cursor-pointer select-none flex-col items-start rounded-sm py-2 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 focus:bg-black-100"
+                        className="relative flex w-full cursor-pointer select-none flex-col items-start rounded-sm py-2 pl-8 pr-2 text-sm outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 focus:bg-black-100"
                     >
                         <span className="absolute left-2 top-2.5 flex h-3.5 w-3.5 items-center justify-center">
                             <SelectPrimitive.ItemIndicator>

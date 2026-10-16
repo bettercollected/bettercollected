@@ -36,7 +36,7 @@ export default function RespondentFeedbackSection({ feedback, workspaceTitle }: 
                                     Status: <FeedbackStatusChip status={entry.status} />
                                 </span>
                             )}
-                            {entry.message && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-black-900">{entry.message}</p>}
+                            {entry.message && <p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-black-900">{entry.message}</p>}
                         </li>
                     ))}
                 </ol>

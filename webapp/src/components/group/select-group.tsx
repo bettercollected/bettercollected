@@ -161,14 +161,14 @@ const SelectGroup = () => {
         <div className={'flex w-full flex-col gap-12'}>
             <div className={'flex flex-row justify-between'}>
                 <div className={'flex flex-col gap-3 md:w-[660px]'}>
-                    <h1 className={'h2-new !text-black-800'}>Select Group</h1>
+                    <h1 className={'h2-new text-black-800!'}>Select Group</h1>
                     <p className={'text-black-700 text-sm font-normal'}>Only members of the specific groups be able to see the form. You can also create groups with whom you want to share this form.</p>
                 </div>
                 <Button variant="secondary" onClick={() => openBottomSheetModal('CREATE_GROUP')} icon={<GroupIcon className={'text-white'} />} size="medium">
                     Create New Group
                 </Button>
             </div>
-            <DataTable className="mt-2 h-full !overflow-auto p-0" columns={groupColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+            <DataTable className="mt-2 h-full overflow-auto! p-0" columns={groupColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
             <div className={'flex flex-row'}>
                 <Button className="" onClick={handleOnSave} icon={<SaveIcon className={'text-white'} />} size="medium">
                     Save Changes
