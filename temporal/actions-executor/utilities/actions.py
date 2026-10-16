@@ -25,6 +25,7 @@ from utilities.form import (
     get_questions_and_answers,
     sheet_title_for,
 )
+from utilities.mail import response_mail_context
 from settings.application import settings
 
 
@@ -153,12 +154,12 @@ async def run_action(
             subject=subject,
             recipients=recipient,
             subtype=MessageType.html,
-            template_body={
-                "form": get_simple_form_response(),
-                "creator_mail": creator_mail,
-                "title": form.get("welcome_page", {}).get("title", "Untitled Form"),
-                "description": form.get("welcome_page", {}).get("description", ""),
-            },
+            template_body=response_mail_context(
+                fields=get_simple_form_response(),
+                creator_mail=creator_mail,
+                title=form.get("welcome_page", {}).get("title", "Untitled Form"),
+                description=form.get("welcome_page", {}).get("description", ""),
+            ),
         )
         fast_mail = FastMail(mail_config)
         asyncio.ensure_future(

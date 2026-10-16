@@ -7,6 +7,7 @@ appears in the body, on one line, capped and HTML-escaped.
 """
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlsplit
@@ -53,7 +54,9 @@ def is_sender_name(title: Optional[str]) -> bool:
 
 
 def render(template_name: str, **context) -> str:
-    """A mail body from ``templates/``; every value is HTML-escaped."""
+    """A mail body from ``templates/``; every value is HTML-escaped. The
+    footer's copyright year is the year the mail is sent."""
+    context.setdefault("year", datetime.now(timezone.utc).year)
     return _environment.get_template(template_name).render(**context)
 
 

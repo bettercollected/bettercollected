@@ -5,6 +5,7 @@ and HTML-escaped. A caller-supplied image is shown only from this instance's
 storage."""
 
 import re
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -288,3 +289,18 @@ class TestMailBranding:
         code = re.search(r'<span style="([^"]*)">482913</span>', body)
         assert code and "'JetBrains Mono'" in code.group(1)
         assert "letter-spacing" in code.group(1)
+
+    @pytest.mark.parametrize(
+        "template", ["verification_code.html", "invitation_mail.html"]
+    )
+    def test_copyright_year_is_the_year_the_mail_is_sent(self, template):
+        year = datetime.now(timezone.utc).year
+        body = mail_service.render(template, **self.CONTEXT[template])
+        assert f"&copy; {year} Sireto B.V. All rights reserved." in body
+        assert "Copyright 2024" not in body
+
+    @pytest.mark.asyncio
+    async def test_sent_mails_carry_the_year(self):
+        year = datetime.now(timezone.utc).year
+        assert f"&copy; {year} Sireto B.V." in (await otp_mail("Acme")).body
+        assert f"&copy; {year} Sireto B.V." in (await invitation_mail("Acme")).body
