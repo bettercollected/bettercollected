@@ -32,7 +32,7 @@ export interface IFormState {
      */
     hiddenFields?: string[];
     /** Organisation logo settings; the file itself is uploaded on its own (utils/form-logo.ts). */
-    logoPosition?: 'left' | 'center';
+    logoPosition?: 'left' | 'center' | 'auto';
     logoAlt?: string;
     useWorkspaceLogo?: boolean;
 }

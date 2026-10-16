@@ -199,7 +199,7 @@ export interface StandardFormDto {
     coverImage?: string;
     logo?: string;
     /** Organisation logo settings (utils/form-logo.ts). */
-    logoPosition?: 'left' | 'center';
+    logoPosition?: 'left' | 'center' | 'auto';
     logoAlt?: string;
     useWorkspaceLogo?: boolean;
     createdAt?: string;

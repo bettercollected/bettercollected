@@ -4,14 +4,21 @@
  * the form's logo endpoint and stored in our own storage; these are the
  * rules for showing it.
  */
+import { FormSlideLayout } from '@app/models/enums/form';
 
+/** Where the logo sits: on the column's left edge or centred on it. */
 export type LogoPosition = 'left' | 'center';
+/** The creator's setting: `auto` (and unset) follows the welcome page. */
+export type LogoPositionSetting = LogoPosition | 'auto';
 
 export interface FormLogoSettings {
     logo?: string | null;
-    logoPosition?: LogoPosition | null;
+    logoPosition?: LogoPositionSetting | null;
     logoAlt?: string | null;
     useWorkspaceLogo?: boolean | null;
+    /** For the automatic position: the welcome page's layout and the form's style. */
+    welcomePage?: { layout?: FormSlideLayout | string | null } | null;
+    theme?: { style?: string | null } | null;
 }
 
 export interface WorkspaceIdentity {
@@ -34,6 +41,18 @@ export const LOGO_MAX_BYTES = 1024 * 1024;
 export const LOGO_ALT_MAX_LENGTH = 150;
 
 /**
+ * The logo's position. An explicit Left or Centre wins; otherwise (unset or
+ * `auto`) it follows the welcome page: a centred welcome page centres the
+ * logo on every page of the form, anything else keeps it on the left. A
+ * Leaflet welcome page reads from one left edge, so the logo stays left.
+ */
+export function logoPositionFor(form: Pick<FormLogoSettings, 'logoPosition' | 'welcomePage' | 'theme'> | null | undefined): LogoPosition {
+    if (form?.logoPosition === 'left' || form?.logoPosition === 'center') return form.logoPosition;
+    if (form?.theme?.style === 'leaflet') return 'left';
+    return form?.welcomePage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND ? 'center' : 'left';
+}
+
+/**
  * What the logo strip shows, or null for no strip: the form's own logo, else
  * the workspace's profile image when the creator chose that. The alt text is
  * the creator's, else the organisation's (workspace's) name: a logo that is
@@ -48,7 +67,7 @@ export function resolveFormLogo(form: FormLogoSettings | null | undefined, works
     return {
         src,
         alt,
-        position: form?.logoPosition === 'center' ? 'center' : 'left',
+        position: logoPositionFor(form),
         fromWorkspace: !own
     };
 }

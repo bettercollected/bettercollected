@@ -389,8 +389,11 @@ form, in every style (`views/molecules/form/form-logo-strip.tsx`; rules in
   ending pages, 56px and 64px on the welcome page; at most 200px wide (260px
   from `sm`; 240px and 320px on the welcome page). Proportions kept
   (`object-fit: contain`), never drawn larger than the file itself.
-- **Position.** Left (the default) on the form column's left edge, or
-  centred on the column (keeping the account control's width free on both
+- **Position.** Automatic by default: the logo follows the welcome page,
+  centred on every page when the welcome page is centred, else on the left
+  (a Leaflet welcome page reads from one left edge, so left). The creator's
+  explicit Left (the form column's left edge) or Centre (centred on the
+  column) always wins. Centred, the logo keeps the account control's width free on both
   sides, so it stays centred and never runs under the control; a wide logo
   shrinks within its room). It follows the page's column: left-aligned pages,
   and the content half of the image layouts.
@@ -400,8 +403,13 @@ form, in every style (`views/molecules/form/form-logo-strip.tsx`; rules in
 - **Workspace logo.** With "Use workspace logo when the form has none"
   (off by default), a form without a logo of its own shows the workspace's
   profile image.
-- **Files.** PNG, JPEG or WebP only, recognised by their first bytes and
-  decoded once; at most 1 MB and 16–3000px on each side; never SVG. Stored
+- **Files.** PNG, JPEG or WebP only, recognised by their first bytes; at
+  most 1 MB and 16–3000px on each side; never SVG. The API never decodes an
+  upload: the isolated document sandbox decodes it, checks its size and
+  re-encodes it (PNG stays PNG, JPEG and WebP at quality 90) without its
+  metadata (EXIF and GPS, XMP, colour profiles, text), and only that
+  re-encoding is stored, with its real content type. Without the sandbox
+  the upload is refused, never decoded elsewhere. Stored
   in our own storage and served from there, so a respondent page makes no
   third-party request for it; a logo URL sent in a form body is ignored. A
   copy of a form, or a form made from a template, gets its own copy of the
@@ -412,7 +420,8 @@ form, in every style (`views/molecules/form/form-logo-strip.tsx`; rules in
   page has, so the privacy panel still opens by default only when Start
   stays in view with it open (`utils/panel-fit.ts`).
 - **Builder.** Design tab, "Organisation logo": upload with a preview,
-  Replace and Remove, Left or Centre, alt text, and the workspace-logo
+  Replace and Remove, Automatic (follows the welcome page), Left or Centre,
+  alt text, and the workspace-logo
   switch. The canvas shows the strip as respondents will see it.
 
 ## 10. Brand

@@ -25,7 +25,10 @@ export function useBuilderFormLogo(): ResolvedFormLogo | null {
             logo: form?.logo,
             logoPosition: formState.logoPosition ?? form?.logoPosition,
             logoAlt: formState.logoAlt ?? form?.logoAlt,
-            useWorkspaceLogo: formState.useWorkspaceLogo ?? form?.useWorkspaceLogo
+            useWorkspaceLogo: formState.useWorkspaceLogo ?? form?.useWorkspaceLogo,
+            // the automatic position follows the welcome page as it is being edited
+            welcomePage: formState.welcomePage ?? form?.welcomePage,
+            theme: formState.theme ?? form?.theme
         },
         workspace
     );

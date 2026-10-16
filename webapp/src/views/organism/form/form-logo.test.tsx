@@ -13,7 +13,7 @@ import { setForm } from '@app/store/forms/slice';
 import { useFormState } from '@app/store/jotai/form';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import { logoFileProblem, logoUploadError, resolveFormLogo } from '@app/utils/form-logo';
+import { logoFileProblem, logoPositionFor, logoUploadError, resolveFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
 
 import Form from './form';
@@ -72,6 +72,25 @@ describe('resolveFormLogo', () => {
 
     it("uses the creator's alt text and position", () => {
         expect(resolveFormLogo({ logo: LOGO, logoAlt: '  De Kroon  ', logoPosition: 'center' }, workspace)).toMatchObject({ alt: 'De Kroon', position: 'center' });
+    });
+
+    it('follows the welcome page when the creator has not chosen a position', () => {
+        const centred = { layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND };
+        const leftAligned = { layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN };
+        expect(logoPositionFor({ welcomePage: centred })).toBe('center');
+        expect(logoPositionFor({ logoPosition: 'auto', welcomePage: centred })).toBe('center');
+        expect(logoPositionFor({ logoPosition: null, welcomePage: leftAligned })).toBe('left');
+        expect(logoPositionFor({ welcomePage: { layout: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT } })).toBe('left');
+        expect(logoPositionFor({})).toBe('left');
+        // a Leaflet welcome page reads from one left edge
+        expect(logoPositionFor({ welcomePage: centred, theme: { style: 'leaflet' } })).toBe('left');
+    });
+
+    it('lets an explicit Left or Centre win over the welcome page', () => {
+        const centred = { layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND };
+        expect(logoPositionFor({ logoPosition: 'left', welcomePage: centred })).toBe('left');
+        expect(logoPositionFor({ logoPosition: 'center', welcomePage: { layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN } })).toBe('center');
+        expect(resolveFormLogo({ logo: LOGO, welcomePage: centred }, workspace)?.position).toBe('center');
     });
 
     it('falls back to the workspace handle when the workspace has no title', () => {
@@ -195,6 +214,12 @@ describe('the logo on respondent pages', () => {
         expect(controls[0].className).not.toContain('absolute');
         // left: the logo's room and the control share the row, side by side
         expect(screen.getByTestId('form-logo-action').className).not.toContain('absolute');
+    });
+
+    it('centres the logo of a form with a centred welcome page when no position is chosen', () => {
+        loadForm({ logo: LOGO, welcomePage: { description: 'x', layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND } });
+        wrap(<Form isPreviewMode />);
+        expect(screen.getByTestId('form-logo-strip').getAttribute('data-logo-position')).toBe('center');
     });
 
     it('keeps a centred logo centred, with the control on the right edge and room kept for it', () => {

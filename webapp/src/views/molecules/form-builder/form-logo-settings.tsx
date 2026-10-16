@@ -12,9 +12,10 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useRemoveFormLogoMutation, useUploadFormLogoMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { LOGO_ACCEPT, LOGO_ALT_MAX_LENGTH, LogoPosition, logoFileProblem, logoUploadError, resolveFormLogo } from '@app/utils/form-logo';
+import { LOGO_ACCEPT, LOGO_ALT_MAX_LENGTH, LogoPositionSetting, logoFileProblem, logoPositionFor, logoUploadError, resolveFormLogo } from '@app/utils/form-logo';
 
-const POSITIONS: Array<{ key: LogoPosition; label: string }> = [
+const POSITIONS: Array<{ key: LogoPositionSetting; label: string }> = [
+    { key: 'auto', label: 'Automatic' },
     { key: 'left', label: 'Left' },
     { key: 'center', label: 'Centre' }
 ];
@@ -36,12 +37,14 @@ export default function FormLogoSettings() {
     const fileRef = useRef<HTMLInputElement>(null);
     const ids = { alt: useId(), altHint: useId(), toggle: useId(), status: useId() };
 
-    const position: LogoPosition = formState.logoPosition ?? form?.logoPosition ?? 'left';
+    // Unset is Automatic: the logo follows the welcome page's alignment.
+    const position: LogoPositionSetting = formState.logoPosition ?? form?.logoPosition ?? 'auto';
     const alt = formState.logoAlt ?? form?.logoAlt ?? '';
     const useWorkspaceLogo = formState.useWorkspaceLogo ?? form?.useWorkspaceLogo ?? false;
     const organisation = workspace?.title || workspace?.workspaceName || '';
     const settings = { logoPosition: position, logoAlt: alt, useWorkspaceLogo };
-    const shown = resolveFormLogo({ logo: form?.logo, ...settings }, workspace);
+    const followed = logoPositionFor({ welcomePage: formState.welcomePage, theme: formState.theme });
+    const shown = resolveFormLogo({ logo: form?.logo, ...settings, welcomePage: formState.welcomePage, theme: formState.theme }, workspace);
 
     const pick = async (file?: File) => {
         if (fileRef.current) fileRef.current.value = '';
@@ -77,7 +80,7 @@ export default function FormLogoSettings() {
             {/* What respondents will see, on the form's own page colour. */}
             <div
                 className="flex h-20 items-center rounded-md border border-black-300 px-3"
-                style={{ background: formState.theme?.style === 'leaflet' ? '#FFFFFF' : formState.theme?.accent || '#FFFFFF', justifyContent: position === 'center' ? 'center' : 'flex-start' }}
+                style={{ background: formState.theme?.style === 'leaflet' ? '#FFFFFF' : formState.theme?.accent || '#FFFFFF', justifyContent: shown?.position === 'center' ? 'center' : 'flex-start' }}
                 data-testid="form-logo-preview"
             >
                 {shown ? (
@@ -124,6 +127,11 @@ export default function FormLogoSettings() {
                         </button>
                     ))}
                 </div>
+                <p className="text-[11px] leading-relaxed text-black-600">
+                    {position === 'auto'
+                        ? `Automatic follows the welcome page: ${followed === 'center' ? 'it is centred, so the logo is centred on every page' : 'it is left-aligned, so the logo sits on the left on every page'}.`
+                        : 'Used on every page of the form.'}
+                </p>
             </div>
 
             <div className="flex flex-col gap-1.5">

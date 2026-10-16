@@ -884,7 +884,9 @@ class ThankYouPageField(BaseModel):
     imageUrl: Optional[str] = None
 
 
-LogoPosition = Literal["left", "center"]
+# "auto" (and unset) follow the welcome page: centred there, centred on every
+# page; left otherwise. "left"/"center" are the creator's explicit choice.
+LogoPosition = Literal["auto", "left", "center"]
 LOGO_ALT_MAX_LENGTH = 150
 
 
@@ -898,7 +900,8 @@ class StandardForm(BaseModel):
     # public URL in our own storage, set only through the logo upload (never
     # taken from a form body as is; see the backend's form_logo service).
     logo: Optional[str] = None
-    # Where the logo sits on the form column (default left), its alt text
+    # Where the logo sits on the form column (default: follows the welcome
+    # page's alignment), its alt text
     # (default: the workspace title), and whether a form without its own logo
     # shows the workspace's profile image instead (default off).
     logo_position: Optional[LogoPosition] = None
