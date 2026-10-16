@@ -1,6 +1,11 @@
 # Theme colors dictionary
 from common.models.standard_form import Theme
 
+# How a form can be dressed, independent of its colours. Same list as the
+# webapp's THEME_STYLES (webapp/src/constants/theme.ts); a parity test keeps
+# them together.
+THEME_STYLES = ("classic", "sheet", "studio", "leaflet")
+
 theme_dict = {
     # Same values as the webapp's Default preset (webapp/src/constants/theme.ts,
     # DESIGN.md §9), so AI-created forms match forms created in the builder.

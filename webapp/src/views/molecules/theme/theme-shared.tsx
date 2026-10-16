@@ -1,6 +1,7 @@
 import { CSSProperties } from 'react';
 
 import { FormTheme, ThemeBackground, ThemePattern, ThemeStyle } from '@app/constants/theme';
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { cn } from '@app/shadcn/util/lib';
 
 // Each editable colour, labelled by what it actually controls on the responder
@@ -55,6 +56,37 @@ export function themeBackgroundStyle(theme?: Partial<FormTheme>): CSSProperties 
 export const ThemePreview = ({ color }: { color: FormTheme }) => {
     const { primary, secondary, tertiary } = color;
     const tokens = styleTokens(color.style);
+    if (tokens.key === 'leaflet') {
+        // The Leaflet miniature: section bar with its serif numeral, a
+        // numbered question over a ruled option, and the button.
+        const serif = { fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 };
+        const { rule } = leafletColours(color);
+        return (
+            <div style={themeBackgroundStyle(color)} className="flex flex-col items-stretch pb-3" data-testid="theme-preview-leaflet">
+                <span className="flex items-baseline gap-2 px-4 py-1.5 text-white" style={{ background: secondary }}>
+                    <span className="text-[14px] leading-none" style={serif}>
+                        1
+                    </span>
+                    <span className="text-[12px] leading-tight" style={serif}>
+                        Section
+                    </span>
+                </span>
+                <span className="grid grid-cols-[20px_1fr] items-baseline px-4 pt-2 text-[12px] leading-tight font-semibold" style={{ color: primary }}>
+                    <span className="text-[11px]" style={{ ...serif, color: contrast(secondary, color.accent) >= 4.5 ? secondary : primary }}>
+                        1.1
+                    </span>
+                    Question
+                </span>
+                <span className="mx-4 ml-9 flex items-center gap-1.5 border-b py-1 text-[11px] leading-tight" style={{ borderColor: rule, color: primary }}>
+                    <span className="h-2.5 w-2.5 rounded-full border-[1.5px] bg-white" style={{ borderColor: tertiary }} aria-hidden="true" />
+                    Answer
+                </span>
+                <span style={{ background: secondary }} className="mt-2 ml-9 self-start rounded-[2px] px-2 py-0.5 text-[10px] leading-tight font-semibold text-white">
+                    Continue
+                </span>
+            </div>
+        );
+    }
     return (
         <div style={themeBackgroundStyle(color)} className="flex flex-col items-start gap-1.5 px-4 py-3">
             <span style={{ color: primary }} className={cn('text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold')}>
@@ -162,6 +194,16 @@ export function styleTokens(style?: ThemeStyle) {
                 ruledChoices: false,
                 numbered: false
             };
+        case 'leaflet':
+            return {
+                key: 'leaflet' as const,
+                labelClass: 'text-[18px] font-semibold leading-[1.4]',
+                inputRadius: '4px',
+                divider: false,
+                solidSelection: false,
+                ruledChoices: true, // options on 1px rules, standard controls
+                numbered: true // numbered section bars, n.m questions in a margin column
+            };
         default:
             return {
                 key: 'classic' as const,
@@ -213,14 +255,50 @@ export const REQUIRED_RED = '#C43D3D';
  * 4.2:1 on the tinted presets).
  */
 export function requiredMarkColour(theme?: Partial<FormTheme>): string {
+    if (theme?.style === 'leaflet') return leafletColours(theme).required;
     const accent = isHex(theme?.accent) ? theme!.accent : '#FFFFFF';
     return contrast(REQUIRED_RED, accent) >= 4.5 ? REQUIRED_RED : theme?.primary || '#101828';
+}
+
+/** Signal red for required markers in the Leaflet style. */
+export const LEAFLET_SIGNAL_RED = '#C8102E';
+
+/**
+ * The colours the Leaflet style derives from a theme's four roles, each held
+ * to the same contrast rules as the roles themselves:
+ *
+ * - `band`: the pale intro band, a tint of the secondary over the page, kept
+ *   light enough that the theme's ink reads at 7:1 or more on it;
+ * - `rule`: the 1px rules between options and under the header (separators,
+ *   not control edges: the radio and checkbox controls carry the tertiary at
+ *   full strength);
+ * - `required`: signal red where it reaches 4.5:1 on the page, else the ink.
+ */
+export function leafletColours(theme?: Partial<FormTheme>) {
+    const accent = isHex(theme?.accent) ? theme!.accent : '#FFFFFF';
+    const primary = isHex(theme?.primary) ? theme!.primary : '#101828';
+    const secondary = isHex(theme?.secondary) ? theme!.secondary : '#1649E2';
+    const tertiary = isHex(theme?.tertiary) ? theme!.tertiary : '#818CA0';
+    let band = accent;
+    for (const weight of [0.09, 0.07, 0.05, 0.03]) {
+        const candidate = mixHex(secondary, accent, weight);
+        if (contrast(primary, candidate) >= 7) {
+            band = candidate;
+            break;
+        }
+    }
+    return {
+        band,
+        rule: mixHex(tertiary, accent, 0.4),
+        required: contrast(LEAFLET_SIGNAL_RED, accent) >= 4.5 ? LEAFLET_SIGNAL_RED : primary
+    };
 }
 
 const STYLE_OPTIONS: Array<{ key: ThemeStyle; label: string; hint: string }> = [
     { key: 'classic', label: 'Classic', hint: 'Clean and quiet — the default.' },
     { key: 'sheet', label: 'Sheet', hint: 'Like a printed document: serif questions, ruled rows.' },
-    { key: 'studio', label: 'Studio', hint: 'Bold and graphic: heavy type, square edges.' }
+    { key: 'studio', label: 'Studio', hint: 'Bold and graphic: heavy type, square edges.' },
+    { key: 'leaflet', label: 'Leaflet', hint: 'Like a clear information leaflet: numbered sections, margin notes.' }
 ];
 
 /** Shared style picker for the theme editors (builder Design tab, Themes page). */

@@ -1,7 +1,11 @@
+import { useContext } from 'react';
+
 import parse from 'html-react-parser';
 import { AlertCircle } from 'lucide-react';
 
-import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
@@ -10,15 +14,14 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
-import { requiredMarkColour, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { isAnswerableField } from '@app/utils/leaflet-sections';
+import { contrast, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
-// Answer fields that V2InputFields (used elsewhere) leaves out; without them
-// these never showed their "Optional" marker.
-const ALSO_ANSWERABLE = [FieldTypes.LONG_TEXT, FieldTypes.LINK, FieldTypes.FILE_UPLOAD];
+import { QuestionNumberContext } from './question-number-context';
 
 export default function QuestionWrapper({ field, children, errorMessage }: { field: StandardFormFieldDto; children?: React.ReactNode; errorMessage?: string }) {
     const { formResponse } = useFormResponse();
@@ -36,7 +39,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // no one is nudged into answering something they could skip. Display-only
     // fields (statements, images) collect nothing, so they carry no marker.
     // (DESIGN.md §5: "Don't hide which fields are optional to coerce answers".)
-    const isAnswerable = field?.type ? V2InputFields.includes(field.type) || ALSO_ANSWERABLE.includes(field.type) : false;
+    const isAnswerable = isAnswerableField(field);
     const isRequired = !!field?.validations?.required;
     // A text block is content, not a question: it reads as body text (its
     // own headings keep their sizes), not in the question-label style.
@@ -54,28 +57,20 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // "Why we ask this": the creator's reason for an identifying question.
     const { t, language } = useRespondentLanguage();
     const whyWeAsk = field?.properties?.whyWeAsk?.trim();
+    // Leaflet: the question's n.m number, set in the margin column.
+    const numbering = useContext(QuestionNumberContext);
+    const number = numbering?.numbers[field.id];
+    const leaflet = tokens.key === 'leaflet';
+    // Numerals wear the action colour where it reads as text on the page, else the ink.
+    const numberColour = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
-    return (
-        <div
-            className={`relative flex flex-col gap-1 lg:gap-2 ${tokens.divider ? 'border-b pb-7' : ''}`}
-            style={tokens.divider ? { borderColor: (theme?.tertiary ?? '#818CA0') + '40' } : undefined}
-            id={field.id}
-            // Give assistive tech an accessible name/description for the field.
-            // Answerable fields become a labelled group so the question (and any
-            // description / validation message) is announced with the control.
-            {...(isAnswerable
-                ? {
-                      role: 'group',
-                      'aria-labelledby': `q-title-${field.id}`,
-                      'aria-describedby': [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, hasError ? `q-error-${field.id}` : null].filter(Boolean).join(' ') || undefined
-                  }
-                : {})}
-        >
+    const content = (
+        <>
             <div className="relative">
                 <div className="relative flex flex-wrap items-baseline gap-x-2.5">
                     {/* Labels: weight and contrast carry the hierarchy, not size
                         (ratified 2026-07-08 against the form-redesign mocks). */}
-                    <div id={`q-title-${field.id}`} className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`}>
+                    <div id={`q-title-${field.id}`} className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
                         {isAnswerable && isRequired && (
                             <>
@@ -95,9 +90,14 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                     </div>
                 )}
                 {whyWeAsk && (
-                    // The reason sits against a rule in the theme's border colour,
-                    // so it belongs to the form's palette, not the app's blue.
-                    <p id={`q-why-${field.id}`} className="text-black-700 mt-2 max-w-[62ch] border-l-2 pl-3 text-[14px] leading-relaxed" style={{ borderColor: theme?.tertiary ?? '#818CA0' }}>
+                    // The reason sits against a rule in the theme's border colour
+                    // (Leaflet: a 3px margin-note rule in the action colour), so
+                    // it belongs to the form's palette, not the app's blue.
+                    <p
+                        id={`q-why-${field.id}`}
+                        className={cn('mt-2 max-w-[62ch] text-[14px]', leaflet ? 'border-l-[3px] pl-2.5 leading-normal' : 'text-black-700 border-l-2 pl-3 leading-relaxed')}
+                        style={leaflet ? { borderColor: theme?.secondary, color: softInk(theme) } : { borderColor: theme?.tertiary ?? '#818CA0' }}
+                    >
                         <span className="font-semibold" style={{ color: theme?.primary }} lang={language}>
                             {t('QUESTION.WHY_WE_ASK')}
                         </span>{' '}
@@ -108,15 +108,55 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
             <RenderImage field={field} />
             {children}
             {/* Honest, non-alarmist validation: say what to do, not just that something is wrong,
-                and avoid alarm colours/urgency (DESIGN.md §5). */}
-            {/* The message is set in the theme's ink (amber text fell under
-                4.5:1 on the tinted presets); the icon in danger red marks it as
-                a problem without relying on the colour of the words. */}
+                and avoid alarm colours/urgency (DESIGN.md §5). The message is set in the
+                theme's ink (amber text fell under 4.5:1 on the tinted presets); the icon in
+                danger red marks it as a problem without relying on the colour of the words. */}
             {hasError && (
                 <div id={`q-error-${field.id}`} role="alert" className="mt-2 flex items-start gap-2 text-[15px] leading-snug font-medium" style={{ color: theme?.primary }}>
                     <AlertCircle className="mt-px h-[18px] w-[18px] shrink-0 text-[#C43D3D]" strokeWidth={2} aria-hidden="true" />
                     <span>{errorMessage || t('FIELD.ANSWER_REQUIRED')}</span>
                 </div>
+            )}
+        </>
+    );
+
+    return (
+        <div
+            className={cn(
+                'relative',
+                number ? 'grid grid-cols-[34px_minmax(0,1fr)] items-baseline' : 'flex flex-col gap-1 lg:gap-2',
+                // Wide centred pages hang the number outside the text measure.
+                number && numbering?.hang && '@min-[880px]/page:block',
+                tokens.divider && 'border-b pb-7'
+            )}
+            style={tokens.divider ? { borderColor: (theme?.tertiary ?? '#818CA0') + '40' } : undefined}
+            id={field.id}
+            // Give assistive tech an accessible name/description for the field.
+            // Answerable fields become a labelled group so the question (and any
+            // description / validation message) is announced with the control.
+            {...(isAnswerable
+                ? {
+                      role: 'group',
+                      'aria-labelledby': `q-title-${field.id}`,
+                      'aria-describedby': [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, hasError ? `q-error-${field.id}` : null].filter(Boolean).join(' ') || undefined
+                  }
+                : {})}
+        >
+            {number ? (
+                <>
+                    {/* The number is a reading aid; the group's name is the question. */}
+                    <span
+                        aria-hidden="true"
+                        data-testid="question-number"
+                        className={cn('text-[16px] leading-[1.4] tabular-nums', numbering?.hang && '@min-[880px]/page:absolute @min-[880px]/page:top-0 @min-[880px]/page:-left-16 @min-[880px]/page:w-12 @min-[880px]/page:text-right')}
+                        style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberColour }}
+                    >
+                        {number}
+                    </span>
+                    <div className="flex min-w-0 flex-col gap-1 lg:gap-2">{content}</div>
+                </>
+            ) : (
+                content
             )}
         </div>
     );

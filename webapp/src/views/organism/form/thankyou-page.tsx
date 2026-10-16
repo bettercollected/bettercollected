@@ -17,12 +17,15 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { resolvePipesInText } from '@app/utils/answer-piping';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
-import { mixHex, softInk } from '@app/views/molecules/theme/theme-shared';
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { describeRetention, retentionExplanation } from '@app/utils/retention';
+import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { leafletColours, mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const { toast } = useToast();
-    const { t } = useRespondentLanguage();
+    const { t, language } = useRespondentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
@@ -59,6 +62,56 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const theme = standardForm?.theme;
     // A quiet edge for the receipt card: the theme's border colour, softened.
     const cardEdge = theme?.tertiary && theme?.accent && /^#[0-9a-fA-F]{6}$/.test(theme.tertiary) && /^#[0-9a-fA-F]{6}$/.test(theme.accent) ? mixHex(theme.tertiary, theme.accent, 0.45) : '#D0D5DD';
+    const receipt = auth.id && standardForm.settings?.showSubmissionNumber;
+
+    if (styleTokens(theme?.style).key === 'leaflet') {
+        // The leaflet's last page: the ending on the bar, the message in the
+        // band, then what happens to the answers now, in plain words: how long
+        // they are kept, the respondent's rights, and the receipt number.
+        const rule = leafletColours(theme).rule;
+        const retentionNote = retentionExplanation(standardForm?.settings);
+        return (
+            <>
+                <UserAvatarDropDown disabled />
+                <LeafletTopRule theme={theme} />
+                <LeafletSectionBar theme={theme} title={getThankYouTitle()} layout={thankyouPage?.layout} headingLevel={1} />
+                <LeafletIntroBand theme={theme} layout={thankyouPage?.layout}>
+                    <p className="max-w-[62ch] text-pretty">{getThankYouMessage()}</p>
+                </LeafletIntroBand>
+                <div className={cn(FORM_COLUMN, columnPlacementClass(thankyouPage?.layout), 'flex flex-col items-start pt-8')} data-testid="thankyou-column">
+                    <section aria-labelledby="leaflet-next" className="w-full" data-testid="leaflet-next">
+                        <h2 id="leaflet-next" className="text-[22px] leading-tight" style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: theme?.primary }}>
+                            {t('ENDING.NEXT')}
+                        </h2>
+                        <ul className="mt-3 border-t text-base leading-[1.6]" style={{ borderColor: rule, color: theme?.primary }} lang={language}>
+                            <li className="border-b py-3" style={{ borderColor: rule }}>
+                                {describeRetention(standardForm?.settings, t, language)}
+                                {retentionNote && <span style={{ color: softInk(theme) }}> {retentionNote}</span>}
+                            </li>
+                            <li className="border-b py-3" style={{ borderColor: rule }}>
+                                {t('PRIVACY.RIGHTS_TEXT')}{' '}
+                                {!isPreviewMode && (
+                                    <a href={submissionUrl} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-2" style={{ color: theme?.secondary }}>
+                                        {t('PRIVACY.RIGHTS_LINK')}
+                                        <span className="sr-only"> {t('PRIVACY.OPENS_IN_NEW_TAB')}</span>
+                                    </a>
+                                )}
+                            </li>
+                        </ul>
+                        {receipt && <SubmissionReceipt className="mt-6" edge={rule} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
+                    </section>
+                    {thankyouPage?.buttonText && (
+                        <Button flat style={{ background: theme?.secondary }} className="mt-8 min-h-12 rounded-[4px] px-8 text-base font-semibold">
+                            <Link href={isPreviewMode ? '' : thankyouPage.buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
+                                {thankyouPage.buttonText}
+                            </Link>
+                        </Button>
+                    )}
+                </div>
+            </>
+        );
+    }
+
     return (
         <>
             <UserAvatarDropDown disabled />
@@ -78,7 +131,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         </Link>
                     </Button>
                 )}
-                {auth.id && standardForm.settings?.showSubmissionNumber && <SubmissionReceipt className="mt-8" edge={cardEdge} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
+                {receipt && <SubmissionReceipt className="mt-8" edge={cardEdge} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
                 {/* Attribution moved into the trust strip — the form's single
                     footer. A second floating "Powered by" here sat underneath
                     the fixed strip and the two overlapped. */}

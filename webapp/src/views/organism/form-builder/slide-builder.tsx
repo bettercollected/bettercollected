@@ -24,6 +24,11 @@ function fieldTypeLabel(type?: string) {
     if (known) return known.name;
     return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
 }
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
+
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
@@ -40,14 +45,27 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     // Plain-language tips use the form's declared language when it has one.
     const form = useAppSelector(selectForm);
     const plainLanguage = { formId: form?.formId, formLanguage: form?.settings?.language };
+    // Leaflet (WYSIWYG with the respondent page): the numbered section bar,
+    // the opening text block on the intro band, n.m numbers in the margin.
+    // The canvas shows every field, so numbering follows the page's order.
+    const leaflet = styleTokens(theme?.style).key === 'leaflet';
+    const section = leaflet ? leafletSection(slideFields ?? [], form?.title ?? '') : null;
+    const numbers = leaflet ? questionNumbers(slideFields ?? [], (slide?.index ?? 0) + 1) : {};
+    const numberInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
     return (
-        <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
+        <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet}>
+            {leaflet && section && (
+                <div>
+                    <LeafletTopRule theme={theme} />
+                    <LeafletSectionBar theme={theme} numeral={(slide?.index ?? 0) + 1} title={section.title} layout={slide.properties?.layout} />
+                </div>
+            )}
             {/* WYSIWYG: the same form column, 48px question rhythm and
                 vertical placement as the respondent page (form-column.ts);
                 pt-12 matches the space the respondent page keeps for its
                 header bar. */}
-            <div className="w-full pt-12">
+            <div className={cn('w-full', leaflet ? 'pt-7' : 'pt-12')}>
                 <div
                     className={cn(
                         FORM_COLUMN,
@@ -62,6 +80,8 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                 // Tips show for the question being edited only, so the canvas stays calm.
                                 const showHints = !disabled && !isScaledDown && activeFieldComponent?.id === field.id;
                                 const titleHintsId = `plain-language-title-${field.id}`;
+                                const number = numbers[field.id];
+                                const onBand = leaflet && section?.openingTextId === field.id;
                                 return (
                                     <motion.div
                                         key={field.id}
@@ -82,7 +102,8 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                         <div
                                             key={index}
                                             tabIndex={0}
-                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', 'w-full cursor-pointer p-1')}
+                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', 'w-full cursor-pointer p-1', onBand && 'px-3 py-3')}
+                                            style={onBand ? { background: leafletColours(theme).band } : undefined}
                                             onFocus={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
@@ -149,9 +170,14 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                         <MoveUpDown slideIndex={slide.index} field={field} />
                                                     </div>
                                                 )}
-                                                <div className={cn('mb-2 w-full')}>
-                                                    <div className="relative flex w-full items-center gap-2">
-                                                        {slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
+                                                <div className={cn('mb-2 w-full', number && '[&>*:not(:first-child)]:pl-[34px]')}>
+                                                    <div className={cn('relative w-full', number ? 'grid grid-cols-[34px_minmax(0,1fr)] items-baseline' : 'flex items-center gap-2')}>
+                                                        {number && (
+                                                            <span aria-hidden="true" className="text-[16px] leading-[1.4] tabular-nums" style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberInk }}>
+                                                                {number}
+                                                            </span>
+                                                        )}
+                                                        {!leaflet && slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
                                                         <RichTextEditor
                                                             field={field}
                                                             slide={slide}
@@ -163,7 +189,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                     {showHints && <PlainLanguageHints id={titleHintsId} value={field.title} {...plainLanguage} />}
                                                     <FieldDescription field={field} disabled={disabled} hints={showHints ? plainLanguage : undefined} />
                                                 </div>
-                                                {renderFieldWrapper(field, slide, disabled)}
+                                                <div className={cn('w-full', number && 'pl-[34px]')}>{renderFieldWrapper(field, slide, disabled)}</div>
                                             </div>
                                         </div>
                                     </motion.div>

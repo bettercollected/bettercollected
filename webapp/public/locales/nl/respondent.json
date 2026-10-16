@@ -51,7 +51,10 @@
         "VERIFY_EMAIL": "Bevestig je e-mailadres",
         "PRIVATE": "Besloten formulier",
         "PRIVATE_TEXT": "Alleen bepaalde mensen kunnen dit formulier invullen. Bevestig wie je bent om verder te gaan.",
-        "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier."
+        "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier.",
+        "CONTENTS": "In dit formulier",
+        "PAGE_COUNT_one": "Dit formulier heeft {{count}} pagina.",
+        "PAGE_COUNT_other": "Dit formulier heeft {{count}} pagina's."
     },
     "ACCOUNT": {
         "LABEL": "Account",
@@ -67,7 +70,8 @@
         "ALL_SUBMISSIONS": "Al je inzendingen bekijken",
         "SUBMISSION_NUMBER_HINT": "Met dit nummer kun je je antwoorden bekijken of laten verwijderen.",
         "COPY": "Inzendnummer kopiëren",
-        "COPIED": "Gekopieerd"
+        "COPIED": "Gekopieerd",
+        "NEXT": "Wat er nu gebeurt"
     },
     "FIELD": {
         "REQUIRED": "(verplicht)",

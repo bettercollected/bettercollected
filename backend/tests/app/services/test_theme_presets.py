@@ -3,9 +3,15 @@
 import re
 from pathlib import Path
 
-from backend.app.constants.themes import get_themes_for_ai, themes
+import pytest
+from pydantic import ValidationError
 
-WEBAPP_THEME_TS = Path(__file__).resolve().parents[4] / "webapp" / "src" / "constants" / "theme.ts"
+from backend.app.constants.themes import THEME_STYLES, get_themes_for_ai, themes
+from backend.app.models.workspace import WorkspaceThemeDto
+
+WEBAPP_THEME_TS = (
+    Path(__file__).resolve().parents[4] / "webapp" / "src" / "constants" / "theme.ts"
+)
 
 
 def test_default_preset_uses_the_sireto_values():
@@ -36,3 +42,32 @@ def test_default_preset_matches_the_webapp_preset():
 def test_ai_theme_list_carries_the_default_colours():
     by_name = {entry["name"]: entry for entry in get_themes_for_ai()}
     assert by_name["Default"]["colors"]["secondary"] == "#1649E2"
+
+
+def test_theme_styles_match_the_webapp():
+    if not WEBAPP_THEME_TS.exists():  # backend checked out on its own
+        return
+    source = WEBAPP_THEME_TS.read_text()
+    block = re.search(
+        r"THEME_STYLES: ReadonlyArray<ThemeStyle> = \[(.*?)\]", source, re.S
+    ).group(1)
+    assert tuple(re.findall(r"'(\w+)'", block)) == THEME_STYLES
+
+
+LEAFLET = {
+    "title": "Leaflet",
+    "primary": "#1A1A1A",
+    "secondary": "#0B3D91",
+    "tertiary": "#6B7A99",
+    "accent": "#FFFFFF",
+}
+
+
+@pytest.mark.parametrize("style", THEME_STYLES)
+def test_saved_themes_accept_every_style(style):
+    assert WorkspaceThemeDto(**LEAFLET, style=style).style == style
+
+
+def test_saved_themes_refuse_an_unknown_style():
+    with pytest.raises(ValidationError):
+        WorkspaceThemeDto(**LEAFLET, style="risograph")

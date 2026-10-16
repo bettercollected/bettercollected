@@ -5,7 +5,7 @@ import { Check } from 'lucide-react';
 import { FormTheme } from '@app/constants/theme';
 import { FieldChoice } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
-import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 /** A radio (one answer) or a checkbox (several answers). */
 export type ChoiceKind = 'radio' | 'checkbox';
@@ -59,6 +59,21 @@ export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: 
     const vars = {
         ['--choice-indicator-hover' as string]: selected ? (solid ? '#ffffff' : theme?.secondary) : theme?.primary
     };
+    if (tokens.ruledChoices) {
+        // Leaflet: no box. A 1px rule under each row (a separator in a tint
+        // of the border colour; the control itself keeps the full-strength
+        // edge) and a faint wash of the action colour on hover.
+        return {
+            solid: false,
+            className: cn('group flex min-h-12 w-full cursor-pointer items-center gap-3 border-b px-1 py-3 text-left text-base leading-snug transition-colors duration-150 hover:bg-(--choice-wash)', selected && 'font-semibold'),
+            style: {
+                ...vars,
+                ['--choice-wash' as string]: theme?.secondary ? theme.secondary + '0D' : 'transparent',
+                borderColor: leafletColours(theme).rule,
+                color: theme?.primary
+            }
+        };
+    }
     return {
         solid,
         className: cn('group flex min-h-12 w-full cursor-pointer items-center gap-3 border border-(--choice-edge) px-4 py-3 text-left text-base leading-snug transition-colors duration-150 hover:border-(--choice-edge-hover)', selected && 'font-semibold'),

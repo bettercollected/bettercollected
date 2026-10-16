@@ -31,6 +31,7 @@ const GreetingLayoutWrapper = ({ disabled, greetingIndex, theme, children }: IGr
             disabled={disabled}
             updatePageLayout={activeSlideComponent?.index === -10 ? updateWelcomePageLayout : updateThankYouPageLayout}
             theme={theme}
+            topAligned={theme?.style === 'leaflet'}
         >
             {children}
         </LayoutWrapper>

@@ -28,9 +28,15 @@ interface ILayoutWrapper {
     scrollDivId?: string;
     children: React.ReactNode | React.ReactNode[];
     showDesktopLayout?: boolean;
+    /**
+     * Start the page at the top instead of centring it: pages that open with
+     * a full-width bar (the Leaflet style's section bar) draw it from the top
+     * edge of the page.
+     */
+    topAligned?: boolean;
 }
 
-const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false }: ILayoutWrapper) => {
+const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false, topAligned = false }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
 
@@ -130,8 +136,11 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     {/* One side gutter on every page (form-column.ts). Content
                         shorter than the screen sits optically centred: the free
                         space above and below splits 2:3, a little above the true
-                        centre. Longer content starts at the top and scrolls. */}
-                    <div className={cn(FORM_GUTTER, "flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12")}>{children}</div>
+                        centre. Longer content starts at the top and scrolls.
+                        A named container, so a page can lay itself out by the
+                        room it actually has (the builder canvas is narrower
+                        than the window). */}
+                    <div className={cn(FORM_GUTTER, '@container/page flex w-full grow flex-col', topAligned ? 'pb-8 lg:pb-12' : "py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12")}>{children}</div>
                 </ScrollArea>
                 {/* Image with controls works for left and right image layout */}
                 {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (

@@ -15,7 +15,8 @@ import { useSendFlowEventMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
-import { softInk } from '@app/views/molecules/theme/theme-shared';
+import { LeafletContents, LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
 /**
@@ -48,7 +49,9 @@ export default function WelcomePage({
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;
-    const align = greetingAlignClass(welcomePage?.layout);
+    const leaflet = styleTokens(formTheme?.style).key === 'leaflet';
+    // A leaflet reads from one left edge; the column still follows the page's placement.
+    const align = leaflet ? 'items-start text-left' : greetingAlignClass(welcomePage?.layout);
 
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb for "started the form" — never in preview.
@@ -63,6 +66,86 @@ export default function WelcomePage({
             {label}
         </Link>
     );
+
+    // Notes and the start button: one group, set apart from the title block.
+    const actions = (
+        <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
+            {!standardForm?.settings?.private && !auth.id && (
+                <p className="text-base text-black-700">
+                    {standardForm?.settings?.requireVerifiedIdentity ? <>{t('WELCOME.VERIFY_REQUIRED')} {verifyLink(t('WELCOME.VERIFY_NOW'))}</> : <>{t('WELCOME.VIEW_LATER')} {verifyLink(t('WELCOME.VERIFY_EMAIL'))}</>}
+                </p>
+            )}
+
+            {standardForm?.settings?.private && (
+                <>
+                    {!auth.id ? (
+                        <div className={cn('flex flex-col gap-2', align)}>
+                            <div className="flex items-center gap-4">
+                                <div className="rounded-full bg-black-900 p-2 text-white">
+                                    <Lock width={24} height={24} className="text-white" />
+                                </div>
+                                <span>{t('WELCOME.PRIVATE')}</span>
+                            </div>
+                            <p className="max-w-[339px] text-xs text-black-700">{t('WELCOME.PRIVATE_TEXT')}</p>
+                            <Link href={isPreviewMode ? '' : responderSignInUrl} className="font-medium text-black-800 underline">
+                                <Button className="mt-2 rounded-[8px] px-6" size="medium">
+                                    {t('WELCOME.VERIFY_NOW')}
+                                </Button>
+                            </Link>
+                        </div>
+                    ) : (
+                        <>{standardForm?.unauthorized && <p>{t('WELCOME.NO_ACCESS')}</p>}</>
+                    )}
+                </>
+            )}
+
+            {(!standardForm?.settings?.private || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
+                <div>
+                    <Button
+                        flat
+                        style={{ background: formTheme?.secondary }}
+                        className={cn('z-10 min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
+                        size="medium"
+                        onClick={() => {
+                            if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
+                                router.push(responderSignInUrl);
+                            } else {
+                                emitStart();
+                                nextSlide();
+                                return;
+                            }
+                        }}
+                    >
+                        {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? t('WELCOME.VERIFY_AND_START') : startButtonText(standardForm?.welcomePage?.buttonText, t('WELCOME.START'))}
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+
+    if (leaflet) {
+        // The leaflet cover: the form's title on the section bar, its
+        // introduction in the pale band, then what the form holds and Start.
+        return (
+            <>
+                <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />
+                {/* The same top row as the question pages: a hairline under 56px. */}
+                <LeafletTopRule theme={formTheme} />
+                <LeafletSectionBar theme={formTheme} title={standardForm?.title} layout={welcomePage?.layout} headingLevel={1} />
+                {welcomePage?.description && (
+                    <LeafletIntroBand theme={formTheme} layout={welcomePage?.layout}>
+                        <p className="max-w-[62ch] text-pretty" style={{ whiteSpace: 'pre-line' }}>
+                            {welcomePage.description}
+                        </p>
+                    </LeafletIntroBand>
+                )}
+                <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-8')} data-testid="welcome-column">
+                    <LeafletContents pages={standardForm?.fields} theme={formTheme} />
+                    {actions}
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -85,59 +168,7 @@ export default function WelcomePage({
                     </p>
                 )}
 
-                {/* Notes and the start button: one group, set apart from the title block. */}
-                <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
-                    {!standardForm?.settings?.private && !auth.id && (
-                        <p className="text-base text-black-700">
-                            {standardForm?.settings?.requireVerifiedIdentity ? <>{t('WELCOME.VERIFY_REQUIRED')} {verifyLink(t('WELCOME.VERIFY_NOW'))}</> : <>{t('WELCOME.VIEW_LATER')} {verifyLink(t('WELCOME.VERIFY_EMAIL'))}</>}
-                        </p>
-                    )}
-
-                    {standardForm?.settings?.private && (
-                        <>
-                            {!auth.id ? (
-                                <div className={cn('flex flex-col gap-2', align)}>
-                                    <div className="flex items-center gap-4">
-                                        <div className="rounded-full bg-black-900 p-2 text-white">
-                                            <Lock width={24} height={24} className="text-white" />
-                                        </div>
-                                        <span>{t('WELCOME.PRIVATE')}</span>
-                                    </div>
-                                    <p className="max-w-[339px] text-xs text-black-700">{t('WELCOME.PRIVATE_TEXT')}</p>
-                                    <Link href={isPreviewMode ? '' : responderSignInUrl} className="font-medium text-black-800 underline">
-                                        <Button className="mt-2 rounded-[8px] px-6" size="medium">
-                                            {t('WELCOME.VERIFY_NOW')}
-                                        </Button>
-                                    </Link>
-                                </div>
-                            ) : (
-                                <>{standardForm?.unauthorized && <p>{t('WELCOME.NO_ACCESS')}</p>}</>
-                            )}
-                        </>
-                    )}
-
-                    {(!standardForm?.settings?.private || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
-                        <div>
-                            <Button
-                                flat
-                                style={{ background: formTheme?.secondary }}
-                                className="z-10 min-h-12 rounded-[8px] px-8 py-3 text-base font-semibold"
-                                size="medium"
-                                onClick={() => {
-                                    if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
-                                        router.push(responderSignInUrl);
-                                    } else {
-                                        emitStart();
-                                        nextSlide();
-                                        return;
-                                    }
-                                }}
-                            >
-                                {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? t('WELCOME.VERIFY_AND_START') : startButtonText(standardForm?.welcomePage?.buttonText, t('WELCOME.START'))}
-                            </Button>
-                        </div>
-                    )}
-                </div>
+{actions}
             </div>
         </>
     );
