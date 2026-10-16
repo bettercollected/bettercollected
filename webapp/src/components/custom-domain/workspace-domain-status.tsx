@@ -90,7 +90,7 @@ const WorkspaceDomainStatus = () => {
 };
 
 const StatusPill = ({ tone, children }: { tone: 'ok' | 'pending' | 'bad'; children: React.ReactNode }) => (
-    <div className={cn('rounded-xl px-2 py-1 text-xs', tone === 'ok' && 'bg-green-100 text-green-600', tone === 'pending' && 'bg-yellow-100 text-yellow-600', tone === 'bad' && 'bg-red-100 text-red-600')}>{children}</div>
+    <div className={cn('rounded px-2 py-1 text-xs', tone === 'ok' && 'bg-green-100 text-green-600', tone === 'pending' && 'bg-yellow-100 text-yellow-600', tone === 'bad' && 'bg-red-100 text-red-600')}>{children}</div>
 );
 
 const STATUS_LABEL: Record<string, { label: string; tone: 'ok' | 'pending' | 'bad' }> = {

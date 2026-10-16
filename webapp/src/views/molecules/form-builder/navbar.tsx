@@ -26,9 +26,9 @@ const NavBar = ({ isModal = false }: { isModal?: boolean }) => {
             >
                 {workspace?.profileImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md object-cover shadow" />
+                    <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md border border-black-300 object-cover" />
                 ) : (
-                    <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold shadow">{(workspaceTitle?.[0] || 'W').toUpperCase()}</span>
+                    <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold">{(workspaceTitle?.[0] || 'W').toUpperCase()}</span>
                 )}
             </button>
             {isModal ? (

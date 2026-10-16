@@ -25,7 +25,7 @@ export default function WorkspaceDetails({ showUrlRow = true }: { showUrlRow?: b
         <div className="w-full">
             {/* Hidden inside the Public Workspace frame — the frame's address
                 bar already carries the URL, copy and open-live actions. */}
-            <div className={showUrlRow ? 'shadow-settings mb-10 flex flex-col items-start gap-2 px-5 py-4 lg:flex-row lg:items-center' : 'hidden'}>
+            <div className={showUrlRow ? 'border-b border-black-300 mb-10 flex flex-col items-start gap-2 px-5 py-4 lg:flex-row lg:items-center' : 'hidden'}>
                 <div
                     className="mr-4 flex cursor-pointer items-center gap-4"
                     onClick={() => {

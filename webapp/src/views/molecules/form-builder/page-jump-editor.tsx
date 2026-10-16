@@ -110,7 +110,7 @@ export default function PageJumpEditor() {
                         <div className="text-black-600 flex items-center gap-1 text-xs">
                             <span className="shrink-0">→ go to</span>
                             <select
-                                className={targetValid ? selectClass : selectClass.replace('border-black-300', 'border-amber-400')}
+                                className={targetValid ? selectClass : selectClass.replace('border-control', 'border-amber-400')}
                                 value={targetValid ? jump.target : MISSING}
                                 onChange={(e) => patchJump(jIdx, { target: e.target.value })}
                             >

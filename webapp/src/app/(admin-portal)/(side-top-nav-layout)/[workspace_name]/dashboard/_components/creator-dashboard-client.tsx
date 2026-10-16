@@ -59,7 +59,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
         // (77px top bar + 40px top/bottom gaps) with fixed chrome and the site
         // content scrolling INSIDE it, so the page itself never scrolls. Mobile
         // keeps natural flow (mobile viewport height is unreliable).
-        <div className="border-black-300 shadow-formCardDefault flex flex-col overflow-hidden rounded-xl border bg-white lg:h-[calc(100vh-157px)]">
+        <div className="border-black-300 flex flex-col overflow-hidden rounded border bg-white lg:h-[calc(100vh-157px)]">
             {/* Browser chrome: dots · address pill (globe + URL + copy) · open · settings gear */}
             <div className="border-black-300 flex shrink-0 items-center gap-3 border-b bg-white px-4 py-2.5">
                 <div className="hidden items-center gap-1.5 sm:flex" aria-hidden="true">

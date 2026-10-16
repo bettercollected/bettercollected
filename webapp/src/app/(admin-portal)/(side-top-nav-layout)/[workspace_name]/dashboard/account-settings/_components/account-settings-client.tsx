@@ -45,7 +45,7 @@ export default function AccountSettingsClient() {
                 <div className="my-6">
                     <Button
                         variant="ghost"
-                        className="bg-red-100 px-4 leading-none! py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm text-red-500!"
+                        className="bg-red-100 px-4 leading-none! py-3 body6 rounded hover:bg-red-200 text-red-500!"
                         onClick={() => {
                             openBottomSheetModal('DELETE_ACCOUNT');
                         }}

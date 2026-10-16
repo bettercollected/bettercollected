@@ -86,7 +86,7 @@ export default function DateFieldSettings({
                                         </option>
                                     ))}
                                 </select>
-                                <button type="button" className="shrink-0 rounded p-1 text-black-500 hover:text-black-800" aria-label={`Remove rule ${index + 1}`} onClick={() => saveRules(rules.filter((_, i) => i !== index))}>
+                                <button type="button" className="shrink-0 rounded p-1 text-black-600 hover:text-black-800" aria-label={`Remove rule ${index + 1}`} onClick={() => saveRules(rules.filter((_, i) => i !== index))}>
                                     <X className="h-3.5 w-3.5" />
                                 </button>
                             </div>

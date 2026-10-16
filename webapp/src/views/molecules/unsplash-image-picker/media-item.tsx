@@ -33,7 +33,7 @@ const MediaItem = ({ media, updatePageImage }: { media: MediaLibrary; updatePage
                 <span className="p4-new text-white">{media.mediaName}</span>
             </div>
             <div className="invisible absolute right-2 top-2 z-10000 group-hover:visible ">
-                <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={() => handleDeleteMedia(media.mediaId)}>
+                <div className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={() => handleDeleteMedia(media.mediaId)}>
                     <DeleteIcon width={14} height={14} />
                 </div>
             </div>

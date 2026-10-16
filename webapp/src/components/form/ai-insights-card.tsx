@@ -100,7 +100,7 @@ export default function AIInsightsCard() {
     const importedForm = !!form?.settings?.provider && form.settings.provider !== 'self';
     if (importedForm) {
         return (
-            <div className="mb-6 flex flex-col gap-2 rounded-lg border border-black-200 bg-white p-5">
+            <div className="mb-6 flex flex-col gap-2 rounded border border-black-200 bg-white p-5">
                 <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-brand-500" />
                     <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
@@ -112,7 +112,7 @@ export default function AIInsightsCard() {
 
     if (!canReadResponses) {
         return (
-            <div className="mb-6 flex flex-col gap-2 rounded-lg border border-black-200 bg-white p-5">
+            <div className="mb-6 flex flex-col gap-2 rounded border border-black-200 bg-white p-5">
                 <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-brand-500" />
                     <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
@@ -123,7 +123,7 @@ export default function AIInsightsCard() {
     }
 
     return (
-        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-black-200 bg-white p-5">
+        <div className="mb-6 flex flex-col gap-3 rounded border border-black-200 bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-brand-500" />

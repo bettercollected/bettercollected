@@ -121,7 +121,7 @@ export default function PlainLanguageHints({ id, value, formId, formLanguage, de
                                     type="button"
                                     aria-label={t('PLAIN_LANGUAGE.DISMISS')}
                                     title={t('PLAIN_LANGUAGE.DISMISS')}
-                                    className="-mr-1 shrink-0 rounded p-0.5 text-black-500 hover:bg-black-200 hover:text-black-800"
+                                    className="-mr-1 shrink-0 rounded p-0.5 text-black-600 hover:bg-black-200 hover:text-black-800"
                                     onClick={() => dismiss(hint.id)}
                                 >
                                     <X aria-hidden="true" className="h-3.5 w-3.5" />

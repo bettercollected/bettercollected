@@ -66,7 +66,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
     return (
         <div
             aria-label={`Page ${data.pageNumber}: ${data.label} — ${data.questionCount} question${data.questionCount === 1 ? '' : 's'}`}
-            className={'flex w-[300px] flex-col gap-1 rounded-xl border bg-white px-4 py-3 shadow-sm transition-shadow ' + (selected ? 'border-brand-500 shadow-bubble' : 'border-black-200 hover:border-brand-300')}
+            className={'flex w-[300px] flex-col gap-1 rounded border bg-white px-4 py-3 transition-colors ' + (selected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-400 hover:border-brand-300')}
         >
             <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
             <Handle
@@ -105,7 +105,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                 </span>
                 {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{data.showHideCount} show/hide</span>}
                 {data.questionCount === 0 && (
-                    <span className="inline-flex items-center gap-0.5 rounded bg-[#FBF3E4] px-1.5 py-[1px] font-medium text-[#B26B00]" title="Responders will see a blank page — add a question or delete it">
+                    <span className="inline-flex items-center gap-0.5 rounded bg-brand-accent-100 px-1.5 py-[1px] font-medium text-brand-olive" title="Responders will see a blank page — add a question or delete it">
                         <AlertTriangle className="h-3 w-3" /> empty page
                     </span>
                 )}
@@ -120,7 +120,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     </span>
                 )}
                 {data.dropOffs > 0 && (
-                    <span className="rounded bg-[#FBF3E4] px-1.5 py-[1px] font-semibold text-[#B26B00]" title="Responders whose last activity was on this page — they never submitted">
+                    <span className="rounded bg-brand-accent-100 px-1.5 py-[1px] font-semibold text-brand-olive" title="Responders whose last activity was on this page — they never submitted">
                         {data.dropOffs} dropped here
                     </span>
                 )}
@@ -147,7 +147,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
 function TerminalNode({ id, data }: NodeProps<Node<any>>) {
     const isEnd = data.kind === 'end';
     return (
-        <div className="bg-new-white-200 border-black-200 text-black-600 flex w-[300px] flex-col gap-0.5 rounded-xl border px-4 py-3">
+        <div className="bg-black-100 border-black-200 text-black-600 flex w-[300px] flex-col gap-0.5 rounded border px-4 py-3">
             {isEnd && <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />}
             {isEnd && (
                 <Handle
@@ -594,7 +594,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     <button onClick={() => clearSlidePositions()} title="Reset the layout" className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                         <LayoutGrid className="h-3.5 w-3.5" /> Auto-arrange
                     </button>
-                    <button aria-label="Close flow view" onClick={onClose} className="text-black-500 hover:text-black-900 ml-2 rounded-md p-1">
+                    <button aria-label="Close flow view" onClick={onClose} className="text-black-600 hover:text-black-900 ml-2 rounded-md p-1">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -670,7 +670,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     <div className="text-black-900 wrap-break-word text-sm font-semibold leading-snug">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-brand-500 hover:bg-brand-600 flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-white">
+                                    <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium text-white">
                                         <PencilLine className="h-3.5 w-3.5" /> Edit content
                                     </button>
                                     <button
@@ -708,7 +708,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             {/* Page-editor overlay — edit content without leaving the flow */}
             {overlaySlide && (
                 <div role="dialog" aria-modal="true" aria-label={`Edit page ${overlayIndex + 1}`} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
-                    <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex min-h-0 flex-1 overflow-hidden rounded bg-white shadow-large" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
                             <div className="border-b-black-200 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
                                 <div className="min-w-0">
@@ -733,7 +733,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-[#F2F4F7] px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
                                 <div className="m-auto shrink-0" style={{ width: SLIDE_W * overlayScale, height: SLIDE_H * overlayScale }}>
                                     <div
-                                        className="border-black-400 overflow-hidden rounded-lg border bg-white"
+                                        className="border-black-400 overflow-hidden rounded border bg-white"
                                         style={{
                                             width: SLIDE_W,
                                             height: SLIDE_H,

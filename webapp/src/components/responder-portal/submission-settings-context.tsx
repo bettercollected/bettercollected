@@ -40,7 +40,7 @@ export default function SubmissionSettingsContent() {
                 </div>
             ) : (
                 <div className="flex flex-col gap-2">
-                    <span className="w-fit rounded bg-[#FBF3E4] px-2 py-1 text-sm font-medium text-[#B26B00]">Deletion requested · Pending</span>
+                    <span className="w-fit rounded bg-brand-accent-100 px-2 py-1 text-sm font-medium text-brand-olive">Deletion requested · Pending</span>
                     <span className="text-black-600 text-sm">The workspace has been asked to delete this response. Its status will update here and under Deletion requests.</span>
                 </div>
             )}

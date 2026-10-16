@@ -95,16 +95,16 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     setCustomPrice('');
                                 }}
                                 className={cn(
-                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-500 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
-                                    price === activeSuggestion && 'shadow-suggestion-price text-black-800! bg-white'
+                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-600 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
+                                    price === activeSuggestion && 'ring-2 ring-brand-500 text-black-800! bg-white'
                                 )}
                             >
                                 ${price}
                             </div>
                         );
                     })}
-                    <div className={cn('focus-within:shadow-suggestion-price hidden h-10 rounded-lg border border-black-300 lg:flex', customPrice && 'shadow-suggestion-price')}>
-                        <div className="bg-black-100 text-black-500 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
+                    <div className={cn('focus-within:border-brand-500 hidden h-10 rounded-lg border border-black-300 lg:flex', customPrice && 'border-brand-500')}>
+                        <div className="bg-black-100 text-black-600 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
                         <input
                             type="number"
                             value={customPrice || ''}

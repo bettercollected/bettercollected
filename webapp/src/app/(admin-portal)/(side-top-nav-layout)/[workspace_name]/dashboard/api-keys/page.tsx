@@ -43,7 +43,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1500);
             }}
-            className="text-black-500 hover:text-black-800 shrink-0 rounded p-1 transition-colors"
+            className="text-black-600 hover:text-black-800 shrink-0 rounded p-1 transition-colors"
         >
             {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
         </button>
@@ -149,7 +149,7 @@ export default function APIKeysPage() {
                     maxLength={60}
                     placeholder="What will use this key? e.g. “Claude Desktop”"
                     onChange={(e) => setName(e.target.value)}
-                    className="border-black-300 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]"
+                    className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150"
                 />
                 <div className="flex flex-col gap-1.5">
                     {SCOPES.map((scope) => (
@@ -187,7 +187,7 @@ export default function APIKeysPage() {
                 {isLoading ? (
                     <p className="text-black-600 text-xs">Loading…</p>
                 ) : keys.length === 0 ? (
-                    <p className="text-black-500 border-black-200 rounded-md border border-dashed px-3 py-4 text-center text-xs">No keys yet — create one above to connect an AI tool.</p>
+                    <p className="text-black-600 border-black-200 rounded-md border border-dashed px-3 py-4 text-center text-xs">No keys yet — create one above to connect an AI tool.</p>
                 ) : (
                     <ul className="flex flex-col gap-2">
                         {(keys as APIKey[]).map((key) => (
@@ -210,7 +210,7 @@ export default function APIKeysPage() {
                                     </div>
                                 </div>
                                 {!key.revoked && (
-                                    <button type="button" onClick={() => handleRevoke(key)} className="text-black-500 shrink-0 rounded px-2 py-1 text-xs transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
+                                    <button type="button" onClick={() => handleRevoke(key)} className="text-black-600 shrink-0 rounded px-2 py-1 text-xs transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
                                         Revoke
                                     </button>
                                 )}

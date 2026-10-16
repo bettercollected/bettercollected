@@ -257,7 +257,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                                         <HelpMenuComponent />
                                     </div>
                                 </PopoverTrigger>
-                                <PopoverContent side="bottom" align="end" className="w-fit rounded-2xl p-0">
+                                <PopoverContent side="bottom" align="end" className="w-fit rounded p-0">
                                     <div className="bg-white  p-2 ">
                                         <HelpMenuItem />
                                     </div>

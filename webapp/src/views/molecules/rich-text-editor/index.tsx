@@ -243,7 +243,7 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
                 @ Answer
             </div>
             {open && (
-                <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-72 overflow-auto rounded-lg border bg-white py-1 text-left shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+                <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-72 overflow-auto rounded border border-black-300 bg-white py-1 text-left shadow-large" onMouseDown={(e) => e.preventDefault()}>
                     {items.map((item) => {
                         const header = item.group !== lastGroup ? item.group : null;
                         lastGroup = item.group;
@@ -305,7 +305,7 @@ const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: S
     return (
         // A div, not a <button>: the bar hosts interactive children (the insert-
         // answer dropdown), and interactive elements can't nest inside a button.
-        <div className={cn(`absolute -top-14 mb-2 hidden items-center rounded-lg bg-white px-4 py-1 shadow-tooltip`, 'group-focus-within:flex')} tabIndex={0}>
+        <div className={cn(`absolute -top-14 mb-2 hidden items-center rounded border border-black-300 bg-white px-4 py-1 shadow-large`, 'group-focus-within:flex')} tabIndex={0}>
             <div className="flex flex-row items-center justify-center gap-4">
                 <span className="p3-new font-medium">Text</span>
                 <div className="flex items-center gap-1">

@@ -111,7 +111,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                 <SheetTrigger asChild>
                                     <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
                                 </SheetTrigger>
-                                <SheetContent className="h-full w-full p-0 shadow-v2 drop-shadow-2xl" side={'top'} hideCloseIcon>
+                                <SheetContent className="h-full w-full p-0" side={'top'} hideCloseIcon>
                                     <SheetTitle className="sr-only">Select form type</SheetTitle>
                                     <div className="h-full w-full bg-white">
                                         <NavBar isModal />
@@ -192,7 +192,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapper
         <div
             data-umami-event={content}
             data-umami-event-email={authState.email}
-            className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-black-300 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
+            className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded border border-black-400 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
             onClick={onClick}
         >
             {icon}
@@ -206,9 +206,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapper
 
 const SoonComponent = ({ msg }: { msg?: string }) => {
     return (
-        <div className="absolute bottom-0 left-1/3 flex h-fit w-full rotate-[-30deg] items-center justify-center bg-new-pink text-[10px] font-medium leading-none text-white">
-            <span className="ml-14 md:ml-4">{msg || 'Soon'}</span>
-        </div>
+        <div className="absolute right-2 top-2 rounded bg-black-200 px-1.5 py-0.5 text-[11px] font-medium text-black-700">{msg || 'Soon'}</div>
     );
 };
 

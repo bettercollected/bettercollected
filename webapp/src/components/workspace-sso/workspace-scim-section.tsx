@@ -66,7 +66,7 @@ function CreateDirectoryForm({ overview, workspaceId, onCreated }: { overview: S
     };
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border border-black-200 bg-white p-4" noValidate>
+        <form onSubmit={submit} className="flex flex-col gap-3 rounded border border-black-200 bg-white p-4" noValidate>
             <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
                 {t(scim.IDENTITY_PROVIDER)}
                 <select className={cn(inputClass, 'sm:max-w-[280px]')} value={type} onChange={(e) => setType(e.target.value)}>
@@ -230,13 +230,13 @@ export default function WorkspaceScimSection() {
                 )
             ) : (
                 <>
-                    <div className="flex flex-col gap-3 rounded-lg border border-black-200 bg-white p-4" data-testid="scim-directory">
+                    <div className="flex flex-col gap-3 rounded border border-black-200 bg-white p-4" data-testid="scim-directory">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="flex min-w-0 flex-col gap-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <Users className="h-4 w-4 shrink-0 text-success" />
                                     <span className="text-sm font-semibold text-black-900">{directory.typeLabel}</span>
-                                    <span className="rounded bg-[#E7F6EE] px-1.5 py-0.5 text-[11px] font-medium text-[#0E8A5F]">{t(scim.SYNCING)}</span>
+                                    <span className="rounded bg-[#E7F6EE] px-1.5 py-0.5 text-[11px] font-medium text-success-700">{t(scim.SYNCING)}</span>
                                 </div>
                                 <span className="text-xs text-black-600">{directory.lastEventAt ? t(scim.LAST_CHANGE, { time: formatTime(directory.lastEventAt), type: directory.lastEventType }) : t(scim.NO_CHANGE)}</span>
                                 {directory.lastResyncAt && (

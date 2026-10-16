@@ -41,7 +41,7 @@ export default function AddSlidePopover() {
                                     transition: { duration: 0.2 }
                                 } as any)}
                             >
-                                <div className="z-1000! max-h-[640px] w-full rounded bg-white shadow-lg">
+                                <div className="z-1000! max-h-[640px] w-full rounded border border-black-300 bg-white shadow-large">
                                     <Tabs defaultValue="layout" className="h-full w-full">
                                         <TabsList className=" flex h-auto w-full gap-2 p-4">
                                             <TabsTrigger value="layout">Layout</TabsTrigger>

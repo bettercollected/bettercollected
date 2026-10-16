@@ -48,7 +48,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
 
     return (
         <div className={`relative z-50  ${className}`}>
-            <div className={cn('rounded-lg w-[72px] h-[72px] flex flex-col justify-center items-center items-s gap-1 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-black-900')} onClick={() => setShowDropdown(!showDropdown)}>
+            <div className={cn('rounded-lg w-[72px] h-[72px] flex flex-col justify-center items-center items-s gap-1 cursor-pointer hover:ring-1 hover:ring-black-400', logoUrl ? '' : 'bg-black-900')} onClick={() => setShowDropdown(!showDropdown)}>
                 <input ref={logoRef} id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {logoUrl ? (
                     <Image height={72} width={72} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
@@ -61,7 +61,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
             </div>
             {showDropdown && (
                 <div
-                    className={`flex flex-col absolute z-40 shadow-logoCard h-auto w-full sm:w-[330px] bg-white p-4 rounded-lg gap-2`}
+                    className={`flex flex-col absolute z-40 shadow-large border border-black-300 h-auto w-full sm:w-[330px] bg-white p-4 rounded gap-2`}
                     style={{
                         top: dropdownTopPosition
                     }}

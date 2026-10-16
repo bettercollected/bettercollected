@@ -36,10 +36,10 @@ ShadCNInput.displayName = 'ShadCNInput';
 const AppInput = React.forwardRef<HTMLInputElement, InputProps & { icon?: React.ReactElement }>(({ className, type, icon, ...props }, ref) => {
     return (
         <span className={cn('relative w-full')}>
-            {icon && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-black-400 pointer-events-none">
+            {icon && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-black-600 pointer-events-none">
                 {icon}
             </span>}
-            <input type={type} className={cn(`border-black-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl border px-3 py-2 text-[12px] disabled:cursor-not-allowed disabled:opacity-80`, className, icon && "pl-10")} ref={ref} {...props} />
+            <input type={type} className={cn(`border-control focus:border-brand-500 rounded border px-3 py-2 text-[12px] disabled:cursor-not-allowed disabled:opacity-80`, className, icon && "pl-10")} ref={ref} {...props} />
         </span>
     );
 });
@@ -60,26 +60,22 @@ const FieldInput = styled(ShadCNInput)<{
         // the bordered box, not a wash, is what reads as "type here".
         background: '#ffffff',
         borderRadius: tokens.inputRadius,
-        // Three-step border affordance: a light fixed grey at REST (fields sit
-        // calm on the page), the theme's border colour (tertiary) on HOVER — a
-        // clear but quiet "this is interactive" step — and the action-colour
-        // ring on FOCUS.
-        borderColor: '#E3E3E3',
+        // Three-step border affordance: the theme's border colour (tertiary) at
+        // REST — every preset keeps it at 3:1 or more on its ground, so the
+        // field's edge is visible (WCAG 1.4.11); the theme's ink on HOVER; the
+        // action colour on FOCUS, with the global focus outline (tailwind.css,
+        // --focus-ring set by the layout wrapper).
+        borderColor: themeColor || '#818CA0',
         '&::placeholder': {
             // Legible neutral (ink-3), not the theme tint — placeholders are
             // text people read, not decoration.
-            color: '#657085 !important'
+            color: '#667085 !important'
         },
         '&:hover:not(:focus)': {
-            borderColor: themeColor || '#8A94A6'
+            borderColor: $formTheme?.primary || '#101828'
         },
         '&:focus': {
-            // Always show a focus ring for keyboard users (WCAG 2.4.7). The base
-            // input sets outline:none, so without this an unthemed form would have
-            // no visible focus at all. Tint from the form's theme when present,
-            // else the trust-blue brand ring.
-            borderColor: secondaryColor || '#2456CC',
-            boxShadow: `0 0 0 3px ${secondaryColor ? `${secondaryColor}33` : 'rgba(36, 86, 204, 0.25)'}`
+            borderColor: secondaryColor || '#1649E2'
         }
     };
 });

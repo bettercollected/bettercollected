@@ -33,7 +33,7 @@ class PipeSuggestionList {
 
     constructor() {
         this.container = document.createElement('div');
-        this.container.className = 'answer-pipe-suggestions fixed z-9999 max-h-64 w-72 overflow-auto rounded-lg border bg-white py-1 shadow-lg';
+        this.container.className = 'answer-pipe-suggestions fixed z-9999 max-h-64 w-72 overflow-auto rounded border border-black-300 bg-white py-1 shadow-large';
         this.container.style.display = 'none';
         document.body.appendChild(this.container);
     }

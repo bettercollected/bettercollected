@@ -42,7 +42,7 @@ export default function AIMemorySection() {
     };
 
     return (
-        <div className="border-black-200 flex max-w-[640px] flex-col gap-4 rounded-lg border bg-white p-6">
+        <div className="border-black-200 flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
             <div className="flex flex-col gap-1">
                 <h2 className="text-black-900 text-sm font-semibold">What the AI remembers about your style</h2>
                 <p className="text-black-600 text-xs leading-relaxed">
@@ -54,7 +54,7 @@ export default function AIMemorySection() {
             {isLoading ? (
                 <p className="text-black-600 text-xs">Loading…</p>
             ) : entries.length === 0 ? (
-                <p className="text-black-500 border-black-200 rounded-md border border-dashed px-3 py-4 text-center text-xs">Nothing remembered yet — it fills in as you build forms with the assistant.</p>
+                <p className="text-black-600 border-black-200 rounded-md border border-dashed px-3 py-4 text-center text-xs">Nothing remembered yet — it fills in as you build forms with the assistant.</p>
             ) : (
                 <ul className="flex flex-col gap-1.5">
                     {(entries as MemoryEntry[]).map((entry) => (
@@ -70,7 +70,7 @@ export default function AIMemorySection() {
                                 type="button"
                                 aria-label={`Forget "${entry.text}"`}
                                 onClick={() => deleteEntry({ workspace_id: workspace.id, entry_id: entry.id })}
-                                className="text-black-400 mt-0.5 shrink-0 rounded p-1 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
+                                className="text-black-600 mt-0.5 shrink-0 rounded p-1 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
                             >
                                 <X className="h-3.5 w-3.5" />
                             </button>
@@ -88,7 +88,7 @@ export default function AIMemorySection() {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAdd();
                     }}
-                    className="border-black-300 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-9 w-full rounded-md border bg-white px-3 text-[13px] outline-hidden transition duration-150 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]"
+                    className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-9 w-full rounded-md border bg-white px-3 text-[13px] outline-hidden transition duration-150"
                 />
                 <Button size="sm" variant="v2Button" isLoading={isAdding} disabled={!draft.trim()} onClick={handleAdd} icon={<Plus className="h-4 w-4" />}>
                     Add

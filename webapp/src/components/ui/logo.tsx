@@ -53,7 +53,7 @@ export default Logo;
 // text on #FFA004 (~2.1:1 contrast) in a display face used nowhere else.
 export const ProLogo = () => {
     return (
-        <div className="flex h-fit flex-row items-center rounded-full bg-[#FBF3E4] px-2 py-[2px] text-[11px] font-semibold leading-[14px] text-[#B26B00]">
+        <div className="flex h-fit flex-row items-center rounded-full bg-brand-accent-100 px-2 py-[2px] text-[11px] font-semibold leading-[14px] text-brand-olive">
             <span>Pro</span>
         </div>
     );

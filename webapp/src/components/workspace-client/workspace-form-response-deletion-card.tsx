@@ -46,7 +46,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
     return (
         <Component
             href={pathname}
-            className={`relative flex flex-col items-start justify-between h-full bg-white border border-brand-100 ${disabled ? 'opacity-60 text-black-600!' : 'shadow-formCardDefault hover:border-brand-200  hover:shadow-formCard'
+            className={`relative flex flex-col items-start justify-between h-full bg-white border border-black-300 ${disabled ? 'opacity-60 text-black-600!' : 'hover:border-brand-500'
                 } rounded ${className}`}
         >
             <div className="rounded w-full px-5 py-4 flex flex-col gap-3 items-start justify-between">
@@ -64,7 +64,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
                         {deletionRequests ? 'Requested:' : t(localesCommon.lastSubmittedAt)} {utcToLocalDateTIme(response.createdAt)}
                     </span>
                     {isAnonymous && (
-                        <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-[#0E8A5F]" title="Submitted without your identity attached">
+                        <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-success-700" title="Submitted without your identity attached">
                             <ShieldIcon className="h-3 w-3" strokeWidth={2} />
                             Anonymous
                         </span>
@@ -75,7 +75,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
                         </span>
                     )}
                     {!!response?.status && (
-                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${response?.status === 'pending' ? 'bg-[#FBF3E4] text-[#B26B00]' : 'bg-black-100 text-black-600'}`}>
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${response?.status === 'pending' ? 'bg-brand-accent-100 text-brand-olive' : 'bg-black-100 text-black-600'}`}>
                             {response?.status === 'pending' ? 'Deletion requested' : `Deleted (${deletedAt})`}
                         </span>
                     )}

@@ -72,7 +72,7 @@ export default function PageDesignTab() {
             <ScrollArea className="max-h-design-content flex-1 overflow-y-auto border-t">
                 <div className="flex flex-col gap-3 p-3">
                     <Select value={selectValue} onValueChange={handleSelect}>
-                        <SelectTrigger aria-label="Pick a theme by name" className="border-black-300 h-9 w-full bg-white text-xs">
+                        <SelectTrigger aria-label="Pick a theme by name" className="border-control h-9 w-full bg-white text-xs">
                             <SelectValue placeholder="Pick a theme…" />
                         </SelectTrigger>
                         <SelectContent className="bg-white">

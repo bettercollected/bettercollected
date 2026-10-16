@@ -87,7 +87,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
 
 
     return (
-        <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded-md bg-white py-10 text-sm shadow-md md:max-w-[560px]">
+        <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded border border-black-300 bg-white py-10 text-sm md:max-w-[560px]">
             {closable && <CloseModal />}
             <div className="mt-0! flex flex-col items-center justify-between">
                 <CheckedCircle />

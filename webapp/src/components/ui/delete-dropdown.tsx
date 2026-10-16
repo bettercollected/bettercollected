@@ -27,7 +27,7 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
                 </div>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[200px] p-0 rounded-lg drop-shadow-xl bg-white"
+                className="w-[200px] p-0 rounded bg-white"
                 align="end"
                 onClick={() => setOpen(false)}
             >

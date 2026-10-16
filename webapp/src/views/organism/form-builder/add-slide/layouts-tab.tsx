@@ -23,7 +23,7 @@ const Layout = (props: { Icon: any; name: string; image: string; style?: FormSli
         <button data-umami-event={`${props.name} Button`} data-umami-event-email={authState.email}>
             <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
                 <div
-                    className="border-black-300 relative mb-1 overflow-hidden rounded-xl border "
+                    className="border-black-300 relative mb-1 overflow-hidden rounded border "
                     style={{
                         width: '168px',
                         height: '94px'

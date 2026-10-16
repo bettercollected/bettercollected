@@ -168,7 +168,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                                                     setNavbarState({ ...navbarState, insertClicked: false });
                                                 }, 1000);
                                             }}
-                                            className="border-black-300 flex h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border bg-white text-[#3A465A] transition-colors hover:border-brand-500 hover:bg-[#F4F7FD] focus-visible:border-brand-500 focus-visible:outline-hidden"
+                                            className="border-black-300 flex h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded border bg-white text-[#344054] transition-colors hover:border-brand-500 hover:bg-[#F4F7FD] focus-visible:border-brand-500 focus-visible:outline-hidden"
                                         >
                                             {field.icon}
                                             <span className="text-xs font-medium">{field.name}</span>

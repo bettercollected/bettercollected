@@ -74,7 +74,7 @@ export const PreviewFullModalView = () => {
                 derived height also fits: min(full width, available-height ×
                 16/9). 104px = 56px header + 48px stage padding. */}
             <div className="flex min-h-0 w-full flex-1 items-center justify-center lg:p-6">
-                <div className="border-black-300 relative h-full w-full overflow-hidden bg-white lg:aspect-video lg:h-auto lg:w-[min(100%,calc((100vh-104px)*16/9))] lg:rounded-lg lg:border lg:shadow-lg">
+                <div className="border-black-300 relative h-full w-full overflow-hidden bg-white lg:aspect-video lg:h-auto lg:w-[min(100%,calc((100vh-104px)*16/9))] lg:rounded-lg lg:border lg:border-black-300">
                     <Form isPreviewMode showDesktopLayout={!isMobile} />
                 </div>
             </div>

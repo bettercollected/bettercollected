@@ -92,7 +92,7 @@ export default function AIProfilePage() {
                             setDraft({ ...draft, [section.key]: e.target.value });
                             setDirty(true);
                         }}
-                        className="border-black-300 text-black-900 placeholder:text-black-400 focus:border-brand-500 w-full resize-y rounded-md border bg-white px-3.5 py-3 text-sm leading-relaxed outline-hidden transition duration-150 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 w-full resize-y rounded-md border bg-white px-3.5 py-3 text-sm leading-relaxed outline-hidden transition duration-150 disabled:cursor-not-allowed disabled:opacity-60"
                     />
                 </div>
             ))}

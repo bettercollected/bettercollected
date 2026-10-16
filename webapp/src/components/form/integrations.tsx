@@ -48,7 +48,7 @@ export default function FormIntegrations() {
                     {data?.map((integration, index) => (
                         <>
                             {addedActions.includes(integration.id) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded px-5 py-4 shadow-lg sm:flex-row sm:items-center">
+                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
                                     <div className="flex items-start sm:items-center">
                                         {/*logo */}
                                         <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
@@ -127,7 +127,7 @@ export default function FormIntegrations() {
                     {data?.map((integration, index) => (
                         <>
                             {(!addedActions || !addedActions.includes(integration.id)) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded px-5 py-4 shadow-lg sm:flex-row sm:items-center">
+                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
                                     <div className="flex items-start sm:items-center">
                                         {/* logo */}
                                         <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />

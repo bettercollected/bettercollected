@@ -11,7 +11,7 @@ interface IWorkspaceDetailsCardProps {
 export default function WorkspaceDetailsCard({ workspace }: IWorkspaceDetailsCardProps) {
     const { t } = useTranslation();
     return (
-        <div className="shadow-workspace-card w-full rounded-xl bg-white">
+        <div className="border border-black-300 w-full rounded bg-white">
             {workspace.bannerImage && (
                 <div className="aspect-banner relative w-full rounded-t-2xl">
                     <Image src={workspace.bannerImage} className="rounded-t-2xl" alt="Worksace Banner" layout="fill" />

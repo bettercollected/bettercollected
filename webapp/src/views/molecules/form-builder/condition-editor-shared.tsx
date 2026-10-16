@@ -118,8 +118,8 @@ export function isConditionComplete(c: LogicCondition | undefined): boolean {
     return true;
 }
 
-export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-xs outline-hidden';
-const invalidSelectClass = selectClass.replace('border-black-300', 'border-amber-400');
+export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-control bg-white px-2 py-1.5 text-xs outline-hidden';
+const invalidSelectClass = selectClass.replace('border-control', 'border-amber-400');
 
 /** One condition row: [source field] [comparison] [value], with an optional remove button. */
 export function ConditionRow({
@@ -143,7 +143,7 @@ export function ConditionRow({
     const labels = group && condition.groupMode === 'COUNT' ? COUNT_COMPARISON_LABELS : COMPARISON_LABELS;
     const valueMissing = needsValue(condition.comparison) && (condition.value === undefined || condition.value === null || String(condition.value).trim() === '');
     return (
-        <div className="border-black-200 bg-new-white-200 relative flex flex-col gap-1.5 rounded-md border p-2">
+        <div className="border-black-200 bg-black-100 relative flex flex-col gap-1.5 rounded-md border p-2">
             {onRemove && (
                 <button aria-label="Remove condition" className="text-black-600 hover:text-black-700 absolute right-1.5 top-1.5" onClick={onRemove}>
                     <X className="h-3.5 w-3.5" />

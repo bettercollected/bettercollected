@@ -86,7 +86,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
     const showProviderChip = !!providerForIcon && providerForIcon !== 'self';
 
     return (
-        <div className={`hover:border-brand-200 shadow-formCardDefault hover:shadow-formCard flex h-full cursor-pointer flex-col  items-start justify-between rounded-lg border border-transparent bg-white transition ${className}`}>
+        <div className={`hover:border-brand-500 flex h-full cursor-pointer flex-col items-start justify-between rounded border border-black-300 bg-white transition ${className}`}>
             <div className="group flex w-full items-center justify-between rounded px-5 py-4">
                 {!isResponderPortal &&
                     (form?.coverImage || form?.logo ? (

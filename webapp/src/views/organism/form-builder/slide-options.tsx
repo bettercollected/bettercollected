@@ -32,7 +32,7 @@ export default function SlideOptions({ slideIndex }: { slideIndex: number }) {
             <PopoverTrigger>
                 <EllipsisOption className={cn(' hidden cursor-pointer', activeSlideComponent?.index === slideIndex && 'block', 'group-hover:block')} width={16} height={16} />
             </PopoverTrigger>
-            <PopoverContent side="right" align="start" className=" w-[220px]  bg-white p-0 shadow-lg">
+            <PopoverContent side="right" align="start" className=" w-[220px]  bg-white p-0 shadow-large">
                 <div
                     className="p2 mt-2! flex cursor-pointer items-center gap-2 px-4 py-2 hover:bg-gray-100"
                     onClick={() => {

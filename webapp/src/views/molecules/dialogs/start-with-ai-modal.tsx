@@ -17,33 +17,12 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-const GenerateButton = styled(Button)`
-    background: linear-gradient(89.94deg, #00a9fe 1.64%, #8f6aff 99.95%);
-    transition: background 200ms;
-    position: relative;
-
-    &::before {
-        position: absolute;
-        content: '';
-        border-radius: 8px;
-        inset: 0;
-        background: linear-gradient(89.94deg, #8f6aff 1.64%, #00a9fe 99.95%);
-        z-index: 1;
-        opacity: 0;
-        transition: opacity 0.25s linear;
-    }
-
-    &:hover::before {
-        opacity: 1;
-    }
-`;
-
 const GradiantBorderDiv = styled.div`
     position: relative;
     padding: 1px;
 
     &::before {
-        border-radius: 8px;
+        border-radius: 7px;
         content: '';
         opacity: 0;
         z-index: -1;

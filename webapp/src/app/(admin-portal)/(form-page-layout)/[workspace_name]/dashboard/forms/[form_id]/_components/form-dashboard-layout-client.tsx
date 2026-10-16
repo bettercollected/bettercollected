@@ -220,7 +220,7 @@ export default function FormDashboardLayoutClient({
                         {!isMobile && (
                             <div className="text-black-700 mb-4 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
                                 {form?.isPublished ? (
-                                    <span className="rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-semibold text-[#0E8A5F]">Published</span>
+                                    <span className="rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-semibold text-success-700">Published</span>
                                 ) : (
                                     <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-semibold">Draft</span>
                                 )}

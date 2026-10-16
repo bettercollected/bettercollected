@@ -63,7 +63,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
                     setCopied(false);
                 }
             }}
-            className="shrink-0 rounded p-1 text-black-500 transition-colors hover:text-black-800"
+            className="shrink-0 rounded p-1 text-black-600 transition-colors hover:text-black-800"
         >
             {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
             <span className="sr-only" aria-live="polite">
@@ -123,7 +123,7 @@ function DomainCard({ domain, workspaceId }: { domain: WorkspaceDomainDto; works
     };
 
     return (
-        <li className="flex flex-col gap-4 rounded-lg border border-black-200 bg-white p-4" data-testid={`domain-${domain.domain}`}>
+        <li className="flex flex-col gap-4 rounded border border-black-200 bg-white p-4" data-testid={`domain-${domain.domain}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-1" aria-live="polite">
                     <div className="flex flex-wrap items-center gap-2">
@@ -228,7 +228,7 @@ export default function WorkspaceDomainsSection() {
                             setDraft(e.target.value);
                             setClaimError(null);
                         }}
-                        className="h-10 w-full rounded-md border border-black-300 bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)] sm:max-w-[360px]"
+                        className="h-10 w-full rounded-md border border-control bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-brand-500 sm:max-w-[360px]"
                     />
                     <Button type="submit" size="sm" variant="primary" isLoading={isClaiming} disabled={!draft.trim()}>
                         Add domain
@@ -255,7 +255,7 @@ export default function WorkspaceDomainsSection() {
                         </Button>
                     </div>
                 ) : domains.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-black-200 px-3 py-4 text-center text-xs text-black-500">No domains yet. Add your organisation&apos;s email domain above.</p>
+                    <p className="rounded-md border border-dashed border-black-200 px-3 py-4 text-center text-xs text-black-600">No domains yet. Add your organisation&apos;s email domain above.</p>
                 ) : (
                     <ul className="flex flex-col gap-3">
                         {domains.map((domain) => (

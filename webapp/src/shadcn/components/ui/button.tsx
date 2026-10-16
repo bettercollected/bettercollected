@@ -6,19 +6,26 @@ import { Loader2 } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
 
-const buttonVariants = cva('rounded-lg gap-2 min-w-fit flex justify-center items-center px-2 sm:px-4', {
+// Buttons follow DESIGN.md: a 6px face (`rounded` = --radius) with the "key
+// edge", a 3px inset bottom edge in a darker tone of the button's own colour
+// (`key-edge` + `--key-edge`). Pressing moves the face down 1px and drops the
+// edge. Ghost variants have no face, so they have no edge. Focus is the global
+// 2px Sireto-blue outline (tailwind.css), not a per-variant ring.
+const buttonVariants = cva('rounded gap-2 min-w-fit flex justify-center items-center px-2 sm:px-4 transition-colors', {
     variants: {
         variant: {
-            primary: 'bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-800 focus:ring ' + 'disabled:bg-black-300 disabled:text-black-500',
-            danger: 'bg-[#C43D3D] text-white hover:bg-[#A83434] disabled:bg-black-300 disabled:text-black-500',
-            tertiary: 'text-blue-500 border border-brand-500 hover:bg-brand-100 focus:ring focus:ring-blue-500 ' + 'active:bg-brand-600 disabled:bg-transparent disabled:border disabled:text-black-500 ' + 'disabled:border-black-300',
-            secondary: 'bg-black-800 text-white hover:bg-black-900 focus:ring-blue-500 focus-ring active:bg-black-900 ' + 'disabled:bg-black-300 disabled:text-black-500',
-            ghost: 'text-brand-500 border border-transparent hover:bg-black-200 outline-hidden ' + 'active:border-brand-500 active:bg-black-300 disabled:bg-black-300 disabled:text-black-500',
-            dangerGhost: 'text-[#C43D3D] border border-transparent hover:bg-[#FBEFEF] active:bg-[#F5DFDF] outline-hidden focus:ring ' + 'disabled:bg-black-300 disabled:text-black-500',
-            v2Button: 'border border-black-300 bg-white text-black-600 hover:bg-black-200 active:text-black-800 hover:text-black-800 active:bg-black-300  active:bg-black-400 ' + 'disabled:bg-black-300 disabled:text-black-500',
-            v2GhostButton:
-                'text-black-600 text-xs border border-transparent hover:bg-black-200 hover:text-black-800 outline-hidden rounded-lg ring' +
-                'active:ring-blue-500 active:bg-black-400  active:text-black-800 focus:ring-blue-500 focus:bg-black-300 focus:text-black-800 disabled:bg-black-300 disabled:text-black-500'
+            primary: 'bg-action text-white hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] ' + 'disabled:bg-black-300 disabled:text-black-600',
+            danger: 'bg-[#C43D3D] text-white hover:bg-[#A83434] active:bg-[#8F2C2C] key-edge [--key-edge:#7A2525] disabled:bg-black-300 disabled:text-black-600',
+            tertiary:
+                'text-brand-500 bg-white border border-brand-500 hover:bg-brand-100 active:bg-brand-200 key-edge [--key-edge:var(--color-brand-700)] ' +
+                'disabled:bg-transparent disabled:border disabled:text-black-600 disabled:border-black-300',
+            secondary: 'bg-black-800 text-white hover:bg-black-900 active:bg-black-900 key-edge [--key-edge:#05080F] ' + 'disabled:bg-black-300 disabled:text-black-600',
+            ghost: 'text-brand-500 border border-transparent hover:bg-black-200 ' + 'active:border-brand-500 active:bg-black-300 disabled:bg-black-300 disabled:text-black-600',
+            dangerGhost: 'text-[#C43D3D] border border-transparent hover:bg-[#FBEFEF] active:bg-[#F5DFDF] ' + 'disabled:bg-black-300 disabled:text-black-600',
+            v2Button:
+                'border border-black-400 bg-white text-black-700 hover:bg-black-200 hover:text-black-900 active:bg-black-300 key-edge [--key-edge:var(--color-black-400)] ' +
+                'disabled:bg-black-300 disabled:text-black-600',
+            v2GhostButton: 'text-black-600 text-xs border border-transparent hover:bg-black-200 hover:text-black-800 ' + 'active:bg-black-300 active:text-black-800 disabled:bg-black-300 disabled:text-black-600'
         },
         size: {
             medium: 'h-[48px] text-sm font-medium',
@@ -38,19 +45,24 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     icon?: ReactNode;
     isLoading?: boolean;
     postFixIcon?: ReactNode;
+    /**
+     * No key edge. For buttons painted in a respondent form's theme colour:
+     * form themes are the creator's choice, so the app's button shape stays
+     * out of them (DESIGN.md §9).
+     */
+    flat?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, icon, children, isLoading, postFixIcon, disabled, ...props }, ref) => {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, icon, children, isLoading, postFixIcon, disabled, flat, ...props }, ref) => {
+    const classes = buttonVariants({
+        variant,
+        size,
+        className: `${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'} ${className}`
+    });
     return (
         <button
             disabled={disabled || isLoading}
-            className={cn(
-                buttonVariants({
-                    variant,
-                    size,
-                    className: `${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'} ${className}`
-                })
-            )}
+            className={cn(flat ? classes.replace(/(^|\s)key-edge(?=\s|$)/g, ' ') : classes)}
             ref={ref}
             {...props}
         >

@@ -100,7 +100,7 @@ export default function ThemesPage() {
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {savedThemes.map((theme, index) => (
-                            <div key={theme.title} className="border-black-300 group flex flex-col overflow-hidden rounded-lg border bg-white">
+                            <div key={theme.title} className="border-black-300 group flex flex-col overflow-hidden rounded border bg-white">
                                 <ThemePreview color={theme} />
                                 <div className="border-t-black-200 flex items-center justify-between border-t px-3 py-2">
                                     <span className="text-black-800 truncate text-xs font-medium">{theme.title}</span>
@@ -112,11 +112,11 @@ export default function ThemesPage() {
                                                 setNameError('');
                                                 setEditing({ index, draft: { ...theme } });
                                             }}
-                                            className="text-black-500 hover:bg-black-100 hover:text-black-800 rounded p-1.5 transition-colors"
+                                            className="text-black-600 hover:bg-black-100 hover:text-black-800 rounded p-1.5 transition-colors"
                                         >
                                             <Pencil className="h-3.5 w-3.5" />
                                         </button>
-                                        <button type="button" aria-label={`Delete ${theme.title}`} onClick={() => handleDelete(index)} className="text-black-500 rounded p-1.5 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
+                                        <button type="button" aria-label={`Delete ${theme.title}`} onClick={() => handleDelete(index)} className="text-black-600 rounded p-1.5 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
                                     </span>
@@ -130,7 +130,7 @@ export default function ThemesPage() {
                                 setNameError('');
                                 setEditing({ index: 'new', draft: { title: '', ...NEW_THEME_SEED } });
                             }}
-                            className="border-black-300 text-black-600 hover:border-brand-400 hover:text-brand-600 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-white text-sm font-medium transition-colors"
+                            className="border-black-300 text-black-600 hover:border-brand-400 hover:text-brand-600 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed bg-white text-sm font-medium transition-colors"
                         >
                             <Plus className="h-5 w-5" />
                             New theme
@@ -138,7 +138,7 @@ export default function ThemesPage() {
                     </div>
 
                     {editing && (
-                        <div className="border-black-300 flex max-w-[540px] flex-col gap-5 rounded-lg border bg-white p-5">
+                        <div className="border-black-300 flex max-w-[540px] flex-col gap-5 rounded border bg-white p-5">
                             <h3 className="text-black-900 text-sm font-semibold">{editing.index === 'new' ? 'New theme' : `Edit ${savedThemes[editing.index as number]?.title}`}</h3>
 
                             <div className="flex flex-col gap-2">
@@ -215,7 +215,7 @@ export default function ThemesPage() {
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {ThemeColors.map((theme) => (
-                        <div key={theme.title} className="border-black-300 flex flex-col overflow-hidden rounded-lg border bg-white">
+                        <div key={theme.title} className="border-black-300 flex flex-col overflow-hidden rounded border bg-white">
                             <ThemePreview color={theme} />
                             <div className="border-t-black-200 border-t px-3 py-2">
                                 <span className="text-black-800 text-xs font-medium">{theme.title}</span>

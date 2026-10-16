@@ -17,7 +17,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateSsoConnectionMutation, useDeleteSsoConnectionMutation, useGetWorkspaceSsoQuery, useSetSsoConnectionEnabledMutation, useUpdateSsoSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export const inputClass = 'h-10 w-full rounded-md border border-black-300 bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]';
+export const inputClass = 'h-10 w-full rounded-md border border-control bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-brand-500';
 
 export const ROLE_LABELS: Record<string, string> = {
     ADMIN: 'Admin',
@@ -58,7 +58,7 @@ export function CopyField({ label, value, hint }: { label: string; value: string
                             setCopied(false);
                         }
                     }}
-                    className="shrink-0 rounded p-1 text-black-500 transition-colors hover:text-black-800"
+                    className="shrink-0 rounded p-1 text-black-600 transition-colors hover:text-black-800"
                 >
                     {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                     <span className="sr-only" aria-live="polite">
@@ -127,16 +127,16 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
     const test = () => navigateWithReferrer(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/sso/connections/${connection.id}/test`);
 
     return (
-        <li className="flex flex-col gap-3 rounded-lg border border-black-200 bg-white p-4" data-testid={`sso-connection-${connection.id}`}>
+        <li className="flex flex-col gap-3 rounded border border-black-200 bg-white p-4" data-testid={`sso-connection-${connection.id}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
                         <KeyRound className={cn('h-4 w-4 shrink-0', enabled ? 'text-success' : 'text-black-600')} />
                         <span className="break-all text-sm font-semibold text-black-900">{connection.name}</span>
                         <span className="rounded bg-black-100 px-1.5 py-0.5 text-[11px] font-medium uppercase text-black-600">{connection.type}</span>
-                        <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium', enabled ? 'bg-[#E7F6EE] text-[#0E8A5F]' : 'bg-black-100 text-black-600')}>{enabled ? 'Enabled' : 'Disabled'}</span>
+                        <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium', enabled ? 'bg-[#E7F6EE] text-success-700' : 'bg-black-100 text-black-600')}>{enabled ? 'Enabled' : 'Disabled'}</span>
                         {connection.tested ? (
-                            <span className="rounded bg-[#E7F6EE] px-1.5 py-0.5 text-[11px] font-medium text-[#0E8A5F]">Tested</span>
+                            <span className="rounded bg-[#E7F6EE] px-1.5 py-0.5 text-[11px] font-medium text-success-700">Tested</span>
                         ) : (
                             <span className="rounded bg-[#FDF3E3] px-1.5 py-0.5 text-[11px] font-medium text-[#9A5B00]">Not tested</span>
                         )}
@@ -224,7 +224,7 @@ function AddConnectionForm({ workspaceId, workspaceName, onDone }: { workspaceId
     };
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4 rounded-lg border border-black-200 bg-white p-4" noValidate>
+        <form onSubmit={submit} className="flex flex-col gap-4 rounded border border-black-200 bg-white p-4" noValidate>
             <fieldset className="flex flex-wrap gap-4">
                 <legend className="mb-2 text-xs font-semibold text-black-800">Protocol</legend>
                 {(['saml', 'oidc'] as SsoConnectionType[]).map((value) => (
@@ -389,7 +389,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
 
     return (
         <Section title="Policy">
-            <div className="flex flex-col gap-4 rounded-lg border border-black-200 bg-white p-4">
+            <div className="flex flex-col gap-4 rounded border border-black-200 bg-white p-4">
                 <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
                     Role for new members
                     <select className={cn(inputClass, 'sm:max-w-[240px]')} value={settings.defaultRole} disabled={isLoading || !canManage} onChange={(e) => save({ defaultRole: e.target.value })}>

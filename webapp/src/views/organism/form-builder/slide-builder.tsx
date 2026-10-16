@@ -81,7 +81,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                         <div
                                             key={index}
                                             tabIndex={0}
-                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#2456CC]', 'w-full cursor-pointer p-1')}
+                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', 'w-full cursor-pointer p-1')}
                                             onFocus={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
@@ -116,7 +116,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                     // Selection toolbar: what this field is, then what you can do
                                                     // with it. Delete is last and quiet-red — a destructive action
                                                     // shouldn't be the selection's only (or loudest) affordance.
-                                                    <div className="border-black-300 shadow-bubble absolute -top-12 right-0 z-10 flex items-center overflow-hidden rounded-lg border bg-white">
+                                                    <div className="border-black-300 shadow-large absolute -top-12 right-0 z-10 flex items-center overflow-hidden rounded border bg-white">
                                                         <span className="text-black-600 px-2.5 text-[11px] font-semibold uppercase tracking-wide">{fieldTypeLabel(field.type)}</span>
                                                         <span className="bg-black-200 h-5 w-px" aria-hidden="true" />
                                                         <button
@@ -174,7 +174,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                             <div className="flex h-full w-full items-center justify-center lg:col-span-12">
                                 <button
                                     type="button"
-                                    className="border-black-400 text-black-700 hover:border-black-600 hover:text-black-900 flex flex-col items-center gap-2 rounded-xl border border-dashed bg-white/60 px-10 py-8 text-sm font-medium transition-colors"
+                                    className="border-black-400 text-black-700 hover:border-black-600 hover:text-black-900 flex flex-col items-center gap-2 rounded border border-dashed bg-white/60 px-10 py-8 text-sm font-medium transition-colors"
                                     onClick={(event) => {
                                         event.stopPropagation();
                                         setNavbarState({ ...navbarState, insertMenuOpen: true });

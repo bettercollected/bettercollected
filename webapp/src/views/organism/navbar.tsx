@@ -167,9 +167,9 @@ const Navbar = () => {
                 >
                     {workspace?.profileImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md object-cover shadow" />
+                        <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md border border-black-300 object-cover" />
                     ) : (
-                        <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold shadow">{((workspace?.title || workspace?.workspaceName)?.[0] || 'W').toUpperCase()}</span>
+                        <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold">{((workspace?.title || workspace?.workspaceName)?.[0] || 'W').toUpperCase()}</span>
                     )}
                 </button>
                 <AppInput
@@ -204,7 +204,7 @@ const Navbar = () => {
                                 <motion.div
                                     key="insert-dropdown"
                                     {...({
-                                        className: 'shadow-bubble border',
+                                        className: 'shadow-large border border-black-300',
                                         initial: { opacity: 0, height: '350px', overflow: 'hidden' },
                                         animate: { opacity: 1, height: '554px' },
                                         exit: { opacity: 0, height: '350px', overflow: 'hidden' },

@@ -120,7 +120,7 @@ export const ContrastNotes = ({ theme }: { theme: FormTheme }) => {
         return <p className="mt-1 text-[11px] font-medium text-success-700">Looks legible — contrast passes everywhere it matters.</p>;
     }
     return (
-        <div className="mt-1 flex flex-col gap-1 rounded-md bg-[#FBF3E4] px-2.5 py-2">
+        <div className="mt-1 flex flex-col gap-1 rounded-md bg-brand-accent-100 px-2.5 py-2">
             {notes.map((note) => (
                 <p key={note} className="text-[11px] leading-relaxed text-brand-olive">
                     {note}
@@ -281,7 +281,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                             type="button"
                             aria-pressed={bg.pattern === pattern.key}
                             onClick={() => onChange({ ...bg, pattern: pattern.key })}
-                            className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-brand-500 shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 hover:border-black-400')}
+                            className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-300 hover:border-black-400')}
                         >
                             <span className="block h-8 w-full" style={themeBackgroundStyle({ ...theme, background: { type: 'pattern', pattern: pattern.key } })} aria-hidden="true" />
                             <span className="text-black-700 block bg-white py-1 text-[10px] font-medium">{pattern.label}</span>
@@ -298,7 +298,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                         placeholder="https://…"
                         value={bg.imageUrl ?? ''}
                         onChange={(e) => onChange({ ...bg, imageUrl: e.target.value.trim() })}
-                        className="border-black-300 text-black-800 placeholder:text-black-400 focus:border-brand-500 w-full rounded-md border bg-white px-2.5 py-1.5 text-xs outline-hidden"
+                        className="border-black-300 text-black-800 placeholder:text-black-600 focus:border-brand-500 w-full rounded-md border bg-white px-2.5 py-1.5 text-xs outline-hidden"
                     />
                     <p className="text-black-600 text-[11px] leading-relaxed">Paste an image address. The background colour shows while it loads.</p>
                 </div>

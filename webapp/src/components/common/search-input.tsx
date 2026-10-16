@@ -27,7 +27,7 @@ export default function SearchInput({ handleSearch, className, placeholder }: IS
             name="search-input"
             placeholder={placeholder ? placeholder : t(placeHolder.search)}
             onChange={debouncedResults}
-            className={cn('w-full bg-white h-[40px] rounded-lg shadow-sm', className)}
+            className={cn('w-full bg-white h-[40px] rounded', className)}
             icon={<SearchIcon />}
         />
     );
