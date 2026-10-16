@@ -67,8 +67,9 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
         // grows sideways mid-transition and a horizontal scrollbar flashes.
         <div className={cn(isPreviewMode ? 'h-full w-full  ' : 'h-screen w-screen', 'relative h-full w-full overflow-hidden')}>
             {currentSlide !== -1 && (
-                <div className="absolute left-0 right-0 top-0 z-80!">
-                    <Progress indicatorColor={standardForm.theme?.secondary} value={getProgressValue()} className="h-1 rounded-none" />
+                // Decorative: "Page x of y" in the header says the same in words.
+                <div className="absolute left-0 right-0 top-0 z-80!" aria-hidden="true">
+                    <Progress indicatorColor={standardForm.theme?.secondary} value={getProgressValue()} className="h-1 rounded-none" style={{ background: standardForm.theme?.tertiary ? `${standardForm.theme.tertiary}33` : undefined }} />
                 </div>
             )}
             <AnimatePresence mode="sync" initial={false} custom={direction}>

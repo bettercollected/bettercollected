@@ -135,6 +135,10 @@ export const ContrastNotes = ({ theme }: { theme: FormTheme }) => {
  * place so the runtime, the previews and the editors always agree. Colours and
  * background stay orthogonal; a style only changes register (type, numerals,
  * edges, selection weight).
+ *
+ * - `ruledChoices`: options sit on 1px rules instead of in bordered boxes.
+ * - `numbered`: pages become numbered sections and questions carry n.m
+ *   numbers in a margin column (see utils/question-numbers.ts).
  */
 export function styleTokens(style?: ThemeStyle) {
     switch (style) {
@@ -144,7 +148,9 @@ export function styleTokens(style?: ThemeStyle) {
                 labelClass: 'font-serif text-[17px] font-medium leading-snug lg:text-lg lg:leading-7',
                 inputRadius: '4px',
                 divider: true, // ruled rows, like a printed questionnaire
-                solidSelection: false
+                solidSelection: false,
+                ruledChoices: false,
+                numbered: false
             };
         case 'studio':
             return {
@@ -152,7 +158,9 @@ export function styleTokens(style?: ThemeStyle) {
                 labelClass: 'text-[19px] font-bold tracking-tight leading-snug lg:text-[21px]',
                 inputRadius: '0px',
                 divider: false,
-                solidSelection: true // chosen options fill solid with white text
+                solidSelection: true, // chosen options fill solid with white text
+                ruledChoices: false,
+                numbered: false
             };
         default:
             return {
@@ -160,9 +168,53 @@ export function styleTokens(style?: ThemeStyle) {
                 labelClass: 'text-base font-semibold leading-snug lg:text-lg lg:leading-7',
                 inputRadius: '6px',
                 divider: false,
-                solidSelection: false
+                solidSelection: false,
+                ruledChoices: false,
+                numbered: false
             };
     }
+}
+
+/** `#rrggbb` mixed with another `#rrggbb`: `weight` of `a`, the rest `b`. */
+export function mixHex(a: string, b: string, weight: number): string {
+    const parse = (hex: string) => [0, 2, 4].map((i) => parseInt(hex.replace('#', '').substring(i, i + 2), 16));
+    const [ca, cb] = [parse(a), parse(b)];
+    return (
+        '#' +
+        ca
+            .map((value, i) => Math.round(value * weight + cb[i] * (1 - weight)))
+            .map((value) => value.toString(16).padStart(2, '0'))
+            .join('')
+            .toUpperCase()
+    );
+}
+
+const isHex = (value?: string): value is string => !!value && /^#[0-9a-fA-F]{6}$/.test(value);
+
+/**
+ * Secondary text (descriptions, hints) in the theme's own ink, a step lighter
+ * than the questions: the ink mixed a little towards the page, kept at 7:1 or
+ * more on it (else the ink itself). A fixed grey would sit off-hue on the
+ * tinted presets.
+ */
+export function softInk(theme?: Partial<FormTheme>): string {
+    const primary = isHex(theme?.primary) ? theme!.primary : '#101828';
+    if (!isHex(theme?.accent)) return primary;
+    const candidate = mixHex(primary, theme!.accent, 0.82);
+    return contrast(candidate, theme!.accent) >= 7 ? candidate : primary;
+}
+
+/** Danger red for required markers (DESIGN.md §1). */
+export const REQUIRED_RED = '#C43D3D';
+
+/**
+ * The colour of the required marker: danger red where it reaches 4.5:1 on the
+ * form's ground, the theme's ink where it doesn't (the red falls to about
+ * 4.2:1 on the tinted presets).
+ */
+export function requiredMarkColour(theme?: Partial<FormTheme>): string {
+    const accent = isHex(theme?.accent) ? theme!.accent : '#FFFFFF';
+    return contrast(REQUIRED_RED, accent) >= 4.5 ? REQUIRED_RED : theme?.primary || '#101828';
 }
 
 const STYLE_OPTIONS: Array<{ key: ThemeStyle; label: string; hint: string }> = [

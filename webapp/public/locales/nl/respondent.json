@@ -80,7 +80,8 @@
         "SELECT_OPTION": "Kies een antwoord",
         "PLACEHOLDER_ANSWER": "Antwoord",
         "PLACEHOLDER_EMAIL": "naam@voorbeeld.nl",
-        "RATE": "{{value}} van {{total}} geven"
+        "RATE": "{{value}} van {{total}} geven",
+        "CHOOSE_MANY": "Kies er zoveel als je wilt."
     },
     "DATE": {
         "PICK": "Kies een datum",

@@ -80,7 +80,8 @@
         "SELECT_OPTION": "Select an option",
         "PLACEHOLDER_ANSWER": "Answer",
         "PLACEHOLDER_EMAIL": "name@gmail.com",
-        "RATE": "Rate {{value}} of {{total}}"
+        "RATE": "Rate {{value}} of {{total}}",
+        "CHOOSE_MANY": "Choose as many as you like."
     },
     "DATE": {
         "PICK": "Pick a date",

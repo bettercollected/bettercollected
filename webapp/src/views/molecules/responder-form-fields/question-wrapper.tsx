@@ -1,4 +1,5 @@
 import parse from 'html-react-parser';
+import { AlertCircle } from 'lucide-react';
 
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
@@ -9,7 +10,7 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
-import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { requiredMarkColour, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
@@ -78,7 +79,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
                         {isAnswerable && isRequired && (
                             <>
-                                <span aria-hidden="true" className="text-[#C43D3D]">
+                                <span aria-hidden="true" style={{ color: requiredMarkColour(theme) }}>
                                     {' '}
                                     *
                                 </span>
@@ -86,7 +87,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                             </>
                         )}
                     </div>
-                    {isAnswerable && !isRequired && <span className="text-black-700 text-xs font-normal tracking-wide">{t('FIELD.OPTIONAL')}</span>}
+                    {isAnswerable && !isRequired && <span className="text-black-700 text-[13px] font-normal">{t('FIELD.OPTIONAL')}</span>}
                 </div>
                 {resolvedDescription && (
                     <div id={`q-desc-${field.id}`} className="text-black-700 mt-1.5 max-w-[62ch] text-[15px] leading-relaxed">
@@ -94,8 +95,10 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                     </div>
                 )}
                 {whyWeAsk && (
-                    <p id={`q-why-${field.id}`} className="text-black-700 border-brand-200 mt-1.5 max-w-[62ch] border-l-2 pl-2.5 text-[14px] leading-relaxed">
-                        <span className="text-black-800 font-semibold" lang={language}>
+                    // The reason sits against a rule in the theme's border colour,
+                    // so it belongs to the form's palette, not the app's blue.
+                    <p id={`q-why-${field.id}`} className="text-black-700 mt-2 max-w-[62ch] border-l-2 pl-3 text-[14px] leading-relaxed" style={{ borderColor: theme?.tertiary ?? '#818CA0' }}>
+                        <span className="font-semibold" style={{ color: theme?.primary }} lang={language}>
                             {t('QUESTION.WHY_WE_ASK')}
                         </span>{' '}
                         {whyWeAsk}
@@ -106,9 +109,13 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
             {children}
             {/* Honest, non-alarmist validation: say what to do, not just that something is wrong,
                 and avoid alarm colours/urgency (DESIGN.md §5). */}
+            {/* The message is set in the theme's ink (amber text fell under
+                4.5:1 on the tinted presets); the icon in danger red marks it as
+                a problem without relying on the colour of the words. */}
             {hasError && (
-                <div id={`q-error-${field.id}`} role="alert" className="mt-2 text-sm text-amber-700">
-                    {errorMessage || t('FIELD.ANSWER_REQUIRED')}
+                <div id={`q-error-${field.id}`} role="alert" className="mt-2 flex items-start gap-2 text-[15px] leading-snug font-medium" style={{ color: theme?.primary }}>
+                    <AlertCircle className="mt-px h-[18px] w-[18px] shrink-0 text-[#C43D3D]" strokeWidth={2} aria-hidden="true" />
+                    <span>{errorMessage || t('FIELD.ANSWER_REQUIRED')}</span>
                 </div>
             )}
         </div>

@@ -15,6 +15,7 @@ import { useSendFlowEventMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
+import { softInk } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
 /**
@@ -72,9 +73,14 @@ export default function WelcomePage({
                 layout wrapper centres the block vertically. pt-6 keeps the
                 title clear of the account button in the top corner. */}
             <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-6', align)} data-testid="welcome-column">
-                <h1 className="text-[32px] leading-[40px] font-bold text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]">{standardForm?.title}</h1>
+                {/* Title and introduction in the theme's ink (the introduction a
+                    step lighter, still 7:1), on a measure that keeps long titles
+                    to a few balanced lines. */}
+                <h1 className="max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: formTheme?.primary }}>
+                    {standardForm?.title}
+                </h1>
                 {welcomePage?.description && (
-                    <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-pretty text-black-700" style={{ whiteSpace: 'pre-line' }}>
+                    <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ whiteSpace: 'pre-line', color: softInk(formTheme) }}>
                         {welcomePage?.description}
                     </p>
                 )}
@@ -115,7 +121,7 @@ export default function WelcomePage({
                             <Button
                                 flat
                                 style={{ background: formTheme?.secondary }}
-                                className="z-10 rounded-[8px] px-8 py-3 text-base font-semibold"
+                                className="z-10 min-h-12 rounded-[8px] px-8 py-3 text-base font-semibold"
                                 size="medium"
                                 onClick={() => {
                                     if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {

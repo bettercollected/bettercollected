@@ -264,8 +264,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
-                                // -ml-1.5 puts the chevron, not the button's padding, on the column edge.
-                                className="-ml-1.5 w-fit bg-inherit!"
+                                // -ml-1.5 puts the chevron, not the button's padding, on the column edge;
+                                // 44px tall, a full touch target.
+                                className="-ml-1.5 min-h-11 w-fit bg-inherit!"
                                 style={{
                                     background: standardForm?.theme?.accent,
                                     // The theme's ink, not a fixed grey: a fixed neutral fell
@@ -275,14 +276,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             />
                             {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
-                            <div className="flex items-center gap-3 text-[13px] text-black-700">
+                            <div className="flex items-center gap-3 text-[13px]" style={{ color: standardForm?.theme?.primary }}>
                                 {(workspace?.title || workspace?.workspaceName) && (
                                     <span className="hidden items-center gap-1.5 rounded-full border border-black-400 bg-white/85 px-2.5 py-0.5 font-medium text-black-800 sm:inline-flex">
                                         <Shield className="h-3.5 w-3.5 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                                         {workspace?.title || workspace?.workspaceName}
                                     </span>
                                 )}
-                                <span className="whitespace-nowrap tabular-nums" lang={language}>
+                                <span className="font-medium whitespace-nowrap tabular-nums" lang={language}>
                                     {t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
                                 </span>
                             </div>
@@ -338,7 +339,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 color: 'white'
                             }}
                             isLoading={isLoading}
-                            className="rounded-[8px] px-8 py-3 text-base font-semibold"
+                            className="min-h-12 rounded-[8px] px-8 py-3 text-base font-semibold"
                             onClick={onNext}
                             size="medium"
                         >

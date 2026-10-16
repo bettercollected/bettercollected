@@ -14,6 +14,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { ChevronDown } from 'lucide-react';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import QuestionWrapper from './question-wrapper';
 
 export default function DropDownField({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
@@ -41,6 +42,8 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
     };
 
     const choiceValue = getSelectedValue();
+    const selectedChoiceId = formResponse?.answers?.[field.id]?.choice?.value;
+    const tokens = styleTokens(theme?.style);
 
     const handleClick = (choiceId: string) => {
         addFieldChoiceAnswer(field.id, choiceId);
@@ -73,16 +76,16 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                         affordance, a different species from the rest of the form. */}
                     <button
                         type="button"
-                        style={{ ...getTextStyle(), ['--hover-border' as string]: theme?.primary ?? '#101828' }}
-                        className="flex w-full cursor-pointer items-center justify-between gap-4 rounded-md border bg-white px-4 py-3 text-left text-base outline-hidden transition duration-150 hover:border-(--hover-border)! focus-visible:ring-2 lg:text-lg"
+                        style={{ ...getTextStyle(), borderRadius: tokens.inputRadius, ['--hover-border' as string]: theme?.primary ?? '#101828' }}
+                        className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg"
                     >
                         <span className="truncate">{choiceValue ? choiceValue : t('FIELD.SELECT_OPTION')}</span>
                         <ChevronDown className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                     </button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-2">
+                <CollapsibleContent className={tokens.ruledChoices ? '' : 'space-y-2'}>
                     {field.properties?.choices?.map((choice, index) => {
-                        return <Choice key={choice.id} index={index} isSelected={choice.id === choiceValue} theme={theme} choice={choice} onClick={handleClick} />;
+                        return <Choice key={choice.id} index={index} isSelected={!!selectedChoiceId && choice.id === selectedChoiceId} theme={theme} choice={choice} onClick={handleClick} />;
                     })}
                 </CollapsibleContent>
             </Collapsible>
