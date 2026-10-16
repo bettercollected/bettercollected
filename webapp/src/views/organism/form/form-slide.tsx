@@ -6,7 +6,6 @@ import { Controller } from 'react-scrollmagic';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { Button } from '@app/shadcn/components/ui/button';
-import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -356,16 +355,19 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     // 15px/1.5, high contrast, green-tinted container — and unchecked by
                                     // default, so sharing identity is a choice the person makes.
                                     <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-[8px] border border-[#BFE0D2] bg-[#F2FAF6] p-4">
-                                        <FieldInput
+                                        {/* A real checkbox, not the text-field component: that one paints a
+                                            solid white background, which hid the tick when checked. */}
+                                        <input
                                             checked={!effectiveAnonymize}
-                                            onChange={(e: any) => {
+                                            onChange={(e) => {
                                                 setFormResponse({
                                                     ...formResponse,
                                                     anonymize: !e.target.checked
                                                 });
                                             }}
                                             type="checkbox"
-                                            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-hidden"
+                                            data-testid="share-email-consent"
+                                            className="border-control mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-[4px] border-2 text-[#0E8A5F] checked:border-[#0E8A5F]"
                                         />
                                         <span className="flex flex-col gap-0.5">
                                             <span className="text-[15px] leading-relaxed font-medium text-black-900">{t('CONSENT.SHARE_EMAIL')}</span>
