@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     icons: {
         icon: '/favicon.ico'
     },
-    manifest: '/site.webmanifest'
+    manifest: '/manifest.webmanifest'
 };
 
 export default function RootLayout({
