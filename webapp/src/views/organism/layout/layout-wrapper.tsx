@@ -44,9 +44,11 @@ interface ILayoutWrapper {
     logo?: ResolvedFormLogo | null;
     /** `cover` on the welcome page, `page` elsewhere. */
     logoSize?: 'cover' | 'page';
+    /** The account control, shown in the logo strip's row (welcome and ending pages). */
+    logoAction?: React.ReactNode;
 }
 
-const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false, topAligned = false, logo, logoSize = 'page' }: ILayoutWrapper) => {
+const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false, topAligned = false, logo, logoSize = 'page', logoAction }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
 
@@ -160,7 +162,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             >
                 {logo ? (
                     <div className={cn('relative flex min-h-0 grow flex-col', showDesktopLayout ? 'h-full' : 'lg:h-full', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && 'z-10', contentOrder)}>
-                        <FormLogoStrip logo={logo} theme={theme} layout={layout} size={logoSize} />
+                        <FormLogoStrip logo={logo} theme={theme} layout={layout} size={logoSize} action={logoAction} />
                         {scrollArea}
                     </div>
                 ) : (

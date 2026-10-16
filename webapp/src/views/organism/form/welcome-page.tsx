@@ -14,9 +14,9 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSendFlowEventMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFlowSessionId } from '@app/utils/flow-session';
-import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { LeafletContents, LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { actionInk, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
 /**
@@ -32,11 +32,14 @@ export function startButtonText(creatorText: string | undefined, translatedDefau
 export default function WelcomePage({
     isPreviewMode,
     welcomePageData,
-    theme
+    theme,
+    accountInStrip = false
 }: Readonly<{
     isPreviewMode: boolean;
     welcomePageData?: any;
     theme?: FormTheme;
+    /** The account control is in the organisation logo strip's row, not here. */
+    accountInStrip?: boolean;
 }>) {
     const standardForm = useAppSelector(selectResponderForm);
     const { t } = useRespondentLanguage();
@@ -72,7 +75,15 @@ export default function WelcomePage({
         <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
             {!standardForm?.settings?.private && !auth.id && (
                 <p className="text-base" style={{ color: softInk(formTheme) }}>
-                    {standardForm?.settings?.requireVerifiedIdentity ? <>{t('WELCOME.VERIFY_REQUIRED')} {verifyLink(t('WELCOME.VERIFY_NOW'))}</> : <>{t('WELCOME.VIEW_LATER')} {verifyLink(t('WELCOME.VERIFY_EMAIL'))}</>}
+                    {standardForm?.settings?.requireVerifiedIdentity ? (
+                        <>
+                            {t('WELCOME.VERIFY_REQUIRED')} {verifyLink(t('WELCOME.VERIFY_NOW'))}
+                        </>
+                    ) : (
+                        <>
+                            {t('WELCOME.VIEW_LATER')} {verifyLink(t('WELCOME.VERIFY_EMAIL'))}
+                        </>
+                    )}
                 </p>
             )}
 
@@ -130,24 +141,25 @@ export default function WelcomePage({
         // introduction in the pale band, then what the form holds and Start.
         return (
             <>
-                <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />
+                {!accountInStrip && <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />}
                 {/* The same top row as the question pages: a hairline under 56px.
                     data-primary-content: where the content the trust panel must
                     leave in view begins (utils/panel-fit.ts). */}
                 <div data-primary-content>
-                <LeafletTopRule theme={formTheme} />
-                <LeafletSectionBar theme={formTheme} title={standardForm?.title} layout={welcomePage?.layout} headingLevel={1} />
-                {welcomePage?.description && (
-                    <LeafletIntroBand theme={formTheme} layout={welcomePage?.layout}>
-                        <p className="max-w-[62ch] text-pretty" style={{ whiteSpace: 'pre-line' }}>
-                            {welcomePage.description}
-                        </p>
-                    </LeafletIntroBand>
-                )}
-                <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-8')} data-testid="welcome-column">
-                    <LeafletContents pages={standardForm?.fields} theme={formTheme} />
-                    {actions}
-                </div>
+                    {/* With a logo strip the row only held the account control, now in the strip. */}
+                    {!accountInStrip && <LeafletTopRule theme={formTheme} />}
+                    <LeafletSectionBar theme={formTheme} title={standardForm?.title} layout={welcomePage?.layout} headingLevel={1} />
+                    {welcomePage?.description && (
+                        <LeafletIntroBand theme={formTheme} layout={welcomePage?.layout}>
+                            <p className="max-w-[62ch] text-pretty" style={{ whiteSpace: 'pre-line' }}>
+                                {welcomePage.description}
+                            </p>
+                        </LeafletIntroBand>
+                    )}
+                    <div className={cn(FORM_COLUMN, columnPlacementClass(welcomePage?.layout), 'flex flex-col pt-8')} data-testid="welcome-column">
+                        <LeafletContents pages={standardForm?.fields} theme={formTheme} />
+                        {actions}
+                    </div>
                 </div>
             </>
         );
@@ -155,7 +167,7 @@ export default function WelcomePage({
 
     return (
         <>
-            <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />
+            {!accountInStrip && <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />}
 
             {/* The page's Layout setting decides the alignment ("Centered"
                 centres everything, "Left aligned" keeps one left edge); the
@@ -174,7 +186,7 @@ export default function WelcomePage({
                     </p>
                 )}
 
-{actions}
+                {actions}
             </div>
         </>
     );

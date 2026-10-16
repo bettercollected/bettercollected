@@ -376,8 +376,12 @@ form, in every style (`views/molecules/form/form-logo-strip.tsx`; rules in
   question pages, ending — above the page header. Classic, Sheet and Studio:
   the theme's page colour (`accent`) with a 1px rule under it (the
   `tertiary` mixed 40% into the page, like the Leaflet rule). Leaflet: a
-  white band with no rule of its own, above the 56px top row, whose rule
-  closes the masthead, and the section bar. The strip's height is fixed
+  white band with no rule of its own, above the 56px top row of question
+  pages (Back and the page count), whose rule closes the masthead, and the
+  section bar. On the welcome and ending pages the account control moves
+  into the strip's row, on the column's right edge and centred on the logo,
+  so the row that held it goes (in Leaflet the section bar follows the strip
+  directly); without a logo nothing changes. The strip's height is fixed
   (64px, 72px from `sm`; on the welcome page 80px, 96px from `sm`), so
   nothing moves when the image arrives. The strip holds the logo and nothing
   else: no bar, ribbon or motif of ours.
@@ -386,7 +390,9 @@ form, in every style (`views/molecules/form/form-logo-strip.tsx`; rules in
   from `sm`; 240px and 320px on the welcome page). Proportions kept
   (`object-fit: contain`), never drawn larger than the file itself.
 - **Position.** Left (the default) on the form column's left edge, or
-  centred on the column. It follows the page's column: left-aligned pages,
+  centred on the column (keeping the account control's width free on both
+  sides, so it stays centred and never runs under the control; a wide logo
+  shrinks within its room). It follows the page's column: left-aligned pages,
   and the content half of the image layouts.
 - **Alt text.** The creator's alt text, else the workspace's name. A logo
   that spells the organisation's name still names it once: the alt text is

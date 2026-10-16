@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Copy } from 'lucide-react';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -17,14 +18,13 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { resolvePipesInText } from '@app/utils/answer-piping';
 import { httpUrl } from '@app/utils/http-url';
-import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
-import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
 import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { leafletColours, mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
-export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
+export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: { isPreviewMode: boolean; /** The account control is in the organisation logo strip's row. */ accountInStrip?: boolean }) {
     const { toast } = useToast();
     const { t, language } = useRespondentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
@@ -77,8 +77,8 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
         const retentionNote = retentionExplanation(standardForm?.settings);
         return (
             <>
-                <UserAvatarDropDown disabled />
-                <LeafletTopRule theme={theme} />
+                {!accountInStrip && <UserAvatarDropDown disabled />}
+                {!accountInStrip && <LeafletTopRule theme={theme} />}
                 <LeafletSectionBar theme={theme} title={getThankYouTitle()} layout={thankyouPage?.layout} headingLevel={1} />
                 <LeafletIntroBand theme={theme} layout={thankyouPage?.layout}>
                     <p className="max-w-[62ch] text-pretty">{getThankYouMessage()}</p>
@@ -120,7 +120,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
 
     return (
         <>
-            <UserAvatarDropDown disabled />
+            {!accountInStrip && <UserAvatarDropDown disabled />}
             {/* Same column, alignment and vertical placement as the welcome
                 page (form-column.ts, layout-wrapper.tsx). */}
             <div className={cn(FORM_COLUMN, columnPlacementClass(thankyouPage?.layout), 'flex flex-col bg-inherit pt-6', greetingAlignClass(thankyouPage?.layout))} data-testid="thankyou-column">

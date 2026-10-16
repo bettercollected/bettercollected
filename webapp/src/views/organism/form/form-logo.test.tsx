@@ -102,10 +102,10 @@ describe('FormLogoStrip', () => {
         const { rerender } = render(<FormLogoStrip logo={logo} theme={DEFAULT} />);
         const strip = screen.getByTestId('form-logo-strip');
         expect(strip.getAttribute('data-logo-position')).toBe('left');
-        expect(screen.getByTestId('form-logo').parentElement!.className).toContain('justify-start');
-        expect(screen.getByTestId('form-logo').parentElement!.className).toContain('max-w-2xl');
+        expect(screen.getByTestId('form-logo-room').className).toContain('justify-start');
+        expect(screen.getByTestId('form-logo-room').parentElement!.className).toContain('max-w-2xl');
         rerender(<FormLogoStrip logo={{ ...logo, position: 'center' }} theme={DEFAULT} />);
-        expect(screen.getByTestId('form-logo').parentElement!.className).toContain('justify-center');
+        expect(screen.getByTestId('form-logo-room').className).toContain('justify-center');
     });
 
     it('never draws the image larger than it is and keeps its proportions', () => {
@@ -178,9 +178,41 @@ describe('the logo on respondent pages', () => {
         expect(screen.getByTestId('form-logo').getAttribute('src')).toBe(WORKSPACE_LOGO);
     });
 
-    it('draws no strip without a logo', () => {
+    it('draws no strip without a logo, and the account control stays in its corner', () => {
         loadForm({});
         wrap(<Form isPreviewMode />);
         expect(screen.queryByTestId('form-logo-strip')).toBeNull();
+        expect(screen.getByTestId('account-control').className).toContain('absolute');
+    });
+
+    it("moves the account control into the logo's row on the welcome page", () => {
+        loadForm({ logo: LOGO });
+        wrap(<Form isPreviewMode />);
+        const controls = screen.getAllByTestId('account-control');
+        expect(controls).toHaveLength(1);
+        const strip = screen.getByTestId('form-logo-strip');
+        expect(strip.contains(controls[0])).toBe(true);
+        expect(controls[0].className).not.toContain('absolute');
+        // left: the logo's room and the control share the row, side by side
+        expect(screen.getByTestId('form-logo-action').className).not.toContain('absolute');
+    });
+
+    it('keeps a centred logo centred, with the control on the right edge and room kept for it', () => {
+        loadForm({ logo: LOGO, logoPosition: 'center' });
+        wrap(<Form isPreviewMode />);
+        expect(screen.getByTestId('form-logo-room').className).toContain('px-[72px]');
+        expect(screen.getByTestId('form-logo-action').className).toContain('right-0');
+    });
+
+    it('drops the empty top row of the Leaflet cover when the logo strip holds the control', () => {
+        loadForm({ logo: LOGO }, LEAFLET);
+        wrap(<Form isPreviewMode />);
+        const content = document.querySelector('[data-primary-content]')!;
+        expect(content.firstElementChild?.getAttribute('data-testid')).toBe('leaflet-section-bar');
+
+        loadForm({}, LEAFLET);
+        wrap(<Form isPreviewMode />);
+        const contents = document.querySelectorAll('[data-primary-content]');
+        expect(contents[contents.length - 1].firstElementChild?.getAttribute('data-testid')).not.toBe('leaflet-section-bar');
     });
 });

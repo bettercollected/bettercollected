@@ -1,21 +1,24 @@
-import cn from 'classnames';
+import { useEffect, useState } from 'react';
 
+import cn from 'classnames';
+import { useDebounceValue } from 'usehooks-ts';
+
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
-
-import { useEffect, useState } from 'react';
-import { useDebounceValue } from 'usehooks-ts';
-import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
-import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
-import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { LeafletContents, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
+import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
+import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
+
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     const { theme, formState, setFormDescription, setFormTitle } = useFormState();
+    const logo = useBuilderFormLogo();
     // The pages, for the leaflet cover's contents.
     const form = useAppSelector(selectForm);
     const [description, setDescription] = useState('');
@@ -34,7 +37,8 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
         return (
             <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
                 <div className="w-full">
-                    <LeafletTopRule theme={theme} />
+                    {/* As on the live page: with a logo strip the top row goes. */}
+                    {!logo && <LeafletTopRule theme={theme} />}
                     <div className="-mx-5 px-5 py-6 sm:-mx-8 sm:px-8 sm:py-8" style={{ background: theme?.secondary }}>
                         <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                             <AutosizeTextarea
@@ -85,7 +89,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         placeholder="Form Title"
                         aria-label="Form title"
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
-                        className="w-full border-0 bg-transparent px-0 py-0 text-[40px] font-bold leading-[48px] [text-align:inherit]"
+                        className="w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
                         value={formState.title}
                         onChange={(event) => {
                             setFormTitle(event.target.value);
@@ -98,7 +102,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                                 style={{ resize: 'none' }}
                                 value={description}
                                 aria-label="Description"
-                                className="ring-none text-black-700 mt-4 w-full border-0 bg-transparent px-0 text-base leading-relaxed outline-hidden [text-align:inherit]"
+                                className="ring-none mt-4 w-full border-0 bg-transparent px-0 [text-align:inherit] text-base leading-relaxed text-black-700 outline-hidden"
                                 onChange={(e: any) => setDescription(e.target.value)}
                             />
                         </>
