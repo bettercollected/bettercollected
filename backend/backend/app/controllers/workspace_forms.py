@@ -339,6 +339,33 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.model_dump(mode="json"))
 
+    @put("/{form_id}/logo", response_model=StandardFormCamelModel)
+    async def upload_form_logo(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        file: UploadFile,
+        user: User = Depends(get_logged_user),
+    ):
+        """Upload or replace the draft's organisation logo (PNG, JPEG or
+        WebP, at most 1 MB); it goes live with the next publish."""
+        form = await self.workspace_form_service.set_form_logo(
+            workspace_id=workspace_id, form_id=form_id, logo=file, user=user
+        )
+        return StandardFormCamelModel(**form.model_dump(mode="json"))
+
+    @delete("/{form_id}/logo", response_model=StandardFormCamelModel)
+    async def remove_form_logo(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        form = await self.workspace_form_service.remove_form_logo(
+            workspace_id=workspace_id, form_id=form_id, user=user
+        )
+        return StandardFormCamelModel(**form.model_dump(mode="json"))
+
     @post("/{form_id}/duplicate", response_model=FormDtoCamelModel)
     async def duplicate_form(
         self,

@@ -442,10 +442,21 @@ class PostgresFormRepository(PostgresRepositoryBase):
         form_document.welcome_page = form.welcome_page
         form_document.thankyou_page = form.thankyou_page
         form_document.theme = form.theme
+        # The logo settings: None means "not sent" (an older client); keep them.
+        for name in ("logo_position", "logo_alt", "use_workspace_logo"):
+            if getattr(form, name, None) is not None:
+                setattr(form_document, name, getattr(form, name))
         form_document.consent = form.consent if form.consent else form_document.consent
         form_document.settings = (
             form.settings if form.settings else form_document.settings
         )
+        return await self.upsert(form_document)
+
+    async def set_form_logo(self, form_id: str, logo: Optional[str]):
+        form_document = await self.one(FormRow.form_id == str(form_id))
+        if form_document is None:
+            return None
+        form_document.logo = logo
         return await self.upsert(form_document)
 
     async def get_form_document_by_id(self, form_id: str):

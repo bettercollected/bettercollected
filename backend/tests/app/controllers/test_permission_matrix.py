@@ -18,6 +18,7 @@ is off) and never a 500; rows with ``ok`` expect that exact status. The
 never reach.
 """
 
+import io
 import json
 from dataclasses import dataclass, field
 from typing import Callable, Dict, FrozenSet, Optional, Tuple
@@ -30,6 +31,7 @@ from common.db.flags import WriteMode
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from httpx import AsyncClient
+from PIL import Image
 
 from backend.app.container import container
 from backend.app.models.dtos.action_dto import ActionDto
@@ -198,6 +200,14 @@ class Case:
     # answering with these replies
     ai_replies: Optional[Tuple] = None
 
+
+def _png() -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (64, 32), (11, 61, 145)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+LOGO_PNG = _png()
 
 AI_OFF = "ai_not_enabled"
 CHAT_REPLY = json.dumps({"reply": "Done.", "ops": []})
@@ -473,6 +483,14 @@ CASES = [
         P.FORM_EDIT,
         lambda c: {"data": {"form_body": json.dumps(formData)}},
     ),
+    Case(
+        "forms.logo.upload",
+        "PUT",
+        F + "/logo",
+        P.FORM_EDIT,
+        lambda c: {"files": {"file": ("logo.png", LOGO_PNG, "image/png")}},
+    ),
+    Case("forms.logo.remove", "DELETE", F + "/logo", P.FORM_EDIT),
     Case("forms.duplicate", "POST", F + "/duplicate", P.FORM_CREATE),
     Case("forms.publish", "POST", F + "/publish", P.FORM_EDIT),
     Case("forms.delete", "DELETE", F, P.FORM_DELETE),
@@ -827,6 +845,12 @@ def outside_services():
         aws, "delete_file_from_s3", MagicMock()
     ), patch.object(
         aws, "delete_folder_from_s3", MagicMock()
+    ), patch.object(
+        aws, "put_public_object", MagicMock(return_value="https://s3/logo.png")
+    ), patch.object(
+        aws, "copy_public_object", MagicMock(return_value=None)
+    ), patch.object(
+        aws, "delete_public_object", MagicMock(return_value=True)
     ):
         yield
 
