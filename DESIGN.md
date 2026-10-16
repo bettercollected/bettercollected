@@ -358,6 +358,12 @@ White sheet, one accent, no shadows, nothing decorative.
   and on the ending.
 - **Buttons.** Navy (`secondary`), 4px corners, left-aligned with the
   question text.
+- **Never an official look.** A navy bar, serif numerals and ruled sections
+  sit close to government house styles, so Leaflet must never suggest a form
+  comes from a public body: keep its own hue (`#0B3D91`), never add a vertical
+  ribbon, emblem, crest or seal motif, and keep "Powered by bettercollected"
+  visible on every Leaflet page (it goes only when the creator turns branding
+  off, as in every style).
 
 ## 10. Brand
 
