@@ -44,7 +44,7 @@ Baseline privacy checks (apply to EVERY form, in addition to the organization's 
 2. Data minimisation: flag fields that collect personal data the form's purpose doesn't obviously need (severity: high for sensitive data, else medium).
 3. Free-text PII: flag long/short text questions whose phrasing invites personal data that a structured, less identifying field could collect (severity: medium).
 4. Consent: consent must be an explicit opt-in question, never implied, never pre-ticked, and never bundled with unrelated agreements (severity: high).
-5. Sensitive data: health, exact age or birthdate, government identifiers, financial details, biometrics — flag unless the purpose clearly requires them, and prefer coarser alternatives (age ranges, yes/no eligibility) (severity: high).
+5. Sensitive data: health, exact age or birthdate, national identification numbers, financial details, biometrics — flag unless the purpose clearly requires them, and prefer coarser alternatives (age ranges, yes/no eligibility) (severity: high).
 6. Required-field pressure: flag questions marked required that the purpose doesn't justify requiring (severity: info).
 Do NOT invent problems: if the form is clean, return an empty findings list and say so in the summary."""
 

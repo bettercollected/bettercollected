@@ -104,7 +104,7 @@
     "LONG_SENTENCE": "Deze zin heeft {{words}} woorden. Houd het bij {{limit}} of minder: maak er twee zinnen van.",
     "PASSIVE_NL": "“{{match}}” is lijdende vorm. Zeg wie het doet, bijvoorbeeld “we sturen u” in plaats van “u wordt gestuurd”.",
     "PASSIVE_EN": "“{{match}}” is lijdende vorm. Zeg wie het doet, bijvoorbeeld “we will send” in plaats van “will be sent”.",
-    "JARGON": "“{{match}}” is ambtelijk. Eenvoudiger: “{{suggestion}}”.",
+    "JARGON": "“{{match}}” is formele taal. Eenvoudiger: “{{suggestion}}”.",
     "AND_OR": "“{{match}}” vraagt twee dingen tegelijk. Stel één vraag per keer.",
     "TWO_QUESTIONS": "Hier staan twee vragen. Maak er twee aparte vragen van.",
     "JOINED_QUESTIONS": "“{{match}} …” begint een tweede vraag. Stel die apart.",

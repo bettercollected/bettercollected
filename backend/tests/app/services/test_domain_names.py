@@ -59,7 +59,7 @@ def test_invalid_names_are_refused(raw):
 
 
 @pytest.mark.parametrize(
-    "raw", ["co.uk", "github.io", "gov.uk", "ac.uk", "blogspot.com", "s3.amazonaws.com"]
+    "raw", ["co.uk", "github.io", "org.uk", "ac.uk", "blogspot.com", "s3.amazonaws.com"]
 )
 def test_public_suffixes_are_refused(raw):
     with pytest.raises(DomainRefused) as refused:

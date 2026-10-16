@@ -1,15 +1,14 @@
 /**
  * Plain-language check for question text in the form builder.
  *
- * Helps creators write at B1 level — the plain-language level the Dutch
- * government's Direct Duidelijk programme holds public communication to — in
- * Dutch and English. Rule-based and advisory: hints never block saving or
+ * Helps creators write at B1 level — the CEFR level widely used as the
+ * target for plain language, readable by most adults — in Dutch and English. Rule-based and advisory: hints never block saving or
  * publishing, and a creator can dismiss any of them.
  *
  * Rules (each in ./rules.ts, all pure and cheap enough to run while typing):
  * - long sentences (SENTENCE_WORD_LIMIT: 20 words Dutch, 25 English);
  * - passive voice (worden/zijn + participle; be + participle), conservative;
- * - officialese with a plainer alternative (jargon-nl.json, jargon-en.json);
+ * - stiff, formal wording with a plainer alternative (jargon-nl.json, jargon-en.json);
  * - double questions ("and/or", two question marks, "…and where…?").
  *
  * Language: the form's `settings.language` when it names Dutch or English,
