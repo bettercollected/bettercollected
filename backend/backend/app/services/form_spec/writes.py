@@ -354,12 +354,17 @@ class FormSpecWriter:
         }
         if not result["valid"]:
             return out
-        spec = FormSpec.model_validate(raw)
-        form = _replacement(existing, settings, spec)
-        keep_section_titles(form, None)  # "" -> cleared, as the save does
-        after = self._spec.spec_of(form, _settings_preview(settings, spec))
-        out["form"] = after
-        out["diff"] = spec_diff(before, after)
+
+        def compute() -> None:
+            spec = FormSpec.model_validate(raw)
+            form = _replacement(existing, settings, spec)
+            keep_section_titles(form, None)  # "" -> cleared, as the save does
+            after = self._spec.spec_of(form, _settings_preview(settings, spec))
+            out["form"] = after
+            out["diff"] = spec_diff(before, after)
+
+        # CPU-bound on a large form (the diff above all): off the event loop
+        await run_in_threadpool(compute)
         return out
 
     async def apply_ops(
