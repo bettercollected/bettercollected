@@ -1,4 +1,6 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { PageJump } from '@app/models/types/form-builder-shared';
+import { Ending, isJumpEndingMissing, withEndingIds } from '@app/utils/endings';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
@@ -9,10 +11,11 @@ import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-htm
  * to fix, and where, before anything is sent.
  */
 
-export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question';
+export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending';
 
 export interface PublishProblem {
     code: PublishProblemCode;
+    /** The question, or for `missing_ending` the page whose jump it is. */
     fieldId: string;
     message: string;
 }
@@ -112,8 +115,12 @@ function questions(slides: Array<StandardFormFieldDto> | undefined): Array<{ fie
     return out;
 }
 
-/** Everything that keeps this form from being published, in form order. */
-export function getPublishProblems(slides: Array<StandardFormFieldDto> | undefined): PublishProblem[] {
+/**
+ * Everything that keeps this form from being published, in form order.
+ * `endings`: the form's endings; when given, a page jump to an ending the
+ * form no longer has is a problem too.
+ */
+export function getPublishProblems(slides: Array<StandardFormFieldDto> | undefined, endings?: Ending[] | null): PublishProblem[] {
     const problems: PublishProblem[] = [];
     questions(slides).forEach(({ field, where }) => {
         if (!field || field.internal) return;
@@ -132,6 +139,14 @@ export function getPublishProblems(slides: Array<StandardFormFieldDto> | undefin
             problems.push({ code: 'missing_why_we_ask', fieldId: field.id, message: `${name} asks for personal details. Add a short "Why we ask this" line to the question so respondents know why you need it.` });
         }
     });
+    if (endings !== undefined) {
+        const known = withEndingIds(endings);
+        (slides ?? []).forEach((slide, index) => {
+            ((slide?.properties?.jumps as PageJump[] | undefined) ?? []).forEach((jump) => {
+                if (isJumpEndingMissing(jump, known)) problems.push({ code: 'missing_ending', fieldId: slide.id, message: `A jump on page ${index + 1} goes to an ending that no longer exists. Choose another ending for it.` });
+            });
+        });
+    }
     return problems;
 }
 

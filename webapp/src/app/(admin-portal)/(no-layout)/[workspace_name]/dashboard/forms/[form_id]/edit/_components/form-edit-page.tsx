@@ -13,6 +13,7 @@ import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import useFormFieldsAtom, { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import { withEndingIds } from '@app/utils/endings';
 import { deepCopy } from '@app/utils/object-utils';
 import AIBuildChecklist from '@app/views/molecules/form-builder/ai-build-checklist';
 import AutoSaveForm from '@app/views/molecules/form-builder/audo-save-form';
@@ -118,9 +119,11 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 // formState's own (empty) description must not hide the form's:
                 // autosave writes it back on every save.
                 const form = { ...standardForm, ...formState, description: standardForm.description };
+                form.thankyouPage = withEndingIds(form.thankyouPage);
                 setFormState(form);
             } else {
-                const copiedThankyouPage = deepCopy(standardForm?.thankyouPage || formState.thankyouPage);
+                // Endings stored before they had ids get them as the server derives them.
+                const copiedThankyouPage = withEndingIds(deepCopy(standardForm?.thankyouPage || formState.thankyouPage));
                 const copiedWelcomePage = deepCopy(standardForm?.welcomePage || formState.welcomePage);
                 const form = {
                     ...formState,
