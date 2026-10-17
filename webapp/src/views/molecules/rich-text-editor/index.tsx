@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { ArrowDown } from '@Components/icons/arrow-down';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
@@ -9,7 +9,7 @@ import { useDebounceValue } from 'usehooks-ts';
 
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
-import { useFieldActions } from '@app/store/jotai/entity-hooks';
+import { useBuilderFieldsValue, useFieldActions } from '@app/store/jotai/entity-hooks';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useInsertTarget } from '@app/store/jotai/insert-target';
@@ -91,20 +91,33 @@ export function initialTitleContent(field: Pick<StandardFormFieldDto, 'title' | 
  * conditional logic) plus the form's declared hidden fields. Shared by the
  * "@ Answer" toolbar menu and the inline `@` suggestion picker.
  */
+type PipeTarget = { field: Pick<StandardFormFieldDto, 'id' | 'index'>; slide: Pick<StandardFormFieldDto, 'index'> };
+
+const answeredBefore = ({ field, slide }: PipeTarget, slideIndex: number, sourceField: StandardFormFieldDto) => slideIndex < slide.index || (slideIndex === slide.index && sourceField.index < field.index);
+
+/** An earlier answer `target`'s title can pipe in (calculated values too, unless kept from respondents). */
+function isPipeAnswer(target: PipeTarget, slideIndex: number, sourceField: StandardFormFieldDto): boolean {
+    // calculated values pipe too, formatted as the field shows them
+    // (not one kept from respondents: piping would show it to them)
+    if (!V2InputFields.includes(sourceField.type) && !(sourceField.type === FieldTypes.CALCULATED && !sourceField.properties?.hiddenFromRespondents)) return false;
+    if (sourceField.id === target.field.id) return false;
+    return answeredBefore(target, slideIndex, sourceField);
+}
+
+/** An earlier repeating group `target`'s title can pipe in, as a whole. */
+const isPipeGroup = (target: PipeTarget, slideIndex: number, sourceField: StandardFormFieldDto) => isRepeatingGroup(sourceField) && sourceField.id !== target.field.id && answeredBefore(target, slideIndex, sourceField);
+
+/** Is there anything to pipe into `target`'s title? (buildPipeItems would not be empty; no labels made.) */
+function hasPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[], target: PipeTarget): boolean {
+    if (hiddenNames.length) return true;
+    return (formFields || []).some((sourceSlide, slideIndex) => (sourceSlide?.properties?.fields ?? []).some((sourceField) => !sourceField?.internal && (isPipeAnswer(target, slideIndex, sourceField) || isPipeGroup(target, slideIndex, sourceField))));
+}
+
 function buildPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[], field: StandardFormFieldDto, slide: StandardFormFieldDto): PipeSuggestionItem[] {
-    const sources = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => {
-        // calculated values pipe too, formatted as the field shows them
-        // (not one kept from respondents: piping would show it to them)
-        if (!V2InputFields.includes(sourceField.type) && !(sourceField.type === FieldTypes.CALCULATED && !sourceField.properties?.hiddenFromRespondents)) return false;
-        if (sourceField.id === field.id) return false;
-        if (slideIndex < slide.index) return true;
-        return slideIndex === slide.index && sourceField.index < field.index;
-    });
+    const target = { field, slide };
+    const sources = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => isPipeAnswer(target, slideIndex, sourceField));
     // Earlier repeating groups pipe as a whole: item count, lists, aggregates.
-    const groups = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => {
-        if (!isRepeatingGroup(sourceField) || sourceField.id === field.id) return false;
-        return slideIndex < slide.index || (slideIndex === slide.index && sourceField.index < field.index);
-    });
+    const groups = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => isPipeGroup(target, slideIndex, sourceField));
     return [
         ...sources.map(({ field: sourceField, label }): PipeSuggestionItem => ({ kind: 'field', pipeKey: sourceField.id, label, group: 'Answers' })),
         ...groups.flatMap(({ field: group, label }) => getGroupPipeOptions(group, label).map((option): PipeSuggestionItem => ({ kind: 'group', ...option, group: 'Repeating groups' }))),
@@ -209,13 +222,30 @@ export function RichTextEditor({
     const previousState = usePreviousState(isBold);
 
     const [debouncedInputValue] = useDebounceValue(jsonVal, 300);
+    // What was typed and is not written yet (the debounce still holds it).
+    const pendingRef = useRef<{ json: JSONContent; generation: number } | null>(null);
 
     useEffect(() => {
+        if (pendingRef.current === debouncedInputValue) pendingRef.current = null;
         if (debouncedInputValue && debouncedInputValue.generation === generationRef.current) {
             lastSyncedTitleRef.current = JSON.stringify(debouncedInputValue.json);
             updateTitle(field.id, debouncedInputValue.json);
         }
     }, [debouncedInputValue]);
+
+    // Unmounting (leaving the page or the editor) writes what the debounce
+    // still holds, unless text replaced from outside since makes it stale.
+    // A layout-effect cleanup: it runs before the editor page's own cleanup
+    // lets go of the form, so autosave still takes it as an edit.
+    const fieldId = field.id;
+    useLayoutEffect(
+        () => () => {
+            const pending = pendingRef.current;
+            pendingRef.current = null;
+            if (pending && pending.generation === generationRef.current && JSON.stringify(pending.json) !== lastSyncedTitleRef.current) updateTitle(fieldId, pending.json);
+        },
+        [fieldId, updateTitle]
+    );
 
     // The editor reads `content` only when it mounts. When the stored title
     // changes from outside (undo, redo, an AI edit), show it, without
@@ -283,7 +313,9 @@ export function RichTextEditor({
                     editorRef.current = null;
                 }}
                 onUpdate={({ editor }) => {
-                    setJSONVal({ json: editor.getJSON(), generation: generationRef.current });
+                    const typed = { json: editor.getJSON(), generation: generationRef.current };
+                    pendingRef.current = typed;
+                    setJSONVal(typed);
                     setIsBold(editor?.isActive('bold'));
                     if (editor.getText() === '') {
                         previousState ? editor?.chain().focus().setBold().run() : editor?.chain().focus().unsetBold().run();
@@ -308,14 +340,24 @@ const getActiveFontSize = (editor?: Editor) => {
 // inline `@` suggestion (AnswerPipeSuggestion) is the fast path; this button
 // is the discoverable one.
 const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: StandardFormFieldDto; slide: StandardFormFieldDto }) => {
-    // Read when the menu renders (with its editor), not subscribed to.
     const { getFormFields } = useBuilderActions();
     const { formState } = useFormState();
     const [open, setOpen] = useState(false);
+    // The items are listed when the menu opens; until then only whether
+    // there are any is followed (a derived value, cheap: no labels made).
+    const [items, setItems] = useState<PipeSuggestionItem[]>([]);
     const menuId = `pipe-menu-${field.id}`;
+    const hiddenNames = formState.hiddenFields;
+    const fieldId = field.id;
+    const fieldIndex = field.index;
+    const slideIndex = slide.index;
+    const available = useBuilderFieldsValue((formFields) => hasPipeItems(formFields, hiddenNames ?? [], { field: { id: fieldId, index: fieldIndex }, slide: { index: slideIndex } }), [hiddenNames, fieldId, fieldIndex, slideIndex]);
+    if (!available) return null;
 
-    const items = buildPipeItems(getFormFields(), formState.hiddenFields ?? [], field, slide);
-    if (items.length === 0) return null;
+    const toggleMenu = () => {
+        if (!open) setItems(buildPipeItems(getFormFields(), hiddenNames ?? [], field, slide));
+        setOpen(!open);
+    };
 
     const insertPipe = (item: PipeSuggestionItem) => {
         editor
@@ -342,7 +384,7 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
                 title="Insert an earlier answer — or just type @ in the question"
                 className="cursor-pointer whitespace-nowrap rounded px-1 text-sm font-medium text-blue-600 hover:bg-gray-100"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setOpen(!open)}
+                onClick={toggleMenu}
                 onKeyDown={(e) => {
                     if (e.key === 'Escape' && open) {
                         e.stopPropagation();
