@@ -454,8 +454,10 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   A proposal lives on its chat turn (`messages[].proposal`, both stores;
   statuses are written with `update_proposal`, never by saving the whole
   session), can be accepted for `AI_PROPOSAL_TTL_SECONDS` (3600), and a
-  one-time claim in the rate-limit counters (`FixedWindowRateLimiter.claim`)
-  makes it apply once. Accepting uses the review-fix allowance. `apply`
+  one-time claim in the rate-limit counters (`FixedWindowRateLimiter.claim`),
+  taken by accept and reject alike, lets exactly one of them decide; an
+  unexpected error after the claim opens the next attempt (`attempt` on the
+  record) so a retry can decide, and a form deleted meanwhile is a 404. Accepting uses the review-fix allowance. `apply`
   stays the API default (MCP, older clients).
 - **Untrusted content** (`services/ai/untrusted.py`): form contents, the AI
   profile, preference memory, respondents' answers and the chat exchange go

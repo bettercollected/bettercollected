@@ -190,12 +190,21 @@ async def persist_ops_to_form(
     if atomic and not all(r.ok for r in results):
         return new_form, results, None
     if any(r.ok for r in results):
-        await persist_form(
+        written = await persist_form(
             _c().form_repo(),
             form_document,
             new_form,
             expected_updated_at=expected_updated_at,
         )
+        if not written:
+            # the form went away (deleted) since it was read
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                content={
+                    "code": "form_not_found",
+                    "message": "This form no longer exists. Nothing was changed.",
+                },
+            )
     settings = await _persist_settings_ops(form_document.form_id, ops, results)
     return new_form, results, settings
 

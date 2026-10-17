@@ -44,6 +44,7 @@ from common.form_spec import SpecConversionError, form_to_spec_dict
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field
+from loguru import logger
 from pydantic.alias_generators import to_camel
 from starlette.concurrency import run_in_threadpool
 
@@ -69,7 +70,8 @@ STATUS_REJECTED = "rejected"
 # accepted, but the ops no longer applied to the stored form
 STATUS_FAILED = "failed"
 
-ACCEPT_CLAIM_SCOPE = "ai:proposal:accept"
+# accept and reject take the same one-time claim: one of them decides
+DECIDE_CLAIM_SCOPE = "ai:proposal:decide"
 _EPOCH = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
 _PROPOSAL_ID = re.compile(r"^([0-9a-f]{24})-([0-9a-f]{16})$")
 MAX_PROPOSAL_OPS = MAX_OPS_PER_BATCH
@@ -147,6 +149,15 @@ def _closed(status: str) -> HTTPException:
 
 
 FORM_CHANGED_SINCE = "This form changed since the suggestion. Ask again."
+
+
+def _busy() -> HTTPException:
+    return _error(
+        HTTPStatus.CONFLICT,
+        "proposal_busy",
+        "This proposal is being accepted or discarded right now. Try again in "
+        "a moment.",
+    )
 
 
 def _stale(
@@ -468,10 +479,52 @@ class FormAIProposalService:
     async def _set(self, session, proposal_id: str, only_if_status=None, **fields):
         """Change only this proposal's record, never the rest of the
         session (a chat turn may be saving it right now)."""
-        fields.setdefault("decided_at", dt.datetime.now(dt.timezone.utc).isoformat())
+        if "status" in fields:
+            fields.setdefault(
+                "decided_at", dt.datetime.now(dt.timezone.utc).isoformat()
+            )
         return await self._session_repo.update_proposal(
             session.id, proposal_id, fields, only_if_status=only_if_status
         )
+
+    async def _claim(self, proposal_id: str, record: Dict[str, Any]) -> int:
+        """The one-time right to decide this proposal (accept or reject),
+        for its current attempt; 409 when another request holds it. An
+        attempt that broke off without deciding (``_give_back``) moves the
+        proposal to the next attempt, which can be claimed again."""
+        attempt = int(record.get("attempt") or 0)
+        expires_at = _aware(record.get("expires_at")) or _EPOCH
+        # kept a day past the proposal, so a late retry still finds it
+        keep_until = expires_at + dt.timedelta(days=1)
+        if await self._rate_limiter.claim(
+            DECIDE_CLAIM_SCOPE, f"{proposal_id}#{attempt}", keep_until
+        ):
+            return attempt
+        raise _busy()
+
+    async def _give_back(self, session, proposal_id: str, attempt: int, error) -> None:
+        """An unexpected failure after the claim, before a decision was
+        recorded: open the next attempt so a retry can decide (a retry of an
+        accept whose write did land meets a changed form: stale). If even
+        this cannot be written, the error stands (logged by type only)."""
+        try:
+            await self._set(
+                session,
+                proposal_id,
+                only_if_status=STATUS_PROPOSED,
+                attempt=attempt + 1,
+                last_error=type(error).__name__,
+            )
+        except Exception as again:  # noqa: BLE001 — the first error is raised
+            logger.warning(
+                "AI proposal attempt not reopened ({}, after {})",
+                type(again).__name__,
+                type(error).__name__,
+            )
+
+    async def _decided(self, workspace_id, form_id, proposal_id, user) -> str:
+        _, message = await self._load(workspace_id, form_id, proposal_id, user)
+        return message["proposal"].get("status")
 
     @staticmethod
     def _chosen(
@@ -619,10 +672,13 @@ class FormAIProposalService:
                     ],
                 )
 
-        if not await self._rate_limiter.claim(
-            ACCEPT_CLAIM_SCOPE, proposal_id, expires_at or _EPOCH
-        ):
-            raise _closed(STATUS_ACCEPTED)
+        try:
+            attempt = await self._claim(proposal_id, record)
+        except HTTPException:
+            status = await self._decided(workspace_id, form_id, proposal_id, user)
+            if status != STATUS_PROPOSED:
+                raise _closed(status)
+            raise
 
         try:
             new_form, results, updated_settings = await persist_ops_to_form(
@@ -645,6 +701,9 @@ class FormAIProposalService:
                 and error.content.get("code") == FORM_CHANGED_CODE
             ):
                 raise _stale([], FORM_CHANGED_SINCE)
+            raise
+        except Exception as error:
+            await self._give_back(session, proposal_id, attempt, error)
             raise
 
         await self._set(
@@ -671,15 +730,32 @@ class FormAIProposalService:
     ) -> ProposalStatusResponse:
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         session, message = await self._load(workspace_id, form_id, proposal_id, user)
-        status = message["proposal"].get("status")
-        if status == STATUS_PROPOSED and await self._set(
-            session, proposal_id, only_if_status=STATUS_PROPOSED, status=STATUS_REJECTED
-        ):
-            status = STATUS_REJECTED
-        elif status == STATUS_PROPOSED:
-            # decided in the meantime: read what
-            _, message = await self._load(workspace_id, form_id, proposal_id, user)
-            status = message["proposal"].get("status")
+        record = message["proposal"]
+        status = record.get("status")
+        if status == STATUS_PROPOSED:
+            # the same claim as accept: exactly one of them decides
+            try:
+                attempt = await self._claim(proposal_id, record)
+            except HTTPException:
+                status = await self._decided(workspace_id, form_id, proposal_id, user)
+                if status == STATUS_PROPOSED:
+                    raise
+            else:
+                try:
+                    if await self._set(
+                        session,
+                        proposal_id,
+                        only_if_status=STATUS_PROPOSED,
+                        status=STATUS_REJECTED,
+                    ):
+                        status = STATUS_REJECTED
+                    else:
+                        status = await self._decided(
+                            workspace_id, form_id, proposal_id, user
+                        )
+                except Exception as error:
+                    await self._give_back(session, proposal_id, attempt, error)
+                    raise
         if status != STATUS_REJECTED:
             raise _closed(status)
         return ProposalStatusResponse(proposal_id=proposal_id, status=STATUS_REJECTED)

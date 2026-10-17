@@ -434,6 +434,99 @@ class TestProposals:
         assert "at most 1 pages" in response.json()["errors"][0]["message"]
         assert (await _stored(form_id)).model_dump() == before
 
+    async def test_accept_and_reject_at_once_have_one_winner(
+        self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
+    ):
+        form_id = workspace_form.form_id
+        title_before = (await _stored(form_id)).title
+        proposal = (
+            await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        )["proposal"]
+        accept, reject = await asyncio.gather(
+            _accept(client, workspace, form_id, proposal["id"], test_user_cookies),
+            _reject(client, workspace, form_id, proposal["id"], test_user_cookies),
+        )
+        assert sorted([accept.status_code, reject.status_code]) == [200, 409]
+        status = _record(await _session(proposal["id"]), proposal["id"])["status"]
+        title = (await _stored(form_id)).title
+        if accept.status_code == 200:
+            assert status == "accepted" and title == "Renamed by AI"
+        else:
+            assert status == "rejected" and title == title_before
+
+    async def test_an_unexpected_error_leaves_it_open_for_a_retry(
+        self,
+        monkeypatch,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        fake_provider,
+    ):
+        from backend.app.services.ai import chat as chat_module
+
+        form_id = workspace_form.form_id
+        before = (await _stored(form_id)).model_dump()
+        proposal = (
+            await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        )["proposal"]
+
+        real_persist = chat_module.persist_form
+
+        async def storage_down(*args, **kwargs):
+            raise RuntimeError("storage unavailable")
+
+        monkeypatch.setattr(chat_module, "persist_form", storage_down)
+        try:
+            response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+            assert response.status_code == 500
+        except RuntimeError:
+            pass  # the test transport passes the app's error through
+        record = _record(await _session(proposal["id"]), proposal["id"])
+        assert record["status"] == "proposed"
+        assert record["attempt"] == 1
+        assert (await _stored(form_id)).model_dump() == before
+
+        # the retry decides it, once
+        monkeypatch.setattr(chat_module, "persist_form", real_persist)
+        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert response.status_code == 200, response.text
+        assert (await _stored(form_id)).title == "Renamed by AI"
+        again = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert again.status_code == 409
+        assert again.json()["code"] == "proposal_closed"
+
+    async def test_a_form_deleted_during_accept_is_not_a_success(
+        self,
+        monkeypatch,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        fake_provider,
+    ):
+        from backend.app.services.ai import chat as chat_module
+
+        form_id = workspace_form.form_id
+        proposal = (
+            await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        )["proposal"]
+        real_persist = chat_module.persist_form
+
+        async def deleted_first(*args, **kwargs):
+            await container.form_repo().delete_form(form_id)
+            return await real_persist(*args, **kwargs)
+
+        monkeypatch.setattr(chat_module, "persist_form", deleted_first)
+        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert response.status_code == 404
+        assert response.json() == {
+            "code": "form_not_found",
+            "message": "This form no longer exists. Nothing was changed.",
+        }
+        assert await _stored(form_id) is None
+        assert _record(await _session(proposal["id"]), proposal["id"])["status"] == "failed"
+
     async def test_an_expired_proposal_is_gone(
         self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
     ):
