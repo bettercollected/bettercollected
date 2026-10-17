@@ -1,0 +1,190 @@
+import React, { useEffect, useRef, useState } from 'react';
+
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+
+import {
+    CHOICE_TYPES,
+    FormOutline,
+    LABEL_MAX,
+    OutlineQuestion,
+    OutlineQuestionType,
+    QUESTION_TYPE_LABELS,
+    SECTION_TITLE_MAX,
+    addQuestion,
+    canMove,
+    changeType,
+    deleteQuestion,
+    moveQuestion,
+    renameQuestion,
+    setChoices,
+    setRequired,
+    setSectionTitle
+} from '@app/utils/ai-outline';
+
+interface OutlineReviewProps {
+    outline: FormOutline;
+    onChange: (outline: FormOutline) => void;
+}
+
+const inputClass = 'w-full rounded-md border border-black-300 bg-white px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500';
+const iconButtonClass = 'rounded p-1 text-black-600 hover:bg-black-200 hover:text-black-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40';
+
+function ChoicesEditor({ question, onChange }: { question: OutlineQuestion; onChange: (text: string) => void }) {
+    // edited as text, so a blank line while typing is kept until it is used
+    const [text, setText] = useState((question.choices ?? []).join('\n'));
+    const id = `choices-${question.key}`;
+    return (
+        <div className="mt-2">
+            <label htmlFor={id} className="text-xs text-black-700">
+                Choices, one per line{(question.choices ?? []).length < 2 ? ' (left empty, the AI suggests some when you build)' : ''}
+            </label>
+            <textarea
+                id={id}
+                className={inputClass}
+                rows={Math.min(6, Math.max(2, (question.choices ?? []).length + 1))}
+                value={text}
+                onChange={(event) => {
+                    setText(event.target.value);
+                    onChange(event.target.value);
+                }}
+            />
+        </div>
+    );
+}
+
+export default function OutlineReview({ outline, onChange }: OutlineReviewProps) {
+    // focus the text of a question just added
+    const [focusKey, setFocusKey] = useState<string | null>(null);
+    const focusRef = useRef<HTMLInputElement | null>(null);
+    useEffect(() => {
+        if (focusKey && focusRef.current) {
+            focusRef.current.focus();
+            setFocusKey(null);
+        }
+    }, [focusKey]);
+
+    // questions are numbered across pages: how many come before each page
+    const before = outline.pages.map((_, i) => outline.pages.slice(0, i).reduce((sum, p) => sum + p.questions.length, 0));
+    return (
+        <div className="flex flex-col gap-4">
+            {outline.pages.map((page, pageIndex) => {
+                const sectionId = `section-${page.key}`;
+                return (
+                    <section key={page.key} aria-labelledby={`${sectionId}-heading`} className="rounded-lg border border-black-300 p-3">
+                        <h3 id={`${sectionId}-heading`} className="mb-2 text-xs font-semibold tracking-wide text-black-600 uppercase">
+                            Page {pageIndex + 1}
+                        </h3>
+                        <label htmlFor={sectionId} className="text-xs text-black-700">
+                            Section title
+                        </label>
+                        <input id={sectionId} className={inputClass} value={page.sectionTitle ?? ''} maxLength={SECTION_TITLE_MAX} placeholder="E.g. About you" onChange={(event) => onChange(setSectionTitle(outline, page.key, event.target.value))} />
+                        <ol className="mt-3 flex flex-col gap-3">
+                            {page.questions.map((question, questionIndex) => {
+                                const number = before[pageIndex] + questionIndex + 1;
+                                const labelId = `question-${question.key}`;
+                                const typeId = `type-${question.key}`;
+                                const requiredId = `required-${question.key}`;
+                                const name = question.label.trim() || `question ${number}`;
+                                return (
+                                    <li key={question.key} className="rounded-md bg-black-100 p-2">
+                                        <div className="flex items-start gap-2">
+                                            <span className="mt-1.5 w-5 shrink-0 text-right text-xs text-black-600" aria-hidden="true">
+                                                {number}.
+                                            </span>
+                                            <div className="flex min-w-0 flex-1 flex-col gap-2">
+                                                <label htmlFor={labelId} className="sr-only">
+                                                    Question {number}
+                                                </label>
+                                                <input
+                                                    id={labelId}
+                                                    ref={focusKey === question.key ? focusRef : undefined}
+                                                    className={inputClass}
+                                                    value={question.label}
+                                                    maxLength={LABEL_MAX}
+                                                    placeholder="Type the question"
+                                                    onChange={(event) => onChange(renameQuestion(outline, question.key, event.target.value))}
+                                                />
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <label htmlFor={typeId} className="sr-only">
+                                                        Type of question {number}
+                                                    </label>
+                                                    <select
+                                                        id={typeId}
+                                                        className="rounded-md border border-black-300 bg-white px-2 py-1 text-xs"
+                                                        value={question.type}
+                                                        onChange={(event) => onChange(changeType(outline, question.key, event.target.value as OutlineQuestionType))}
+                                                    >
+                                                        {(Object.keys(QUESTION_TYPE_LABELS) as OutlineQuestionType[]).map((type) => (
+                                                            <option key={type} value={type}>
+                                                                {QUESTION_TYPE_LABELS[type]}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {question.type !== 'statement' && (
+                                                        <label htmlFor={requiredId} className="flex items-center gap-1 text-xs text-black-700">
+                                                            <input
+                                                                id={requiredId}
+                                                                type="checkbox"
+                                                                aria-label={`Question ${number} is required`}
+                                                                checked={!!question.required}
+                                                                onChange={(event) => onChange(setRequired(outline, question.key, event.target.checked))}
+                                                            />
+                                                            Required
+                                                        </label>
+                                                    )}
+                                                </div>
+                                                {question.whyWeAsk && <p className="text-xs text-black-600">Why we ask: {question.whyWeAsk}</p>}
+                                                {CHOICE_TYPES.includes(question.type) && <ChoicesEditor key={`${question.key}-${question.type}`} question={question} onChange={(text) => onChange(setChoices(outline, question.key, text))} />}
+                                            </div>
+                                            <div className="flex shrink-0 items-center">
+                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} up`} disabled={!canMove(outline, question.key, -1)} onClick={() => onChange(moveQuestion(outline, question.key, -1))}>
+                                                    <ArrowUp size={16} aria-hidden="true" />
+                                                </button>
+                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} down`} disabled={!canMove(outline, question.key, 1)} onClick={() => onChange(moveQuestion(outline, question.key, 1))}>
+                                                    <ArrowDown size={16} aria-hidden="true" />
+                                                </button>
+                                                <button type="button" className={iconButtonClass} aria-label={`Delete ${name}`} onClick={() => onChange(deleteQuestion(outline, question.key))}>
+                                                    <Trash2 size={16} aria-hidden="true" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ol>
+                        <button
+                            type="button"
+                            className="mt-2 flex items-center gap-1 rounded px-1 py-1 text-xs font-medium text-brand-600 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                            onClick={() => {
+                                const added = addQuestion(outline, page.key);
+                                onChange(added.outline);
+                                setFocusKey(added.key);
+                            }}
+                        >
+                            <Plus size={14} aria-hidden="true" /> Add a question to page {pageIndex + 1}
+                        </button>
+                    </section>
+                );
+            })}
+            {(outline.logic.length > 0 || outline.jumps.length > 0) && (
+                <p className="text-xs text-black-600">
+                    {outline.logic.length > 0 && `${outline.logic.length} show/hide rule${outline.logic.length === 1 ? '' : 's'}`}
+                    {outline.logic.length > 0 && outline.jumps.length > 0 && ' and '}
+                    {outline.jumps.length > 0 && `${outline.jumps.length} page jump${outline.jumps.length === 1 ? '' : 's'}`} will be added. You can change them in the editor.
+                </p>
+            )}
+            {outline.omitted && outline.omitted.length > 0 && (
+                <div className="text-xs text-black-600">
+                    <p className="font-medium text-black-700">Left out to collect less personal data:</p>
+                    <ul className="ml-4 list-disc">
+                        {outline.omitted.map((item) => (
+                            <li key={item.label}>
+                                {item.label}: {item.reason}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+}
