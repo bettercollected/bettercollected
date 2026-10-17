@@ -7,6 +7,7 @@ import json
 
 import pytest
 from beanie import PydanticObjectId
+from common.models.standard_form import StandardForm
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -633,3 +634,121 @@ class TestProposals:
         )
         assert response.status_code == 404
         assert (await _stored(form_id)).model_dump() == before
+
+
+def _fail_accepted_status(monkeypatch, times=None):
+    """Make writing a proposal's ``accepted`` status fail (the first
+    ``times`` writes, or every one); other writes go through. Returns the
+    list of failed writes."""
+    from backend.app.services.ai import proposals as proposals_module
+
+    monkeypatch.setattr(proposals_module, "DECISION_WRITE_RETRY_DELAYS", (0, 0))
+    repo = container.form_ai_proposal_service()._session_repo
+    real = repo.update_proposal
+    failed = []
+
+    async def flaky(session_id, proposal_id, fields, only_if_status=None):
+        if fields.get("status") == "accepted" and (times is None or len(failed) < times):
+            failed.append(fields)
+            raise RuntimeError("session storage unavailable")
+        return await real(session_id, proposal_id, fields, only_if_status=only_if_status)
+
+    monkeypatch.setattr(repo, "update_proposal", flaky)
+    return failed
+
+
+class TestAcceptedStatusWrite:
+    """The form is written, then the ``accepted`` status: when that second
+    write fails, the proposal must not read as "busy" until it expires."""
+
+    async def test_the_status_write_is_retried(
+        self,
+        monkeypatch,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        fake_provider,
+    ):
+        form_id = workspace_form.form_id
+        proposal = (
+            await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        )["proposal"]
+        failed = _fail_accepted_status(monkeypatch, times=2)
+
+        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert response.status_code == 200, response.text
+        assert len(failed) == 2
+        record = _record(await _session(proposal["id"]), proposal["id"])
+        assert record["status"] == "accepted"
+        assert record["accepted_op_indexes"] == [0]
+
+    async def test_an_unwritten_status_still_reads_as_accepted(
+        self,
+        monkeypatch,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        fake_provider,
+    ):
+        form_id = workspace_form.form_id
+        proposal = (
+            await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        )["proposal"]
+        failed = _fail_accepted_status(monkeypatch)
+
+        # the form is written: a success, though the status is not
+        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert response.status_code == 200, response.text
+        assert response.json()["status"] == "accepted"
+        assert len(failed) == 3  # the first try and two retries
+        stored = await _stored(form_id)
+        assert stored.title == "Renamed by AI"
+        assert _record(await _session(proposal["id"]), proposal["id"])["status"] == "proposed"
+
+        # neither "busy" nor "stale": accepted, and applied only once
+        for call in (_accept, _reject):
+            again = await call(client, workspace, form_id, proposal["id"], test_user_cookies)
+            assert again.status_code == 409, again.text
+            assert again.json()["code"] == "proposal_closed"
+            assert "already accepted" in again.json()["message"]
+        assert (await _stored(form_id)).model_dump() == stored.model_dump()
+
+        # once the session can be written again, the status is recorded
+        monkeypatch.undo()
+        again = await _reject(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert again.status_code == 409
+        assert again.json()["code"] == "proposal_closed"
+        assert _record(await _session(proposal["id"]), proposal["id"])["status"] == "accepted"
+
+    async def test_only_the_version_the_accept_wrote_reads_as_accepted(
+        self,
+        monkeypatch,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        fake_provider,
+    ):
+        from backend.app.services.form_writes import persist_form
+
+        form_id = workspace_form.form_id
+        proposal = (
+            await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        )["proposal"]
+        _fail_accepted_status(monkeypatch)
+        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert response.status_code == 200, response.text
+
+        # the editor saves again: the stored form is no longer that version
+        stored = await _stored(form_id)
+        edited = StandardForm(**stored.model_dump())
+        edited.title = "Edited later"
+        assert await persist_form(
+            container.form_repo(), stored, edited, expected_updated_at=stored.updated_at
+        )
+        again = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert again.status_code == 409
+        assert again.json()["code"] == "proposal_stale"
+        assert (await _stored(form_id)).title == "Edited later"
