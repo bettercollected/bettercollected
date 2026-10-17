@@ -133,12 +133,12 @@ async def test_our_images_and_unsplash_photos_are_stored_without_any_api_host(
     assert response.status_code == 200, response.text
     form = await stored(workspace_form)
     assert form.welcome_page.imageUrl == OURS
-    # Unsplash's address kept as it came; route addresses (any host) turned
-    # back into the canonical one
-    assert form.fields[0].image_url == UNSPLASH
+    # Unsplash photos stored by their canonical address (tracking parameters
+    # dropped); route addresses (any host) turned back into the canonical one
+    assert form.fields[0].image_url == CANONICAL
     assert form.fields[0].properties.fields[0].image_url == CANONICAL
     assert form.thankyou_page[0].imageUrl == CANONICAL
-    assert form.theme.background.imageUrl == UNSPLASH
+    assert form.theme.background.imageUrl == CANONICAL
     saved = json.dumps(form.model_dump(mode="json"))
     assert "/images/unsplash/" not in saved and "localhost" not in saved
 
@@ -192,7 +192,7 @@ async def test_a_new_form_with_a_third_party_image_is_refused(
         data={"form_body": json.dumps(with_images(welcome=UNSPLASH))},
     )
     assert response.status_code == 200, response.text
-    assert response.json()["welcomePage"]["imageUrl"] == UNSPLASH
+    assert response.json()["welcomePage"]["imageUrl"] == CANONICAL
     response = await client.post(
         f"{API}/workspaces/{workspace.id}/forms",
         cookies=test_user_cookies,
@@ -215,7 +215,7 @@ async def test_a_copy_drops_third_party_images_instead(
     )
     assert form.welcome_page.imageUrl is None
     assert form.fields[0].image_url == OURS
-    assert form.fields[0].properties.fields[0].image_url == UNSPLASH
+    assert form.fields[0].properties.fields[0].image_url == CANONICAL
     assert form.thankyou_page[0].imageUrl == CANONICAL
 
 
@@ -242,7 +242,7 @@ async def test_a_duplicate_carries_no_grandfathered_third_party_image(
     assert copy.welcome_page.imageUrl is None
     assert copy.theme.background.imageUrl is None
     # the canonical Unsplash address is kept
-    assert copy.fields[0].image_url == UNSPLASH
+    assert copy.fields[0].image_url == CANONICAL
     assert copy.fields[0].properties.fields[0].image_url == OURS
     # the source keeps its own
     assert (await stored(workspace_form)).welcome_page.imageUrl == TRACKER
@@ -282,7 +282,7 @@ async def test_saved_themes_take_first_party_images_only(
     )
     assert saved.status_code == 200, saved.text
     urls = [t["background"]["imageUrl"] for t in saved.json()["customThemes"]]
-    assert urls == [UNSPLASH, OURS]
+    assert urls == [CANONICAL, OURS]
     routed = await save_themes(
         client, workspace, test_user_cookies, [theme(LOCAL_ROUTED)]
     )

@@ -55,14 +55,10 @@ def storage(monkeypatch):
         # objects stored before a CDN address was configured
         f"{ENDPOINT}/{BUCKET}/public/20260101_bg.png",
         f"  {STORAGE}/{BUCKET}/public/x.png  ",
-        # Unsplash photos by their canonical address, as the picker and the
-        # AI image search give them: kept as they are
-        UNSPLASH,
+        # Unsplash photos already in their canonical form
         CANONICAL,
-        "HTTPS://IMAGES.UNSPLASH.COM/photo-1",
-        "https://images.unsplash.com/photo-1?crop=entropy&cs=tinysrgb&fit=max"
-        "&fm=jpg&ixid=M3w&ixlib=rb-4.0.3&q=80&w=1080",
         "https://images.unsplash.com/premium_photo-1",
+        "https://images.unsplash.com/photo-1?crop=entropy&fit=max&fm=jpg&q=80&w=1080",
         *sorted(BUILTIN_IMAGE_URLS),
     ],
 )
@@ -70,6 +66,39 @@ def test_our_storage_canonical_unsplash_and_builtins_are_kept(url):
     assert is_first_party_image_url(url)
     assert is_allowed_image_url(url)
     assert checked_image_url(url) == url.strip()
+
+
+@pytest.mark.parametrize(
+    "url,canonical",
+    [
+        # as the picker and the AI image search give them: Unsplash's
+        # tracking parameters dropped, the sizing ones kept in a fixed order
+        (UNSPLASH, CANONICAL),
+        ("HTTPS://IMAGES.UNSPLASH.COM/photo-1", "https://images.unsplash.com/photo-1"),
+        (
+            "https://images.unsplash.com/photo-1?crop=entropy&cs=tinysrgb&fit=max"
+            "&fm=jpg&ixid=M3w&ixlib=rb-4.0.3&q=80&w=1080",
+            "https://images.unsplash.com/photo-1?crop=entropy&fit=max&fm=jpg&q=80&w=1080",
+        ),
+        (
+            "https://images.unsplash.com/photo-1?w=1080&q=80",
+            "https://images.unsplash.com/photo-1?q=80&w=1080",
+        ),
+        # a bad sizing value is dropped, not stored
+        (
+            "https://images.unsplash.com/photo-1?w=abc&fit=max",
+            "https://images.unsplash.com/photo-1?fit=max",
+        ),
+        (f"  {CANONICAL}?ixid=abc  ", CANONICAL),
+    ],
+)
+def test_unsplash_photos_are_stored_by_their_canonical_address(url, canonical):
+    assert is_first_party_image_url(url)
+    assert first_party_image_url(url) == canonical
+    assert checked_image_url(url) == canonical
+    assert allowed_image_url_or_none(url) == canonical
+    # storing it again changes nothing
+    assert first_party_image_url(canonical) == canonical
 
 
 @pytest.mark.parametrize(
@@ -141,6 +170,9 @@ def test_addresses_of_our_route_are_stored_as_the_canonical_unsplash_one(
         f"{API}/images/unsplash/",
         f"{API}/images/unsplash/../../workspaces",
         f"{API}/images/unsplash/a/b/c",
+        # the photo path starts after the FIRST route segment
+        f"{API}/images/unsplash/images/unsplash/photo-1",
+        f"{API}/images/unsplash/x/images/unsplash/photo-1",
         f"{API}/images/unsplash/photo-1#x",
         f"{API}/images/other/photo-1",
         "ftp://evil.test/images/unsplash/photo-1",
@@ -153,6 +185,26 @@ def test_every_other_address_is_refused(url):
     with pytest.raises(ValueError, match="own storage or from Unsplash"):
         checked_image_url(url)
     assert allowed_image_url_or_none(url) is None
+
+
+def test_the_route_is_read_from_its_first_segment():
+    assert unsplash_route.routed_photo(f"{API}/images/unsplash/photo-1?w=640") == (
+        "photo-1",
+        {"w": "640"},
+    )
+    assert unsplash_route.routed_photo(f"{API}/images/unsplash/u/photo-1") == (
+        "u/photo-1",
+        {},
+    )
+    # a repeated route segment is part of the photo path, which then names no photo
+    assert (
+        unsplash_route.routed_photo(f"{API}/images/unsplash/images/unsplash/photo-1")
+        is None
+    )
+    assert (
+        unsplash_route.to_canonical_url(f"{API}/images/unsplash/a/images/unsplash/b")
+        is None
+    )
 
 
 def test_blank_clears_and_absent_is_unchanged():
@@ -224,7 +276,7 @@ def test_a_refused_theme_does_not_stop_the_rest_of_the_turn():
 @pytest.mark.parametrize(
     "url,stored",
     [
-        (UNSPLASH, UNSPLASH),
+        (UNSPLASH, CANONICAL),
         (ROUTED, CANONICAL),
         (
             f"{STORAGE}/{BUCKET}/media_library/20260101_photo.jpg",
@@ -279,7 +331,7 @@ def test_ai_created_forms_keep_only_allowed_images():
     assert refused.image_url is None
     assert refused.properties.layout != "TWO_COLUMN_IMAGE_LEFT"
     # kept by its canonical address (respondents load it through our route)
-    assert kept.image_url == UNSPLASH
+    assert kept.image_url == CANONICAL
     assert kept.properties.layout == "TWO_COLUMN_IMAGE_RIGHT"
 
 
