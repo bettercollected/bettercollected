@@ -51,7 +51,11 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
-from backend.app.services.calculated_fields import drop_answers, hidden_calculation_ids
+from backend.app.services.calculated_fields import (
+    drop_answers,
+    hidden_calculation_ids,
+    strip_hidden_calculations,
+)
 from backend.app.services.internal_fields import (
     fields_by_id,
     internal_field_ids,
@@ -321,7 +325,9 @@ class FormResponseService:
                 for field in await self.internal_field_definitions(response.form_id)
             ]
         else:
-            respondent_view(form)
+            # what respondents see of the form: no internal fields, and here,
+            # answers only, no calculation kept from them
+            strip_hidden_calculations(respondent_view(form))
         response.form_title = form.title
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
@@ -673,8 +679,8 @@ class FormResponseService:
         )
 
         return {
-            "form": respondent_view(
-                StandardFormCamelModel(**form.model_dump(mode="json"))
+            "form": strip_hidden_calculations(
+                respondent_view(StandardFormCamelModel(**form.model_dump(mode="json")))
             ),
             "response": respondent_response,
         }
