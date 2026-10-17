@@ -391,6 +391,43 @@ def varied_form_data() -> dict:
                                 }
                             },
                         },
+                        {
+                            "id": "f-total",
+                            "index": 5,
+                            "type": "calculated",
+                            "title": "Your total",
+                            "properties": {
+                                "expression": {
+                                    "if": [
+                                        {"==": [{"var": "f-age"}, None]},
+                                        0,
+                                        {
+                                            "round": [
+                                                {"*": [{"var": "f-age"}, 1.21]},
+                                                2,
+                                            ]
+                                        },
+                                    ]
+                                },
+                                "format": {
+                                    "style": "currency",
+                                    "decimals": 2,
+                                    "currency": "EUR",
+                                },
+                            },
+                        },
+                        {
+                            "id": "f-score",
+                            "index": 6,
+                            "type": "calculated",
+                            "title": "Score",
+                            "properties": {
+                                "expression": {
+                                    "sum": [{"var": "f-household.g-name"}, 1]
+                                },
+                                "hiddenFromRespondents": True,
+                            },
+                        },
                     ]
                 },
             },

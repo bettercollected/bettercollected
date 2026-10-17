@@ -25,6 +25,40 @@ class Attachment(BaseModel):
     )
 
 
+class Decimals(RootModel[int]):
+    root: int = Field(None, ge=0, le=6, title="Decimals")
+
+
+class Currency(RootModel[str]):
+    root: str = Field(
+        None,
+        description="ISO 4217 code; EUR by default.",
+        pattern="^[A-Z]{3}$",
+        title="Currency",
+    )
+
+
+class CalculationFormat(BaseModel):
+    """
+    How a calculated field shows its value (display only; the stored
+    value is the computed one).
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    style: Literal["number", "currency", "percent", "text"] | None = Field(
+        None,
+        description="number (default), currency, percent (0.25 shows as 25%) or text.",
+        title="Style",
+    )
+    decimals: Decimals | None = Field(None, title="Decimals")
+    currency: Currency | None = Field(
+        None, description="ISO 4217 code; EUR by default.", title="Currency"
+    )
+
+
 class Choice(BaseModel):
     """
     One option of a choice question. Logic conditions compare with
@@ -436,6 +470,7 @@ class FormField(BaseModel):
             "file_upload",
             "group",
             "email",
+            "calculated",
             "text",
             "yes_no",
             "url",
@@ -451,7 +486,6 @@ class FormField(BaseModel):
             "payment",
             "statement",
             "page_break",
-            "calculated",
             "hidden",
             "conditional",
             "h1",
@@ -546,6 +580,18 @@ class FormField(BaseModel):
     date_rules: DateRules | None = Field(None, alias="dateRules", title="Daterules")
     why_we_ask: WhyWeAsk | None = Field(None, alias="whyWeAsk", title="Whyweask")
     logic: Logic | None = None
+    expression: Any = Field(
+        None,
+        description='A calculated field\'s formula as an expressions-v1 syntax tree (docs/spec/expressions-v1.md), e.g. {"+": [{"var": "<field id>"}, 1]}. Variables are question ids, \'<group id>.<question id>\' for a repeating group\'s question, and hidden-field names.',
+        title="Expression",
+    )
+    format: CalculationFormat | None = None
+    hidden_from_respondents: bool | None = Field(
+        None,
+        alias="hiddenFromRespondents",
+        description="A calculated field that is computed and stored but never shown to respondents.",
+        title="Hiddenfromrespondents",
+    )
     repeat: Repeat | None = None
     fields: list[FormField] | None = Field(
         None, description="The questions of a group.", title="Fields"

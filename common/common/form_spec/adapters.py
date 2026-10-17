@@ -30,6 +30,7 @@ StandardForm. Not covered, and so not carried over (see docs/spec/README.md):
 ``common.form_spec.roundtrip.creator_view`` states the guarantee as code.
 """
 
+import copy
 from typing import Any, Dict, List, Optional
 
 from common.models.standard_form import (
@@ -188,6 +189,11 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                 "repeat": (
                     p.repeat.model_dump(by_alias=True) if p.repeat is not None else None
                 ),
+                "expression": p.expression,
+                "format": (
+                    p.format.model_dump(by_alias=True) if p.format is not None else None
+                ),
+                "hiddenFromRespondents": p.hidden_from_respondents,
             }
         )
         # A group's questions; other types keep no (empty) children list.
@@ -397,6 +403,9 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
             else None
         ),
         "repeat": field.repeat.model_dump() if field.repeat is not None else None,
+        "expression": copy.deepcopy(field.expression),
+        "format": field.format.model_dump() if field.format is not None else None,
+        "hidden_from_respondents": field.hidden_from_respondents,
         "fields": [
             _field_from_spec(child, i) for i, child in enumerate(field.fields or [])
         ],

@@ -207,6 +207,25 @@ export interface components {
             embedProvider?: ("youtube" | "vimeo" | "no_embed") | null;
         };
         /**
+         * CalculationFormat
+         * @description How a calculated field shows its value (display only; the stored
+         *     value is the computed one).
+         */
+        CalculationFormat: {
+            /**
+             * Style
+             * @description number (default), currency, percent (0.25 shows as 25%) or text.
+             */
+            style?: ("number" | "currency" | "percent" | "text") | null;
+            /** Decimals */
+            decimals?: number | null;
+            /**
+             * Currency
+             * @description ISO 4217 code; EUR by default.
+             */
+            currency?: string | null;
+        };
+        /**
          * Choice
          * @description One option of a choice question. Logic conditions compare with
          *     ``value``.
@@ -359,7 +378,7 @@ export interface components {
          * FieldType
          * @description A question or content block type.
          */
-        FieldType: ("date" | "short_text" | "long_text" | "multiple_choice" | "rating" | "dropdown" | "matrix" | "tabular_input" | "file_upload" | "group" | "email" | "text" | "yes_no" | "url" | "linear_rating" | "phone_number" | "number" | "VIDEO_CONTENT" | "IMAGE_CONTENT") | ("opinion_scale" | "ranking" | "payment" | "statement" | "page_break" | "calculated" | "hidden" | "conditional" | "h1" | "h2" | "h3" | "h4" | "h5" | "p" | "strong" | "divider" | "markdown" | "input_short_text" | "input_long_text" | "input_markdown" | "input_multiple_choice" | "input_multiselect" | "input_checkboxes" | "input_email" | "input_number" | "input_phone_number" | "input_link" | "input_date" | "input_time" | "input_date_range" | "input_time_range" | "input_datetime_range" | "input_dropdown" | "input_rating" | "input_linear_scale" | "input_template_button" | "input_file_upload" | "input_ranking" | "input_matrix" | "date_input" | "email_input" | "number_input" | "short_text_input" | "long_text_input" | "multiple_choice_input" | "ranking_input" | "rating_input" | "drop_down_input" | "media_input" | "matrix_row_input");
+        FieldType: ("date" | "short_text" | "long_text" | "multiple_choice" | "rating" | "dropdown" | "matrix" | "tabular_input" | "file_upload" | "group" | "email" | "calculated" | "text" | "yes_no" | "url" | "linear_rating" | "phone_number" | "number" | "VIDEO_CONTENT" | "IMAGE_CONTENT") | ("opinion_scale" | "ranking" | "payment" | "statement" | "page_break" | "hidden" | "conditional" | "h1" | "h2" | "h3" | "h4" | "h5" | "p" | "strong" | "divider" | "markdown" | "input_short_text" | "input_long_text" | "input_markdown" | "input_multiple_choice" | "input_multiselect" | "input_checkboxes" | "input_email" | "input_number" | "input_phone_number" | "input_link" | "input_date" | "input_time" | "input_date_range" | "input_time_range" | "input_datetime_range" | "input_dropdown" | "input_rating" | "input_linear_scale" | "input_template_button" | "input_file_upload" | "input_ranking" | "input_matrix" | "date_input" | "email_input" | "number_input" | "short_text_input" | "long_text_input" | "multiple_choice_input" | "ranking_input" | "rating_input" | "drop_down_input" | "media_input" | "matrix_row_input");
         /**
          * FormField
          * @description A question or content block on a page (or inside a group).
@@ -371,7 +390,7 @@ export interface components {
              * FieldType
              * @description A question or content block type.
              */
-            type: ("date" | "short_text" | "long_text" | "multiple_choice" | "rating" | "dropdown" | "matrix" | "tabular_input" | "file_upload" | "group" | "email" | "text" | "yes_no" | "url" | "linear_rating" | "phone_number" | "number" | "VIDEO_CONTENT" | "IMAGE_CONTENT") | ("opinion_scale" | "ranking" | "payment" | "statement" | "page_break" | "calculated" | "hidden" | "conditional" | "h1" | "h2" | "h3" | "h4" | "h5" | "p" | "strong" | "divider" | "markdown" | "input_short_text" | "input_long_text" | "input_markdown" | "input_multiple_choice" | "input_multiselect" | "input_checkboxes" | "input_email" | "input_number" | "input_phone_number" | "input_link" | "input_date" | "input_time" | "input_date_range" | "input_time_range" | "input_datetime_range" | "input_dropdown" | "input_rating" | "input_linear_scale" | "input_template_button" | "input_file_upload" | "input_ranking" | "input_matrix" | "date_input" | "email_input" | "number_input" | "short_text_input" | "long_text_input" | "multiple_choice_input" | "ranking_input" | "rating_input" | "drop_down_input" | "media_input" | "matrix_row_input");
+            type: ("date" | "short_text" | "long_text" | "multiple_choice" | "rating" | "dropdown" | "matrix" | "tabular_input" | "file_upload" | "group" | "email" | "calculated" | "text" | "yes_no" | "url" | "linear_rating" | "phone_number" | "number" | "VIDEO_CONTENT" | "IMAGE_CONTENT") | ("opinion_scale" | "ranking" | "payment" | "statement" | "page_break" | "hidden" | "conditional" | "h1" | "h2" | "h3" | "h4" | "h5" | "p" | "strong" | "divider" | "markdown" | "input_short_text" | "input_long_text" | "input_markdown" | "input_multiple_choice" | "input_multiselect" | "input_checkboxes" | "input_email" | "input_number" | "input_phone_number" | "input_link" | "input_date" | "input_time" | "input_date_range" | "input_time_range" | "input_datetime_range" | "input_dropdown" | "input_rating" | "input_linear_scale" | "input_template_button" | "input_file_upload" | "input_ranking" | "input_matrix" | "date_input" | "email_input" | "number_input" | "short_text_input" | "long_text_input" | "multiple_choice_input" | "ranking_input" | "rating_input" | "drop_down_input" | "media_input" | "matrix_row_input");
             /**
              * Title
              * @description Plain text, or a rich-text document (which may pipe answers and hidden fields).
@@ -435,6 +454,17 @@ export interface components {
             /** Whyweask */
             whyWeAsk?: string | null;
             logic?: components["schemas"]["Logic"] | null;
+            /**
+             * Expression
+             * @description A calculated field's formula as an expressions-v1 syntax tree (docs/spec/expressions-v1.md), e.g. {"+": [{"var": "<field id>"}, 1]}. Variables are question ids, '<group id>.<question id>' for a repeating group's question, and hidden-field names.
+             */
+            expression?: unknown | null;
+            format?: components["schemas"]["CalculationFormat"] | null;
+            /**
+             * Hiddenfromrespondents
+             * @description A calculated field that is computed and stored but never shown to respondents.
+             */
+            hiddenFromRespondents?: boolean | null;
             repeat?: components["schemas"]["Repeat"] | null;
             /**
              * Fields
