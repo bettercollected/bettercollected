@@ -7,6 +7,7 @@
  * answer patterns, repeating group rules).
  */
 import { FieldTypes } from '@app/models/dtos/form';
+import { styleValueProblem } from '@app/utils/rich-text-style';
 
 import { dateRuleProblems, questionsWithScope } from '../date-rules';
 import { IMAGE_URL_ERROR, firstPartyImageUrl, formImageUrls } from '../images';
@@ -130,6 +131,11 @@ function richTextProblem(title: Record<string, any>): string | null {
                 if (Object.keys(mark).some((key) => key !== 'type' && key !== 'attrs')) return `A '${name}' mark can only have attributes.`;
                 const markProblem = attrsProblem(name, mark.attrs, TITLE_MARKS[name]);
                 if (markProblem) return markProblem;
+                // the font size and colour go into a style attribute
+                for (const [key, value] of Object.entries(mark.attrs ?? {})) {
+                    const styleProblem = styleValueProblem(key, value);
+                    if (styleProblem) return styleProblem;
+                }
             }
         }
         const content = node.content;
