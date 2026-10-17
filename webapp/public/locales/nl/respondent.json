@@ -34,6 +34,7 @@
     "NAV": {
         "BACK": "Vorige",
         "PAGE_OF": "Pagina {{current}} van {{total}}",
+        "LAST_PAGE": "Laatste pagina",
         "CONTINUE": "Volgende",
         "SUBMIT": "Antwoorden versturen",
         "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer.",
