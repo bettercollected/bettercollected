@@ -154,7 +154,8 @@ export default function StartWithAi() {
                 <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-4 sm:px-10" data-testid="outline-scroll">
                     <OutlineReview outline={outline} onChange={setOutline} onDeleted={setDeletion} onEdited={() => setDeletion(null)} aiFillsGaps={fillGaps && aiEnabled} />
                 </div>
-                <div className="flex shrink-0 flex-col gap-3 border-t border-t-black-300 px-4 py-4 sm:px-10">
+                <div className="shrink-0 border-t border-t-black-300 px-4 py-4 sm:px-10">
+                    {/* outside the spaced column: no gap while it is empty */}
                     <UndoNotice
                         deletion={deletion}
                         onUndo={() => {
@@ -162,43 +163,45 @@ export default function StartWithAi() {
                             setDeletion(null);
                         }}
                     />
-                    {problems.length > 0 && (
-                        <ul className="text-xs text-red-600" aria-live="polite">
-                            {problems.map((problem) => (
-                                <li key={problem}>{problem}</li>
-                            ))}
-                        </ul>
-                    )}
-                    {gapPages > 0 && aiEnabled && (
-                        <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
-                            <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
-                                <input id="outline-fill-gaps" type="checkbox" aria-describedby="outline-fill-gaps-notice" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
-                                Let AI fill in missing choices and reasons
-                            </label>
-                            <p id="outline-fill-gaps-notice">
-                                {fillGaps
-                                    ? `Build form sends pages that are missing choices or a reason, together with your workspace AI profile, to ${providerName}, so it can suggest them.`
-                                    : 'Build form sends nothing to the AI. Choice questions without choices are asked as short text, and missing reasons are listed for you to add.'}
-                            </p>
-                        </div>
-                    )}
-                    <div className="flex justify-between gap-4">
-                        <Button
-                            type="button"
-                            variant="v2Button"
-                            onClick={() => {
-                                setError(null);
-                                setStep('prompt');
-                            }}
-                        >
-                            Back to prompt
-                        </Button>
-                        <Button data-umami-event={'Building Form from AI outline'} type="button" onClick={handleBuild} disabled={problems.length > 0 || !aiEnabled}>
-                            <div className="z-10 flex items-center gap-2">
-                                <AIIcon aria-hidden="true" />
-                                Build form
+                    <div className="flex flex-col gap-3">
+                        {problems.length > 0 && (
+                            <ul className="text-xs text-red-600" aria-live="polite">
+                                {problems.map((problem) => (
+                                    <li key={problem}>{problem}</li>
+                                ))}
+                            </ul>
+                        )}
+                        {gapPages > 0 && aiEnabled && (
+                            <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
+                                <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
+                                    <input id="outline-fill-gaps" type="checkbox" aria-describedby="outline-fill-gaps-notice" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
+                                    Let AI fill in missing choices and reasons
+                                </label>
+                                <p id="outline-fill-gaps-notice">
+                                    {fillGaps
+                                        ? `Build form sends pages that are missing choices or a reason, together with your workspace AI profile, to ${providerName}, so it can suggest them.`
+                                        : 'Build form sends nothing to the AI. Choice questions without choices are asked as short text, and missing reasons are listed for you to add.'}
+                                </p>
                             </div>
-                        </Button>
+                        )}
+                        <div className="flex justify-between gap-4">
+                            <Button
+                                type="button"
+                                variant="v2Button"
+                                onClick={() => {
+                                    setError(null);
+                                    setStep('prompt');
+                                }}
+                            >
+                                Back to prompt
+                            </Button>
+                            <Button data-umami-event={'Building Form from AI outline'} type="button" onClick={handleBuild} disabled={problems.length > 0 || !aiEnabled}>
+                                <div className="z-10 flex items-center gap-2">
+                                    <AIIcon aria-hidden="true" />
+                                    Build form
+                                </div>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -154,7 +154,7 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                                 const name = question.label.trim() || `question ${number}`;
                                 return (
                                     <li key={question.key} className="rounded-md bg-black-100 p-1.5 sm:p-2">
-                                        <div className="flex items-start gap-1 sm:gap-2">
+                                        <div className="flex items-start gap-2.5 sm:gap-3">
                                             <span className="mt-1.5 w-4 shrink-0 text-right text-xs text-black-600 sm:w-5" aria-hidden="true">
                                                 {number}.
                                             </span>
@@ -260,12 +260,19 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
 /** The last deletion, with Undo. Kept outside the scrolling list so it is
  * seen wherever the deleted question was; announced to screen readers. */
 export function UndoNotice({ deletion, onUndo }: { deletion: OutlineDeletion | null; onUndo: () => void }) {
+    // the deleted question's place is gone: focus moves to Undo
+    const undoRef = useRef<HTMLButtonElement | null>(null);
+    useEffect(() => {
+        if (deletion) undoRef.current?.focus();
+    }, [deletion]);
     return (
+        // always mounted (a live region must exist before it changes); it
+        // takes no space while empty
         <div aria-live="polite">
             {deletion && (
-                <div className="flex items-center justify-between gap-2 rounded-md bg-black-800 px-3 py-2 text-xs text-white">
+                <div className="mb-3 flex items-center justify-between gap-2 rounded-md bg-black-800 px-3 py-2 text-xs text-white">
                     <span>{deletion.message}</span>
-                    <button type="button" className="shrink-0 rounded px-1 font-semibold underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white" onClick={onUndo}>
+                    <button ref={undoRef} type="button" className="shrink-0 rounded px-1 font-semibold underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white" onClick={onUndo}>
                         Undo
                     </button>
                 </div>

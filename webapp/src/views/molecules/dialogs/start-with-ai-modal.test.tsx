@@ -339,6 +339,20 @@ describe('Start with AI: errors, hints and layout', () => {
         expect(undo.closest('[aria-live="polite"]')).not.toBeNull();
     });
 
+    it('moves focus to Undo after a deletion, and the empty live region takes no space', async () => {
+        await toReview();
+        const live = screen
+            .getByRole('button', { name: /Build form/ })
+            .closest('[data-testid="start-with-ai-review"]')!
+            .querySelector('[aria-live="polite"]')!;
+        // mounted while empty, and not an item of the spaced footer column
+        expect(live).toBeEmptyDOMElement();
+        expect(live.parentElement!.className).not.toContain('gap-');
+        fireEvent.click(screen.getByRole('button', { name: 'Delete What is your email address?' }));
+        expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus();
+        expect(live).not.toBeEmptyDOMElement();
+    });
+
     it('question text wraps in a growing field', async () => {
         await toReview();
         const text = screen.getByLabelText('Question 1');
