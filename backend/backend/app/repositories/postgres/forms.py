@@ -22,7 +22,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import and_, exists, func, not_, or_, select, text
+from sqlalchemy import and_, exists, func, not_, or_, select, text, update
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from backend.app.exceptions import HTTPException
@@ -33,13 +33,18 @@ from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
+from backend.app.services.form_concurrency import (
+    ensure_not_changed_since,
+    form_changed,
+    next_updated_at,
+)
 from backend.app.repositories.form_import_repository import (
     ImportLimitReached,
     check_import_limits,
     lock_wait_s,
     workspaces_with_stale_imports,
 )
-from backend.app.repositories.form_repository import detach_action
+from backend.app.repositories.form_repository import apply_form_update, detach_action
 from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.metric_periods import (
     object_id_at,
@@ -435,26 +440,62 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         form_document = await self.one(FormRow.form_id == _oid(form_id))
-        form_document.fields = form.fields
-        if form.hidden_fields is not None:
-            form_document.hidden_fields = form.hidden_fields
-        form_document.title = form.title
-        form_document.logo = form.logo
-        form_document.cover_image = form.cover_image
-        form_document.description = form.description
-        form_document.welcome_page = form.welcome_page
-        form_document.thankyou_page = form.thankyou_page
-        form_document.theme = form.theme
-        # The logo settings: None means "not sent" (an older client); keep them.
-        for name in ("logo_position", "logo_alt", "use_workspace_logo"):
-            if getattr(form, name, None) is not None:
-                setattr(form_document, name, getattr(form, name))
-        form_document.consent = form.consent if form.consent else form_document.consent
-        form_document.settings = (
-            form.settings if form.settings else form_document.settings
-        )
+        apply_form_update(form_document, form)
         form_document.updated_at = datetime.now(timezone.utc)
         return await self.upsert(form_document)
+
+    async def _stored_draft(self, form_id: PydanticObjectId):
+        """The draft row's id, document and stored ``updated_at``."""
+        async with self._session() as session:
+            return (
+                await session.execute(
+                    select(FormRow.id, FormRow.doc, FormRow.updated_at)
+                    .where(FormRow.form_id == _oid(form_id))
+                    .order_by(FormRow.created_at, FormRow.id)
+                    .limit(1)
+                )
+            ).one_or_none()
+
+    async def update_form_if_unchanged(
+        self,
+        form_id: PydanticObjectId,
+        form: StandardForm,
+        expected_updated_at: datetime,
+    ):
+        """The conditional ``update_form`` (see the Mongo original):
+        ``UPDATE ... WHERE id = :id AND updated_at = :stored``, the stored
+        value being the one that passed the check; when no row matches the
+        save is refused with 409."""
+        found = await self._stored_draft(form_id)
+        if found is None:
+            return None
+        form_document = from_row_doc(FormDocument, found.doc)
+        ensure_not_changed_since(form_document.updated_at, expected_updated_at)
+        apply_form_update(form_document, form)
+        form_document.updated_at = next_updated_at(form_document.updated_at)
+        values = row_values(form_document)
+        unchanged = (
+            FormRow.updated_at.is_(None)
+            if found.updated_at is None
+            else FormRow.updated_at == found.updated_at
+        )
+        async with self._session() as session, session.begin():
+            result = await session.execute(
+                update(FormRow)
+                .where(FormRow.id == found.id, unchanged)
+                .values(
+                    {
+                        FormRow.doc: values["doc"],
+                        FormRow.updated_at: values["updated_at"],
+                        FormRow.bc_source: values["bc_source"],
+                        FormRow.bc_checksum: values["bc_checksum"],
+                    }
+                )
+                .execution_options(synchronize_session=False)
+            )
+        if result.rowcount != 1:
+            raise form_changed()
+        return form_document
 
     async def set_form_logo(self, form_id: str, logo: Optional[str]):
         form_document = await self.one(FormRow.form_id == str(form_id))
