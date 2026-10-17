@@ -22,6 +22,7 @@ import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { getFormFields } from '@app/utils/form-builder-block-utils';
@@ -91,7 +92,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 {!isResponderPortal &&
                     (form?.coverImage || form?.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={form.coverImage || form.logo} alt="" className="border-black-300 mr-4 hidden h-11 w-11 shrink-0 rounded-md border object-cover sm:block" />
+                        <img src={firstPartyImageUrl(form.coverImage || form.logo)} alt="" className="border-black-300 mr-4 hidden h-11 w-11 shrink-0 rounded-md border object-cover sm:block" />
                     ) : (
                         <div className="bg-brand-100 text-brand-600 mr-4 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-semibold sm:flex" aria-hidden="true">
                             {(form?.title?.trim()?.[0] || 'F').toUpperCase()}

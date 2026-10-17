@@ -2,6 +2,7 @@ import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
 import RespondentTypeface from '@app/components/form/respondent-typeface';
 import environments from '@app/configs/environments';
 import { getFormById, getWorkspaceByName } from '@app/lib/server/api';
+import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Metadata } from 'next';
@@ -32,7 +33,8 @@ export async function generateMetadata({ params }: { params: Promise<{ workspace
 
     const title = form.title || 'Form';
     const description = form.description || 'Please fill out this form.';
-    const images = form.coverImage ? [form.coverImage] : [];
+    // link previews load the cover through our server too
+    const images = form.coverImage ? [firstPartyImageUrl(form.coverImage)] : [];
 
     return {
         title,

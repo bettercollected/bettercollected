@@ -10,25 +10,15 @@ export default function MatrixFieldBuilderWrapper({ field }: { field: StandardFo
     return (
         <div className="flex flex-col gap-4">
             <div style={{ color: theme?.secondary }} className={cn(' flex w-full  justify-end ', field.id !== activeField?.id && 'invisible')}>
-                <span
-                    className="cursor-pointer"
-                    onClick={() => {
-                        addColumn();
-                    }}
-                >
+                <button type="button" className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]" onClick={() => addColumn()}>
                     Add Column
-                </span>
+                </button>
             </div>
             <MatrixField field={field} disabled />
             <div style={{ color: theme?.secondary }} className={cn('text-brand-500 flex w-full justify-start ', field.id !== activeField?.id && 'invisible')}>
-                <span
-                    className="cursor-pointer"
-                    onClick={() => {
-                        addRow();
-                    }}
-                >
+                <button type="button" className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]" onClick={() => addRow()}>
                     Add Row
-                </span>
+                </button>
             </div>
         </div>
     );

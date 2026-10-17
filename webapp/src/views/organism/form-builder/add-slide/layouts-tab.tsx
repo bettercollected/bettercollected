@@ -59,7 +59,6 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                                     id: v4(),
                                     index: 0,
                                     type: FieldTypes.SHORT_TEXT,
-                                    value: 'Enter Question',
                                     properties: {
                                         placeholder: 'Answer'
                                     }

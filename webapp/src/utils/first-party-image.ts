@@ -6,9 +6,10 @@ import environments from '@app/configs/environments';
  * Images on respondent pages only ever come from us. An Unsplash photo is
  * served through our API (`GET /images/unsplash/<photo>`, which fetches it
  * once and keeps a copy in our storage), so a respondent's browser never
- * contacts images.unsplash.com. New picks are stored with our address; forms
- * saved before that still hold the Unsplash one and are rewritten here, at
- * render time. The backend's allow-list is backend/app/services/image_urls.py.
+ * contacts images.unsplash.com. Forms store the photo's canonical Unsplash
+ * address (it names no host of ours), and every render path rewrites it here
+ * to this webapp's own API host. The backend's allow-list is
+ * backend/app/services/image_urls.py.
  */
 
 const UNSPLASH_HOST = 'images.unsplash.com';

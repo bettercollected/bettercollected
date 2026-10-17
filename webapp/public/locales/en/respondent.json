@@ -71,6 +71,14 @@
         "COPIED": "Copied",
         "NEXT": "What happens next"
     },
+    "VIDEO": {
+        "PLAY": "Play video: {{title}}",
+        "PLAY_UNTITLED": "Play video",
+        "NOTICE": "Plays from {{provider}}. Playing it shares your IP address with {{provider}}.",
+        "PLAYER": "Video player: {{title}}",
+        "UNSUPPORTED": "This video can only be watched on its own site.",
+        "OPEN": "Open the video in a new tab"
+    },
     "FIELD": {
         "REQUIRED": "(required)",
         "OPTIONAL": "Optional",

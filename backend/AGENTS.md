@@ -634,24 +634,26 @@ one of ours; `services/image_urls.py` is the single allow-list:
 
 - **Our storage** (`AWS_PUBLIC_URL` or the endpoint, our bucket, `public/`,
   `media_library/`, `images/`) and the builder's two built-in placeholders.
-- **Unsplash through our server:** `GET /images/unsplash/{photo}`
-  (`services/image_service.py`, `services/unsplash_route.py`). A form stores
-  `<API_PUBLIC_URL>/images/unsplash/<photo>?<sizing>`; `images.unsplash.com`
-  addresses are accepted on input only to be rewritten to it, and the webapp
-  rewrites old ones at render time (`src/utils/first-party-image.ts`). The route
-  takes a photo path and only `w h q fit fm crop auto` (rounded to a fixed set
-  of sizes, AVIF asked as WebP, `crop` only `entropy`), fetches from the fixed
-  host with no redirects, has the sandbox's `image` mode re-encode it, stores
-  it once under `public/image-cache/unsplash/<hash>` and redirects there.
-  Rate-limited per client address (`API_IMAGE_PROXY_*`; IPv6 by /64,
+- **Unsplash through our server:** a form stores an Unsplash photo by its
+  canonical address, `https://images.unsplash.com/<photo>` (as the picker and
+  the AI image search give it), which names no host of ours, so it stays right
+  on every instance and domain. The webapp loads it through its own API at
+  render time (`<NEXT_PUBLIC_API_ENDPOINT_HOST>/images/unsplash/<photo>`,
+  `src/utils/first-party-image.ts`, every render path including the link
+  preview's cover). The backend never writes an API host into a form: an
+  address of the route on any host (`<anything>/images/unsplash/<photo>`) is
+  stored as the canonical Unsplash one (`unsplash_route.to_canonical_url`).
+  The backend itself shows form images to nobody (no e-mail or export carries
+  them); API and MCP output return the canonical address.
+  The route, `GET /images/unsplash/{photo}` (`services/image_service.py`,
+  `services/unsplash_route.py`), takes a photo path and only
+  `w h q fit fm crop auto` (rounded to a fixed set of sizes, AVIF asked as
+  WebP, `crop` only `entropy`), fetches from the fixed host with no redirects,
+  has the sandbox's `image` mode re-encode it, stores it once under
+  `public/image-cache/unsplash/<hash>` and redirects there. Rate-limited per
+  client address (`API_IMAGE_PROXY_*`; IPv6 by /64,
   `utils/client_ip.rate_limit_key`), tighter for requests that fetch, plus one
   cap on fetches by everyone together (`API_IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW`).
-  `API_PUBLIC_URL` must equal the webapp's `NEXT_PUBLIC_API_ENDPOINT_HOST`; the
-  deployment compose refuses to start without it. Unset, or a loopback address
-  while `API_HOST` doesn't name localhost (and the environment isn't `test`),
-  fails closed (`unsplash_route.route_configured`): Unsplash addresses are
-  stored as they came, never rewritten to a local address, and a warning is
-  logged at startup. The picker stores Unsplash's address; the save rewrites it.
 - **Pasted addresses are copied in:** `POST /workspaces/{id}/images/import`
   (`form.edit`, `API_IMAGE_IMPORTS_*` per person) fetches through
   `services/image_fetch.py` (https only, default port, no credentials; DNS
@@ -662,10 +664,11 @@ one of ours; `services/image_urls.py` is the single allow-list:
   plain-language message the editor shows; logs carry the code, never the
   address.
 - **Saves are checked** (`services/form_images.py`): the whole-form PATCH, form
-  creation and the saved-themes PATCH keep first-party addresses, rewrite
-  Unsplash ones, keep an address the stored draft (or stored themes) already
-  holds, and refuse anything else with 422 `image_not_allowed`; a template copy
-  drops it instead. Tests: `test_image_urls.py`, `test_image_fetch.py`,
+  creation and the saved-themes PATCH keep first-party addresses (canonical
+  Unsplash ones included), store route addresses as canonical Unsplash ones,
+  keep an address the stored draft (or stored themes) already holds, and
+  refuse anything else with 422 `image_not_allowed`; a template copy and a
+  duplicate drop it instead. Tests: `test_image_urls.py`, `test_image_fetch.py`,
   `test_images.py`, `test_form_images.py` (no network: fetch, DNS and the
   sandbox are faked).
 

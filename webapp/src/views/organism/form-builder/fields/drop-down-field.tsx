@@ -69,7 +69,17 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                 ) : (
                                     input
                                 )}
-                                <Close style={{ color: theme?.secondary }} onClick={() => removeChoiceField(field.index, slide.index, choice.id)} className="invisible absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 group-hover:visible" />
+                                {/* Hidden until the row is hovered or has focus; opacity, not
+                                    visibility, so the button stays reachable by Tab. */}
+                                <button
+                                    type="button"
+                                    aria-label={`Remove option ${index + 1}${choice.value ? `: ${choice.value}` : ''}`}
+                                    title="Remove option"
+                                    onClick={() => removeChoiceField(field.index, slide.index, choice.id)}
+                                    className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[#123FC9]"
+                                >
+                                    <Close style={{ color: theme?.secondary }} aria-hidden="true" className="h-5 w-5" />
+                                </button>
                             </div>
                         );
                     })}
@@ -85,18 +95,18 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                     Other
                 </div>
             )}
-            <div
+            <button
+                type="button"
                 style={{
                     color: slide?.properties?.theme?.secondary || theme?.secondary,
                     background: 'transparent'
-                    // background: slide.properties?.theme?.tertiary || theme?.tertiary
                 }}
                 onClick={() => addChoiceField(field.index, slide.index)}
-                className="p2-new mt-4 flex items-center gap-2 font-semibold!"
+                className="p2-new mt-4 flex items-center gap-2 rounded font-semibold! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]"
             >
-                <PlusIcon className="h-4 w-4" />
+                <PlusIcon className="h-4 w-4" aria-hidden="true" />
                 Add Option
-            </div>
+            </button>
         </>
     );
 };

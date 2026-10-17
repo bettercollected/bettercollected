@@ -147,3 +147,22 @@ describe('QuestionWrapper — "why we ask this"', () => {
         expect(screen.queryByText(/why we ask this/i)).not.toBeInTheDocument();
     });
 });
+
+describe('QuestionWrapper — untitled fields', () => {
+    const placeholders = /Enter Question|Enter Your Email|Add Text|Select an option|Type a question|insert a field/i;
+
+    it('never shows the builder placeholder to respondents', () => {
+        for (const type of [FieldTypes.SHORT_TEXT, FieldTypes.EMAIL, FieldTypes.TEXT, FieldTypes.DROP_DOWN]) {
+            const { container, unmount } = renderWrapper(field({ type, title: undefined }));
+            expect(container.querySelector('#q-title-f1')?.textContent ?? '').not.toMatch(placeholders);
+            unmount();
+        }
+        const { container } = renderWrapper(field({ title: { type: 'doc', content: [{ type: 'paragraph' }] } as any }));
+        expect(container.textContent).not.toMatch(placeholders);
+    });
+
+    it('shows a legacy plain title kept in value', () => {
+        renderWrapper(field({ title: undefined, value: 'Where do you live?' }));
+        expect(screen.getByText('Where do you live?')).toBeInTheDocument();
+    });
+});

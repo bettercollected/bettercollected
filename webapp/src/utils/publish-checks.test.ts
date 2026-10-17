@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { asksForIdentity, getPublishProblems, problemsFromPublishError } from './publish-checks';
+import { asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems } from './publish-checks';
 
 const q = (id: string, type: string, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: 'Question', ...extra }) as StandardFormFieldDto;
 const page = (...fields: StandardFormFieldDto[]) => [{ id: 'page', index: 0, type: FieldTypes.SLIDE, properties: { fields } } as StandardFormFieldDto];
@@ -72,6 +72,48 @@ describe('publish checks: no pre-ticked answers', () => {
 
     it('ignores a legacy title kept in value', () => {
         expect(codes(q('c', FieldTypes.YES_NO, { title: undefined, value: 'Do you agree to be contacted?' }))).toEqual([]);
+    });
+});
+
+describe('publish checks: every question has a title', () => {
+    const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] };
+
+    it('blocks a question with no title, an empty one or only spaces', () => {
+        expect(codes(q('a', FieldTypes.SHORT_TEXT, { title: undefined }))).toEqual([['untitled_question', 'a']]);
+        expect(codes(q('b', FieldTypes.LONG_TEXT, { title: emptyDoc as any }))).toEqual([['untitled_question', 'b']]);
+        expect(codes(q('c', FieldTypes.DATE, { title: '   ' }))).toEqual([['untitled_question', 'c']]);
+    });
+
+    it('says where the question is, as no title can name it', () => {
+        const slides = [
+            { id: 'p1', index: 0, type: FieldTypes.SLIDE, properties: { fields: [q('a', FieldTypes.NUMBER)] } },
+            { id: 'p2', index: 1, type: FieldTypes.SLIDE, properties: { fields: [q('b', FieldTypes.NUMBER), q('c', FieldTypes.NUMBER, { title: undefined })] } }
+        ] as StandardFormFieldDto[];
+        const [problem] = getPublishProblems(slides);
+        expect(problem).toEqual({ code: 'untitled_question', fieldId: 'c', message: 'Question 2 on page 2 has no title. Write the question respondents should answer.' });
+    });
+
+    it('counts answer pipes and legacy plain titles as titles', () => {
+        const piped = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'answerPipe', attrs: { kind: 'field', pipeKey: 'x', label: 'Name' } }] }] };
+        expect(codes(q('a', FieldTypes.SHORT_TEXT, { title: piped as any }))).toEqual([]);
+        expect(codes(q('b', FieldTypes.SHORT_TEXT, { title: undefined, value: 'Your city' }))).toEqual([]);
+    });
+
+    it('does not ask content blocks or internal fields for a title', () => {
+        for (const type of [FieldTypes.TEXT, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT]) {
+            expect(codes(q('t', type, { title: undefined }))).toEqual([]);
+        }
+        expect(codes(q('i', FieldTypes.SHORT_TEXT, { title: undefined, internal: true }))).toEqual([]);
+    });
+
+    it('checks the questions inside a repeating group', () => {
+        const group = q('g', FieldTypes.GROUP, { properties: { repeat: { maxItems: 3 } as any, fields: [q('child', FieldTypes.SHORT_TEXT, { title: '' })] } });
+        expect(codes(group)).toEqual([['untitled_question', 'child']]);
+    });
+
+    it('is a blocker for every form, old or new', () => {
+        const problems = getPublishProblems(page(q('a', FieldTypes.SHORT_TEXT, { title: undefined })));
+        expect(splitPublishProblems(problems, null).blocking.map((problem) => problem.code)).toEqual(['untitled_question']);
     });
 });
 
