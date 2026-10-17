@@ -996,6 +996,37 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
     return "Updated form settings: " + ", ".join(changed)
 
 
+_SETTINGS_TEXT_KEYS = ("purpose", "retention_text", "privacy_policy_url")
+_SETTINGS_SWITCH_KEYS = (
+    "require_verified_identity",
+    "allow_editing_response",
+    "show_submission_number",
+)
+
+
+def apply_settings_ops(settings: Any, ops, results: List["OpResult"]) -> bool:
+    """Put the applied update_form_settings ops on ``settings`` (the
+    workspace-form association's), in place: text is trimmed and '' clears
+    it, switches are set as given. Returns whether any op applied. The one
+    place these semantics live: the save (persist_ops_to_form) and the dry
+    run both use it."""
+    patches = [
+        op.patch
+        for op, result in zip(ops, results)
+        if result.ok and isinstance(op, UpdateFormSettingsOp)
+    ]
+    for patch in patches:
+        for key in _SETTINGS_TEXT_KEYS:
+            value = getattr(patch, key)
+            if value is not None:
+                setattr(settings, key, value.strip() or None)
+        for key in _SETTINGS_SWITCH_KEYS:
+            value = getattr(patch, key)
+            if value is not None:
+                setattr(settings, key, value)
+    return bool(patches)
+
+
 
 CHOICE_TYPES = {StandardFormFieldType.MULTIPLE_CHOICE, StandardFormFieldType.DROPDOWN}
 

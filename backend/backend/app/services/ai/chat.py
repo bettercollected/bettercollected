@@ -34,6 +34,7 @@ from backend.app.services.ai.ops import (
     OpResult,
     UpdateFormSettingsOp,
     apply_form_ops,
+    apply_settings_ops,
     parse_ops,
 )
 from backend.app.services.ai.profile import AIProfileService
@@ -106,11 +107,6 @@ UNUSABLE_CHAT_REPLY = (
 )
 
 
-def _clear_or_set(value: Optional[str]) -> Optional[str]:
-    """Trust-layer text semantics (mirrors patch_settings): '' clears."""
-    return value or None
-
-
 def _c():
     # Resolved at call time: the container imports this module.
     from backend.app.container import container
@@ -125,32 +121,16 @@ async def _persist_settings_ops(
 
     Returns the camelised updated settings, or None when no settings op
     applied."""
-    patches = [
-        op.patch
+    if not any(
+        result.ok and isinstance(op, UpdateFormSettingsOp)
         for op, result in zip(ops, results)
-        if result.ok and isinstance(op, UpdateFormSettingsOp)
-    ]
-    if not patches:
+    ):
         return None
     workspace_form = await _c().workspace_form_repo().find_first_by_form_id(form_id)
     if not workspace_form:
         return None
     settings = workspace_form.settings
-    for patch in patches:
-        if patch.purpose is not None:
-            settings.purpose = _clear_or_set(patch.purpose.strip())
-        if patch.retention_text is not None:
-            settings.retention_text = _clear_or_set(patch.retention_text.strip())
-        if patch.privacy_policy_url is not None:
-            settings.privacy_policy_url = _clear_or_set(
-                patch.privacy_policy_url.strip()
-            )
-        if patch.require_verified_identity is not None:
-            settings.require_verified_identity = patch.require_verified_identity
-        if patch.allow_editing_response is not None:
-            settings.allow_editing_response = patch.allow_editing_response
-        if patch.show_submission_number is not None:
-            settings.show_submission_number = patch.show_submission_number
+    apply_settings_ops(settings, ops, results)
     await _c().workspace_form_repo().save(workspace_form)
     return WorkspaceFormSettingsCamelModal(**settings.model_dump()).model_dump(
         mode="json", by_alias=True

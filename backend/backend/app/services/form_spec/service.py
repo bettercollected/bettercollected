@@ -24,8 +24,8 @@ from backend.app.repositories.workspace_form_repository import (
 from backend.app.services.ai.ops import (
     OP_NAMES,
     OpResult,
-    UpdateFormSettingsOp,
     applied,
+    apply_settings_ops,
     apply_form_ops,
     parse_ops,
 )
@@ -80,25 +80,10 @@ def settings_after_ops(settings: Any, ops, results: List[OpResult]) -> Any:
     """A copy of the association ``settings`` with the applied
     update_form_settings ops on it, as persist_ops_to_form writes them
     ('' clears a text value)."""
-    settings = settings.model_copy(deep=True) if settings is not None else None
     if settings is None:
         return None
-    for op, result in zip(ops, results):
-        if not result.ok or not isinstance(op, UpdateFormSettingsOp):
-            continue
-        patch = op.patch
-        for key in ("purpose", "retention_text", "privacy_policy_url"):
-            value = getattr(patch, key)
-            if value is not None:
-                setattr(settings, key, value.strip() or None)
-        for key in (
-            "require_verified_identity",
-            "allow_editing_response",
-            "show_submission_number",
-        ):
-            value = getattr(patch, key)
-            if value is not None:
-                setattr(settings, key, value)
+    settings = settings.model_copy(deep=True)
+    apply_settings_ops(settings, ops, results)
     return settings
 
 
