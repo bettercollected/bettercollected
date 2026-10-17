@@ -168,18 +168,19 @@ async def persist_ops_to_form(
     form: StandardForm,
     ops,
     atomic: bool = False,
-    expected_updated_at=None,
+    expected_updated_at: Optional[dt.datetime] = None,
 ) -> tuple:
     """Apply ops and persist when anything applied.
 
-    The ONE write path for AI form mutation — the chat turn, review fixes,
-    accepted proposals and MCP's update_form all go through here; never two
-    ways to mutate a form.
+    The ONE write path for ops-based form mutation — the chat turn, review
+    fixes, accepted proposals, MCP's update_form and the public API's ops
+    all go through here; never two ways to mutate a form.
     ``atomic``: all or nothing — when any op fails, nothing (form or
     settings) is written.
-    ``expected_updated_at``: write conditionally (persist_form), 409
-    ``form_changed`` when the stored draft is newer; settings are written
-    only after the form was.
+    ``expected_updated_at``: write the form conditionally (persist_form:
+    409 form_changed when the stored draft changed since,
+    form_concurrency.py), before any settings are written;
+    ``form_document`` then carries the stored ``updated_at``.
     Returns (new_form, results, updated_settings_or_none).
     """
     # CPU-bound on a large form: off the event loop

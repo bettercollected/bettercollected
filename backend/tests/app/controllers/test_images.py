@@ -354,10 +354,11 @@ async def test_an_address_is_copied_into_our_storage(
 @pytest.mark.parametrize(
     "pasted,expected",
     [
-        # Unsplash's address is stored as is (pages load it through our route)
+        # Unsplash's address is stored by its canonical form (pages load it
+        # through our route); its tracking parameters are dropped
         (
             "https://images.unsplash.com/photo-1?ixid=a&w=1080",
-            "https://images.unsplash.com/photo-1?ixid=a&w=1080",
+            "https://images.unsplash.com/photo-1?w=1080",
         ),
         # an address of our route is stored as the canonical Unsplash one
         (

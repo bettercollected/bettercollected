@@ -181,6 +181,23 @@ export const ThemeColors: Array<FormTheme> = [
     }
 ];
 
+// The backend keeps a copy of this list (backend constants/themes.py
+// theme_dict) for forms the AI, the API and imports dress; this list is the
+// source of truth and a backend test fails when the two drift. Keep each
+// preset as plain `key: 'value'` lines so that test can read it.
+
+/**
+ * The preset a form's theme was picked as, by its title (any case): what the
+ * builder's picker shows as selected. A preset set by the AI carries the
+ * preset's own title, so it shows here too. A legacy title that names no
+ * preset any more (colours live on the form) matches none.
+ */
+export function findPreset(title?: string | null): FormTheme | undefined {
+    const key = title?.trim().toLowerCase();
+    if (!key) return undefined;
+    return ThemeColors.find((preset) => preset.title.toLowerCase() === key);
+}
+
 // New forms start with the Leaflet preset (and so the Leaflet style) unless
 // they bring a theme of their own: a form made from a template, or a copy,
 // keeps its source's. The backend gives forms made without one (AI, API,

@@ -34,6 +34,12 @@ class ApiSettings(BaseSettings):
     # client and form in each window; more answer 429 until the window ends.
     FLOW_EVENTS_PER_WINDOW: int = 120
     FLOW_EVENTS_WINDOW_SECONDS: int = 60
+    # Public REST API (/api/v1/public/v1): requests per API key in each
+    # window; more answer 429 with Retry-After until the window ends. 0 = off.
+    PUBLIC_API_REQUESTS_PER_WINDOW: int = 120
+    # ...and for all of one workspace's keys together in the same window.
+    PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW: int = 600
+    PUBLIC_API_WINDOW_SECONDS: int = 60
     # GET /images/unsplash/...: requests per client address in each window,
     # and of those, how many may fetch a photo not cached yet.
     IMAGE_PROXY_PER_WINDOW: int = 600

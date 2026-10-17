@@ -126,13 +126,19 @@ def is_first_party_image_url(url: Optional[str]) -> bool:
 
 
 def first_party_image_url(url: Optional[str]) -> Optional[str]:
-    """The address to store for ``url``: itself (trimmed) when first-party,
-    the canonical Unsplash address for an address of our route, else None."""
-    if is_first_party_image_url(url):
-        return url.strip()
+    """The address to store for ``url``: itself (trimmed) for our storage or
+    a built-in image, the canonical Unsplash address for an Unsplash photo
+    (only the allow-listed sizing parameters, in a fixed order) or an address
+    of our route, else None."""
     if _parts(url) is None:
         return None
-    return unsplash_route.to_canonical_url(url.strip())
+    url = url.strip()
+    if url in BUILTIN_IMAGE_URLS or _is_storage_url(urlsplit(url)):
+        return url
+    photo = unsplash_route.unsplash_photo(url)
+    if photo is not None:
+        return unsplash_route.canonical_url(*photo)
+    return unsplash_route.to_canonical_url(url)
 
 
 def is_allowed_image_url(url: Optional[str]) -> bool:

@@ -97,7 +97,10 @@ async def test_a_form_that_brings_its_theme_keeps_it(
     [
         ({}, "Leaflet"),
         ({"theme_name": "Leaflet"}, "Leaflet"),
-        ({"theme_name": "Green"}, "Green"),
+        ({"theme_name": "Forest"}, "Forest"),
+        # a legacy preset name means the nearest preset
+        ({"theme_name": "Green"}, "Forest"),
+        ({"theme_name": "purple"}, "Lavender"),
         ({"theme_name": "Neon"}, "Leaflet"),
         ({"theme_name": None}, "Leaflet"),
     ],

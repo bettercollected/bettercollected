@@ -462,13 +462,18 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     # -- plain reads and writes ------------------------------------------------
     async def list_recent_by_form_id(
-        self, scope: ResponseScope, limit: int
+        self, scope: ResponseScope, limit: int, skip: int = 0
     ) -> List[FormResponseDocument]:
-        return await self.many(
-            _in_scope(FormResponseRow, scope),
-            order_by=(FormResponseRow.created_at.desc(), FormResponseRow.id),
-            limit=limit,
-        )
+        async with self._session() as session:
+            stmt = (
+                select(FormResponseRow.doc)
+                .where(_in_scope(FormResponseRow, scope))
+                .order_by(FormResponseRow.created_at.desc(), FormResponseRow.id)
+                .offset(skip)
+                .limit(limit)
+            )
+            docs = (await session.execute(stmt)).scalars().all()
+        return [from_row_doc(FormResponseDocument, d) for d in docs]
 
     @staticmethod
     def _ai_notice_where(

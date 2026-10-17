@@ -82,12 +82,14 @@ trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
   (400, 500, 600) for everything you read in the app; JetBrains Mono (500, 600) for
   anything that names a value: form and field IDs, slugs, URLs, API keys and
   their prefixes, action parameters, webhook and MCP endpoints. Both load
-  through `next/font` in `webapp/src/app/layout.tsx`, which downloads them at
-  build time and serves them from the app. No page requests fonts.googleapis.com
-  or fonts.gstatic.com — a privacy-friendly form builder doesn't tell Google who
-  opened a form.
+  through `next/font/local` in `webapp/src/app/layout.tsx`, from the woff2
+  files of the `@fontsource` npm packages (OFL-1.1, latin subset), and are
+  served from the app. Neither the build nor any page requests
+  fonts.googleapis.com or fonts.gstatic.com — a privacy-friendly form builder
+  doesn't tell Google who opened a form, and a build doesn't fail when Google
+  can't be reached. Don't use `next/font/google`.
 - **Respondent forms keep their typeface: Public Sans**, loaded the same way
-  (self-hosted through `next/font`, all weights). It is the `font-form`
+  (self-hosted through `next/font/local`, all weights via the variable font). It is the `font-form`
   utility, worn by the form renderers (`LayoutWrapper`, the trust strip) and
   by the respondent routes (`RespondentTypeface`, which also puts it on
   `<body>` so popovers and toasts that portal out of a form match). The builder
@@ -97,7 +99,7 @@ trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
   [Source Serif 4](https://fonts.google.com/specimen/Source+Serif+4) at 600,
   for section numerals, section titles, question numbers and the ending's
   "What happens next" heading only; everything a respondent reads stays in
-  Public Sans. It loads through `next/font` like the others
+  Public Sans. It loads through `next/font/local` like the others
   (`webapp/src/assets/fonts/leaflet-serif.ts`, fallback Georgia), with
   `preload: false`, so only a page that draws a Leaflet glyph fetches it.
 - **Utilities.** `font-sans` (the default), `font-mono` and `font-form`.
@@ -231,6 +233,14 @@ theme still renders as Default. Default stays in the picker. One constant
 names the preset on each side (`NEW_FORM_THEME_TITLE` in
 `webapp/src/constants/theme.ts`, `NEW_FORM_THEME` in
 `backend/app/constants/themes.py`), and a test keeps them together.
+
+**One list of presets.** The webapp's list (`ThemeColors`) is the source of
+truth: names, colours and styles. The backend keeps a copy for the forms it
+dresses (the AI assistant, the API, MCP, imports), and a backend test fails
+when the two drift, so a preset the AI picks shows as that preset in the
+builder's picker (which finds it by title). The backend's older names (Blue,
+Green, Red, Black, Orange, Purple) still work and mean the nearest preset
+(Ocean, Forest, Cherry, Mono, Sunset, Lavender).
 
 The **Leaflet** preset is the other one this system specifies; it is made
 for the Leaflet style, and picking it switches the form to that style:

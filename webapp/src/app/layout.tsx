@@ -1,34 +1,59 @@
 import React from 'react';
 
 import type { Metadata } from 'next';
-import { Instrument_Sans, JetBrains_Mono, Public_Sans } from 'next/font/google';
+import { Viewport } from 'next';
+import localFont from 'next/font/local';
+
+import BaseModalContainer from '@Components/modals/containers/base-modal-container';
 
 import '@app/assets/css/globals.css';
 import SwRegister from '@app/components/common/sw-register';
 import environments from '@app/configs/environments';
 import { DialogModalContainer } from '@app/lib/hooks/use-dialog-modal';
 import { SecondaryDialogModalContainer } from '@app/lib/hooks/use-secondary-dialog-modal';
+import { readRuntimeFlags } from '@app/lib/runtime-flags';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { cn } from '@app/shadcn/util/lib';
-import { readRuntimeFlags } from '@app/lib/runtime-flags';
 import AuthProvider from '@app/shared/hocs/auth-provider';
 import I18nProvider from '@app/shared/hocs/i18n-provider';
 import ReduxProvider from '@app/shared/hocs/redux-provider';
 import RuntimeFlagsProvider from '@app/shared/hocs/runtime-flags-provider';
 import ThemeProvider from '@app/shared/hocs/theme-provider';
-import BaseModalContainer from '@Components/modals/containers/base-modal-container';
-import { Viewport } from 'next';
 
 // Instrument Sans for everything you read, JetBrains Mono for anything that
 // names a value (IDs, slugs, URLs, keys, payloads) — see DESIGN.md, Type.
-// next/font downloads both at build time and serves them from this app: no
-// request goes to Google's font servers at runtime.
-const instrumentSans = Instrument_Sans({ subsets: ['latin'], weight: ['400', '500', '600'], display: 'swap', variable: '--font-instrument-sans' });
-const jetBrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['500', '600'], display: 'swap', variable: '--font-jetbrains-mono' });
+// The files come from the @fontsource packages (OFL-1.1) in node_modules, so the
+// build never fetches from Google, and next/font serves them from this app, so
+// no request goes to Google's font servers at runtime either. Latin subset,
+// the same files Google serves for these weights.
+const instrumentSans = localFont({
+    src: [
+        { path: '../../node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-400-normal.woff2', weight: '400', style: 'normal' },
+        { path: '../../node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-500-normal.woff2', weight: '500', style: 'normal' },
+        { path: '../../node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-600-normal.woff2', weight: '600', style: 'normal' }
+    ],
+    display: 'swap',
+    variable: '--font-instrument-sans'
+});
+const jetBrainsMono = localFont({
+    src: [
+        { path: '../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2', weight: '500', style: 'normal' },
+        { path: '../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2', weight: '600', style: 'normal' }
+    ],
+    display: 'swap',
+    variable: '--font-jetbrains-mono'
+});
 // Respondent forms keep the typeface they were published with: Public Sans,
-// loaded exactly as before (all weights, latin) and also self-hosted. It is the
-// `font-form` utility, applied by the form renderers and the respondent routes.
-const publicSans = Public_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-public-sans' });
+// loaded exactly as before (all weights through the variable font, latin) and
+// also self-hosted. It is the `font-form` utility, applied by the form
+// renderers and the respondent routes.
+const publicSans = localFont({
+    src: '../../node_modules/@fontsource-variable/public-sans/files/public-sans-latin-wght-normal.woff2',
+    weight: '100 900',
+    style: 'normal',
+    display: 'swap',
+    variable: '--font-public-sans'
+});
 
 export const viewport: Viewport = {
     themeColor: '#ffffff',

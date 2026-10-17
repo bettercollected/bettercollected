@@ -327,11 +327,13 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def list_recent_by_form_id(
-        self, scope: ResponseScope, limit: int
+        self, scope: ResponseScope, limit: int, skip: int = 0
     ) -> List[FormResponseDocument]:
+        """Most recent first (ties by id), ``limit`` of them after ``skip``."""
         return (
             await FormResponseDocument.find(scope.mongo_filter())
-            .sort("-created_at")
+            .sort([("created_at", -1), ("_id", 1)])
+            .skip(skip)
             .limit(limit)
             .to_list()
         )
