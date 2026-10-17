@@ -198,22 +198,40 @@ def _url_problem(check, value, path: str) -> List[Dict[str, str]]:
     return []
 
 
-def _check_links_and_images(spec: FormSpec) -> List[Dict[str, str]]:
+def _attachment_image(attachment, path: str):
+    if attachment is not None and attachment.type == "image" and attachment.href:
+        yield f"{path}/attachment/href", attachment.href
+
+
+def _image_urls(spec: FormSpec, index: "_Index"):
+    """``(path, url)`` of every image the document would show:
+    respondent pages load them straight from these addresses."""
+    if spec.welcome_page is not None:
+        yield "/welcomePage/imageUrl", spec.welcome_page.image_url
+    themes = [("/theme", spec.theme)]
+    for p, page in enumerate(spec.pages):
+        yield f"/pages/{p}/imageUrl", page.image_url
+        themes.append((f"/pages/{p}/theme", page.theme))
+    for path, theme in themes:
+        if theme is not None and theme.background is not None:
+            yield f"{path}/background/imageUrl", theme.background.image_url
+    for path, field, _ in index.questions.values():
+        yield f"{path}/imageUrl", field.image_url
+        yield from _attachment_image(field.attachment, path)
+        for c, choice in enumerate(field.choices or []):
+            yield from _attachment_image(choice.attachment, f"{path}/choices/{c}")
+    for i, ending in enumerate(spec.endings or []):
+        yield f"/endings/{i}/imageUrl", ending.image_url
+
+
+def _check_links_and_images(spec: FormSpec, index: "_Index") -> List[Dict[str, str]]:
     problems = []
     for i, ending in enumerate(spec.endings or []):
         problems += _url_problem(
             checked_button_link, ending.button_link, f"/endings/{i}/buttonLink"
         )
-    themes = [("/theme", spec.theme)] + [
-        (f"/pages/{p}/theme", page.theme) for p, page in enumerate(spec.pages)
-    ]
-    for path, theme in themes:
-        if theme is not None and theme.background is not None:
-            problems += _url_problem(
-                checked_image_url,
-                theme.background.image_url,
-                f"{path}/background/imageUrl",
-            )
+    for path, url in _image_urls(spec, index):
+        problems += _url_problem(checked_image_url, url, path)
     trust = spec.trust
     if trust is not None:
         problems += _url_problem(
@@ -301,7 +319,7 @@ def check_spec_document(raw: Any) -> Dict[str, Any]:
     errors = list(index.errors)
     errors += _check_logic(spec, index)
     errors += [_problem("", message) for message in date_rule_problems(form.fields)]
-    errors += _check_links_and_images(spec)
+    errors += _check_links_and_images(spec, index)
     errors += _check_hidden_fields(spec)
     result["errors"] = errors
     result["valid"] = not errors
