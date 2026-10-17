@@ -1,8 +1,8 @@
-"""Image addresses automated edits may put on a form (services/image_urls.py).
+"""Image addresses a form may hold (services/image_urls.py).
 
-AI turns, API keys over MCP and AI form creation may only use images from our
-own storage or Unsplash; respondent pages load them directly, so any other
-host would see respondents' visits."""
+Our own storage and our Unsplash route are first-party; an Unsplash photo
+address is accepted only to be rewritten to our route, so respondents'
+browsers never contact Unsplash; anything else is refused."""
 
 import pytest
 from common.models.standard_form import (
@@ -17,9 +17,12 @@ from common.models.standard_form import (
 from backend.app.container import container
 from backend.app.services.ai.ops import UpdateThemeOp, apply_form_ops, parse_ops
 from backend.app.services.image_urls import (
+    BUILTIN_IMAGE_URLS,
     allowed_image_url_or_none,
     checked_image_url,
+    first_party_image_url,
     is_allowed_image_url,
+    is_first_party_image_url,
 )
 from backend.config import settings
 
@@ -27,6 +30,8 @@ STORAGE = "https://cdn.example.org"
 ENDPOINT = "https://s3.example-storage.test"
 BUCKET = "forms-bucket"
 UNSPLASH = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?ixid=abc&ixlib=rb-4.0.3"
+API = "https://forms.example.org/api/v1"
+ROUTED = f"{API}/images/unsplash/photo-1500530855697-b586d89ba3ee"
 
 
 @pytest.fixture(autouse=True)
@@ -35,24 +40,57 @@ def storage(monkeypatch):
     monkeypatch.setattr(aws, "PUBLIC_URL", STORAGE)
     monkeypatch.setattr(aws, "ENDPOINT_URL", ENDPOINT)
     monkeypatch.setattr(aws, "BUCKET", BUCKET)
+    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", API + "/")
 
 
 @pytest.mark.parametrize(
     "url",
     [
-        UNSPLASH,
-        "https://images.unsplash.com/photo-1",
         f"{STORAGE}/{BUCKET}/public/20260101_bg.png",
         f"{STORAGE}/{BUCKET}/media_library/20260101_photo.jpg",
+        f"{STORAGE}/{BUCKET}/images/v2_layout_image.webp",
         # objects stored before a CDN address was configured
         f"{ENDPOINT}/{BUCKET}/public/20260101_bg.png",
-        f"  {UNSPLASH}  ",
-        "HTTPS://IMAGES.UNSPLASH.COM/photo-1",
+        f"  {STORAGE}/{BUCKET}/public/x.png  ",
+        ROUTED,
+        f"{ROUTED}?fit=crop&h=400&q=80&w=1080",
+        f"{API}/images/unsplash/premium_photo-1",
+        *sorted(BUILTIN_IMAGE_URLS),
     ],
 )
-def test_our_storage_and_unsplash_are_allowed(url):
+def test_our_storage_and_our_unsplash_route_are_first_party(url):
+    assert is_first_party_image_url(url)
     assert is_allowed_image_url(url)
     assert checked_image_url(url) == url.strip()
+
+
+@pytest.mark.parametrize(
+    "url,routed",
+    [
+        (UNSPLASH, ROUTED),
+        ("https://images.unsplash.com/photo-1", f"{API}/images/unsplash/photo-1"),
+        ("HTTPS://IMAGES.UNSPLASH.COM/photo-1", f"{API}/images/unsplash/photo-1"),
+        (f"  {UNSPLASH}  ", ROUTED),
+        # the AI image search's urls.regular: sizing kept, tracking dropped
+        (
+            "https://images.unsplash.com/photo-1?crop=entropy&cs=tinysrgb&fit=max"
+            "&fm=jpg&ixid=M3w&ixlib=rb-4.0.3&q=80&w=1080",
+            f"{API}/images/unsplash/photo-1?crop=entropy&fit=max&fm=jpg&q=80&w=1080",
+        ),
+        # a bad value is dropped, not forwarded
+        (
+            "https://images.unsplash.com/photo-1?w=huge&q=80",
+            f"{API}/images/unsplash/photo-1?q=80",
+        ),
+    ],
+)
+def test_unsplash_photos_are_rewritten_to_our_route(url, routed):
+    assert not is_first_party_image_url(url)
+    assert is_allowed_image_url(url)
+    assert first_party_image_url(url) == routed
+    assert checked_image_url(url) == routed
+    assert allowed_image_url_or_none(url) == routed
+    assert is_first_party_image_url(routed)
 
 
 @pytest.mark.parametrize(
@@ -80,9 +118,22 @@ def test_our_storage_and_unsplash_are_allowed(url):
         'https://images.unsplash.com/photo-1")',
         "https://images.unsplash.com/photo-1 x",
         "https://images.unsplash.com/" + "a" * 2100,
+        "https://images.unsplash.com/../x",
+        "https://images.unsplash.com/a/b/c",
+        # our route: only from our API's address, a photo path and known options
+        "https://evil.test/api/v1/images/unsplash/photo-1",
+        f"{API}/images/unsplash/",
+        f"{API}/images/unsplash/../../workspaces",
+        f"{API}/images/unsplash/photo-1?url=https://evil.test",
+        f"{API}/images/unsplash/photo-1?w=abc",
+        f"{API}/images/unsplash/photo-1?w=10&w=20",
+        f"{API}/images/unsplash/photo-1#x",
+        f"{API}/images/other/photo-1",
+        "https://s3.eu-central-1.wasabisys.com/bettercollected/public/x.png",
     ],
 )
 def test_every_other_address_is_refused(url):
+    assert not is_first_party_image_url(url)
     assert not is_allowed_image_url(url)
     with pytest.raises(ValueError, match="own storage or from Unsplash"):
         checked_image_url(url)
@@ -156,12 +207,20 @@ def test_a_refused_theme_does_not_stop_the_rest_of_the_turn():
 
 
 @pytest.mark.parametrize(
-    "url", [UNSPLASH, f"{STORAGE}/{BUCKET}/media_library/20260101_photo.jpg"]
+    "url,stored",
+    [
+        (UNSPLASH, ROUTED),
+        (ROUTED, ROUTED),
+        (
+            f"{STORAGE}/{BUCKET}/media_library/20260101_photo.jpg",
+            f"{STORAGE}/{BUCKET}/media_library/20260101_photo.jpg",
+        ),
+    ],
 )
-def test_update_theme_keeps_an_allowed_background(url):
+def test_update_theme_keeps_an_allowed_background_first_party(url, stored):
     new_form, results = apply_form_ops(_form(), [UpdateThemeOp(theme=_theme(url))])
     assert results[0].ok, results[0].message
-    assert new_form.theme.background.imageUrl == url
+    assert new_form.theme.background.imageUrl == stored
 
 
 @pytest.mark.parametrize("url", [None, "", "  "])
@@ -204,5 +263,6 @@ def test_ai_created_forms_keep_only_allowed_images():
     refused, kept = form.fields
     assert refused.image_url is None
     assert refused.properties.layout != "TWO_COLUMN_IMAGE_LEFT"
-    assert kept.image_url == UNSPLASH
+    # kept, served through our server
+    assert kept.image_url == ROUTED
     assert kept.properties.layout == "TWO_COLUMN_IMAGE_RIGHT"

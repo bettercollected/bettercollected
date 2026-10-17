@@ -121,6 +121,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
+from backend.app.services.image_service import ImageService
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
 from backend.app.services.ai.consent import AIConsentService
@@ -1111,6 +1112,13 @@ class AppContainer(containers.DeclarativeContainer):
         MediaLibraryService,
         media_library_repo=media_library_repo,
         aws_service=aws_service,
+        authorization_service=authorization_service,
+    )
+    # Unsplash through our server; image addresses copied into our storage
+    image_service: ImageService = providers.Singleton(
+        ImageService,
+        aws_service=aws_service,
+        rate_limiter=rate_limiter,
         authorization_service=authorization_service,
     )
 

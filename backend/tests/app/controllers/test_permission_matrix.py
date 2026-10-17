@@ -815,6 +815,15 @@ CASES = [
     # --- media library and PDF imports
     Case("media.list", "GET", W + "/media", P.FORM_EDIT),
     Case("media.delete", "DELETE", W + "/media/{media}", P.FORM_EDIT, ok=200),
+    # an Unsplash address is rewritten, never fetched (services/image_service.py)
+    Case(
+        "images.import",
+        "POST",
+        W + "/images/import",
+        P.FORM_EDIT,
+        lambda c: {"json": {"url": "https://images.unsplash.com/photo-1"}},
+        ok=200,
+    ),
     Case("pdf_imports.list", "GET", W + "/form-imports", P.FORM_CREATE),
     Case("pdf_imports.ai_provider", "GET", W + "/form-imports/ai", P.FORM_CREATE),
     Case("pdf_imports.get", "GET", W + "/form-imports/{import}", P.FORM_CREATE, ok=200),
