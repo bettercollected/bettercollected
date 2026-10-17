@@ -1,0 +1,3841 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BetterCollected public API",
+    "description": "Create, read, change and publish forms as **form spec v1** documents, and read\ntheir responses. Authenticate with a workspace API key:\n`Authorization: Bearer bc_...`. A key works in its own workspace only, with\nits scopes (`forms:read`, `forms:write`, `responses:read`), and never does\nmore than the person who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limit per API key: 429 with `Retry-After`.\n",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/v1/public/v1"
+    }
+  ],
+  "paths": {
+    "/forms": {
+      "get": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "List the workspace's forms",
+        "operationId": "listForms",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "Create a draft form from a spec document",
+        "description": "All or nothing: the whole document is checked first; any error is a 422 listing every problem, and nothing is created. A logo URL in the document is ignored (logos are uploaded). Answers 201 with the stored document, its ETag and Location.",
+        "operationId": "createForm",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422).",
+              "title": "Idempotency-Key"
+            },
+            "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422)."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedForm"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request with the same Idempotency-Key is still running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormSpec"
+              },
+              "example": {
+                "specVersion": "1",
+                "title": "Event sign-up",
+                "pages": [
+                  {
+                    "id": "page-1",
+                    "fields": [
+                      {
+                        "id": "name",
+                        "type": "short_text",
+                        "title": "Your name",
+                        "validations": {
+                          "required": true,
+                          "maxLength": 80
+                        }
+                      },
+                      {
+                        "id": "dinner",
+                        "type": "yes_no",
+                        "title": "Will you join the dinner?",
+                        "choices": [
+                          {
+                            "value": "Yes"
+                          },
+                          {
+                            "value": "No"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "endings": [
+                  {
+                    "title": "Thanks",
+                    "message": "See you there."
+                  }
+                ],
+                "trust": {
+                  "purpose": "To plan seats and catering."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/validate": {
+      "post": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "Check a spec document without storing it",
+        "description": "Always 200 for a JSON body: `valid`, and every error with its JSON pointer `path`.",
+        "operationId": "validateForm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormSpec"
+              },
+              "example": {
+                "specVersion": "1",
+                "title": "Event sign-up",
+                "pages": [
+                  {
+                    "id": "page-1",
+                    "fields": [
+                      {
+                        "id": "name",
+                        "type": "short_text",
+                        "title": "Your name",
+                        "validations": {
+                          "required": true,
+                          "maxLength": 80
+                        }
+                      },
+                      {
+                        "id": "dinner",
+                        "type": "yes_no",
+                        "title": "Will you join the dinner?",
+                        "choices": [
+                          {
+                            "value": "Yes"
+                          },
+                          {
+                            "value": "No"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "endings": [
+                  {
+                    "title": "Thanks",
+                    "message": "See you there."
+                  }
+                ],
+                "trust": {
+                  "purpose": "To plan seats and catering."
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/forms/{form_id}": {
+      "get": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "Get a form as a spec document",
+        "description": "The `ETag` header names this version; send it as `If-Match` to replace the form or to apply operations to exactly this version.",
+        "operationId": "getForm",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The form's spec document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormSpec"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "Replace a form from a spec document",
+        "description": "Needs `If-Match` with the ETag from GET (428 without it, 412 when the form changed since, also when another save lands at the same moment). The document replaces the form's content; in `trust` and `logo` a key you leave out keeps its stored value (\"\" clears a text). Answers the stored document and its new ETag.",
+        "operationId": "replaceForm",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The form's ETag, from GET.",
+              "title": "If-Match"
+            },
+            "description": "The form's ETag, from GET."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The stored spec document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormSpec"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The form changed since the ETag in If-Match.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormSpec"
+              },
+              "example": {
+                "specVersion": "1",
+                "title": "Event sign-up",
+                "pages": [
+                  {
+                    "id": "page-1",
+                    "fields": [
+                      {
+                        "id": "name",
+                        "type": "short_text",
+                        "title": "Your name",
+                        "validations": {
+                          "required": true,
+                          "maxLength": 80
+                        }
+                      },
+                      {
+                        "id": "dinner",
+                        "type": "yes_no",
+                        "title": "Will you join the dinner?",
+                        "choices": [
+                          {
+                            "value": "Yes"
+                          },
+                          {
+                            "value": "No"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "endings": [
+                  {
+                    "title": "Thanks",
+                    "message": "See you there."
+                  }
+                ],
+                "trust": {
+                  "purpose": "To plan seats and catering."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/replace/dry-run": {
+      "post": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "Preview a replace",
+        "description": "What PUT would store for this document, and the diff from the stored form. Stores nothing.",
+        "operationId": "previewReplaceForm",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplacePreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormSpec"
+              },
+              "example": {
+                "specVersion": "1",
+                "title": "Event sign-up",
+                "pages": [
+                  {
+                    "id": "page-1",
+                    "fields": [
+                      {
+                        "id": "name",
+                        "type": "short_text",
+                        "title": "Your name",
+                        "validations": {
+                          "required": true,
+                          "maxLength": 80
+                        }
+                      },
+                      {
+                        "id": "dinner",
+                        "type": "yes_no",
+                        "title": "Will you join the dinner?",
+                        "choices": [
+                          {
+                            "value": "Yes"
+                          },
+                          {
+                            "value": "No"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "endings": [
+                  {
+                    "title": "Thanks",
+                    "message": "See you there."
+                  }
+                ],
+                "trust": {
+                  "purpose": "To plan seats and catering."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/publish": {
+      "post": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "Publish a form",
+        "description": "The product's publish, with its checks (422 `form_not_publishable` lists what blocks it).",
+        "operationId": "publishForm",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422).",
+              "title": "Idempotency-Key"
+            },
+            "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request with the same Idempotency-Key is still running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/ops": {
+      "post": {
+        "tags": [
+          "Form operations"
+        ],
+        "summary": "Apply edit operations",
+        "description": "The operations engine the builder's AI chat and MCP use. Atomic by default: any failed operation is a 422 `ops_failed` and nothing is stored. With `atomic: false`, what applies is stored and each result says how it went. `If-Match` is optional; when given, it is enforced (412).",
+        "operationId": "applyFormOps",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The ETag of the form version these operations are for; when given, a stale one is refused with 412.",
+              "title": "If-Match"
+            },
+            "description": "The ETag of the form version these operations are for; when given, a stale one is refused with 412."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422).",
+              "title": "Idempotency-Key"
+            },
+            "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpsResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request with the same Idempotency-Key is still running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The form changed since the ETag in If-Match.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpsRequest"
+              },
+              "example": {
+                "ops": [
+                  {
+                    "op": "add_page",
+                    "ref": "contact",
+                    "fields": [
+                      {
+                        "title": "Your email",
+                        "type": "email",
+                        "ref": "email"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "set_field_validation",
+                    "fieldId": "$ref:email",
+                    "validation": {
+                      "required": true
+                    }
+                  }
+                ],
+                "atomic": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/ops/dry-run": {
+      "post": {
+        "tags": [
+          "Form operations"
+        ],
+        "summary": "Preview edit operations",
+        "description": "Applies the operations to a copy of the form: the resulting document, a diff and per-operation results. Stores nothing.",
+        "operationId": "dryRunFormOps",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DryRunResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpsRequest"
+              },
+              "example": {
+                "ops": [
+                  {
+                    "op": "add_page",
+                    "ref": "contact",
+                    "fields": [
+                      {
+                        "title": "Your email",
+                        "type": "email",
+                        "ref": "email"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "set_field_validation",
+                    "fieldId": "$ref:email",
+                    "validation": {
+                      "required": true
+                    }
+                  }
+                ],
+                "atomic": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/responses": {
+      "get": {
+        "tags": [
+          "Responses"
+        ],
+        "summary": "List a form's responses",
+        "description": "Most recent first. Answers are in GET .../responses/{id}. Needs `responses:read`, and the key's creator needs to read and export responses. Respondents' identities are never returned.",
+        "operationId": "listResponses",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/responses/{response_id}": {
+      "get": {
+        "tags": [
+          "Responses"
+        ],
+        "summary": "Get one response with its answers",
+        "operationId": "getResponse",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "response_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Response Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Attachment": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "image",
+                  "video"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "embedProvider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "youtube",
+                  "vimeo",
+                  "no_embed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedprovider"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Attachment",
+        "description": "An image or video shown with a question or a choice."
+      },
+      "Choice": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "attachment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Attachment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Choice",
+        "description": "One option of a choice question. Logic conditions compare with\n``value``."
+      },
+      "Condition": {
+        "properties": {
+          "fieldId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fieldid"
+          },
+          "fieldType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fieldtype",
+            "description": "Type of the source question (filled in by the editor)."
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "IS_EMPTY",
+                  "IS_NOT_EMPTY",
+                  "IS_EQUAL",
+                  "IS_NOT_EQUAL",
+                  "CONTAINS",
+                  "DOES_NOT_CONTAIN",
+                  "LESS_THAN",
+                  "LESS_THAN_EQUAL",
+                  "GREATER_THAN",
+                  "GREATER_THAN_EQUAL",
+                  "STARTS_WITH",
+                  "ENDS_WITH"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparison"
+          },
+          "value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "groupMode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "COUNT",
+                  "ANY",
+                  "ALL"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groupmode"
+          },
+          "childFieldId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Childfieldid"
+          },
+          "childFieldType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Childfieldtype"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Condition",
+        "description": "One condition of a visibility rule or a page jump: the answer of\n``fieldId`` compared with ``value`` (a choice's value, \"Yes\"/\"No\" for a\nyes/no question). On a repeating group, ``groupMode`` COUNT compares\nthe number of items; ANY / ALL test ``childFieldId`` in the items."
+      },
+      "CreatedForm": {
+        "properties": {
+          "formId": {
+            "type": "string",
+            "title": "Formid"
+          },
+          "form": {
+            "$ref": "#/components/schemas/FormSpec"
+          }
+        },
+        "type": "object",
+        "required": [
+          "formId",
+          "form"
+        ],
+        "title": "CreatedForm"
+      },
+      "DateRule": {
+        "properties": {
+          "comparison": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after",
+              "on_or_before",
+              "on_or_after"
+            ],
+            "title": "Comparison"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "date",
+              "today",
+              "field"
+            ],
+            "title": "Target"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "fieldId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fieldid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "comparison",
+          "target"
+        ],
+        "title": "DateRule",
+        "description": "The chosen date must be ``comparison`` a fixed ``date`` (YYYY-MM-DD),\ntoday, or the answer of another date question (``fieldId``)."
+      },
+      "DeletionRequestInfo": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "pending or success."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "DeletionRequestInfo"
+      },
+      "DryRunResult": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok",
+            "description": "Whether every operation applied."
+          },
+          "applied": {
+            "type": "boolean",
+            "title": "Applied",
+            "description": "Whether the batch would change the form."
+          },
+          "atomic": {
+            "type": "boolean",
+            "title": "Atomic"
+          },
+          "form": {
+            "$ref": "#/components/schemas/FormSpec",
+            "description": "The form the batch would make."
+          },
+          "diff": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Diff",
+            "description": "Pages and fields added, removed, moved and changed, with JSON pointer paths, and the form-level changes."
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/OpResult"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "applied",
+          "atomic",
+          "form",
+          "diff",
+          "results"
+        ],
+        "title": "DryRunResult"
+      },
+      "Ending": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "buttonText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buttontext"
+          },
+          "buttonLink": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buttonlink",
+            "description": "An http(s) URL."
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Layout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Ending",
+        "description": "A page shown after submitting."
+      },
+      "Error": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Stable, for programs: e.g. unauthorized, missing_scope, not_found, invalid_spec, precondition_failed, rate_limited."
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "For people."
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ErrorItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Error",
+        "description": "Every error the API answers."
+      },
+      "ErrorItem": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "A JSON pointer into the request body (\"\" for the body as a whole)."
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "message"
+        ],
+        "title": "ErrorItem"
+      },
+      "FieldType": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "date",
+              "short_text",
+              "long_text",
+              "multiple_choice",
+              "rating",
+              "dropdown",
+              "matrix",
+              "tabular_input",
+              "file_upload",
+              "group",
+              "email",
+              "text",
+              "yes_no",
+              "url",
+              "linear_rating",
+              "phone_number",
+              "number",
+              "VIDEO_CONTENT",
+              "IMAGE_CONTENT"
+            ]
+          },
+          {
+            "type": "string",
+            "enum": [
+              "opinion_scale",
+              "ranking",
+              "payment",
+              "statement",
+              "page_break",
+              "calculated",
+              "hidden",
+              "conditional",
+              "h1",
+              "h2",
+              "h3",
+              "h4",
+              "h5",
+              "p",
+              "strong",
+              "divider",
+              "markdown",
+              "input_short_text",
+              "input_long_text",
+              "input_markdown",
+              "input_multiple_choice",
+              "input_multiselect",
+              "input_checkboxes",
+              "input_email",
+              "input_number",
+              "input_phone_number",
+              "input_link",
+              "input_date",
+              "input_time",
+              "input_date_range",
+              "input_time_range",
+              "input_datetime_range",
+              "input_dropdown",
+              "input_rating",
+              "input_linear_scale",
+              "input_template_button",
+              "input_file_upload",
+              "input_ranking",
+              "input_matrix",
+              "date_input",
+              "email_input",
+              "number_input",
+              "short_text_input",
+              "long_text_input",
+              "multiple_choice_input",
+              "ranking_input",
+              "rating_input",
+              "drop_down_input",
+              "media_input",
+              "matrix_row_input"
+            ],
+            "description": "Legacy types the builder no longer offers: still accepted so that stored forms can be read; do not use them for new questions.",
+            "deprecated": true
+          }
+        ],
+        "title": "FieldType",
+        "description": "A question or content block type."
+      },
+      "FormField": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "date",
+                  "short_text",
+                  "long_text",
+                  "multiple_choice",
+                  "rating",
+                  "dropdown",
+                  "matrix",
+                  "tabular_input",
+                  "file_upload",
+                  "group",
+                  "email",
+                  "text",
+                  "yes_no",
+                  "url",
+                  "linear_rating",
+                  "phone_number",
+                  "number",
+                  "VIDEO_CONTENT",
+                  "IMAGE_CONTENT"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "opinion_scale",
+                  "ranking",
+                  "payment",
+                  "statement",
+                  "page_break",
+                  "calculated",
+                  "hidden",
+                  "conditional",
+                  "h1",
+                  "h2",
+                  "h3",
+                  "h4",
+                  "h5",
+                  "p",
+                  "strong",
+                  "divider",
+                  "markdown",
+                  "input_short_text",
+                  "input_long_text",
+                  "input_markdown",
+                  "input_multiple_choice",
+                  "input_multiselect",
+                  "input_checkboxes",
+                  "input_email",
+                  "input_number",
+                  "input_phone_number",
+                  "input_link",
+                  "input_date",
+                  "input_time",
+                  "input_date_range",
+                  "input_time_range",
+                  "input_datetime_range",
+                  "input_dropdown",
+                  "input_rating",
+                  "input_linear_scale",
+                  "input_template_button",
+                  "input_file_upload",
+                  "input_ranking",
+                  "input_matrix",
+                  "date_input",
+                  "email_input",
+                  "number_input",
+                  "short_text_input",
+                  "long_text_input",
+                  "multiple_choice_input",
+                  "ranking_input",
+                  "rating_input",
+                  "drop_down_input",
+                  "media_input",
+                  "matrix_row_input"
+                ],
+                "description": "Legacy types the builder no longer offers: still accepted so that stored forms can be read; do not use them for new questions.",
+                "deprecated": true
+              }
+            ],
+            "title": "FieldType",
+            "description": "A question or content block type."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Plain text, or a rich-text document (which may pipe answers and hidden fields)."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl"
+          },
+          "attachment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Attachment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "internal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal",
+            "description": "For office use only: never shown to respondents, filled in by staff on each submission."
+          },
+          "validations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Validations"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "placeholder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeholder"
+          },
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Choice"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
+          "allowMultipleSelection": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowmultipleselection"
+          },
+          "allowOtherChoice": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowotherchoice"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
+          },
+          "startFrom": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startfrom"
+          },
+          "ratingShape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratingshape"
+          },
+          "hideMarks": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidemarks"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
+          },
+          "dateFormat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dateformat"
+          },
+          "rowTitles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rowtitles"
+          },
+          "columnTitles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Columntitles"
+          },
+          "tabularValue": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tabularvalue"
+          },
+          "colSpan": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 12.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colspan",
+            "description": "Width on a 12-column grid (12 = full row)."
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label",
+            "description": "Short label shown with a date picker."
+          },
+          "dateRules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DateRule"
+                },
+                "type": "array",
+                "maxItems": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daterules"
+          },
+          "whyWeAsk": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 280
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whyweask"
+          },
+          "logic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Logic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repeat": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Repeat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FormField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fields",
+            "description": "The questions of a group."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "FormField",
+        "description": "A question or content block on a page (or inside a group)."
+      },
+      "FormList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FormSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "size",
+          "total"
+        ],
+        "title": "FormList"
+      },
+      "FormSpec": {
+        "properties": {
+          "specVersion": {
+            "type": "string",
+            "const": "1",
+            "title": "Specversion"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "welcomePage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WelcomePage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/Page"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Pages",
+            "description": "At most 200 pages, with at most 2000 fields in all (group questions included)."
+          },
+          "endings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Ending"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endings"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Theme"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hiddenFields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hiddenfields",
+            "description": "URL parameter names captured with each response (names only, never values)."
+          },
+          "logo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Logo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trust": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Trust"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "specVersion"
+        ],
+        "title": "BetterCollected form spec v1",
+        "description": "A form, as its creator controls it."
+      },
+      "FormSummary": {
+        "properties": {
+          "formId": {
+            "type": "string",
+            "title": "Formid"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "The share slug of the form."
+          },
+          "published": {
+            "type": "boolean",
+            "title": "Published"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedat",
+            "description": "ISO 8601."
+          }
+        },
+        "type": "object",
+        "required": [
+          "formId",
+          "published"
+        ],
+        "title": "FormSummary"
+      },
+      "Layout": {
+        "type": "string",
+        "enum": [
+          "TWO_COLUMN_IMAGE_LEFT",
+          "TWO_COLUMN_IMAGE_RIGHT",
+          "SINGLE_COLUMN_IMAGE_BACKGROUND",
+          "SINGLE_COLUMN_NO_BACKGROUND",
+          "SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN"
+        ],
+        "title": "Layout",
+        "description": "How a page, the welcome page or an ending is laid out."
+      },
+      "Logic": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "SHOW",
+                  "HIDE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "operator": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "AND",
+                  "OR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operator"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Condition"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Logic",
+        "description": "Show or hide this question when its conditions match (operator:\nAND = all, OR = any; AND when absent)."
+      },
+      "Logo": {
+        "properties": {
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Set by uploading a logo; ignored when a document is written.",
+            "readOnly": true
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "left",
+                  "center"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "alt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 150
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alt"
+          },
+          "useWorkspaceLogo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Useworkspacelogo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Logo",
+        "description": "The organisation logo at the top of every respondent page."
+      },
+      "OpResult": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "op": {
+            "type": "string",
+            "title": "Op"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "createdId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "op",
+          "ok",
+          "message"
+        ],
+        "title": "OpResult"
+      },
+      "OpsResult": {
+        "properties": {
+          "applied": {
+            "type": "boolean",
+            "title": "Applied",
+            "description": "Whether the batch changed the form."
+          },
+          "atomic": {
+            "type": "boolean",
+            "title": "Atomic"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/OpResult"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "form": {
+            "$ref": "#/components/schemas/FormSpec",
+            "description": "The form after the batch."
+          }
+        },
+        "type": "object",
+        "required": [
+          "applied",
+          "atomic",
+          "results",
+          "form"
+        ],
+        "title": "OpsResult"
+      },
+      "Page": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "sectionTitle": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sectiontitle"
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Layout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Theme"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "showQuestionNumbers": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Showquestionnumbers"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Position"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "jumps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PageJump"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jumps"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            },
+            "type": "array",
+            "title": "Fields"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "Page",
+        "description": "A page of questions, in the order respondents see them."
+      },
+      "PageJump": {
+        "properties": {
+          "operator": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "AND",
+                  "OR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operator"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Condition"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PageJump",
+        "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page."
+      },
+      "Position": {
+        "properties": {
+          "x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Position",
+        "description": "Where a page sits on the flow view's canvas (cosmetic)."
+      },
+      "PublishResult": {
+        "properties": {
+          "formId": {
+            "type": "string",
+            "title": "Formid"
+          },
+          "published": {
+            "type": "boolean",
+            "const": true,
+            "title": "Published"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          }
+        },
+        "type": "object",
+        "required": [
+          "formId",
+          "published"
+        ],
+        "title": "PublishResult"
+      },
+      "Repeat": {
+        "properties": {
+          "minItems": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minitems"
+          },
+          "maxItems": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxitems"
+          },
+          "itemLabel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Itemlabel"
+          },
+          "itemTitle": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Itemtitle"
+          },
+          "exportLayout": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "columns",
+                  "rows"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exportlayout"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Repeat",
+        "description": "Makes a group repeatable: its questions are answered once per item."
+      },
+      "ReplacePreview": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "form": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What PUT would store (when valid)."
+          },
+          "diff": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diff",
+            "description": "From the stored form to that one (when valid)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "errors",
+          "warnings"
+        ],
+        "title": "ReplacePreview"
+      },
+      "ResponseDetail": {
+        "properties": {
+          "responseId": {
+            "type": "string",
+            "title": "Responseid"
+          },
+          "formId": {
+            "type": "string",
+            "title": "Formid"
+          },
+          "submittedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submittedat"
+          },
+          "answers": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Answers",
+            "description": "By field id."
+          },
+          "internalAnswers": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Internalanswers",
+            "description": "Values staff entered in the form's internal fields, by field id."
+          },
+          "deletionRequest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeletionRequestInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "responseId",
+          "formId",
+          "answers",
+          "internalAnswers"
+        ],
+        "title": "ResponseDetail"
+      },
+      "ResponseList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ResponseSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "size",
+          "total"
+        ],
+        "title": "ResponseList"
+      },
+      "ResponseSummary": {
+        "properties": {
+          "responseId": {
+            "type": "string",
+            "title": "Responseid"
+          },
+          "formId": {
+            "type": "string",
+            "title": "Formid"
+          },
+          "submittedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submittedat"
+          },
+          "answerCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answercount"
+          },
+          "deletionRequest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeletionRequestInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when the respondent asked for this response to be deleted: honour it in every copy you keep."
+          }
+        },
+        "type": "object",
+        "required": [
+          "responseId",
+          "formId"
+        ],
+        "title": "ResponseSummary"
+      },
+      "Retention": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "days",
+              "date",
+              "forever"
+            ],
+            "title": "Type"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "Retention",
+        "description": "How long answers are kept: a number of days, until a date\n(YYYY-MM-DD), or forever."
+      },
+      "Theme": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "primary": {
+            "type": "string",
+            "title": "Primary"
+          },
+          "secondary": {
+            "type": "string",
+            "title": "Secondary"
+          },
+          "tertiary": {
+            "type": "string",
+            "title": "Tertiary"
+          },
+          "accent": {
+            "type": "string",
+            "title": "Accent"
+          },
+          "background": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemeBackground"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "style": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style",
+            "description": "e.g. classic, sheet, studio, leaflet"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "primary",
+          "secondary",
+          "tertiary",
+          "accent"
+        ],
+        "title": "Theme",
+        "description": "Colours and style of the form (or of one page, as an override)."
+      },
+      "ThemeBackground": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "gradientFrom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gradientfrom"
+          },
+          "gradientTo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gradientto"
+          },
+          "gradientAngle": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gradientangle"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl",
+            "description": "Only images from our own storage or Unsplash are shown."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ThemeBackground",
+        "description": "Optional decoration of the page ground."
+      },
+      "Trust": {
+        "properties": {
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
+          "retentionText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retentiontext"
+          },
+          "privacyPolicyUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacypolicyurl",
+            "description": "An http(s) URL."
+          },
+          "retention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Retention"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requireVerifiedIdentity": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requireverifiedidentity"
+          },
+          "allowEditingResponse": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alloweditingresponse"
+          },
+          "showSubmissionNumber": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Showsubmissionnumber"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Trust",
+        "description": "What respondents are told about their data, and how answers are\nhandled."
+      },
+      "ValidationResult": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "Not blocking: checks a publish applies, read-only values."
+          },
+          "compliance": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Compliance",
+            "description": "The organisation's compliance rules are only checked by the AI review, never here."
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "errors",
+          "warnings",
+          "compliance"
+        ],
+        "title": "ValidationResult"
+      },
+      "Validations": {
+        "properties": {
+          "required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required"
+          },
+          "minLength": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minlength"
+          },
+          "maxLength": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxlength"
+          },
+          "minValue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minvalue"
+          },
+          "maxValue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxvalue"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern",
+            "description": "A regular expression the text answer must match."
+          },
+          "minChoices": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minchoices"
+          },
+          "maxChoices": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxchoices"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Validations",
+        "description": "Answer constraints. Lengths apply to text answers, values to numbers,\nchoices to multiple-selection questions."
+      },
+      "WelcomePage": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Layout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl"
+          },
+          "buttonText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buttontext"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WelcomePage"
+      },
+      "OpsRequest": {
+        "properties": {
+          "ops": {
+            "description": "Edit operations, applied in order (docs/api/README.md, 'Operations'). At most 200.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Ops",
+            "type": "array"
+          },
+          "atomic": {
+            "default": true,
+            "description": "All or nothing (the default here): when any operation fails, nothing is stored and every error is returned.",
+            "title": "Atomic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ops"
+        ],
+        "title": "OpsRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "apiKey": {
+        "type": "http",
+        "description": "A workspace API key, created by a workspace admin under Settings > API keys: `Authorization: Bearer bc_...`.",
+        "scheme": "bearer",
+        "bearerFormat": "bc_<64 hex characters>"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Forms",
+      "description": "Forms as spec documents."
+    },
+    {
+      "name": "Form operations",
+      "description": "Edit a form with typed operations."
+    },
+    {
+      "name": "Responses",
+      "description": "Read a form's responses."
+    }
+  ]
+}

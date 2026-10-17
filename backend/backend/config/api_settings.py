@@ -34,5 +34,9 @@ class ApiSettings(BaseSettings):
     # client and form in each window; more answer 429 until the window ends.
     FLOW_EVENTS_PER_WINDOW: int = 120
     FLOW_EVENTS_WINDOW_SECONDS: int = 60
+    # Public REST API (/api/v1/public/v1): requests per API key in each
+    # window; more answer 429 with Retry-After until the window ends. 0 = off.
+    PUBLIC_API_REQUESTS_PER_WINDOW: int = 120
+    PUBLIC_API_WINDOW_SECONDS: int = 60
 
     model_config = SettingsConfigDict(env_prefix="API_")

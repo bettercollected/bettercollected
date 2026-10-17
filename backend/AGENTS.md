@@ -323,6 +323,21 @@ and architecture.
   docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
   `.env.deployment`.
 
+## Public API (forms as code)
+
+`/api/v1/public/v1` is a FastAPI app of its own (`app/public_api/`), mounted in
+`asgi.py` next to `/mcp`: its own OpenAPI document
+(`docs/api/public-v1.openapi.json`, regenerate with
+`uv run python -m backend.app.public_api.openapi`; a test checks it), one
+error shape, Bearer API keys only (never cookies). It mirrors MCP and calls
+the same code: scopes and the creator re-check in `services/api_access.py`,
+responses through `services/api_responses.py`, ops through
+`persist_ops_to_form`, create/replace through `services/form_spec/writes.py`
+(which uses `WorkspaceFormService.create_form` / `update_form`). PUT needs
+`If-Match` and writes with `update_form_if_unchanged`. `Idempotency-Key`
+records live in `api_idempotency_keys` (`services/idempotency.py`). Rate limit
+per key on the shared limiter (`API_PUBLIC_API_*`). Docs: `docs/api/README.md`.
+
 ## AI consent (#715)
 
 No user content (form content, prompts, the AI profile, memory, responses, uploaded

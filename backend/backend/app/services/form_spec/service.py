@@ -77,9 +77,9 @@ def document_too_large() -> HTTPException:
     )
 
 
-async def read_json_document(request) -> Any:
-    """The JSON body of ``request``, read up to MAX_DOCUMENT_BYTES: 413
-    beyond that (without reading the rest), 422 when it is not JSON."""
+async def read_document_bytes(request) -> bytes:
+    """The raw body of ``request``, read up to MAX_DOCUMENT_BYTES: 413
+    beyond that (without reading the rest)."""
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > MAX_DOCUMENT_BYTES:
         raise document_too_large()
@@ -88,13 +88,24 @@ async def read_json_document(request) -> Any:
         body.extend(chunk)
         if len(body) > MAX_DOCUMENT_BYTES:
             raise document_too_large()
+    return bytes(body)
+
+
+def parse_json_document(body: bytes) -> Any:
+    """``body`` as JSON, 422 when it is not."""
     try:
-        return json.loads(bytes(body))
+        return json.loads(body)
     except ValueError:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             content={"message": "The body is not valid JSON."},
         )
+
+
+async def read_json_document(request) -> Any:
+    """The JSON body of ``request``, read up to MAX_DOCUMENT_BYTES: 413
+    beyond that (without reading the rest), 422 when it is not JSON."""
+    return parse_json_document(await read_document_bytes(request))
 
 
 def ops_errors(error: ValidationError) -> List[Dict[str, str]]:
