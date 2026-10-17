@@ -3,6 +3,7 @@
 import React from 'react';
 
 import { FormTheme } from '@app/constants/theme';
+import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useFormState } from '@app/store/jotai/form';
@@ -20,6 +21,8 @@ const GreetingLayoutWrapper = ({ disabled, greetingIndex, theme, children }: IGr
     const { activeSlideComponent } = useActiveSlideComponent();
     const { layout, imageUrl } = useGetPageAttributes(greetingIndex);
     const { updateWelcomePageImage, updateThankYouPageImage, updateThankYouPageLayout, updateWelcomePageLayout } = useFormState();
+    // The organisation logo as respondents will see it: larger on the welcome page.
+    const logo = useBuilderFormLogo();
 
     return (
         <LayoutWrapper
@@ -31,6 +34,9 @@ const GreetingLayoutWrapper = ({ disabled, greetingIndex, theme, children }: IGr
             disabled={disabled}
             updatePageLayout={activeSlideComponent?.index === -10 ? updateWelcomePageLayout : updateThankYouPageLayout}
             theme={theme}
+            topAligned={theme?.style === 'leaflet'}
+            logo={logo}
+            logoSize={greetingIndex === -10 ? 'cover' : 'page'}
         >
             {children}
         </LayoutWrapper>

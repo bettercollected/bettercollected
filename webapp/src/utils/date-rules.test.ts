@@ -1,4 +1,7 @@
+import i18n from 'i18next';
 import { describe, expect, it } from 'vitest';
+
+import '@app/shared/hocs/i18n-provider';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { DateRule } from '@app/models/types/form-builder-shared';
@@ -106,6 +109,24 @@ describe('rule evaluation', () => {
         expect(getDateRuleError(field, context({ d: day('2026-10-03') }, forms))).toBe('Must be on or before today (2 Oct 2026).');
         expect(getDateRuleError(field, context({ d: day('2026-10-02') }, forms))).toBeUndefined();
         expect(getDateRuleError(field, context({ d: day('soon') }, forms))).toBe('Please pick a valid date.');
+    });
+
+    it("speaks the respondent's language when given its translator", () => {
+        const field = date('d', 'Date', [
+            { comparison: 'on_or_after', target: 'date', date: '2026-03-01' },
+            { comparison: 'before', target: 'today' }
+        ]);
+        const forms = [slide('s1', [field])];
+        const messages = { t: i18n.getFixedT('nl', 'respondent') as any, language: 'nl' as const };
+        const dutch = (answers: Record<string, any>) => ({ ...context(answers, forms), messages });
+        expect(getDateRuleError(field, dutch({ d: day('2026-02-28') }))).toBe('Moet op of na 1 mrt 2026 zijn.');
+        expect(getDateRuleError(field, dutch({ d: day('2026-10-02') }))).toBe('Moet vóór vandaag (2 okt 2026) zijn.');
+        expect(getDateRuleError(field, dutch({ d: day('soon') }))).toBe('Kies een geldige datum.');
+        // An unnamed date question it is compared with.
+        const unnamed = date('u', '');
+        const ruled = date('r', 'Return', [after('u')]);
+        const pair = [slide('s1', [unnamed, ruled])];
+        expect(getDateRuleError(ruled, { ...context({ u: day('2026-03-12'), r: day('2026-03-01') }, pair), messages })).toBe('Moet na de andere datum (12 mrt 2026) zijn.');
     });
 
     it('disables the days the rules rule out', () => {

@@ -1,9 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
-
 @import './tailwind.css';
 @import './range-slider.css';
 @import './scrollbar.css';
@@ -27,14 +21,16 @@ html,
 body {
     padding: 0;
     margin: 0;
-    font-family: 'Inter', sans-serif;
-    --font-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-family: var(--font-sans);
 }
 
+/* Paper mist ground, ink text, 1rem on a 1.55 line (DESIGN.md). */
 body {
-    background: #f6f8fc;
-    background-color: #f6f8fc;
-    color: #101826;
+    background: var(--color-black-100);
+    background-color: var(--color-black-100);
+    color: var(--color-black-900);
+    font-size: 1rem;
+    line-height: 1.55;
 }
 
 [data-theme='dark'] body {
@@ -46,7 +42,7 @@ body {
 .mark-down-text {
     word-break: break-word;
     white-space: break-spaces;
-    color: #484848;
+    color: var(--color-body);
     font: inherit;
     font-size: inherit;
     line-height: inherit;
@@ -55,14 +51,14 @@ body {
 .mark-down-text p {
     white-space: pre-wrap;
     word-break: break-word;
-    color: #484848;
+    color: var(--color-body);
     font: inherit;
     font-size: inherit;
     line-height: inherit;
 }
 
 .mark-down-text p a {
-    color: #3b82f6 !important;
+    color: var(--color-brand-600) !important;
 }
 
 .mark-down-text p:last-child {
@@ -120,7 +116,7 @@ b {
     margin-bottom: 0 !important;
     margin-left: 0;
     background: #fff;
-    border: 1px solid #cacaca;
+    border: 1px solid #818ca0;
     border-radius: 4px;
     line-height: 25px;
     height: 46px !important;
@@ -178,12 +174,9 @@ div::-webkit-scrollbar-thumb:hover {
 }
 
 .prompt-input-wrapper {
-    &:hover {
-        background-image: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%) !important;
-    }
-
+    &:hover,
     &:focus-within {
-        background-image: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%) !important;
+        background-color: var(--color-brand-500) !important;
     }
 }
 
@@ -192,10 +185,10 @@ div::-webkit-scrollbar-thumb:hover {
 .answer-pipe-chip {
     display: inline-block;
     padding: 0 0.375rem;
-    border-radius: 0.25rem;
-    /* Trust palette (Design-Language §1): chip-bg on trust blue. */
-    background: #e9effc;
-    color: #2456cc;
+    border-radius: 4px;
+    /* DESIGN.md palette: blue-tint chip, Sireto-blue text. */
+    background: var(--color-brand-100);
+    color: var(--color-brand-500);
     font-size: 0.9em;
     font-weight: 500;
     white-space: nowrap;
@@ -226,8 +219,8 @@ div::-webkit-scrollbar-thumb:hover {
 .responders-frozen-table .rdt_TableCol:nth-child(3),
 .responders-frozen-table .rdt_TableCell:nth-child(3) {
     left: 88px;
-    border-right: 1px solid #dbdbdb;
-    box-shadow: 2px 0 4px 0 rgba(0, 0, 0, 0.06);
+    /* A hairline marks the frozen edge (DESIGN.md: hairlines, not shadows). */
+    border-right: 1px solid var(--color-black-400);
 }
 /* Header: react-data-table's fixedHeader already makes the head row sticky
    vertically — adding our own position:sticky to .rdt_TableHead turns it into
@@ -238,7 +231,7 @@ div::-webkit-scrollbar-thumb:hover {
     z-index: 4;
 }
 .responders-frozen-table .rdt_TableCol:nth-child(-n + 3) {
-    background-color: #E9EEF5; /* matches headRow background */
+    background-color: var(--color-black-200); /* matches headRow background */
     z-index: 5;
 }
 /* Rows must span the full content width: react-data-table rows are flex
@@ -251,20 +244,20 @@ div::-webkit-scrollbar-thumb:hover {
 
 /* Cohesive hover: colour every cell so the frozen (opaque) cells match. */
 .responders-frozen-table .rdt_TableRow:hover .rdt_TableCell {
-    background-color: #f6f8fc;
+    background-color: var(--color-black-100);
 }
 
 /* React Flow chrome (Logic/Flow view) — theme the default zoom controls to
-   the design language: white card, hairline border, ink icons. */
+   DESIGN.md: white card, hairline border, ink icons, no shadow. */
 .react-flow__controls {
-    border: 1px solid #e2e8f2;
-    border-radius: 8px;
+    border: 1px solid var(--color-black-400);
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(16, 24, 38, 0.08);
+    box-shadow: none;
 }
 .react-flow__controls-button {
     background: #ffffff;
-    border-bottom: 1px solid #e2e8f2;
+    border-bottom: 1px solid var(--color-black-300);
     width: 28px;
     height: 28px;
 }
@@ -272,8 +265,8 @@ div::-webkit-scrollbar-thumb:hover {
     border-bottom: none;
 }
 .react-flow__controls-button:hover {
-    background: #f6f8fc;
+    background: var(--color-black-100);
 }
 .react-flow__controls-button svg {
-    fill: #3a465a;
+    fill: var(--color-black-700);
 }

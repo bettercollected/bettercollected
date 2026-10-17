@@ -1,27 +1,59 @@
 import React from 'react';
 
 import type { Metadata } from 'next';
-import { Public_Sans } from 'next/font/google';
+import { Viewport } from 'next';
+import localFont from 'next/font/local';
+
+import BaseModalContainer from '@Components/modals/containers/base-modal-container';
 
 import '@app/assets/css/globals.css';
 import SwRegister from '@app/components/common/sw-register';
 import environments from '@app/configs/environments';
 import { DialogModalContainer } from '@app/lib/hooks/use-dialog-modal';
 import { SecondaryDialogModalContainer } from '@app/lib/hooks/use-secondary-dialog-modal';
+import { readRuntimeFlags } from '@app/lib/runtime-flags';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { cn } from '@app/shadcn/util/lib';
-import { readRuntimeFlags } from '@app/lib/runtime-flags';
 import AuthProvider from '@app/shared/hocs/auth-provider';
 import I18nProvider from '@app/shared/hocs/i18n-provider';
 import ReduxProvider from '@app/shared/hocs/redux-provider';
 import RuntimeFlagsProvider from '@app/shared/hocs/runtime-flags-provider';
 import ThemeProvider from '@app/shared/hocs/theme-provider';
-import BaseModalContainer from '@Components/modals/containers/base-modal-container';
-import { Viewport } from 'next';
 
-// One honest, humanist face used everywhere (see Design-Language.md §2).
-// Public Sans is self-hosted by next/font — no external font request at runtime.
-const publicSans = Public_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-public-sans' });
+// Instrument Sans for everything you read, JetBrains Mono for anything that
+// names a value (IDs, slugs, URLs, keys, payloads) — see DESIGN.md, Type.
+// The files come from the @fontsource packages (OFL-1.1) in node_modules, so the
+// build never fetches from Google, and next/font serves them from this app, so
+// no request goes to Google's font servers at runtime either. Latin subset,
+// the same files Google serves for these weights.
+const instrumentSans = localFont({
+    src: [
+        { path: '../../node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-400-normal.woff2', weight: '400', style: 'normal' },
+        { path: '../../node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-500-normal.woff2', weight: '500', style: 'normal' },
+        { path: '../../node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-600-normal.woff2', weight: '600', style: 'normal' }
+    ],
+    display: 'swap',
+    variable: '--font-instrument-sans'
+});
+const jetBrainsMono = localFont({
+    src: [
+        { path: '../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2', weight: '500', style: 'normal' },
+        { path: '../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2', weight: '600', style: 'normal' }
+    ],
+    display: 'swap',
+    variable: '--font-jetbrains-mono'
+});
+// Respondent forms keep the typeface they were published with: Public Sans,
+// loaded exactly as before (all weights through the variable font, latin) and
+// also self-hosted. It is the `font-form` utility, applied by the form
+// renderers and the respondent routes.
+const publicSans = localFont({
+    src: '../../node_modules/@fontsource-variable/public-sans/files/public-sans-latin-wght-normal.woff2',
+    weight: '100 900',
+    style: 'normal',
+    display: 'swap',
+    variable: '--font-public-sans'
+});
 
 export const viewport: Viewport = {
     themeColor: '#ffffff',
@@ -80,8 +112,10 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" suppressHydrationWarning>
-            <body className={cn('max-h-screen overflow-auto', publicSans.variable, publicSans.className)}>
+        // The font variables sit on <html>: the theme's --font-sans / --font-mono
+        // (tailwind.css) are defined on :root and resolve these there.
+        <html lang="en" className={cn(instrumentSans.variable, jetBrainsMono.variable, publicSans.variable)} suppressHydrationWarning>
+            <body className={cn('max-h-screen overflow-auto', instrumentSans.className)}>
                 {environments.UMAMI_SCRIPT_URL && environments.UMAMI_WEBSITE_ID && (
                     // Plain <script> like /api/config below, NOT next/script: next/script
                     // only injects after hydration completes, so any client-side stall

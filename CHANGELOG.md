@@ -75,6 +75,31 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed
 
+- **Webapp fonts come from npm, not Google, at build time.** Instrument Sans,
+  JetBrains Mono, Public Sans and Source Serif 4 load through
+  `next/font/local` from the `@fontsource` packages instead of
+  `next/font/google`, so `next build` no longer downloads fonts and no longer
+  fails when fonts.googleapis.com can't be reached. Same families, weights,
+  latin subset, CSS variables and `display: swap`; no visual change.
+- **The webapp adopts the Sireto design system** (see `DESIGN.md`): one blue
+  ramp around Sireto blue `#123FC9` with a `#1649E2` primary button face, one
+  neutral ramp (the duplicate `new-*` colours, the old `#0764EB` / `#2456CC`
+  blues, pink and orange decoration are gone), Instrument Sans and JetBrains
+  Mono self-hosted through `next/font` (the five Google Fonts imports are
+  removed, so no page contacts Google's font servers), a 6px radius, hairlines
+  instead of decorative shadows with one shadow left for floating layers, a 2px
+  Sireto-blue focus outline on every interactive element, the "key edge" on
+  buttons, mono type for IDs, slugs, URLs and keys, and stronger borders on
+  controls (3:1). The Default form theme is retuned (`#1649E2` / `#101828` /
+  `#F5F7FB`); forms keep the theme colours stored on them. Public and auth
+  pages carry the Sireto trademark line. The backend's Default theme for
+  AI-created forms uses the same values.
+  **Respondent forms:** they keep their typeface (Public Sans, self-hosted),
+  radii and button shapes. Only the Default preset's colours change, and in
+  every theme field borders are now more visible (they rest on the theme's
+  border colour, tertiary, at 3:1 or more instead of a fixed light grey), the
+  focus outline wears the theme's action colour, and the "Back" link uses the
+  theme's ink (4.09:1 → AA on tinted themes).
 - **Forms and responses are now unlimited on every plan.** Removed the
   per-workspace 100-form cap for non-Pro accounts (backend
   `check_if_user_can_import_more_forms` no longer gates); responses were
@@ -126,7 +151,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   confirmation; the canvas gained Fit/100% zoom; the properties drawer is
   300px with a "‹ Back to page" affordance and Esc-to-deselect; Publish wears
   trust blue and the help button dropped its amber.
-- **Trust & privacy authored in the builder** (Design-Language §4): a new
+- **Trust & privacy authored in the builder** (DESIGN.md §4): a new
   drawer section sets the form's purpose, plain-words retention, and privacy
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
@@ -580,6 +605,19 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- AI features are bounded: form generation's tool loop stops after
+  `AI_MAX_TOOL_ITERATIONS` round trips (default 10) or `AI_MAX_TOOL_CALLS`
+  tool calls (30) with a clear error; every call has an output token cap per
+  call type and request/overall timeouts (504 `ai_timeout`); model JSON is
+  validated (OpenAI strict structured output for generation, JSON mode for
+  chat, review, insights and memory) and retried once before a clean 502. The
+  AI endpoints (generate, chat edit, review, applying a review fix, insights,
+  document import with AI, MCP `create_form_with_ai`) are rate limited per
+  user (10/min) and per workspace (30/min) with a 429, and each workspace has
+  a daily request and token counter with optional caps (`AI_DAILY_REQUEST_BUDGET`,
+  `AI_DAILY_TOKEN_BUDGET`, off by default). Content people wrote is fenced as
+  data in every prompt and the system prompts say to treat it as untrusted;
+  AI paths log error types and counts only. See backend/AGENTS.md "AI limits".
 - The backend's internal job routes (called by the Temporal worker and the
   actions-executor with the `api-key` header) require a configured key: an
   unset, empty or `random_api_key` value is no longer accepted, the routes

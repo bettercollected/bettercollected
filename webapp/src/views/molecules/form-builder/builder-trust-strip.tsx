@@ -4,7 +4,8 @@ import { Shield } from 'lucide-react';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useActiveFieldComponent } from '@app/store/jotai/active-builder-component';
+import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
@@ -18,8 +19,11 @@ import TrustLayer from '@app/views/molecules/form/trust-layer';
 export function BuilderTrustStrip() {
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
+    // The strip shares the page's column, so it follows the page being edited.
+    const { activeSlideComponent } = useActiveSlideComponent();
+    const { layout } = useGetPageAttributes(activeSlideComponent?.index ?? -10);
     return (
-        <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} />
+        <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layout} />
     );
 }
 
@@ -45,7 +49,7 @@ export function TrustStripNudge() {
                 setActiveFieldComponent(null);
                 setPropertiesTab('form');
             }}
-            className="border-black-300 hover:border-brand-500 flex max-w-[90%] items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs shadow-sm transition-colors"
+            className="border-black-400 hover:border-brand-500 flex max-w-[90%] items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs transition-colors"
         >
             <Shield className="h-3.5 w-3.5 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
             <span className="text-black-700 truncate">Responders see this footer on every page — say why you&apos;re collecting and how long you keep answers.</span>

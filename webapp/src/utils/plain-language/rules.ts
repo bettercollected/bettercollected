@@ -29,12 +29,11 @@ export interface PlainLanguageHint {
 /**
  * Most words a sentence may have before we suggest splitting it.
  *
- * - Dutch (B1): the plain-language guidance behind the government's Direct
- *   Duidelijk programme and the Rijksoverheid writing guides advises short
+ * - Dutch (B1): common plain-language guidance for B1 readers advises short
  *   sentences of at most 15 to 20 words. We take the upper end, 20, so only
  *   sentences that are clearly too long are flagged.
- * - English: the GOV.UK style guide asks for sentences of 25 words or fewer
- *   (the Plain English Campaign recommends an *average* of 15 to 20).
+ * - English: common plain-English guidance asks for sentences of 25 words or
+ *   fewer (with an *average* of 15 to 20).
  *
  * A piped answer counts as one word. When a text's language is unknown we use
  * the higher limit: missing a hint is better than a false one.
@@ -489,7 +488,7 @@ export const JARGON: Record<PlainLanguage, CompiledJargon[]> = {
     en: compile((jargonEn as { entries: JargonEntry[] }).entries)
 };
 
-/** Officialese with a plainer alternative, one hint per list entry, in text order. */
+/** Stiff, formal wording with a plainer alternative, one hint per list entry, in text order. */
 export function checkJargon(text: string, languages: PlainLanguage[]): PlainLanguageHint[] {
     const found: Array<PlainLanguageHint & { at: number }> = [];
     for (const language of languages) {

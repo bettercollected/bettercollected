@@ -67,7 +67,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
     if (showIntegrationConsent) {
         return (
             <HeaderModalWrapper headerTitle="Add Google Sheets to form">
-                <div className="relative flex flex-col rounded-xl p-8 md:min-w-[400px]">
+                <div className="relative flex flex-col rounded p-8 md:min-w-[400px]">
                     <div className="mb-6 flex justify-center">
                         <Image src={action?.url || '/integration/default.svg'} alt="Google Sheets Icon" width={80} height={80} />
                     </div>
@@ -133,7 +133,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
     return (
         <HeaderModalWrapper headerTitle="Add integration to form">
             {/* This is the front popup */}
-            <div className="relative flex flex-col rounded-xl  p-8  md:min-w-[400px]">
+            <div className="relative flex flex-col rounded  p-8  md:min-w-[400px]">
                 {/* Top Banner/Icon Section with Illustrations */}
                 <div className="mb-6 flex justify-center">
                     <Image src={action?.url || '/integration/default.svg'} alt="Integration Icon" width={80} height={80} />
@@ -171,7 +171,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                 )}
 
                 {/* Add Integration Button */}
-                <Button data-umami-event={`Add ${action?.title} Integration`} data-umami-event-email={user.email} variant="primary" size="medium" onClick={onAddIntegration} className="mt-4">
+                <Button data-umami-event={`Add ${action?.title} Integration`} variant="primary" size="medium" onClick={onAddIntegration} className="mt-4">
                     Add Integration
                 </Button>
             </div>

@@ -9,7 +9,7 @@ interface IZeroElementProps {
 
 export default function ZeroElement({ title, description, className = '' }: IZeroElementProps) {
     return (
-        <div className={`flex flex-col w-full h-full items-center justify-center min-h-[290px] text-center py-[60px] bg-white rounded-xl px-13 gap-4 ${className}`}>
+        <div className={`flex flex-col w-full h-full items-center justify-center min-h-[290px] text-center py-[60px] bg-white rounded px-13 gap-4 ${className}`}>
             <EmptyFormIcon />
             <div>
                 <h1 className="h4-new mt-2">{title}</h1>

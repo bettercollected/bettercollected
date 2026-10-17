@@ -55,7 +55,7 @@ Code: `backend/app/services/domains/names.py`. Domains are stored in their canon
 |---|---|
 | `invalid_domain` | not a host name: a wildcard, `@`, a scheme, path or port, a bad label, an IP address, a single label, or over 253 characters |
 | `unknown_suffix` | the top-level domain is not on the Public Suffix List (`.local`, `.internal`, `.test`, `.lan`, ...) |
-| `public_suffix` | a public suffix itself, from the ICANN or private section (`co.uk`, `gov.uk`, `github.io`, `blogspot.com`). `myteam.github.io` can be claimed |
+| `public_suffix` | a public suffix itself, from the ICANN or private section (`co.uk`, `org.uk`, `github.io`, `blogspot.com`). `myteam.github.io` can be claimed |
 | `free_mail_domain` | a free-mail provider: a fixed list (`gmail.com`, `outlook.com`, `yahoo.com`, `icloud.com`, `proton.me`, `gmx.de`, ...) and its sub-domains, plus any registrable domain named after the big providers under any suffix (`yahoo.co.uk`, `hotmail.fr`) |
 | `reserved_domain` | documentation and special-use names (`example.com/.net/.org`, `.onion`), `VERIFIED_DOMAINS_RESERVED`, and the domains of `PLATFORM_ADMIN_EMAILS`. An SSO connection on a platform admin's domain would control the platform-admin grant. Sub-domains of reserved domains are refused too |
 

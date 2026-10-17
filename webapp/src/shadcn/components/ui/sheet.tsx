@@ -32,7 +32,7 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-    'fixed z-modal gap-4 bg-white p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
+    'fixed z-modal gap-4 bg-white p-6 shadow-large transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
     {
         variants: {
             side: {
@@ -85,7 +85,7 @@ const SheetContent = React.forwardRef<
                 {!hideCloseIcon && (
                     <SheetPrimitive.Close
                         onClick={onClickCloseIcon && onClickCloseIcon}
-                        className="ring-offset-white focus:ring-brand-500 data-[state=open]:bg-secondary absolute right-4 top-4 rounded-sm border border-white p-4 opacity-70 transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none"
+                        className="data-[state=open]:bg-secondary absolute right-4 top-4 rounded border border-white p-4 opacity-70 transition-opacity hover:opacity-100 disabled:pointer-events-none"
                     >
                         <X className="h-4 w-4" />
                         <span className="sr-only">Close</span>

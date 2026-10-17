@@ -25,6 +25,7 @@ from backend.db.startup import check_postgres_at_startup, dispose_postgres
 from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
+from backend.app.public_api.app import PUBLIC_API_PATH, build_public_api_asgi
 from backend.app.router import root_api_router
 from backend.app.services.internal_auth import log_if_internal_key_missing
 from backend.app.services.custom_domain_origins import prune_unverified_origins
@@ -198,6 +199,9 @@ def get_application(is_test_mode: bool = False):
     # Auth: workspace API keys as Bearer tokens, enforced by the wrapping
     # middleware; the session manager lifecycle is handled in lifespan above.
     app.mount(api_settings.ROOT_PATH + "/mcp", build_mcp_asgi_app())
+    # Public REST API — forms as code (docs/api/README.md). Its own app: its
+    # own OpenAPI document and error shape, Bearer API keys only.
+    app.mount(api_settings.ROOT_PATH + PUBLIC_API_PATH, build_public_api_asgi())
     app.add_middleware(
         DynamicCORSMiddleware,
         allow_credentials=True,

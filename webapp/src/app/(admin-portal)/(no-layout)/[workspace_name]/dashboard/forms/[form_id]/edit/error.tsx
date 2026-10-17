@@ -26,14 +26,14 @@ export default function EditPageError({ error, reset }: { error: Error & { diges
                     ? 'This tab was open while a newer version was published. Reload to pick up the latest editor — your form is saved on the server.'
                     : 'Your form is saved on the server — nothing is lost. Try again, or reload the editor.'}
             </p>
-            {!isStaleChunk && error?.message && <code className="text-black-500 max-w-lg truncate rounded bg-black-100 px-2 py-1 text-xs">{error.message}</code>}
+            {!isStaleChunk && error?.message && <code className="text-black-600 max-w-lg truncate rounded bg-black-100 px-2 py-1 text-xs">{error.message}</code>}
             <div className="mt-2 flex items-center gap-3">
                 {!isStaleChunk && (
                     <button onClick={reset} className="border-black-300 text-black-700 hover:border-brand-500 rounded-md border px-4 py-2 text-sm font-medium">
                         Try again
                     </button>
                 )}
-                <button onClick={() => window.location.reload()} className="bg-brand-500 hover:bg-brand-600 rounded-md px-4 py-2 text-sm font-medium text-white">
+                <button onClick={() => window.location.reload()} className="bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] rounded px-4 py-2 text-sm font-medium text-white transition-colors">
                     Reload editor
                 </button>
             </div>

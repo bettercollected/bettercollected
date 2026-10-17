@@ -445,6 +445,8 @@ class RepeatSettings(BaseModel):
 DATE_RULES_MAX = 5
 # Length cap of a question's "why we ask this" line (StandardFieldProperty).
 WHY_WE_ASK_MAX_LENGTH = 280
+# Length cap of a page's own section title (StandardFieldProperty).
+SECTION_TITLE_MAX_LENGTH = 120
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
@@ -539,6 +541,15 @@ class StandardFieldProperty(BaseModel):
     # question (email, phone, ID number), shown to respondents under it.
     # Publishing needs one on every such question (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
+    # A question page's own section title (plain text): what the Leaflet
+    # section bar and the welcome page's contents list show for the page,
+    # before its opening heading and its first question. None means "not
+    # sent" on a save (an older client keeps the stored title); an empty
+    # string clears it.
+    section_title: Optional[str] = Field(None, max_length=SECTION_TITLE_MAX_LENGTH)
+    # A page's "number the questions" switch (webapp showQuestionNumbers);
+    # without it here a save dropped the setting.
+    show_question_numbers: Optional[bool] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -884,13 +895,29 @@ class ThankYouPageField(BaseModel):
     imageUrl: Optional[str] = None
 
 
+# "auto" (and unset) follow the welcome page: centred there, centred on every
+# page; left otherwise. "left"/"center" are the creator's explicit choice.
+LogoPosition = Literal["auto", "left", "center"]
+LOGO_ALT_MAX_LENGTH = 150
+
+
 class StandardForm(BaseModel):
     builder_version: Optional[str] = None
     form_id: Optional[str] = None
     imported_form_id: Optional[str] = None
     type: Optional[str] = None
     title: Optional[str] = None
+    # The organisation logo shown at the top of every respondent page: a
+    # public URL in our own storage, set only through the logo upload (never
+    # taken from a form body as is; see the backend's form_logo service).
     logo: Optional[str] = None
+    # Where the logo sits on the form column (default: follows the welcome
+    # page's alignment), its alt text
+    # (default: the workspace title), and whether a form without its own logo
+    # shows the workspace's profile image instead (default off).
+    logo_position: Optional[LogoPosition] = None
+    logo_alt: Optional[str] = Field(None, max_length=LOGO_ALT_MAX_LENGTH)
+    use_workspace_logo: Optional[bool] = None
     cover_image: Optional[str] = None
     description: Optional[str] = None
     button_text: Optional[str] = None
@@ -915,6 +942,7 @@ class StandardForm(BaseModel):
     thankyou_page: Optional[List[ThankYouPageField]] = None
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
+
 
 class StandardFormResponseAnswer(BaseModel):
     field: Optional[StandardAnswerField] = None
@@ -1022,4 +1050,3 @@ class StandardFormResponse(BaseModel):
     # responses carrying it.
     ai_notice_shown_at: Optional[dt.datetime] = None
     ai_notice_provider_name: Optional[str] = None
-

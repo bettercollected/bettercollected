@@ -48,7 +48,7 @@ export default function FormIntegrations() {
                     {data?.map((integration, index) => (
                         <>
                             {addedActions.includes(integration.id) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded px-5 py-4 shadow-lg sm:flex-row sm:items-center">
+                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
                                     <div className="flex items-start sm:items-center">
                                         {/*logo */}
                                         <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
@@ -63,8 +63,8 @@ export default function FormIntegrations() {
                                                             (parameter) =>
                                                                 parameter?.required && (
                                                                     <div key={parameter.name} className="p2-new mt-4 flex items-center gap-2 text-sm">
-                                                                        <div className="whitespace-nowrap text-sm font-bold">{parameter.name}</div>:
-                                                                        <div className="text-black-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-sm lg:max-w-md">
+                                                                        <div className="whitespace-nowrap font-mono text-[13px] font-semibold">{parameter.name}</div>:
+                                                                        <div className="text-black-700 font-mono text-[13px] max-w-xs overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-sm lg:max-w-md">
                                                                             {form?.parameters?.[integration.id]?.find((param: any) => param.name === parameter.name)?.value || 'N/A'}
                                                                         </div>
                                                                     </div>
@@ -127,7 +127,7 @@ export default function FormIntegrations() {
                     {data?.map((integration, index) => (
                         <>
                             {(!addedActions || !addedActions.includes(integration.id)) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded px-5 py-4 shadow-lg sm:flex-row sm:items-center">
+                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
                                     <div className="flex items-start sm:items-center">
                                         {/* logo */}
                                         <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
@@ -140,7 +140,6 @@ export default function FormIntegrations() {
                                     <div className="mt-4 sm:mt-0">
                                         <Button
                                             data-umami-event="Add Integrations Button"
-                                            data-umami-event-email={auth.email}
                                             variant="primary"
                                             onClick={() => {
                                                 openModal('ADD_ACTION_TO_FORM', { action: integration, form: form });

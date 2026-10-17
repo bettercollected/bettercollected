@@ -21,7 +21,7 @@ export default function SubmissionSettingsContent() {
 
     return (
         // The deletion right, stated in plain words and kept calm — this is a
-        // trust surface, not a danger zone (Design-Language §4/§5).
+        // trust surface, not a danger zone (DESIGN.md §4/§5).
         <div className="flex max-w-[640px] flex-col gap-4">
             <div className="flex items-start gap-2 rounded-lg bg-[#F4F7FD] px-3 py-2.5">
                 <Shield className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
@@ -40,7 +40,7 @@ export default function SubmissionSettingsContent() {
                 </div>
             ) : (
                 <div className="flex flex-col gap-2">
-                    <span className="w-fit rounded bg-[#FBF3E4] px-2 py-1 text-sm font-medium text-[#B26B00]">Deletion requested · Pending</span>
+                    <span className="w-fit rounded bg-brand-accent-100 px-2 py-1 text-sm font-medium text-brand-olive">Deletion requested · Pending</span>
                     <span className="text-black-600 text-sm">The workspace has been asked to delete this response. Its status will update here and under Deletion requests.</span>
                 </div>
             )}

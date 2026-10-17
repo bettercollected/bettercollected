@@ -56,6 +56,35 @@ describe('Privacy panel on respondent forms', () => {
         expect(screen.queryByRole('region')).not.toBeInTheDocument();
     });
 
+    it('never opens by default over the primary action, and leaves a respondent-toggled panel alone', () => {
+        setBrowserLanguages(['en']);
+        // A welcome page whose Start button sits 700px down an 860px area: an
+        // open panel (any height, here measured as 0 in jsdom, so force it)
+        // would not leave room.
+        const page = document.createElement('div');
+        page.innerHTML = '<div data-fit-area><div><div data-primary-content><button data-primary-action>Start</button></div></div></div>';
+        document.body.appendChild(page);
+        const content = page.querySelector('[data-primary-content]') as HTMLElement;
+        const action = page.querySelector('[data-primary-action]') as HTMLElement;
+        content.getBoundingClientRect = () => ({ top: 0, bottom: 900 }) as DOMRect;
+        action.getBoundingClientRect = () => ({ top: 850, bottom: 900 }) as DOMRect;
+        Object.defineProperty(page.querySelector('[data-fit-area]')!, 'clientHeight', { value: 860 });
+
+        render(<TrustLayer ownerName="Acme" defaultExpanded protectPrimaryAction />, { wrapper: Wrapper });
+        expect(screen.queryByRole('region')).not.toBeInTheDocument();
+        // The respondent can still open it.
+        fireEvent.click(screen.getByRole('button', { name: 'Your privacy' }));
+        expect(screen.getByRole('region')).toBeInTheDocument();
+        page.remove();
+    });
+
+    it('opens by default with the primary action protected when it fits', () => {
+        setBrowserLanguages(['en']);
+        render(<TrustLayer ownerName="Acme" defaultExpanded protectPrimaryAction />, { wrapper: Wrapper });
+        // No primary action on the page: nothing to protect.
+        expect(screen.getByRole('region')).toBeInTheDocument();
+    });
+
     it('states who, why, how long, identity and rights in English', () => {
         setBrowserLanguages(['en-US']);
         renderPanel({
@@ -66,7 +95,7 @@ describe('Privacy panel on respondent forms', () => {
         openPanel();
         expect(row('receiver')).toHaveTextContent('Who receives your answersAcme Health');
         expect(row('purpose')).toHaveTextContent('To book your appointment');
-        expect(row('retention')).toHaveTextContent('Kept for 90 days after you submit.');
+        expect(row('retention')).toHaveTextContent('90 days after you submit.');
         expect(row('identity')).toHaveTextContent('You sign in with your email address before you can answer.');
         expect(row('rights')).toHaveTextContent('You can view your answers and ask for them to be deleted at any time.');
         expect(within(row('rights')).getByRole('link', { name: /view or delete your response/i })).toHaveAttribute('href', 'https://forms.test/acme');
@@ -74,12 +103,12 @@ describe('Privacy panel on respondent forms', () => {
 
     it('speaks Dutch to a Dutch browser', () => {
         setBrowserLanguages(['nl-NL', 'en']);
-        renderPanel({ ownerName: 'Gemeente Voorbeeld', settings: { purpose: 'Om uw afspraak te plannen', responseExpirationType: 'days', responseExpiration: '1' } });
+        renderPanel({ ownerName: 'Vereniging Voorbeeld', settings: { purpose: 'Om uw afspraak te plannen', responseExpirationType: 'days', responseExpiration: '1' } });
         expect(screen.getByText(/Verzameld door/)).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
         expect(screen.getByRole('heading', { name: 'Wat er met je antwoorden gebeurt' })).toBeInTheDocument();
         expect(row('receiver')).toHaveTextContent('Wie je antwoorden ontvangt');
-        expect(row('retention')).toHaveTextContent('Bewaard gedurende 1 dag na het insturen.');
+        expect(row('retention')).toHaveTextContent('1 dag na het insturen.');
         expect(row('identity')).toHaveTextContent('Bevestigen is niet nodig. Je kunt antwoorden zonder in te loggen.');
         expect(row('rights')).toHaveTextContent('Je kunt je antwoorden altijd inzien en laten verwijderen.');
     });
@@ -144,20 +173,20 @@ describe('Privacy panel on respondent forms', () => {
         setBrowserLanguages(['en']);
         const { unmount } = renderPanel({ ownerName: 'Acme', settings: { responseExpirationType: 'days', responseExpiration: 'soon' } });
         openPanel();
-        expect(row('retention')).toHaveTextContent('No fixed period: kept until they are deleted.');
+        expect(row('retention')).toHaveTextContent('No fixed period. They are kept until they are deleted.');
         unmount();
 
         setBrowserLanguages(['nl']);
         renderPanel({ ownerName: 'Acme', settings: {} });
         openPanel();
-        expect(row('retention')).toHaveTextContent('Geen vaste termijn: bewaard tot ze worden verwijderd.');
+        expect(row('retention')).toHaveTextContent('Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.');
     });
 
     it("states a date period in the respondent's language", () => {
         setBrowserLanguages(['nl']);
         renderPanel({ ownerName: 'Acme', settings: { responseExpirationType: 'date', responseExpiration: '2027-03-01' } });
         openPanel();
-        expect(row('retention')).toHaveTextContent('Bewaard tot 1 maart 2027.');
+        expect(row('retention')).toHaveTextContent('Tot 1 maart 2027.');
     });
 
     it("always states the enforced period, with the creator's explanation next to it", () => {
@@ -165,14 +194,14 @@ describe('Privacy panel on respondent forms', () => {
         // Text and period: both, the period first. The text never replaces it.
         const { unmount } = renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Kept for 1 year', responseExpirationType: 'days', responseExpiration: '30' } });
         openPanel();
-        expect(row('retention')).toHaveTextContent('How long they are keptKept for 30 days after you submit. Kept for 1 year');
+        expect(row('retention')).toHaveTextContent('How long they are kept30 days after you submit. Kept for 1 year');
         expect(screen.getByTestId('privacy-retention-note')).toHaveTextContent('Kept for 1 year');
         unmount();
 
         // A period without text: the period alone.
         const second = renderPanel({ ownerName: 'Acme', settings: { retentionText: '   ', responseExpirationType: 'days', responseExpiration: '30' } });
         openPanel();
-        expect(row('retention')).toHaveTextContent(/^How long they are keptKept for 30 days after you submit\.$/);
+        expect(row('retention')).toHaveTextContent(/^How long they are kept30 days after you submit\.$/);
         expect(screen.queryByTestId('privacy-retention-note')).not.toBeInTheDocument();
         second.unmount();
 
@@ -180,7 +209,7 @@ describe('Privacy panel on respondent forms', () => {
         setBrowserLanguages(['nl']);
         renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Tot het einde van het project', responseExpirationType: 'forever' } });
         openPanel();
-        expect(row('retention')).toHaveTextContent('Geen vaste termijn: bewaard tot ze worden verwijderd. Tot het einde van het project');
+        expect(row('retention')).toHaveTextContent('Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd. Tot het einde van het project');
     });
 
     it('says sign-in is required on a private form, in English and Dutch', () => {

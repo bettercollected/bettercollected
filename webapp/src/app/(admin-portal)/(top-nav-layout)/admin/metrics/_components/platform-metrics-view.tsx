@@ -20,10 +20,10 @@ import { WEEKLY_SERIES, WeeklySeriesKey, formatCount, formatShare, providerName,
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
-const BRAND_500 = '#2456CC';
-const BRAND_600 = '#1E49AD';
-const GRID = '#E9EEF5'; // black-200
-const INK_MUTED = '#657085'; // black-600
+const BRAND_500 = '#123FC9';
+const BRAND_600 = '#1035A8';
+const GRID = '#F2F4F7'; // black-200
+const INK_MUTED = '#667085'; // black-600
 
 interface IStat {
     label: string;
@@ -33,7 +33,7 @@ interface IStat {
 
 function StatGroup({ title, description, stats, children }: { title: string; description: string; stats: IStat[]; children?: React.ReactNode }) {
     return (
-        <Card className="rounded-xl border-black-200 bg-white shadow-none">
+        <Card className="rounded border-black-300 bg-white shadow-none">
             <CardHeader className="p-5 pb-3">
                 <CardTitle className="text-base font-semibold tracking-normal text-black-900">{title}</CardTitle>
                 <CardDescription className="text-xs text-black-600">{description}</CardDescription>
@@ -44,7 +44,7 @@ function StatGroup({ title, description, stats, children }: { title: string; des
                         <div key={stat.label} className="min-w-0">
                             <dt className="text-xs font-medium text-black-600">{stat.label}</dt>
                             <dd className={`mt-1 font-semibold tabular-nums text-black-900 ${index === 0 ? 'text-2xl' : 'text-xl'}`}>{formatCount(stat.value)}</dd>
-                            {stat.hint && <dd className="mt-0.5 text-xs text-black-500">{stat.hint}</dd>}
+                            {stat.hint && <dd className="mt-0.5 text-xs text-black-600">{stat.hint}</dd>}
                         </div>
                     ))}
                 </dl>
@@ -58,7 +58,7 @@ function Breakdown({ label, counts, total, name = (key: string) => key }: { labe
     const rows = sortBreakdown(counts);
     if (!rows.length) return null;
     return (
-        <div className="mt-4 border-t border-black-200 pt-3">
+        <div className="mt-4 border-t border-black-300 pt-3">
             <p className="mb-2 text-xs font-medium text-black-600">{label}</p>
             <ul className="space-y-2">
                 {rows.map(([key, count]) => (
@@ -86,7 +86,7 @@ function WeeklyChart({ weekly }: { weekly: PlatformMetrics['weekly'] }) {
     const seriesLabel = WEEKLY_SERIES.find((s) => s.key === seriesKey)?.label ?? '';
 
     return (
-        <Card className="rounded-xl border-black-200 bg-white shadow-none">
+        <Card className="rounded border-black-300 bg-white shadow-none">
             <CardHeader className="flex flex-col gap-3 p-5 pb-3 md:flex-row md:items-start md:justify-between md:space-y-0">
                 <div>
                     <CardTitle className="text-base font-semibold tracking-normal text-black-900">Last 12 weeks</CardTitle>
@@ -158,7 +158,7 @@ function WeeklyChart({ weekly }: { weekly: PlatformMetrics['weekly'] }) {
                                 {[...weekly]
                                     .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
                                     .map((week) => (
-                                        <tr key={week.weekStart} className="border-t border-black-200">
+                                        <tr key={week.weekStart} className="border-t border-black-300">
                                             <td className="py-1 pr-3">{week.weekStart}</td>
                                             {WEEKLY_SERIES.map((s) => (
                                                 <td key={s.key} className="py-1 pr-3 text-right">
@@ -178,7 +178,7 @@ function WeeklyChart({ weekly }: { weekly: PlatformMetrics['weekly'] }) {
 
 function StateMessage({ icon, title, children }: { icon: React.ReactNode; title: string; children?: React.ReactNode }) {
     return (
-        <div className="mx-auto mt-10 flex max-w-md flex-col items-center rounded-xl border border-black-200 bg-white p-8 text-center">
+        <div className="mx-auto mt-10 flex max-w-md flex-col items-center rounded border border-black-300 bg-white p-8 text-center">
             <div className="mb-3 text-black-600">{icon}</div>
             <h2 className="text-base font-semibold text-black-900">{title}</h2>
             {children && <div className="mt-2 text-sm text-black-600">{children}</div>}
@@ -190,9 +190,9 @@ function LoadingGrid() {
     return (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2" aria-busy="true" aria-label="Loading metrics">
             {Array.from({ length: 6 }).map((_, index) => (
-                <Skeleton key={index} className="h-[150px] rounded-xl bg-black-200" />
+                <Skeleton key={index} className="h-[150px] rounded bg-black-200" />
             ))}
-            <Skeleton className="h-[360px] rounded-xl bg-black-200 lg:col-span-2" />
+            <Skeleton className="h-[360px] rounded bg-black-200 lg:col-span-2" />
         </div>
     );
 }
@@ -274,7 +274,7 @@ function MetricsGrid({ metrics }: { metrics: PlatformMetrics }) {
     return (
         <div className="flex flex-col gap-5">
             {metrics.errors.length > 0 && (
-                <div role="status" className="flex items-start gap-3 rounded-xl border border-[#F2D7A6] bg-[#FFF8EB] p-4 text-sm text-[#7A4B00]">
+                <div role="status" className="flex items-start gap-3 rounded border border-[#F2D7A6] bg-[#FFF8EB] p-4 text-sm text-[#7A4B00]">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <div>
                         <p className="font-semibold">Some counts are unavailable</p>
@@ -296,7 +296,7 @@ function MetricsGrid({ metrics }: { metrics: PlatformMetrics }) {
                         { label: 'Active, last 30 days', value: users?.activeLast30Days }
                     ]}
                 >
-                    {users ? <Breakdown label="By plan" counts={users.byPlan} total={users.total} /> : <p className="mt-3 text-xs text-black-500">{usersError?.message ?? 'User counts are unavailable.'}</p>}
+                    {users ? <Breakdown label="By plan" counts={users.byPlan} total={users.total} /> : <p className="mt-3 text-xs text-black-600">{usersError?.message ?? 'User counts are unavailable.'}</p>}
                 </StatGroup>
                 <StatGroup
                     title="Organizations"

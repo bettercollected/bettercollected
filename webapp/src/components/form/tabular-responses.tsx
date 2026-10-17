@@ -111,7 +111,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             ) : (
                 // Anonymity is the product's promise — show it as a state, not
                 // as missing data ("- -").
-                <span className="flex w-fit items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-[#0E8A5F]">
+                <span className="flex w-fit items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-success-700">
                     <ShieldIcon className="h-3 w-3" strokeWidth={2} />
                     Anonymous
                 </span>

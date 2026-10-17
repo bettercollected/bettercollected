@@ -6,13 +6,15 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { FieldConditionalLogic, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
+import { reorder } from '@app/utils/array-utils';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules, remapDateRules } from '@app/utils/date-rules';
+import { fieldAndChildIds, locateField, moveFieldInSlides, movePageInSlides, pruneOutOfOrderReferences } from '@app/utils/form-outline';
+import { SECTION_TITLE_MAX } from '@app/utils/leaflet-sections';
 import { newRepeatingGroup, remapGroupChildIds, remapTextTokens } from '@app/utils/repeating-groups';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
-import { reorder } from '@app/utils/array-utils';
 
 export const initialFieldsState: StandardFormFieldDto[] = [
     {
@@ -35,7 +37,7 @@ export const initialFieldsState: StandardFormFieldDto[] = [
             ]
         }
     }
-]
+];
 
 // Exported for tests (asserting what the canvas state received).
 export const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState);
@@ -44,8 +46,33 @@ export const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState
 // the mutations in this file edit `formFields` in place, so shared references
 // would corrupt older entries.
 const HISTORY_LIMIT = 50;
-const fieldsHistoryAtom = atom<{ snapshots: StandardFormFieldDto[][]; index: number }>({ snapshots: [], index: -1 });
-const deepClone = <T,>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
+// Typing is one undo step, not one per keystroke: consecutive edits of the
+// same text (same field, same property) within this window merge.
+export const UNDO_COALESCE_MS = 1000;
+interface FieldsHistory {
+    snapshots: StandardFormFieldDto[][];
+    index: number;
+    /** What the latest step edited, and when (for merging typing). */
+    lastKey?: string;
+    lastAt?: number;
+}
+const fieldsHistoryAtom = atom<FieldsHistory>({ snapshots: [], index: -1 });
+
+/**
+ * Undo one step, but only while the latest step is still `after` (the state a
+ * delete produced, serialized right then: the builder edits its objects in
+ * place). An undo toast must not undo some later edit instead. True when it
+ * undid.
+ */
+export const undoIfLatestAtom = atom(null, (get, set, after: string) => {
+    const history = get(fieldsHistoryAtom);
+    if (history.index <= 0 || history.index !== history.snapshots.length - 1) return false;
+    if (JSON.stringify(history.snapshots[history.index]) !== after) return false;
+    set(initialFieldsAtom, deepClone(history.snapshots[history.index - 1]));
+    set(fieldsHistoryAtom, { snapshots: history.snapshots, index: history.index - 1 });
+    return true;
+});
+const deepClone = <T>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
 
 export default function useFormFieldsAtom() {
     const [formFields, setFormFieldsRaw] = useAtom(initialFieldsAtom);
@@ -55,15 +82,20 @@ export default function useFormFieldsAtom() {
     // becomes an undo step. Undo/redo bypass it (they must not create steps).
     // Identical consecutive states are deduped — mount-time re-commits and
     // debounced no-op writes must not consume undo steps.
-    const setFormFields = (next: StandardFormFieldDto[]) => {
+    // `coalesceKey` names the text being typed (e.g. `description:<fieldId>`):
+    // the latest step absorbs an edit of the same text within UNDO_COALESCE_MS
+    // of the previous one. The loaded state (step 0) never absorbs anything.
+    const setFormFields = (next: StandardFormFieldDto[], coalesceKey?: string) => {
         setFormFieldsRaw(next);
         setHistory((h) => {
             const current = h.index >= 0 ? h.snapshots[h.index] : undefined;
             if (current && JSON.stringify(current) === JSON.stringify(next)) return h;
-            const snapshots = h.snapshots.slice(0, h.index + 1);
+            const now = Date.now();
+            const merge = !!coalesceKey && coalesceKey === h.lastKey && h.lastAt !== undefined && now - h.lastAt < UNDO_COALESCE_MS && h.index > 0 && h.index === h.snapshots.length - 1;
+            const snapshots = h.snapshots.slice(0, merge ? h.index : h.index + 1);
             snapshots.push(deepClone(next));
             while (snapshots.length > HISTORY_LIMIT) snapshots.shift();
-            return { snapshots, index: snapshots.length - 1 };
+            return { snapshots, index: snapshots.length - 1, lastKey: coalesceKey, lastAt: now };
         });
     };
 
@@ -186,7 +218,11 @@ export default function useFormFieldsAtom() {
         const remapPipes = (node: any): void => {
             if (node?.type === 'answerPipe' && node.attrs && idMap[node.attrs.pipeKey]) node.attrs.pipeKey = idMap[node.attrs.pipeKey];
             // Group pipes (`<groupId>:<aggregate>:<fieldId>`) remap per segment.
-            if (node?.type === 'answerPipe' && node.attrs?.kind === 'group') node.attrs.pipeKey = String(node.attrs.pipeKey ?? '').split(':').map((part: string) => idMap[part] ?? part).join(':');
+            if (node?.type === 'answerPipe' && node.attrs?.kind === 'group')
+                node.attrs.pipeKey = String(node.attrs.pipeKey ?? '')
+                    .split(':')
+                    .map((part: string) => idMap[part] ?? part)
+                    .join(':');
             node?.content?.forEach(remapPipes);
         };
         clone.properties?.fields?.forEach((field) => {
@@ -221,7 +257,10 @@ export default function useFormFieldsAtom() {
                 index: -10
             });
         }
-        setFormFields([...updatedFormFields]);
+        const next = [...updatedFormFields];
+        setFormFields(next);
+        // The state after the delete: what the undo toast restores from.
+        return next;
     };
 
     const getActiveSlide = () => {
@@ -251,7 +290,7 @@ export default function useFormFieldsAtom() {
             title: titleText
         };
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `title:${slide.properties!.fields![fieldIndex].id}`);
     };
 
     const addMedia = (slideIndex: number, imageUrl: string) => {
@@ -270,7 +309,7 @@ export default function useFormFieldsAtom() {
         const slide = formFields[slideIndex];
         slide.properties!.fields![fieldIndex].description = description;
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `description:${slide.properties!.fields![fieldIndex].id}`);
     };
 
     const updateFieldColSpan = (fieldIndex: number, slideIndex: number, colSpan: number) => {
@@ -288,7 +327,7 @@ export default function useFormFieldsAtom() {
         slide.properties!.fields![fieldIndex]['properties'] = { ...(slide.properties!.fields![fieldIndex].properties || { fields: [] }) };
         slide.properties!.fields![fieldIndex]!.properties!.placeholder = placeholderText;
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `placeholder:${slide.properties!.fields![fieldIndex].id}`);
     };
 
     const updateChoiceFieldValue = (fieldIndex: number, slideIndex: number, choiceId: string, choiceValue: string) => {
@@ -303,7 +342,7 @@ export default function useFormFieldsAtom() {
             } else return choice;
         });
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `choice:${slide.properties!.fields![fieldIndex].id}:${choiceId}`);
     };
 
     const addChoiceField = (fieldIndex: number, slideIndex: number) => {
@@ -356,12 +395,44 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    // Answer rules (validations beyond Required): merge `patch` into the
+    // field's validations; undefined, null, NaN or '' removes a rule. Typing
+    // into the same rule is one undo step.
+    const updateFieldValidations = (fieldIndex: number, slideIndex: number, patch: Partial<IFormFieldValidation>) => {
+        const target = formFields?.[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!target) return;
+        const next: Record<string, unknown> = { ...(target.validations || {}) };
+        Object.entries(patch).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '' || (typeof value === 'number' && !Number.isFinite(value))) delete next[key];
+            else next[key] = value;
+        });
+        target.validations = next as IFormFieldValidation;
+        setFormFields([...formFields], `validations:${target.id}:${Object.keys(patch).sort().join(',')}`);
+    };
+
+    // Question numbering for the whole form: the flag lives on every
+    // question page (StandardFieldProperty.showQuestionNumbers).
+    const setShowQuestionNumbersOnAllPages = (show: boolean) => {
+        setFormFields(formFields.map((slide) => (slide.type && slide.type !== FieldTypes.SLIDE ? slide : { ...slide, properties: { ...(slide.properties || {}), showQuestionNumbers: show } })));
+    };
+
     const updateShowQuestionNumbers = (slideIndex: number, show: boolean) => {
         formFields![slideIndex]!.properties = {
             ...(formFields[slideIndex].properties || {}),
             showQuestionNumbers: show
         };
         setFormFields([...formFields]);
+    };
+
+    // A page's own section title (Leaflet bar and contents list). Kept as
+    // typed; '' clears it (sent as '' so the save clears the stored one).
+    const updateSlideSectionTitle = (slideIndex: number, sectionTitle: string) => {
+        if (!formFields?.[slideIndex]) return;
+        formFields[slideIndex]!.properties = {
+            ...(formFields[slideIndex]!.properties || {}),
+            sectionTitle: sectionTitle.slice(0, SECTION_TITLE_MAX)
+        };
+        setFormFields([...formFields], `sectionTitle:${formFields[slideIndex]!.id}`);
     };
 
     const updateSlideTheme = (color: { title: string; primary: string; secondary: string; tertiary: string; accent: string }) => {
@@ -496,10 +567,13 @@ export default function useFormFieldsAtom() {
         pruneOrphanedConditions(formFields);
         pruneOrphanedPipes(formFields);
         pruneOrphanedDateRules(formFields);
-        setFormFields([...formFields]);
+        const next = [...formFields];
+        setFormFields(next);
         setTimeout(() => {
             setActiveFieldComponent(null);
         }, 0);
+        // The state after the delete: what the undo toast restores from.
+        return next;
     };
 
     const deleteActiveSlide = () => {
@@ -670,13 +744,13 @@ export default function useFormFieldsAtom() {
     };
 
     const updateTabularColumnTitle = (colIdx: number, val: string) => {
-      const slideIndex = activeSlideComponent!.index;
-      const fieldIndex = activeFieldComponent!.index;
-      const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
-      if (field?.properties?.columnTitles) {
-          field.properties.columnTitles[colIdx] = val;
-          setFormFields([...formFields]);
-      }
+        const slideIndex = activeSlideComponent!.index;
+        const fieldIndex = activeFieldComponent!.index;
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (field?.properties?.columnTitles) {
+            field.properties.columnTitles[colIdx] = val;
+            setFormFields([...formFields]);
+        }
     };
 
     const addColumn = () => {
@@ -738,12 +812,7 @@ export default function useFormFieldsAtom() {
     };
 
     const updateTabularInputValue = (slideIndex: number, fieldIndex: number, value: string[][]) => {
-        if (
-            formFields[slideIndex] &&
-            formFields[slideIndex].properties &&
-            formFields[slideIndex].properties.fields &&
-            formFields[slideIndex].properties.fields[fieldIndex]
-        ) {
+        if (formFields[slideIndex] && formFields[slideIndex].properties && formFields[slideIndex].properties.fields && formFields[slideIndex].properties.fields[fieldIndex]) {
             formFields[slideIndex].properties.fields[fieldIndex].properties = {
                 ...(formFields[slideIndex].properties.fields[fieldIndex].properties || {}),
                 tabular_value: value
@@ -759,15 +828,9 @@ export default function useFormFieldsAtom() {
         const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
         if (!field?.properties) return;
         // Add a new row title
-        field.properties.rowTitles = [
-            ...(field.properties.rowTitles || []),
-            `Row ${(field.properties.rowTitles || []).length + 1}`
-        ];
+        field.properties.rowTitles = [...(field.properties.rowTitles || []), `Row ${(field.properties.rowTitles || []).length + 1}`];
         const colCount = field.properties.columnTitles?.length || 3;
-        field.properties.tabular_value = [
-            ...(field.properties.tabular_value || []),
-            Array(colCount).fill('')
-        ];
+        field.properties.tabular_value = [...(field.properties.tabular_value || []), Array(colCount).fill('')];
         setFormFields([...formFields]);
     };
 
@@ -778,14 +841,8 @@ export default function useFormFieldsAtom() {
         const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
         if (!field?.properties) return;
         // Add a new column title
-        field.properties.columnTitles = [
-            ...(field.properties.columnTitles || []),
-            `Col ${(field.properties.columnTitles || []).length + 1}`
-        ];
-        field.properties.tabular_value = (field.properties.tabular_value || []).map(row => [
-            ...row,
-            ''
-        ]);
+        field.properties.columnTitles = [...(field.properties.columnTitles || []), `Col ${(field.properties.columnTitles || []).length + 1}`];
+        field.properties.tabular_value = (field.properties.tabular_value || []).map((row) => [...row, '']);
         setFormFields([...formFields]);
     };
 
@@ -826,7 +883,88 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    // After a reorder the active page/question keep their selection: their
+    // ids are stable, their indexes are looked up again.
+    const reselectAfterMove = () => {
+        if (activeFieldComponent?.id) {
+            const at = locateField(formFields, activeFieldComponent.id);
+            if (at) {
+                setActiveSlideComponent({ id: formFields[at.pageIndex].id, index: at.pageIndex });
+                setActiveFieldComponent({ id: activeFieldComponent.id, index: at.fieldIndex });
+                return;
+            }
+        }
+        if (activeSlideComponent && activeSlideComponent.index >= 0) {
+            const index = formFields.findIndex((slide) => slide.id === activeSlideComponent.id);
+            if (index >= 0) setActiveSlideComponent({ id: activeSlideComponent.id, index });
+        }
+    };
+
+    /**
+     * Move page `from` to position `to` (outline drag or menu). One undo
+     * step. Logic the new order turned around (a rule now using a later
+     * answer) is removed; `prunedReferences` says how much, `next` is the
+     * state after the move (what an undo toast restores from).
+     */
+    const movePage = (from: number, to: number): { next: StandardFormFieldDto[]; prunedReferences: number } | null => {
+        const page = formFields[from];
+        if (!page || !movePageInSlides(formFields, from, to)) return null;
+        const movedFieldIds = new Set((page.properties?.fields ?? []).flatMap(fieldAndChildIds));
+        const prunedReferences = pruneOutOfOrderReferences(formFields, movedFieldIds, new Set([page.id]));
+        const next = [...formFields];
+        setFormFields(next);
+        reselectAfterMove();
+        return { next, prunedReferences };
+    };
+
+    /**
+     * Move a page-level question to page `toPageIndex`, position `toIndex`
+     * (counted without the question), within its page or to another one.
+     * Same contract as `movePage`.
+     */
+    const moveFieldToPage = (fieldId: string, toPageIndex: number, toIndex: number): { next: StandardFormFieldDto[]; prunedReferences: number } | null => {
+        const at = locateField(formFields, fieldId);
+        const field = at ? formFields[at.pageIndex].properties!.fields![at.fieldIndex] : undefined;
+        if (!field || !moveFieldInSlides(formFields, fieldId, toPageIndex, toIndex)) return null;
+        const prunedReferences = pruneOutOfOrderReferences(formFields, new Set(fieldAndChildIds(field)));
+        const next = [...formFields];
+        setFormFields(next);
+        reselectAfterMove();
+        return { next, prunedReferences };
+    };
+
+    // Insert a field at a position on a page (the canvas "+" and "/" menu).
+    // With `replaceFieldId` the new field takes that field's place instead
+    // (an empty text block someone typed "/" in), in one undo step.
+    const addFieldAt = (slideField: StandardFormFieldDto, slideIndex: number, fieldIndex: number, replaceFieldId?: string) => {
+        const slide = formFields[slideIndex];
+        if (!slide) return;
+        const fields = [...(slide.properties?.fields ?? [])];
+        const replaceAt = replaceFieldId ? fields.findIndex((field) => field.id === replaceFieldId) : -1;
+        if (replaceAt >= 0) fields.splice(replaceAt, 1, slideField);
+        else fields.splice(Math.min(Math.max(fieldIndex, 0), fields.length), 0, slideField);
+        slide.properties = { ...(slide.properties || {}), fields: fields.map((field, index) => ({ ...field, index })) };
+        if (replaceAt >= 0) {
+            pruneOrphanedConditions(formFields);
+            pruneOrphanedPipes(formFields);
+            pruneOrphanedDateRules(formFields);
+        }
+        setFormFields([...formFields]);
+    };
+
+    // The picture or video an image/video content block shows.
+    const updateFieldAttachment = (slideIndex: number, fieldIndex: number, attachment: StandardFormFieldDto['attachment']) => {
+        const field = formFields?.[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!field) return;
+        formFields[slideIndex]!.properties!.fields![fieldIndex] = { ...field, attachment };
+        setFormFields([...formFields], `attachment:${field.id}`);
+    };
+
     return {
+        movePage,
+        moveFieldToPage,
+        addFieldAt,
+        updateFieldAttachment,
         formFields,
         setFormFields,
         initFormFields,
@@ -846,15 +984,18 @@ export default function useFormFieldsAtom() {
         updateFieldRequired,
         updateFieldInternal,
         updateFieldValidation,
+        updateFieldValidations,
         updateFieldProperty,
         updateFieldConditionalLogic,
         updateGroupChildren,
         updateGroupRepeat,
         updateSlideJumps,
+        updateSlideSectionTitle,
         updateSlidePosition,
         clearSlidePositions,
         duplicateSlide,
         updateShowQuestionNumbers,
+        setShowQuestionNumbersOnAllPages,
         updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,
         updateSlideLayout,

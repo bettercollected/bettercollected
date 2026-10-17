@@ -6,11 +6,13 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { getPlaceholderValueForField } from '@app/utils/form-utils';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { getRespondentPlaceholder } from '@app/utils/form-utils';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import QuestionWrapper from './question-wrapper';
 
 const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
@@ -28,19 +30,20 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
         // Short/long text previously opted back into an underline-only look,
         // which fragmented the input language and had no focus indicator.
         background: '#ffffff',
-        // Rest light and calm; hover steps to the theme's border colour; focus
-        // commits with the ring (matches shadcn/ui/input.tsx).
-        borderColor: '#E3E3E3',
+        // The style's pinned radius (Classic 6px, Sheet and Leaflet 4px, Studio square).
+        borderRadius: styleTokens($formTheme?.style).inputRadius,
+        // Rest on the theme's border colour (3:1 on its ground); hover steps to
+        // ink; focus commits to the action colour (matches shadcn/ui/input.tsx).
+        borderColor: themeColor || '#818CA0',
         color: $formTheme?.primary,
         '&::placeholder': {
-            color: '#657085 !important'
+            color: '#667085 !important'
         },
         '&:hover:not(:focus)': {
-            borderColor: themeColor || '#8A94A6'
+            borderColor: $formTheme?.primary || '#101828'
         },
         '&:focus': {
-            borderColor: secondaryColor,
-            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}33` : undefined
+            borderColor: secondaryColor
         }
     };
 });
@@ -51,6 +54,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
 
     const form: StandardFormDto = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
+    const { t } = useRespondentLanguage();
     const { theme } = useFormState();
 
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
@@ -82,12 +86,12 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                     onChange={(e) => setInputVal(e.target.value)}
                     // leaving the field (e.g. to click Submit) must not wait for the debounce
                     onBlur={() => commit(inputVal)}
-                    className="rounded-md border px-4 py-3 text-base leading-normal outline-hidden transition-shadow lg:text-lg lg:leading-7"
+                    className="border px-4 py-3 text-base leading-normal outline-hidden transition-shadow lg:text-lg lg:leading-7"
                     style={{
                         resize: 'none'
                     }}
                     id={`input-field-${field.id}`}
-                    placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
+                    placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
                 />
             </form>
         </QuestionWrapper>

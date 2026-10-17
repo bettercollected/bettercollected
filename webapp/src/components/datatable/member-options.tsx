@@ -94,7 +94,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                                 className="cursor-pointer"
                             >
                                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4 text-blue-600" />}
-                                <span className={loading ? "text-gray-400" : "text-blue-600"}>{t(buttonConstant.resendInvitation)}</span>
+                                <span className={loading ? "text-black-600" : "text-blue-600"}>{t(buttonConstant.resendInvitation)}</span>
                             </DropdownMenuItem>
                         )}
                         {canMakeBillingOwner && (

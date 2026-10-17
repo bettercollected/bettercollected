@@ -9,6 +9,11 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from backend.app.repositories.postgres.forms import _oid
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
+from backend.app.schemas.api_idempotency_record import (
+    IDEMPOTENCY_DONE,
+    IDEMPOTENCY_PENDING,
+    ApiIdempotencyRecordDocument,
+)
 from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.form_ai_session import FormAISessionDocument
@@ -17,6 +22,7 @@ from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.db.models import (
     AiPreferenceMemoryRow,
+    ApiIdempotencyKeyRow,
     FormAiInsightRow,
     FormAiSessionRow,
     FormFlowEventRow,
@@ -73,6 +79,37 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
     async def save(self, session: FormAISessionDocument) -> FormAISessionDocument:
         return await self.upsert(session)
 
+    async def update_proposal(
+        self,
+        session_id: PydanticObjectId,
+        proposal_id: str,
+        fields: dict,
+        only_if_status: Optional[str] = None,
+    ) -> bool:
+        """The Mongo original's targeted update: the row is locked, so a
+        chat turn saved at the same time waits and then keeps this change
+        only if it read the row afterwards (as with Mongo)."""
+        locked = (
+            select(FormAiSessionRow.doc)
+            .where(FormAiSessionRow.id == str(session_id))
+            .with_for_update()
+        )
+        async with self._session() as session, session.begin():
+            doc = (await session.execute(locked)).scalar_one_or_none()
+            if doc is None:
+                return False
+            document = from_row_doc(FormAISessionDocument, doc)
+            for message in document.messages or []:
+                record = message.get("proposal")
+                if not isinstance(record, dict) or record.get("id") != proposal_id:
+                    continue
+                if only_if_status is not None and record.get("status") != only_if_status:
+                    return False
+                record.update(fields)
+                await session.execute(self._upsert_statement(row_values(document)))
+                return True
+        return False
+
 
 class PostgresWorkspaceAIProfileRepository(PostgresRepositoryBase):
     row = WorkspaceAiProfileRow
@@ -124,7 +161,9 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
     row = RateLimitCounterRow
     document = RateLimitCounterDocument
 
-    async def hit(self, counter_id: str, expires_at: dt.datetime) -> int:
+    async def hit(
+        self, counter_id: str, expires_at: dt.datetime, amount: int = 1
+    ) -> int:
         now = dt.datetime.now(dt.timezone.utc)
         names = self._column_names()
         locked = (
@@ -136,7 +175,9 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
             doc = (await session.execute(locked)).scalar_one_or_none()
             if doc is None:
                 first = RateLimitCounterDocument(
-                    id=PydanticObjectId(counter_id), hits=1, expires_at=expires_at
+                    id=PydanticObjectId(counter_id),
+                    hits=amount,
+                    expires_at=expires_at,
                 )
                 values = row_values(first)
                 inserted = await session.execute(
@@ -155,10 +196,76 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
                 created = False
             if not created:
                 counter = from_row_doc(RateLimitCounterDocument, doc)
-                counter.hits += 1
+                counter.hits += amount
                 counter.updated_at = now
                 await session.execute(self._upsert_statement(row_values(counter)))
                 return counter.hits
         # no TTL index here: expired counters go whenever a new one starts
         await self.delete_where(RateLimitCounterRow.expires_at <= now)
-        return 1
+        return amount
+
+
+class PostgresIdempotencyRepository(PostgresRepositoryBase):
+    row = ApiIdempotencyKeyRow
+    document = ApiIdempotencyRecordDocument
+
+    async def find(self, record_id: str) -> Optional[ApiIdempotencyRecordDocument]:
+        return await self.one(
+            ApiIdempotencyKeyRow.id == str(record_id),
+            ApiIdempotencyKeyRow.expires_at > dt.datetime.now(dt.timezone.utc),
+        )
+
+    async def claim(self, record: ApiIdempotencyRecordDocument) -> bool:
+        now = dt.datetime.now(dt.timezone.utc)
+        names = self._column_names()
+        values = row_values(record)
+        async with self._session() as session, session.begin():
+            # an expired record gives way to the new one
+            await session.execute(
+                delete(ApiIdempotencyKeyRow).where(
+                    ApiIdempotencyKeyRow.id == values["id"],
+                    ApiIdempotencyKeyRow.expires_at <= now,
+                )
+            )
+            inserted = await session.execute(
+                pg_insert(ApiIdempotencyKeyRow)
+                .values({names[k]: v for k, v in values.items()})
+                .on_conflict_do_nothing(index_elements=[names["id"]])
+                .returning(ApiIdempotencyKeyRow.id)
+            )
+            claimed = inserted.scalar_one_or_none() is not None
+        if claimed:
+            # no TTL index here: expired records go whenever a new one is stored
+            await self.delete_where(ApiIdempotencyKeyRow.expires_at <= now)
+        return claimed
+
+    async def complete(
+        self,
+        record_id: str,
+        status_code: int,
+        body: str,
+        etag: Optional[str] = None,
+    ) -> None:
+        locked = (
+            select(ApiIdempotencyKeyRow.doc)
+            .where(ApiIdempotencyKeyRow.id == str(record_id))
+            .with_for_update()
+        )
+        async with self._session() as session, session.begin():
+            doc = (await session.execute(locked)).scalar_one_or_none()
+            if doc is None:
+                return
+            record = from_row_doc(ApiIdempotencyRecordDocument, doc)
+            if record.state != IDEMPOTENCY_PENDING:
+                return
+            record.state = IDEMPOTENCY_DONE
+            record.status_code = status_code
+            record.body = body
+            record.etag = etag
+            record.updated_at = dt.datetime.now(dt.timezone.utc)
+            await session.execute(self._upsert_statement(row_values(record)))
+
+    async def release(self, record_id: str) -> None:
+        record = await self.one(ApiIdempotencyKeyRow.id == str(record_id))
+        if record is not None and record.state == IDEMPOTENCY_PENDING:
+            await self.delete_where(ApiIdempotencyKeyRow.id == str(record_id))

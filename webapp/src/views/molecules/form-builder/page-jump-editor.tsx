@@ -44,7 +44,7 @@ export default function PageJumpEditor() {
         return (
             <div className="flex flex-col gap-1 px-4 py-4">
                 <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Logic</div>
-                <div className="text-black-500 text-xs">Add questions to this page (or an earlier one) to send people to another page based on their answers.</div>
+                <div className="text-black-600 text-xs">Add questions to this page (or an earlier one) to send people to another page based on their answers.</div>
             </div>
         );
     }
@@ -53,7 +53,7 @@ export default function PageJumpEditor() {
         <div className="flex flex-col gap-3 px-4 py-4">
             <div>
                 <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Logic</div>
-                <div className="text-black-500 text-[11px]">Send people to another page based on their answers.{jumps.length > 1 ? ' Checked top to bottom — first match wins.' : ''}</div>
+                <div className="text-black-600 text-[11px]">Send people to another page based on their answers.{jumps.length > 1 ? ' Checked top to bottom — first match wins.' : ''}</div>
             </div>
 
             {jumps.map((jump, jIdx) => {
@@ -61,7 +61,7 @@ export default function PageJumpEditor() {
                 const isNoOp = targetValid && jump.target === nextPageId;
                 return (
                     <div key={jIdx} className="border-black-300 relative flex flex-col gap-2 rounded-md border p-2">
-                        <div className="text-black-400 flex items-center gap-1">
+                        <div className="text-black-600 flex items-center gap-1">
                             {jumps.length > 1 && (
                                 <>
                                     <span className="text-[11px] font-medium">Rule {jIdx + 1}</span>
@@ -110,7 +110,7 @@ export default function PageJumpEditor() {
                         <div className="text-black-600 flex items-center gap-1 text-xs">
                             <span className="shrink-0">→ go to</span>
                             <select
-                                className={targetValid ? selectClass : selectClass.replace('border-black-300', 'border-amber-400')}
+                                className={targetValid ? selectClass : selectClass.replace('border-control', 'border-amber-400')}
                                 value={targetValid ? jump.target : MISSING}
                                 onChange={(e) => patchJump(jIdx, { target: e.target.value })}
                             >
@@ -123,7 +123,7 @@ export default function PageJumpEditor() {
                             </select>
                         </div>
                         {!targetValid && <span className="text-[11px] text-amber-700">This rule points to a page that was deleted. Pick a new destination.</span>}
-                        {isNoOp && <span className="text-black-500 text-[11px]">This is already the next page, so the rule has no effect.</span>}
+                        {isNoOp && <span className="text-black-600 text-[11px]">This is already the next page, so the rule has no effect.</span>}
                     </div>
                 );
             })}

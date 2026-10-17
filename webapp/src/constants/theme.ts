@@ -1,4 +1,4 @@
-// Default = the trust palette (Design-Language.md §1): calm neutral surface,
+// Default = the Sireto palette (DESIGN.md, Form themes): paper-mist surface,
 // ink for words, one confident blue for actions. Saturated full-bleed colour
 // stays available through the other themes — it's opt-in, not the default.
 //
@@ -19,19 +19,21 @@
 // values are stored inline on the form, so renaming a preset never changes an
 // already-published form.
 export const ThemeColor = {
-    accent: '#F6F8FC',
+    accent: '#F5F7FB',
     tertiary: '#818CA0',
-    secondary: '#2456CC',
-    primary: '#101826'
+    secondary: '#1649E2',
+    primary: '#101828'
 };
 
 // How the form is DRESSED, independent of its colours/background. 'classic'
 // is today's look; 'sheet' sets questions like a printed document (serif
 // labels, margin numerals, ruled rows); 'studio' is the bold graphic register
-// (ghost numerals, heavy type, square edges, solid selection). Structural
-// styles (two-pane ledger, conversational receipts) can join this enum once
-// the renderer grows those modes — the model is deliberately open.
-export type ThemeStyle = 'classic' | 'sheet' | 'studio';
+// (ghost numerals, heavy type, square edges, solid selection); 'leaflet' reads
+// like a plain-language information leaflet (numbered section bars, n.m
+// question numbers in a margin column, ruled options, margin-note reasons).
+// Structural styles (two-pane ledger, conversational receipts) can join this
+// enum once the renderer grows those modes — the model is deliberately open.
+export type ThemeStyle = 'classic' | 'sheet' | 'studio' | 'leaflet';
 
 export type ThemePattern = 'dots' | 'grid' | 'stripes';
 
@@ -47,6 +49,8 @@ export interface ThemeBackground {
     imageUrl?: string;
 }
 
+export const THEME_STYLES: ReadonlyArray<ThemeStyle> = ['classic', 'sheet', 'studio', 'leaflet'];
+
 export interface FormTheme {
     title: string;
     primary: string;
@@ -60,10 +64,10 @@ export interface FormTheme {
 export const ThemeColors: Array<FormTheme> = [
     {
         title: 'Default',
-        primary: '#101826',
-        secondary: '#2456CC',
+        primary: '#101828',
+        secondary: '#1649E2',
         tertiary: '#818CA0',
-        accent: '#F6F8FC'
+        accent: '#F5F7FB'
     },
     {
         // Warm cream ground with espresso ink — the "printed page" look.
@@ -72,6 +76,17 @@ export const ThemeColors: Array<FormTheme> = [
         secondary: '#7C2D12',
         tertiary: '#78716C',
         accent: '#FAF6F0'
+    },
+    {
+        // White sheet, near-black ink, deep navy for section bars and
+        // buttons, a slate control edge (4.3:1 on white). Picking it also
+        // switches the form to the Leaflet style it was made for.
+        title: 'Leaflet',
+        primary: '#1A1A1A',
+        secondary: '#0B3D91',
+        tertiary: '#6B7A99',
+        accent: '#FFFFFF',
+        style: 'leaflet'
     },
     {
         title: 'Ocean',
@@ -165,3 +180,34 @@ export const ThemeColors: Array<FormTheme> = [
         accent: '#FFE4E6'
     }
 ];
+
+// The backend keeps a copy of this list (backend constants/themes.py
+// theme_dict) for forms the AI, the API and imports dress; this list is the
+// source of truth and a backend test fails when the two drift. Keep each
+// preset as plain `key: 'value'` lines so that test can read it.
+
+/**
+ * The preset a form's theme was picked as, by its title (any case): what the
+ * builder's picker shows as selected. A preset set by the AI carries the
+ * preset's own title, so it shows here too. A legacy title that names no
+ * preset any more (colours live on the form) matches none.
+ */
+export function findPreset(title?: string | null): FormTheme | undefined {
+    const key = title?.trim().toLowerCase();
+    if (!key) return undefined;
+    return ThemeColors.find((preset) => preset.title.toLowerCase() === key);
+}
+
+// New forms start with the Leaflet preset (and so the Leaflet style) unless
+// they bring a theme of their own: a form made from a template, or a copy,
+// keeps its source's. The backend gives forms made without one (AI, API,
+// imports) the same preset (backend constants/themes.py NEW_FORM_THEME); a
+// test keeps the two together. Stored forms never change: their theme is
+// stored inline, and one without a theme still renders as Default.
+export const NEW_FORM_THEME_TITLE = 'Leaflet';
+
+/** A fresh copy of the theme new forms start with. */
+export function newFormTheme(): FormTheme {
+    const preset = ThemeColors.find((theme) => theme.title === NEW_FORM_THEME_TITLE) ?? ThemeColors[0];
+    return { ...preset };
+}

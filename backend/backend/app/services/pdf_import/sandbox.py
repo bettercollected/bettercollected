@@ -10,7 +10,8 @@ Two transports, same result:
     scrubbed environment, temporary working directory, resource limits.
 
 With ``require_isolated`` the local transport is refused, and modes that run
-native code on the document (``render``) only ever use the socket. The result
+native code on the document (``render``, ``logo``, ``image``) only ever
+use the socket. The result
 is capped by size on both transports: the API and worker processes have no
 memory limit of their own. At most ``max_parallel`` documents are in flight
 per process.
@@ -33,7 +34,7 @@ from .runner import (
     too_complex,
 )
 
-NATIVE_MODES = ("render",)
+NATIVE_MODES = ("render", "logo", "image")
 
 _slots: Optional[asyncio.Semaphore] = None
 _slots_size = 0
@@ -175,3 +176,15 @@ async def run_render(
         skip_pages=",".join(str(n) for n in pages),
         **limits,
     )
+
+
+async def run_logo(data: bytes, **limits) -> dict:
+    """An uploaded logo checked and re-encoded (``logo_image.reencode_logo``);
+    native decoders, so the isolated sandbox only."""
+    return await run_in_sandbox("logo", data, "image/*", **limits)
+
+
+async def run_image(data: bytes, **limits) -> dict:
+    """A fetched picture checked and re-encoded (``logo_image.reencode_image``);
+    native decoders, so the isolated sandbox only."""
+    return await run_in_sandbox("image", data, "image/*", **limits)

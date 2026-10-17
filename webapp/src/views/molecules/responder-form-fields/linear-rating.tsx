@@ -1,7 +1,5 @@
 import _ from 'lodash';
 
-import styled from 'styled-components';
-
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
@@ -10,33 +8,10 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import { cn } from '@app/shadcn/util/lib';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+
 import QuestionWrapper from './question-wrapper';
-
-const StyledRatingButton = styled.button<{
-    $slide?: StandardFormFieldDto;
-    $formTheme?: ReturnType<typeof useFormState>['theme'];
-    $isBuilder?: boolean;
-}>(({ $slide, $formTheme, $isBuilder = false }) => {
-    // Theme via props ($ = transient, never leaks to the DOM). Calling the
-    // useFormState() hook inside a styled interpolation produces an
-    // inconsistent hook count under React 19 ("Rendered fewer hooks than
-    // expected") — this crashed the form preview for linear-rating fields.
-    const tertiaryColor = $slide?.properties?.theme?.tertiary || $formTheme?.tertiary;
-    const secondaryColor = $slide?.properties?.theme?.secondary || $formTheme?.secondary;
-
-    return {
-        color: secondaryColor,
-        borderColor: $isBuilder ? tertiaryColor : secondaryColor,
-        '&:hover': {
-            background: $isBuilder ? '' : tertiaryColor
-        },
-        // Keyboard affordance (the cells were divs with no focus state).
-        '&:focus-visible': {
-            outline: 'none',
-            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}40` : undefined
-        }
-    };
-});
 
 const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
     const { theme } = useFormState();
@@ -45,23 +20,30 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
     const form = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
 
-    const secondaryColor = theme?.secondary;
+    // A slide-level theme (when present) wins over the form theme.
+    const colours = slide?.properties?.theme?.secondary ? slide.properties.theme : theme;
+    const tokens = styleTokens(theme?.style);
 
     return (
-        <div className="flex flex-row flex-wrap gap-1">
+        // Square 48px cells: a comfortable touch target, numbers in the
+        // theme's ink on a white face, the theme's border at rest (3:1 on its
+        // ground), ink on hover, and the chosen number filled with the action
+        // colour in semibold white, so the choice reads without colour too.
+        <div className="flex flex-row flex-wrap gap-2">
             {_.range(field.properties?.startFrom ?? 1, +(field.properties?.steps ?? 10) + 1, 1).map((index) => {
+                const selected = answer === index;
                 return (
-                    <StyledRatingButton
+                    <button
                         type="button"
                         aria-label={`${index}`}
-                        aria-pressed={answer === index}
+                        aria-pressed={selected}
                         disabled={isBuilder}
-                        $slide={slide}
-                        $formTheme={theme}
-                        $isBuilder={isBuilder}
                         style={{
-                            background: answer === index ? secondaryColor : '',
-                            color: answer === index ? '#ffffff' : ''
+                            ['--scale-edge' as string]: selected ? colours?.secondary : colours?.tertiary,
+                            ['--scale-edge-hover' as string]: selected ? colours?.secondary : colours?.primary,
+                            background: selected ? colours?.secondary : '#ffffff',
+                            color: selected ? '#ffffff' : colours?.primary,
+                            borderRadius: tokens.inputRadius
                         }}
                         key={index}
                         onClick={() => {
@@ -72,10 +54,13 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                                 }, 200);
                             }
                         }}
-                        className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border"
+                        className={cn(
+                            'flex h-12 w-12 cursor-pointer items-center justify-center border border-(--scale-edge) text-base tabular-nums transition-colors duration-150 enabled:hover:border-(--scale-edge-hover) disabled:cursor-default',
+                            selected ? 'font-semibold' : 'font-normal'
+                        )}
                     >
                         <span>{index}</span>
-                    </StyledRatingButton>
+                    </button>
                 );
             })}
         </div>

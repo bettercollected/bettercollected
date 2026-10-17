@@ -3,8 +3,6 @@ import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
-import { selectAuth } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useGetTemplatesQuery } from '@app/store/redux/template-api';
@@ -19,7 +17,6 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
     const { addSlideFormTemplate } = useFormFieldsAtom();
     const { theme } = useFormState();
     const { data: templates } = useGetTemplatesQuery({ v2: true });
-    const authState = useAppSelector(selectAuth);
 
     return (
         <>
@@ -38,7 +35,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                     <ScrollArea className="h-[495px] overflow-auto">
                         <div className="flex h-full! w-full flex-row flex-wrap gap-2 overflow-auto">
                             {selectedTemplate?.fields?.map((slide, index) => (
-                                <button key={slide?.id} data-umami-event={'Add Page From Template Button'} data-umami-event-email={authState.email}>
+                                <button key={slide?.id} data-umami-event={'Add Page From Template Button'}>
                                     <div
                                         onClick={() => {
                                             addSlideFormTemplate(slide);
@@ -67,7 +64,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                         <div className="flex w-full flex-row flex-wrap ">
                             {templates?.map((template) => (
                                 <div
-                                    className=" border-black-200 mb-2 flex w-fit cursor-pointer flex-col gap-1 rounded-lg border border-transparent p-1 transition-all"
+                                    className=" border-black-300 mb-2 flex w-fit cursor-pointer flex-col gap-1 rounded-lg border border-transparent p-1 transition-all"
                                     key={template?.id}
                                     onClick={() => {
                                         setSelectedTemplate(template);

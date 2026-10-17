@@ -30,6 +30,7 @@ from backend.app.repositories.postgres.ai import (
     PostgresFlowEventRepository,
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
+    PostgresIdempotencyRepository,
     PostgresMcpAuditLogRepository,
     PostgresRateLimitRepository,
     PostgresWorkspaceAIProfileRepository,
@@ -95,6 +96,7 @@ from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.form_import_repository import FormImportRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
+from backend.app.repositories.idempotency_repository import IdempotencyRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -121,13 +123,16 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
+from backend.app.services.image_service import ImageService
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
+from backend.app.services.ai.proposals import FormAIProposalService
 from backend.app.services.ai.consent import AIConsentService
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.insights import FormAIInsightsService
 from backend.app.services.ai.review import FormAIReviewService
+from backend.app.services.ai.usage import AIUsageGuard
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
@@ -178,6 +183,9 @@ from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
 from backend.app.services.form_actions_service import FormActionsService
+from backend.app.services.form_spec.service import FormSpecService
+from backend.app.services.form_spec.writes import FormSpecWriter
+from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.config import settings
 
@@ -582,6 +590,10 @@ class AppContainer(containers.DeclarativeContainer):
         flow_event_repo=flow_event_repo,
         rate_limiter=rate_limiter,
     )
+    # rate limits and the daily budget of the AI endpoints
+    ai_usage_guard: AIUsageGuard = providers.Singleton(
+        AIUsageGuard, limiter=rate_limiter
+    )
 
     # Every workspace-scoped access decision (services call authorize()).
     authorization_service: AuthorizationService = providers.Singleton(
@@ -604,6 +616,19 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(McpAuditLogRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresMcpAuditLogRepository, pg_sessionmaker
+        ),
+    )
+    # the public API's Idempotency-Key records (services/idempotency.py)
+    idempotency_repo: IdempotencyRepository = providers.Singleton(
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(IdempotencyRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresIdempotencyRepository, pg_sessionmaker
         ),
     )
 
@@ -749,9 +774,10 @@ class AppContainer(containers.DeclarativeContainer):
         # workspace id -> the consented AI provider, through the same opt-in
         # check as every other AI path (openai_service is defined further
         # down this container, so it is looked up per run)
+        # (the upload was admitted to the AI limits: the job only counts tokens)
         provider_resolver=providers.Object(
             lambda workspace_id: container.openai_service().provider_for_workspace(
-                workspace_id
+                workspace_id, admit=False
             )
         ),
         form_repo=form_repo,
@@ -766,6 +792,12 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         settings=settings.pdf_import,
         flags=flags,
+        # an upload asking for AI structuring counts as one AI request
+        ai_admission=providers.Object(
+            lambda workspace_id, user: container.openai_service().admit_import(
+                workspace_id, user
+            )
+        ),
     )
 
     custom_domain_service: CustomDomainService = providers.Singleton(
@@ -835,6 +867,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_service=workspace_form_service,
         authorization_service=authorization_service,
         ai_consent_service=ai_consent_service,
+        ai_usage_guard=ai_usage_guard,
     )
 
     form_ai_chat_service: FormAIChatService = providers.Singleton(
@@ -850,11 +883,23 @@ class AppContainer(containers.DeclarativeContainer):
         ),
     )
 
+    # accept / reject the chat's proposals (no provider call)
+    form_ai_proposal_service: FormAIProposalService = providers.Singleton(
+        FormAIProposalService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        session_repo=form_ai_session_repo,
+        rate_limiter=rate_limiter,
+        ai_usage_guard=ai_usage_guard,
+    )
+
     form_ai_review_service: FormAIReviewService = providers.Singleton(
         FormAIReviewService,
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
+        ai_usage_guard=ai_usage_guard,
         provider_resolver=providers.Callable(
             lambda svc: svc.provider_for_workspace, openai_service
         ),
@@ -1113,6 +1158,13 @@ class AppContainer(containers.DeclarativeContainer):
         aws_service=aws_service,
         authorization_service=authorization_service,
     )
+    # Unsplash through our server; image addresses copied into our storage
+    image_service: ImageService = providers.Singleton(
+        ImageService,
+        aws_service=aws_service,
+        rate_limiter=rate_limiter,
+        authorization_service=authorization_service,
+    )
 
     umami_client: UmamiClient = providers.Singleton(UmamiClient)
 
@@ -1148,6 +1200,25 @@ class AppContainer(containers.DeclarativeContainer):
 
     refresh_allowed_origins = providers.Callable(
         DynamicCORSMiddleware.force_refresh_origins
+    )
+
+    # Form spec v1: validate documents, dry-run ops (stores nothing).
+    form_spec_service: FormSpecService = providers.Singleton(
+        FormSpecService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+    )
+    # The public API: forms from spec documents, Idempotency-Key records.
+    form_spec_writer: FormSpecWriter = providers.Singleton(
+        FormSpecWriter,
+        form_spec_service=form_spec_service,
+        workspace_form_service=workspace_form_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+    )
+    idempotency_service: IdempotencyService = providers.Singleton(
+        IdempotencyService, idempotency_repo=idempotency_repo
     )
 
 

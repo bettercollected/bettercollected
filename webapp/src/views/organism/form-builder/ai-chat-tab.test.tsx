@@ -10,13 +10,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const chatEditMock = vi.fn();
 const reviewMock = vi.fn();
 const applyFixMock = vi.fn();
+const patchFormMock = vi.fn();
 vi.mock('@app/store/redux/form-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
         useChatEditFormWithAIMutation: () => [chatEditMock, { isLoading: false }],
         useReviewFormWithAIMutation: () => [reviewMock, { isLoading: false }],
-        useApplyAIReviewFixMutation: () => [applyFixMock]
+        useApplyAIReviewFixMutation: () => [applyFixMock],
+        usePatchV2FormMutation: () => [patchFormMock]
     };
 });
 
@@ -51,8 +53,12 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     };
 });
 
+import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import { initialFieldsAtom } from '@app/store/jotai/field-selectors';
+import { formStateAtom, IFormState } from '@app/store/jotai/form';
 import { store } from '@app/store/store';
+import { setWorkspace } from '@app/store/workspaces/slice';
+import AutoSaveForm from '@app/views/molecules/form-builder/audo-save-form';
 import AIChatTab from './ai-chat-tab';
 
 const AI_RESPONSE_FORM = {
@@ -85,12 +91,48 @@ const success = (overrides: Record<string, any> = {}) => ({
 
 // jotai v1 has no createStore — read the canvas atom through a probe
 // component mounted in the same (test-scoped) Provider.
-const probe: { fields: any[] } = { fields: [] };
+const probe: { fields: any[]; formState?: IFormState } = { fields: [] };
 function FieldsProbe() {
     const [fields] = useAtom(initialFieldsAtom);
+    const [formState] = useAtom(formStateAtom);
     probe.fields = fields;
+    probe.formState = formState;
     return null;
 }
+
+// What the editor page does once the loaded form is in the builder state.
+function MarkHydrated({ formId }: { formId: string }) {
+    const { setHydratedFormId } = useBuilderHydration();
+    React.useEffect(() => setHydratedFormId(formId), [formId]);
+    return null;
+}
+
+// What an update_theme / update_form_info turn returns: the whole form, with
+// the form-level parts the ops engine can change.
+const OCEAN_THEME = {
+    title: 'Ocean',
+    primary: '#111827',
+    secondary: '#1D4ED8',
+    tertiary: '#2563EB',
+    accent: '#DBEAFE',
+    style: 'sheet',
+    background: { type: 'image', imageUrl: 'https://images.unsplash.com/photo-1' }
+};
+const THEMED_FORM = {
+    ...AI_RESPONSE_FORM,
+    title: 'Customer check-in',
+    description: 'A short check-in',
+    theme: OCEAN_THEME,
+    welcomePage: { title: 'Customer check-in', description: 'Welcome!', layout: 'SINGLE_COLUMN_NO_BACKGROUND' },
+    thankyouPage: [{ title: 'Thanks', message: 'All done', layout: 'SINGLE_COLUMN_NO_BACKGROUND' }],
+    hiddenFields: ['utm_source']
+};
+const themeTurn = () =>
+    success({
+        reply: 'Applied the Ocean theme.',
+        results: [{ index: 0, op: 'update_theme', ok: true, message: "Applied theme 'Ocean'" }],
+        form: THEMED_FORM
+    });
 
 const renderPanel = (props: Record<string, any> = {}) =>
     render(
@@ -376,6 +418,76 @@ describe('AIChatTab', () => {
         await sendMessage('second');
         await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(2));
         expect(chatEditMock.mock.calls[1][0].body.sessionId).toBe('session-1');
+    });
+
+    it('a theme turn lands in the editor state, not only the fields', async () => {
+        chatEditMock.mockResolvedValue(themeTurn());
+        renderPanel();
+
+        await sendMessage('use the ocean theme');
+        await waitFor(() => expect(screen.getByText('Applied the Ocean theme.')).toBeDefined());
+
+        const state = probe.formState!;
+        expect(state.theme).toEqual(OCEAN_THEME);
+        expect(state.title).toBe('Customer check-in');
+        expect(state.description).toBe('A short check-in');
+        expect(state.welcomePage?.description).toBe('Welcome!');
+        expect(state.thankyouPage?.[0].message).toBe('All done');
+        expect(state.hiddenFields).toEqual(['utm_source']);
+        // Its own copy: Redux freezes what it is given, the editor mutates.
+        expect(state.theme).not.toBe(OCEAN_THEME);
+        expect(Object.isFrozen(state.theme)).toBe(false);
+        // The redux form follows too.
+        expect((store.getState() as any).form.theme.title).toBe('Ocean');
+    });
+
+    it('REGRESSION: the next autosave writes the AI theme, not the old one back', async () => {
+        // The server stored the AI's edit: its reply carries the new version.
+        const AI_VERSION = '2026-10-17T09:00:05.000+00:00';
+        chatEditMock.mockResolvedValue(success({ ...themeTurn().data, form: { ...THEMED_FORM, updatedAt: AI_VERSION } }));
+        patchFormMock.mockReset().mockResolvedValue({ data: { ...THEMED_FORM, formId: 'form-autosave-1' } });
+        store.dispatch(setWorkspace({ id: 'ws-1' }));
+        const { setForm } = await import('@app/store/forms/slice');
+        store.dispatch(setForm({ formId: 'form-autosave-1', title: 'Draft', updatedAt: '2026-10-17T09:00:00.000+00:00', theme: { ...OCEAN_THEME, title: 'Default', background: undefined } }));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <AIChatTab memoryPollDelaysMs={[0]} />
+                    <AutoSaveForm formId="form-autosave-1" />
+                    <MarkHydrated formId="form-autosave-1" />
+                    <FieldsProbe />
+                </Provider>
+            </ReduxProvider>
+        );
+        await sendMessage('use the ocean theme');
+        await waitFor(() => expect(patchFormMock).toHaveBeenCalled(), { timeout: 4000 });
+        // Built on the AI's version: its own AI edit is no conflict.
+        expect(patchFormMock.mock.calls.at(-1)[0].body.get('expected_updated_at')).toBe(AI_VERSION);
+        const saved = JSON.parse(patchFormMock.mock.calls.at(-1)[0].body.get('form_body'));
+        expect(saved.theme).toEqual(OCEAN_THEME);
+        expect(saved.title).toBe('Customer check-in');
+        expect(saved.description).toBe('A short check-in');
+        expect(saved.welcomePage.title).toBe('Customer check-in');
+        expect(saved.thankyouPage[0].message).toBe('All done');
+        expect(saved.fields[0].properties.fields[1].title).toBe('Work email');
+    });
+
+    it('a review fix applies form-level changes the same way as a chat turn', async () => {
+        reviewMock.mockResolvedValue({
+            data: {
+                summary: 'One issue.',
+                findings: [{ severity: 'medium', message: 'No ending text.', fix: { description: 'Add an ending message', ops: [{ op: 'update_theme' }] } }]
+            }
+        });
+        applyFixMock.mockResolvedValue({ data: { results: [{ index: 0, op: 'update_theme', ok: true, message: 'Applied' }], form: THEMED_FORM } });
+        renderPanel();
+
+        fireEvent.click(screen.getByRole('button', { name: /Review/ }));
+        await waitFor(() => expect(screen.getByText('One issue.')).toBeDefined());
+        fireEvent.click(screen.getByRole('button', { name: /Add an ending message/ }));
+        await waitFor(() => expect(screen.getByText(/Fixed — Add an ending message/)).toBeDefined());
+        expect(probe.formState!.theme).toEqual(OCEAN_THEME);
+        expect(probe.formState!.thankyouPage?.[0].message).toBe('All done');
     });
 
     it('a settings turn (purpose/retention) lands in the form slice for the Form tab', async () => {

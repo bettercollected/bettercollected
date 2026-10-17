@@ -8,16 +8,19 @@ import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import Choice from '@app/views/atoms/choice';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { ChevronDown } from 'lucide-react';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import QuestionWrapper from './question-wrapper';
 
 export default function DropDownField({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { theme } = useFormState();
+    const { t } = useRespondentLanguage();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
 
     const form = useAppSelector(selectForm);
@@ -39,6 +42,8 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
     };
 
     const choiceValue = getSelectedValue();
+    const selectedChoiceId = formResponse?.answers?.[field.id]?.choice?.value;
+    const tokens = styleTokens(theme?.style);
 
     const handleClick = (choiceId: string) => {
         addFieldChoiceAnswer(field.id, choiceId);
@@ -56,8 +61,9 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                 color: theme?.primary
             };
         }
-        // Placeholder state: calm light border at rest, legible neutral text.
-        return { borderColor: '#E3E3E3', color: '#657085' };
+        // Placeholder state: the theme's border colour (3:1 on its ground),
+        // legible neutral text.
+        return { borderColor: theme?.tertiary || '#818CA0', color: '#667085' };
     };
 
     return (
@@ -70,16 +76,16 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                         affordance, a different species from the rest of the form. */}
                     <button
                         type="button"
-                        style={{ ...getTextStyle(), ['--hover-border' as string]: theme?.tertiary ?? '#8A94A6' }}
-                        className="flex w-full cursor-pointer items-center justify-between gap-4 rounded-md border bg-white px-4 py-3 text-left text-base outline-hidden transition duration-150 hover:border-(--hover-border)! hover:shadow-[0_1px_3px_rgba(16,24,38,0.10)] focus-visible:ring-2 lg:text-lg"
+                        style={{ ...getTextStyle(), borderRadius: tokens.inputRadius, ['--hover-border' as string]: theme?.primary ?? '#101828' }}
+                        className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg"
                     >
-                        <span className="truncate">{choiceValue ? choiceValue : 'Select an option'}</span>
+                        <span className="truncate">{choiceValue ? choiceValue : t('FIELD.SELECT_OPTION')}</span>
                         <ChevronDown className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                     </button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-2">
+                <CollapsibleContent className={tokens.ruledChoices ? '' : 'space-y-2'}>
                     {field.properties?.choices?.map((choice, index) => {
-                        return <Choice key={choice.id} index={index} isSelected={choice.id === choiceValue} theme={theme} choice={choice} onClick={handleClick} />;
+                        return <Choice key={choice.id} index={index} isSelected={!!selectedChoiceId && choice.id === selectedChoiceId} theme={theme} choice={choice} onClick={handleClick} />;
                     })}
                 </CollapsibleContent>
             </Collapsible>

@@ -31,7 +31,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     return (
         <div className={`flex min-w-[150px] flex-col gap-2 md:min-w-[186px] ${template?.builderVersion !== 'v2' && 'w-[150px]'}`}>
             <div
-                className={`border-black-200  hover:shadow-hover relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? 'h-[157px]! w-[281px]' : 'flex h-[170px] items-center justify-center bg-linear-to-b/srgb from-blue-400 to-blue-800 '
+                className={`border-black-300 hover:border-black-400 relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? 'h-[157px]! w-[281px]' : 'flex h-[170px] items-center justify-center bg-linear-to-b/srgb from-blue-400 to-blue-800 '
                     }`}
             // onClick={handleClickCard}
             >
@@ -80,7 +80,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                             onClick={() => setOpen(false)}
                             onInteractOutside={() => setOpen(false)}
                         >
-                            <ul className="list-none m-0 p-0 bg-white rounded shadow-input">
+                            <ul className="list-none m-0 p-0 bg-white rounded border border-black-300 shadow-large">
                                 {template?.builderVersion !== 'v2' && (
                                     <li
                                         onClick={(e) => {

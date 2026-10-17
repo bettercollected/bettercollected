@@ -274,7 +274,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             <div className={'flex gap-8'}>
                                 <Button
                                     data-umami-event="Customize Form Link Button"
-                                    data-umami-event-email={auth.email}
                                     className={'py-0!'}
                                     icon={<Pencil className="h-4 w-4" />}
                                     onClick={() => {
@@ -292,7 +291,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 {!form?.settings?.hidden && (
                                     <Button
                                         data-umami-event="Generate QR button"
-                                        data-umami-event-email={auth.email}
                                         className={'py-0!'}
                                         icon={<QrCode className="h-5 w-5" />}
                                         onClick={() => {
@@ -313,12 +311,11 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 );
             case 'DEFAULT':
                 return (
-                    <div className="divide-black-200 flex flex-col divide-y">
+                    <div className="divide-black-300 flex flex-col divide-y">
                         {form?.importedFormId && (
                             <SettingRow title="Show original form" description="Show the original Google Form in embed mode instead of the bettercollected renderer.">
                                 <Switch
                                     data-umami-event="Show Original Google Form Switch"
-                                    data-umami-event-email={auth.email}
                                     data-testid="show-original-form-switch"
                                     checked={!!form?.settings?.showOriginalForm}
                                     onCheckedChange={(checked) => {
@@ -331,7 +328,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             <SettingRow title="Require verified identity" description="Respondents must verify their email before they can fill out this form.">
                                 <Switch
                                     data-umami-event="Require Verified Identity Switch"
-                                    data-umami-event-email={auth.email}
                                     data-testid="require-verified-identity-switch"
                                     checked={!!form?.settings?.requireVerifiedIdentity}
                                     onCheckedChange={(checked) => {
@@ -344,7 +340,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             <SettingRow title="Show submission number" description="Respondents get a submission ID they can use to view their response and request its deletion.">
                                 <Switch
                                     data-umami-event="Show Submission Number Switch"
-                                    data-umami-event-email={auth.email}
                                     data-testid="show-submission-number-switch"
                                     checked={!!form?.settings?.showSubmissionNumber}
                                     onCheckedChange={(checked) => {
@@ -357,7 +352,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             <SettingRow title="Allow response editing" description="Verified responders can change their response after submitting.">
                                 <Switch
                                     data-umami-event="Allow Response Editing Switch"
-                                    data-umami-event-email={auth.email}
                                     data-testid="allow-response-editing-switch"
                                     checked={!!form?.settings?.allowEditingResponse}
                                     onCheckedChange={(checked) => {
@@ -378,7 +372,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             >
                                 <Switch
                                     data-umami-event="Respond To Submissions Switch"
-                                    data-umami-event-email={auth.email}
                                     data-testid="respondent-feedback-switch"
                                     checked={!!form?.settings?.respondentFeedbackEnabled}
                                     onCheckedChange={() => patchSettings({ respondentFeedbackEnabled: !form?.settings?.respondentFeedbackEnabled }, form)}
@@ -389,7 +382,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             <>
                                 {!form?.settings?.private && (
                                     <SettingRow title={t(formPage.pinFormTitle)} description={t(formPage.pinFormDescription)}>
-                                        <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onCheckedChange={(checked) => onPinnedChange(checked, form)} />
+                                        <Switch data-umami-event="Pin Form Switch" data-testid="pinned-switch" checked={!!form?.settings?.pinned} onCheckedChange={(checked) => onPinnedChange(checked, form)} />
                                     </SettingRow>
                                 )}
                                 <SettingRow
@@ -407,7 +400,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <Switch
                                         disabled={!isProPlan}
                                         data-umami-event="Disable Branding Switch"
-                                        data-umami-event-email={auth.email}
                                         data-testid="disable-branding-switch"
                                         checked={!form?.settings?.disableBranding}
                                         onCheckedChange={(checked) => onDisableBrandingChange(checked, form)}
@@ -420,7 +412,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 <SettingRow title={t(formPage.closeForm)} description={t(formPage.closeFormDescription)}>
                                     <Switch
                                         data-umami-event="Close Form Switch"
-                                        data-umami-event-email={auth.email}
                                         data-testid="close-form-switch"
                                         checked={closeFormChecked}
                                         onCheckedChange={(checked) => {
@@ -435,7 +426,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
                                     <Button
                                         data-umami-event="Select Form Close Date Button"
-                                        data-umami-event-email={auth.email}
                                         className="mb-4 w-fit"
                                         variant="ghost"
                                         onClick={() => {

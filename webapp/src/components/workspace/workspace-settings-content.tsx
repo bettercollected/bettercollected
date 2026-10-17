@@ -36,7 +36,7 @@ export default function WorkspaceSettingsContent({ initialIndex = 0, showUrlRow 
             <div className="h2-new text-black-800 mb-2">{t('WORKSPACE.SETTINGS.DEFAULT')}</div>
             <div className="p2-new text-black-700 mb-8 max-w-[520px]">{t('WORKSPACE.SETTINGS.DESCRIPTION')}</div>
 
-            <div className="border-black-300 flex space-x-1 overflow-x-auto border-b pb-0">
+            <div className="border-black-400 flex space-x-1 overflow-x-auto border-b pb-0">
                 {tabMenu.map((tab) => {
                     const isActive = activeTab === tab.path;
                     return (

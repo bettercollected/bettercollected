@@ -95,7 +95,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                         <p className="text-xs text-black-600">Until then, the import uses the built-in reader only. The draft may need more manual review.</p>
                     </div>
                 ) : aiUsable ? (
-                    <div className="rounded-md border border-black-200 p-3">
+                    <div className="rounded-md border border-black-300 p-3">
                         <label className="flex cursor-pointer items-start gap-2 text-sm text-black-800">
                             <input type="checkbox" className="mt-0.5" checked={aiConsent} onChange={(e) => setAiConsent(e.target.checked)} />
                             <span>Let {ai.provider} read this document to recognise the questions</span>

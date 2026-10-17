@@ -1,0 +1,17 @@
+{
+  "name": "gen_en_unusable_reply",
+  "kind": "generate",
+  "description": "A reply that is not a form (unknown question type) is refused.",
+  "language": "en",
+  "expect_invalid": true,
+  "expected_findings": [],
+  "reply": {
+    "title": "Broken",
+    "fields": [
+      {
+        "title": "Pick one",
+        "type": "slider"
+      }
+    ]
+  }
+}

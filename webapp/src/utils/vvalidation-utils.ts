@@ -7,6 +7,8 @@ import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dt
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
 import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
+import { compilePattern } from '@app/utils/answer-rules';
+import { hasAnswerValue } from '@app/utils/repeating-groups';
 
 /**
  * Validation method to check if the given value is undefined or not.
@@ -61,14 +63,14 @@ export const statusProps = (status: string, t: any) => {
     let dotCName = 'bg-black-600';
     if (normalized === 'pending') {
         currentStatus = t(formConstant.status.pending);
-        cName = 'bg-[#FBF3E4] text-[#B26B00]!';
-        dotCName = 'bg-[#B26B00]';
+        cName = 'bg-brand-accent-100 text-brand-olive!';
+        dotCName = 'bg-brand-accent';
     } else if (normalized === 'success' || normalized === 'deleted') {
         // The backend marks a fulfilled deletion request "success"; to the
         // person reading the table the fact is that the response is deleted.
         currentStatus = t('FORM.STATUS_DELETED');
-        cName = 'bg-[#E7F4EE] text-[#0E8A5F]!';
-        dotCName = 'bg-[#0E8A5F]';
+        cName = 'bg-[#E7F4EE] text-success-700!';
+        dotCName = 'bg-success';
     } else if (normalized === 'expired') {
         currentStatus = t(formConstant.status.expired);
     }
@@ -78,6 +80,8 @@ export const statusProps = (status: string, t: any) => {
         dotCName
     };
 };
+const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
 export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: AnswerDto) => {
     const errors: FormValidationError[] = [];
 
@@ -92,29 +96,32 @@ export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: Ans
         } else {
             if ((type === FormBuilderTagNames.INPUT_SHORT_TEXT || type === FormBuilderTagNames.INPUT_LONG_TEXT) && text) {
                 const textLength = text.length;
-                if (validations?.minLength && textLength < validations.minLength) {
+                if (isNumber(validations?.minLength) && textLength < validations.minLength) {
                     errors.push(FormValidationError.INSUFFICIENT_LENGTH);
                 }
-                if (validations?.maxLength && textLength > validations.maxLength) {
+                if (isNumber(validations?.maxLength) && textLength > validations.maxLength) {
                     errors.push(FormValidationError.EXCEEDS_MAX_LENGTH);
                 }
-                if (validations?.regex && text.match(validations.regex)) {
+                // An answer that does NOT match the pattern breaks the rule
+                // (this used to be inverted: matching answers were flagged).
+                const pattern = compilePattern(validations?.regex);
+                if (pattern && !pattern.test(text)) {
                     errors.push(FormValidationError.REGEX_PATTERN);
                 }
             } else if (type === FormBuilderTagNames.INPUT_NUMBER && number !== undefined) {
-                if (validations?.minValue && number < validations.minValue) {
+                if (isNumber(validations?.minValue) && number < validations.minValue) {
                     errors.push(FormValidationError.INSUFFICIENT_VALUE);
                 }
-                if (validations?.maxValue && number > validations.maxValue) {
+                if (isNumber(validations?.maxValue) && number > validations.maxValue) {
                     errors.push(FormValidationError.EXCEEDS_MAX_VALUE);
                 }
             } else if ((type === FormBuilderTagNames.INPUT_CHECKBOXES || type === FormBuilderTagNames.INPUT_MULTISELECT) && choices) {
                 const choicesLength = choices.values?.length || 0;
-                if (validations?.minChoices && choicesLength < validations.minChoices) {
+                if (isNumber(validations?.minChoices) && choicesLength < validations.minChoices) {
                     errors.push(FormValidationError.INSUFFICIENT_CHOICES);
                 }
-                if (validations?.maxChoices && choicesLength > validations.maxChoices) {
-                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                if (isNumber(validations?.maxChoices) && choicesLength > validations.maxChoices) {
+                    errors.push(FormValidationError.EXCEEDS_MAX_CHOICES);
                 }
             }
         }
@@ -280,6 +287,11 @@ export const validateConditionsAndReturnUpdatedForm = (formToUpdate: StandardFor
     return formToUpdate;
 };
 
+/**
+ * Required questions of a page that have no answer. An answer counts only
+ * when it carries a value (`hasAnswerValue`), the same test the server applies
+ * on submit (backend services/answer_validation.py).
+ */
 export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>) {
     const invalidFields: Record<string, Array<Invalidations>> = {};
     slide?.properties?.fields?.forEach((field) => {
@@ -288,16 +300,16 @@ export function validateSlide(slide: StandardFormFieldDto, answers: Record<strin
         if (field.type === FieldType.MATRIX && field?.validations?.required) {
             field.properties?.fields?.map((row: StandardFormFieldDto) => {
                 if (field.properties?.allowMultipleSelection) {
-                    if (!answers[row.id]?.choices.values.length) {
+                    if (!answers[row.id]?.choices?.values?.length) {
                         invalidFields[field.id] = [Invalidations.REQUIRED];
                     }
                 } else {
-                    if (!answers[row.id]) {
+                    if (!hasAnswerValue(answers[row.id])) {
                         invalidFields[field.id] = [Invalidations.REQUIRED];
                     }
                 }
             });
-        } else if (field?.validations?.required && !answers[field.id]) {
+        } else if (field?.validations?.required && !hasAnswerValue(answers[field.id])) {
             invalidFields[field.id] = [Invalidations.REQUIRED];
         }
     });

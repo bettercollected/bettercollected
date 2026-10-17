@@ -16,7 +16,7 @@ import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { selectAuthStatus } from '@app/store/auth/selectors';
-import { selectAuth, selectIsProPlan } from '@app/store/auth/slice';
+import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -49,7 +49,6 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         }
     };
     const auth = useAppSelector(selectAuthStatus);
-    const user = useAppSelector(selectAuth);
 
     const handleCreateWorkspace = () => {
         if (!enableCreateWorkspaceButton() || !isProPlan) {
@@ -150,7 +149,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                             <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(space)}</p>
                                         </div>
                                     </div>
-                                    {workspace.id === space.id && <Check color="#0764EB" />}
+                                    {workspace.id === space.id && <Check color="#123FC9" />}
                                 </div>
                             );
                         })
@@ -171,7 +170,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                     <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
                                 </div>
                             </div>
-                            <Check color="#0764EB" />
+                            <Check color="#123FC9" />
                         </div>
                     )}
                 </div>
@@ -179,7 +178,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                     <div>
                         <Divider className="my-2" />
                         <div
-                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-500! cursor-not-allowed' : 'text-black-800!'
+                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-600! cursor-not-allowed' : 'text-black-800!'
                                 }`}
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -188,7 +187,6 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                 setOpen(false);
                             }}
                             data-umami-event={'Create New Workspace Button'}
-                            data-umami-event-email={user.email}
                         >
                             <div className="flex items-center gap-3">
                                 <Plus />

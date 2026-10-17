@@ -1,0 +1,42 @@
+{
+  "name": "gen_en_one_choice",
+  "kind": "generate",
+  "description": "A multiple-choice question with a single option.",
+  "language": "en",
+  "expected_findings": [
+    "too_few_choices"
+  ],
+  "reply": {
+    "title": "Lunch order",
+    "description": "Order your lunch for the team day.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Your order",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "Which sandwich would you like?",
+              "type": "multiple_choice",
+              "properties": {
+                "choices": [
+                  "Cheese"
+                ]
+              }
+            },
+            {
+              "title": "Do you have any allergies?",
+              "type": "long_text"
+            },
+            {
+              "title": "Would you like a drink with it?",
+              "type": "yes_no"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

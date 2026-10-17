@@ -48,6 +48,14 @@ export interface StandardFormFieldProperties {
     dateRules?: DateRule[];
     /** "Why we ask this": the creator's reason for an identifying question, shown to respondents under it (see utils/publish-checks.ts). */
     whyWeAsk?: string;
+    /**
+     * A question page's own section title (plain text, at most 120
+     * characters): what the Leaflet section bar and the welcome page's
+     * contents list show, before the page's opening heading and its first
+     * question (utils/leaflet-sections.ts). '' clears it on a save; leaving
+     * it out keeps the stored one.
+     */
+    sectionTitle?: string;
 }
 
 export interface StandardFormFieldDto {
@@ -61,11 +69,11 @@ export interface StandardFormFieldDto {
     title?: string | JSONContent;
     description?: string | null;
     type:
-    | {
-        type: string;
-        options: Array<any>;
-    }
-    | any;
+        | {
+              type: string;
+              options: Array<any>;
+          }
+        | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
     isGroupQuestion?: boolean;
@@ -198,6 +206,10 @@ export interface StandardFormDto {
     modifiedTime?: string | Date;
     coverImage?: string;
     logo?: string;
+    /** Organisation logo settings (utils/form-logo.ts). */
+    logoPosition?: 'left' | 'center' | 'auto';
+    logoAlt?: string;
+    useWorkspaceLogo?: boolean;
     createdAt?: string;
     updatedAt?: string;
     actions?: any;

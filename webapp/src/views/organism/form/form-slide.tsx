@@ -1,27 +1,39 @@
 'use client';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { FormSlideLayout } from '@app/models/enums/form';
+import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { Button } from '@app/shadcn/components/ui/button';
-import { FieldInput } from '@app/shadcn/components/ui/input';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
+import { selectResponderForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
-import { getFlowSessionId } from '@app/utils/flow-session';
-import { getInputFieldsById } from '@app/utils/answer-piping';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
+import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
+import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
-import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
+import { getFlowSessionId } from '@app/utils/flow-session';
+import { ResolvedFormLogo } from '@app/utils/form-logo';
+import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
+import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
+import { scrollToDivById } from '@app/utils/scroll-utils';
+import { firstPageWithError, historyBackTo, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 import { validateSlide } from '@app/utils/vvalidation-utils';
-import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
+import BackButton from '@app/views/molecules/form-builder/back-button';
+import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
@@ -30,24 +42,20 @@ import LinearRatingField from '@app/views/molecules/responder-form-fields/linear
 import MultipleChoiceField from '@app/views/molecules/responder-form-fields/multiple-choice-field';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/responder-form-fields/multiple-choice-with-multiple-selections';
 import PhoneNumberField from '@app/views/molecules/responder-form-fields/phone-number-field';
+import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
 import QuestionWrapper from '@app/views/molecules/responder-form-fields/question-wrapper';
 import RatingField from '@app/views/molecules/responder-form-fields/rating-field';
-import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
-
-import { selectResponderForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { scrollToDivById } from '@app/utils/scroll-utils';
-import BackButton from '@app/views/molecules/form-builder/back-button';
+import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repeating-group-field';
+import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
 import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
+import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
+import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
+
 import ImageField from '../form-builder/fields/image-field';
 import MatrixField from '../form-builder/fields/matrix';
 import VideoField from '../form-builder/fields/video-field';
-import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
+import { FORM_COLUMN, FORM_GUTTER, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
-import { Shield } from 'lucide-react';
-import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repeating-group-field';
-import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 
 // A #rrggbb page colour at ~90% opacity; anything else (unset, named colours)
 // falls back to a translucent white.
@@ -105,8 +113,9 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
     }
 }
 
-export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean }) {
+export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout, logo }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean; logo?: ResolvedFormLogo | null }) {
     const { toast } = useToast();
+    const { t, language } = useRespondentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
@@ -120,7 +129,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const { files } = useFormAtom();
     const authState = useAppSelector(selectAuth);
 
-    // Identity sharing is opt-in (Design-Language §5 — "leave consent unchecked;
+    // Identity sharing is opt-in (DESIGN.md §5 — "leave consent unchecked;
     // the person opts in"): until the responder touches the checkbox, a logged-in
     // responder on an identity-optional form stays anonymous. Forms that require
     // a verified identity keep it attached, as they state up front.
@@ -155,7 +164,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             body: formData
         });
         if (!response.data) {
-            throw new Error(response?.error);
+            const failure: Error & { response?: unknown } = new Error('The response was not accepted.');
+            failure.response = response?.error;
+            throw failure;
         }
         // Reflect what was actually submitted, so the thank-you page reports
         // the anonymity state truthfully.
@@ -168,6 +179,34 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // Fields hidden by conditional logic given the answers so far. Recomputed each
     // render, so the form reacts live as the responder answers earlier questions.
     const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
+    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id));
+
+    // Leaflet: the page is a numbered section (its position in the form, the
+    // same number "Page x of y" shows) and its questions are numbered among
+    // the ones visible now (utils/leaflet-sections.ts).
+    const leaflet = styleTokens(standardForm?.theme?.style).key === 'leaflet';
+    const pageLayout = formSlide?.properties?.layout;
+    const section = leaflet
+        ? leafletSection(
+              visibleFields.map((field, position) =>
+                  position === 0 && field.type === FieldTypes.TEXT ? { ...field, title: resolvePipesInTitle(field.title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues }) as any } : field
+              ),
+              t('LEAFLET.SECTION', { n: index + 1 }),
+              formSlide?.properties?.sectionTitle
+          )
+        : null;
+    const pageFields = section?.openingTextId ? visibleFields.filter((field) => field.id !== section.openingTextId) : visibleFields;
+    // Leaflet always numbers its questions; other styles when the form has
+    // question numbering on (utils/question-numbering.ts).
+    const numbering = leaflet
+        ? { numbers: questionNumbers(pageFields, index + 1), hang: leafletNumbersHang(pageLayout) }
+        : formSlide?.properties?.showQuestionNumbers
+          ? { numbers: plainQuestionNumbers(pageFields, index + 1, hasSeveralPages(standardForm?.fields)), hang: false, plain: true }
+          : null;
+    const theme = standardForm?.theme;
+    const marginVar = numbering ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbering.numbers, index + 1)}px` } as React.CSSProperties) : undefined;
+    // The header's words in the action colour where it reads as text on the page.
+    const leafletHeaderInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
@@ -188,8 +227,31 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     });
                 })
                 .catch((e) => {
-                    toast({ description: 'Error Submitting Response', variant: 'destructive' });
+                    if (!showServerAnswerErrors(e?.response)) toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
                 });
+    };
+
+    // The server refused some answers (422 invalid_answers): put its problems
+    // on the questions and go back to the first page that has one.
+    const showServerAnswerErrors = (error: unknown): boolean => {
+        const errors = serverAnswerErrors(error);
+        if (!errors) return false;
+        const slides = standardForm?.fields ?? [];
+        const invalid = serverInvalidations(slides, errors);
+        setInvalidFields(invalid);
+        toast({ description: t('NAV.SUBMIT_INVALID'), variant: 'destructive' });
+        const page = firstPageWithError(slides, errors);
+        if (page >= 0 && page !== currentSlide) {
+            setResponderState({ ...responderState, currentSlide: page, currentField: 0, prevActiveField: -1, prevActiveSlide: currentSlide, history: historyBackTo(responderState.history, currentSlide, page) });
+        }
+        const firstKey = Object.keys(invalid)[0];
+        // after the page change has rendered; as onNext does
+        if (firstKey)
+            setTimeout(() => {
+                if (parseScopedFieldId(firstKey)) document.getElementById(firstKey)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+                else scrollToDivById(firstKey);
+            }, 600);
+        return true;
     };
 
     const onNext = () => {
@@ -201,6 +263,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             // (keyed by the item-scoped id the question renders under).
             ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {})
         };
+        // Answer rules (length, format, value range, number of options) on
+        // answers given; a missing one is Required's to report.
+        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {})).forEach(([id, problems]) => {
+            if (!invalidations[id]) invalidations[id] = problems as any;
+        });
         // Date rules (e.g. "after Start date"), on top of a missing answer.
         Object.entries(validateDateRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, getInputFieldsById(standardForm?.fields))).forEach(([id, problems]) => {
             invalidations[id] = [...(invalidations[id] ?? []), ...problems] as any;
@@ -247,96 +314,128 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     return (
         <Controller>
-            <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
+            <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled topAligned={leaflet} logo={logo}>
                 {/* The bar sits over the scrolling questions: give it the page's
                     ground (translucent + blur, so it also works over gradient or image
                     backgrounds) or questions scroll through the header text. */}
-                <div className="absolute left-0 right-0 top-0 z-10 mx-auto w-full pb-3 pt-5 backdrop-blur-sm" style={{ background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent) }}>
-                    <div className="px-5 md:px-8 xl:px-10 2xl:px-20">
-                        <div className={`flex w-full max-w-[800px] items-center justify-between gap-3 px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
+                <div
+                    className={cn('backdrop-blur-sm absolute top-0 right-0 left-0 z-10 mx-auto w-full', leaflet ? 'flex h-14 items-center border-b' : 'pt-5 pb-3')}
+                    style={{
+                        background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent),
+                        ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {})
+                    }}
+                >
+                    {/* Same gutter and column as the questions below, so Back
+                        and the progress line up with the fields' edges. */}
+                    <div className={cn(FORM_GUTTER, 'w-full')}>
+                        <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'flex items-center justify-between gap-3')}>
                             <BackButton
+                                label={t('NAV.BACK')}
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
-                                className=" w-fit bg-inherit!"
+                                // -ml-1.5 puts the chevron, not the button's padding, on the column edge;
+                                // 44px tall, a full touch target.
+                                className="-ml-1.5 min-h-11 w-fit bg-inherit!"
                                 style={{
-                                    background: standardForm?.theme?.accent
+                                    background: standardForm?.theme?.accent,
+                                    // The theme's ink, not a fixed grey: a fixed neutral fell
+                                    // under 4.5:1 on tinted grounds (4.09:1 on Ocean).
+                                    color: leaflet ? leafletHeaderInk : standardForm?.theme?.primary
                                 }}
                             />
-                            {/* Provenance + progress where the eye starts (Design-Language §3):
+                            {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
-                            <div className="text-black-700 flex items-center gap-3 text-[13px]">
+                            <div className="flex items-center gap-3 text-[13px]" style={{ color: leaflet ? leafletHeaderInk : standardForm?.theme?.primary }}>
                                 {(workspace?.title || workspace?.workspaceName) && (
-                                    <span className="border-black-300 text-black-800 hidden items-center gap-1.5 rounded-full border bg-white/85 px-2.5 py-0.5 font-medium sm:inline-flex">
-                                        <Shield className="text-brand-500 h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+                                    <span className="hidden items-center gap-1.5 rounded-full border border-black-400 bg-white/85 px-2.5 py-0.5 font-medium text-black-800 sm:inline-flex">
+                                        <Shield className="h-3.5 w-3.5 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                                         {workspace?.title || workspace?.workspaceName}
                                     </span>
                                 )}
-                                <span className="whitespace-nowrap tabular-nums">
-                                    Page {Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1)} of {standardForm?.fields?.length || 1}
+                                <span className="font-medium whitespace-nowrap tabular-nums" lang={language}>
+                                    {t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
-                    {/* 48px/64px between question groups (~6-8× the 8px gap inside a
-                        group) — 120px broke proximity grouping: pairs read as
-                        separate screens, and long pages scrolled far more than
-                        their content needed. */}
-                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 py-[60px] lg:grid lg:grid-cols-12 lg:content-center lg:gap-x-6 lg:gap-y-[56px]', isPreviewMode ? '' : 'lg:px-10')}>
-                        {formSlide?.properties?.fields
-                            ?.filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id))
-                            .map((field: StandardFormFieldDto) => (
-                                // 12-grid width on desktop: adjacent spans that fit pack
-                                // into one row (two 6s sit side by side); mobile stays a
-                                // flex column, where the span style is inert.
-                                <div key={field.id} className="min-w-0" style={{ gridColumn: `span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))} / span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))}` }}>
-                                    <FormFieldComponent field={field} slideIndex={formSlide!.index} />
-                                </div>
-                            ))}
-                        <div style={{ gridColumn: 'span 12 / span 12' }}>
-                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
-                                <div className="flex flex-col lg:mb-4 ">
-                                    {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                        // Consent gets a calm, legible home of its own (Design-Language §2/§4):
-                                        // 15px/1.5, high contrast, green-tinted container — and unchecked by
-                                        // default, so sharing identity is a choice the person makes.
-                                        <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-lg border border-[#BFE0D2] bg-[#F2FAF6] p-4">
-                                            <FieldInput
-                                                checked={!effectiveAnonymize}
-                                                onChange={(e: any) => {
-                                                    setFormResponse({
-                                                        ...formResponse,
-                                                        anonymize: !e.target.checked
-                                                    });
-                                                }}
-                                                type="checkbox"
-                                                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-hidden"
-                                            />
-                                            <span className="flex flex-col gap-0.5">
-                                                <span className="text-black-900 text-[15px] font-medium leading-relaxed">Share my email with the form collector</span>
-                                                <span className="text-black-700 text-[13px]">
-                                                    {authState?.email} — leave unchecked and your response stays anonymous.
-                                                </span>
-                                            </span>
-                                        </label>
-                                    )}
-                                </div>
-                            )}
-                            <Button
-                                style={{
-                                    background: standardForm.theme?.secondary,
-                                    color: 'white'
-                                }}
-                                isLoading={isLoading}
-                                className="mt-4 rounded-lg px-8 py-3 text-base font-semibold"
-                                onClick={onNext}
-                                size="medium"
-                            >
-                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit response' : 'Continue'}
-                            </Button>
-                        </div>
+                {/* Leaflet: the numbered section bar and the intro band, full
+                    width, straight under the header (pt-14 clears it). */}
+                {leaflet && section && (
+                    <div className="pt-14" style={marginVar}>
+                        <LeafletSectionBar theme={theme} numeral={index + 1} title={section.shortTitle} fullTitle={section.title} layout={pageLayout} />
+                        {section.intro && (
+                            <LeafletIntroBand theme={theme} layout={pageLayout}>
+                                <FormFieldComponent field={section.intro} slideIndex={formSlide!.index} />
+                            </LeafletIntroBand>
+                        )}
+                    </div>
+                )}
+                {/* The page's questions in the form column (form-column.ts); the
+                    layout wrapper centres a short page vertically and lets a long
+                    one scroll from the top. pt-12 clears the header bar above.
+                    48px between questions (~6× the 8px inside a question). */}
+                <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6', leaflet ? 'gap-10 pt-7 lg:gap-y-10' : 'gap-12 pt-12 lg:gap-y-12')} style={marginVar}>
+                    <QuestionNumberContext.Provider value={numbering}>
+                        {pageFields.map((field: StandardFormFieldDto, position: number) => (
+                            // 12-grid width on desktop: adjacent spans that fit pack
+                            // into one row (two 6s sit side by side); mobile stays a
+                            // flex column, where the span style is inert.
+                            <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, position === pageFields.length - 1))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
+                                <FormFieldComponent field={field} slideIndex={formSlide!.index} />
+                            </div>
+                        ))}
+                    </QuestionNumberContext.Provider>
+                    {/* The button belongs to the last answer: 32px above it,
+                        a little closer than the 48px between questions. */}
+                    <div
+                        // Leaflet: the button lines up with the question text, past the margin column.
+                        className={cn('-mt-4 flex flex-col items-start gap-4', leaflet && 'ml-[var(--leaflet-margin,34px)]', leaflet && numbering?.hang && '@min-[880px]/page:ml-0')}
+                        style={{ gridColumn: 'span 12 / span 12' }}
+                    >
+                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
+                            <>
+                                {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
+                                    // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
+                                    // 15px/1.5, high contrast, green-tinted container — and unchecked by
+                                    // default, so sharing identity is a choice the person makes.
+                                    <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-[8px] border border-[#BFE0D2] bg-[#F2FAF6] p-4">
+                                        {/* A real checkbox, not the text-field component: that one paints a
+                                            solid white background, which hid the tick when checked. */}
+                                        <input
+                                            checked={!effectiveAnonymize}
+                                            onChange={(e) => {
+                                                setFormResponse({
+                                                    ...formResponse,
+                                                    anonymize: !e.target.checked
+                                                });
+                                            }}
+                                            type="checkbox"
+                                            data-testid="share-email-consent"
+                                            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-[4px] border-2 border-control text-[#0E8A5F] checked:border-[#0E8A5F]"
+                                        />
+                                        <span className="flex flex-col gap-0.5">
+                                            <span className="text-[15px] leading-relaxed font-medium text-black-900">{t('CONSENT.SHARE_EMAIL')}</span>
+                                            <span className="text-[13px] text-black-700">{t('CONSENT.SHARE_EMAIL_HINT', { email: authState?.email })}</span>
+                                        </span>
+                                    </label>
+                                )}
+                            </>
+                        )}
+                        <Button
+                            flat
+                            style={{
+                                background: standardForm.theme?.secondary,
+                                color: 'white'
+                            }}
+                            isLoading={isLoading}
+                            className={cn('min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
+                            onClick={onNext}
+                            size="medium"
+                        >
+                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? t('NAV.SUBMIT') : t('NAV.CONTINUE')}
+                        </Button>
                     </div>
                 </div>
             </SlideLayoutWrapper>

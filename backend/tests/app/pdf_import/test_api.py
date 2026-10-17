@@ -1001,7 +1001,12 @@ async def test_every_kind_of_failed_import_says_why_and_leaves_no_draft(
     if change and change[0] == "stage":
         pipeline.stages = lambda: [("analyze", change[1])]
     lines = []
-    sink = logger.add(lambda message: lines.append(str(message)), level="DEBUG")
+    # diagnose=False as in production (handlers/__init__.py): with it on,
+    # loguru prints local values such as memory addresses, which can contain
+    # "4711" by chance.
+    sink = logger.add(
+        lambda message: lines.append(str(message)), level="DEBUG", diagnose=False
+    )
     try:
         before = await _forms_in(workspace)
         response = await upload(

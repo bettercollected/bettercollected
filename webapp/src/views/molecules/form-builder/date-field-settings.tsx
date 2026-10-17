@@ -65,18 +65,18 @@ export default function DateFieldSettings({
                         if (next !== (field.properties?.label ?? '')) onChange({ label: next || undefined });
                     }}
                 />
-                <span className="text-[11px] text-black-500">Shown above the date picker, apart from the question.</span>
+                <span className="text-[11px] text-black-600">Shown above the date picker, apart from the question.</span>
             </label>
 
             <div className="flex flex-col gap-2">
                 <div>
                     <div className="text-xs font-medium text-black-700">Date rules</div>
-                    <div className="text-[11px] text-black-500">Dates outside the rules can&apos;t be picked. A rule on another question applies once it is answered.</div>
+                    <div className="text-[11px] text-black-600">Dates outside the rules can&apos;t be picked. A rule on another question applies once it is answered.</div>
                 </div>
                 {rules.map((rule, index) => {
                     const known = rule.target !== 'field' || sources.some((s) => s.id === rule.fieldId);
                     return (
-                        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-black-200 bg-white p-2" data-testid="date-rule">
+                        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-black-300 bg-white p-2" data-testid="date-rule">
                             <div className="flex items-center gap-1.5">
                                 <span className="shrink-0 text-xs text-black-600">Must be</span>
                                 <select aria-label={`Rule ${index + 1} comparison`} className={selectClass} value={rule.comparison} onChange={(e) => patchRule(index, { ...rule, comparison: e.target.value as DateRuleComparison })}>
@@ -86,7 +86,7 @@ export default function DateFieldSettings({
                                         </option>
                                     ))}
                                 </select>
-                                <button type="button" className="shrink-0 rounded p-1 text-black-500 hover:text-black-800" aria-label={`Remove rule ${index + 1}`} onClick={() => saveRules(rules.filter((_, i) => i !== index))}>
+                                <button type="button" className="shrink-0 rounded p-1 text-black-600 hover:text-black-800" aria-label={`Remove rule ${index + 1}`} onClick={() => saveRules(rules.filter((_, i) => i !== index))}>
                                     <X className="h-3.5 w-3.5" />
                                 </button>
                             </div>
@@ -116,7 +116,7 @@ export default function DateFieldSettings({
                         + Add date rule
                     </button>
                 )}
-                {sources.length === 0 && <span className="text-[11px] text-black-500">{sourceHint}</span>}
+                {sources.length === 0 && <span className="text-[11px] text-black-600">{sourceHint}</span>}
             </div>
         </div>
     );

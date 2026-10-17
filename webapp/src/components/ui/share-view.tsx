@@ -27,7 +27,7 @@ interface Props {
 const SocialButton = ({ children }: { children: ReactNode }) => (
     <span
         aria-hidden="true"
-        className="border-black-200 text-black-700 hover:border-brand-300 hover:bg-brand-100 flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-colors"
+        className="border-black-300 text-black-700 hover:border-brand-300 hover:bg-brand-100 flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-colors"
     >
         {children}
     </span>
@@ -56,10 +56,10 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
             {showCopy && (
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="border-black-300 bg-black-100 flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3.5 py-3">
-                        <span className="text-black-800 min-w-0 flex-1 truncate text-sm" title={url}>
+                        <span className="text-black-800 min-w-0 flex-1 truncate font-mono text-[13px]" title={url}>
                             {url}
                         </span>
-                        <a href={url} target="_blank" rel="noopener noreferrer" aria-label="Open form in a new tab" className="text-black-500 hover:text-brand-500 shrink-0 transition-colors">
+                        <a href={url} target="_blank" rel="noopener noreferrer" aria-label="Open form in a new tab" className="text-black-600 hover:text-brand-500 shrink-0 transition-colors">
                             <ExternalLink className="h-4 w-4" />
                         </a>
                     </div>

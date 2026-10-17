@@ -26,7 +26,7 @@ const AnalyticsDataTable: React.FC<DataTableProps> = ({ title, data, showCountry
     };
 
     return (
-        <div className="rounded-lg bg-white p-4 shadow-md">
+        <div className="rounded border border-black-300 bg-white p-4">
             <h3 className="mb-4 text-xl font-semibold">{title}</h3>
             <ul>
                 {data.map((item, index) => {

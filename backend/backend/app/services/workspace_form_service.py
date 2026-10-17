@@ -19,8 +19,10 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from fastapi import UploadFile
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 
+from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
@@ -42,8 +44,18 @@ from backend.app.services.actions_service import ActionService
 from backend.app.services.ai.notice_token import stamp_response as stamp_ai_notice
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
+from backend.app.services.form_images import check_form_images
+from backend.app.services.form_logo import (
+    CheckedLogo,
+    logo_extension_of,
+    logo_folder,
+    logo_key,
+    read_logo_upload,
+)
+from backend.app.services.form_concurrency import ensure_not_changed_since
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.answer_validation import answer_ids, check_answers
 from backend.app.services.date_rules import today_range, validate_date_rule_answers
 from backend.app.services.form_service import FormService
 from backend.app.services.internal_fields import (
@@ -56,7 +68,7 @@ from backend.app.services.publish_checks import (
     PUBLISH_CHECKS_VERSION,
     ensure_publishable,
 )
-from backend.app.services.policy_url import checked_policy_url
+from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.retention import checked_retention, submission_expiry
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -81,6 +93,23 @@ def _unprocessable_unless(check, *args):
         return check(*args)
     except ValueError as error:
         raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+
+
+def _check_ending_links(form, drop_unusable: bool, keep_as_is=()) -> None:
+    """Every ending page's button link must be an absolute http(s) URL (422
+    otherwise). A copy (``drop_unusable``) drops an unusable link instead, and
+    so does an edit that sends back a link the form already had
+    (``keep_as_is``): it was stored before this rule and is no change."""
+    for page in getattr(form, "thankyou_page", None) or []:
+        try:
+            link = checked_button_link(page.buttonLink)
+        except ValueError as error:
+            if drop_unusable or page.buttonLink in keep_as_is:
+                page.buttonLink = None
+                continue
+            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+        if link is not None:
+            page.buttonLink = link
 
 
 def _usable_settings(form_settings: StandardFormSettings, drop_unusable: bool):
@@ -140,6 +169,26 @@ def _apply_retention_update(stored, incoming: StandardFormSettings) -> None:
     kind, value = _unprocessable_unless(checked_retention, kind, value, dt.date.today())
     stored.response_expiration_type = kind
     stored.response_expiration = value
+
+
+def keep_section_titles(form, stored) -> None:
+    """Settle each page's section title on a save. A page whose properties
+    leave it out (None: an older client, or an API caller that doesn't know
+    it) keeps the stored title; an empty or blank one clears it; anything
+    else is stored trimmed."""
+    titles = {
+        page.id: page.properties.section_title
+        for page in (getattr(stored, "fields", None) or [])
+        if page.properties is not None and page.properties.section_title
+    }
+    for page in form.fields or []:
+        properties = page.properties
+        if properties is None:
+            continue
+        if properties.section_title is None:
+            properties.section_title = titles.get(page.id)
+        else:
+            properties.section_title = properties.section_title.strip() or None
 
 
 class WorkspaceFormService:
@@ -365,6 +414,7 @@ class WorkspaceFormService:
             form_id=form_id
         )
         self._aws_service.delete_folder_from_s3(f"private/{workspace_id}/{form_id}")
+        self._aws_service.delete_folder_from_s3(logo_folder(str(form_id)))
         if with_imports and self._pdf_import_repo is not None:
             await self._pdf_import_repo.delete_by_form_ids([form_id])
 
@@ -496,6 +546,7 @@ class WorkspaceFormService:
         logo: UploadFile = None,
         cover_image: UploadFile = None,
         drop_unusable_settings: bool = False,
+        keep_theme: bool = False,
     ):
         """Create a form in the workspace.
 
@@ -504,12 +555,20 @@ class WorkspaceFormService:
         that has passed) or a policy link that isn't http(s) is left out
         (answers are kept until deleted, no link) instead of refusing the
         copy. A form described by its creator gets a 422 for those.
+
+        A form that brings no theme starts with the new-form theme
+        (constants/themes.py NEW_FORM_THEME); ``keep_theme`` is for a copy (a
+        template), which keeps its source's theme, or none.
         """
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        _check_ending_links(form, drop_unusable=drop_unusable_settings)
+        # first-party images only (services/form_images.py); a copy drops
+        # the others instead of refusing
+        check_form_images(form, None, drop=drop_unusable_settings)
         settings = (
             form.settings
             if form.settings
@@ -524,14 +583,19 @@ class WorkspaceFormService:
         retention_type, retention_value, policy_url = _usable_settings(
             settings, drop_unusable=drop_unusable_settings
         )
+        checked_logo = await read_logo_upload(logo) if logo else None
         form.form_id = str(PydanticObjectId())
+        if form.theme is None and not keep_theme:
+            form.theme = new_form_theme()
+        keep_section_titles(form, None)
 
-        if logo:
-            logo_url = await self._aws_service.upload_file_to_s3(
-                file=logo.file,
-                key=form.form_id + f"_logo{os.path.splitext(logo.filename)[1]}",
-            )
-            form.logo = logo_url
+        if checked_logo:
+            form.logo = self._store_logo(form.form_id, checked_logo)
+        else:
+            # A logo named in the body (a template's, a copied form's) is
+            # copied into this form's own folder; one that is not in our
+            # storage is dropped, so a respondent page never fetches it.
+            form.logo = self._copy_logo(form.form_id, form.logo)
         if cover_image:
             cover_image_url = await self._aws_service.upload_file_to_s3(
                 file=cover_image.file,
@@ -576,12 +640,21 @@ class WorkspaceFormService:
         user: User,
         logo: UploadFile = None,
         cover_image: UploadFile = None,
+        expected_updated_at: Optional[dt.datetime] = None,
     ):
+        """``expected_updated_at``: the draft's ``updated_at`` as the caller
+        last saw it; when the stored draft is newer the save is refused with
+        409 (form_concurrency.py). None skips the check.
+
+        With it, the form is written conditionally, and the settings only
+        after that write succeeded: a save refused at the write (another save
+        landed in between) leaves the settings untouched too."""
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        await self._check_ending_links_on_update(form, form_id)
         workspace_form = await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)
         )
@@ -589,6 +662,17 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
+        existing_form = await self.form_service.get_form_document_by_id(str(form_id))
+        # Before anything is written, settings included.
+        ensure_not_changed_since(
+            existing_form.updated_at if existing_form else None, expected_updated_at
+        )
+        # first-party images only; an address the draft already holds is kept
+        # (services/form_images.py).
+        check_form_images(form, existing_form)
+        # Settings are checked and applied here but stored after the form:
+        # the form's conditional write is what can still refuse the save.
+        settings_changed = bool(form.settings)
         if form.settings:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
@@ -603,19 +687,16 @@ class WorkspaceFormService:
                     checked_policy_url, form.settings.privacy_policy_url
                 )
             _apply_retention_update(workspace_form.settings, form.settings)
-            await self.workspace_form_repository.save(workspace_form)
 
-        existing_form = await self.form_service.get_form_document_by_id(str(form_id))
+        keep_section_titles(form, existing_form)
 
+        # The logo changes only through an upload (here or the logo endpoint)
+        # or its removal, never to a URL a client sends.
         if logo:
-            logo_url = await self._aws_service.upload_file_to_s3(
-                file=logo.file,
-                key=str(form_id) + f"_logo{os.path.splitext(logo.filename)[1]}",
-                previous_image=existing_form.logo,
-            )
-            form.logo = logo_url
+            checked_logo = await read_logo_upload(logo)
+            form.logo = self._store_logo(str(form_id), checked_logo)
         else:
-            form.logo = form.logo if form.logo is not None else existing_form.logo
+            form.logo = existing_form.logo
         if cover_image:
             cover_image_url = await self._aws_service.upload_file_to_s3(
                 file=cover_image.file,
@@ -629,7 +710,111 @@ class WorkspaceFormService:
                 if form.cover_image is not None
                 else existing_form.cover_image
             )
-        return await self.form_service.update_form(form_id=form_id, form=form)
+        if expected_updated_at is None:
+            updated = await self.form_service.update_form(form_id=form_id, form=form)
+        else:
+            try:
+                updated = await self.form_service.update_form_if_unchanged(
+                    form_id=form_id, form=form, expected_updated_at=expected_updated_at
+                )
+            except HTTPException:
+                # nothing was written: drop the logo this save uploaded
+                if logo:
+                    await self._release_logo(str(form_id), form.logo)
+                raise
+        if settings_changed:
+            await self.workspace_form_repository.save(workspace_form)
+        if logo and existing_form.logo != form.logo:
+            await self._release_logo(str(form_id), existing_form.logo)
+        return updated
+
+    # -- the organisation logo (services/form_logo.py) --------------------------
+
+    def _store_logo(self, form_id: str, checked: CheckedLogo) -> str:
+        return self._aws_service.put_public_object(
+            body=checked.data,
+            key=logo_key(form_id, checked.extension),
+            content_type=checked.content_type,
+        )
+
+    def _copy_logo(self, owner: str, url: Optional[str]) -> Optional[str]:
+        """A copy of one of our logos for ``owner``, so that removing it from
+        one form or template never breaks another; None for anything else."""
+        if not url or not self._aws_service.public_key_of(url):
+            return None
+        return self._aws_service.copy_public_object(
+            url, logo_key(owner, logo_extension_of(url))
+        )
+
+    async def _release_logo(self, form_id: str, url: Optional[str]) -> None:
+        """Delete a logo the form no longer shows: unless the draft or the
+        live (latest published) version still uses it."""
+        if not url or not self._aws_service.public_key_of(url):
+            return
+        draft = await self.form_service.get_form_document_by_id(str(form_id))
+        if draft is not None and draft.logo == url:
+            return
+        latest = await self._form_repo.get_latest_version_of_form(form_id)
+        if latest is not None and latest.logo == url:
+            return
+        if not self._aws_service.delete_public_object(url):
+            logger.warning("A released form logo could not be deleted.")
+
+    async def _form_in_workspace_for_edit(self, workspace_id, form_id, user):
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
+        )
+        workspace_form = await self.workspace_form_repository.find_workspace_form(
+            workspace_id, str(form_id)
+        )
+        if not workspace_form:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
+            )
+        form = await self.form_service.get_form_document_by_id(str(form_id))
+        if form is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
+            )
+        return form
+
+    async def set_form_logo(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        logo: UploadFile,
+        user: User,
+    ):
+        """Upload or replace the draft's organisation logo."""
+        form = await self._form_in_workspace_for_edit(workspace_id, form_id, user)
+        checked = await read_logo_upload(logo)
+        previous = form.logo
+        url = self._store_logo(str(form_id), checked)
+        updated = await self._form_repo.set_form_logo(str(form_id), url)
+        await self._release_logo(str(form_id), previous)
+        return updated
+
+    async def remove_form_logo(
+        self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
+    ):
+        """Unlink the draft's logo; its file goes once the live version no
+        longer shows it either (at the next publish)."""
+        form = await self._form_in_workspace_for_edit(workspace_id, form_id, user)
+        previous = form.logo
+        updated = await self._form_repo.set_form_logo(str(form_id), None)
+        await self._release_logo(str(form_id), previous)
+        return updated
+
+    async def _check_ending_links_on_update(self, form, form_id) -> None:
+        try:
+            _check_ending_links(form, drop_unusable=False)
+        except HTTPException:
+            stored = await self.form_service.get_form_document_by_id(str(form_id))
+            stored_links = {
+                page.buttonLink
+                for page in (getattr(stored, "thankyou_page", None) or [])
+            }
+            _check_ending_links(form, drop_unusable=False, keep_as_is=stored_links)
 
     async def upload_files_to_s3_and_update_url(
         self,
@@ -733,6 +918,16 @@ class WorkspaceFormService:
                 or {}
             )
         merged.update(response.answers or {})
+        # Required, answer rules and types (services/answer_validation.py) on
+        # the answers after the edit, reported for what this edit touches.
+        # CPU-bound (creator patterns): off the event loop.
+        await run_in_threadpool(
+            check_answers,
+            form,
+            merged,
+            str(form_id),
+            only=list((response.answers or {}).keys()),
+        )
         _check_date_rules(
             form,
             merged,
@@ -834,6 +1029,17 @@ class WorkspaceFormService:
         # Respondents fill the published version; check against what they saw.
         response.answers = _checked_group_answers(
             latest_version_of_form or form, response.answers
+        )
+        # Required, answer rules and types (services/answer_validation.py).
+        # Answers may use the ids of the draft and the published version:
+        # anything else is not a question of this form.
+        # CPU-bound (creator patterns): off the event loop.
+        await run_in_threadpool(
+            check_answers,
+            latest_version_of_form or form,
+            response.answers,
+            str(form_id),
+            known_ids=answer_ids(form, latest_version_of_form),
         )
         _check_date_rules(latest_version_of_form or form, response.answers)
         # Files go up only once the submission is known to be accepted, so a
@@ -938,7 +1144,12 @@ class WorkspaceFormService:
             ),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
-        return await self.form_service.publish_form(form_id=form_id)
+        previous = await self._form_repo.get_latest_version_of_form(form_id)
+        published = await self.form_service.publish_form(form_id=form_id)
+        # The logo the live form showed until now, if nothing shows it any more.
+        if previous is not None and previous.logo != getattr(published, "logo", None):
+            await self._release_logo(str(form_id), previous.logo)
+        return published
 
     async def _upgrade_slug_from_title_on_publish(self, workspace_id, form_id):
         """Give the form a title-based share slug when it goes live.
@@ -1002,7 +1213,9 @@ class WorkspaceFormService:
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         duplicated_form = FormTemplateDocument() if is_template else FormDocument()
         duplicated_form.fields = form.fields
-        duplicated_form.logo = form.logo
+        duplicated_form.logo_position = form.logo_position
+        duplicated_form.logo_alt = form.logo_alt
+        duplicated_form.use_workspace_logo = form.use_workspace_logo
         duplicated_form.builder_version = form.builder_version
         duplicated_form.cover_image = form.cover_image
         duplicated_form.welcome_page = form.welcome_page
@@ -1015,11 +1228,19 @@ class WorkspaceFormService:
         )
         duplicated_form.description = form.description
         duplicated_form.button_text = form.button_text
+        # A copy is a new form: first-party images only, as for a template copy
+        # (Unsplash photos kept by their canonical address, others dropped); the source's grandfathered
+        # addresses do not carry over (services/form_images.py).
+        check_form_images(duplicated_form, None, drop=True)
         if is_template:
             duplicated_form.workspace_id = workspace_id
             duplicated_form.created_by = user.id
         else:
             duplicated_form.form_id = str(PydanticObjectId())
+        # The copy gets its own copy of the logo file.
+        duplicated_form.logo = self._copy_logo(
+            "templates" if is_template else duplicated_form.form_id, form.logo
+        )
         # a template is a different collection: save it through its own repository
         duplicated_form = (
             await self.form_template_repo.save(duplicated_form)

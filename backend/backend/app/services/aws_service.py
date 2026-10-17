@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 
 import boto3
 from botocore.config import Config
@@ -77,6 +78,97 @@ class AWSS3Service:
         if private:
             folder = f"/{bucket}/{folder_name}/{key}"
         return f"{aws_settings.public_base_url}{folder}"
+
+    # -- public objects addressed by their URL --------------------------------
+    # Images a respondent page shows (form logos) live under ``public/`` in our
+    # own bucket and are read through ``public_base_url``. These helpers take
+    # and return those URLs, and refuse any URL that is not one of ours.
+
+    @staticmethod
+    def public_key_of(url: Optional[str], bucket: str = aws_settings.BUCKET):
+        """The object key of a public URL in our own storage, else None."""
+        if not url or not isinstance(url, str):
+            return None
+        base = (aws_settings.public_base_url or "").rstrip("/")
+        if not base:
+            return None
+        prefix = f"{base}/{bucket}/"
+        if not url.startswith(prefix):
+            return None
+        key = url[len(prefix) :]
+        if (
+            not key.startswith("public/")
+            or ".." in key.split("/")
+            or any(c in key for c in "?#\\")
+        ):
+            return None
+        return key
+
+    @staticmethod
+    def public_url_of(key: str, bucket: str = aws_settings.BUCKET) -> str:
+        return f"{aws_settings.public_base_url.rstrip('/')}/{bucket}/{key}"
+
+    def put_public_object(
+        self, body: bytes, key: str, content_type: str, bucket=aws_settings.BUCKET
+    ) -> str:
+        """Store ``body`` under ``key`` (in ``public/``), readable by anyone,
+        with its real content type; returns its public URL."""
+        if not key.startswith("public/"):
+            raise ValueError("public objects live under public/")
+        try:
+            self._s3.Bucket(bucket).put_object(
+                Body=body,
+                Key=key,
+                ACL="public-read",
+                ContentType=content_type,
+                CacheControl="public, max-age=31536000, immutable",
+            )
+        except ClientError:
+            raise HTTPException(550, "INFO: Failed to upload image")
+        return self.public_url_of(key, bucket)
+
+    def public_object_exists(self, key: str, bucket=aws_settings.BUCKET) -> bool:
+        """Whether one of our public objects is stored under ``key``; False
+        when it isn't, or the store can't say (the caller then makes it)."""
+        if not key.startswith("public/"):
+            return False
+        try:
+            self._s3_client.head_object(Bucket=bucket, Key=key)
+        except ClientError:
+            return False
+        return True
+
+    def copy_public_object(
+        self, source_url: str, key: str, bucket=aws_settings.BUCKET
+    ) -> Optional[str]:
+        """Copy one of our public objects to ``key``; None when the source is
+        not ours or no longer exists."""
+        source_key = self.public_key_of(source_url, bucket)
+        if not source_key or not key.startswith("public/"):
+            return None
+        try:
+            self._s3_client.copy_object(
+                Bucket=bucket,
+                Key=key,
+                CopySource={"Bucket": bucket, "Key": source_key},
+                ACL="public-read",
+                MetadataDirective="COPY",
+            )
+        except ClientError:
+            return None
+        return self.public_url_of(key, bucket)
+
+    def delete_public_object(self, url: str, bucket=aws_settings.BUCKET) -> bool:
+        """Delete one of our public objects by its URL; False when the URL is
+        not ours or the store refused."""
+        key = self.public_key_of(url, bucket)
+        if not key:
+            return False
+        try:
+            self._s3.Object(bucket, key).delete()
+        except ClientError:
+            return False
+        return True
 
     def check_if_key_exists(self, key, bucket=aws_settings.BUCKET):
         try:

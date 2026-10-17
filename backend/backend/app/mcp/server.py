@@ -9,31 +9,41 @@ Tools deliberately reuse the same services/pipelines as the product —
 ``update_form`` goes through the exact ops engine the builder chat uses.
 """
 
-import datetime as dt
 import json
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from mcp.server.fastmcp import FastMCP
+from starlette.concurrency import run_in_threadpool
 from mcp.server.transport_security import TransportSecuritySettings
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.permission import Permission
-from backend.app.models.dtos.request_dtos import CreateFormWithAI
+from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH, CreateFormWithAI
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
-from backend.app.repositories.response_scope import (
-    find_response_in_workspace,
-    response_scope,
-)
+from backend.app.repositories.response_scope import response_scope
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.api_keys import APIKeyService
+from backend.app.services.api_responses import (
+    list_response_summaries,
+    response_detail,
+)
+from backend.app.services.api_access import (
+    acting_user,
+    audit_key_call,
+    require_key_scope,
+)
 from backend.app.services.ai.chat import persist_ops_to_form
-from backend.app.services.ai.ops import parse_ops
+from backend.app.services.ai.ops import applied, parse_ops, too_many_ops
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.form_spec.checks import check_spec_document
+from backend.app.services.form_spec.service import (
+    DOCUMENT_TOO_LARGE,
+    MAX_DOCUMENT_BYTES,
+)
 
 
 def _c():
@@ -63,62 +73,27 @@ mcp = FastMCP(
 )
 
 
-# What the key's creator must still hold, right now, for each scope: a key
-# never does more than the person who made it currently may (a removed,
-# disabled or demoted creator makes the key refuse).
-# A bulk read of answers through the API is an export, so responses:read
-# needs response.export as well as response.read (doc §4).
-SCOPE_PERMISSIONS: Dict[str, Tuple[Permission, ...]] = {
-    "forms:read": (Permission.FORM_READ,),
-    "forms:write": (Permission.FORM_EDIT,),
-    "responses:read": (Permission.RESPONSE_READ, Permission.RESPONSE_EXPORT),
-    "deletion_requests:read": (Permission.PRIVACY_MANAGE,),
-    "deletion_requests:write": (Permission.PRIVACY_MANAGE,),
-}
-
-
 async def _key(scope: str) -> WorkspaceAPIKeyDocument:
     key = current_api_key.get()
     if key is None:
         raise ValueError("Not authenticated")
     try:
-        APIKeyService.require_scope(key, scope)
+        await require_key_scope(key, scope)
     except HTTPException as e:
         # Our HTTPException carries the message in `content`, which str() drops
         # — re-raise as ValueError so the MCP client sees why it was denied.
-        raise ValueError(str(e.content)) from e
-    held = await _c().authorization_service().effective_permissions(
-        _acting_user(key), key.workspace_id
-    )
-    missing = [p.value for p in SCOPE_PERMISSIONS[scope] if p not in held]
-    if missing:
-        raise ValueError(
-            "Forbidden: the person who created this API key no longer has "
-            f"{', '.join(repr(p) for p in missing)} in this workspace."
-        )
+        raise ValueError(_error_text(e)) from e
     return key
 
 
 def _acting_user(key: WorkspaceAPIKeyDocument) -> User:
-    # Authorization inside the product services runs as the key's creator.
-    return User(id=key.created_by, sub=f"api-key:{key.name}", roles=["FORM_CREATOR"])
+    return acting_user(key)
 
 
 async def _audit(tool: str, ok: bool, detail: str = "") -> None:
-    try:
-        key = current_api_key.get()
-        if key is None:
-            return
-        await _c().mcp_audit_log_repo().add(
-            workspace_id=key.workspace_id,
-            key_id=str(key.id),
-            tool=tool,
-            ok=ok,
-            detail=detail[:300],
-            at=dt.datetime.now(dt.timezone.utc),
-        )
-    except Exception:  # noqa: BLE001 — auditing must not break tool calls
-        pass
+    key = current_api_key.get()
+    if key is not None:
+        await audit_key_call(key, tool, ok, detail)
 
 
 async def _workspace_form_ids(
@@ -167,9 +142,7 @@ async def get_form(form_id: str) -> str:
     return json.dumps(
         StandardFormCamelModel(
             **StandardForm(**form.model_dump()).model_dump()
-        ).model_dump(
-            mode="json", by_alias=True, exclude_none=True, exclude={"secrets"}
-        )
+        ).model_dump(mode="json", by_alias=True, exclude_none=True, exclude={"secrets"})
     )
 
 
@@ -230,14 +203,21 @@ async def create_form_with_ai(prompt: str) -> str:
     key = await _key("forms:write")
     from backend.app.container import container
 
+    if not (prompt or "").strip() or len(prompt) > AI_PROMPT_MAX_LENGTH:
+        await _audit("create_form_with_ai", False, "prompt length")
+        raise ValueError(
+            f"The prompt must be between 1 and {AI_PROMPT_MAX_LENGTH} characters."
+        )
     try:
+        # the same AI limits as the builder (429 ai_rate_limited /
+        # ai_daily_limit), counted for the key's creator and workspace
         form = await container.openai_service().create_form_with_ai(
             workspace_id=key.workspace_id,
             create_form_ai=CreateFormWithAI(prompt=prompt),
             user=_acting_user(key),
         )
     except HTTPException as e:
-        # e.g. 403 ai_not_enabled: tell the client why, in words
+        # e.g. 403 ai_not_enabled or 429: tell the client why, in words
         content = e.content
         message = content.get("message") if isinstance(content, dict) else content
         await _audit("create_form_with_ai", False, str(message or ""))
@@ -247,7 +227,9 @@ async def create_form_with_ai(prompt: str) -> str:
 
 
 @mcp.tool()
-async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
+async def update_form(
+    form_id: str, ops: List[Dict[str, Any]], atomic: bool = False
+) -> str:
     """Edit a form with typed operations — the same pipeline the builder's AI
     chat uses. Reference page/field ids from get_form. Op shapes (camelCase):
     {"op":"add_field","pageId":str,"field":{"title":str,"type":str,"required"?:bool,
@@ -276,23 +258,132 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     "childFieldId" for ANY/ALL; siblings inside a group refer to the same item) ·
     {"op":"set_page_jumps","pageId":str,"jumps":[{"operator":"AND"|"OR","conditions":[...],
     "target":"<page id or __SUBMIT__>"}]|null} (branching) ·
-    {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids).
+    {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids) ·
+    {"op":"set_section_title","pageId"?:str,"pageIndex"?:int,"title":str|null} (a question
+    page's section title, shown by the Leaflet style in the section bar and the welcome
+    page's contents list; give pageId or pageIndex (0-based among the question pages); a few
+    plain words, at most 120 characters; null or "" clears; not for the welcome page or ending) ·
+    {"op":"move_page","pageId":str,"index":int} (0-based among the question pages) ·
+    {"op":"set_field_validation","fieldId":str,"validation":{"required"?:bool,"minLength"?:int,
+    "maxLength"?:int,"minValue"?:num,"maxValue"?:num,"minChoices"?:int,"maxChoices"?:int,
+    "pattern"?:str,"preset"?:"digits"|"letters"|"alphanumeric"}} (absent = unchanged, null clears;
+    lengths/pattern: text questions, values: number, choices: multiple choice with several answers) ·
+    {"op":"set_question_numbering","pageId"?:str,"show":bool} (no pageId: every page) ·
+    {"op":"set_theme_preset","name":str,"style"?:"classic"|"sheet"|"studio"|"leaflet"} (the
+    look: a theme preset by name, any case: Leaflet (the default for new forms), Default, Paper,
+    Ocean, Forest, Cherry, Mono, Sunset, Lavender, Slate, Blossom, Twilight, Honey, Mint, Sky,
+    Rose (Blue, Green, Red, Black, Orange, Purple mean the nearest of these); no style = the
+    preset's own (Leaflet) or the current one) ·
+    {"op":"update_theme","theme":{"title":str,"primary":str,"secondary":str,"tertiary":str,
+    "accent":str,"style"?:str,"background"?:{...}}} (exact colours of your own).
+    References: add_page, add_field, add_group and duplicate_page (and the fields inside
+    add_page/add_group) take "ref":"<name>"; later ops in the same call may use "$ref:<name>"
+    wherever a page or field id is expected (pageId, fieldId, groupId, afterFieldId, toPageId,
+    toGroupId, childFieldId, a jump's target), conditions and jumps included. Each result
+    reports the "createdId". atomic=true applies all ops or none (any error: nothing is stored,
+    every error is returned); the default applies what it can. Preview with dry_run_ops.
+    At most 200 ops per call.
     Field types: short_text, long_text, email, number, url, phone_number, date,
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
     key = await _key("forms:write")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     form_document = await _c().form_repo().get_form_document_by_id(form_id)
+    refusal = too_many_ops(len(ops))
+    if refusal:
+        await _audit("update_form", False, f"{form_id}: {len(ops)} ops refused")
+        raise ValueError(refusal)
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
     _, results, updated_settings = await persist_ops_to_form(
-        form_document, form, parsed
+        form_document, form, parsed, atomic=atomic
     )
     payload = [r.model_dump(by_alias=True) for r in results]
     await _audit(
-        "update_form", all(r.ok for r in results), f"{form_id}: {len(results)} ops"
+        "update_form",
+        all(r.ok for r in results),
+        f"{form_id}: {len(results)} ops" + (" (atomic)" if atomic else ""),
     )
-    return json.dumps({"results": payload, "settings": updated_settings})
+    return json.dumps(
+        {
+            "applied": applied(results, atomic),
+            "results": payload,
+            "settings": updated_settings,
+        }
+    )
+
+
+@mcp.tool()
+async def get_form_spec(form_id: str) -> str:
+    """Get a form as a form spec v1 document (docs/spec/README.md): what
+    its creator controls, without server-owned data. Page-based forms
+    only."""
+    key = await _key("forms:read")
+    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    _require_form_in_workspace(form_id, workspace_forms)
+    service = _c().form_spec_service()
+    form, settings = await service.load(key.workspace_id, form_id)
+    try:
+        document = service.spec_of(form, settings)
+    except HTTPException as e:
+        await _audit("get_form_spec", False, form_id)
+        raise ValueError(_error_text(e)) from e
+    await _audit("get_form_spec", True, form_id)
+    return json.dumps(document)
+
+
+@mcp.tool()
+async def validate_form(spec: Dict[str, Any]) -> str:
+    """Check a form spec v1 document without storing anything. Returns
+    {"valid","errors":[{"path","message"}],"warnings","compliance"}; paths
+    are JSON pointers into the document. The organisation's compliance rules
+    need an AI review and are not checked here. At most 1 MB, 200 pages and
+    2000 fields."""
+    await _key("forms:read")
+    if len(json.dumps(spec)) > MAX_DOCUMENT_BYTES:
+        await _audit("validate_form", False, "document too large")
+        raise ValueError(DOCUMENT_TOO_LARGE)
+    result = await run_in_threadpool(check_spec_document, spec)
+    await _audit("validate_form", result["valid"], f"{len(result['errors'])} errors")
+    return json.dumps(result)
+
+
+@mcp.tool()
+async def dry_run_ops(
+    form_id: str, ops: List[Dict[str, Any]], atomic: bool = False
+) -> str:
+    """Preview update_form: apply the same ops to a copy of the form and
+    return {"ok","applied","atomic","form" (the resulting spec document),
+    "diff" (pages and fields added, removed, moved, changed, with paths),
+    "results"}. Nothing is stored. Op shapes: see update_form
+    (at most 200 ops)."""
+    key = await _key("forms:write")
+    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    _require_form_in_workspace(form_id, workspace_forms)
+    service = _c().form_spec_service()
+    form, settings = await service.load(key.workspace_id, form_id)
+    try:
+        preview = await service.preview_async(form, settings, ops, atomic)
+    except HTTPException as e:
+        await _audit("dry_run_ops", False, form_id)
+        raise ValueError(_error_text(e)) from e
+    await _audit(
+        "dry_run_ops", preview.ok, f"{form_id}: {len(preview.results)} ops (dry run)"
+    )
+    return json.dumps(preview.model_dump(mode="json", by_alias=True))
+
+
+def _error_text(error: HTTPException) -> str:
+    """An HTTPException's message (and located errors) in words."""
+    content = error.content
+    if isinstance(content, dict):
+        details = "; ".join(
+            f"{e.get('path') or '/'}: {e.get('message')}"
+            for e in content.get("errors") or []
+        )
+        message = str(content.get("message") or "")
+        return message + (f" ({details})" if details else "")
+    return str(content)
 
 
 @mcp.tool()
@@ -319,26 +410,13 @@ async def publish_form(form_id: str) -> str:
 @mcp.tool()
 async def list_responses(form_id: str, limit: int = 20) -> str:
     """List a form's responses (most recent first): response id, submission
-    time, and answer count. Use get_response for full answers."""
+    time, answer count and any deletion request's status. Use get_response
+    for full answers."""
     key = await _key("responses:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
-    limit = max(1, min(limit, 100))
     # this workspace's responses only (#768)
-    scope = await response_scope(
-        _c().workspace_form_repo(), key.workspace_id, [form_id]
-    )
-    responses = await _c().form_response_repo().list_recent_by_form_id(scope, limit)
-    items = [
-        {
-            "responseId": r.response_id,
-            "submittedAt": str(getattr(r, "created_at", "")),
-            # Answers are encrypted at rest (str/bytes) — len() of ciphertext
-            # is meaningless, so only count when they are a readable dict.
-            "answerCount": len(r.answers) if isinstance(r.answers, dict) else None,
-        }
-        for r in responses
-    ]
+    items, _ = await list_response_summaries(key.workspace_id, form_id, limit)
     await _audit("list_responses", True, f"{form_id}: {len(items)}")
     return json.dumps(items)
 
@@ -347,51 +425,13 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
 async def get_response(response_id: str) -> str:
     """Get one response's full answers."""
     key = await _key("responses:read")
-    # this workspace's copy (#768)
-    response = await find_response_in_workspace(
-        _c().form_response_repo(),
-        _c().workspace_form_repo(),
-        key.workspace_id,
-        response_id,
-    )
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
-    if not response or response.form_id not in workspace_forms:
+    # this workspace's copy (#768), decrypted on this read path only (the
+    # same rule as the dashboard's response views)
+    detail = await response_detail(key.workspace_id, response_id)
+    if detail is None:
         raise ValueError("Response not found in this workspace.")
-    # Answers are encrypted at rest — decrypt on this read path (the same
-    # rule as the dashboard's response views).
-    answers = response.answers
-    if isinstance(answers, (bytes, str)):
-        from common.services.crypto_service import crypto_service
-
-        answers = json.loads(
-            crypto_service.decrypt(
-                workspace_id=key.workspace_id, form_id=response.form_id, data=answers
-            )
-        )
-    # Staff-entered values of the form's internal fields (same encryption).
-    internal = response.internal_answers
-    if isinstance(internal, (bytes, str)):
-        from common.services.crypto_service import crypto_service
-
-        internal = json.loads(
-            crypto_service.decrypt(
-                workspace_id=key.workspace_id, form_id=response.form_id, data=internal
-            )
-        )
     await _audit("get_response", True, response_id)
-    return json.dumps(
-        {
-            "responseId": response.response_id,
-            "formId": response.form_id,
-            "submittedAt": str(getattr(response, "created_at", "")),
-            "answers": json.loads(
-                json.dumps(answers if isinstance(answers, dict) else {}, default=str)
-            ),
-            "internalAnswers": json.loads(
-                json.dumps(internal if isinstance(internal, dict) else {}, default=str)
-            ),
-        }
-    )
+    return json.dumps(detail)
 
 
 @mcp.tool()

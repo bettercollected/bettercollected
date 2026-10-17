@@ -59,7 +59,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
         // (77px top bar + 40px top/bottom gaps) with fixed chrome and the site
         // content scrolling INSIDE it, so the page itself never scrolls. Mobile
         // keeps natural flow (mobile viewport height is unreliable).
-        <div className="border-black-300 shadow-formCardDefault flex flex-col overflow-hidden rounded-xl border bg-white lg:h-[calc(100vh-157px)]">
+        <div className="border-black-300 flex flex-col overflow-hidden rounded border bg-white lg:h-[calc(100vh-157px)]">
             {/* Browser chrome: dots · address pill (globe + URL + copy) · open · settings gear */}
             <div className="border-black-300 flex shrink-0 items-center gap-3 border-b bg-white px-4 py-2.5">
                 <div className="hidden items-center gap-1.5 sm:flex" aria-hidden="true">
@@ -126,7 +126,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
             {/* The "page": the portal's surface colour and content. Like the
                 portal, the left column and the tabs stay affixed — only the
                 tab content scrolls inside the frame (desktop); mobile flows. */}
-            <div className={cn('flex-col gap-4 bg-[#F6F8FC] p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
+            <div className={cn('flex-col gap-4 bg-[#F5F7FB] p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
                 <div className="flex flex-col gap-4 md:w-[320px] md:max-w-[320px] lg:min-h-0 lg:overflow-y-auto">
                     <WorkspaceDetailsCard workspace={workspace} />
                     {/* Same sidebar placement as the portal: one utility

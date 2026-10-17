@@ -16,7 +16,7 @@ const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type =
 const CHOICE_TYPES: string[] = [FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN];
 const PLACEHOLDER_TYPES: string[] = [FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.EMAIL, FieldTypes.NUMBER, FieldTypes.LINK, FieldTypes.PHONE_NUMBER];
 
-const inputClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-sm outline-hidden';
+const inputClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-control bg-white px-2 py-1.5 text-sm outline-hidden';
 const iconButton = 'text-black-600 hover:bg-black-100 rounded p-1 disabled:opacity-30';
 
 /**
@@ -67,7 +67,10 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
     }
 
     return (
-        <div className="border-black-300 flex w-full flex-col gap-3 rounded-xl border border-dashed bg-white/60 p-3" onClick={(e) => e.stopPropagation()}>
+        // Clicks inside the group's own editor stay here (the canvas would
+        // otherwise treat them as selecting the group); not an action itself.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div className="border-black-300 flex w-full flex-col gap-3 rounded border border-dashed bg-white/60 p-3" onClick={(e) => e.stopPropagation()}>
             <div className="text-black-600 flex items-center justify-between text-xs">
                 <span className="font-semibold uppercase tracking-wide">
                     Asked for each {itemLabel.toLowerCase()} · {minItems === maxItems ? maxItems : `${minItems}–${maxItems}`} times
@@ -78,7 +81,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                 const logic = child.properties?.logic as FieldConditionalLogic | undefined;
                 const sources = sourcesFor(index);
                 return (
-                    <div key={child.id} className="border-black-200 flex flex-col gap-2 rounded-lg border bg-white p-3" data-testid="group-child">
+                    <div key={child.id} className="border-black-300 flex flex-col gap-2 rounded border bg-white p-3" data-testid="group-child">
                         <div className="flex items-center gap-2">
                             <input
                                 key={`${child.id}-${typeof child.title === 'string' ? child.title : ''}`}
@@ -230,7 +233,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                     ))}
                 </select>
             </label>
-            <div className="text-black-500 flex items-center gap-2 text-xs" aria-hidden="true">
+            <div className="text-black-600 flex items-center gap-2 text-xs" aria-hidden="true">
                 <span className="rounded-md border border-dashed px-2 py-1">+ Add another {itemLabel}</span>
                 respondents see this below each group of answers
             </div>

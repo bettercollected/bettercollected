@@ -10,6 +10,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 
 import QuestionWrapper from './question-wrapper';
@@ -18,6 +19,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const [hovered, setHovered] = useState(-1);
+    const { t } = useRespondentLanguage();
 
     const form = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
@@ -30,12 +32,12 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
     // is a new type on every render, so each hover remounted every star — the
     // click could land on a detached button and keyboard focus was lost.
     const ratingSection = (
-        <div className="relative mb-0! flex w-fit flex-wrap gap-3">
+        <div className="relative mb-0! flex w-fit flex-wrap gap-1">
             {_.range(steps).map((index) => {
                 return (
                     <button
                         type="button"
-                        aria-label={`Rate ${index + 1} of ${steps}`}
+                        aria-label={t('FIELD.RATE', { value: index + 1, total: steps })}
                         aria-pressed={index <= (answer ?? 0) - 1}
                         key={index}
                         disabled={isBuilder}
@@ -50,7 +52,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                                 }, 200);
                             }
                         }}
-                        className="cursor-pointer rounded outline-hidden focus-visible:ring-2"
+                        className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-[4px] disabled:cursor-default"
                         onMouseOver={() => {
                             if (!isBuilder) setHovered(index);
                         }}
@@ -59,7 +61,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                             accent as the answer, so the rating just clicked shows while
                             the pointer is still on it (a pale preview hid it). Empty stars
                             are TRANSPARENT so they read as outlines on any ground. */}
-                        <StarIcon fill={index <= shownUpTo ? theme?.secondary : 'transparent'} stroke={theme?.secondary} />
+                        <StarIcon width={40} height={39} fill={index <= shownUpTo ? theme?.secondary : 'transparent'} stroke={theme?.secondary} />
                     </button>
                 );
             })}

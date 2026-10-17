@@ -46,12 +46,12 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
     const status = (
         <>
             {isBillingOwner && (
-                <span className="text-[11px] font-medium text-black-500" data-testid={`billing-owner-${member.id}`}>
+                <span className="text-[11px] font-medium text-black-600" data-testid={`billing-owner-${member.id}`}>
                     {t(memberRoles.billingOwner)}
                 </span>
             )}
             {member.managedByDirectory && (
-                <span className="text-[11px] font-medium text-black-500" data-testid={`managed-by-directory-${member.id}`}>
+                <span className="text-[11px] font-medium text-black-600" data-testid={`managed-by-directory-${member.id}`}>
                     {t(members.managedByDirectory)}
                 </span>
             )}
@@ -109,7 +109,7 @@ export default function MembersTable({ data }: any) {
             name: t(members.member),
             minWidth: '300px',
             style: {
-                color: '#101826',
+                color: '#101828',
                 fontSize: '14px',
                 fontWeight: 500,
                 paddingLeft: '16px',
@@ -122,7 +122,7 @@ export default function MembersTable({ data }: any) {
             name: t(members.join),
             selector: (member: any) => (!!member?.joined ? `${utcToLocalDate(member?.joined)} - ${utcToLocalTime(member?.joined)}` : ''),
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px',
                 fontSize: '16px'
@@ -134,7 +134,7 @@ export default function MembersTable({ data }: any) {
             cell: (member: any) => <MemberRole member={member} />,
             allowOverflow: true,
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px',
                 fontSize: '16px'

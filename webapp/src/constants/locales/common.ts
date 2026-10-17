@@ -19,6 +19,10 @@ export const localesCommon = {
     newLink: 'NEW_LINK',
     goToResponse: 'GO_TO_RESPONSE',
     poweredBy: 'POWERED_BY',
+    siretoFooter: {
+        productOf: 'SIRETO_FOOTER.PRODUCT_OF',
+        trademark: 'SIRETO_FOOTER.TRADEMARK'
+    },
     privacyPolicy: {
         title: 'PRIVACY_POLICY.TITLE',
         description: 'PRIVACY_POLICY.DESCRIPTION'

@@ -9,11 +9,15 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { selectForm, setForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
-import { useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
+import { formStateFromServerForm, useFormState } from '@app/store/jotai/form';
+import { useOpenAIProposal } from '@app/store/jotai/ai-proposal';
+import { useAcceptAIProposalMutation, useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useRejectAIProposalMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
 import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery, useUpdateAIMemorySettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { AIProposal, ProposalChangeGroup, acceptableOps, buildProposalChanges } from '@app/utils/ai-proposal';
 import { deepCopy } from '@app/utils/object-utils';
+import { adoptAutosaveVersion, flushAutosave } from '@app/views/molecules/form-builder/audo-save-form';
+import AIProposalCard, { ProposalOpError, ProposalStatus } from '@app/views/organism/form-builder/ai-proposal-card';
 
 interface TurnResult {
     ok: boolean;
@@ -42,6 +46,33 @@ interface ChatTurn {
     forgotten?: boolean;
     // role 'review' only.
     findings?: ReviewFinding[];
+    // role 'assistant' only — a proposal waiting to be accepted (nothing
+    // is saved until then).
+    proposal?: AIProposal;
+    groups?: ProposalChangeGroup[];
+    proposalStatus?: ProposalStatus;
+    selected?: number[];
+    proposalError?: string;
+    proposalOpErrors?: ProposalOpError[];
+    appliedCount?: number;
+    // The message the proposal answered, for "Ask again".
+    prompt?: string;
+}
+
+const PROPOSAL_ERRORS: Record<string, ProposalStatus> = {
+    proposal_stale: 'stale',
+    proposal_closed: 'closed',
+    proposal_expired: 'expired'
+};
+
+/** What a saved conversation keeps of a turn's proposal. */
+function persistableTurn(turn: ChatTurn): ChatTurn {
+    if (!turn.proposal) return turn;
+    // An accept in flight did not finish for this tab.
+    const proposalStatus = turn.proposalStatus === 'accepting' ? 'pending' : turn.proposalStatus;
+    // Only an open proposal needs its (large) proposed form.
+    const proposal = proposalStatus === 'pending' ? turn.proposal : { ...turn.proposal, form: null };
+    return { ...turn, proposal, proposalStatus };
 }
 
 const MAX_MESSAGE_CHARS = 4000; // mirrors the backend's FormAIChatRequest limit
@@ -81,11 +112,16 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
     const dispatch = useAppDispatch();
     const workspace = useAppSelector(selectWorkspace);
     const standardForm: StandardFormDto = useAppSelector(selectForm);
-    const { setFormFields } = useFormFieldsAtom();
-    const { setFormState, formState } = useFormState();
+    const { formFields, setFormFields } = useFormFieldsAtom();
+    const { setFormState } = useFormState();
     const [chatEdit, { isLoading }] = useChatEditFormWithAIMutation();
     const [reviewForm, { isLoading: isReviewing }] = useReviewFormWithAIMutation();
     const [applyReviewFix] = useApplyAIReviewFixMutation();
+    const [acceptProposal] = useAcceptAIProposalMutation();
+    const [rejectProposal] = useRejectAIProposalMutation();
+    const { openProposal, setOpenProposal, preview, setPreview, close: closeOpenProposal } = useOpenAIProposal();
+    // The proposal that just arrived gets the focus once.
+    const [focusProposalId, setFocusProposalId] = useState<string | null>(null);
 
     const { data: memoryEntries = [], refetch: refetchMemory } = useGetAIMemoryQuery(workspace?.id, { skip: !workspace?.id });
     const [deleteMemoryEntry] = useDeleteAIMemoryEntryMutation();
@@ -116,7 +152,12 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             const saved = sessionStorage.getItem(storageKey);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed.turns)) setTurns(parsed.turns);
+                if (Array.isArray(parsed.turns)) {
+                    setTurns(parsed.turns);
+                    // The open proposal comes back with the conversation.
+                    const pending = [...parsed.turns].reverse().find((turn: ChatTurn) => turn.proposal?.form && turn.proposalStatus === 'pending');
+                    if (pending && !openProposal) setOpenProposal({ proposal: pending.proposal, groups: pending.groups ?? [] });
+                }
                 setSessionId(parsed.sessionId ?? null);
                 scrollToEnd();
             }
@@ -132,7 +173,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         try {
             // Strip transient flags: a persisted `applying` would freeze a Fix
             // button forever after a remount.
-            const persistable = turns.slice(-MAX_PERSISTED_TURNS).map((turn) => (turn.findings ? { ...turn, findings: turn.findings.map(({ applying, ...finding }) => finding) } : turn));
+            const persistable = turns.slice(-MAX_PERSISTED_TURNS).map((turn) => persistableTurn(turn.findings ? { ...turn, findings: turn.findings.map(({ applying, ...finding }) => finding) } : turn));
             sessionStorage.setItem(storageKey, JSON.stringify({ turns: persistable, sessionId }));
         } catch {
             /* quota — the conversation just won't survive a remount */
@@ -174,10 +215,18 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
 
     // One canvas-apply path for chat turns and review fixes. deepCopy per
     // store is LOAD-BEARING — see the note in send().
+    //
+    // Copy EVERY part of the returned form the ops engine can change, not
+    // just the fields: autosave PATCHes the whole form from the editor state,
+    // so a theme (or title, description, welcome/ending page) left behind
+    // here is written back over the AI's change by the next save.
     const applyFormToCanvas = (form: any, settings?: any) => {
+        // The one undo step of the turn (only fields are in undo history).
         setFormFields(deepCopy(form.fields ?? []));
-        setFormState({ ...formState, title: form.title ?? formState.title });
-        dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: deepCopy(form.fields ?? []) }));
+        setFormState((prev) => formStateFromServerForm(prev, form));
+        dispatch(setForm({ ...standardForm, ...deepCopy(form), settings: standardForm?.settings }));
+        // The server stored this edit: the next autosave builds on it.
+        adoptAutosaveVersion(form.updatedAt);
         // Settings (purpose/retention/… — the Form tab) live on the
         // workspace-form association; the backend returns them separately.
         if (settings) dispatch(setFormSettings(settings));
@@ -217,6 +266,51 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         }
     };
 
+    const patchTurn = (turnIndex: number, patch: Partial<ChatTurn>) => {
+        setTurns((t) => t.map((turn, i) => (i === turnIndex ? { ...turn, ...patch } : turn)));
+    };
+
+    // Accept: the server applies the chosen ops to the form as stored now,
+    // so every local edit is saved first; the reply is applied to the
+    // canvas as one undo step.
+    const acceptTurnProposal = async (turnIndex: number, opIndexes?: number[]) => {
+        const turn = turns[turnIndex];
+        if (!turn?.proposal || turn.proposalStatus !== 'pending') return;
+        patchTurn(turnIndex, { proposalStatus: 'accepting', proposalError: undefined, proposalOpErrors: undefined });
+        const saved = await flushAutosave();
+        if (saved !== 'saved') {
+            patchTurn(turnIndex, {
+                proposalStatus: 'pending',
+                proposalError:
+                    saved === 'conflict' ? 'This form was changed somewhere else. Reload the latest version, then ask again.' : "Your latest edits aren't saved yet, so nothing was applied. Check your connection and try again."
+            });
+            return;
+        }
+        const response: any = await acceptProposal({ workspaceId: workspace.id, formId: standardForm.formId, proposalId: turn.proposal.id, opIndexes });
+        if (response.data) {
+            applyFormToCanvas(response.data.form, response.data.settings);
+            patchTurn(turnIndex, { proposalStatus: 'accepted', appliedCount: response.data.acceptedOpIndexes?.length, selected: response.data.acceptedOpIndexes });
+            closeOpenProposal();
+            return;
+        }
+        const body = response.error?.data ?? {};
+        const closedAs = PROPOSAL_ERRORS[body.code];
+        const message = typeof body.message === 'string' ? body.message : 'The changes could not be applied — nothing was changed. Please try again.';
+        if (closedAs) closeOpenProposal();
+        // A stale proposal's own line says what happened and offers Ask again.
+        const formChanged = closedAs === 'stale' && !(Array.isArray(body.errors) && body.errors.length);
+        patchTurn(turnIndex, { proposalStatus: closedAs ?? 'pending', proposalError: formChanged ? undefined : message, proposalOpErrors: Array.isArray(body.errors) ? body.errors : undefined });
+    };
+
+    // Discard: nothing to undo, the form was never changed.
+    const discardTurnProposal = (turnIndex: number) => {
+        const turn = turns[turnIndex];
+        if (!turn?.proposal || turn.proposalStatus !== 'pending') return;
+        patchTurn(turnIndex, { proposalStatus: 'discarded', proposalError: undefined, proposalOpErrors: undefined });
+        if (openProposal?.proposal.id === turn.proposal.id) closeOpenProposal();
+        rejectProposal({ workspaceId: workspace.id, formId: standardForm.formId, proposalId: turn.proposal.id });
+    };
+
     const scrollToEnd = () => {
         requestAnimationFrame(() => listRef.current?.scrollTo?.({ top: listRef.current.scrollHeight, behavior: 'smooth' }));
     };
@@ -247,13 +341,42 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         scrollToEnd();
         const memoryIdsBeforeTurn = new Set(entriesRef.current.map((entry) => entry.id));
 
+        // The proposal is made from the stored form and can only be accepted
+        // on that version: save pending edits first, or every proposal would
+        // be stale the moment the autosave caught up.
+        const saved = await flushAutosave();
+        if (saved !== 'saved') {
+            const detail =
+                saved === 'conflict' ? 'This form was changed somewhere else. Reload the latest version, then ask again.' : "Your latest edits aren't saved yet, so nothing was sent. Check your connection and try again.";
+            setTurns((t) => [...t, { role: 'assistant', content: detail, error: true, retryMessage: message }]);
+            scrollToEnd();
+            return;
+        }
+
         const response: any = await chatEdit({
             workspaceId: workspace.id,
             formId: standardForm.formId,
-            body: { message, sessionId }
+            body: { message, sessionId, mode: 'propose' }
         });
 
-        if (response.data) {
+        if (response.data?.proposal) {
+            const { reply, results, proposal, sessionId: sid } = response.data;
+            setSessionId(sid);
+            // Read against what the editor shows now.
+            const groups = buildProposalChanges(proposal, { ...standardForm, fields: formFields });
+            // One open proposal at a time: an older one is set aside.
+            turns.forEach((turn) => {
+                if (turn.proposal && turn.proposalStatus === 'pending') rejectProposal({ workspaceId: workspace.id, formId: standardForm.formId, proposalId: turn.proposal.id });
+            });
+            setTurns((t) => [
+                ...t.map((turn): ChatTurn => (turn.proposal && turn.proposalStatus === 'pending' ? { ...turn, proposalStatus: 'superseded' } : turn)),
+                { role: 'assistant', content: reply, results, proposal, groups, proposalStatus: 'pending', selected: acceptableOps(proposal), prompt: message }
+            ]);
+            setOpenProposal({ proposal, groups });
+            setPreview({ on: false });
+            setFocusProposalId(proposal.id);
+            if (learnPreferences) surfaceNewMemories(memoryIdsBeforeTurn);
+        } else if (response.data) {
             const { reply, results, form, settings, sessionId: sid } = response.data;
             setSessionId(sid);
             // Apply the AI's edit to the canvas — ONE setFormFields call = one
@@ -266,7 +389,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             // and every subsequent edit threw "Cannot assign to read only
             // property". Each store gets its own copy (mirrors how the edit
             // page hydrates with deepCopy at mount).
-            if (results?.some((r: TurnResult) => r.ok)) {
+            if (form && results?.some((r: TurnResult) => r.ok)) {
                 applyFormToCanvas(form, settings);
             }
             setTurns((t) => [...t, { role: 'assistant', content: reply, results }]);
@@ -292,7 +415,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             disabled={isReviewing || (!!aiSettings && !aiEnabled)}
                             onClick={runReview}
                             title="Sends this form's questions and settings and the workspace AI profile to the AI provider"
-                            className="flex items-center gap-1.5 rounded-md border border-black-200 bg-white px-2 py-1 text-[11px] font-medium text-black-600 transition-colors disabled:text-black-400 hover:bg-black-100"
+                            className="flex items-center gap-1.5 rounded-md border border-black-300 bg-white px-2 py-1 text-[11px] font-medium text-black-600 transition-colors disabled:text-black-400 hover:bg-black-100"
                         >
                             <ShieldCheck className="h-3 w-3" />
                             {isReviewing ? 'Reviewing…' : 'Review'}
@@ -301,18 +424,18 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             type="button"
                             aria-expanded={showMemory}
                             onClick={() => setShowMemory((open) => !open)}
-                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-200 bg-white text-black-600 hover:bg-black-100'}`}
+                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-300 bg-white text-black-600 hover:bg-black-100'}`}
                         >
                             <BookOpen className="h-3 w-3" />
                             Memory{memoryEntries.length > 0 ? ` (${memoryEntries.length})` : ''}
                         </button>
                     </div>
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-black-600">Describe a change — it lands on the canvas, and every change is listed. Undo reverts a whole turn.</p>
+                <p className="mt-1 text-xs leading-relaxed text-black-600">Describe a change. The assistant proposes it, and nothing changes until you accept. Undo reverts an accepted change.</p>
             </div>
 
             {showMemory && (
-                <div className="mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-lg border border-black-200 bg-white p-3">
+                <div className="mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded border border-black-300 bg-white p-3">
                     <p className="text-[11px] leading-relaxed text-black-600">
                         Everything the assistant remembers about your style — used at the lowest priority, below your request and your organization&apos;s rules. Nothing here is hidden; forget any line, anytime.
                     </p>
@@ -321,20 +444,20 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         <span>Learn my preferences: after each turn, your message and the reply are sent once more to note lasting style preferences here. Off unless you turn it on.</span>
                     </label>
                     {(memoryEntries as MemoryEntry[]).length === 0 ? (
-                        <p className="rounded-md border border-dashed border-black-200 px-2 py-2.5 text-center text-[11px] text-black-500">Nothing remembered yet — it fills in as you work.</p>
+                        <p className="rounded-md border border-dashed border-black-300 px-2 py-2.5 text-center text-[11px] text-black-600">Nothing remembered yet — it fills in as you work.</p>
                     ) : (
                         <ul className="flex flex-col gap-1">
                             {(memoryEntries as MemoryEntry[]).map((entry) => (
                                 <li key={entry.id} className="flex items-start justify-between gap-2 rounded-md border border-black-100 px-2 py-1.5">
                                     <div className="min-w-0">
                                         <p className="text-xs leading-relaxed text-black-800">{entry.text}</p>
-                                        <p className="text-[10px] text-black-400">{entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}</p>
+                                        <p className="text-[10px] text-black-600">{entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}</p>
                                     </div>
                                     <button
                                         type="button"
                                         aria-label={`Forget "${entry.text}"`}
                                         onClick={() => deleteMemoryEntry({ workspace_id: workspace.id, entry_id: entry.id })}
-                                        className="mt-0.5 shrink-0 rounded p-0.5 text-black-400 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
+                                        className="mt-0.5 shrink-0 rounded p-0.5 text-black-600 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -351,14 +474,14 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleAddMemory();
                             }}
-                            className="h-7 w-full rounded-md border border-black-200 bg-white px-2 text-[11px] text-black-900 outline-hidden transition placeholder:text-black-400 focus:border-brand-500"
+                            className="h-7 w-full rounded-md border border-black-300 bg-white px-2 text-[11px] text-black-900 outline-hidden transition placeholder:text-black-600 focus:border-brand-500"
                         />
                         <button
                             type="button"
                             aria-label="Add preference"
                             disabled={!memoryDraft.trim() || isAddingMemory}
                             onClick={handleAddMemory}
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-black-200 text-black-600 transition disabled:text-black-300 hover:bg-black-100"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-black-300 text-black-600 transition disabled:text-black-300 hover:bg-black-100"
                         >
                             <Plus className="h-3.5 w-3.5" />
                         </button>
@@ -369,19 +492,19 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             {aiSettings && !aiEnabled ? (
                 <div className="flex-1 overflow-y-auto border-t px-3 py-3">
                     <AIOptIn feature="The form assistant" sends={CHAT_SENDS} compact />
-                    {input && <p className="mt-3 px-1 text-xs leading-relaxed text-black-500">Your Start with AI prompt is kept. It is only sent when you press send, once AI is on.</p>}
+                    {input && <p className="mt-3 px-1 text-xs leading-relaxed text-black-600">Your Start with AI prompt is kept. It is only sent when you press send, once AI is on.</p>}
                 </div>
             ) : (
                 <div ref={listRef} aria-live="polite" className="flex-1 overflow-y-auto border-t px-3 py-3">
                     {turns.length === 0 && !isLoading && (
-                        <div className="flex flex-col items-start gap-2 px-1 py-2 text-xs leading-relaxed text-black-500">
+                        <div className="flex flex-col items-start gap-2 px-1 py-2 text-xs leading-relaxed text-black-600">
                             <span>Try:</span>
                             {EXAMPLE_PROMPTS.map((prompt) => (
                                 <button
                                     key={prompt}
                                     type="button"
                                     onClick={() => send(prompt)}
-                                    className="rounded-md border border-black-200 bg-white px-2.5 py-1.5 text-left transition-colors hover:border-brand-300 hover:bg-[#F6F9FF] hover:text-black-800"
+                                    className="rounded-md border border-black-300 bg-white px-2.5 py-1.5 text-left transition-colors hover:border-brand-300 hover:bg-[#F6F9FF] hover:text-black-800"
                                 >
                                     “{prompt}”
                                 </button>
@@ -395,13 +518,13 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     {turn.content}
                                 </div>
                             ) : turn.role === 'review' ? (
-                                <div key={i} className="self-stretch rounded-lg border border-black-200 bg-white px-3 py-2.5 text-[13px] leading-relaxed">
+                                <div key={i} className="self-stretch rounded border border-black-300 bg-white px-3 py-2.5 text-[13px] leading-relaxed">
                                     <div className="flex items-start gap-1.5 font-medium text-black-800">
-                                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0E8A5F]" />
+                                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                                         <span>Compliance review</span>
                                     </div>
                                     <p className="mt-1 text-black-700">{turn.content}</p>
-                                    {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-[#0E8A5F]">No issues found.</p>}
+                                    {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-success-700">No issues found.</p>}
                                     {!!turn.findings?.length && (
                                         <ul className="mt-2 flex flex-col gap-2 border-t border-black-100 pt-2">
                                             {turn.findings.map((finding, j) => (
@@ -412,7 +535,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                                     </div>
                                                     {finding.fix &&
                                                         (finding.applied ? (
-                                                            <span className="ml-1 flex items-center gap-1 text-xs text-[#0E8A5F]">
+                                                            <span className="ml-1 flex items-center gap-1 text-xs text-success-700">
                                                                 <Check className="h-3 w-3" strokeWidth={3} /> Fixed — {finding.fix.description}
                                                             </span>
                                                         ) : (
@@ -434,16 +557,16 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     )}
                                 </div>
                             ) : turn.role === 'memory' ? (
-                                <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-black-200 px-3 py-2 text-xs leading-relaxed">
+                                <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-black-300 px-3 py-2 text-xs leading-relaxed">
                                     {turn.forgotten ? (
-                                        <span className="text-black-500">Forgotten — the assistant won&apos;t keep that.</span>
+                                        <span className="text-black-600">Forgotten — the assistant won&apos;t keep that.</span>
                                     ) : (
                                         <>
                                             <span className="text-black-600">
                                                 <BookOpen className="mr-1.5 inline h-3 w-3 align-[-1px]" />
                                                 Remembered: <span className="text-black-800">“{turn.content}”</span>
                                             </span>
-                                            <span className="text-black-400"> · shapes future AI edits</span>
+                                            <span className="text-black-600"> · shapes future AI edits</span>
                                             <button type="button" onClick={() => forgetFromNotice(i, turn.entryId!)} className="ml-2 font-medium text-black-600 underline decoration-dotted underline-offset-2 hover:text-[#C43D3D]">
                                                 Forget
                                             </button>
@@ -451,18 +574,37 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     )}
                                 </div>
                             ) : (
-                                <div key={i} className={`mr-6 self-start rounded-lg rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-200 bg-white text-black-800'}`}>
+                                <div key={i} className={`mr-6 self-start rounded rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-300 bg-white text-black-800'}`}>
                                     <div>{turn.content}</div>
                                     {turn.error && turn.retryMessage && (
                                         <button type="button" onClick={() => send(turn.retryMessage)} className="mt-1.5 rounded-md border border-[#E9CFCF] bg-white px-2 py-0.5 text-[11px] font-medium text-[#7A2E2E] transition-colors hover:bg-[#FBEFEF]">
                                             Try again
                                         </button>
                                     )}
-                                    {!!turn.results?.length && (
+                                    {turn.proposal && turn.groups && (
+                                        <AIProposalCard
+                                            proposal={turn.proposal}
+                                            groups={turn.groups}
+                                            status={turn.proposalStatus ?? 'pending'}
+                                            selected={turn.selected ?? []}
+                                            error={turn.proposalError}
+                                            opErrors={turn.proposalOpErrors}
+                                            appliedCount={turn.appliedCount}
+                                            previewing={preview.on && openProposal?.proposal.id === turn.proposal.id}
+                                            autoFocus={focusProposalId === turn.proposal.id}
+                                            onSelect={(selected) => patchTurn(i, { selected })}
+                                            onAccept={(opIndexes) => acceptTurnProposal(i, opIndexes)}
+                                            onDiscard={() => discardTurnProposal(i)}
+                                            onTogglePreview={() => setPreview({ on: !preview.on, pageId: preview.pageId })}
+                                            onShowPage={(pageId) => setPreview({ on: true, pageId })}
+                                            onAskAgain={turn.prompt && !isLoading ? () => send(turn.prompt) : undefined}
+                                        />
+                                    )}
+                                    {!turn.proposal && !!turn.results?.length && (
                                         <ul className="mt-2 flex flex-col gap-1 border-t border-black-100 pt-2">
                                             {turn.results.map((result, j) => (
                                                 <li key={j} className="flex items-start gap-1.5 text-xs">
-                                                    {result.ok ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#0E8A5F]" strokeWidth={3} /> : <X className="mt-0.5 h-3 w-3 shrink-0 text-[#C43D3D]" strokeWidth={3} />}
+                                                    {result.ok ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" strokeWidth={3} /> : <X className="mt-0.5 h-3 w-3 shrink-0 text-[#C43D3D]" strokeWidth={3} />}
                                                     <span className={result.ok ? 'text-black-700' : 'text-[#7A2E2E]'}>{result.message}</span>
                                                 </li>
                                             ))}
@@ -471,10 +613,10 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                 </div>
                             )
                         )}
-                        {isLoading && <div className="mr-6 animate-pulse self-start px-1 text-xs text-black-500">Thinking…</div>}
+                        {isLoading && <div className="mr-6 animate-pulse self-start px-1 text-xs text-black-600">Thinking…</div>}
                         {isReviewing && (
-                            <div className="animate-pulse self-stretch rounded-lg border border-black-200 bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
-                                <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-[#0E8A5F]" />
+                            <div className="animate-pulse self-stretch rounded border border-black-300 bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
+                                <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-success" />
                                 Reviewing this form against your organization&apos;s compliance profile and baseline privacy checks — usually under half a minute…
                             </div>
                         )}
@@ -485,7 +627,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             {(!aiSettings || aiEnabled) && (
                 <div className="border-t p-3">
                     {pendingPrompt && <p className="mb-1.5 px-1 text-xs leading-relaxed text-black-600">Your Start with AI prompt is below. Nothing has been sent yet: review it and press send.</p>}
-                    <div className="flex items-end gap-2 rounded-lg border border-black-300 bg-white px-2.5 py-2 transition duration-150 focus-within:border-brand-500 focus-within:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]">
+                    <div className="flex items-end gap-2 rounded border border-control bg-white px-2.5 py-2 transition duration-150 focus-within:border-brand-500">
                         <textarea
                             rows={2}
                             value={input}
@@ -503,19 +645,19 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     send();
                                 }
                             }}
-                            className="max-h-32 w-full resize-none bg-transparent text-[13px] leading-relaxed text-black-900 outline-hidden placeholder:text-black-400"
+                            className="max-h-32 w-full resize-none bg-transparent text-[13px] leading-relaxed text-black-900 outline-hidden placeholder:text-black-600"
                         />
                         <button
                             type="button"
                             aria-label="Send"
                             onClick={() => send()}
                             disabled={isLoading || !input.trim()}
-                            className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-500 text-white transition disabled:bg-black-300 hover:bg-brand-600"
+                            className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded bg-action text-white transition hover:bg-action-hover active:bg-action-pressed disabled:bg-black-300"
                         >
                             <Send className="h-3.5 w-3.5" />
                         </button>
                     </div>
-                    <AIDisclosure sends={`${CHAT_SENDS}. No responses are sent`} className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-black-400" />
+                    <AIDisclosure sends={`${CHAT_SENDS}. No responses are sent`} className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-black-600" />
                 </div>
             )}
         </div>

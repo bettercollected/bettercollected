@@ -7,7 +7,8 @@ ever leaving its own infrastructure.
 
 Deliberately tool-free: many local models don't do function calling, so
 generation asks for the JSON directly and skips theme/image tooling — the
-converter tolerates their absence.
+converter tolerates their absence. JSON mode is requested unless
+AI_COMPAT_JSON_MODE is off; replies are validated and retried once either way.
 """
 
 import json
@@ -15,12 +16,19 @@ from typing import Any, Dict, Optional
 
 from openai import AsyncOpenAI
 
+from backend.app.services.ai.untrusted import UNTRUSTED_CONTENT_RULES
 from backend.app.services.ai_form_provider import (
     PAGE_MAX_TOKENS,
     PAGE_TIMEOUT_S,
     AIFormProvider,
+    call_provider,
 )
-from backend.app.services.form_generation_rules import HONEST_FORM_RULES
+from backend.app.services.form_generation_rules import (
+    HONEST_FORM_RULES,
+    LANGUAGE_RULES,
+    SECTION_TITLE_RULES,
+)
+from backend.app.services.openai_provider import OpenAIClientCalls
 from backend.config import settings
 
 GENERATION_SYSTEM_PROMPT = """
@@ -46,6 +54,7 @@ interface InnerField {
 
 interface SlideField {
     title: string;
+    sectionTitle?: string;  // optional short name of this page's section (see below)
     type: 'group';
     layout: 'SINGLE_COLUMN_NO_BACKGROUND';
     properties: { fields: InnerField[] };
@@ -64,9 +73,18 @@ interface Form {
 4. Realistic, human-friendly content. Valid JSON only.
 """
 GENERATION_SYSTEM_PROMPT += HONEST_FORM_RULES
+GENERATION_SYSTEM_PROMPT += LANGUAGE_RULES
+GENERATION_SYSTEM_PROMPT += SECTION_TITLE_RULES
+GENERATION_SYSTEM_PROMPT += UNTRUSTED_CONTENT_RULES
 
 
-class OpenAICompatibleFormProvider(AIFormProvider):
+def _json_mode() -> Dict[str, Any]:
+    if settings.ai.COMPAT_JSON_MODE:
+        return {"response_format": {"type": "json_object"}}
+    return {}
+
+
+class OpenAICompatibleFormProvider(OpenAIClientCalls, AIFormProvider):
     def __init__(self) -> None:
         self._base_url = settings.ai.COMPAT_BASE_URL
         self._model = settings.ai.COMPAT_MODEL
@@ -76,28 +94,38 @@ class OpenAICompatibleFormProvider(AIFormProvider):
     @property
     def client(self) -> AsyncOpenAI:
         if self._client is None:
-            self._client = AsyncOpenAI(api_key=self._api_key, base_url=self._base_url)
+            self._client = AsyncOpenAI(
+                api_key=self._api_key,
+                base_url=self._base_url,
+                **self._client_options(),
+            )
         return self._client
 
     async def generate_form(self, prompt: str) -> Dict[str, Any]:
-        response = await self.client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": GENERATION_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
+        return await call_provider(
+            lambda: self._form_reply(
+                [
+                    {"role": "system", "content": GENERATION_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=settings.ai.MAX_OUTPUT_TOKENS_GENERATE,
+                **_json_mode(),
+            ),
+            settings.ai.GENERATION_TIMEOUT_SECONDS,
         )
-        text = (response.choices[0].message.content or "").strip()
-        if text.startswith("```"):
-            text = text.strip("`")
-            if text.startswith("json"):
-                text = text[4:]
-        return json.loads(text)
 
-    async def chat(self, system: str, messages: list) -> str:
-        response = await self.client.chat.completions.create(
-            model=self._model,
+    async def chat(
+        self,
+        system: str,
+        messages: list,
+        *,
+        max_output_tokens: Optional[int] = None,
+        json_mode: bool = False,
+    ) -> str:
+        response = await self._complete(
             messages=[{"role": "system", "content": system}, *messages],
+            max_tokens=max_output_tokens or settings.ai.MAX_OUTPUT_TOKENS_CHAT,
+            **(_json_mode() if json_mode else {}),
         )
         return response.choices[0].message.content or ""
 
@@ -129,15 +157,15 @@ class OpenAICompatibleFormProvider(AIFormProvider):
                     },
                 }
             )
-        response = await self.client.chat.completions.create(
-            model=self._model,
+        response = await self._complete(
+            request_timeout=PAGE_TIMEOUT_S,
+            call_timeout=PAGE_TIMEOUT_S * (1 + max(0, settings.ai.CLIENT_MAX_RETRIES)),
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": content},
             ],
             response_format={"type": "json_object"},
             max_tokens=PAGE_MAX_TOKENS,
-            timeout=PAGE_TIMEOUT_S,
         )
         return _json_answer(response.choices[0].message.content or "{}")
 

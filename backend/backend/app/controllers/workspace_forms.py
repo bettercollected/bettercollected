@@ -17,6 +17,11 @@ from starlette.requests import Request
 
 from backend.app.container import container
 from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
+from backend.app.services.ai.proposals import (
+    AcceptProposalRequest,
+    AcceptProposalResponse,
+    ProposalStatusResponse,
+)
 from backend.app.services.ai.insights import (
     FormAIInsightsRequest,
     FormAIInsightsResponse,
@@ -50,6 +55,7 @@ from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.router import router
+from backend.app.services.form_concurrency import parse_expected_updated_at
 from backend.app.services.form_service import FormService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.temporal_service import TemporalService
@@ -178,6 +184,42 @@ class WorkspaceFormsRouter(Routable):
             request=request,
             user=user,
             background_tasks=background_tasks,
+        )
+
+    @post("/{form_id}/ai/proposals/{proposal_id}/accept")
+    async def accept_ai_proposal(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        proposal_id: str,
+        request: Optional[AcceptProposalRequest] = None,
+        user=Depends(get_logged_user),
+    ) -> AcceptProposalResponse:
+        """Apply a chat proposal's ops (all that worked, or ``opIndexes``)
+        to the form as stored now, all or nothing. 409 when the form
+        changed so that a chosen op no longer applies."""
+        return await container.form_ai_proposal_service().accept(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            proposal_id=proposal_id,
+            request=request or AcceptProposalRequest(),
+            user=user,
+        )
+
+    @post("/{form_id}/ai/proposals/{proposal_id}/reject")
+    async def reject_ai_proposal(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        proposal_id: str,
+        user=Depends(get_logged_user),
+    ) -> ProposalStatusResponse:
+        """Discard a chat proposal. Changes nothing but the proposal."""
+        return await container.form_ai_proposal_service().reject(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            proposal_id=proposal_id,
+            user=user,
         )
 
     @post("/{form_id}/ai/review")
@@ -322,11 +364,16 @@ class WorkspaceFormsRouter(Routable):
         form_body: str = Form(),
         logo: UploadFile = None,
         cover_image: UploadFile = None,
+        expected_updated_at: Optional[str] = Form(None),
         user: User = Depends(get_logged_user),
     ):
+        """``expected_updated_at`` (optional): the ``updatedAt`` the client
+        last saw; a newer stored draft answers 409 instead of being
+        overwritten."""
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
+        expected = parse_expected_updated_at(expected_updated_at)
         form = _parse_form_body(form_body)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.update_form(
@@ -336,8 +383,36 @@ class WorkspaceFormsRouter(Routable):
             user=user,
             logo=logo,
             cover_image=cover_image,
+            expected_updated_at=expected,
         )
         return StandardFormCamelModel(**response.model_dump(mode="json"))
+
+    @put("/{form_id}/logo", response_model=StandardFormCamelModel)
+    async def upload_form_logo(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        file: UploadFile,
+        user: User = Depends(get_logged_user),
+    ):
+        """Upload or replace the draft's organisation logo (PNG, JPEG or
+        WebP, at most 1 MB); it goes live with the next publish."""
+        form = await self.workspace_form_service.set_form_logo(
+            workspace_id=workspace_id, form_id=form_id, logo=file, user=user
+        )
+        return StandardFormCamelModel(**form.model_dump(mode="json"))
+
+    @delete("/{form_id}/logo", response_model=StandardFormCamelModel)
+    async def remove_form_logo(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        form = await self.workspace_form_service.remove_form_logo(
+            workspace_id=workspace_id, form_id=form_id, user=user
+        )
+        return StandardFormCamelModel(**form.model_dump(mode="json"))
 
     @post("/{form_id}/duplicate", response_model=FormDtoCamelModel)
     async def duplicate_form(

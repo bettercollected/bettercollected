@@ -5,19 +5,20 @@ import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+// Registers the respondent translations, as the app layout does.
+import '@app/shared/hocs/i18n-provider';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
+import { store } from '@app/store/store';
+
+import QuestionWrapper from './question-wrapper';
+
 // RenderImage drags in the whole builder field registry — irrelevant here.
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
     RenderImage: () => null,
     default: () => null
 }));
-
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
-import { store } from '@app/store/store';
-import QuestionWrapper from './question-wrapper';
-// Registers the respondent translations, as the app layout does.
-import '@app/shared/hocs/i18n-provider';
 
 const field = (overrides: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id: 'f1', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Your name?', ...overrides });
 
@@ -48,7 +49,7 @@ const renderWrapper = (f: StandardFormFieldDto, opts: { invalid?: Record<string,
     );
 };
 
-describe('QuestionWrapper — no-dark-patterns contracts (Design-Language §5)', () => {
+describe('QuestionWrapper — no-dark-patterns contracts (DESIGN.md §5)', () => {
     it('marks optional answerable fields explicitly — optionality is never hidden', () => {
         renderWrapper(field());
         expect(screen.getByText('Optional')).toBeInTheDocument();
@@ -74,6 +75,16 @@ describe('QuestionWrapper — no-dark-patterns contracts (Design-Language §5)',
         expect(screen.getByText('Please answer this question to continue.')).toBeInTheDocument();
     });
 
+    it("shows the server's message for an answer of the wrong kind", () => {
+        renderWrapper(field(), { invalid: { f1: ['SERVER_TYPE'] } });
+        expect(screen.getByText('This answer could not be accepted. Please answer the question again.')).toBeInTheDocument();
+    });
+
+    it("shows the server's message for an option that is not offered", () => {
+        renderWrapper(field({ type: FieldTypes.MULTIPLE_CHOICE }), { invalid: { f1: ['SERVER_CHOICE'] } });
+        expect(screen.getByText('Choose one of the options shown.')).toBeInTheDocument();
+    });
+
     it('shows no validation message when the field is valid', () => {
         renderWrapper(field());
         expect(screen.queryByText(/Please answer/)).not.toBeInTheDocument();
@@ -84,7 +95,15 @@ describe('QuestionWrapper — answer piping', () => {
     it('resolves hidden-field pipes in the title', () => {
         const title = {
             type: 'doc',
-            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hi ' }, { type: 'answerPipe', attrs: { kind: 'hidden', pipeKey: 'name', label: 'name', fallback: 'there' } }] }]
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        { type: 'text', text: 'Hi ' },
+                        { type: 'answerPipe', attrs: { kind: 'hidden', pipeKey: 'name', label: 'name', fallback: 'there' } }
+                    ]
+                }
+            ]
         };
         renderWrapper(field({ title }), { hiddenValues: { name: 'Ada' } });
         expect(screen.getByText(/Hi Ada/)).toBeInTheDocument();
@@ -93,7 +112,15 @@ describe('QuestionWrapper — answer piping', () => {
     it('falls back when the pipe has no value yet', () => {
         const title = {
             type: 'doc',
-            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hi ' }, { type: 'answerPipe', attrs: { kind: 'hidden', pipeKey: 'name', label: 'name', fallback: 'there' } }] }]
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        { type: 'text', text: 'Hi ' },
+                        { type: 'answerPipe', attrs: { kind: 'hidden', pipeKey: 'name', label: 'name', fallback: 'there' } }
+                    ]
+                }
+            ]
         };
         renderWrapper(field({ title }));
         expect(screen.getByText(/Hi there/)).toBeInTheDocument();
@@ -145,5 +172,24 @@ describe('QuestionWrapper — "why we ask this"', () => {
     it('shows nothing without a reason', () => {
         renderWrapper(field({ type: FieldTypes.EMAIL, title: 'Email' }));
         expect(screen.queryByText(/why we ask this/i)).not.toBeInTheDocument();
+    });
+});
+
+describe('QuestionWrapper — untitled fields', () => {
+    const placeholders = /Enter Question|Enter Your Email|Add Text|Select an option|Type a question|insert a field/i;
+
+    it('never shows the builder placeholder to respondents', () => {
+        for (const type of [FieldTypes.SHORT_TEXT, FieldTypes.EMAIL, FieldTypes.TEXT, FieldTypes.DROP_DOWN]) {
+            const { container, unmount } = renderWrapper(field({ type, title: undefined }));
+            expect(container.querySelector('#q-title-f1')?.textContent ?? '').not.toMatch(placeholders);
+            unmount();
+        }
+        const { container } = renderWrapper(field({ title: { type: 'doc', content: [{ type: 'paragraph' }] } as any }));
+        expect(container.textContent).not.toMatch(placeholders);
+    });
+
+    it('shows a legacy plain title kept in value', () => {
+        renderWrapper(field({ title: undefined, value: 'Where do you live?' }));
+        expect(screen.getByText('Where do you live?')).toBeInTheDocument();
     });
 });

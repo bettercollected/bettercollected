@@ -1,4 +1,5 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { legacyTitleText } from '@app/utils/legacy-title';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
 /**
@@ -8,7 +9,7 @@ import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-htm
  * to fix, and where, before anything is sent.
  */
 
-export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer';
+export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question';
 
 export interface PublishProblem {
     code: PublishProblemCode;
@@ -33,6 +34,24 @@ export function questionText(field: StandardFormFieldDto): string {
     const title = field?.title;
     const text = typeof title === 'string' ? title : title ? extractTextfromJSON({ ...field, title } as StandardFormFieldDto) : '';
     return (text || '').split(/\s+/).filter(Boolean).join(' ');
+}
+
+/**
+ * The words of a field's own title, or '' when it has none: no per-type
+ * placeholder stands in (an untitled question must be named before
+ * publishing). A legacy plain title (`value`) counts (utils/legacy-title.ts).
+ */
+export function ownTitleText(field: StandardFormFieldDto): string {
+    const title = field?.title;
+    const walk = (node: any): string => {
+        if (!node) return '';
+        if (node.type === 'text') return node.text ?? '';
+        if (node.type === 'answerPipe') return node.attrs?.label || node.attrs?.pipeKey || '';
+        return (node.content ?? []).map(walk).join(' ');
+    };
+    let text = typeof title === 'string' ? title : title ? walk(title) : '';
+    if (!title) text = legacyTitleText(field) ?? '';
+    return text.split(/\s+/).filter(Boolean).join(' ');
 }
 
 /** Does this question collect an email, a phone number or an ID number? */
@@ -78,14 +97,16 @@ function unanswerableReason(field: StandardFormFieldDto): string | null {
     return null;
 }
 
-/** Every question of the form: page fields and the questions inside groups. */
-function questions(slides: Array<StandardFormFieldDto> | undefined): StandardFormFieldDto[] {
-    const out: StandardFormFieldDto[] = [];
-    (slides ?? []).forEach((slide) => {
+/** Every question of the form: page fields and the questions inside groups, with where they are. */
+function questions(slides: Array<StandardFormFieldDto> | undefined): Array<{ field: StandardFormFieldDto; where: string }> {
+    const out: Array<{ field: StandardFormFieldDto; where: string }> = [];
+    (slides ?? []).forEach((slide, pageIndex) => {
         const fields = slide?.type === FieldTypes.SLIDE ? (slide?.properties?.fields ?? []) : [slide];
-        fields.forEach((field) => {
-            out.push(field);
-            if (field?.type === FieldTypes.GROUP) out.push(...(field?.properties?.fields ?? []));
+        fields.forEach((field, fieldIndex) => {
+            out.push({ field, where: `Question ${fieldIndex + 1} on page ${pageIndex + 1}` });
+            if (field?.type === FieldTypes.GROUP) {
+                (field?.properties?.fields ?? []).forEach((child, childIndex) => out.push({ field: child, where: `Question ${childIndex + 1} of the group on page ${pageIndex + 1}` }));
+            }
         });
     });
     return out;
@@ -94,8 +115,11 @@ function questions(slides: Array<StandardFormFieldDto> | undefined): StandardFor
 /** Everything that keeps this form from being published, in form order. */
 export function getPublishProblems(slides: Array<StandardFormFieldDto> | undefined): PublishProblem[] {
     const problems: PublishProblem[] = [];
-    questions(slides).forEach((field) => {
+    questions(slides).forEach(({ field, where }) => {
         if (!field || field.internal) return;
+        if (!DISPLAY_ONLY_TYPES.includes(field.type) && !ownTitleText(field)) {
+            problems.push({ code: 'untitled_question', fieldId: field.id, message: `${where} has no title. Write the question respondents should answer.` });
+        }
         const name = label(field);
         if (hasPresetAnswer(field)) {
             problems.push({ code: 'preset_answer', fieldId: field.id, message: `${name} starts with an answer already chosen. Respondents must choose for themselves: clear the preset answer.` });

@@ -19,6 +19,7 @@ from fastapi_pagination import Page
 from starlette.requests import Request
 
 from backend.app.constants.consents import default_consents
+from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import (
     AddActionToFormDto,
@@ -330,9 +331,14 @@ class FormService:
         if existing:
             form_document.id = existing.id
             form_document.created_at = existing.created_at
+        if form_document.theme is None:
+            # The provider sent no colours of its own: a first import starts
+            # with the new-form theme, a re-import keeps the stored one.
+            form_document.theme = existing.theme if existing else new_form_theme()
         form_version_document = FormVersionsDocument(
             **form.model_dump(mode="json"), version=1
         )
+        form_version_document.theme = form_document.theme
         existing_version = await self._form_repo.get_form_by_by_version(
             form_document.form_id, 1
         )
@@ -461,6 +467,18 @@ class FormService:
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         return await self._form_repo.update_form(form_id=form_id, form=form)
 
+    async def update_form_if_unchanged(
+        self,
+        form_id: PydanticObjectId,
+        form: StandardForm,
+        expected_updated_at: datetime,
+    ):
+        """``update_form`` only while the stored draft is not newer than
+        ``expected_updated_at``; otherwise 409 (form_concurrency.py)."""
+        return await self._form_repo.update_form_if_unchanged(
+            form_id=form_id, form=form, expected_updated_at=expected_updated_at
+        )
+
     async def get_form_document_by_id(self, form_id: str):
         return await self._form_repo.get_form_document_by_id(form_id)
 
@@ -488,6 +506,9 @@ class FormService:
             and form.fields == latest_version.fields
             and form.hidden_fields == latest_version.hidden_fields
             and form.logo == latest_version.logo
+            and form.logo_position == latest_version.logo_position
+            and form.logo_alt == latest_version.logo_alt
+            and form.use_workspace_logo == latest_version.use_workspace_logo
             and form.cover_image == latest_version.cover_image
             and form.button_text == latest_version.button_text
             and form.state == latest_version.state

@@ -52,7 +52,7 @@ export default function FormLinkUpdateView({ link, isCustomDomain = false, isDis
             <div className="flex-1">
                 <div className="body6 mb-2 font-semibold!">{isCustomDomain ? t(formPage.linksCustomDomainLink) : t(formPage.linksDefaultLink)}</div>
                 <div className="flex flex-col items-start gap-2 w-full flex-1">
-                    <AppInput disabled className={'w-full'} onClick={handleOnCopy} value={link} />
+                    <AppInput disabled className={'w-full font-mono'} onClick={handleOnCopy} value={link} />
                     <div className="flex flex-row gap-4 items-center w-full">
                         <PrivateFormButtonWrapper isPrivate={isPrivate}>
                             <Button variant="secondary" disabled={isPrivate} onClick={handleOnCopy}>

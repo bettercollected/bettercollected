@@ -3,8 +3,10 @@ from http import HTTPStatus
 from typing import Dict, Any, List, Optional
 
 from beanie import PydanticObjectId
+from loguru import logger
 from common.models.standard_form import (
     StandardForm,
+    SECTION_TITLE_MAX_LENGTH,
     WHY_WE_ASK_MAX_LENGTH,
     LayoutType,
     StandardFormFieldType,
@@ -17,15 +19,17 @@ from common.models.user import User
 from backend.app.services.ai.consent import AIConsentService, ai_not_enabled
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.usage import AIUsageGuard, bind_usage
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
 from backend.config import settings
 from backend.app.services.ai.prompt_builder import compose_generation_prompt
-from backend.app.constants.themes import themes
+from backend.app.constants.themes import new_form_theme, preset_name, themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.services.ai_form_provider import AIFormProvider
 from backend.app.services.google_ai_provider import GoogleAIFormProvider
+from backend.app.services.image_urls import allowed_image_url_or_none
 from backend.app.services.openai_provider import OpenAIFormProvider
 from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -35,6 +39,18 @@ from backend.app.models.enum.permission import Permission
 _DEFAULT_LAYOUT = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
 
 
+def _section_title(value: Any) -> Optional[str]:
+    """A generated page's section title, as plain one-line text. One that is
+    not text or longer than the cap is left out: the page then shows its
+    heading or first question, as it would without one."""
+    if not isinstance(value, str):
+        return None
+    title = " ".join(value.split())
+    if not title or len(title) > SECTION_TITLE_MAX_LENGTH:
+        return None
+    return title
+
+
 class OpenAIService:
     def __init__(
         self,
@@ -42,10 +58,12 @@ class OpenAIService:
         workspace_form_service: WorkspaceFormService,
         authorization_service=None,
         ai_consent_service: Optional[AIConsentService] = None,
+        ai_usage_guard: Optional[AIUsageGuard] = None,
     ):
         self.workspace_service: WorkspaceService = workspace_service
         self.authorization_service = authorization_service
         self.ai_consent_service = ai_consent_service
+        self.ai_usage_guard = ai_usage_guard
         self.workspace_form_service: WorkspaceFormService = workspace_form_service
         self._unsplash = UnsplashService()
         self._providers: Dict[AIProvider, AIFormProvider] = {
@@ -73,11 +91,22 @@ class OpenAIService:
         return impl
 
     async def provider_for_workspace(
-        self, workspace_id: PydanticObjectId, requested: Optional[str] = None
+        self,
+        workspace_id: PydanticObjectId,
+        requested: Optional[str] = None,
+        *,
+        user_id: Optional[Any] = None,
+        admit: bool = True,
     ) -> AIFormProvider:
         """The one way to get an AI provider (#715): 403 ``ai_not_enabled``
         unless the workspace opted in, and always the provider it consented
-        to. A client-chosen provider other than that one is ignored."""
+        to. A client-chosen provider other than that one is ignored.
+
+        Then the AI limits (backend/AGENTS.md "AI limits"): with ``admit``
+        this is one AI request of ``user_id`` (429 over the rate limits or
+        the daily budget), and the provider calls that follow count their
+        tokens against the workspace. An import job passes ``admit=False``:
+        its upload was admitted (``admit_import``)."""
         consented = await self.ai_consent_service.require_enabled(workspace_id)
         # ``requested`` is honoured only when it is the consented provider,
         # which is the one returned below either way.
@@ -90,7 +119,22 @@ class OpenAIService:
                 "The AI provider this workspace consented to is not available. "
                 "A workspace admin needs to turn AI on again."
             )
-        return self._get_provider(provider)
+        impl = self._get_provider(provider)
+        if self.ai_usage_guard is not None:
+            if admit:
+                await self.ai_usage_guard.admit(workspace_id, user_id)
+            bind_usage(self.ai_usage_guard, workspace_id)
+        return impl
+
+    async def admit_import(self, workspace_id: PydanticObjectId, user: User) -> None:
+        """A document upload that asks for AI structuring is one AI request
+        of its uploader, admitted at upload (the import runs later, as a
+        job). Nothing is counted while the workspace has AI off: the import
+        then never uses it."""
+        if self.ai_usage_guard is None or self.ai_consent_service is None:
+            return
+        if await self.ai_consent_service.consented_provider(workspace_id):
+            await self.ai_usage_guard.admit(workspace_id, user.id)
 
     async def create_form_with_ai(
         self,
@@ -104,7 +148,7 @@ class OpenAIService:
             user, Permission.FORM_CREATE, workspace_id
         )
         provider = await self.provider_for_workspace(
-            workspace_id, create_form_ai.provider
+            workspace_id, create_form_ai.provider, user_id=user.id
         )
 
         try:
@@ -136,7 +180,8 @@ class OpenAIService:
         except HTTPException:
             raise
         except Exception as e:
-            print(e)
+            # the error's type only: its message can quote the prompt or reply
+            logger.warning("AI form generation failed ({})", type(e).__name__)
             raise HTTPException(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 content="Could not create form using AI",
@@ -147,11 +192,23 @@ class OpenAIService:
     # ------------------------------------------------------------------
 
     def convert_openai_form_to_standard_form(self, openai_form: Dict[str, Any]):
-        theme_name = openai_form.get("theme_name", "Black")
-        chosen_theme = themes.get(theme_name) or themes.get("Black")
+        # New forms start with Leaflet; another preset only when the model
+        # picked one by name (the prompt asks it to, when the request wants
+        # other colours). Anything else falls back to Leaflet.
+        # A legacy preset name (Blue, Green, ...) means the nearest preset.
+        theme_name = preset_name(openai_form.get("theme_name"))
+        chosen_theme = (
+            themes[theme_name].model_copy(deep=True) if theme_name else new_form_theme()
+        )
 
-        welcome_image_url: Optional[str] = openai_form.get("welcome_image_url")
-        cover_image_url: Optional[str] = openai_form.get("cover_image_url")
+        # Only images from our storage or Unsplash (services/image_urls.py):
+        # respondents' browsers load them directly.
+        welcome_image_url: Optional[str] = allowed_image_url_or_none(
+            openai_form.get("welcome_image_url")
+        )
+        cover_image_url: Optional[str] = allowed_image_url_or_none(
+            openai_form.get("cover_image_url")
+        )
 
         # Auto-select welcome layout: use image-side layout when image present
         welcome_layout = (
@@ -188,8 +245,11 @@ class OpenAIService:
         for index, field in enumerate(openai_fields):
             # Per-field layout: read directly from the AI-generated field dict.
             # Fall back to image-aware default: if image_url present use TWO_COLUMN_IMAGE_LEFT.
-            image_url: Optional[str] = field.get("image_url") or None
+            image_url: Optional[str] = allowed_image_url_or_none(field.get("image_url"))
             layout_value: Optional[str] = field.get("layout")
+            if field.get("image_url") and not image_url:
+                # A refused image takes its image layout with it.
+                layout_value = None
             if not layout_value:
                 layout_value = (
                     LayoutType.TWO_COLUMN_IMAGE_LEFT.value
@@ -252,16 +312,17 @@ class OpenAIService:
                             ),
                         )
                     )
+            properties = {"fields": slide_fields, "layout": layout}
+            section_title = _section_title(field.get("sectionTitle"))
+            if section_title:
+                properties["section_title"] = section_title
             fields.append(
                 {
                     "id": str(uuid.uuid4()),
                     "type": StandardFormFieldType.SLIDE,
                     "index": index,
                     "image_url": image_url,
-                    "properties": {
-                        "fields": slide_fields,
-                        "layout": layout,
-                    },
+                    "properties": properties,
                 }
             )
         return fields
@@ -305,8 +366,12 @@ class OpenAIService:
         if isinstance(why_we_ask, str) and why_we_ask.strip():
             properties["why_we_ask"] = why_we_ask.strip()[:WHY_WE_ASK_MAX_LENGTH]
         if type is not None and type == StandardFormFieldType.YES_NO:
+            # Stored the way the builder and the chat ops store them: "Yes" and
+            # "No" are fixed values (answers and logic map them to true and
+            # false) without a label, so the respondent form shows them in
+            # the respondent's language rather than in English.
             properties["choices"] = [
-                {"id": str(uuid.uuid4()), "label": "Yes", "value": "Yes"},
-                {"id": str(uuid.uuid4()), "label": "No", "value": "No"},
+                {"id": str(uuid.uuid4()), "value": "Yes"},
+                {"id": str(uuid.uuid4()), "value": "No"},
             ]
         return properties

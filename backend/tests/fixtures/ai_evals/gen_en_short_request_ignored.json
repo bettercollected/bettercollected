@@ -1,0 +1,55 @@
+{
+  "name": "gen_en_short_request_ignored",
+  "kind": "generate",
+  "description": "'Make it short, three questions at most' answered with five questions.",
+  "language": "en",
+  "max_questions": 3,
+  "expected_findings": [
+    "too_many_questions"
+  ],
+  "reply": {
+    "title": "Beach clean-up sign-up",
+    "description": "Join the beach clean-up on Saturday morning.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Sign up",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "What is your name?",
+              "type": "short_text",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "How many people are you bringing?",
+              "type": "number"
+            },
+            {
+              "title": "Do you need gloves and bags from us?",
+              "type": "yes_no"
+            },
+            {
+              "title": "Which time slot suits you?",
+              "type": "dropdown",
+              "properties": {
+                "choices": [
+                  "9:00",
+                  "11:00"
+                ]
+              }
+            },
+            {
+              "title": "How did you hear about the clean-up?",
+              "type": "long_text"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

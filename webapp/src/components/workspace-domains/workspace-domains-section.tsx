@@ -16,7 +16,7 @@ const RECORD_HOST = '_bettercollected-verification';
 
 const STATUS: Record<WorkspaceDomainStatus, { label: string; className: string }> = {
     pending: { label: 'Not verified yet', className: 'bg-black-100 text-black-600' },
-    verified: { label: 'Verified', className: 'bg-[#E7F6EE] text-[#0E8A5F]' },
+    verified: { label: 'Verified', className: 'bg-[#E7F6EE] text-success-700' },
     failed: { label: 'Verification failed', className: 'bg-[#FBEFEF] text-[#C43D3D]' },
     conflict: { label: 'Verified by another workspace', className: 'bg-[#FDF3E3] text-[#9A5B00]' }
 };
@@ -63,9 +63,9 @@ function CopyButton({ value, label }: { value: string; label: string }) {
                     setCopied(false);
                 }
             }}
-            className="shrink-0 rounded p-1 text-black-500 transition-colors hover:text-black-800"
+            className="shrink-0 rounded p-1 text-black-600 transition-colors hover:text-black-800"
         >
-            {copied ? <Check className="h-4 w-4 text-[#0E8A5F]" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
             <span className="sr-only" aria-live="polite">
                 {copied ? 'Copied' : ''}
             </span>
@@ -76,8 +76,8 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 function RecordField({ label, value, copyLabel }: { label: string; value: string; copyLabel: string }) {
     return (
         <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-black-500">{label}</span>
-            <div className="flex items-center justify-between gap-3 rounded-md border border-black-200 bg-white px-3 py-2">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-black-600">{label}</span>
+            <div className="flex items-center justify-between gap-3 rounded-md border border-black-300 bg-white px-3 py-2">
                 <code className="break-all text-[13px] text-black-800">{value}</code>
                 <CopyButton value={value} label={copyLabel} />
             </div>
@@ -123,16 +123,16 @@ function DomainCard({ domain, workspaceId }: { domain: WorkspaceDomainDto; works
     };
 
     return (
-        <li className="flex flex-col gap-4 rounded-lg border border-black-200 bg-white p-4" data-testid={`domain-${domain.domain}`}>
+        <li className="flex flex-col gap-4 rounded border border-black-300 bg-white p-4" data-testid={`domain-${domain.domain}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-1" aria-live="polite">
                     <div className="flex flex-wrap items-center gap-2">
-                        {verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-[#0E8A5F]" /> : <Globe2 className="h-4 w-4 shrink-0 text-black-500" />}
+                        {verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-success" /> : <Globe2 className="h-4 w-4 shrink-0 text-black-600" />}
                         <span className="break-all text-sm font-semibold text-black-900">{domain.displayDomain}</span>
                         <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium', status.className)}>{status.label}</span>
                     </div>
-                    {domain.displayDomain !== domain.domain && <span className="break-all text-xs text-black-500">{domain.domain}</span>}
-                    <span className="text-xs text-black-500">
+                    {domain.displayDomain !== domain.domain && <span className="break-all text-xs text-black-600">{domain.domain}</span>}
+                    <span className="text-xs text-black-600">
                         {verified && domain.verifiedAt ? `Verified ${formatTime(domain.verifiedAt)}` : 'Add the TXT record below, then check it.'}
                         {domain.lastCheckedAt ? ` · Last checked ${formatTime(domain.lastCheckedAt)}` : ''}
                     </span>
@@ -170,7 +170,7 @@ function DomainCard({ domain, workspaceId }: { domain: WorkspaceDomainDto; works
                         <RecordField label="Value" value={domain.txtRecordValue} copyLabel={`Copy record value for ${domain.displayDomain}`} />
                     </div>
                     {!verified && (
-                        <p className="text-[11px] text-black-500">
+                        <p className="text-[11px] text-black-600">
                             Type <code>TXT</code> · host only: <code>{RECORD_HOST}</code>
                         </p>
                     )}
@@ -228,7 +228,7 @@ export default function WorkspaceDomainsSection() {
                             setDraft(e.target.value);
                             setClaimError(null);
                         }}
-                        className="h-10 w-full rounded-md border border-black-300 bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-400 focus:border-brand-500 focus:shadow-[0_0_0_3px_rgba(36,86,204,0.15)] sm:max-w-[360px]"
+                        className="h-10 w-full rounded-md border border-control bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-brand-500 sm:max-w-[360px]"
                     />
                     <Button type="submit" size="sm" variant="primary" isLoading={isClaiming} disabled={!draft.trim()}>
                         Add domain
@@ -239,14 +239,14 @@ export default function WorkspaceDomainsSection() {
                         {claimError}
                     </p>
                 ) : (
-                    <p className="text-xs text-black-500">Your organisation&apos;s own email domain, e.g. the part after @ in your work address. Free email providers and shared domains can&apos;t be added.</p>
+                    <p className="text-xs text-black-600">Your organisation&apos;s own email domain, e.g. the part after @ in your work address. Free email providers and shared domains can&apos;t be added.</p>
                 )}
             </form>
 
             <div className="flex flex-col gap-3">
                 <h2 className="text-sm font-semibold text-black-900">Domains</h2>
                 {isLoading ? (
-                    <p className="text-xs text-black-500">Loading…</p>
+                    <p className="text-xs text-black-600">Loading…</p>
                 ) : isError ? (
                     <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#F3D1D1] bg-[#FBEFEF] px-3 py-3 text-xs text-[#C43D3D]">
                         <span>Your domains couldn&apos;t be loaded. Nothing has been changed.</span>
@@ -255,7 +255,7 @@ export default function WorkspaceDomainsSection() {
                         </Button>
                     </div>
                 ) : domains.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-black-200 px-3 py-4 text-center text-xs text-black-500">No domains yet. Add your organisation&apos;s email domain above.</p>
+                    <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-center text-xs text-black-600">No domains yet. Add your organisation&apos;s email domain above.</p>
                 ) : (
                     <ul className="flex flex-col gap-3">
                         {domains.map((domain) => (

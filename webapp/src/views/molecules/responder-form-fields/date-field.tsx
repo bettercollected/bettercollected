@@ -1,7 +1,9 @@
 import { format } from 'date-fns';
+import { nl as dutch } from 'date-fns/locale/nl';
 import { CalendarIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { cn } from '@app/shadcn/util/lib';
@@ -12,6 +14,8 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import { DateRuleContext, getDateRuleError, getDisabledDayMatcher, isoToLocalDate, resolveDateRuleBounds, toIsoDate, todayIso } from '@app/utils/date-rules';
+
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import QuestionWrapper from './question-wrapper';
 import { ThemedCalendar } from './themed-calendar';
@@ -27,7 +31,8 @@ function useDateRuleContext(): DateRuleContext {
     const { formResponse } = useFormResponse();
     const standardForm = useAppSelector(selectForm);
     const fieldsById = useMemo(() => getInputFieldsById(standardForm?.fields), [standardForm?.fields]);
-    return { answers: formResponse.answers ?? {}, fieldsById, today: todayIso() };
+    const { t, language } = useRespondentLanguage();
+    return { answers: formResponse.answers ?? {}, fieldsById, today: todayIso(), messages: { t: t as any, language } };
 }
 
 function DateFieldSection({ field, isBuilder }: IDateField) {
@@ -36,6 +41,9 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
     const answer = (formResponse.answers && formResponse.answers[field.id]?.date) || '';
     const { nextField } = useResponderState();
     const ruleContext = useDateRuleContext();
+    const { t, language } = useRespondentLanguage();
+    // date-fns' and the calendar's Dutch locale; English is their default.
+    const locale = language === 'nl' ? dutch : undefined;
 
     // Answers are calendar days (YYYY-MM-DD): read them as local dates, so
     // the picker never shows the day before west of UTC.
@@ -86,14 +94,15 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         id={buttonId}
                         type="button"
                         className={cn(
-                            'flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-4 py-3 text-base outline-hidden transition duration-150 hover:border-(--hover-border)! hover:shadow-[0_1px_3px_rgba(16,24,38,0.10)] focus-visible:ring-2 lg:text-lg',
+                            'flex min-h-12 w-full cursor-pointer items-center gap-2 border bg-white px-4 py-3 text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg',
                             isBuilder && 'pointer-events-none'
                         )}
                         style={{
-                            ['--hover-border' as string]: tertiaryColor ?? '#8A94A6',
-                            borderColor: '#E3E3E3',
+                            ['--hover-border' as string]: theme?.primary ?? '#101828',
+                            borderRadius: styleTokens(theme?.style).inputRadius,
+                            borderColor: tertiaryColor ?? '#818CA0',
                             // Chosen date is content (ink); empty state a legible neutral.
-                            color: date ? theme?.primary : '#657085'
+                            color: date ? theme?.primary : '#667085'
                         }}
                     >
                         <CalendarIcon
@@ -102,14 +111,14 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         />
                         {date ? (
                             // The chosen date is the answer — ink, not the action colour.
-                            <span style={{ color: theme?.primary }}>{format(date, 'PPP')}</span>
+                            <span style={{ color: theme?.primary }}>{format(date, 'PPP', { locale })}</span>
                         ) : (
-                            <span style={{ color: '#657085' }}>Pick a date</span>
+                            <span style={{ color: '#667085' }}>{t('DATE.PICK')}</span>
                         )}
                     </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                    <ThemedCalendar mode="single" selected={date} onSelect={handleSelect} disabled={disabled} defaultMonth={defaultMonth} autoFocus />
+                    <ThemedCalendar mode="single" locale={locale} selected={date} onSelect={handleSelect} disabled={disabled} defaultMonth={defaultMonth} autoFocus />
                 </PopoverContent>
             </Popover>
         </div>

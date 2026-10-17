@@ -13,6 +13,7 @@ from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocum
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.ai.memory import EXTRACTION_SYSTEM_PROMPT
+from backend.app.services.ai.untrusted import fence
 
 
 @pytest.fixture()
@@ -192,7 +193,7 @@ class TestExtractionThroughChat:
         # substring check would let a rewired/garbled prompt pass silently.
         extraction_call = fake_provider.calls[1]
         assert extraction_call["system"] == EXTRACTION_SYSTEM_PROMPT.format(
-            existing="(empty)"
+            existing=fence("existing_memory", "(empty)")
         )
         # …and it must be fed the actual turn (what the creator said and what
         # the assistant did), or extraction degrades into guessing.

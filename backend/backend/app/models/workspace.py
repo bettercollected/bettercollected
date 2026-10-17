@@ -7,6 +7,8 @@ from common.models.consent import ResponseRetentionType
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field, field_validator, model_serializer
 
+from backend.app.constants.themes import THEME_STYLES
+
 HEX_COLOUR = re.compile(r"#[0-9a-fA-F]{6}")
 
 # Respondent feedback: the statuses staff can give a submission ("Selected").
@@ -110,8 +112,8 @@ class WorkspaceThemeDto(BaseModel):
     @field_validator("style")
     @classmethod
     def _known_style(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in ("classic", "sheet", "studio"):
-            raise ValueError("Style must be classic, sheet or studio.")
+        if v is not None and v not in THEME_STYLES:
+            raise ValueError("Style must be one of: " + ", ".join(THEME_STYLES) + ".")
         return v
 
     @field_validator("title")

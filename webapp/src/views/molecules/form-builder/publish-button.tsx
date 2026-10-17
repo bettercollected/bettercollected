@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -7,13 +7,13 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { usePublishV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { PublishProblem, getPublishProblems, problemsFromPublishError, splitPublishProblems } from '@app/utils/publish-checks';
+import { flushAutosave } from '@app/views/molecules/form-builder/audo-save-form';
 
 /** Where a question sits in the builder: its page, and the page-level field holding it. */
 function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string) {
@@ -29,8 +29,8 @@ function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string
 
 /**
  * `fields`: the builder's live pages. Checks run on them, and publishing
- * waits (briefly) for the autosave to store them, so what is checked is what
- * the server checks and publishes.
+ * first stores them (flushAutosave), so what is checked is what the server
+ * checks and publishes.
  */
 const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?: Array<StandardFormFieldDto> }) => {
     const { toast } = useToast();
@@ -40,33 +40,27 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
     const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
     const router = useRouter();
     const pathname = usePathname();
-    const authState = useAppSelector(selectAuth);
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const [problems, setProblems] = useState<PublishProblem[]>([]);
     const [waiting, setWaiting] = useState(false);
-    const savedFieldsRef = useRef(standardForm?.fields);
-    useEffect(() => {
-        savedFieldsRef.current = standardForm?.fields;
-    }, [standardForm?.fields]);
     const checksVersion = standardForm?.settings?.publishChecksVersion;
     const { blocking, recommended } = splitPublishProblems(problems, checksVersion);
-    const blocks = (found: PublishProblem[]) => splitPublishProblems(found, checksVersion).blocking.length > 0;
-
-    // The server checks the saved draft: give the autosave (debounced) a
-    // moment to store the fix the creator just made.
-    const waitForSave = async () => {
-        for (let i = 0; i < 20 && blocks(getPublishProblems(savedFieldsRef.current)); i++) {
-            await new Promise((resolve) => setTimeout(resolve, 250));
-        }
-    };
 
     const publish = async () => {
         setProblems([]);
-        if (fields?.length) {
-            setWaiting(true);
-            await waitForSave();
-            setWaiting(false);
+        // The server publishes the saved draft: save every pending edit now
+        // and wait for it, so an older draft is never published.
+        setWaiting(true);
+        const saved = await flushAutosave();
+        setWaiting(false);
+        if (saved === 'conflict') {
+            toast({ description: 'This form was changed somewhere else. Reload the latest version before publishing.', variant: 'destructive' });
+            return;
+        }
+        if (saved !== 'saved') {
+            toast({ description: "Your latest changes aren't saved yet, so the form was not published. Check your connection and try again.", variant: 'destructive' });
+            return;
         }
         const response: any = await publishV2Form({
             workspaceId: workspace.id,
@@ -108,7 +102,7 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
 
     return (
         <>
-            <Button isLoading={isLoading || waiting} onClick={publishForm} className="bg-brand-500! text-white hover:bg-[#1E49AD]!" data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
+            <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'}>
                 Publish
             </Button>
             <PublishProblemsDialog
@@ -148,7 +142,7 @@ export function PublishProblemsDialog({
     const list = (items: PublishProblem[], testId: string) => (
         <ul className="flex flex-col gap-2" data-testid={testId}>
             {items.map((problem) => (
-                <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-black-200 p-3 text-sm">
+                <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-black-300 p-3 text-sm">
                     <span className="text-black-800">{problem.message}</span>
                     {canShowQuestion(problem.fieldId) && (
                         <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
@@ -186,7 +180,7 @@ export function PublishProblemsDialog({
                         <Button variant="secondary" onClick={onClose}>
                             Not now
                         </Button>
-                        <Button onClick={onPublishAnyway} className="bg-brand-500! text-white hover:bg-[#1E49AD]!">
+                        <Button onClick={onPublishAnyway} className="text-white">
                             Publish anyway
                         </Button>
                     </div>

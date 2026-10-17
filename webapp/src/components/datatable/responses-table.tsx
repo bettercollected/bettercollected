@@ -29,10 +29,10 @@ const responseTableStyles = {
     rows: {
         style: {
             ...dataTableCustomStyles.rows.style,
-            borderColor: '#E2E8F2 !important',
+            borderColor: '#EAECF0 !important',
             '&:hover': {
                 cursor: 'pointer',
-                background: '#F6F8FC'
+                background: '#F5F7FB'
             }
         }
     }
@@ -124,7 +124,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         // dash keeps the column for the fact it actually holds — the date.
         return (
             <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
-                {status.toLowerCase() === 'pending' ? <span className="text-black-500 text-sm">—</span> : <span className="text-black-700 text-sm font-medium">{utcToLocalDateTIme(response.updatedAt)}</span>}
+                {status.toLowerCase() === 'pending' ? <span className="text-black-600 text-sm">—</span> : <span className="text-black-700 text-sm font-medium">{utcToLocalDateTIme(response.updatedAt)}</span>}
             </div>
         );
     };
@@ -217,7 +217,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         status: row?.status || t(formConstant.status.pending)
                     }),
                 style: {
-                    color: '#3A465A',
+                    color: '#344054',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -230,7 +230,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         response: row
                     }),
                 style: {
-                    color: '#3A465A',
+                    color: '#344054',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -244,7 +244,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         response: row
                     }),
                 style: {
-                    color: '#3A465A',
+                    color: '#344054',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -258,7 +258,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 name: t(formConstant.default),
                 selector: (response: StandardFormResponseDto) => responseFormTitle(response),
                 style: {
-                    color: '#101826',
+                    color: '#101828',
                     fontSize: '14px',
                     fontWeight: 500,
                     paddingLeft: '8px',

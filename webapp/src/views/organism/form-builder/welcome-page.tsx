@@ -1,16 +1,26 @@
-import cn from 'classnames';
+import { useEffect, useState } from 'react';
 
-import { FormSlideLayout } from '@app/models/enums/form';
+import cn from 'classnames';
+import { useDebounceValue } from 'usehooks-ts';
+
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { Button } from '@app/shadcn/components/ui/button';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
+import { LeafletContents, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
-import { useEffect, useState } from 'react';
-import { useDebounceValue } from 'usehooks-ts';
+import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
 import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     const { theme, formState, setFormDescription, setFormTitle } = useFormState();
+    const logo = useBuilderFormLogo();
+    // The pages, for the leaflet cover's contents.
+    const form = useAppSelector(selectForm);
     const [description, setDescription] = useState('');
     const [debouncedDescription] = useDebounceValue(description, 300);
     useEffect(() => {
@@ -20,14 +30,66 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
         setFormDescription(debouncedDescription);
     }, [debouncedDescription]);
 
+    if (styleTokens(theme?.style).key === 'leaflet') {
+        // WYSIWYG with the respondent's leaflet cover: the title edited on the
+        // section bar, the description on the intro band.
+        const layout = formState.welcomePage?.layout;
+        return (
+            <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
+                <div className="w-full">
+                    {/* As on the live page: with a logo strip the top row goes. */}
+                    {!logo && <LeafletTopRule theme={theme} />}
+                    <div className="-mx-5 px-5 py-6 sm:-mx-8 sm:px-8 sm:py-8" style={{ background: theme?.secondary }}>
+                        <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
+                            <AutosizeTextarea
+                                style={{ resize: 'none', fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 }}
+                                placeholder="Form Title"
+                                aria-label="Form title"
+                                className="w-full border-0 bg-transparent px-0 py-0 text-[30px] leading-[1.15] text-white placeholder:text-white/80 sm:text-[38px]"
+                                value={formState.title}
+                                onChange={(event) => {
+                                    setFormTitle(event.target.value);
+                                }}
+                            />
+                        </div>
+                    </div>
+                    {formState?.welcomePage?.description !== undefined && formState?.welcomePage?.description !== null && (
+                        <div className="-mx-5 px-5 py-4 sm:-mx-8 sm:px-8" style={{ background: leafletColours(theme).band }}>
+                            <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
+                                <AutosizeTextarea
+                                    placeholder="Add description"
+                                    style={{ resize: 'none', color: theme?.primary }}
+                                    value={description}
+                                    aria-label="Description"
+                                    className="ring-none w-full border-0 bg-transparent px-0 py-0 text-base leading-[1.6] outline-hidden"
+                                    onChange={(e: any) => setDescription(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <div className={cn(FORM_COLUMN, columnPlacementClass(layout), 'flex flex-col items-start pt-8')}>
+                        <LeafletContents pages={form?.fields} theme={theme} />
+                        <Button size={'medium'} className="z-10 mt-8 min-h-12 rounded-[4px] px-8 py-3 text-base font-semibold" style={{ background: theme?.secondary }}>
+                            {formState.welcomePage?.buttonText || 'Start'}
+                        </Button>
+                    </div>
+                </div>
+            </GreetingLayoutWrapper>
+        );
+    }
+
     return (
         <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
-            <div className={cn('flex h-full flex-col justify-center bg-transparent', formState.welcomePage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? ' items-start' : ' items-center')}>
-                <div className={cn('flex w-full max-w-[800px] flex-col items-start')}>
+            {/* WYSIWYG with the respondent's welcome page: same column,
+                alignment (the page's Layout setting) and rhythm. */}
+            <div className="w-full">
+                <div className={cn(FORM_COLUMN, columnPlacementClass(formState.welcomePage?.layout), 'flex flex-col pt-6', greetingAlignClass(formState.welcomePage?.layout))}>
                     <AutosizeTextarea
                         style={{ resize: 'none' }}
                         placeholder="Form Title"
-                        className=" w-full border-0 px-0 py-0 text-[40px] font-bold leading-[60px]"
+                        aria-label="Form title"
+                        // Textareas don't inherit text-align; [text-align:inherit] follows the column.
+                        className="w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
                         value={formState.title}
                         onChange={(event) => {
                             setFormTitle(event.target.value);
@@ -39,14 +101,15 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                                 placeholder="Add description"
                                 style={{ resize: 'none' }}
                                 value={description}
-                                className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-hidden"
+                                aria-label="Description"
+                                className="ring-none mt-4 w-full border-0 bg-transparent px-0 [text-align:inherit] text-base leading-relaxed text-black-700 outline-hidden"
                                 onChange={(e: any) => setDescription(e.target.value)}
                             />
                         </>
                     ) : (
                         <></>
                     )}
-                    <Button size={'medium'} className="z-10 mt-12 rounded px-8 py-3" style={{ background: theme?.secondary }}>
+                    <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={{ background: theme?.secondary }}>
                         {formState.welcomePage?.buttonText || 'Start'}
                     </Button>
                 </div>

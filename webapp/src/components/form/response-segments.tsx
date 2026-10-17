@@ -30,7 +30,7 @@ export default function ResponseSegments() {
     if (segments.length < 2) return null;
 
     return (
-        <div className="border-black-300 mb-6 inline-flex rounded-lg border bg-white p-0.5">
+        <div className="border-black-300 mb-6 inline-flex rounded border bg-white p-0.5">
             {segments.map((segment) => (
                 <Link
                     key={segment.href}

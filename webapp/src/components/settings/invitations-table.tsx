@@ -76,7 +76,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
             selector: (invitation: WorkspaceInvitationDto) => invitation.email,
             minWidth: '300px',
             style: {
-                color: '#101826',
+                color: '#101828',
                 fontSize: '16px',
                 fontWeight: 500,
                 paddingLeft: '16px',
@@ -88,7 +88,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
             name: t(members.invitationDate),
             selector: (invitation: WorkspaceInvitationDto) => (!!invitation?.createdAt ? `${utcToLocalDate(invitation?.createdAt)} ${utcToLocalTime(invitation?.createdAt)}` : ''),
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px',
                 fontSize: '16px'
@@ -102,7 +102,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
                 return role ? t(roleLocale(role).name) : '';
             },
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px',
                 fontSize: '16px'
@@ -117,7 +117,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
                     role: invitation.role
                 }),
             style: {
-                color: '#3A465A',
+                color: '#344054',
                 paddingLeft: '16px',
                 paddingRight: '16px',
                 fontSize: '16px'

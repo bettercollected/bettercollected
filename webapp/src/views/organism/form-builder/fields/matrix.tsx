@@ -71,14 +71,16 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                 )}
 
                                 {disabled && activeField?.id === field.id && (
-                                    <div
-                                        className="cross-top absolute left-1 rounded-full bg-white p-1 opacity-50 h-6 w-6"
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove column ${index + 1}`}
+                                        className="cross-top absolute left-1 h-6 w-6 rounded-full bg-white p-1 opacity-50 focus-visible:opacity-100"
                                         onClick={() => {
                                             deleteColumn(index);
                                         }}
                                     >
-                                        <X className="h-4 w-4 " />
-                                    </div>
+                                        <X className="h-4 w-4" aria-hidden="true" />
+                                    </button>
                                 )}
                             </div>
                         );
@@ -125,14 +127,16 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     <div className="max-h-full max-w-full wrap-break-word text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
                                 )}
                                 {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
-                                    <div
-                                        className="cross-top absolute left-1 rounded-full bg-white p-1 opacity-50 h-6 w-6"
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove row ${index + 1}`}
+                                        className="cross-top absolute left-1 h-6 w-6 rounded-full bg-white p-1 opacity-50 focus-visible:opacity-100"
                                         onClick={() => {
                                             deleteRow(index);
                                         }}
                                     >
-                                        <X className="h-4 w-4 " />
-                                    </div>
+                                        <X className="h-4 w-4" aria-hidden="true" />
+                                    </button>
                                 )}
                             </div>
                         </div>

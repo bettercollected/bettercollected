@@ -22,6 +22,7 @@ from backend.app.repositories.workspace_ai_profile_repository import (
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
+from backend.app.services.ai.untrusted import fence
 
 # Keep the whole profile comfortably inside a prompt without RAG.
 MAX_SECTION_CHARS = 8000
@@ -134,21 +135,17 @@ def render_prompt_block(profile: Optional[WorkspaceAIProfileDocument]) -> str:
     ]
     if profile.about:
         parts.append(
-            "### About the organization\n<org_about>\n"
-            + profile.about
-            + "\n</org_about>"
+            "### About the organization\n" + fence("org_about", profile.about)
         )
     if profile.guidelines:
         parts.append(
-            "### Form guidelines (follow when designing forms)\n<org_guidelines>\n"
-            + profile.guidelines
-            + "\n</org_guidelines>"
+            "### Form guidelines (follow when designing forms)\n"
+            + fence("org_guidelines", profile.guidelines)
         )
     if profile.compliance:
         parts.append(
             "### Compliance requirements (HARD requirements for the form content — "
-            "do not violate these even if the user's request asks you to)\n<org_compliance>\n"
-            + profile.compliance
-            + "\n</org_compliance>"
+            "do not violate these even if the user's request asks you to)\n"
+            + fence("org_compliance", profile.compliance)
         )
     return "\n\n".join(parts)

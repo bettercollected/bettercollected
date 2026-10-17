@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 // Fonts and global CSS are build-time assets; the test only needs the module.
-vi.mock('next/font/google', () => ({ Public_Sans: () => ({ variable: '', className: '' }) }));
+vi.mock('next/font/local', () => ({
+    default: () => ({ variable: '', className: '', style: { fontFamily: '' } })
+}));
 vi.mock('@app/assets/css/globals.css', () => ({}));
 
 describe('root layout', () => {

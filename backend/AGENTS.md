@@ -71,7 +71,8 @@ membership read directly: access goes through `AuthorizationService`.
   `services/workspace_members_service.py`, rules in docs/enterprise-access-model.md "Owners". A Privacy officer also deletes a response
   with a *pending* deletion request (`privacy.manage`) and never holds the answer permissions,
   whatever other role they have. MCP/API-key calls also require the key's creator to hold the
-  scope's permission at call time (`mcp/server.py` `SCOPE_PERMISSIONS`).
+  scope's permission at call time (`services/api_access.py` `SCOPE_PERMISSIONS`, shared
+  by MCP and the public API).
 - **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
   gates controls with `useWorkspacePermissions().can(...)` (owners: `workspace.billing`).
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
@@ -211,6 +212,28 @@ edits (422), skipping rules whose other question is unanswered or hidden by logi
 accepted within one day either side of UTC (the server can't know the respondent's zone), and on an edit
 "today" is the submission day.
 
+**Answer validation** (`services/answer_validation.py`): every submission and respondent edit is checked
+against the form the respondent filled, the same way the respondent page does (`validateSlide`,
+`utils/answer-rules.ts`, `utils/conditional-logic.ts` — keep them in step; shared cases in
+`docs/spec/answer-validation.cases.json`, run by pytest and vitest). Required counts on the pages the
+respondent goes through (replayed from page 1 with the submitted answers and the same jump resolution),
+leaving out questions hidden by logic, internal questions and content blocks; repeating-group items are
+checked per item. Answer rules (min/max length, pattern, min/max value, min/max choices) apply to
+counted questions with an answer. Types apply to every answer (the value in the slot of the question's
+type, existing option ids), and ids that are not questions of the draft or the published version are
+refused (on an edit, unknown ids are dropped as before and only changed answers are reported). Patterns
+are matched with RE2 (`google-re2`, linear time); longer text than 10,000 characters is left to the
+browser. Creator patterns are untrusted, so their cost is bounded: RE2 gets 1 MB per pattern
+(`PATTERN_MAX_MEM`: heavy ones fail fast), programs over 5,000 instructions are not used, one
+response compiles at most 50 uncached patterns and spends at most 0.25 s on patterns, the cache is
+bounded by entries and total program size, and `check_answers` runs in a worker thread. A pattern
+over 200 characters (the cap the builder and the form spec share,
+`common.form_spec.models.PATTERN_MAX_LENGTH`), one RE2 cannot compile (lookarounds,
+backreferences) or one past the budget is not enforced; only field ids are logged. Integers too
+big for a float count as Infinity, as in JavaScript. Problems answer 422 `{"code": "invalid_answers", "errors": [{"fieldId", "rule", "item"?}]}`,
+never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
+v1 and imported forms (fields not on pages) are not validated.
+
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
 `_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:
@@ -322,6 +345,21 @@ and architecture.
   docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
   `.env.deployment`.
 
+## Public API (forms as code)
+
+`/api/v1/public/v1` is a FastAPI app of its own (`app/public_api/`), mounted in
+`asgi.py` next to `/mcp`: its own OpenAPI document
+(`docs/api/public-v1.openapi.json`, regenerate with
+`uv run python -m backend.app.public_api.openapi`; a test checks it), one
+error shape, Bearer API keys only (never cookies). It mirrors MCP and calls
+the same code: scopes and the creator re-check in `services/api_access.py`,
+responses through `services/api_responses.py`, ops through
+`persist_ops_to_form`, create/replace through `services/form_spec/writes.py`
+(which uses `WorkspaceFormService.create_form` / `update_form`). PUT needs
+`If-Match` and writes with `update_form_if_unchanged`. `Idempotency-Key`
+records live in `api_idempotency_keys` (`services/idempotency.py`). Rate limit
+per key on the shared limiter (`API_PUBLIC_API_*`). Docs: `docs/api/README.md`.
+
 ## AI consent (#715)
 
 No user content (form content, prompts, the AI profile, memory, responses, uploaded
@@ -384,6 +422,89 @@ documents) goes to an AI provider until the workspace has opted in. Code:
   check still runs) and `enable_ai(workspace)`. A new AI path needs a test that it
   answers 403 `ai_not_enabled` with zero provider calls while AI is off.
 
+## AI limits
+
+What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
+
+- **Calls** (`services/ai_form_provider.call_provider`): each provider request
+  has `AI_REQUEST_TIMEOUT_SECONDS` (60) and the whole call, client retries
+  (`AI_CLIENT_MAX_RETRIES`, 1) included, `AI_CALL_TIMEOUT_SECONDS` (120); a
+  timeout is 504 `ai_timeout`, any other provider failure 502 `ai_unavailable`.
+  Output tokens per call type: `AI_MAX_OUTPUT_TOKENS_GENERATE` (16000), `_CHAT`
+  (8000), `_REVIEW` (8000), `_INSIGHTS` (4000), `_MEMORY` (1000); document
+  import pages keep `PAGE_MAX_TOKENS`/`PAGE_TIMEOUT_S`.
+- **Form generation's tool loop** stops at `AI_MAX_TOOL_ITERATIONS` model round
+  trips (10, the final answer and its retry included) or `AI_MAX_TOOL_CALLS`
+  tool calls (30) with 502 `ai_step_limit`, and the whole generation at
+  `AI_GENERATION_TIMEOUT_SECONDS` (240). Unknown tools and malformed arguments
+  go back to the model as a tool error; only the three tools ever run.
+- **Structured replies** (`services/ai/structured.py`): every reply is
+  validated with Pydantic (`GeneratedForm`, and a model per chat/review/
+  insights/memory reply); an unusable one gets one retry with the problems
+  (locations and messages, never values), then 502 `ai_unusable_reply`.
+  OpenAI generation uses strict structured output (`generated_form_schema()`,
+  strict-mode rules as in the import schema); chat calls ask for JSON mode
+  (OpenAI `json_object`, Gemini `application/json`, the compatible endpoint
+  unless `AI_COMPAT_JSON_MODE=false`). Gemini cannot combine tools with JSON
+  output, so its generation relies on validation and the retry. A provider's
+  `chat()` takes `max_output_tokens` and `json_mode`; use `chat_json(...)` for
+  a reply that must be JSON.
+- **Rate limits and budget** (`services/ai/usage.AIUsageGuard`, on the shared
+  `FixedWindowRateLimiter`): `provider_for_workspace(..., user_id=...)` admits
+  one AI request after the opt-in check: `AI_RATE_LIMIT_PER_USER` (10) and
+  `AI_RATE_LIMIT_PER_WORKSPACE` (30) per `AI_RATE_LIMIT_WINDOW_SECONDS` (60),
+  then the workspace's daily (UTC) counters: requests always counted, capped
+  by `AI_DAILY_REQUEST_BUDGET`, and tokens where the provider reports usage
+  (`record_tokens`, bound to the workspace by `bind_usage`), capped by
+  `AI_DAILY_TOKEN_BUDGET`; both caps 0 = none. Over a limit: 429
+  `{"code": "ai_rate_limited" | "ai_daily_limit", "message"}` with
+  `Retry-After`. A document upload with `ai_consent` is admitted at upload
+  (`admit_import`, only while AI is on) and its job resolves the provider with
+  `admit=False`; applying a review fix calls no provider and has its own
+  `AI_RATE_LIMIT_FIX_PER_USER` (60). 0 turns a limit off.
+- **Proposals** (`services/ai/proposals.py`): the editor's chat turns use
+  `mode: "propose"`: the ops are dry-run, nothing but the chat turn is
+  stored, and `POST …/ai/proposals/{id}/accept` (optional `opIndexes`)
+  applies them atomically, only to the version of the form the proposal
+  was made from (`base_updated_at`; ops address pages and fields by
+  position too), through `persist_ops_to_form` with the conditional write
+  on that base: 409 `proposal_stale` when the form changed since, 422
+  `proposal_selection_changes_meaning` when a chosen op without the ones
+  left out would change something other than its step showed, 422
+  `proposal_dependency` for a chosen op whose ref comes from one left out;
+  `…/reject` only marks it. The editor saves pending edits before it asks.
+  A proposal lives on its chat turn (`messages[].proposal`, both stores;
+  statuses are written with `update_proposal`, never by saving the whole
+  session), can be accepted for `AI_PROPOSAL_TTL_SECONDS` (3600), and a
+  one-time claim in the rate-limit counters (`FixedWindowRateLimiter.claim`),
+  taken by accept and reject alike, lets exactly one of them decide; an
+  unexpected error after the claim opens the next attempt (`attempt` on the
+  record) so a retry can decide, and a form deleted meanwhile is a 404. Accepting uses the review-fix allowance. `apply`
+  stays the API default (MCP, older clients).
+- **Untrusted content** (`services/ai/untrusted.py`): form contents, the AI
+  profile, preference memory, respondents' answers and the chat exchange go
+  into prompts only through `fence(tag, text)` (which defuses the tags inside
+  the text), and every system prompt carries `UNTRUSTED_CONTENT_RULES`.
+  Model output is never executed: ops are validated by the ops engine, image
+  and policy links are checked (`image_urls.py`, `policy_url.py`).
+- **Logging:** AI paths log error types, counts and ids only, never a prompt,
+  a reply, a tool query or an exception message.
+- **Quality evals:** `services/ai/quality.check_form_quality` scores a
+  generated or edited form (why-we-ask, questions per page, section titles,
+  EN/NL language, duplicates, required fields, choices, image hosts, logic
+  references, the Leaflet default) with findings that carry codes and ids,
+  never form text. The synthetic golden replies in `tests/fixtures/ai_evals/`
+  run through the real pipeline (`services/ai/eval_pipeline.py`) in CI; when a
+  prompt change moves a finding on purpose, update the fixture. To measure a
+  prompt change against a provider, run `AI_EVAL_ALLOW_LIVE=1 uv run python -m
+  scripts.ai_eval --live --out <dir outside the repo>` (both the flag and the
+  variable are needed; it sends only the synthetic prompts in `prompts.json`,
+  costs tokens, honours the AI limits unless `--ignore-limits`, and writes
+  `report.json` and `report.md`). `--prompts` only accepts a file inside
+  `tests/fixtures/ai_evals/`. Without `--live` it replays the fixtures and
+  never reads `backend/.env`. Never in CI. Never run --live on a production
+  host.
+
 ## PDF form import (in progress)
 
 `POST /workspaces/{id}/form-imports` (multipart `file`) turns an uploaded PDF or
@@ -401,7 +522,11 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   the image `bettercollected/backend:sandbox-test`, skipped otherwise). Backend and jobs worker
   reach it over `PDF_IMPORT_SANDBOX_SOCKET` with `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX=true`.
   `server.py` and `runner.py` must never import the backend package. Native modes
-  (`render`) never run in a local child. An unreachable or unresponsive sandbox
+  (`render`, `logo`: the organisation logo upload, and `image`: a fetched
+  picture, see "Images on forms" below; both decoded and re-encoded without
+  metadata by `pdf_import/logo_image.py`, see `services/form_logo.py`; the API
+  never decodes an image itself and answers 503 without the sandbox)
+  never run in a local child. An unreachable or unresponsive sandbox
   raises `SandboxUnavailable` (not the document's fault): the import stays queued
   while retries remain, and is failed with a "try again later" message on the
   last one (`ImportPipeline.give_up`), so it never holds the workspace's import
@@ -544,6 +669,53 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
 - Tests generate their own documents (`tests/app/pdf_import/documents.py`);
   do not add real-world forms to the repository.
+
+## Images on forms (first-party only)
+
+Respondents' browsers never contact a third-party image host. Every image a
+form holds (theme and page-theme backgrounds, welcome/ending images, page
+layout and question images, the cover) and every saved theme's background is
+one of ours; `services/image_urls.py` is the single allow-list:
+
+- **Our storage** (`AWS_PUBLIC_URL` or the endpoint, our bucket, `public/`,
+  `media_library/`, `images/`) and the builder's two built-in placeholders.
+- **Unsplash through our server:** a form stores an Unsplash photo by its
+  canonical address, `https://images.unsplash.com/<photo>` (as the picker and
+  the AI image search give it), which names no host of ours, so it stays right
+  on every instance and domain. The webapp loads it through its own API at
+  render time (`<NEXT_PUBLIC_API_ENDPOINT_HOST>/images/unsplash/<photo>`,
+  `src/utils/first-party-image.ts`, every render path including the link
+  preview's cover). The backend never writes an API host into a form: an
+  address of the route on any host (`<anything>/images/unsplash/<photo>`) is
+  stored as the canonical Unsplash one (`unsplash_route.to_canonical_url`).
+  The backend itself shows form images to nobody (no e-mail or export carries
+  them); API and MCP output return the canonical address.
+  The route, `GET /images/unsplash/{photo}` (`services/image_service.py`,
+  `services/unsplash_route.py`), takes a photo path and only
+  `w h q fit fm crop auto` (rounded to a fixed set of sizes, AVIF asked as
+  WebP, `crop` only `entropy`), fetches from the fixed host with no redirects,
+  has the sandbox's `image` mode re-encode it, stores it once under
+  `public/image-cache/unsplash/<hash>` and redirects there. Rate-limited per
+  client address (`API_IMAGE_PROXY_*`; IPv6 by /64,
+  `utils/client_ip.rate_limit_key`), tighter for requests that fetch, plus one
+  cap on fetches by everyone together (`API_IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW`).
+- **Pasted addresses are copied in:** `POST /workspaces/{id}/images/import`
+  (`form.edit`, `API_IMAGE_IMPORTS_*` per person) fetches through
+  `services/image_fetch.py` (https only, default port, no credentials; DNS
+  resolved by us and every answer must be public, the connection pinned to
+  that address; at most 3 redirects, each re-checked; timeouts; 10 MB read
+  while streaming; JPEG/PNG/WebP only), re-encodes in the sandbox and stores
+  under `public/media/<workspace>/`. Refusals are 422 `{code, message}` with a
+  plain-language message the editor shows; logs carry the code, never the
+  address.
+- **Saves are checked** (`services/form_images.py`): the whole-form PATCH, form
+  creation and the saved-themes PATCH keep first-party addresses (canonical
+  Unsplash ones included), store route addresses as canonical Unsplash ones,
+  keep an address the stored draft (or stored themes) already holds, and
+  refuse anything else with 422 `image_not_allowed`; a template copy and a
+  duplicate drop it instead. Tests: `test_image_urls.py`, `test_image_fetch.py`,
+  `test_images.py`, `test_form_images.py` (no network: fetch, DNS and the
+  sandbox are faked).
 
 ## Cross-service integration points
 

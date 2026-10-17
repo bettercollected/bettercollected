@@ -37,7 +37,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
     const { closeModal } = useFullScreenModal();
 
     // One calm treatment for every card — the pastel-rainbow tints were the
-    // "playful" palette the trust language retires (Design-Language §1).
+    // "playful" palette the trust language retires (DESIGN.md §1).
     // Unlimited forms is NOT listed — forms and responses are free for
     // everyone, so it can't be a Pro differentiator.
     const features = [
@@ -76,7 +76,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                 {/* One honest claim, stated once. The old copy said "is Free"
                     up top and "Free for 90 days!" at the bottom — but the
                     upgrade has no expiry in code, so the 90-day line was a
-                    surprise waiting to be discovered (Design-Language §5). */}
+                    surprise waiting to be discovered (DESIGN.md §5). */}
                 <div className="h2-new mb-2 text-center">
                     bettercollected PRO is <span className="text-brand-500">currently free</span>
                 </div>
@@ -95,16 +95,16 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     setCustomPrice('');
                                 }}
                                 className={cn(
-                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-500 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
-                                    price === activeSuggestion && 'shadow-suggestion-price text-black-800! bg-white'
+                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-600 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
+                                    price === activeSuggestion && 'ring-2 ring-brand-500 text-black-800! bg-white'
                                 )}
                             >
                                 ${price}
                             </div>
                         );
                     })}
-                    <div className={cn('focus-within:shadow-suggestion-price hidden h-10 rounded-lg border border-black-300 lg:flex', customPrice && 'shadow-suggestion-price')}>
-                        <div className="bg-black-100 text-black-500 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
+                    <div className={cn('focus-within:border-brand-500 hidden h-10 rounded-lg border border-black-300 lg:flex', customPrice && 'border-brand-500')}>
+                        <div className="bg-black-100 text-black-600 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
                         <input
                             type="number"
                             value={customPrice || ''}

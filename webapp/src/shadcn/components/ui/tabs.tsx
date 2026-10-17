@@ -17,7 +17,7 @@ const TabsList = React.forwardRef<
         className={cn(
             // Segmented-control track — same treatment as the details page's
             // response segments, so tabs read identically across the product.
-            'border-black-300 inline-flex h-10 items-center justify-center gap-0.5 rounded-lg border bg-white p-0.5',
+            'border-black-300 inline-flex h-10 items-center justify-center gap-0.5 rounded border bg-white p-0.5',
             className
         )}
         {...props}
@@ -32,7 +32,7 @@ const TabsTrigger = React.forwardRef<
     <TabsPrimitive.Trigger
         ref={ref}
         className={cn(
-            'ring-offset-background focus-visible:ring-ring text-black-600 hover:text-black-900 data-[state=active]:bg-black-100 data-[state=active]:text-black-900 inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium outline-hidden transition-all data-[state=active]:font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+            'text-black-600 hover:text-black-900 data-[state=active]:bg-black-200 data-[state=active]:text-black-900 inline-flex items-center justify-center whitespace-nowrap rounded-[4px] px-3 py-1.5 text-sm font-medium transition-colors data-[state=active]:font-semibold disabled:pointer-events-none disabled:opacity-50',
             className
         )}
         {...props}
@@ -47,7 +47,7 @@ const TabsContent = React.forwardRef<
     <TabsPrimitive.Content
         ref={ref}
         className={cn(
-            'ring-offset-background focus-visible:ring-ring mt-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2',
+            'mt-2',
             className
         )}
         {...props}

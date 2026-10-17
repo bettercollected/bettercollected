@@ -7,7 +7,7 @@ import BetterCollectedLogo from '@Components/icons/bettercollected-logo';
 /**
  * Last-resort boundary: catches errors thrown in the root layout itself, so it
  * REPLACES the layout and renders its own <html>/<body>. That means no
- * globals.css and no Public Sans here — everything is inlined so the page
+ * globals.css and no Instrument Sans here — everything is inlined so the page
  * survives even when the stylesheet or font pipeline is what failed. Kept
  * deliberately minimal; the in-layout error.tsx handles the common cases with
  * the full design system.
@@ -32,16 +32,16 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                     padding: '64px 24px',
                     textAlign: 'center',
                     background: '#ffffff',
-                    color: '#101826',
+                    color: '#101828',
                     fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
                 }}
             >
                 <BetterCollectedLogo style={{ height: 19 }} />
-                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>We hit an unexpected problem</h1>
-                <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.6, color: '#657085' }}>
+                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: '-0.022em' }}>We hit an unexpected problem</h1>
+                <p style={{ margin: 0, maxWidth: 420, fontSize: 16, lineHeight: 1.55, color: '#5A6478' }}>
                     This one is on us. Your data is safe. Reload the page, and if it keeps happening, please try again in a moment.
                 </p>
-                {error?.digest && <code style={{ fontSize: 12, color: '#657085', background: '#F6F8FC', padding: '4px 8px', borderRadius: 4 }}>Reference: {error.digest}</code>}
+                {error?.digest && <code style={{ fontSize: 12, color: '#667085', background: '#F5F7FB', padding: '4px 8px', borderRadius: 6, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' }}>Reference: {error.digest}</code>}
                 <button
                     onClick={reset}
                     style={{
@@ -53,7 +53,9 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                         fontSize: 14,
                         fontWeight: 500,
                         color: '#ffffff',
-                        background: '#2456CC'
+                        background: '#1649E2',
+                        // The key edge (DESIGN.md, Buttons), inlined like everything here.
+                        boxShadow: 'inset 0 -3px 0 0 #0E2D8F'
                     }}
                 >
                     Reload

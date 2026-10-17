@@ -72,7 +72,7 @@ describe('overlay surfaces', () => {
             </Dialog>
         );
         expect(screen.getByRole('dialog', { name: 'Before you publish' }).className).toContain('bg-white');
-        expect(screen.getByText('Recommended').className).toContain('text-black-600');
+        expect(screen.getByText('Recommended').className).toContain('text-body');
         expect(screen.getByTestId('popover').className).toContain('bg-white');
         expect(screen.getByTestId('popover').className).toContain('z-popover');
     });

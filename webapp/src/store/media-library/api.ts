@@ -42,8 +42,17 @@ export const mediaLibraryApi = createApi({
                 method: 'DELETE'
             }),
             invalidatesTags: [MEDIA_LIBRARY]
+        }),
+        // Copy the image at an address into our storage (backend
+        // services/image_service.py); answers our address for it.
+        importImageFromUrl: builder.mutation<{ url: string }, { workspace_id: string; url: string }>({
+            query: (data) => ({
+                url: `/${data.workspace_id}/images/import`,
+                method: 'POST',
+                body: { url: data.url }
+            })
         })
     })
 });
 
-export const { useGetWorkspaceMediaLibraryQuery, useAddPhotoInWorkspaceMediaLibraryMutation, useDeletePhotoFromWorkspaceMediaLibraryMutation, useLazyGetWorkspaceMediaLibraryQuery } = mediaLibraryApi;
+export const { useGetWorkspaceMediaLibraryQuery, useAddPhotoInWorkspaceMediaLibraryMutation, useDeletePhotoFromWorkspaceMediaLibraryMutation, useLazyGetWorkspaceMediaLibraryQuery, useImportImageFromUrlMutation } = mediaLibraryApi;

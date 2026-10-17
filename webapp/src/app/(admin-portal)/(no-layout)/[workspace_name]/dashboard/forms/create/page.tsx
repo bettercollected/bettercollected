@@ -18,7 +18,6 @@ import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permission
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@app/shadcn/components/ui/sheet';
-import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
@@ -29,10 +28,12 @@ import NavBar from '@app/views/molecules/form-builder/navbar';
 import WelcomePage from '@app/views/organism/form/welcome-page';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
+// One quiet card for every way to start a form: Sireto blue icons, a hairline
+// edge that turns blue on hover. No per-card accent colours (see DESIGN.md).
 const CardVariants = {
-    blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
-    purple: 'text-purple-500 hover:bg-purple-100 transition  hover:border-purple-100',
-    pink: 'text-pink-500 hover:bg-pink-100 hover:border-pink-100 transition-all'
+    blue: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors',
+    purple: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors',
+    pink: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors'
 };
 
 export default function CreateFormPage(props: { searchParams: Promise<{ modal?: string }> }) {
@@ -45,7 +46,6 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const { openModal } = useModal();
     const { openDialogModal } = useDialogModal();
     const isMobile = useIsMobile();
-    const authState = useAppSelector(selectAuth);
     const { can, isLoading: permissionsLoading } = useWorkspacePermissions();
     const canCreate = can(WorkspacePermission.FORM_CREATE);
 
@@ -73,7 +73,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
         const isMultiPage = type === 'Modern Form';
         resetFields();
         // New forms default to a calm, single-column layout with no decorative
-        // image (see Design-Language.md §3). Creators opt into the image / split
+        // image (see DESIGN.md §3). Creators opt into the image / split
         // layout per page via the Layout panel.
         const updatedForm = { ...defaultForm };
         const formBody = { ...updatedForm, builderVersion: 'v2', isMultiPage };
@@ -109,7 +109,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                 <SheetTrigger asChild>
                                     <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
                                 </SheetTrigger>
-                                <SheetContent className="h-full w-full p-0 shadow-v2 drop-shadow-2xl" side={'top'} hideCloseIcon>
+                                <SheetContent className="h-full w-full p-0" side={'top'} hideCloseIcon>
                                     <SheetTitle className="sr-only">Select form type</SheetTitle>
                                     <div className="h-full w-full bg-white">
                                         <NavBar isModal />
@@ -121,16 +121,16 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
 
                         <Card
                             variant={'purple'}
-                            icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-purple-500" />}
+                            icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-brand-500" />}
                             content={'Import Google Form'}
                             onClick={() => {
                                 openModal('IMPORT_FORMS', { nonClosable: true });
                             }}
                         />
-                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-blue-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
+                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-brand-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
                         <Card
                             variant={'pink'}
-                            icon={<AIIcon className="text-[#FE3678]" />}
+                            icon={<AIIcon className="text-brand-500" />}
                             content={'Start with AI'}
                             onClick={() => {
                                 if (!isMobile) openDialogModal('START_WITH_AI');
@@ -146,12 +146,12 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                 {templates?.map((template) => (
                                     // Plain div: the scaled WelcomePage preview inside contains buttons,
                                     // and <button> can't nest inside <button> (hydration error).
-                                    <div key={template?.id} className="outline-hidden" data-umami-event={'Create Form With Template'} data-umami-event-email={authState.email}>
+                                    <div key={template?.id} className="outline-hidden" data-umami-event={'Create Form With Template'}>
                                         <div className="flex flex-col rounded-lg border border-transparent">
                                             <div
                                                 data-umami-event={'Create Form With Template'}
-                                                data-umami-event-email={authState.email}
-                                                className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-black-200"
+                                               
+                                                className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-black-300"
                                                 onClick={() => createFormFromTemplate(template.id)}
                                             >
                                                 <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
@@ -184,46 +184,40 @@ interface CardWrapperProps {
 }
 
 const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapperProps) => {
-    const authState = useAppSelector(selectAuth);
 
     return (
         <div
             data-umami-event={content}
-            data-umami-event-email={authState.email}
-            className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-black-300 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
+           
+            className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded border border-black-400 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
             onClick={onClick}
         >
             {icon}
             <span className="p3-new mb-1 mt-2 text-black-800">{content}</span>
             {content !== 'Import Google Form' && content !== 'Import a PDF form' && <OnlyAvailableInDesktopVersion />}
             {addSoon && <SoonComponent msg={soonMsg} />}
-            {content === 'Start with AI' && <div className="absolute -right-0.5 -top-0.5 hidden rounded-lg bg-new-pink px-2 py-1 text-xs font-semibold text-white lg:flex">beta</div>}
+            {content === 'Start with AI' && <div className="absolute right-2 top-2 hidden rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-600 lg:flex">beta</div>}
         </div>
     );
 };
 
 const SoonComponent = ({ msg }: { msg?: string }) => {
     return (
-        <div className="absolute bottom-0 left-1/3 flex h-fit w-full rotate-[-30deg] items-center justify-center bg-new-pink text-[10px] font-medium leading-none text-white">
-            <span className="ml-14 md:ml-4">{msg || 'Soon'}</span>
-        </div>
+        <div className="absolute right-2 top-2 rounded bg-black-200 px-1.5 py-0.5 text-[11px] font-medium text-black-700">{msg || 'Soon'}</div>
     );
 };
 
 const OnlyAvailableInDesktopVersion = () => {
     return (
-        <div className="absolute -right-10 bottom-3 flex h-auto w-[200px] rotate-[-30deg] flex-col items-center justify-center gap-1 bg-new-pink py-2 text-[10px] font-medium leading-none text-white lg:hidden">
-            <span className="md:ml-4">Only available in</span>
-            <span className="md:ml-4">desktop version</span>
-        </div>
+        <div className="absolute bottom-2 text-xs text-black-600 lg:hidden">Only available on desktop</div>
     );
 };
 
 const PlusIcon = () => {
     return (
         <svg width="41" height="40" viewBox="0 0 41 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 11L20 29" stroke="#0764EB" strokeWidth="2" strokeLinecap="round" />
-            <path d="M11 20H29" stroke="#0764EB" strokeWidth="2" strokeLinecap="round" />
+            <path d="M20 11L20 29" stroke="#123FC9" strokeWidth="2" strokeLinecap="round" />
+            <path d="M11 20H29" stroke="#123FC9" strokeWidth="2" strokeLinecap="round" />
         </svg>
     );
 };

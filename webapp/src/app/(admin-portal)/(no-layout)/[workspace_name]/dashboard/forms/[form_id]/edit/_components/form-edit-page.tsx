@@ -5,15 +5,18 @@ import { use, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
+import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import useFormFieldsAtom, { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { deepCopy } from '@app/utils/object-utils';
 import AutoSaveForm from '@app/views/molecules/form-builder/audo-save-form';
 import { BuilderTrustStrip, TrustStripNudge } from '@app/views/molecules/form-builder/builder-trust-strip';
+import { AIProposalPreviewBar, AIProposalPreviewCanvas, useProposalPreviewOn } from '@app/views/organism/form-builder/ai-proposal-preview';
 import LeftDrawer from '@app/views/organism/form-builder/left-drawer';
 import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
 import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
@@ -28,8 +31,11 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const params = use(props.params);
     const { formFields, setFormFields, initFormFields } = useFormFieldsAtom();
     const { setFormState, formState, } = useFormState();
+    const { setHydratedFormId } = useBuilderHydration();
 
     const { activeSlideComponent } = useActiveSlideComponent();
+    // The AI tab's Preview: the canvas shows the proposal, read-only.
+    const previewingProposal = useProposalPreviewOn();
 
     const { setActiveFieldComponent } = useActiveFieldComponent();
 
@@ -82,19 +88,13 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
 
     const canvasScale = canvasZoom === 'full' ? 1 : fitScale;
 
-    // Esc deselects the active field — the drawer otherwise traps you until
-    // you discover that clicking empty canvas goes back.
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setActiveFieldComponent(null);
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // Esc goes up one inspector level (question → page → form), unless a
+    // popover, menu or dialog handles it.
+    useInspectorEscape();
 
     useEffect(() => {
         return () => {
+            setHydratedFormId(null);
             setFormState({ ...initialFormState });
             // initialFieldsState is an ARRAY — `{ ...array }` turns it into an
             // object and poisons the atom for the next editor mount (anything
@@ -114,7 +114,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     useEffect(() => {
         if (standardForm.formId) {
             if (!standardForm.welcomePage || !standardForm.thankyouPage) {
-                const form = { ...standardForm, ...formState };
+                // formState's own (empty) description must not hide the form's:
+                // autosave writes it back on every save.
+                const form = { ...standardForm, ...formState, description: standardForm.description };
                 setFormState(form);
             } else {
                 const copiedThankyouPage = deepCopy(standardForm?.thankyouPage || formState.thankyouPage);
@@ -122,9 +124,13 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 const form = {
                     ...formState,
                     title: standardForm.title,
+                    description: standardForm.description,
                     thankyouPage: copiedThankyouPage,
                     welcomePage: copiedWelcomePage,
-                    hiddenFields: standardForm.hiddenFields
+                    hiddenFields: standardForm.hiddenFields,
+                    logoPosition: standardForm.logoPosition,
+                    logoAlt: standardForm.logoAlt,
+                    useWorkspaceLogo: standardForm.useWorkspaceLogo
                 };
                 setFormState(form);
             }
@@ -134,6 +140,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage
             });
+            // Same batch as the state above: autosave takes this state as
+            // what the server has, and saves only changes made after it.
+            setHydratedFormId(standardForm.formId);
         }
     }, [standardForm.formId]);
 
@@ -151,7 +160,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     feeds back into the Fit scale and shrinks the card. */}
                 <div
                     ref={canvasMatRef}
-                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#E9EEF5] px-8 py-10"
+                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#F2F4F7] px-8 py-10"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
@@ -164,34 +173,47 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                             surface is near the mat's tone, so the edge comes from a
                             hairline + a soft elevation shadow, not from contrast. */}
                         <div
-                            className="border-black-400 overflow-hidden rounded-lg border bg-white"
+                            className="border-black-400 overflow-hidden rounded border bg-white"
                             style={{
                                 width: CANVAS_WIDTH,
                                 height: CANVAS_HEIGHT,
                                 transform: `scale(${canvasScale})`,
                                 transformOrigin: 'top left',
-                                boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
+                                // A hairline, not a shadow, sets the page off the canvas (DESIGN.md §6).
+                                outline: '1px solid #D0D5DD'
                             }}
                         >
-                            <div className="relative mx-auto h-full w-full rounded-lg">
-                                {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
-                                {!activeSlideComponent?.id && <div>Add a slide to start</div>}
-                                {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
+                            <div className="relative mx-auto flex h-full w-full flex-col rounded-lg">
+                                <div className="relative min-h-0 flex-1">
+                                    {previewingProposal ? (
+                                        <AIProposalPreviewCanvas activeSlideId={activeSlideComponent?.id} />
+                                    ) : (
+                                        <>
+                                            {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
+                                            {!activeSlideComponent?.id && <div>Add a slide to start</div>}
+                                            {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
-                                {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
+                                            {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
+                                        </>
+                                    )}
+                                </div>
                                 {/* The trust strip, exactly where responders see it —
-                                    on every page. An empty strip in plain sight is the
-                                    incentive to author the trust content. */}
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+                                    on every page, below the form as on the live page.
+                                    An empty strip in plain sight is the incentive to
+                                    author the trust content. */}
+                                <div className="pointer-events-none relative z-10 shrink-0">
                                     <BuilderTrustStrip />
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
+                        <AIProposalPreviewBar activeSlideId={activeSlideComponent?.id} />
+                    </div>
                     <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
                         <TrustStripNudge />
                     </div>
-                    <div className="border-black-300 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded-lg border bg-white text-xs font-medium shadow-sm" onClick={(e) => e.stopPropagation()}>
+                    <div className="border-black-400 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded border border-black-400 bg-white text-xs font-medium" onClick={(e) => e.stopPropagation()}>
                         <button className={canvasZoom === 'fit' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('fit')}>
                             Fit
                         </button>

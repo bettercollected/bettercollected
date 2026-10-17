@@ -12,44 +12,22 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
-import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-
-const GenerateButton = styled(Button)`
-    background: linear-gradient(89.94deg, #00a9fe 1.64%, #8f6aff 99.95%);
-    transition: background 200ms;
-    position: relative;
-
-    &::before {
-        position: absolute;
-        content: '';
-        border-radius: 8px;
-        inset: 0;
-        background: linear-gradient(89.94deg, #8f6aff 1.64%, #00a9fe 99.95%);
-        z-index: 1;
-        opacity: 0;
-        transition: opacity 0.25s linear;
-    }
-
-    &:hover::before {
-        opacity: 1;
-    }
-`;
 
 const GradiantBorderDiv = styled.div`
     position: relative;
     padding: 1px;
 
     &::before {
-        border-radius: 8px;
+        border-radius: 7px;
         content: '';
         opacity: 0;
         z-index: -1;
         inset: 0;
         position: absolute;
-        background: linear-gradient(135.6deg, #fe3678 0%, #0764eb 98.97%);
+        background: var(--color-brand-500);
         transition: opacity 0.25s linear;
     }
 
@@ -66,7 +44,6 @@ export default function StartWithAi() {
     const workspace = useAppSelector(selectWorkspace);
     const [createV2Form, { isLoading }] = useCreateV2FormMutation();
     const [isGenerationStarted, setIsGenerationStarted] = useState(false);
-    const authState = useAppSelector(selectAuth);
     // Workspace AI opt-in (#715)
     const { settings: aiSettings, enabled: aiEnabled, providerName } = useWorkspaceAI();
 
@@ -98,7 +75,7 @@ export default function StartWithAi() {
         return (
             <div className="flex flex-col items-center justify-center py-10">
                 <div>
-                    <Image width={60} height={60} style={{ objectFit: 'cover' }} className="rounded-lg" src="/gifs/loading.gif" alt="Loading" />
+                    <Image width={60} height={60} style={{ objectFit: 'cover' }} className="rounded-image" src="/gifs/loading.gif" alt="Loading" />
                 </div>
                 <div className="mt-10 font-semibold">Opening your draft</div>
                 <div className="mt-2 text-xs text-black-700">Your prompt waits in the editor&apos;s assistant until you press send</div>
@@ -153,12 +130,12 @@ export default function StartWithAi() {
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
+                    <Button data-umami-event={'Creating Form with AI'} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
                         <div className="z-10 flex items-center gap-2">
-                            <AIIcon className="transition-all group-hover:scale-125" />
+                            <AIIcon />
                             Generate
                         </div>
-                    </GenerateButton>
+                    </Button>
                 </div>
                 {aiEnabled && (
                     <p className="text-xs leading-relaxed text-black-600">
