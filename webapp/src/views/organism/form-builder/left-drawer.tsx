@@ -1,24 +1,27 @@
 'use client';
 
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Announcements, closestCenter, DndContext, DragEndEvent, DragOverlay, DragStartEvent, KeyboardSensor, MeasuringStrategy, Modifier, PointerSensor, UniqueIdentifier, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AlertTriangle, ChevronRight, GripVertical, Lock, Search } from 'lucide-react';
+import { AlertTriangle, ChevronRight, GripVertical, Lock, Plus, Search } from 'lucide-react';
 
+import { useEndingActions } from '@app/lib/hooks/use-ending-actions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { ActiveFormBuilderComponent, useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import { useAIProposalHighlights } from '@app/store/jotai/ai-proposal';
 import { useFormState } from '@app/store/jotai/form';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
+import { defaultEndingIndex, ENDING_NAME_MAX_LENGTH, endingLabel, isEndingReachable } from '@app/utils/endings';
 import { isPageKey, keyId, locateField, outlinePageName, pageKey, pageStatus, PageStatus, questionDropTarget, questionKey, questionMatches, resolveOutlineDrop } from '@app/utils/form-outline';
 import { asksForIdentity } from '@app/utils/publish-checks';
 import { fieldText } from '@app/views/molecules/form-builder/condition-editor-shared';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 
 import AddSlidePopover from './add-slide/add-slide-popover';
+import EndingOptions from './outline/ending-options';
 import QuestionOptions from './outline/question-options';
 import { MoveOutcome, useOutlineMoves } from './outline/use-outline-moves';
 import SlideOptions from './slide-options';
@@ -69,7 +72,7 @@ function PageChips({ status, aiChanges = 0 }: { status: PageStatus; aiChanges?: 
         );
     if (status.brokenJumps > 0)
         chips.push(
-            <Chip key="broken" tone="danger" title="A page jump points at a page that no longer exists">
+            <Chip key="broken" tone="danger" title="A page jump points at a page or an ending that no longer exists">
                 <AlertTriangle className="h-3 w-3" aria-hidden="true" />
                 Broken jump
             </Chip>
@@ -133,6 +136,48 @@ function StaticRow({ label, secondary, selected, onSelect, chip }: { label: stri
                 {chip}
             </button>
         </div>
+    );
+}
+
+/**
+ * Renaming an ending in place: Enter or leaving the field saves, Escape
+ * cancels (`onDone(null)`). The name is internal; respondents never see it.
+ */
+function EndingNameInput({ initial, placeholder, onDone }: { initial: string; placeholder: string; onDone: (name: string | null) => void }) {
+    const [value, setValue] = useState(initial);
+    const done = useRef(false);
+    // Focus moves into the field the creator just asked to edit.
+    const input = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        input.current?.focus();
+        input.current?.select();
+    }, []);
+    const finish = (name: string | null) => {
+        if (done.current) return;
+        done.current = true;
+        onDone(name);
+    };
+    return (
+        <input
+            ref={input}
+            type="text"
+            value={value}
+            maxLength={ENDING_NAME_MAX_LENGTH}
+            aria-label="Ending name (respondents never see it)"
+            placeholder={placeholder}
+            onChange={(event) => setValue(event.target.value)}
+            onBlur={() => finish(value)}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    finish(value);
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    finish(null);
+                }
+            }}
+            className="border-brand-500 text-black-900 min-w-0 flex-1 rounded-sm border bg-white px-1 py-0.5 text-sm"
+        />
     );
 }
 
@@ -274,7 +319,9 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
             return next;
         });
 
-    const endings = formState.thankyouPage?.length ? formState.thankyouPage : [{}];
+    const { endings, addEnding, duplicateEnding, renameEnding, makeDefault, deleteEnding } = useEndingActions();
+    const defaultIndex = defaultEndingIndex(endings);
+    const [renaming, setRenaming] = useState<string | null>(null);
     const activeEnding = activeThankYouPageComponent?.index ?? 0;
     const isActiveSlide = (id: string) => activeSlideComponent?.id === id;
 
@@ -359,7 +406,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                             {slide.properties?.sectionTitle?.trim() ? `Page ${index + 1} · ` : ''}
                                                             {count} question{count === 1 ? '' : 's'}
                                                         </span>
-                                                        <PageChips status={pageStatus(slide, slideIds)} aiChanges={proposed.pages[slide.id] ?? 0} />
+                                                        <PageChips status={pageStatus(slide, slideIds, endings)} aiChanges={proposed.pages[slide.id] ?? 0} />
                                                     </button>
                                                     <SlideOptions slideIndex={index} pageName={name} visible={selected} onMoved={onMenuMoved(key)} />
                                                 </>
@@ -425,29 +472,89 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
 
                 {!filtering && (
                     <div className="border-t-black-300 mt-1 border-t pt-2">
-                        <h3 className="text-black-600 px-2 pb-1 text-xs font-medium">{endings.length > 1 ? 'Endings' : 'Ending'}</h3>
+                        <div className="flex items-center justify-between px-2 pb-1">
+                            <h3 className="text-black-600 text-xs font-medium">{endings.length > 1 ? 'Endings' : 'Ending'}</h3>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const index = addEnding();
+                                    setActiveFieldComponent(null);
+                                    setMessage(`Ending ${index + 1} added.`);
+                                }}
+                                className="text-brand-500 hover:text-brand-600 hover:bg-black-200 flex h-6 items-center gap-0.5 rounded-sm px-1 text-xs font-medium"
+                            >
+                                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                                Add ending
+                            </button>
+                        </div>
                         <ul aria-label="Endings" className="flex flex-col gap-0.5">
-                            {endings.map((ending, index) => (
-                                <li key={index}>
-                                    <StaticRow
-                                        label={endings.length > 1 ? `Ending ${index + 1}` : 'Thank you'}
-                                        secondary={(ending as any)?.title || (ending as any)?.message || undefined}
-                                        selected={isActiveSlide('thank-you-page') && activeEnding === index}
-                                        onSelect={() => {
-                                            setActiveThankYouPageComponent({ id: `ending-${index}`, index });
-                                            setActiveSlideComponent({ id: 'thank-you-page', index: -20 });
-                                            setActiveFieldComponent(null);
-                                        }}
-                                        chip={
-                                            index > 0 ? (
-                                                <Chip tone="neutral" title="Respondents see the first ending. Choosing an ending by answer is not available yet.">
-                                                    Not shown to respondents
-                                                </Chip>
-                                            ) : undefined
-                                        }
-                                    />
-                                </li>
-                            ))}
+                            {endings.map((ending, index) => {
+                                const label = endingLabel(ending, index, endings.length);
+                                const selected = isActiveSlide('thank-you-page') && activeEnding === index;
+                                const isDefault = index === defaultIndex;
+                                const reached = isEndingReachable(slides, endings, index);
+                                const selectEnding = () => {
+                                    setActiveThankYouPageComponent({ id: `ending-${index}`, index });
+                                    setActiveSlideComponent({ id: 'thank-you-page', index: -20 });
+                                    setActiveFieldComponent(null);
+                                };
+                                return (
+                                    <li key={ending.id ?? index}>
+                                        <div className={rowClass(selected)}>
+                                            <span className="w-5 shrink-0" aria-hidden="true" />
+                                            {renaming === ending.id ? (
+                                                <EndingNameInput
+                                                    initial={ending.name ?? ''}
+                                                    placeholder={endings.length > 1 ? `Ending ${index + 1}` : 'Thank you'}
+                                                    onDone={(name) => {
+                                                        if (name !== null) {
+                                                            renameEnding(index, name);
+                                                            setMessage(name.trim() ? `Ending renamed to ${name.trim()}.` : 'Ending name cleared.');
+                                                        }
+                                                        setRenaming(null);
+                                                        setFocusKey(`ending:${ending.id}`);
+                                                    }}
+                                                />
+                                            ) : (
+                                                <button type="button" data-outline-key={`ending:${ending.id}`} className={selectButtonClass} aria-current={selected ? 'true' : undefined} onClick={selectEnding}>
+                                                    <span className="text-black-900 text-sm font-medium">{label}</span>
+                                                    {ending.title || ending.message ? <span className="text-black-600 line-clamp-1 text-xs">{ending.title || ending.message}</span> : null}
+                                                    {endings.length > 1 && (isDefault || !reached) ? (
+                                                        <span className="flex flex-wrap gap-1 pt-0.5">
+                                                            {isDefault && (
+                                                                <Chip tone="neutral" title="Shown after a plain submit, and when no jump chooses another ending">
+                                                                    Default
+                                                                </Chip>
+                                                            )}
+                                                            {!reached && (
+                                                                <Chip tone="warning" title="No page jump goes to this ending, so respondents never see it. Add a jump to it in a page's Logic, or in the Flow view.">
+                                                                    Not reached by any jump
+                                                                </Chip>
+                                                            )}
+                                                        </span>
+                                                    ) : null}
+                                                </button>
+                                            )}
+                                            <EndingOptions
+                                                label={label}
+                                                visible={selected}
+                                                isDefault={isDefault}
+                                                canDelete={endings.length > 1}
+                                                onRename={() => setRenaming(ending.id ?? null)}
+                                                onDuplicate={() => {
+                                                    duplicateEnding(index);
+                                                    setMessage(`${label} duplicated.`);
+                                                }}
+                                                onMakeDefault={() => {
+                                                    makeDefault(index);
+                                                    setMessage(`${label} is now the default ending.`);
+                                                }}
+                                                onDelete={() => deleteEnding(index)}
+                                            />
+                                        </div>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     </div>
                 )}

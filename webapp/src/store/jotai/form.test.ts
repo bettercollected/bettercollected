@@ -34,7 +34,9 @@ describe('formStateFromServerForm', () => {
         expect(next.theme).not.toBe(theme);
         expect(next.theme?.background).not.toBe(theme.background);
         expect(next.welcomePage).toEqual({ title: 'New title', description: 'Hello' });
-        expect(next.thankyouPage).toEqual([{ title: 'Thanks' }]);
+        // endings stored before they had ids get them as the server derives them
+        expect(next.thankyouPage).toEqual([{ id: 'ending-1', title: 'Thanks' }]);
+        expect(next.thankyouPage?.[0]).not.toBe(server.thankyouPage[0]);
         expect(next.hiddenFields).toEqual(['utm_source']);
         expect(next.logoPosition).toBe('center');
         expect(next.logoAlt).toBe('New logo');

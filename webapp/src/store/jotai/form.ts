@@ -3,6 +3,7 @@ import { atom, useAtom } from 'jotai';
 
 import { ThemeColor } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { withEndingIds } from '@app/utils/endings';
 import { deepCopy } from '@app/utils/object-utils';
 
 import { useActiveThankYouPageComponent } from './active-builder-component';
@@ -18,6 +19,12 @@ export interface IFormState {
         buttonText?: string;
     };
     thankyouPage?: Array<{
+        /** Stable id that page jumps name (utils/endings.ts). */
+        id?: string;
+        /** Short internal name ("Eligible"); respondents never see it. */
+        name?: string;
+        /** The ending a plain submit shows; when none is marked, the first. */
+        isDefault?: boolean;
         title?: string;
         message?: string;
         buttonText?: string;
@@ -89,7 +96,7 @@ export function formStateFromServerForm(prev: IFormState, form: any): IFormState
         // null is a real value here: the AI may clear the description.
         description: form.description === undefined ? prev.description : form.description,
         welcomePage: take('welcomePage', form.welcomePage),
-        thankyouPage: take('thankyouPage', form.thankyouPage),
+        thankyouPage: form.thankyouPage === undefined || form.thankyouPage === null ? prev.thankyouPage : withEndingIds(deepCopy(form.thankyouPage)),
         theme: take('theme', form.theme),
         hiddenFields: take('hiddenFields', form.hiddenFields),
         logoPosition: take('logoPosition', form.logoPosition),

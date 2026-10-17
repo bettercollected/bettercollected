@@ -10,6 +10,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { useFormState } from '@app/store/jotai/form';
 import { usePublishV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { PublishProblem, getPublishProblems, problemsFromPublishError, splitPublishProblems } from '@app/utils/publish-checks';
@@ -18,6 +19,8 @@ import { flushAutosave } from '@app/views/molecules/form-builder/audo-save-form'
 /** Where a question sits in the builder: its page, and the page-level field holding it. */
 function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string) {
     for (const [slideIndex, slide] of (slides ?? []).entries()) {
+        // a page (a problem with one of its jumps)
+        if (slide.id === fieldId) return { slide: { id: slide.id, index: slideIndex }, field: null };
         for (const [fieldIndex, field] of (slide?.properties?.fields ?? []).entries()) {
             if (field.id === fieldId || (field.properties?.fields ?? []).some((child) => child.id === fieldId)) {
                 return { slide: { id: slide.id, index: slideIndex }, field: { id: field.id, index: fieldIndex } };
@@ -43,6 +46,7 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const [problems, setProblems] = useState<PublishProblem[]>([]);
+    const { formState } = useFormState();
     const [waiting, setWaiting] = useState(false);
     const checksVersion = standardForm?.settings?.publishChecksVersion;
     const { blocking, recommended } = splitPublishProblems(problems, checksVersion);
@@ -84,7 +88,8 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
 
     const publishForm = async () => {
         // Honest defaults first: the creator sees what to fix, and where.
-        const found = getPublishProblems(fields?.length ? fields : standardForm?.fields);
+        // The builder's live endings with its live pages; the saved ones otherwise.
+        const found = fields?.length ? getPublishProblems(fields, formState.thankyouPage ?? null) : getPublishProblems(standardForm?.fields, standardForm?.thankyouPage ?? null);
         if (found.length) {
             setProblems(found);
             return;

@@ -33,8 +33,9 @@ function Editor() {
     const slide = useActiveSlideComponent();
     const field = useActiveFieldComponent();
     const ending = useActiveThankYouPageComponent();
-    const { setFormState } = useFormState();
-    Object.assign(seen, { builder, slide, field, ending });
+    const endingState = useFormState();
+    const { setFormState } = endingState;
+    Object.assign(seen, { builder, slide, field, ending, endingState });
     React.useEffect(() => {
         builder.initFormFields(pages());
         setFormState((prev) => ({ ...prev, thankyouPage: [{ title: 'Thanks!' }, { title: 'Sorry, not eligible' }] }));
@@ -214,9 +215,93 @@ describe('builder outline', () => {
         expect(seen.ending.activeThankYouPageComponent.index).toBe(1);
         expect(within(endings).getByRole('button', { name: /^Ending 2/ })).toHaveAttribute('aria-current', 'true');
         expect(within(endings).getByRole('button', { name: /^Ending 1/ })).not.toHaveAttribute('aria-current');
-        // Only the first ending reaches respondents today; the outline says so.
-        expect(within(endings).getByRole('button', { name: /^Ending 2.*Not shown to respondents/ })).toBeInTheDocument();
+        // The first ending is the default; no jump goes to the second yet.
+        expect(within(endings).getByRole('button', { name: /^Ending 1.*Default/ })).toBeInTheDocument();
+        expect(within(endings).getByRole('button', { name: /^Ending 2.*Not reached by any jump/ })).toBeInTheDocument();
+        expect(screen.queryByText('Not shown to respondents')).not.toBeInTheDocument();
         fireEvent.click(within(endings).getByRole('button', { name: /^Ending 1/ }));
         expect(seen.ending.activeThankYouPageComponent.index).toBe(0);
+    });
+
+    const openEndingMenu = async (label: string, item: string | RegExp) => {
+        fireEvent.keyDown(screen.getByRole('button', { name: `Options for ${label}` }), { key: 'Enter' });
+        await act(async () => fireEvent.click(await screen.findByRole('menuitem', { name: item })));
+    };
+    const jumpTo = (endingId?: string) => ({ operator: 'AND', conditions: [{ fieldId: 'name', comparison: 'IS_EMPTY' }], target: '__SUBMIT__', ...(endingId ? { endingId } : {}) });
+
+    it('a jump to an ending makes it reachable', async () => {
+        renderOutline();
+        await tick();
+        act(() => seen.builder.updateSlideJumps(0, [jumpTo('ending-2')]));
+        const endings = screen.getByRole('list', { name: 'Endings' });
+        expect(within(endings).getByRole('button', { name: /^Ending 2/ })).not.toHaveTextContent('Not reached by any jump');
+    });
+
+    it('adds, renames and duplicates endings', async () => {
+        renderOutline();
+        await tick();
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Add ending' })));
+        let endings = screen.getByRole('list', { name: 'Endings' });
+        expect(within(endings).getAllByRole('listitem')).toHaveLength(3);
+        // the new ending is selected, with a fresh id
+        expect(seen.ending.activeThankYouPageComponent.index).toBe(2);
+        const added = seen.endingState.formState.thankyouPage[2];
+        expect(added.id).toMatch(/^[0-9a-f-]{36}$/);
+
+        await openEndingMenu('Ending 2', 'Rename');
+        const input = screen.getByRole('textbox', { name: /Ending name/ });
+        fireEvent.change(input, { target: { value: 'Not eligible' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(seen.endingState.formState.thankyouPage[1].name).toBe('Not eligible');
+        endings = screen.getByRole('list', { name: 'Endings' });
+        expect(within(endings).getByRole('button', { name: /^Not eligible/ })).toBeInTheDocument();
+
+        // Escape cancels a rename
+        await openEndingMenu('Not eligible', 'Rename');
+        fireEvent.change(screen.getByRole('textbox', { name: /Ending name/ }), { target: { value: 'Oops' } });
+        fireEvent.keyDown(screen.getByRole('textbox', { name: /Ending name/ }), { key: 'Escape' });
+        expect(seen.endingState.formState.thankyouPage[1].name).toBe('Not eligible');
+
+        await openEndingMenu('Not eligible', 'Duplicate');
+        const copy = seen.endingState.formState.thankyouPage[2];
+        expect(copy.name).toBe('Not eligible (copy)');
+        expect(copy.title).toBe('Sorry, not eligible');
+        expect(copy.id).not.toBe(seen.endingState.formState.thankyouPage[1].id);
+    });
+
+    it('makes another ending the default', async () => {
+        renderOutline();
+        await tick();
+        await openEndingMenu('Ending 2', 'Make default');
+        expect(seen.endingState.formState.thankyouPage.map((e: any) => !!e.isDefault)).toEqual([false, true]);
+        const endings = screen.getByRole('list', { name: 'Endings' });
+        expect(within(endings).getByRole('button', { name: /^Ending 2.*Default/ })).toBeInTheDocument();
+        // the first is now an ending no jump reaches
+        expect(within(endings).getByRole('button', { name: /^Ending 1.*Not reached by any jump/ })).toBeInTheDocument();
+    });
+
+    it('deleting an ending sends its jumps to the default ending, and Undo brings both back', async () => {
+        renderOutline();
+        await tick();
+        act(() => seen.builder.updateSlideJumps(0, [jumpTo('ending-2'), jumpTo()]));
+        await openEndingMenu('Ending 2', 'Delete');
+        expect(seen.endingState.formState.thankyouPage.map((e: any) => e.id)).toEqual(['ending-1']);
+        // the jump still submits, now to the default ending
+        expect(seen.builder.formFields[0].properties.jumps.map((j: any) => [j.target, j.endingId])).toEqual([
+            ['__SUBMIT__', undefined],
+            ['__SUBMIT__', undefined]
+        ]);
+        expect(await screen.findByText('Ending 2 deleted. 1 jump now shows the default ending.')).toBeInTheDocument();
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Undo' })));
+        expect(seen.endingState.formState.thankyouPage.map((e: any) => e.id)).toEqual(['ending-1', 'ending-2']);
+        expect(seen.builder.formFields[0].properties.jumps.map((j: any) => j.endingId)).toEqual(['ending-2', undefined]);
+    });
+
+    it('keeps at least one ending', async () => {
+        renderOutline();
+        await tick();
+        await openEndingMenu('Ending 2', 'Delete');
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Thank you' }), { key: 'Enter' });
+        expect(await screen.findByRole('menuitem', { name: /Delete \(a form keeps one ending\)/ })).toHaveAttribute('aria-disabled', 'true');
     });
 });
