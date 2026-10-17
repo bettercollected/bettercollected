@@ -10,6 +10,9 @@ readable formula. This document is the contract for both implementations:
 Both run the conformance corpus [`expressions-v1.cases.json`](expressions-v1.cases.json). A change
 to behaviour changes the corpus first.
 
+Servers must recompute every result they store or act on with the Python evaluator and never trust
+a result computed by a client.
+
 ## AST
 
 A node is one of:
