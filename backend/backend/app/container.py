@@ -179,6 +179,7 @@ from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
 from backend.app.services.form_actions_service import FormActionsService
+from backend.app.services.form_spec.service import FormSpecService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.config import settings
 
@@ -1162,6 +1163,14 @@ class AppContainer(containers.DeclarativeContainer):
 
     refresh_allowed_origins = providers.Callable(
         DynamicCORSMiddleware.force_refresh_origins
+    )
+
+    # Form spec v1: validate documents, dry-run ops (stores nothing).
+    form_spec_service: FormSpecService = providers.Singleton(
+        FormSpecService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
     )
 
 

@@ -1402,6 +1402,7 @@ _HANDLERS = {
     "set_field_validation": _apply_set_field_validation,
     "set_question_numbering": _apply_set_question_numbering,
 }
+OP_NAMES = frozenset(_HANDLERS)
 
 
 # ---------------------------------------------------------------------------
