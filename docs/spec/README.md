@@ -20,7 +20,7 @@ A test fails when the committed file is out of date.
 | `title`, `description` | The form's title and description. |
 | `welcomePage` | Title, description, layout, image and button text of the first screen. |
 | `pages` | The question pages in order. Each page has an `id`, an optional `sectionTitle`, `layout`, `imageUrl`, `theme` override, `showQuestionNumbers`, flow-view `position`, `jumps` (branching) and its `fields`. |
-| `endings` | The pages shown after submitting. |
+| `endings` | The pages shown after submitting. Each has an `id` (given when left out), an internal `name`, `isDefault` (at most one; else the first ending is the default), `title`, `message`, `buttonText`, `buttonLink`, `layout` and `imageUrl`. |
 | `theme` | Colours, background and style. |
 | `hiddenFields` | URL parameter names captured with each response (names only). |
 | `logo` | Position, alt text and whether to use the workspace logo. `url` is read-only: a logo is set by uploading it. |
@@ -37,7 +37,10 @@ accepted so that older forms can be read, and validation warns about them.
 
 Ids are chosen by the writer and must be unique within the form. Logic
 conditions and page jumps refer to them; a jump's `target` is a page id or
-`"__SUBMIT__"`.
+`"__SUBMIT__"`. A jump to `"__SUBMIT__"` may add `endingId` to show that
+ending after submitting instead of the default one. Endings stored before
+they had ids are given `ending-<n>` (their position, from 1) when read, so
+the same form always shows the same ids.
 
 ## What is not in the document
 
@@ -129,8 +132,9 @@ and marked `"x-editorOnly": true` on their definition): they take whole
 questions and pages with the ids the builder chose (`insert_field`,
 `replace_field`, `insert_page`), page and welcome page settings
 (`update_page`, `update_welcome_page`), hidden fields (`set_hidden_fields`),
-logo settings (`update_logo`) and choices by id (`set_choice`, `add_choice`,
-`remove_choice`, `move_choice`). They are checked like a whole-form save
+logo settings (`update_logo`), choices by id (`set_choice`, `add_choice`,
+`remove_choice`, `move_choice`) and the endings as a whole, ids kept
+(`set_endings`; page jumps are left as they are). They are checked like a whole-form save
 (ids unique in the form, size limits, image addresses, answer patterns,
 repeating group rules). The public API, the MCP server and the AI assistant
 refuse them, with an error for each such operation.

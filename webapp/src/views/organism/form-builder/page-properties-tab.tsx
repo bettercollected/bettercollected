@@ -13,12 +13,14 @@ import { PlusIcon } from 'lucide-react';
 
 import { formFieldsList } from '@app/constants/form-fields';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
+import { useEndingActions } from '@app/lib/hooks/use-ending-actions';
 import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { defaultEndingIndex, ENDING_NAME_MAX_LENGTH } from '@app/utils/endings';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { SECTION_TITLE_MAX, isAnswerableField, leafletSection } from '@app/utils/leaflet-sections';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
@@ -61,6 +63,8 @@ export default function PagePropertiesTab({}: {}) {
     const isEnding = activeSlideComponent?.id === 'thank-you-page';
     const endingIndex = activeThankYouPageComponent?.index || 0;
     const ending = formState.thankyouPage?.[endingIndex];
+    const endingActions = useEndingActions();
+    const { renameEnding, makeDefault } = endingActions;
 
     const slide = activeSlideComponent && (activeSlideComponent.index >= 0 ? formFields[activeSlideComponent.index] : activeSlideComponent.index === -10 ? formState.welcomePage : formState.thankyouPage![endingIndex]);
 
@@ -227,6 +231,33 @@ export default function PagePropertiesTab({}: {}) {
                     />
                     {isEnding ? (
                         <>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="ending-name" className="text-xs text-black-700">
+                                    Name
+                                </label>
+                                <input
+                                    id="ending-name"
+                                    type="text"
+                                    maxLength={ENDING_NAME_MAX_LENGTH}
+                                    placeholder="e.g. Eligible"
+                                    aria-describedby="ending-name-hint"
+                                    value={ending?.name ?? ''}
+                                    onChange={(e) => renameEnding(endingIndex, e.target.value)}
+                                    className={inputClass}
+                                />
+                                <span id="ending-name-hint" className="text-[11px] text-black-600">
+                                    For you and page jumps; respondents never see it.
+                                </span>
+                            </div>
+                            {endingActions.endings.length > 1 && (
+                                <SettingSwitch
+                                    label="Default ending"
+                                    checked={defaultEndingIndex(endingActions.endings) === endingIndex}
+                                    hint="Shown after a plain submit, and when no jump chooses another ending. To change it, turn it on for another ending."
+                                    disabled={defaultEndingIndex(endingActions.endings) === endingIndex}
+                                    onCheckedChange={(checked) => checked && makeDefault(endingIndex)}
+                                />
+                            )}
                             <SettingSwitch label="Button" checked={!!(ending && IsValidString(ending.buttonText))} onCheckedChange={(checked) => setThankYouPageButtonText(endingIndex, checked ? 'Try bettercollected' : undefined)} />
                             {ending && IsValidString(ending.buttonText) && (
                                 <>

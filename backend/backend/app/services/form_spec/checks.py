@@ -22,7 +22,7 @@ from pydantic import ValidationError
 from backend.app.services.calculated_fields import calculated_field_problems
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
-from backend.app.services.publish_checks import publish_problems
+from backend.app.services.publish_checks import MISSING_ENDING, publish_problems
 from backend.app.services.retention import checked_retention
 
 # The org's compliance rules are free text: only an AI review reads them.
@@ -189,6 +189,50 @@ def _check_logic(spec: FormSpec, index: _Index) -> List[Dict[str, str]]:
     return problems
 
 
+def _check_endings(spec: FormSpec, form: Any) -> List[Dict[str, str]]:
+    """Ending ids are unique, at most one ending is the default, and a jump
+    names an ending of this form, only with "__SUBMIT__". Ids left out are
+    given (``form``'s endings carry them)."""
+    problems = []
+    seen = set()
+    for i, ending in enumerate(spec.endings or []):
+        if ending.id is not None and ending.id in seen:
+            problems.append(
+                _problem(
+                    f"/endings/{i}/id",
+                    f"The ending id '{ending.id}' is used more than once.",
+                )
+            )
+        seen.add(ending.id)
+    defaults = [i for i, e in enumerate(spec.endings or []) if e.is_default]
+    for i in defaults[1:]:
+        problems.append(
+            _problem(
+                f"/endings/{i}/isDefault", "Only one ending can be the default."
+            )
+        )
+    ending_ids = {e.id for e in form.thankyou_page or []}
+    for p, page in enumerate(spec.pages):
+        for j, jump in enumerate(page.jumps or []):
+            if jump.ending_id is None:
+                continue
+            here = f"/pages/{p}/jumps/{j}/endingId"
+            if jump.target != JUMP_TARGET_SUBMIT:
+                problems.append(
+                    _problem(
+                        here,
+                        f"An ending is chosen only by a jump to {JUMP_TARGET_SUBMIT}.",
+                    )
+                )
+            elif jump.ending_id not in ending_ids:
+                problems.append(
+                    _problem(
+                        here, f"'{jump.ending_id}' is not an ending of this form."
+                    )
+                )
+    return problems
+
+
 def _url_problem(check, value, path: str) -> List[Dict[str, str]]:
     if value is None:
         return []
@@ -285,6 +329,8 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                 )
             )
     for problem in publish_problems(form):
+        if problem["code"] == MISSING_ENDING:
+            continue  # already an error (_check_endings)
         entry = index.questions.get(problem.get("fieldId") or "")
         warnings.append(
             _problem(
@@ -331,6 +377,7 @@ def check_spec_document(raw: Any) -> Dict[str, Any]:
     index = _Index(spec)
     errors = list(index.errors)
     errors += _check_logic(spec, index)
+    errors += _check_endings(spec, form)
     errors += [_problem("", message) for message in date_rule_problems(form.fields)]
     errors += _check_links_and_images(spec, index)
     errors += _check_hidden_fields(spec)

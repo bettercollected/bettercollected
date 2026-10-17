@@ -23,7 +23,7 @@ import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
 import { isShownToRespondents, localToday } from '@app/utils/calculated-fields';
-import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
+import { getHiddenFieldIds, resolveJump } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
@@ -225,15 +225,18 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         sendFlowEvent({ workspaceId: workspace.id, formId: standardForm.formId, sessionId: getFlowSessionId(standardForm.formId), fromPage, toPage }).catch(() => {});
     };
 
-    const finishForm = () => {
-        if (isPreviewMode) setCurrentSlideToThankyouPage();
+    // Submit, then show the ending the deciding jump named (`endingId`), or
+    // the default ending. Respondents never see an ending without submitting.
+    const finishForm = (endingId?: string) => {
+        if (isPreviewMode) setCurrentSlideToThankyouPage(endingId);
         else
             submitFormResponse()
                 .then((responderId) => {
                     setResponderState({
                         ...responderState,
                         currentSlide: -2,
-                        responderId
+                        responderId,
+                        endingId
                     });
                 })
                 .catch((e) => {
@@ -294,11 +297,12 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         }
 
         // Page-jump / branching: a matching rule overrides the linear next page.
-        const jumpTargetId = resolveJumpTargetId(formSlide, formResponse.answers || {});
+        const jump = resolveJump(formSlide, formResponse.answers || {});
+        const jumpTargetId = jump?.target || null;
         if (jumpTargetId === JUMP_TARGET_SUBMIT) {
             if (isPreviewMode) toast({ description: 'Logic rule matched → submitting the form' });
             emitFlow(formSlide.id, '__submit__');
-            finishForm();
+            finishForm(jump?.endingId || undefined);
             return;
         }
         if (jumpTargetId) {

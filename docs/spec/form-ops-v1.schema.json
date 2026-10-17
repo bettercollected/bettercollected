@@ -9,6 +9,7 @@
     "remove_choice",
     "replace_field",
     "set_choice",
+    "set_endings",
     "set_hidden_fields",
     "update_logo",
     "update_page",
@@ -63,6 +64,126 @@
       "title": "AddChoiceOp",
       "type": "object",
       "x-editorOnly": true
+    },
+    "AddEndingOp": {
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        },
+        "buttonText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttontext"
+        },
+        "buttonLink": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttonlink"
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayoutType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "isDefault": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Isdefault"
+        },
+        "op": {
+          "const": "add_ending",
+          "default": "add_ending",
+          "title": "Op",
+          "type": "string"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        }
+      },
+      "title": "AddEndingOp",
+      "type": "object"
     },
     "AddFieldOp": {
       "description": "Add a question to a page, or (with ``group_id``) into a repeating\ngroup, where it is asked once per item.",
@@ -867,6 +988,96 @@
       ],
       "title": "EmbedProvider",
       "type": "string"
+    },
+    "EndingPatch": {
+      "description": "What add_ending / update_ending set. ``\"\"`` clears a text; the name\nand the link are checked when the op is applied, so one bad value fails\nalone.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        },
+        "buttonText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttontext"
+        },
+        "buttonLink": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttonlink"
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayoutType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "isDefault": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Isdefault"
+        }
+      },
+      "title": "EndingPatch",
+      "type": "object"
     },
     "FieldLogic": {
       "description": "v2 conditional-visibility rule stored on a field at ``properties.logic``.\nKept as plain strings (action ``SHOW``/``HIDE``, operator ``AND``/``OR``,\ncomparison enum values) so it round-trips the webapp shape verbatim without\nenum-casing coupling. See webapp ``utils/conditional-logic.ts``.",
@@ -2081,7 +2292,7 @@
       "type": "object"
     },
     "PageJump": {
-      "description": "v2 page-jump / branching rule stored on a slide at ``properties.jumps``.\n``target`` is a slide id or the sentinel ``__SUBMIT__``. Plain strings, same\nrationale as :class:`FieldLogic`.",
+      "description": "v2 page-jump / branching rule stored on a slide at ``properties.jumps``.\n``target`` is a slide id or the sentinel ``__SUBMIT__``. Plain strings, same\nrationale as :class:`FieldLogic`.\n\n``ending_id`` (only with ``__SUBMIT__``): the ending shown after the\nsubmission; without it, or when that ending is gone, the form's default\nending. Kept beside the target rather than in it, so a reader that does\nnot know endings still sees \"submit\" and ends the path there.",
       "properties": {
         "operator": {
           "anyOf": [
@@ -2121,6 +2332,19 @@
           ],
           "default": null,
           "title": "Target"
+        },
+        "endingId": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endingid"
         }
       },
       "title": "PageJump",
@@ -2148,6 +2372,18 @@
         "target": {
           "title": "Target",
           "type": "string"
+        },
+        "endingId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endingid"
         }
       },
       "required": [
@@ -2257,6 +2493,26 @@
       "title": "RemoveChoiceOp",
       "type": "object",
       "x-editorOnly": true
+    },
+    "RemoveEndingOp": {
+      "description": "Remove an ending (never the last one). Jumps that chose it show the\ndefault ending instead.",
+      "properties": {
+        "op": {
+          "const": "remove_ending",
+          "default": "remove_ending",
+          "title": "Op",
+          "type": "string"
+        },
+        "endingId": {
+          "title": "Endingid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "endingId"
+      ],
+      "title": "RemoveEndingOp",
+      "type": "object"
     },
     "RemoveFieldOp": {
       "properties": {
@@ -2427,6 +2683,31 @@
         "choiceId"
       ],
       "title": "SetChoiceOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "SetEndingsOp": {
+      "description": "The form's endings as a whole, ids kept (each as a whole-form save\ntakes it). Page jumps are left as they are: one that names an ending no\nlonger listed shows as broken, and blocks publishing, until it is\nchanged. An empty list removes the endings.",
+      "properties": {
+        "op": {
+          "const": "set_endings",
+          "default": "set_endings",
+          "title": "Op",
+          "type": "string"
+        },
+        "endings": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Endings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "endings"
+      ],
+      "title": "SetEndingsOp",
       "type": "object",
       "x-editorOnly": true
     },
@@ -4540,6 +4821,29 @@
       "title": "ThemeBackground",
       "type": "object"
     },
+    "UpdateEndingOp": {
+      "properties": {
+        "op": {
+          "const": "update_ending",
+          "default": "update_ending",
+          "title": "Op",
+          "type": "string"
+        },
+        "endingId": {
+          "title": "Endingid",
+          "type": "string"
+        },
+        "patch": {
+          "$ref": "#/$defs/EndingPatch"
+        }
+      },
+      "required": [
+        "endingId",
+        "patch"
+      ],
+      "title": "UpdateEndingOp",
+      "type": "object"
+    },
     "UpdateFieldOp": {
       "properties": {
         "op": {
@@ -4807,6 +5111,7 @@
         "discriminator": {
           "mapping": {
             "add_choice": "#/$defs/AddChoiceOp",
+            "add_ending": "#/$defs/AddEndingOp",
             "add_field": "#/$defs/AddFieldOp",
             "add_group": "#/$defs/AddGroupOp",
             "add_page": "#/$defs/AddPageOp",
@@ -4817,10 +5122,12 @@
             "move_field": "#/$defs/MoveFieldOp",
             "move_page": "#/$defs/MovePageOp",
             "remove_choice": "#/$defs/RemoveChoiceOp",
+            "remove_ending": "#/$defs/RemoveEndingOp",
             "remove_field": "#/$defs/RemoveFieldOp",
             "remove_page": "#/$defs/RemovePageOp",
             "replace_field": "#/$defs/ReplaceFieldOp",
             "set_choice": "#/$defs/SetChoiceOp",
+            "set_endings": "#/$defs/SetEndingsOp",
             "set_field_logic": "#/$defs/SetFieldLogicOp",
             "set_field_validation": "#/$defs/SetFieldValidationOp",
             "set_hidden_fields": "#/$defs/SetHiddenFieldsOp",
@@ -4828,6 +5135,7 @@
             "set_question_numbering": "#/$defs/SetQuestionNumberingOp",
             "set_section_title": "#/$defs/SetSectionTitleOp",
             "set_theme_preset": "#/$defs/SetThemePresetOp",
+            "update_ending": "#/$defs/UpdateEndingOp",
             "update_field": "#/$defs/UpdateFieldOp",
             "update_form_info": "#/$defs/UpdateFormInfoOp",
             "update_form_settings": "#/$defs/UpdateFormSettingsOp",
@@ -4894,6 +5202,15 @@
             "$ref": "#/$defs/SetQuestionNumberingOp"
           },
           {
+            "$ref": "#/$defs/AddEndingOp"
+          },
+          {
+            "$ref": "#/$defs/UpdateEndingOp"
+          },
+          {
+            "$ref": "#/$defs/RemoveEndingOp"
+          },
+          {
             "$ref": "#/$defs/InsertFieldOp"
           },
           {
@@ -4925,6 +5242,9 @@
           },
           {
             "$ref": "#/$defs/MoveChoiceOp"
+          },
+          {
+            "$ref": "#/$defs/SetEndingsOp"
           }
         ]
       },

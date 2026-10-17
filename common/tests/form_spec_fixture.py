@@ -52,13 +52,20 @@ def varied_form_data() -> dict:
         },
         "thankyou_page": [
             {
+                "id": "end-eligible",
+                "name": "Eligible",
                 "title": "Thanks",
                 "message": "We will be in touch.",
                 "buttonText": "Back to the site",
                 "buttonLink": "https://example.org",
                 "layout": "SINGLE_COLUMN_NO_BACKGROUND",
             },
-            {"message": "Second ending", "imageUrl": "https://images.unsplash.com/2"},
+            # stored before endings had ids: gets "ending-2" when read
+            {
+                "message": "Second ending",
+                "imageUrl": "https://images.unsplash.com/2",
+                "isDefault": True,
+            },
         ],
         "settings": {
             "privacy_policy_url": "https://example.org/privacy",
@@ -89,6 +96,7 @@ def varied_form_data() -> dict:
                                 }
                             ],
                             "target": "__SUBMIT__",
+                            "endingId": "end-eligible",
                         },
                         {
                             "operator": "OR",

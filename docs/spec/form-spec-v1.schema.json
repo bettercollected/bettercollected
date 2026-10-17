@@ -356,11 +356,53 @@
     },
     "Ending": {
       "additionalProperties": false,
-      "description": "A page shown after submitting.",
+      "description": "A page shown after submitting. A page jump may choose one by its\n``id``; a plain submit shows the default ending (the one with\n``isDefault``, else the first).",
       "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Stable id that page jumps name. Given when left out.",
+          "title": "Id"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Short internal name, e.g. Eligible. Respondents never see it.",
+          "title": "Name"
+        },
+        "isDefault": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Shown after a plain submit. At most one ending.",
+          "title": "Isdefault"
+        },
         "title": {
           "anyOf": [
             {
+              "maxLength": 300,
               "type": "string"
             },
             {
@@ -373,6 +415,7 @@
         "message": {
           "anyOf": [
             {
+              "maxLength": 5000,
               "type": "string"
             },
             {
@@ -385,6 +428,7 @@
         "buttonText": {
           "anyOf": [
             {
+              "maxLength": 80,
               "type": "string"
             },
             {
@@ -1185,7 +1229,7 @@
     },
     "PageJump": {
       "additionalProperties": false,
-      "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page.",
+      "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page. With \"__SUBMIT__\", ``endingId`` names\nthe ending shown after submitting (default: the form's default\nending).",
       "properties": {
         "operator": {
           "anyOf": [
@@ -1229,6 +1273,20 @@
           ],
           "default": null,
           "title": "Target"
+        },
+        "endingId": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The id of an ending of this form; only with target \"__SUBMIT__\".",
+          "title": "Endingid"
         }
       },
       "title": "PageJump",
@@ -1846,6 +1904,7 @@
           "items": {
             "$ref": "#/$defs/Ending"
           },
+          "maxItems": 20,
           "type": "array"
         },
         {
@@ -1853,6 +1912,7 @@
         }
       ],
       "default": null,
+      "description": "At most 20 endings.",
       "title": "Endings"
     },
     "theme": {

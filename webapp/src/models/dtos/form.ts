@@ -158,6 +158,12 @@ export interface StandardFormDto {
         buttonText?: string;
     };
     thankyouPage?: Array<{
+        /** Stable id that page jumps name (derived on read for older forms: utils/endings.ts). */
+        id?: string;
+        /** Short internal name ("Eligible"); respondents never see it. */
+        name?: string;
+        /** The ending a plain submit shows; when none is marked, the first. */
+        isDefault?: boolean;
         title?: string;
         message?: string;
         buttonText?: string;

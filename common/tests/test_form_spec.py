@@ -27,16 +27,20 @@ from common.form_spec.models import (
     LEGACY_FIELD_TYPES,
     MAX_FIELDS,
     MAX_PAGES,
+    Ending,
     checked_pattern,
     count_fields,
 )
+from common.form_spec.models import PageJump as SpecPageJump
 from common.form_spec.schema import SCHEMA_PATH, main, render_schema
+from common.models.standard_form import PageJump as StoredPageJump
 from common.models.standard_form import (
     StandardFieldProperty,
     StandardFieldValidations,
     StandardForm,
     StandardFormField,
     StandardFormFieldType,
+    ThankYouPageField,
 )
 from tests.form_spec_fixture import RICH_TITLE, varied_form, varied_form_data
 
@@ -177,6 +181,12 @@ def test_the_spec_document_shape():
     }
     assert document["logo"]["url"].endswith("abc.png")
     assert document["endings"][0]["buttonLink"] == "https://example.org"
+    # endings carry ids (derived for one stored without), names and the
+    # default; a jump may name an ending
+    assert [e["id"] for e in document["endings"]] == ["end-eligible", "ending-2"]
+    assert document["endings"][0]["name"] == "Eligible"
+    assert document["endings"][1]["isDefault"] is True
+    assert page["jumps"][0]["endingId"] == "end-eligible"
     # no server-owned or derived keys anywhere
     text = json.dumps(document)
     for key in ('"index"', '"formId"', '"builderVersion"', '"tag"'):
@@ -306,6 +316,36 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         set(StandardFieldProperty.model_fields)
         == covered_properties | EXCLUDED_PROPERTIES
     )
+    # an ending and a page jump: every stored key is in the spec
+    assert set(ThankYouPageField.model_fields) == {
+        "id",
+        "name",
+        "isDefault",
+        "title",
+        "message",
+        "buttonText",
+        "buttonLink",
+        "layout",
+        "imageUrl",
+    }
+    assert set(Ending.model_fields) == {
+        "id",
+        "name",
+        "is_default",
+        "title",
+        "message",
+        "button_text",
+        "button_link",
+        "layout",
+        "image_url",
+    }
+    assert set(StoredPageJump.model_fields) == {
+        "operator",
+        "conditions",
+        "target",
+        "ending_id",
+    }
+    assert set(SpecPageJump.model_fields) == set(StoredPageJump.model_fields)
     assert set(StandardFieldValidations.model_fields) == {
         "required",
         "max_length",
@@ -400,3 +440,27 @@ def test_the_field_count_is_recursive():
     with pytest.raises(ValidationError) as error:
         FormSpec.model_validate({"specVersion": "1", "pages": pages})
     assert "this one has 2001" in str(error.value)
+
+
+def test_endings_get_ids_when_read():
+    """Forms stored before endings had ids get stable ones on read: the
+    same list always gets the same ids, and ids already there are kept."""
+    stored = {"thankyou_page": [{"message": "a"}, {"id": "ending-1"}, {}]}
+    form = StandardForm.model_validate(copy.deepcopy(stored))
+    assert [e.id for e in form.thankyou_page] == ["ending-2", "ending-1", "ending-3"]
+    again = StandardForm.model_validate(copy.deepcopy(stored))
+    assert [e.id for e in again.thankyou_page] == [e.id for e in form.thankyou_page]
+    assert StandardForm.model_validate({"thankyou_page": []}).thankyou_page == []
+
+
+def test_default_ending_is_the_marked_one_else_the_first():
+    from common.models.standard_form import default_ending, ending_by_id
+
+    endings = [ThankYouPageField(id="a"), ThankYouPageField(id="b")]
+    assert default_ending(endings).id == "a"
+    endings[1].isDefault = True
+    assert default_ending(endings).id == "b"
+    assert default_ending([]) is None
+    assert ending_by_id(endings, "b") is endings[1]
+    assert ending_by_id(endings, "gone") is None
+    assert ending_by_id(endings, None) is None

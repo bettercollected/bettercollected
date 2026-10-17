@@ -107,7 +107,10 @@ export interface FieldConditionalLogic {
     conditions: LogicCondition[];
 }
 
-/** Sentinel jump target meaning "end the form / go to the thank-you page". */
+/**
+ * Sentinel jump target meaning "submit the form and show an ending": the one
+ * the jump's `endingId` names, else the form's default ending.
+ */
 export const JUMP_TARGET_SUBMIT = '__SUBMIT__';
 
 /** Canvas coordinates of a page node in the Flow view. Cosmetic only. */
@@ -127,6 +130,12 @@ export interface PageJump {
     conditions: LogicCondition[];
     /** target slide id, or JUMP_TARGET_SUBMIT */
     target: string;
+    /**
+     * With JUMP_TARGET_SUBMIT only: the ending to show (an id of
+     * `thankyouPage`). Unset, or gone: the default ending. Kept beside the
+     * target so a reader that knows no endings still sees "submit".
+     */
+    endingId?: string;
 }
 
 export interface IFormFieldValidation {

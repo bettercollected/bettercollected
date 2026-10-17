@@ -145,12 +145,19 @@ export function areConditionsMet(logic: FieldConditionalLogic, answers: Record<s
  * or null when no rule matches (caller falls back to the linear next page).
  */
 export function resolveJumpTargetId(slide: StandardFormFieldDto | undefined, answers: Record<string, any>): string | null {
+    return resolveJump(slide, answers)?.target || null;
+}
+
+/**
+ * The jump that decides where the responder goes on "Next": the first whose
+ * conditions match, or null. With a JUMP_TARGET_SUBMIT target its `endingId`
+ * names the ending to show (utils/endings.ts).
+ */
+export function resolveJump(slide: StandardFormFieldDto | undefined, answers: Record<string, any>): PageJump | null {
     const jumps = slide?.properties?.jumps as PageJump[] | undefined;
     if (!Array.isArray(jumps)) return null;
     for (const jump of jumps) {
-        if (jump?.conditions?.length && evaluateConditions(jump.operator, jump.conditions, answers)) {
-            return jump.target || null;
-        }
+        if (jump?.conditions?.length && evaluateConditions(jump.operator, jump.conditions, answers)) return jump;
     }
     return null;
 }
@@ -202,6 +209,8 @@ export interface FlowTraffic {
     jumpTraversals: Map<string, number>;
     /** slide id (or '__welcome__') → times the linear "next" edge out of it was taken */
     nextTraversals: Map<string, number>;
+    /** ending id a jump chose → submissions that ended there; '' = no ending chosen (the default) */
+    endingVisits: Map<string, number>;
 }
 
 /**
@@ -211,7 +220,7 @@ export interface FlowTraffic {
  * capped at 2×pages+2 hops in case persisted rules loop.
  */
 export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersList: Array<Record<string, any>>): FlowTraffic {
-    const traffic: FlowTraffic = { total: answersList.length, nodeVisits: new Map(), jumpTraversals: new Map(), nextTraversals: new Map() };
+    const traffic: FlowTraffic = { total: answersList.length, nodeVisits: new Map(), jumpTraversals: new Map(), nextTraversals: new Map(), endingVisits: new Map() };
     const slideIds = new Set(slides.map((s) => s.id));
     const indexById = new Map(slides.map((s, i) => [s.id, i]));
     const bump = (map: Map<string, number>, key: string) => map.set(key, (map.get(key) ?? 0) + 1);
@@ -220,6 +229,7 @@ export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersL
     answersList.forEach((answers) => {
         bump(traffic.nextTraversals, '__welcome__'); // welcome → first page
         let index = 0;
+        let ended = false;
         for (let hop = 0; hop < maxHops && index >= 0 && index < slides.length; hop++) {
             const slide = slides[index];
             bump(traffic.nodeVisits, slide.id);
@@ -230,13 +240,19 @@ export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersL
             if (matchIdx >= 0) {
                 bump(traffic.jumpTraversals, `${slide.id}:${matchIdx}`);
                 const target = jumps[matchIdx].target;
-                if (target === JUMP_TARGET_SUBMIT) return;
+                if (target === JUMP_TARGET_SUBMIT) {
+                    bump(traffic.endingVisits, jumps[matchIdx].endingId ?? '');
+                    ended = true;
+                    break;
+                }
                 index = indexById.get(target) ?? -1;
                 continue;
             }
             bump(traffic.nextTraversals, slide.id);
             index += 1;
         }
+        // Past the last page: a plain submit, the default ending.
+        if (!ended && index >= slides.length) bump(traffic.endingVisits, '');
     });
 
     return traffic;

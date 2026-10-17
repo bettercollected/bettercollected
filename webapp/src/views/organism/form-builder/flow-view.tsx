@@ -8,12 +8,14 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { JUMP_TARGET_SUBMIT, LogicalOperator, PageJump } from '@app/models/types/form-builder-shared';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useGetFlowAnalyticsQuery } from '@app/store/redux/form-api';
 import { useGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { computeFlowTraffic, fieldHasLogic, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
+import { defaultEnding, endingById, endingLabel, isJumpEndingMissing, jumpEndingId, withEndingIds } from '@app/utils/endings';
 import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -146,6 +148,11 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
     );
 }
 
+/** The default ending's node; every other ending is `${ENDING_NODE_PREFIX}<id>`. */
+const END_NODE = '__end__';
+const ENDING_NODE_PREFIX = '__ending__:';
+const isEndingNode = (id: string) => id === END_NODE || id.startsWith(ENDING_NODE_PREFIX);
+
 function TerminalNode({ id, data }: NodeProps<Node<any>>) {
     const isEnd = data.kind === 'end';
     return (
@@ -158,7 +165,7 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
                     position={Position.Left}
                     role="button"
                     tabIndex={0}
-                    aria-label="Create a jump straight to submit"
+                    aria-label={`Create a jump that submits and shows ${data.label}`}
                     style={dotStyle(data.armedMode === 'into')}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -168,8 +175,9 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
                 />
             )}
             {isEnd && <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />}
-            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? 'End' : 'Start'}</span>
+            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? (data.isDefault ? 'Default ending' : 'Ending') : 'Start'}</span>
             <span className="text-black-700 text-sm font-semibold">{data.label}</span>
+            {isEnd && data.unreached && <span className="w-fit rounded bg-brand-accent-100 px-1.5 py-[1px] text-[11px] font-medium text-brand-olive">Not reached by any jump</span>}
             {data.totalResponses !== undefined && (
                 <span className="text-black-700 bg-black-100 w-fit rounded px-1.5 py-[1px] text-[11px] font-semibold">
                     {data.totalResponses} response{data.totalResponses === 1 ? '' : 's'}
@@ -225,6 +233,23 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
 
     const slides = formFields || [];
     const slideIds = useMemo(() => new Set(slides.map((s) => s.id)), [slides]);
+    // Endings are terminal nodes: the default one is the end of the linear
+    // spine (and of plain "submit" jumps); each other one is reached by the
+    // jumps that name it.
+    const { formState } = useFormState();
+    const endings = useMemo(() => withEndingIds(formState.thankyouPage?.length ? formState.thankyouPage : [{}]), [formState.thankyouPage]);
+    const mainEnding = defaultEnding(endings);
+    const endingNodeId = (endingId: string | undefined) => (!endingId || endingId === mainEnding?.id ? END_NODE : `${ENDING_NODE_PREFIX}${endingId}`);
+    // Where a jump's edge ends: a page, an ending's node, or null when broken.
+    const jumpTargetNode = (jump: PageJump): string | null => {
+        if (!isJumpTargetValid(jump.target, slideIds) || isJumpEndingMissing(jump, endings)) return null;
+        return jump.target === JUMP_TARGET_SUBMIT ? endingNodeId(jumpEndingId(jump)) : jump.target;
+    };
+    const endingIndexOfNode = (nodeId: string) => (nodeId === END_NODE ? endings.indexOf(mainEnding!) : endings.findIndex((e) => `${ENDING_NODE_PREFIX}${e.id}` === nodeId));
+    const endingNodeName = (nodeId: string) => {
+        const index = endingIndexOfNode(nodeId);
+        return endingLabel(endings[index], index, endings.length);
+    };
 
     // Insights: replay submitted answers through the SAME jump evaluator the
     // responder uses, then paint traversal counts on nodes and edges.
@@ -287,6 +312,45 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
 
     /* ------------ derive nodes/edges from the form model ------------ */
 
+    // One terminal node per ending: the default one under the last page,
+    // the others in a row beside it.
+    const endingNodes = (): Node[] => {
+        const others = endings.filter((e) => e !== mainEnding);
+        const reached = new Set<string>();
+        slides.forEach((slide) => ((slide.properties?.jumps as PageJump[] | undefined) ?? []).forEach((j) => j?.conditions?.length && jumpEndingId(j) && reached.add(jumpEndingId(j)!)));
+        // Insights: submissions that ended on each ending (the default one
+        // also takes plain submits and jumps to endings that are gone).
+        const visitsOf = (ending: (typeof endings)[number]) => {
+            if (!traffic) return undefined;
+            if (ending !== mainEnding) return traffic.endingVisits.get(ending.id!) ?? 0;
+            let total = 0;
+            traffic.endingVisits.forEach((count, id) => {
+                if (!id || id === mainEnding?.id || !endingById(endings, id)) total += count;
+            });
+            return total;
+        };
+
+        return [mainEnding, ...others].filter(Boolean).map((ending, k) => {
+            const nodeId = k === 0 ? END_NODE : `${ENDING_NODE_PREFIX}${ending!.id}`;
+            const index = endings.indexOf(ending!);
+            return {
+                id: nodeId,
+                type: 'terminal',
+                position: { x: COL_X + k * (NODE_W + 48), y: defaultPos(slides.length + 1).y },
+                data: {
+                    kind: 'end',
+                    label: endingLabel(ending, index, endings.length),
+                    isDefault: k === 0 && endings.length > 1,
+                    unreached: k > 0 && !reached.has(ending!.id!),
+                    totalResponses: visitsOf(ending!),
+                    armedMode: armed?.id === nodeId ? armed.mode : undefined,
+                    onDotClick: (nid: string, side: 'in' | 'out') => dotClickRef.current?.(nid, side)
+                },
+                deletable: false
+            } as Node;
+        });
+    };
+
     const buildNodes = useCallback((): Node[] => {
         const pageNodes: Node[] = slides.map((slide, i) => ({
             id: slide.id,
@@ -298,7 +362,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 questionCount: slide.properties?.fields?.length ?? 0,
                 questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
-                brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !isJumpTargetValid(j.target, slideIds)).length,
+                brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !jumpTargetNode(j)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
                 totalResponses: traffic?.total,
                 dropOffs: showInsights ? flowAnalytics?.dropOffs?.[slide.id] ?? 0 : undefined,
@@ -309,20 +373,14 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         return [
             { id: '__welcome__', type: 'terminal', position: defaultPos(0), data: { kind: 'welcome', label: 'Welcome', totalResponses: traffic?.total }, deletable: false },
             ...pageNodes.map((n) => ({ ...n, deletable: false })), // deletion goes through the panel (with cleanup), not the Delete key
-            {
-                id: '__end__',
-                type: 'terminal',
-                position: defaultPos(slides.length + 1),
-                data: { kind: 'end', label: 'Thank you', totalResponses: traffic?.total, armedMode: armed?.id === '__end__' ? armed.mode : undefined, onDotClick: (nid: string, side: 'in' | 'out') => dotClickRef.current?.(nid, side) },
-                deletable: false
-            }
+            ...endingNodes()
         ];
-    }, [slides, slideIds, traffic, armed, flowAnalytics, showInsights]);
+    }, [slides, slideIds, traffic, armed, flowAnalytics, showInsights, endings]);
 
     const buildEdges = useCallback((): Edge[] => {
         const edges: Edge[] = [];
         // Implicit linear spine: welcome → p1 → … → end. Not stored, not deletable.
-        const chain = ['__welcome__', ...slides.map((s) => s.id), '__end__'];
+        const chain = ['__welcome__', ...slides.map((s) => s.id), END_NODE];
         chain.slice(0, -1).forEach((from, i) => {
             const count = traffic ? traffic.nextTraversals.get(from) ?? 0 : undefined;
             edges.push({
@@ -349,17 +407,21 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         // laid out clearly to the right are entered from the left (straight shot).
         const indexById = new Map(slides.map((s, i) => [s.id, i]));
         const posOf = (id: string): { x: number; y: number } => {
-            if (id === '__end__') return defaultPos(slides.length + 1);
+            if (id === END_NODE) return defaultPos(slides.length + 1);
+            if (id.startsWith(ENDING_NODE_PREFIX)) {
+                const k = endings.filter((e) => e !== mainEnding).findIndex((e) => `${ENDING_NODE_PREFIX}${e.id}` === id) + 1;
+                return { x: COL_X + k * (NODE_W + 48), y: defaultPos(slides.length + 1).y };
+            }
             const idx = indexById.get(id) ?? 0;
             return (slides[idx]?.properties?.position as { x: number; y: number } | undefined) ?? defaultPos(idx + 1);
         };
         slides.forEach((slide, sIdx) => {
             ((slide.properties?.jumps as PageJump[] | undefined) ?? []).forEach((jump, jIdx) => {
-                if (!jump?.conditions?.length || !isJumpTargetValid(jump.target, slideIds)) return;
+                const targetId = jump?.conditions?.length ? jumpTargetNode(jump) : null;
+                if (!targetId) return;
                 const c = jump.conditions[0];
                 const count = traffic ? traffic.jumpTraversals.get(`${slide.id}:${jIdx}`) ?? 0 : undefined;
                 const base = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison?.toLowerCase().replace(/_/g, ' ') ?? ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
-                const targetId = jump.target === JUMP_TARGET_SUBMIT ? '__end__' : jump.target;
                 const targetClearlyRight = posOf(targetId).x > posOf(slide.id).x + NODE_W * 0.75;
                 edges.push({
                     id: `jump-${slide.id}-${jIdx}`,
@@ -381,7 +443,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             });
         });
         return edges;
-    }, [slides, slideIds, traffic]);
+    }, [slides, slideIds, traffic, endings]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState(buildNodes());
     const [edges, setEdges, onEdgesChange] = useEdgesState(buildEdges());
@@ -390,9 +452,12 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const modelSignature = useMemo(
         () =>
             JSON.stringify(
-                slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic)])
+                [
+                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic)]),
+                    endings.map((e) => [e.id, e.name, e.isDefault])
+                ]
             ),
-        [slides]
+        [slides, endings]
     );
     useEffect(() => {
         setNodes(buildNodes());
@@ -426,18 +491,22 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             if (!sourceId || !rawTargetId || sourceId === rawTargetId) return;
             const sIdx = slides.findIndex((s) => s.id === sourceId);
             if (sIdx < 0) return;
-            const target = rawTargetId === '__end__' ? JUMP_TARGET_SUBMIT : rawTargetId;
+            // An ending's node: submit and show it (the default one needs no id).
+            const endingIndex = isEndingNode(rawTargetId) ? endingIndexOfNode(rawTargetId) : -1;
+            if (isEndingNode(rawTargetId) && endingIndex < 0) return;
+            const target = isEndingNode(rawTargetId) ? JUMP_TARGET_SUBMIT : rawTargetId;
+            const endingId = rawTargetId === END_NODE ? undefined : endings[endingIndex]?.id;
             if (target !== JUMP_TARGET_SUBMIT && !slides.some((s) => s.id === target)) return;
             const jumps = ((slides[sIdx].properties?.jumps as PageJump[] | undefined) ?? []).slice();
-            if (jumps.some((j) => j.target === target && !j.conditions?.length)) return; // avoid stacking empty duplicates
+            if (jumps.some((j) => j.target === target && jumpEndingId(j) === endingId && !j.conditions?.length)) return; // avoid stacking empty duplicates
             const sources = buildSourceFields(slides, (_sl, i, f) => i <= sIdx && V2InputFields.includes(f.type));
-            jumps.push({ operator: LogicalOperator.AND, conditions: [newConditionFor(sources)], target });
+            jumps.push({ operator: LogicalOperator.AND, conditions: [newConditionFor(sources)], target, ...(endingId ? { endingId } : {}) });
             updateSlideJumps(sIdx, jumps);
             // Open the panel on the source page so the creator completes the condition.
             selectSlide(sourceId);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [slides]
+        [slides, endings]
     );
 
     const onConnect = useCallback(
@@ -479,7 +548,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [overlayId]);
-    const armedName = armed ? (armed.id === '__end__' ? 'Submit' : `Page ${(slides.findIndex((s) => s.id === armed.id) ?? 0) + 1}`) : null;
+    const armedName = armed ? (isEndingNode(armed.id) ? endingNodeName(armed.id) : `Page ${(slides.findIndex((s) => s.id === armed.id) ?? 0) + 1}`) : null;
 
     const onEdgesDelete = useCallback(
         (deleted: Edge[]) => {
@@ -616,7 +685,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         onNodeClick={(_, node) => {
                             if (armed) {
                                 // Complete the click-to-connect on any valid node body.
-                                if (armed.mode === 'from' && node.id !== armed.id && (node.type === 'page' || node.id === '__end__')) createJump(armed.id, node.id);
+                                if (armed.mode === 'from' && node.id !== armed.id && (node.type === 'page' || isEndingNode(node.id))) createJump(armed.id, node.id);
                                 else if (armed.mode === 'into' && node.type === 'page' && node.id !== armed.id) createJump(node.id, armed.id);
                                 setArmed(null);
                                 return;

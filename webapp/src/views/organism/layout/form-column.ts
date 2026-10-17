@@ -1,5 +1,6 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { endingToShow } from '@app/utils/endings';
 
 /**
  * The respondent form's one column. The page header (Back, provenance,
@@ -45,11 +46,12 @@ export function greetingAlignClass(layout?: FormSlideLayout | null) {
 
 /**
  * The layout of the page a respondent is on: the welcome page (-1), the
- * ending page (-2) or a question page (its index).
+ * ending page (-2; the ending a jump chose, `endingId`, else the default) or
+ * a question page (its index).
  */
-export function layoutOfPage(form: Partial<Pick<StandardFormDto, 'welcomePage' | 'thankyouPage' | 'fields'>> | undefined, currentSlide: number): FormSlideLayout | undefined {
+export function layoutOfPage(form: Partial<Pick<StandardFormDto, 'welcomePage' | 'thankyouPage' | 'fields'>> | undefined, currentSlide: number, endingId?: string): FormSlideLayout | undefined {
     if (currentSlide === -1) return form?.welcomePage?.layout ?? undefined;
-    if (currentSlide === -2) return form?.thankyouPage?.[0]?.layout ?? undefined;
+    if (currentSlide === -2) return endingToShow(form?.thankyouPage, endingId)?.layout ?? undefined;
     return form?.fields?.[currentSlide]?.properties?.layout ?? undefined;
 }
 

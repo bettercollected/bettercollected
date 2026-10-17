@@ -17,6 +17,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { resolvePipesInText } from '@app/utils/answer-piping';
+import { endingToShow } from '@app/utils/endings';
 import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
 import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
@@ -31,13 +32,18 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
     const submissionUrl = window.PUBLIC_CONFIG?.HTTP_SCHEME + window.PUBLIC_CONFIG?.FORM_DOMAIN + '/' + workspace.workspaceName;
-    const { responderId } = useResponderState();
+    const { responderId, endingId } = useResponderState();
+    // The ending the deciding page jump chose, else the default ending.
+    // Forms created outside the builder (API/MCP) may have no thank-you page
+    // at all — every read below must survive null/[] (the `!` + index here
+    // crashed the post-submit screen with "Cannot read properties of null").
+    const thankyouPage = endingToShow(standardForm?.thankyouPage, endingId);
     const [_, copyToClipboard] = useCopyToClipboard();
     const { formResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
 
     function getThankYouMessage() {
-        const message = standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : formResponse.anonymize ? t('ENDING.SUBMITTED_ANONYMOUS') : t('ENDING.SUBMITTED');
+        const message = thankyouPage?.message ? thankyouPage.message : formResponse.anonymize ? t('ENDING.SUBMITTED_ANONYMOUS') : t('ENDING.SUBMITTED');
         // Thank-you text supports text-token piping: "Thanks, {{field:<id>}}!"
         return resolvePipesInText(message, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues });
     }
@@ -45,7 +51,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
     // The heading is customizable (and pipeable) like the message; the classic
     // greeting stays as the default for forms that never set one.
     function getThankYouTitle() {
-        const title = standardForm?.thankyouPage?.[0]?.title;
+        const title = thankyouPage?.title;
         if (!title) return t('ENDING.TITLE');
         return resolvePipesInText(title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues });
     }
@@ -56,10 +62,6 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
             description: t('ENDING.COPIED')
         });
     };
-    // Forms created outside the builder (API/MCP) may have no thank-you page
-    // at all — every read below must survive null/[] (the `!` + index here
-    // crashed the post-submit screen with "Cannot read properties of null").
-    const thankyouPage = standardForm?.thankyouPage?.[0];
     const theme = standardForm?.theme;
     // The creator's button link opens only as an absolute http(s) URL (like
     // the privacy policy link); anything else is not rendered. No link at all

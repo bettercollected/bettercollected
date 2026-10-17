@@ -219,6 +219,7 @@ def _page_to_spec(page: StandardFormField) -> Dict[str, Any]:
                     "operator": j.operator,
                     "conditions": _conditions_to_spec(j.conditions),
                     "target": j.target,
+                    "endingId": j.ending_id,
                 }
                 for j in p.jumps
             ]
@@ -304,6 +305,9 @@ def form_to_spec(form: StandardForm, settings: Any = None) -> FormSpec:
         "endings": (
             [
                 {
+                    "id": e.id,
+                    "name": e.name,
+                    "isDefault": e.isDefault,
                     "title": e.title,
                     "message": e.message,
                     "buttonText": e.buttonText,
@@ -454,6 +458,7 @@ def _page_from_spec(page, index: int) -> Dict[str, Any]:
                         "operator": j.operator,
                         "conditions": _conditions_from_spec(j.conditions),
                         "target": j.target,
+                        "ending_id": j.ending_id,
                     }
                     for j in page.jumps
                 ]
@@ -499,6 +504,9 @@ def spec_to_form(spec: FormSpec) -> StandardForm:
         "thankyou_page": (
             [
                 {
+                    "id": e.id,
+                    "name": e.name,
+                    "isDefault": e.is_default,
                     "title": e.title,
                     "message": e.message,
                     "buttonText": e.button_text,
