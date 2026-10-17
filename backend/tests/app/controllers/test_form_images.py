@@ -199,6 +199,67 @@ async def test_a_copy_drops_third_party_images_instead(
     assert form.fields[0].properties.fields[0].image_url == ROUTED
 
 
+async def test_a_duplicate_carries_no_grandfathered_third_party_image(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+    test_user_cookies: dict[str, str],
+):
+    legacy = StandardForm(
+        **with_images(welcome=TRACKER, page=UNSPLASH, field=OURS, background=TRACKER)
+    )
+    legacy.form_id = workspace_form.form_id
+    await container.form_service().update_form(
+        form_id=workspace_form.form_id, form=legacy
+    )
+    response = await client.post(
+        f"{form_url(workspace, workspace_form)}/duplicate", cookies=test_user_cookies
+    )
+    assert response.status_code == 200, response.text
+    copy = await container.form_service().get_form_document_by_id(
+        response.json()["formId"]
+    )
+    assert copy.welcome_page.imageUrl is None
+    assert copy.theme.background.imageUrl is None
+    assert copy.fields[0].image_url == ROUTED
+    assert copy.fields[0].properties.fields[0].image_url == OURS
+    # the source keeps its own
+    assert (await stored(workspace_form)).welcome_page.imageUrl == TRACKER
+
+
+@pytest.mark.parametrize("public_url", ["", "http://localhost:8000/api/v1"])
+async def test_without_a_public_api_address_unsplash_images_are_kept_on_save(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+    test_user_cookies: dict[str, str],
+    monkeypatch,
+    public_url,
+):
+    # a deployment that forgot API_PUBLIC_URL (or left it local): no local
+    # address is stored for good, and the picker's selections still save
+    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", public_url)
+    monkeypatch.setattr(settings.api_settings, "HOST", "forms.example.org")
+    monkeypatch.setattr(settings.api_settings, "ENVIRONMENT", "local")
+    response = await patch(
+        client,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        with_images(welcome=UNSPLASH, background=UNSPLASH),
+    )
+    assert response.status_code == 200, response.text
+    form = await stored(workspace_form)
+    assert form.welcome_page.imageUrl == UNSPLASH
+    assert form.theme.background.imageUrl == UNSPLASH
+    assert "localhost" not in json.dumps(form.model_dump(mode="json"))
+    # third-party addresses are still refused
+    refused = await patch(
+        client, workspace, workspace_form, test_user_cookies, with_images(page=TRACKER)
+    )
+    assert refused.status_code == 422
+
+
 # --- saved workspace themes -----------------------------------------------------
 
 
