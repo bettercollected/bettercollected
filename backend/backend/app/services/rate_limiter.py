@@ -66,3 +66,10 @@ class FixedWindowRateLimiter:
             count=count,
             retry_after=max(1, math.ceil(ends - now)),
         )
+
+    async def claim(self, scope: str, key: str, expires_at: dt.datetime) -> bool:
+        """True for the first caller only, on any replica: a one-time claim
+        on ``key`` in ``scope`` (one counter, not windowed), kept until
+        ``expires_at``. Nothing releases a claim before then."""
+        count = await self._repo.hit(self.counter_id(scope, key, 0), expires_at, 1)
+        return count == 1

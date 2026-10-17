@@ -650,6 +650,21 @@ CASES = [
         ok=200,
         ai_replies=(REVIEW_REPLY,),
     ),
+    # a proposal nobody made: allowed roles get past authorize to the 404
+    Case(
+        "ai.proposal.accept",
+        "POST",
+        F + "/ai/proposals/" + "0" * 24 + "-" + "0" * 16 + "/accept",
+        P.FORM_EDIT,
+        ok=404,
+    ),
+    Case(
+        "ai.proposal.reject",
+        "POST",
+        F + "/ai/proposals/" + "0" * 24 + "-" + "0" * 16 + "/reject",
+        P.FORM_EDIT,
+        ok=404,
+    ),
     # --- form spec (stores nothing)
     Case(
         "spec.validate",

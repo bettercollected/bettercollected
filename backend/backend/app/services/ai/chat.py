@@ -11,7 +11,7 @@ form, never two.
 
 import datetime as dt
 from http import HTTPStatus
-from typing import Callable, List, Optional
+from typing import Callable, List, Literal, Optional
 
 from fastapi import BackgroundTasks
 
@@ -38,6 +38,13 @@ from backend.app.services.ai.ops import (
     parse_ops,
 )
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.proposals import (
+    STATUS_ACCEPTED,
+    ProposalDto,
+    build_proposal,
+    dump_op,
+    proposal_record,
+)
 from backend.app.services.ai.structured import chat_json
 from backend.app.services.form_writes import persist_form
 from backend.app.services.ai.prompt_builder import (
@@ -60,6 +67,10 @@ class FormAIChatRequest(_CamelModel):
     message: str = Field(..., min_length=1, max_length=4000)
     session_id: Optional[str] = None
     provider: Optional[str] = None
+    # "apply": the turn's ops are saved at once (MCP, older clients).
+    # "propose": nothing is saved; the reply carries a proposal the person
+    # accepts or rejects (services/ai/proposals.py). The editor proposes.
+    mode: Literal["apply", "propose"] = "apply"
 
 
 class FormAIChatResponse(_CamelModel):
@@ -67,7 +78,10 @@ class FormAIChatResponse(_CamelModel):
     reply: str
     results: List[OpResult] = []
     # The updated draft, camelised by the controller's response model.
-    form: dict
+    # Apply mode only.
+    form: Optional[dict] = None
+    # Propose mode, when an op would change something.
+    proposal: Optional[ProposalDto] = None
     # Present when a turn changed form settings (purpose/retention/…) — the
     # Form tab's metadata lives on the workspace-form association, not the
     # form body, so the client updates it from here.
@@ -107,6 +121,16 @@ UNUSABLE_CHAT_REPLY = (
 )
 
 
+def _history_content(message: dict) -> str:
+    """A past turn as the model reads it again: a proposal that was not
+    accepted says so, as the form it sees does not have those changes."""
+    content = message.get("content") or ""
+    record = message.get("proposal")
+    if isinstance(record, dict) and record.get("status") != STATUS_ACCEPTED:
+        content += "\n(These changes were proposed but not applied.)"
+    return content
+
+
 def _c():
     # Resolved at call time: the container imports this module.
     from backend.app.container import container
@@ -138,21 +162,34 @@ async def _persist_settings_ops(
 
 
 async def persist_ops_to_form(
-    form_document: FormDocument, form: StandardForm, ops, atomic: bool = False
+    form_document: FormDocument,
+    form: StandardForm,
+    ops,
+    atomic: bool = False,
+    expected_updated_at=None,
 ) -> tuple:
     """Apply ops and persist when anything applied.
 
-    The ONE write path for AI form mutation — the chat turn, review fixes and
-    MCP's update_form all go through here; never two ways to mutate a form.
+    The ONE write path for AI form mutation — the chat turn, review fixes,
+    accepted proposals and MCP's update_form all go through here; never two
+    ways to mutate a form.
     ``atomic``: all or nothing — when any op fails, nothing (form or
     settings) is written.
+    ``expected_updated_at``: write conditionally (persist_form), 409
+    ``form_changed`` when the stored draft is newer; settings are written
+    only after the form was.
     Returns (new_form, results, updated_settings_or_none).
     """
     new_form, results = apply_form_ops(form, ops, atomic=atomic)
     if atomic and not all(r.ok for r in results):
         return new_form, results, None
     if any(r.ok for r in results):
-        await persist_form(_c().form_repo(), form_document, new_form)
+        await persist_form(
+            _c().form_repo(),
+            form_document,
+            new_form,
+            expected_updated_at=expected_updated_at,
+        )
     settings = await _persist_settings_ops(form_document.form_id, ops, results)
     return new_form, results, settings
 
@@ -249,7 +286,7 @@ class FormAIChatService:
         )
 
         history = [
-            {"role": m["role"], "content": m["content"]}
+            {"role": m["role"], "content": _history_content(m)}
             for m in (session.messages or [])[-MAX_HISTORY_MESSAGES:]
         ]
         messages = history + [{"role": "user", "content": request.message}]
@@ -267,21 +304,40 @@ class FormAIChatService:
         ops = turn._parsed_ops
         reply = str(turn.reply or "Done.")
 
-        new_form, results, updated_settings = await persist_ops_to_form(
-            form_document, form, ops
-        )
+        proposal = None
+        new_form = updated_settings = None
+        if request.mode == "propose":
+            # The proposal's id names its session: give a new one its id now.
+            if session.id is None:
+                session.id = PydanticObjectId()
+            proposal, results = build_proposal(
+                form, association.settings, ops, reply, session.id
+            )
+        else:
+            new_form, results, updated_settings = await persist_ops_to_form(
+                form_document, form, ops
+            )
 
         now = dt.datetime.now(dt.timezone.utc).isoformat()
+        assistant_turn = {
+            "role": "assistant",
+            "content": reply,
+            "ops": (
+                [dump_op(op) for op in ops]
+                if proposal
+                else [op.model_dump(by_alias=True) for op in ops]
+            ),
+            "results": [r.model_dump(by_alias=True) for r in results],
+            "at": now,
+        }
+        if proposal is not None:
+            assistant_turn["proposal"] = proposal_record(
+                proposal, getattr(form_document, "updated_at", None)
+            )
         session.provider = request.provider or session.provider
         session.messages = (session.messages or []) + [
             {"role": "user", "content": request.message, "at": now},
-            {
-                "role": "assistant",
-                "content": reply,
-                "ops": [op.model_dump(by_alias=True) for op in ops],
-                "results": [r.model_dump(by_alias=True) for r in results],
-                "at": now,
-            },
+            assistant_turn,
         ]
         await self._session_repo.save(session)
 
@@ -306,6 +362,11 @@ class FormAIChatService:
             reply=reply,
             results=results,
             # Camelised — the webapp's form DTOs are camelCase.
-            form=camel_form_reply(new_form, form_document),
+            form=(
+                camel_form_reply(new_form, form_document)
+                if new_form is not None
+                else None
+            ),
             settings=updated_settings,
+            proposal=proposal,
         )

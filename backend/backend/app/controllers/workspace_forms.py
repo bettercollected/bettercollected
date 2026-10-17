@@ -17,6 +17,11 @@ from starlette.requests import Request
 
 from backend.app.container import container
 from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
+from backend.app.services.ai.proposals import (
+    AcceptProposalRequest,
+    AcceptProposalResponse,
+    ProposalStatusResponse,
+)
 from backend.app.services.ai.insights import (
     FormAIInsightsRequest,
     FormAIInsightsResponse,
@@ -179,6 +184,42 @@ class WorkspaceFormsRouter(Routable):
             request=request,
             user=user,
             background_tasks=background_tasks,
+        )
+
+    @post("/{form_id}/ai/proposals/{proposal_id}/accept")
+    async def accept_ai_proposal(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        proposal_id: str,
+        request: Optional[AcceptProposalRequest] = None,
+        user=Depends(get_logged_user),
+    ) -> AcceptProposalResponse:
+        """Apply a chat proposal's ops (all that worked, or ``opIndexes``)
+        to the form as stored now, all or nothing. 409 when the form
+        changed so that a chosen op no longer applies."""
+        return await container.form_ai_proposal_service().accept(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            proposal_id=proposal_id,
+            request=request or AcceptProposalRequest(),
+            user=user,
+        )
+
+    @post("/{form_id}/ai/proposals/{proposal_id}/reject")
+    async def reject_ai_proposal(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        proposal_id: str,
+        user=Depends(get_logged_user),
+    ) -> ProposalStatusResponse:
+        """Discard a chat proposal. Changes nothing but the proposal."""
+        return await container.form_ai_proposal_service().reject(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            proposal_id=proposal_id,
+            user=user,
         )
 
     @post("/{form_id}/ai/review")

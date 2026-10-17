@@ -123,6 +123,7 @@ from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
+from backend.app.services.ai.proposals import FormAIProposalService
 from backend.app.services.ai.consent import AIConsentService
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
@@ -862,6 +863,17 @@ class AppContainer(containers.DeclarativeContainer):
         provider_resolver=providers.Callable(
             lambda svc: svc.provider_for_workspace, openai_service
         ),
+    )
+
+    # accept / reject the chat's proposals (no provider call)
+    form_ai_proposal_service: FormAIProposalService = providers.Singleton(
+        FormAIProposalService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        session_repo=form_ai_session_repo,
+        rate_limiter=rate_limiter,
+        ai_usage_guard=ai_usage_guard,
     )
 
     form_ai_review_service: FormAIReviewService = providers.Singleton(

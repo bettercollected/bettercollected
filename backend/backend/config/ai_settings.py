@@ -55,6 +55,9 @@ class AISettings(BaseSettings):
     # applying a review's fix calls no provider, so it has its own allowance
     RATE_LIMIT_FIX_PER_USER: int = 60
 
+    # How long a chat proposal (the editor's propose mode) can be accepted.
+    PROPOSAL_TTL_SECONDS: int = 3600
+
     # Daily budget per workspace (UTC day). Requests and tokens are always
     # counted; 0 means no cap.
     DAILY_REQUEST_BUDGET: int = 0

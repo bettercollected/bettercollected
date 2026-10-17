@@ -20,7 +20,18 @@ Contract:
 import re
 import uuid
 from contextvars import ContextVar
-from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from common.models.standard_form import (
     DATE_RULES_MAX,
@@ -1525,8 +1536,62 @@ def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
         raise OpError(_validation_message(error))
 
 
+def ref_dependencies(ops: List[FormOp]) -> List[Set[int]]:
+    """For each op, the indexes of the earlier ops whose refs it uses
+    (``"$ref:<name>"`` under an id key): accepting the op without them
+    cannot work. A ref nobody defines is left to apply_form_ops to report."""
+    definers: Dict[str, int] = {}
+    needs: List[Set[int]] = []
+
+    def used(value, key=None):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                yield from used(v, k)
+        elif isinstance(value, list):
+            for v in value:
+                yield from used(v)
+        elif (
+            key in REF_ID_KEYS
+            and isinstance(value, str)
+            and value.startswith(REF_PREFIX)
+        ):
+            yield value[len(REF_PREFIX) :]
+
+    for i, op in enumerate(ops):
+        needs.append(
+            {
+                definers[name]
+                for name in used(op.model_dump(exclude_unset=True))
+                if name in definers
+            }
+        )
+        try:
+            defined = _refs_defined(op)
+        except OpError:
+            defined = []
+        for name, _ in defined:
+            definers.setdefault(name, i)
+    return needs
+
+
+def finished_form(working: StandardForm) -> StandardForm:
+    """``working`` as a batch leaves it: renumbered, date rules no save
+    would accept pruned, and validated as a whole (on a copy)."""
+    working = working.model_copy(deep=True)
+    _renumber(working)
+    # Nothing may leave with a date rule the save path would refuse.
+    prune_date_rules(working.fields)
+    # The schema is the final arbiter — a structurally invalid result must
+    # never leave this function.
+    return StandardForm.model_validate(working.model_dump())
+
+
 def apply_form_ops(
-    form: StandardForm, ops: List[FormOp], *, atomic: bool = False
+    form: StandardForm,
+    ops: List[FormOp],
+    *,
+    atomic: bool = False,
+    on_step: Optional[Callable[[int, StandardForm, "OpResult"], None]] = None,
 ) -> Tuple[StandardForm, List[OpResult]]:
     """Apply operations to a deep copy of ``form``; the original is untouched.
 
@@ -1535,6 +1600,9 @@ def apply_form_ops(
     the returned form is an unchanged copy of ``form``; every op is still
     tried so that all errors come back, each with its op index.
     The returned form is renumbered and re-validated as a whole.
+    ``on_step(index, working, result)`` runs after each op with the form
+    as the ops so far left it (not renumbered; see finished_form) — to see
+    what each op changed. It must not modify ``working``.
     """
     working = form.model_copy(deep=True)
     results: List[OpResult] = []
@@ -1579,17 +1647,13 @@ def apply_form_ops(
             results.append(OpResult(index=i, op=op.op, ok=False, message=str(e)))
         finally:
             _CREATED.reset(token)
+        if on_step is not None:
+            on_step(i, working, results[-1])
 
     if atomic and not all(r.ok for r in results):
         return form.model_copy(deep=True), results
 
-    _renumber(working)
-    # Nothing may leave with a date rule the save path would refuse.
-    prune_date_rules(working.fields)
-    # The schema is the final arbiter — a structurally invalid result must
-    # never leave this function.
-    validated = StandardForm.model_validate(working.model_dump())
-    return validated, results
+    return finished_form(working), results
 
 
 def applied(results: List[OpResult], atomic: bool) -> bool:
