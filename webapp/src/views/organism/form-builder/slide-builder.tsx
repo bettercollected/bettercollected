@@ -15,6 +15,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { useAIProposalHighlights } from '@app/store/jotai/ai-proposal';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
@@ -39,13 +40,22 @@ function fieldTypeLabel(type?: string) {
     return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
 }
 
-const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
+// What an open AI proposal does to a question, on the canvas (ai-proposal.ts).
+const PROPOSAL_MARK = {
+    added: { label: 'AI · new', title: 'The AI proposes adding this question', ring: 'outline-dashed outline-2 outline-offset-4 outline-[#2E7D4F]', chip: 'bg-[#E7F4EC] text-[#1F5E39]' },
+    changed: { label: 'AI · changed', title: 'The AI proposes changing this question', ring: 'outline-dashed outline-2 outline-offset-4 outline-[#B25E09]', chip: 'bg-[#FDF3E7] text-[#8A4A08]' }
+};
+
+/** ``themeOverride``: the proposal preview shows its own theme. */
+const SlideBuilder = ({ slide, isScaledDown = false, disabled = false, themeOverride }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean; themeOverride?: any }) => {
     const slideFields = slide?.properties?.fields;
     const { duplicateField, updateSlideSectionTitle } = useFormFieldsAtom();
     const { deleteQuestion } = useUndoableDelete();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
-    const { theme } = useFormState();
+    const { theme: editorTheme } = useFormState();
+    const theme = themeOverride ?? editorTheme;
+    const proposalMarks = useAIProposalHighlights().fields;
     const logo = useBuilderFormLogo();
     const { navbarState, setNavbarState } = useNavbarState();
     // Plain-language tips use the form's declared language when it has one.
@@ -145,6 +155,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                 const showHints = !disabled && !isScaledDown && activeFieldComponent?.id === field.id;
                                 const titleHintsId = `plain-language-title-${field.id}`;
                                 const number = numbers[field.id];
+                                const mark = !isScaledDown ? PROPOSAL_MARK[proposalMarks[field.id] as keyof typeof PROPOSAL_MARK] : undefined;
                                 return (
                                     <motion.div
                                         key={field.id}
@@ -163,7 +174,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                         <div
                                             key={index}
                                             tabIndex={0}
-                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', 'w-full cursor-pointer p-1')}
+                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', mark && `rounded-lg ${mark.ring}`, 'w-full cursor-pointer p-1')}
                                             onFocus={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
@@ -182,6 +193,11 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                             }}
                                         >
                                             <div className={'relative flex flex-col items-start'}>
+                                                {mark && (
+                                                    <div data-testid={`ai-mark-${field.id}`} title={mark.title} className={`absolute -top-6 right-0 z-10 inline-flex items-center rounded px-1.5 py-[2px] text-[10px] font-semibold ${mark.chip}`}>
+                                                        {mark.label}
+                                                    </div>
+                                                )}
                                                 {!isScaledDown && field.internal && (
                                                     <div
                                                         className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-black-200 px-1.5 py-[2px] text-[10px] font-semibold text-black-700"

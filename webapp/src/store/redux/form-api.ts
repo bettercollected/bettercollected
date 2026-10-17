@@ -109,6 +109,19 @@ export const formsApi = createApi({
                 body: request.body
             })
         }),
+        acceptAIProposal: builder.mutation<any, { workspaceId: string; formId: string; proposalId: string; opIndexes?: number[] }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/proposals/${encodeURIComponent(request.proposalId)}/accept`,
+                method: 'POST',
+                body: request.opIndexes ? { opIndexes: request.opIndexes } : {}
+            })
+        }),
+        rejectAIProposal: builder.mutation<any, { workspaceId: string; formId: string; proposalId: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/proposals/${encodeURIComponent(request.proposalId)}/reject`,
+                method: 'POST'
+            })
+        }),
         getAIInsights: builder.query<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/insights`,
@@ -132,4 +145,4 @@ export const formsApi = createApi({
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, useUploadFormLogoMutation, useRemoveFormLogoMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation, useUpdateAIInsightsSettingsMutation } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, useUploadFormLogoMutation, useRemoveFormLogoMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useAcceptAIProposalMutation, useRejectAIProposalMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation, useUpdateAIInsightsSettingsMutation } = formsApi;

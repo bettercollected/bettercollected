@@ -4,6 +4,7 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { useAIProposalHighlights } from '@app/store/jotai/ai-proposal';
 import { useFormState } from '@app/store/jotai/form';
 import { slideHasLogic } from '@app/utils/conditional-logic';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
@@ -68,6 +69,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { formState } = useFormState();
+    const proposedPages = useAIProposalHighlights().pages;
     const Slides = formFields;
 
     return (
@@ -97,12 +99,19 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                             <RailPageItem
                                                 label={`Page ${index + 1}`}
                                                 chips={
-                                                    slideHasLogic(slide) ? (
-                                                        <span title="This page has logic" className="inline-flex items-center gap-0.5 rounded bg-brand-100 px-1 py-[1px] text-[9px] font-semibold text-brand-500">
-                                                            <LogicOutlinedIcon className="h-2.5 w-2.5" />
-                                                            Logic
-                                                        </span>
-                                                    ) : undefined
+                                                    <>
+                                                        {slideHasLogic(slide) && (
+                                                            <span title="This page has logic" className="inline-flex items-center gap-0.5 rounded bg-brand-100 px-1 py-[1px] text-[9px] font-semibold text-brand-500">
+                                                                <LogicOutlinedIcon className="h-2.5 w-2.5" />
+                                                                Logic
+                                                            </span>
+                                                        )}
+                                                        {!!proposedPages[slide.id] && (
+                                                            <span title={`The AI proposes ${proposedPages[slide.id]} change${proposedPages[slide.id] === 1 ? '' : 's'} on this page`} className="inline-flex items-center rounded bg-[#FDF3E7] px-1 py-[1px] text-[9px] font-semibold text-[#8A4A08]">
+                                                                AI · {proposedPages[slide.id]}
+                                                            </span>
+                                                        )}
+                                                    </>
                                                 }
                                                 menu={<SlideOptions slideIndex={slide.index} />}
                                                 selected={activeSlideComponent?.id === slide.id}
