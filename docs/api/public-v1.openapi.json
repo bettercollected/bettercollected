@@ -1833,8 +1833,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 64,
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]{1,64}$"
               },
               {
                 "type": "null"
@@ -1871,7 +1870,8 @@
           "title": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 300
               },
               {
                 "type": "null"
@@ -1882,7 +1882,8 @@
           "message": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 5000
               },
               {
                 "type": "null"
@@ -1893,7 +1894,8 @@
           "buttonText": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 80
               },
               {
                 "type": "null"
@@ -2601,13 +2603,15 @@
                 "items": {
                   "$ref": "#/components/schemas/Ending"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 20
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Endings"
+            "title": "Endings",
+            "description": "At most 20 endings."
           },
           "theme": {
             "anyOf": [
@@ -3057,7 +3061,8 @@
           "endingId": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$"
               },
               {
                 "type": "null"

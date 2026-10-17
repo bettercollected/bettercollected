@@ -99,6 +99,14 @@ def _unprocessable_unless(check, *args):
         raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
 
 
+def _checked_answers_ending(form, answers, form_id: str, known_ids) -> Optional[str]:
+    """Check a submission's answers (422 on problems, see check_answers),
+    then the id of the ending its path reaches. CPU-bound: run it off the
+    event loop."""
+    check_answers(form, answers, form_id, known_ids=known_ids)
+    return reached_ending_id(form, answers)
+
+
 def _check_ending_links(form, drop_unusable: bool, keep_as_is=()) -> None:
     """Every ending page's button link must be an absolute http(s) URL (422
     otherwise). A copy (``drop_unusable``) drops an unusable link instead, and
@@ -1038,19 +1046,16 @@ class WorkspaceFormService:
         # Answers may use the ids of the draft and the published version:
         # anything else is not a question of this form.
         # CPU-bound (creator patterns): off the event loop.
-        await run_in_threadpool(
-            check_answers,
+        # Which ending the respondent saw is replayed from the answers in the
+        # same call, never taken from the request.
+        response.ending_id = await run_in_threadpool(
+            _checked_answers_ending,
             latest_version_of_form or form,
             response.answers,
             str(form_id),
-            known_ids=answer_ids(form, latest_version_of_form),
+            answer_ids(form, latest_version_of_form),
         )
         _check_date_rules(latest_version_of_form or form, response.answers)
-        # Which ending the respondent saw: replayed here from the answers,
-        # never taken from the request.
-        response.ending_id = reached_ending_id(
-            latest_version_of_form or form, response.answers
-        )
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.
         if form_files:

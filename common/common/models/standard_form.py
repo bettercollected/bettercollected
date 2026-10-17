@@ -351,6 +351,8 @@ class FieldLogic(BaseModel):
 
 # Jump target meaning "submit the form" (and show an ending).
 JUMP_TARGET_SUBMIT = "__SUBMIT__"
+# What an ending id may be: uuids from the builder, "ending-<n>" derived ids.
+ENDING_ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"
 
 
 class PageJump(BaseModel):
@@ -368,7 +370,7 @@ class PageJump(BaseModel):
     operator: Optional[str] = None
     conditions: Optional[List[FieldLogicCondition]] = None
     target: Optional[str] = None
-    ending_id: Optional[str] = None
+    ending_id: Optional[str] = Field(None, pattern=ENDING_ID_PATTERN)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -895,6 +897,12 @@ class WelcomePageField(BaseModel):
 
 
 ENDING_NAME_MAX_LENGTH = 60
+# What the spec and the ops accept for endings (stored forms are not held to
+# the text limits: older ones were saved without them).
+MAX_ENDINGS = 20
+ENDING_TITLE_MAX_LENGTH = 300
+ENDING_MESSAGE_MAX_LENGTH = 5000
+ENDING_BUTTON_TEXT_MAX_LENGTH = 80
 
 
 class ThankYouPageField(BaseModel):
@@ -904,7 +912,7 @@ class ThankYouPageField(BaseModel):
 
     # Stable id, what page jumps name. Forms stored before endings had ids
     # get one when read (see ``with_ending_ids``).
-    id: Optional[str] = None
+    id: Optional[str] = Field(None, pattern=ENDING_ID_PATTERN)
     # Short internal name for the builder ("Eligible"); respondents never
     # see it.
     name: Optional[str] = Field(None, max_length=ENDING_NAME_MAX_LENGTH)

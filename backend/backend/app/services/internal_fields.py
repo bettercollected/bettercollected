@@ -117,6 +117,11 @@ def strip_internal_fields(form: Any) -> Any:
     settings = _get(form, "settings")
     if settings is not None and _get(settings, "ai_insights_enabled_by") is not None:
         _set(settings, "ai_insights_enabled_by", None)
+    # an ending's name is the creator's label ("Not eligible"); respondents
+    # get endings by id only
+    for ending in _get(form, "thankyou_page") or []:
+        if _get(ending, "name") is not None:
+            _set(ending, "name", None)
     fields = _get(form, "fields")
     if not fields:
         return form

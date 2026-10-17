@@ -306,8 +306,7 @@
         "id": {
           "anyOf": [
             {
-              "maxLength": 64,
-              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "type": "string"
             },
             {
@@ -348,6 +347,7 @@
         "title": {
           "anyOf": [
             {
+              "maxLength": 300,
               "type": "string"
             },
             {
@@ -360,6 +360,7 @@
         "message": {
           "anyOf": [
             {
+              "maxLength": 5000,
               "type": "string"
             },
             {
@@ -372,6 +373,7 @@
         "buttonText": {
           "anyOf": [
             {
+              "maxLength": 80,
               "type": "string"
             },
             {
@@ -1172,6 +1174,7 @@
         "endingId": {
           "anyOf": [
             {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "type": "string"
             },
             {
@@ -1798,6 +1801,7 @@
           "items": {
             "$ref": "#/$defs/Ending"
           },
+          "maxItems": 20,
           "type": "array"
         },
         {
@@ -1805,6 +1809,7 @@
         }
       ],
       "default": null,
+      "description": "At most 20 endings.",
       "title": "Endings"
     },
     "theme": {

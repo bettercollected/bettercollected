@@ -56,6 +56,10 @@ from common.models.standard_form import (
     Theme,
     ThankYouPageField,
     ENDING_NAME_MAX_LENGTH,
+    ENDING_TITLE_MAX_LENGTH,
+    ENDING_MESSAGE_MAX_LENGTH,
+    ENDING_BUTTON_TEXT_MAX_LENGTH,
+    MAX_ENDINGS,
     ending_by_id,
     with_ending_ids,
     date_rule_problems,
@@ -1576,9 +1580,15 @@ def _patch_ending(
             )
         ending.name = name or None
         changed.append("name")
-    texts = (("title", "title"), ("message", "message"), ("button_text", "buttonText"))
-    for key, attr in texts:
+    texts = (
+        ("title", "title", ENDING_TITLE_MAX_LENGTH),
+        ("message", "message", ENDING_MESSAGE_MAX_LENGTH),
+        ("button_text", "buttonText", ENDING_BUTTON_TEXT_MAX_LENGTH),
+    )
+    for key, attr, limit in texts:
         value = getattr(patch, key)
+        if value is not None and len(value) > limit:
+            raise OpError(f"An ending's {key} can be at most {limit} characters.")
         if value is not None:
             setattr(ending, attr, value or None)
             changed.append(key)
@@ -1592,17 +1602,24 @@ def _patch_ending(
     if patch.layout is not None:
         ending.layout = patch.layout
         changed.append("layout")
-    if patch.is_default is not None:
+    if patch.is_default:
+        # one default: this ending takes it from the others
         for other in _endings(form):
             other.isDefault = None
-        if patch.is_default:
-            ending.isDefault = True
+        ending.isDefault = True
+        changed.append("is_default")
+    elif patch.is_default is False:
+        # only this ending stops being the default (the default is then the
+        # one still marked, else the first)
+        ending.isDefault = None
         changed.append("is_default")
     return changed
 
 
 def _apply_add_ending(form: StandardForm, op: AddEndingOp) -> str:
     endings = _endings(form)
+    if len(endings) >= MAX_ENDINGS:
+        raise OpError(f"A form can have at most {MAX_ENDINGS} endings.")
     ending = ThankYouPageField(
         id=str(uuid.uuid4()), layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND
     )

@@ -25,7 +25,15 @@ from backend.app.services.publish_checks import (
     ensure_publishable,
     publish_problems,
 )
-from tests.app.controllers.data import testUser
+from tests.app.auth_helpers import access_token
+from tests.app.controllers.data import testUser, testUser2
+
+
+def _cookies(user):
+    if user is None:
+        return None
+    token = access_token(user)
+    return {"Authorization": token, "RefreshToken": token}
 
 
 def _eligible_jump(ending_id=None, value="No"):
@@ -61,7 +69,11 @@ def _pages(jumps):
             "type": "slide",
             "properties": {
                 "fields": [
-                    {"id": "why", "type": "short_text", "validations": {"required": True}}
+                    {
+                        "id": "why",
+                        "type": "short_text",
+                        "validations": {"required": True},
+                    }
                 ]
             },
         },
@@ -221,7 +233,12 @@ def test_add_ending_with_a_ref_and_jump_to_it():
     new, results = _apply(
         form,
         [
-            {"op": "add_ending", "ref": "no", "name": " Not eligible ", "title": "Sorry"},
+            {
+                "op": "add_ending",
+                "ref": "no",
+                "name": " Not eligible ",
+                "title": "Sorry",
+            },
             {
                 "op": "set_page_jumps",
                 "pageId": "p1",
@@ -331,7 +348,12 @@ def test_remove_ending_falls_back_to_the_default_for_its_jumps():
 def test_the_ai_snapshot_lists_endings_and_jump_endings():
     snapshot = json.loads(project_form(_form([_eligible_jump("not-eligible")])))
     assert snapshot["endings"] == [
-        {"endingId": "thanks", "name": "Thanks", "title": "Thank you", "isDefault": True},
+        {
+            "endingId": "thanks",
+            "name": "Thanks",
+            "title": "Thank you",
+            "isDefault": True,
+        },
         {"endingId": "not-eligible", "name": "Not eligible", "title": "Sorry"},
     ]
     assert snapshot["pages"][0]["jumps"][0]["endingId"] == "not-eligible"
@@ -388,3 +410,112 @@ def test_spec_ending_problems_are_errors_with_paths():
     # the missing ending is not also repeated as a publish warning
     result = check_spec_document(_spec([_eligible_jump("gone")], [{"id": "a"}]))
     assert not any("ending" in w["message"] for w in result["warnings"])
+
+
+def test_spec_limits_endings():
+    assert _errors(_spec([], [{"title": str(i)} for i in range(21)]))
+    assert _errors(_spec([], [{"id": "bad id"}]))
+    assert _errors(_spec([], [{"title": "x" * 301}]))
+    assert _errors(_spec([_eligible_jump("bad id")], [{"id": "ok"}]))
+    assert _errors(_spec([], [{"title": str(i)} for i in range(20)])) == []
+
+
+# ---------------------------------------------------------------------------
+# Names stay with the creator; the default moves only on true; limits
+# ---------------------------------------------------------------------------
+
+
+def _name_of(ending):
+    return ending.get("name") if isinstance(ending, dict) else ending.name
+
+
+def _endings_of(form):
+    return form["thankyou_page"] if isinstance(form, dict) else form.thankyou_page
+
+
+@pytest.mark.asyncio
+async def test_respondents_never_receive_ending_names(client, workspace):
+    created = await _published(workspace, _form([_eligible_jump("not-eligible")]))
+    url = f"/api/v1/workspaces/{workspace.id}/forms/{created.form_id}"
+    # the published form, as the public and the respondent page read it
+    for cookies in (None, _cookies(testUser2)):
+        public = await client.get(url, params={"published": "true"}, cookies=cookies)
+        assert public.status_code == 200
+        body = public.json()
+        assert [e["id"] for e in body["thankyouPage"]] == ["thanks", "not-eligible"]
+        assert all(not e.get("name") for e in body["thankyouPage"])
+        assert "Not eligible" not in json.dumps(body)
+        # the jump still names its ending by id
+        assert body["fields"][0]["properties"]["jumps"][0]["endingId"] == "not-eligible"
+    # the public listing and a versioned read are stripped the same way
+    listing = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/forms", params={"published": "true"}
+    )
+    assert listing.status_code == 200
+    assert "Not eligible" not in json.dumps(listing.json())
+    versioned = await container.form_service().get_form_by_version(
+        workspace_id=workspace.id, form_id=created.form_id, version=1, user=testUser2
+    )
+    assert all(not _name_of(e) for e in _endings_of(versioned))
+    # members keep the names
+    member = await container.form_service().get_form_by_id(
+        workspace_id=workspace.id,
+        form_id=created.form_id,
+        user=testUser,
+        published=True,
+    )
+    assert [_name_of(e) for e in _endings_of(member)] == ["Thanks", "Not eligible"]
+
+
+def test_is_default_false_unmarks_only_that_ending():
+    form = _form([], endings=[{"id": "a"}, {"id": "b", "isDefault": True}, {"id": "c"}])
+    # false on another ending leaves the default where it is
+    new, results = _apply(
+        form, [{"op": "update_ending", "endingId": "c", "patch": {"isDefault": False}}]
+    )
+    assert results[0].ok
+    assert [e.isDefault for e in new.thankyou_page] == [None, True, None]
+    # adding an ending with false does not move it either
+    new, results = _apply(new, [{"op": "add_ending", "title": "x", "isDefault": False}])
+    assert results[0].ok
+    assert [e.isDefault for e in new.thankyou_page] == [None, True, None, None]
+    # false on the default unmarks it: the first ending is the default again
+    new, _ = _apply(
+        new, [{"op": "update_ending", "endingId": "b", "patch": {"isDefault": False}}]
+    )
+    assert [e.isDefault for e in new.thankyou_page] == [None] * 4
+    # true moves it
+    new, _ = _apply(new, [{"op": "add_ending", "isDefault": True}])
+    assert [bool(e.isDefault) for e in new.thankyou_page] == [False] * 4 + [True]
+
+
+def test_ending_ops_respect_the_limits():
+    form = _form([], endings=[{"id": f"e{i}"} for i in range(20)])
+    _, results = _apply(form, [{"op": "add_ending"}])
+    assert not results[0].ok and "at most 20" in results[0].message
+    long_message = {"message": "x" * 5001}
+    _, results = _apply(
+        _form([]),
+        [
+            {
+                "op": "update_ending",
+                "endingId": "thanks",
+                "patch": {"title": "x" * 301},
+            },
+            {"op": "update_ending", "endingId": "thanks", "patch": long_message},
+            {"op": "add_ending", "buttonText": "x" * 81},
+            {"op": "update_ending", "endingId": "thanks", "patch": {"message": "x"}},
+        ],
+    )
+    assert [r.ok for r in results] == [False, False, False, True]
+
+
+def test_ending_ids_follow_the_pattern_on_the_builder_save_path():
+    with pytest.raises(HTTPException) as error:
+        _form([], endings=[{"id": "has space"}])
+    assert error.value.status_code == 422
+    with pytest.raises(HTTPException):
+        _form([_eligible_jump("<script>")])
+    # uuids and derived ids are fine
+    form = _form([], endings=[{"id": "3f1c2a9e-1b2c-4d5e-8f90-1234567890ab"}, {}])
+    assert form.thankyou_page[1].id == "ending-2"
