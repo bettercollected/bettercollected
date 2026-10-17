@@ -140,7 +140,6 @@ export default function FormIntegrations() {
                                     <div className="mt-4 sm:mt-0">
                                         <Button
                                             data-umami-event="Add Integrations Button"
-                                            data-umami-event-email={auth.email}
                                             variant="primary"
                                             onClick={() => {
                                                 openModal('ADD_ACTION_TO_FORM', { action: integration, form: form });

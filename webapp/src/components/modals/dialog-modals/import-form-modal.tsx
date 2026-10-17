@@ -126,7 +126,6 @@ export default function ImportFormModal() {
             {!form?.formId && !formTitle && (
                 <Button
                     data-umami-event={'Imported Google Form'}
-                    data-umami-event-email={auth.email}
                     variant="primary"
                     size="lg"
                     onClick={() => {

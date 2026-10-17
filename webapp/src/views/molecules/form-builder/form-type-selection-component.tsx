@@ -1,5 +1,3 @@
-import { selectAuth } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
 import { MultiPageFormIcon } from '@Components/icons/multipage-form-icon';
 import { SinglePageFormIcon } from '@Components/icons/single-page-form-icon';
 
@@ -25,7 +23,6 @@ const FormTypes: IFormTypes[] = [
 ];
 
 const FormTypeSelectionComponent = ({ handleCreateForm }: { handleCreateForm: (type: any) => void }) => {
-    const authState = useAppSelector(selectAuth);
 
     return (
         <div className="flex flex-col items-center gap-20 py-12">
@@ -36,7 +33,7 @@ const FormTypeSelectionComponent = ({ handleCreateForm }: { handleCreateForm: (t
             <div className="flex flex-row gap-12">
                 {FormTypes.map((item: IFormTypes) => {
                     return (
-                        <button key={item.type} autoFocus={false} className="border-none outline-hidden active:border-none" data-umami-event={item.type} data-umami-event-email={authState.email}>
+                        <button key={item.type} autoFocus={false} className="border-none outline-hidden active:border-none" data-umami-event={item.type}>
                             <FormTypeCard item={item} handleClick={handleCreateForm} />
                         </button>
                     );

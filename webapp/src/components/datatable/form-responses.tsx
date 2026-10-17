@@ -97,7 +97,7 @@ export default function FormResponsesTable({ props }: any) {
                         <></>
                     )}
                     {isSubmission && canExport && (
-                        <Button data-umami-event="Export CSV Button" data-umami-event-email={auth.email} isLoading={csvLoading} variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleClickExportCSV} className={''}>
+                        <Button data-umami-event="Export CSV Button" isLoading={csvLoading} variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleClickExportCSV} className={''}>
                             Export CSV
                         </Button>
                     )}

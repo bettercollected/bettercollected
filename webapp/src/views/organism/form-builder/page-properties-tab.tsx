@@ -18,8 +18,6 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
-import { selectAuth } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
@@ -34,7 +32,6 @@ export default function PagePropertiesTab({}: {}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
-    const authState = useAppSelector(selectAuth);
     const {
         formState,
         setFormState,
@@ -201,7 +198,7 @@ export default function PagePropertiesTab({}: {}) {
                     <div className="px-4 pt-4 pb-3 text-xs font-semibold tracking-wide text-black-600 uppercase">Layout</div>
                     <div className="grid grid-cols-2 gap-2 border-b px-4 pb-4">
                         {getLayoutList().map((item: { style: FormSlideLayout; Icon: any; label: string }) => (
-                            <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email} className="flex flex-col items-center gap-1">
+                            <button key={item.style} data-umami-event={`${item.style} Layout`} className="flex flex-col items-center gap-1">
                                 <div
                                     className={cn(
                                         'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-lg border p-2 transition-colors hover:border-brand-500 hover:bg-[#F4F7FD]',

@@ -39,7 +39,6 @@ export default function ManageURLs() {
                     </span>
                     <Button
                         data-umami-event="Copy Default Workspace Link From Workspace Setting"
-                        data-umami-event-email={auth.email}
                         size="sm"
                         variant="ghost"
                         onClick={() => {
@@ -52,7 +51,6 @@ export default function ManageURLs() {
                     </Button>
                     <Button
                         data-umami-event="Customize Workspace Link"
-                        data-umami-event-email={auth.email}
                         size="sm"
                         variant="v2Button"
                         onClick={() => {
