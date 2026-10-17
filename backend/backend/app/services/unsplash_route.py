@@ -226,7 +226,9 @@ def routed_photo(url: str) -> Optional[Tuple[str, Dict[str, str]]]:
         return None
     if parts.fragment or ROUTE_PATH not in parts.path:
         return None
-    path = parts.path.rsplit(ROUTE_PATH, 1)[1]
+    # Everything after the FIRST route segment is the photo path, so a path
+    # that repeats it (".../images/unsplash/images/unsplash/x") is no photo.
+    path = parts.path.split(ROUTE_PATH, 1)[1]
     if not is_photo_path(path):
         return None
     params = clean_params(parse_qsl(parts.query, keep_blank_values=True), strict=False)

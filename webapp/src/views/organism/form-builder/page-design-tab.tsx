@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import Link from 'next/link';
 
-import { FormTheme, ThemeColors } from '@app/constants/theme';
+import { FormTheme, ThemeColors, findPreset } from '@app/constants/theme';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 import { useAppSelector } from '@app/store/hooks';
@@ -38,7 +38,9 @@ export default function PageDesignTab() {
 
     // Dropdown values carry their group so a saved theme may share a preset's
     // name without colliding ("saved:Ocean" vs "preset:Ocean").
-    const selectValue = isCustom ? 'custom' : savedThemes.some((t) => t.title === theme?.title) ? `saved:${theme?.title}` : ThemeColors.some((t) => t.title === theme?.title) ? `preset:${theme?.title}` : '';
+    // A preset is found by its title in any case, so one the AI set shows too.
+    const preset = findPreset(theme?.title);
+    const selectValue = isCustom ? 'custom' : savedThemes.some((t) => t.title === theme?.title) ? `saved:${theme?.title}` : preset ? `preset:${preset.title}` : '';
 
     const handleSelect = (value: string) => {
         if (value === 'custom') {

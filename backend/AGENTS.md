@@ -71,7 +71,8 @@ membership read directly: access goes through `AuthorizationService`.
   `services/workspace_members_service.py`, rules in docs/enterprise-access-model.md "Owners". A Privacy officer also deletes a response
   with a *pending* deletion request (`privacy.manage`) and never holds the answer permissions,
   whatever other role they have. MCP/API-key calls also require the key's creator to hold the
-  scope's permission at call time (`mcp/server.py` `SCOPE_PERMISSIONS`).
+  scope's permission at call time (`services/api_access.py` `SCOPE_PERMISSIONS`, shared
+  by MCP and the public API).
 - **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
   gates controls with `useWorkspacePermissions().can(...)` (owners: `workspace.billing`).
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
@@ -343,6 +344,21 @@ and architecture.
 - Deployment: `docker-compose.deployment.yml`'s `backend` service sets `UMAMI_URL=http://umami:3000` (internal
   docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
   `.env.deployment`.
+
+## Public API (forms as code)
+
+`/api/v1/public/v1` is a FastAPI app of its own (`app/public_api/`), mounted in
+`asgi.py` next to `/mcp`: its own OpenAPI document
+(`docs/api/public-v1.openapi.json`, regenerate with
+`uv run python -m backend.app.public_api.openapi`; a test checks it), one
+error shape, Bearer API keys only (never cookies). It mirrors MCP and calls
+the same code: scopes and the creator re-check in `services/api_access.py`,
+responses through `services/api_responses.py`, ops through
+`persist_ops_to_form`, create/replace through `services/form_spec/writes.py`
+(which uses `WorkspaceFormService.create_form` / `update_form`). PUT needs
+`If-Match` and writes with `update_form_if_unchanged`. `Idempotency-Key`
+records live in `api_idempotency_keys` (`services/idempotency.py`). Rate limit
+per key on the shared limiter (`API_PUBLIC_API_*`). Docs: `docs/api/README.md`.
 
 ## AI consent (#715)
 

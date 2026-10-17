@@ -65,13 +65,30 @@ describe('type', () => {
         expect(token('font-mono')).toMatch(/^var\(--font-jetbrains-mono\)/);
         expect(globals).not.toMatch(/fonts\.googleapis|fonts\.gstatic/);
         const layout = readFileSync(resolve(SRC, 'app/layout.tsx'), 'utf8');
-        expect(layout).toMatch(/Instrument_Sans, JetBrains_Mono, Public_Sans } from 'next\/font\/google'/);
+        expect(layout).toMatch(/import localFont from 'next\/font\/local'/);
+        expect(layout).toContain("variable: '--font-instrument-sans'");
+        expect(layout).toContain("variable: '--font-jetbrains-mono'");
+        for (const weight of ['400', '500', '600']) expect(layout).toContain(`instrument-sans-latin-${weight}-normal.woff2', weight: '${weight}'`);
+        for (const weight of ['500', '600']) expect(layout).toContain(`jetbrains-mono-latin-${weight}-normal.woff2', weight: '${weight}'`);
+    });
+
+    it('fetches no font from Google at build time either', () => {
+        // next/font/google downloads at build time; a failed download breaks the
+        // build. Fonts come from npm packages through next/font/local instead.
+        expect(sources.filter(({ text }) => /next\/font\/google/.test(text)).map(({ path }) => path)).toEqual([]);
+        const fontFiles = sources.flatMap(({ path, text }) => [...text.matchAll(/['"]((?:\.\.\/)+node_modules\/[^'"]+\.woff2)['"]/g)].map((m) => resolve(path, '..', m[1])));
+        // layout.tsx: 3 + 2 + 1; leaflet-serif.ts: 1.
+        expect(fontFiles).toHaveLength(7);
+        for (const file of fontFiles) expect(statSync(file).isFile(), file).toBe(true);
     });
 
     it('keeps Public Sans, self-hosted, for respondent forms', () => {
         const layout = readFileSync(resolve(SRC, 'app/layout.tsx'), 'utf8');
-        // Loaded exactly as before this design system: all weights, latin, swap.
-        expect(layout).toContain("Public_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-public-sans' })");
+        // Loaded exactly as before this design system: all weights (the variable
+        // font), latin, normal style, swap.
+        expect(layout).toMatch(
+            /const publicSans = localFont\(\{\s*src: '[^']*@fontsource-variable\/public-sans\/files\/public-sans-latin-wght-normal\.woff2',\s*weight: '100 900',\s*style: 'normal',\s*display: 'swap',\s*variable: '--font-public-sans'\s*\}\)/
+        );
         expect(layout).toMatch(/publicSans\.variable/);
         expect(token('font-form')).toMatch(/^var\(--font-public-sans\)/);
         expect(css).toMatch(/body\.respondent-typeface \{\s*font-family: var\(--font-form\);/);
