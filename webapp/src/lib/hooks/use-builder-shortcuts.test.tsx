@@ -135,6 +135,22 @@ describe('builderShortcutFor', () => {
         expect(builderShortcutFor(key('k', { ctrlKey: true, target: button }), true)).toBeNull();
         expect(builderShortcutFor(key('Delete', { defaultPrevented: true }), true)).toBeNull();
     });
+
+    it('leaves the page outline alone, including a keyboard drag on its handles', () => {
+        const row = document.createElement('div');
+        row.setAttribute('data-outline-row', '');
+        const handle = document.createElement('button');
+        handle.setAttribute('aria-roledescription', 'sortable');
+        row.appendChild(handle);
+        const select = document.createElement('button');
+        select.setAttribute('data-outline-key', 'page-1');
+        document.body.append(row, select);
+        for (const target of [handle, select]) {
+            for (const event of [key('ArrowDown', { altKey: true }), key('ArrowDown', { ctrlKey: true, altKey: true }), key('Delete'), key('d', { ctrlKey: true }), key('k', { ctrlKey: true }), key('?'), key('/')]) {
+                expect(builderShortcutFor({ ...event, target }, true)).toBeNull();
+            }
+        }
+    });
 });
 
 describe('builder shortcuts on the canvas', () => {

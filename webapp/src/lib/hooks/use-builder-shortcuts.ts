@@ -22,10 +22,15 @@ export function isTypingTarget(target: EventTarget | null): boolean {
     return role === 'textbox' || role === 'combobox' || role === 'searchbox' || role === 'spinbutton';
 }
 
-/** Focus is in a dialog or menu, whose keys are its own. */
+/**
+ * Focus is in a dialog, a menu or the page outline (whose rows and drag
+ * handles use arrow keys, Space and Delete for their own keyboard moves):
+ * their keys are their own.
+ */
+const OWN_KEYS = ['[role="dialog"]', '[role="alertdialog"]', '[role="menu"]', '[role="listbox"]', '[role="tree"]', '[data-outline-row]', '[data-outline-key]', '[aria-roledescription="sortable"]'].join(', ');
 function isInOverlay(target: EventTarget | null): boolean {
     const element = target as HTMLElement | null;
-    return !!element?.closest?.('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]');
+    return !!element?.closest?.(OWN_KEYS);
 }
 
 /** Focus is on the page canvas (or nowhere in particular). */
