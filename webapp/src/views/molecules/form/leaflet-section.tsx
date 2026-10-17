@@ -36,7 +36,8 @@ export function LeafletSectionBar({
     fullTitle,
     layout,
     headingLevel = 2,
-    className
+    className,
+    titleEditor
 }: {
     theme?: Partial<FormTheme>;
     numeral?: number | string;
@@ -46,6 +47,8 @@ export function LeafletSectionBar({
     layout?: FormSlideLayout | null;
     headingLevel?: 1 | 2;
     className?: string;
+    /** Builder only: an editor shown in place of the section title. */
+    titleEditor?: ReactNode;
 }) {
     const hang = leafletNumbersHang(layout);
     const Heading = headingLevel === 1 ? 'h1' : 'h2';
@@ -65,9 +68,7 @@ export function LeafletSectionBar({
                         >
                             {numeral}
                         </span>
-                        <span className="text-[22px] leading-[1.25] text-balance [overflow-wrap:anywhere]">
-                            <ShortLabel short={title} full={fullTitle} />
-                        </span>
+                        <span className="text-[22px] leading-[1.25] text-balance [overflow-wrap:anywhere]">{titleEditor ?? <ShortLabel short={title} full={fullTitle} />}</span>
                     </Heading>
                 )}
             </div>
@@ -104,12 +105,12 @@ export function LeafletTopRule({ theme }: { theme?: Partial<FormTheme> }) {
 
 /**
  * The cover's contents: every page's section number and the title its
- * section bar shows (its own heading, else its first question, else
- * "Section n"), so the list matches the pages.
+ * section bar shows (its section title, else its own heading, else its
+ * first question, else "Section n"), so the list matches the pages.
  */
 export function LeafletContents({ pages, theme }: { pages: ReadonlyArray<StandardFormFieldDto> | undefined; theme?: Partial<FormTheme> }) {
     const { t } = useRespondentLanguage();
-    const sections = (pages ?? []).map((page, position) => leafletSection(page?.properties?.fields ?? [], t('LEAFLET.SECTION', { n: position + 1 })));
+    const sections = (pages ?? []).map((page, position) => leafletSection(page?.properties?.fields ?? [], t('LEAFLET.SECTION', { n: position + 1 }), page?.properties?.sectionTitle));
     const rule = leafletColours(theme).rule;
     if (!sections.length) return null;
     const numeralInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;

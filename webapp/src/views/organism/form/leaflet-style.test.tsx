@@ -161,6 +161,32 @@ describe('Leaflet style', () => {
         window.history.replaceState(null, '', '/');
     });
 
+    it('a section title of its own goes on the bar and in the contents; the heading stays in the band', async () => {
+        const form = (store.getState() as any).form;
+        const titled = { ...form.fields[1], properties: { ...form.fields[1].properties, sectionTitle: '  Your  visit ' } };
+        store.dispatch(setForm({ ...form, fields: [form.fields[0], titled, form.fields[2]] } as any));
+        wrap(<FormSlide index={1} isPreviewMode />);
+        const bar = await screen.findByTestId('leaflet-section-bar');
+        expect(within(bar).getByRole('heading', { level: 2 }).textContent).toBe('2Your visit');
+        const band = screen.getByTestId('leaflet-intro-band');
+        expect(within(band).getByText('About your visit')).toBeInTheDocument();
+        expect(within(band).getByText('Tell us how it went.')).toBeInTheDocument();
+    });
+
+    it('the contents list shows a page under its section title', async () => {
+        const form = (store.getState() as any).form;
+        const titled = { ...form.fields[2], properties: { ...form.fields[2].properties, sectionTitle: 'Choose a time' } };
+        const cleared = { ...form.fields[1], properties: { ...form.fields[1].properties, sectionTitle: '   ' } };
+        store.dispatch(setForm({ ...form, fields: [form.fields[0], cleared, titled] } as any));
+        wrap(<WelcomePage isPreviewMode />);
+        const contents = await screen.findByTestId('leaflet-contents');
+        expect(
+            within(contents)
+                .getAllByRole('listitem')
+                .map((item) => item.textContent)
+        ).toEqual(['1Your details', '2About your visit', '3Choose a time']);
+    });
+
     it('a page without a heading names its bar after its first question', async () => {
         const form = (store.getState() as any).form;
         store.dispatch(setForm({ ...form, fields: [{ ...form.fields[0], properties: { fields: [question('name', FieldTypes.SHORT_TEXT)] } }, form.fields[1], form.fields[2]] } as any));

@@ -60,13 +60,18 @@ export function nodeText(node: JSONContent | undefined): string {
 
 const hasText = (node: JSONContent) => nodeText(node).trim().length > 0;
 
+/** Where a section's title comes from, in the order they are tried. */
+export type SectionTitleSource = 'setting' | 'heading' | 'question' | 'empty';
+
 export interface LeafletSection {
     /** The section bar's title, in full (also the accessible name). */
     title: string;
     /** The title as shown: long fallback titles are shortened with an ellipsis. */
     shortTitle: string;
-    /** Whether the title came from the page's own opening heading. */
+    /** Whether the title is the creator's own (the page's section title or its opening heading). */
     titleFromPage: boolean;
+    /** Where the title came from: the page's section title, its opening heading, its first question, or "Section n". */
+    source: SectionTitleSource;
     /**
      * The text block shown in the intro band (with its opening heading moved
      * to the bar), or null when the page doesn't open with a text block or
@@ -97,36 +102,46 @@ export function fieldTitleText(field: StandardFormFieldDto | undefined): string 
 }
 
 /**
- * What a page shows in its section bar and intro band. A page that opens
- * with a text block gives the bar its first heading and the band the rest of
- * the text.
+ * What a page shows in its section bar and intro band. The title is, in
+ * order:
  *
- * A page without a heading of its own is named after its first question, as
- * the builder's page list names pages; a page with no questions at all gets
- * `emptyLabel` ("Section 3"). The form's title is never a section label.
+ * 1. the page's own section title (`properties.sectionTitle`), when set;
+ * 2. the opening heading: a page that opens with a text block gives the bar
+ *    its first heading and the band the rest of the text;
+ * 3. its first visible question, as the builder's page list names pages
+ *    (shortened to 60 characters);
+ * 4. `emptyLabel` ("Section 3") for a page with no questions at all.
+ *
+ * With a section title of its own, the opening text block stays whole in
+ * the band, heading included. The form's title is never a section label.
  *
  * `visibleFields` should already have answer pipes resolved when the page is
  * shown to a respondent.
  */
-export function leafletSection(visibleFields: ReadonlyArray<StandardFormFieldDto>, emptyLabel: string): LeafletSection {
-    const fallback = (): Pick<LeafletSection, 'title' | 'shortTitle' | 'titleFromPage'> => {
+export function leafletSection(visibleFields: ReadonlyArray<StandardFormFieldDto>, emptyLabel: string, sectionTitle?: string | null): LeafletSection {
+    const fallback = (): Pick<LeafletSection, 'title' | 'shortTitle' | 'titleFromPage' | 'source'> => {
         const question = visibleFields.find((field) => isNumberedQuestion(field) && fieldTitleText(field));
         const title = question ? fieldTitleText(question) : emptyLabel;
-        return { title, shortTitle: shortenLabel(title), titleFromPage: false };
+        return { title, shortTitle: shortenLabel(title), titleFromPage: false, source: question ? 'question' : 'empty' };
     };
+    const own = cleanSectionTitle(sectionTitle);
     const first = visibleFields[0];
-    if (!first || first.type !== FieldTypes.TEXT) return { ...fallback(), intro: null, openingTextId: null };
+    const opening = first?.type === FieldTypes.TEXT ? first : null;
+    const doc = opening?.title;
+    const blocks = doc && typeof doc !== 'string' ? ((doc as JSONContent).content ?? []) : [];
+    const openingHasText = typeof doc === 'string' ? !!doc.trim() : blocks.some(hasText);
 
-    const doc = first.title;
-    if (!doc || typeof doc === 'string') {
-        return { ...fallback(), intro: doc && String(doc).trim() ? first : null, openingTextId: first.id };
+    if (own) {
+        // The creator's own title, in full; the opening block stays whole.
+        return { title: own, shortTitle: own, titleFromPage: true, source: 'setting', intro: opening && openingHasText ? opening : null, openingTextId: opening?.id ?? null };
     }
-    const blocks = (doc as JSONContent).content ?? [];
+    if (!opening) return { ...fallback(), intro: null, openingTextId: null };
+    if (!doc || typeof doc === 'string') return { ...fallback(), intro: openingHasText ? opening : null, openingTextId: opening.id };
+
     const headingIndex = blocks.findIndex((block) => hasText(block));
     const heading = headingIndex >= 0 && blocks[headingIndex].type === 'heading' ? blocks[headingIndex] : undefined;
-    if (!heading) {
-        return { ...fallback(), intro: blocks.some(hasText) ? first : null, openingTextId: first.id };
-    }
+    if (!heading) return { ...fallback(), intro: openingHasText ? opening : null, openingTextId: opening.id };
+
     const rest = blocks.slice(headingIndex + 1);
     const title = nodeText(heading).trim();
     return {
@@ -134,9 +149,23 @@ export function leafletSection(visibleFields: ReadonlyArray<StandardFormFieldDto
         // The creator's own heading is shown in full.
         shortTitle: title,
         titleFromPage: true,
-        intro: rest.some(hasText) ? { ...first, title: { ...(doc as JSONContent), content: rest } } : null,
-        openingTextId: first.id
+        source: 'heading',
+        intro: rest.some(hasText) ? { ...opening, title: { ...(doc as JSONContent), content: rest } } : null,
+        openingTextId: opening.id
     };
+}
+
+/** Longest section title a creator can set (the backend's cap too). */
+export const SECTION_TITLE_MAX = 120;
+
+/** A page's section title as shown: whitespace collapsed and trimmed; '' when unset. */
+export function cleanSectionTitle(value: string | null | undefined): string {
+    return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+}
+
+/** A page's section title (`properties.sectionTitle`). */
+export function pageSectionTitle(page: StandardFormFieldDto | null | undefined): string {
+    return cleanSectionTitle(page?.properties?.sectionTitle);
 }
 
 /**

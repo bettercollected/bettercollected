@@ -71,6 +71,26 @@ describe('leaflet sections', () => {
         expect(leafletSection([plain, field('pic', FieldTypes.IMAGE_CONTENT), q], 'Section 2')).toMatchObject({ title: 'Your email address', titleFromPage: false, intro: plain, openingTextId: 'intro' });
     });
 
+    it('a section title of its own comes first, and the opening block stays whole in the band', () => {
+        const opening = text('intro', [heading('About your visit'), paragraph('Tell us how it went.')]);
+        const q = field('q', FieldTypes.SHORT_TEXT, {}, 'What is your name?');
+        const section = leafletSection([opening, q], 'Section 2', '  Your   visit ');
+        expect(section).toMatchObject({ title: 'Your visit', shortTitle: 'Your visit', source: 'setting', titleFromPage: true, intro: opening, openingTextId: 'intro' });
+        // Shown in full, like the creator's own heading.
+        const long = 'A very long section title that the creator wrote themselves for this page of the form';
+        expect(leafletSection([q], 'Section 2', long).shortTitle).toBe(long);
+    });
+
+    it('falls back in order: section title, opening heading, first question, "Section n"', () => {
+        const opening = text('intro', [heading('About your visit')]);
+        const q = field('q', FieldTypes.SHORT_TEXT, {}, 'What is your name?');
+        expect(leafletSection([opening, q], 'Section 2', 'Visit').source).toBe('setting');
+        // empty or blank titles do not count
+        expect(leafletSection([opening, q], 'Section 2', '   ')).toMatchObject({ title: 'About your visit', source: 'heading' });
+        expect(leafletSection([q], 'Section 2', '')).toMatchObject({ title: 'What is your name?', source: 'question' });
+        expect(leafletSection([], 'Deel 2', undefined)).toMatchObject({ title: 'Deel 2', source: 'empty' });
+    });
+
     it('a page with no questions falls back to "Section n"', () => {
         expect(leafletSection([text('intro', [paragraph('Only text here.')])], 'Section 2').title).toBe('Section 2');
         expect(leafletSection([], 'Deel 4').title).toBe('Deel 4');

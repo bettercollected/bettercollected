@@ -21,6 +21,7 @@ from common.models.user import User
 from fastapi import UploadFile
 from starlette.requests import Request
 
+from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
@@ -164,6 +165,26 @@ def _apply_retention_update(stored, incoming: StandardFormSettings) -> None:
     kind, value = _unprocessable_unless(checked_retention, kind, value, dt.date.today())
     stored.response_expiration_type = kind
     stored.response_expiration = value
+
+
+def keep_section_titles(form, stored) -> None:
+    """Settle each page's section title on a save. A page whose properties
+    leave it out (None: an older client, or an API caller that doesn't know
+    it) keeps the stored title; an empty or blank one clears it; anything
+    else is stored trimmed."""
+    titles = {
+        page.id: page.properties.section_title
+        for page in (getattr(stored, "fields", None) or [])
+        if page.properties is not None and page.properties.section_title
+    }
+    for page in form.fields or []:
+        properties = page.properties
+        if properties is None:
+            continue
+        if properties.section_title is None:
+            properties.section_title = titles.get(page.id)
+        else:
+            properties.section_title = properties.section_title.strip() or None
 
 
 class WorkspaceFormService:
@@ -521,6 +542,7 @@ class WorkspaceFormService:
         logo: UploadFile = None,
         cover_image: UploadFile = None,
         drop_unusable_settings: bool = False,
+        keep_theme: bool = False,
     ):
         """Create a form in the workspace.
 
@@ -529,6 +551,10 @@ class WorkspaceFormService:
         that has passed) or a policy link that isn't http(s) is left out
         (answers are kept until deleted, no link) instead of refusing the
         copy. A form described by its creator gets a 422 for those.
+
+        A form that brings no theme starts with the new-form theme
+        (constants/themes.py NEW_FORM_THEME); ``keep_theme`` is for a copy (a
+        template), which keeps its source's theme, or none.
         """
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
@@ -552,6 +578,9 @@ class WorkspaceFormService:
         )
         checked_logo = await read_logo_upload(logo) if logo else None
         form.form_id = str(PydanticObjectId())
+        if form.theme is None and not keep_theme:
+            form.theme = new_form_theme()
+        keep_section_titles(form, None)
 
         if checked_logo:
             form.logo = self._store_logo(form.form_id, checked_logo)
@@ -635,6 +664,7 @@ class WorkspaceFormService:
             await self.workspace_form_repository.save(workspace_form)
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
+        keep_section_titles(form, existing_form)
 
         # The logo changes only through an upload (here or the logo endpoint)
         # or its removal, never to a URL a client sends.

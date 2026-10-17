@@ -19,6 +19,7 @@ from fastapi_pagination import Page
 from starlette.requests import Request
 
 from backend.app.constants.consents import default_consents
+from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import (
     AddActionToFormDto,
@@ -330,9 +331,14 @@ class FormService:
         if existing:
             form_document.id = existing.id
             form_document.created_at = existing.created_at
+        if form_document.theme is None:
+            # The provider sent no colours of its own: a first import starts
+            # with the new-form theme, a re-import keeps the stored one.
+            form_document.theme = existing.theme if existing else new_form_theme()
         form_version_document = FormVersionsDocument(
             **form.model_dump(mode="json"), version=1
         )
+        form_version_document.theme = form_document.theme
         existing_version = await self._form_repo.get_form_by_by_version(
             form_document.form_id, 1
         )

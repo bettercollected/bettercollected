@@ -9,6 +9,7 @@ from common.models.standard_form import (
     Condition,
     ConditionalActions,
     DATE_RULES_MAX,
+    SECTION_TITLE_MAX_LENGTH,
     WHY_WE_ASK_MAX_LENGTH,
     DateRule,
     FieldLogic,
@@ -109,6 +110,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
     # "Why we ask this" line under an identifying question (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
+    # A page's own section title (common StandardFieldProperty.section_title).
+    section_title: Optional[str] = Field(None, max_length=SECTION_TITLE_MAX_LENGTH)
 
 
 class StandardFormFieldCamelModel(CamelModel):

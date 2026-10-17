@@ -7,12 +7,13 @@ import { v4 } from 'uuid';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { FieldConditionalLogic, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
+import { reorder } from '@app/utils/array-utils';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules, remapDateRules } from '@app/utils/date-rules';
+import { SECTION_TITLE_MAX } from '@app/utils/leaflet-sections';
 import { newRepeatingGroup, remapGroupChildIds, remapTextTokens } from '@app/utils/repeating-groups';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
-import { reorder } from '@app/utils/array-utils';
 
 export const initialFieldsState: StandardFormFieldDto[] = [
     {
@@ -35,7 +36,7 @@ export const initialFieldsState: StandardFormFieldDto[] = [
             ]
         }
     }
-]
+];
 
 // Exported for tests (asserting what the canvas state received).
 export const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState);
@@ -45,7 +46,7 @@ export const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState
 // would corrupt older entries.
 const HISTORY_LIMIT = 50;
 const fieldsHistoryAtom = atom<{ snapshots: StandardFormFieldDto[][]; index: number }>({ snapshots: [], index: -1 });
-const deepClone = <T,>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
+const deepClone = <T>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
 
 export default function useFormFieldsAtom() {
     const [formFields, setFormFieldsRaw] = useAtom(initialFieldsAtom);
@@ -186,7 +187,11 @@ export default function useFormFieldsAtom() {
         const remapPipes = (node: any): void => {
             if (node?.type === 'answerPipe' && node.attrs && idMap[node.attrs.pipeKey]) node.attrs.pipeKey = idMap[node.attrs.pipeKey];
             // Group pipes (`<groupId>:<aggregate>:<fieldId>`) remap per segment.
-            if (node?.type === 'answerPipe' && node.attrs?.kind === 'group') node.attrs.pipeKey = String(node.attrs.pipeKey ?? '').split(':').map((part: string) => idMap[part] ?? part).join(':');
+            if (node?.type === 'answerPipe' && node.attrs?.kind === 'group')
+                node.attrs.pipeKey = String(node.attrs.pipeKey ?? '')
+                    .split(':')
+                    .map((part: string) => idMap[part] ?? part)
+                    .join(':');
             node?.content?.forEach(remapPipes);
         };
         clone.properties?.fields?.forEach((field) => {
@@ -360,6 +365,17 @@ export default function useFormFieldsAtom() {
         formFields![slideIndex]!.properties = {
             ...(formFields[slideIndex].properties || {}),
             showQuestionNumbers: show
+        };
+        setFormFields([...formFields]);
+    };
+
+    // A page's own section title (Leaflet bar and contents list). Kept as
+    // typed; '' clears it (sent as '' so the save clears the stored one).
+    const updateSlideSectionTitle = (slideIndex: number, sectionTitle: string) => {
+        if (!formFields?.[slideIndex]) return;
+        formFields[slideIndex]!.properties = {
+            ...(formFields[slideIndex]!.properties || {}),
+            sectionTitle: sectionTitle.slice(0, SECTION_TITLE_MAX)
         };
         setFormFields([...formFields]);
     };
@@ -670,13 +686,13 @@ export default function useFormFieldsAtom() {
     };
 
     const updateTabularColumnTitle = (colIdx: number, val: string) => {
-      const slideIndex = activeSlideComponent!.index;
-      const fieldIndex = activeFieldComponent!.index;
-      const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
-      if (field?.properties?.columnTitles) {
-          field.properties.columnTitles[colIdx] = val;
-          setFormFields([...formFields]);
-      }
+        const slideIndex = activeSlideComponent!.index;
+        const fieldIndex = activeFieldComponent!.index;
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (field?.properties?.columnTitles) {
+            field.properties.columnTitles[colIdx] = val;
+            setFormFields([...formFields]);
+        }
     };
 
     const addColumn = () => {
@@ -738,12 +754,7 @@ export default function useFormFieldsAtom() {
     };
 
     const updateTabularInputValue = (slideIndex: number, fieldIndex: number, value: string[][]) => {
-        if (
-            formFields[slideIndex] &&
-            formFields[slideIndex].properties &&
-            formFields[slideIndex].properties.fields &&
-            formFields[slideIndex].properties.fields[fieldIndex]
-        ) {
+        if (formFields[slideIndex] && formFields[slideIndex].properties && formFields[slideIndex].properties.fields && formFields[slideIndex].properties.fields[fieldIndex]) {
             formFields[slideIndex].properties.fields[fieldIndex].properties = {
                 ...(formFields[slideIndex].properties.fields[fieldIndex].properties || {}),
                 tabular_value: value
@@ -759,15 +770,9 @@ export default function useFormFieldsAtom() {
         const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
         if (!field?.properties) return;
         // Add a new row title
-        field.properties.rowTitles = [
-            ...(field.properties.rowTitles || []),
-            `Row ${(field.properties.rowTitles || []).length + 1}`
-        ];
+        field.properties.rowTitles = [...(field.properties.rowTitles || []), `Row ${(field.properties.rowTitles || []).length + 1}`];
         const colCount = field.properties.columnTitles?.length || 3;
-        field.properties.tabular_value = [
-            ...(field.properties.tabular_value || []),
-            Array(colCount).fill('')
-        ];
+        field.properties.tabular_value = [...(field.properties.tabular_value || []), Array(colCount).fill('')];
         setFormFields([...formFields]);
     };
 
@@ -778,14 +783,8 @@ export default function useFormFieldsAtom() {
         const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
         if (!field?.properties) return;
         // Add a new column title
-        field.properties.columnTitles = [
-            ...(field.properties.columnTitles || []),
-            `Col ${(field.properties.columnTitles || []).length + 1}`
-        ];
-        field.properties.tabular_value = (field.properties.tabular_value || []).map(row => [
-            ...row,
-            ''
-        ]);
+        field.properties.columnTitles = [...(field.properties.columnTitles || []), `Col ${(field.properties.columnTitles || []).length + 1}`];
+        field.properties.tabular_value = (field.properties.tabular_value || []).map((row) => [...row, '']);
         setFormFields([...formFields]);
     };
 
@@ -851,6 +850,7 @@ export default function useFormFieldsAtom() {
         updateGroupChildren,
         updateGroupRepeat,
         updateSlideJumps,
+        updateSlideSectionTitle,
         updateSlidePosition,
         clearSlidePositions,
         duplicateSlide,

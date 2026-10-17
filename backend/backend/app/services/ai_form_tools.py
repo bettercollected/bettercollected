@@ -22,9 +22,10 @@ TOOL_DEFINITIONS = [
         "description": (
             "Returns all available visual themes with colour palettes and "
             "usage descriptions. Call this tool ONCE at the start of form "
-            "generation so you can choose the most appropriate theme for the "
-            "form type requested by the user. Return the chosen theme_name in "
-            "your final JSON under the key 'theme_name'."
+            "generation. New forms use 'Leaflet' unless the user asks for "
+            "other colours or a particular mood; then choose the most "
+            "appropriate theme. Return the chosen theme_name in your final "
+            "JSON under the key 'theme_name'."
         ),
         "parameters": {
             "type": "object",

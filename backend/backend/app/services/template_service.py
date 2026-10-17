@@ -107,6 +107,8 @@ class FormTemplateService:
             # a copy: settings that no longer apply (a passed end date)
             # are left out rather than refusing the new form
             drop_unusable_settings=True,
+            # the template's look, as it was made (none stays none)
+            keep_theme=True,
         )
 
     async def create_new_template(

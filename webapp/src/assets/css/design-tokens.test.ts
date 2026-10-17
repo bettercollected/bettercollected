@@ -128,7 +128,8 @@ describe('form themes', () => {
         const defaults = ThemeColors.find((theme) => theme.title === 'Default');
         expect(defaults).toMatchObject({ primary: '#101828', secondary: '#1649E2', tertiary: '#818CA0', accent: '#F5F7FB' });
         expect(ThemeColor).toMatchObject({ primary: '#101828', secondary: '#1649E2', accent: '#F5F7FB' });
-        expect(defaultForm.theme).toMatchObject({ primary: '#101828', secondary: '#1649E2', accent: '#F5F7FB' });
+        // New forms start with Leaflet (constants/new-form-theme.test.ts).
+        expect(defaultForm.theme).toMatchObject({ title: 'Leaflet', style: 'leaflet' });
         // Spot-check that the other presets kept their values.
         expect(ThemeColors.find((theme) => theme.title === 'Ocean')).toMatchObject({ secondary: '#1D4ED8', accent: '#DBEAFE' });
         expect(ThemeColors.find((theme) => theme.title === 'Mono')).toMatchObject({ primary: '#101826', secondary: '#101826' });

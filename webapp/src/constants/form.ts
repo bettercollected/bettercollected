@@ -1,5 +1,6 @@
 import { v4 } from 'uuid';
 
+import { newFormTheme } from '@app/constants/theme';
 import { FieldTypes, StandardFormDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 
@@ -34,11 +35,6 @@ export const defaultForm: StandardFormDto = {
             layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
         }
     ],
-    theme: {
-        title: 'Default',
-        primary: '#101828',
-        secondary: '#1649E2',
-        tertiary: '#818CA0',
-        accent: '#F5F7FB'
-    }
+    // New forms start with Leaflet (constants/theme.ts NEW_FORM_THEME_TITLE).
+    theme: newFormTheme()
 };

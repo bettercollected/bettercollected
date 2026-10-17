@@ -19,6 +19,7 @@ from typing import Awaitable, Callable, List, Optional, Tuple, TypeVar
 from beanie import PydanticObjectId
 from loguru import logger
 
+from backend.app.constants.themes import new_form_theme
 from backend.app.schemas.form_import import (
     CODE_INTERRUPTED,
     FormImportDocument,
@@ -396,8 +397,13 @@ class ImportPipeline:
             return {"pages": 0, "skipped": "form was edited"}
         else:
             parts = ["fields"]
-            if form.theme is not None and document.theme is None:
-                parts.append("theme")  # the brand theme only if the form has none
+            if form.theme is not None and (
+                document.theme is None or document.theme == new_form_theme()
+            ):
+                # the document's brand colours replace the theme the draft
+                # started with (never one the creator chose; the draft is
+                # untouched here); without them the draft keeps Leaflet
+                parts.append("theme")
             saved = await persist_form(
                 self._form_repo,
                 document,

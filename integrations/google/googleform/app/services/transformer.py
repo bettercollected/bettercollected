@@ -19,7 +19,6 @@ from common.models.standard_form import (
     LayoutType,
     WelcomePageField,
     ThankYouPageField,
-    Theme,
 )
 from common.services.transformer_service import (
     FormTransformerService,
@@ -224,15 +223,6 @@ class GoogleFormTransformerService(FormTransformerService):
         ]
 
 
-    def _transform_theme(self):
-        return Theme(
-            title="Black",
-            primary="#2E2E2E",
-            secondary="#2E2E2E",
-            tertiary="#DBDBDB",
-            accent="#FFFFFF",
-        )
-
     def transform_form(self, form: Dict[str, Any]) -> StandardForm:
         try:
             googleform = GoogleFormDto(**form)
@@ -250,7 +240,9 @@ class GoogleFormTransformerService(FormTransformerService):
                     self._transform_welcome_page(googleform.info.title or "Untitled")
                 ),
                 thankyou_page=(self._transform_thank_you_page()),
-                theme=(self._transform_theme()),
+                # No theme: Google Forms' colours are not carried over, so the
+                # backend gives a first import the theme new forms start with
+                # and keeps the stored one on a re-import.
             )
             return standard_form, field_id_and_fields_map
         except Exception as error:

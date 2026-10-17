@@ -203,6 +203,11 @@ class TestMCPServer:
             await _call_tool(client, token, "get_form", {"form_id": created["formId"]})
         )
         assert len(form["fields"]) == 1
+        # like every new form without a theme of its own, it starts as Leaflet
+        assert (form["theme"]["title"], form["theme"]["style"]) == (
+            "Leaflet",
+            "leaflet",
+        )
         page_id = form["fields"][0]["id"]
         assert (form["fields"][0].get("properties", {}) or {}).get("fields", []) in (
             [],
