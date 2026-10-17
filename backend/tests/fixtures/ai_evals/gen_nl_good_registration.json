@@ -1,0 +1,83 @@
+{
+  "name": "gen_nl_good_registration",
+  "kind": "generate",
+  "description": "Een nette Nederlandse aanmelding over twee pagina's.",
+  "language": "nl",
+  "expected_findings": [],
+  "reply": {
+    "title": "Aanmelden voor de taalcursus",
+    "description": "Meld je aan voor de taalcursus van het buurthuis.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Over jou",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "Wat is je naam?",
+              "type": "short_text",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "Wat is je e-mailadres?",
+              "type": "email",
+              "properties": {
+                "required": true,
+                "whyWeAsk": "We sturen je hiermee de bevestiging en het rooster."
+              }
+            },
+            {
+              "title": "Wat is je telefoonnummer?",
+              "type": "phone_number",
+              "properties": {
+                "whyWeAsk": "Zo kunnen we je bellen als een les niet doorgaat."
+              }
+            }
+          ]
+        },
+        "sectionTitle": "Je gegevens"
+      },
+      {
+        "title": "De cursus",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "Welk niveau heb je nu?",
+              "type": "dropdown",
+              "properties": {
+                "choices": [
+                  "Beginner",
+                  "Gevorderd",
+                  "Ver gevorderd"
+                ]
+              }
+            },
+            {
+              "title": "Op welke dagen kun je het beste?",
+              "type": "multiple_choice",
+              "properties": {
+                "choices": [
+                  "Maandag",
+                  "Woensdag",
+                  "Zaterdag"
+                ],
+                "allowMultiple": true
+              }
+            },
+            {
+              "title": "Wat wil je graag leren?",
+              "type": "long_text"
+            }
+          ]
+        },
+        "sectionTitle": "Je cursus"
+      }
+    ]
+  }
+}

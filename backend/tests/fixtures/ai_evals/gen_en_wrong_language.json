@@ -1,0 +1,50 @@
+{
+  "name": "gen_en_wrong_language",
+  "kind": "generate",
+  "description": "Dutch was requested, the model answered in English.",
+  "language": "nl",
+  "expected_findings": [
+    "wrong_language"
+  ],
+  "reply": {
+    "title": "Parking permit request",
+    "description": "Apply for a parking permit for your street.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Your permit",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "What is the registration of your car?",
+              "type": "short_text",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "Which zone do you live in?",
+              "type": "dropdown",
+              "properties": {
+                "choices": [
+                  "Zone A",
+                  "Zone B"
+                ]
+              }
+            },
+            {
+              "title": "When should the permit start?",
+              "type": "date"
+            },
+            {
+              "title": "Do you have a second car that you would like to register?",
+              "type": "yes_no"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
