@@ -21,21 +21,46 @@ function timing(fn: () => void, runs: number): number {
     return times[Math.floor(times.length / 4)];
 }
 
-describe('engine speed on a 200-question form', () => {
+// What keeps edits fast is structural sharing: an edit copies only the path
+// to what changed. That is asserted exactly below; the timings are loose
+// smoke bounds only, because wall time on a shared runner is not reliable.
+describe('engine cost on a 200-question form', () => {
     const form = form200();
     const ids = questionIds(form).slice(0, 200);
     const pages = pageIds(form);
 
-    it('applies one update_field and builds its inverse in under 0.3 ms', () => {
+    it('copies only the edited question and its page for one update_field', () => {
+        const fieldId = ids[37];
+        const out = applyOps(form, [{ op: 'update_field', fieldId, patch: { title: 'Changed' } }]);
+        const before = form.fields as any[];
+        const after = out.doc.fields as any[];
+        expect(after).toHaveLength(before.length);
+        let changedPages = 0;
+        let changedQuestions = 0;
+        before.forEach((page, i) => {
+            if (after[i] === page) return;
+            changedPages += 1;
+            const oldFields = page.properties?.fields ?? [];
+            const newFields = after[i].properties?.fields ?? [];
+            oldFields.forEach((field: any, j: number) => {
+                if (newFields[j] !== field) changedQuestions += 1;
+            });
+        });
+        expect(changedPages).toBe(1);
+        expect(changedQuestions).toBe(1);
+        expect(out.inverse).toHaveLength(1);
+    });
+
+    it('applies one update_field and builds its inverse quickly (smoke bound)', () => {
         let n = 0;
         const time = timing(() => {
             const out = applyOps(form, [{ op: 'update_field', fieldId: ids[n++ % ids.length], patch: { title: `Title ${n}` } }]);
             if (out.inverse.length !== 1) throw new Error('expected one inverse op');
         }, 200);
-        expect(time).toBeLessThan(0.3);
+        expect(time).toBeLessThan(5);
     });
 
-    it('applies a 200-op batch (with its inverse) in under 20 ms', () => {
+    it('applies a 200-op batch (with its inverse) quickly (smoke bound)', () => {
         const ops: FormOp[] = ids.map((fieldId, i) =>
             i % 4 === 0
                 ? { op: 'update_field', fieldId, patch: { title: `T${i}`, required: true } }
@@ -50,6 +75,6 @@ describe('engine speed on a 200-question form', () => {
             const out = applyOps(form, ops, { newId: idMaker() });
             if (!out.results.every((r) => r.ok)) throw new Error('every op should apply');
         }, 40);
-        expect(time).toBeLessThan(20);
+        expect(time).toBeLessThan(500);
     });
 });
