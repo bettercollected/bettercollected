@@ -1,0 +1,168 @@
+{
+  "name": "outline_en_long_page",
+  "kind": "outline",
+  "description": "One page asks nine questions.",
+  "language": "en",
+  "expected_findings": [
+    "too_many_questions_on_page"
+  ],
+  "reply": {
+    "title": "Volunteer sign-up",
+    "description": "Sign up to help at the summer fair.",
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "sectionTitle": "About you",
+        "questions": [
+          {
+            "key": "name",
+            "label": "What is your name?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "email",
+            "label": "What is your email address?",
+            "type": "email",
+            "required": true,
+            "whyWeAsk": "We send you the rota by email."
+          },
+          {
+            "key": "age",
+            "label": "How old are you?",
+            "type": "number",
+            "validation": {
+              "minValue": 16,
+              "maxValue": 99
+            }
+          }
+        ]
+      },
+      {
+        "key": "p2",
+        "sectionTitle": "How you can help",
+        "questions": [
+          {
+            "key": "role",
+            "label": "Which task would you like?",
+            "type": "multiple_choice",
+            "required": true,
+            "choices": [
+              "Setting up",
+              "Stalls",
+              "Other"
+            ]
+          },
+          {
+            "key": "other",
+            "label": "Which other task?",
+            "type": "short_text"
+          },
+          {
+            "key": "car",
+            "label": "Can you bring a car?",
+            "type": "yes_no"
+          }
+        ]
+      },
+      {
+        "key": "p3",
+        "sectionTitle": "Transport",
+        "questions": [
+          {
+            "key": "seats",
+            "label": "How many seats are free?",
+            "type": "number"
+          }
+        ]
+      },
+      {
+        "key": "p4",
+        "sectionTitle": "Anything else",
+        "questions": [
+          {
+            "key": "extra1",
+            "label": "Which skill number 1 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra2",
+            "label": "Which skill number 2 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra3",
+            "label": "Which skill number 3 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra4",
+            "label": "Which skill number 4 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra5",
+            "label": "Which skill number 5 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra6",
+            "label": "Which skill number 6 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra7",
+            "label": "Which skill number 7 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra8",
+            "label": "Which skill number 8 would you bring?",
+            "type": "short_text"
+          },
+          {
+            "key": "extra9",
+            "label": "Which skill number 9 would you bring?",
+            "type": "short_text"
+          }
+        ]
+      }
+    ],
+    "logic": [
+      {
+        "target": "other",
+        "action": "show",
+        "match": "all",
+        "conditions": [
+          {
+            "question": "role",
+            "comparison": "equals",
+            "value": "Other"
+          }
+        ]
+      }
+    ],
+    "jumps": [
+      {
+        "fromPage": "p2",
+        "to": "p4",
+        "match": "all",
+        "conditions": [
+          {
+            "question": "car",
+            "comparison": "equals",
+            "value": "No"
+          }
+        ]
+      }
+    ],
+    "omitted": [
+      {
+        "label": "Date of birth",
+        "reason": "An age is enough for the fair's rules."
+      }
+    ]
+  }
+}

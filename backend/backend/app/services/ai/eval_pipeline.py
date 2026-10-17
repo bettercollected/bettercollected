@@ -6,7 +6,13 @@ exactly as the product would turn it into a form:
 
 - form generation: ``parse_generated_form`` (structured.py) →
   ``OpenAIService.convert_openai_form_to_standard_form`` → ``StandardForm``;
-- chat editing: the chat turn's reply model → ``apply_form_ops`` (ops.py).
+- chat editing: the chat turn's reply model → ``apply_form_ops`` (ops.py);
+- outline-first generation (what the product runs): ``parse_outline``
+  (outline_service.py) → ``prune_outline`` → ``build_form``
+  (outline_compile.py, one atomic ops batch) → ``StandardForm``.
+
+The ``generate`` kind replays replies of the earlier whole-form generation
+through its converter; the product no longer uses that path.
 
 Nothing here calls a provider.
 """
@@ -27,6 +33,7 @@ from backend.app.services.ai.structured import parse_generated_form, parse_reply
 
 GENERATE = "generate"
 CHAT = "chat"
+OUTLINE = "outline"
 
 
 def reply_text(reply: Union[str, Dict[str, Any]]) -> str:
@@ -67,6 +74,39 @@ def chat_reply_to_form(
     )
     turn = parse_reply(reply_text(reply), _ChatTurnReply)
     return apply_form_ops(base, turn._parsed_ops)
+
+
+def form_from_outline(outline) -> StandardForm:
+    """An outline (``FormOutline``) as the form the build step would save;
+    ``OutlineNotBuildable`` when its ops batch fails."""
+    from backend.app.services.ai.ops import applied
+    from backend.app.services.ai.outline import prune_outline
+    from backend.app.services.ai.outline_compile import (
+        build_form,
+        without_unfillable_choices,
+    )
+
+    outline, _ = without_unfillable_choices(outline)
+    outline, _ = prune_outline(outline)
+    form, results = build_form(outline)
+    if not applied(results, atomic=True):
+        raise OutlineNotBuildable(sum(1 for r in results if not r.ok))
+    return StandardForm.model_validate(form.model_dump())
+
+
+class OutlineNotBuildable(Exception):
+    """An outline whose ops batch failed (count of failed ops only)."""
+
+
+def outline_reply_to_form(
+    reply: Union[str, Dict[str, Any]],
+) -> Tuple[Dict[str, Any], StandardForm]:
+    """(validated outline, form); ``InvalidReply`` when the reply is not a
+    usable outline, as the product would retry and then refuse it."""
+    from backend.app.services.ai.outline_service import parse_outline
+
+    outline = parse_outline(reply_text(reply))
+    return outline.dump(), form_from_outline(outline)
 
 
 def options_for(case: Dict[str, Any]) -> QualityOptions:
