@@ -158,6 +158,12 @@ def test_ai_eval_main_refuses_prompts_outside_the_fixtures(tmp_path, monkeypatch
     assert not out.exists()
 
 
+def test_ai_eval_help_warns_against_live_runs_on_production(capsys):
+    with pytest.raises(SystemExit):
+        ai_eval.parse_args(["--help"])
+    assert "Never run --live on a production host." in capsys.readouterr().out
+
+
 class _FakeProvider:
     """Answers with golden replies and reports tokens like a real one."""
 

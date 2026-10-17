@@ -445,7 +445,8 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   costs tokens, honours the AI limits unless `--ignore-limits`, and writes
   `report.json` and `report.md`). `--prompts` only accepts a file inside
   `tests/fixtures/ai_evals/`. Without `--live` it replays the fixtures and
-  never reads `backend/.env`. Never in CI.
+  never reads `backend/.env`. Never in CI. Never run --live on a production
+  host.
 
 ## PDF form import (in progress)
 

@@ -11,6 +11,7 @@ repository:
   configured provider. Runs only with ``--live`` AND ``AI_EVAL_ALLOW_LIVE=1``;
   it sends the synthetic prompts (nothing else) to the provider and costs
   tokens. ``--prompts`` must name a file inside ``tests/fixtures/ai_evals/``.
+  Never run --live on a production host.
 
 The live run goes through the same AI limits as the app
 (``services/ai/usage.AIUsageGuard``, counted in memory for one run): the
@@ -56,6 +57,7 @@ def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="ai_eval",
         description="Score AI form generation and chat edits.",
+        epilog="Never run --live on a production host.",
     )
     parser.add_argument(
         "--out", required=True, help="directory for report.json and report.md (outside the repo)"
@@ -63,7 +65,10 @@ def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
     parser.add_argument(
         "--live",
         action="store_true",
-        help=f"call the configured provider (also needs {ALLOW_LIVE_ENV}=1)",
+        help=(
+            f"call the configured provider (also needs {ALLOW_LIVE_ENV}=1); "
+            "never run --live on a production host"
+        ),
     )
     parser.add_argument(
         "--prompts",
