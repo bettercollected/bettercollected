@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { FieldTypes, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { JUMP_TARGET_SUBMIT, LogicalOperator, PageJump } from '@app/models/types/form-builder-shared';
@@ -215,7 +216,8 @@ const edgeTypes = { bracket: BracketEdge };
 /* ------------------------------- flow view ------------------------------- */
 
 export default function FlowView({ onClose }: { onClose?: () => void }) {
-    const { formFields, addSlide, deleteSlide, duplicateSlide, updateSlideJumps, updateSlidePosition, clearSlidePositions } = useFormFieldsAtom();
+    const { formFields, addSlide, duplicateSlide, updateSlideJumps, updateSlidePosition, clearSlidePositions } = useFormFieldsAtom();
+    const { deletePage } = useUndoableDelete();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { toast } = useToast();
@@ -683,7 +685,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            deleteSlide(selectedIndex);
+                                            deletePage(selectedIndex);
                                             setSelectedId(null);
                                         }}
                                         className="ml-auto flex items-center gap-1 rounded-md border border-[#EFD2D2] px-2.5 py-1.5 text-xs font-medium text-[#C43D3D] hover:bg-[#FBEFEF]"

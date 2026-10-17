@@ -56,6 +56,21 @@ interface FieldsHistory {
     lastAt?: number;
 }
 const fieldsHistoryAtom = atom<FieldsHistory>({ snapshots: [], index: -1 });
+
+/**
+ * Undo one step, but only while the latest step is still `after` (the state a
+ * delete produced, serialized right then: the builder edits its objects in
+ * place). An undo toast must not undo some later edit instead. True when it
+ * undid.
+ */
+export const undoIfLatestAtom = atom(null, (get, set, after: string) => {
+    const history = get(fieldsHistoryAtom);
+    if (history.index <= 0 || history.index !== history.snapshots.length - 1) return false;
+    if (JSON.stringify(history.snapshots[history.index]) !== after) return false;
+    set(initialFieldsAtom, deepClone(history.snapshots[history.index - 1]));
+    set(fieldsHistoryAtom, { snapshots: history.snapshots, index: history.index - 1 });
+    return true;
+});
 const deepClone = <T>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
 
 export default function useFormFieldsAtom() {
@@ -241,7 +256,10 @@ export default function useFormFieldsAtom() {
                 index: -10
             });
         }
-        setFormFields([...updatedFormFields]);
+        const next = [...updatedFormFields];
+        setFormFields(next);
+        // The state after the delete: what the undo toast restores from.
+        return next;
     };
 
     const getActiveSlide = () => {
@@ -527,10 +545,13 @@ export default function useFormFieldsAtom() {
         pruneOrphanedConditions(formFields);
         pruneOrphanedPipes(formFields);
         pruneOrphanedDateRules(formFields);
-        setFormFields([...formFields]);
+        const next = [...formFields];
+        setFormFields(next);
         setTimeout(() => {
             setActiveFieldComponent(null);
         }, 0);
+        // The state after the delete: what the undo toast restores from.
+        return next;
     };
 
     const deleteActiveSlide = () => {
