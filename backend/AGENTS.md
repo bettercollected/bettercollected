@@ -71,7 +71,8 @@ membership read directly: access goes through `AuthorizationService`.
   `services/workspace_members_service.py`, rules in docs/enterprise-access-model.md "Owners". A Privacy officer also deletes a response
   with a *pending* deletion request (`privacy.manage`) and never holds the answer permissions,
   whatever other role they have. MCP/API-key calls also require the key's creator to hold the
-  scope's permission at call time (`mcp/server.py` `SCOPE_PERMISSIONS`).
+  scope's permission at call time (`services/api_access.py` `SCOPE_PERMISSIONS`, shared
+  by MCP and the public API).
 - **Webapp:** `GET /workspaces/{id}/permissions` returns the caller's effective permissions; the UI
   gates controls with `useWorkspacePermissions().can(...)` (owners: `workspace.billing`).
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
