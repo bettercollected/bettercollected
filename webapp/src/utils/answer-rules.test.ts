@@ -1,8 +1,11 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
 import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { FORMAT_PRESETS, INTEGER_PATTERN, answerRuleConflicts, answerRuleKind, answerRuleMessage, checkAnswerRules, compilePattern, presetForPattern, summarizeAnswerRules, validateAnswerRulesInSlide } from './answer-rules';
+import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, answerRuleMessage, checkAnswerRules, compilePattern, presetForPattern, summarizeAnswerRules, validateAnswerRulesInSlide } from './answer-rules';
 
 const field = (type: FieldTypes, validations: StandardFormFieldDto['validations'], properties: StandardFormFieldDto['properties'] = {}): StandardFormFieldDto => ({ id: 'f', index: 0, type, validations, properties });
 const preset = (id: string) => FORMAT_PRESETS.find((p) => p.id === id)!.pattern;
@@ -99,5 +102,26 @@ describe('telling people about the rules', () => {
     it('contradictory limits are pointed out', () => {
         expect(answerRuleConflicts({ minLength: 5, maxLength: 2 })).toEqual(['The minimum length is more than the maximum.']);
         expect(answerRuleConflicts({ minValue: 1, maxValue: 1 })).toEqual([]);
+    });
+});
+
+describe('the pattern length cap', () => {
+    it('is the form spec cap (200), which the server shares', () => {
+        const schema = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/form-spec-v1.schema.json'), 'utf-8'));
+        const caps: number[] = [];
+        const walk = (node: any) => {
+            if (!node || typeof node !== 'object') return;
+            if (node.pattern?.anyOf) node.pattern.anyOf.forEach((option: any) => typeof option.maxLength === 'number' && caps.push(option.maxLength));
+            Object.values(node).forEach(walk);
+        };
+        walk(schema);
+        expect(PATTERN_MAX_LENGTH).toBe(200);
+        expect(caps.length).toBeGreaterThan(0);
+        expect(new Set(caps)).toEqual(new Set([PATTERN_MAX_LENGTH]));
+    });
+
+    it('a stored pattern over the cap is pointed out', () => {
+        expect(answerRuleConflicts({ regex: 'a'.repeat(PATTERN_MAX_LENGTH) })).toEqual([]);
+        expect(answerRuleConflicts({ regex: 'a'.repeat(PATTERN_MAX_LENGTH + 1) })).toEqual(['The pattern is longer than 200 characters. Shorten it.']);
     });
 });

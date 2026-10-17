@@ -3,6 +3,7 @@ import { resolve } from 'path';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
+import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { validateSlide } from '@app/utils/vvalidation-utils';
@@ -10,9 +11,12 @@ import { validateSlide } from '@app/utils/vvalidation-utils';
 /**
  * The cases shared with the server's answer validation
  * (backend/tests/app/services/test_answer_validation.py runs all of them).
- * Here: the Required cases, through the same steps the respondent page takes
- * on "Next" (form-slide.tsx): hide questions by logic, validate the visible
- * ones, follow the page's jump or go to the next page.
+ * Here: the Required and answer-rule cases, through the same steps the
+ * respondent page takes on "Next" (form-slide.tsx): hide questions by logic,
+ * validate the visible ones (Required first, then answer rules on the
+ * questions Required has nothing against), follow the page's jump or go to
+ * the next page. Cases marked 'server' only are the server's alone (answer
+ * types, unknown ids) or differ on purpose ('clientDiffers' says why).
  */
 
 interface Problem {
@@ -24,13 +28,14 @@ interface Problem {
 interface Case {
     name: string;
     checks: string[];
+    clientDiffers?: string;
     form: StandardFormFieldDto[];
     answers: Record<string, any>;
     errors: Problem[];
 }
 
 const corpus = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/answer-validation.cases.json'), 'utf-8')) as { cases: Case[] };
-const REQUIRED_CASES = corpus.cases.filter((c) => c.checks.includes('required'));
+const CLIENT_CASES = corpus.cases.filter((c) => c.checks.includes('required') || c.checks.includes('rules'));
 
 const RULES: Record<string, string> = { '0': 'required', REQUIRED: 'required', MIN_ITEMS: 'too_few_items', MAX_ITEMS: 'too_many_items' };
 
@@ -50,10 +55,13 @@ function respondentProblems(slides: StandardFormFieldDto[], answers: Record<stri
             ...validateSlide({ ...slide, properties: { ...slide.properties, fields: visible } } as StandardFormFieldDto, answers),
             ...validateGroupsInSlide(visible, answers)
         };
+        Object.entries(validateAnswerRulesInSlide(visible, answers)).forEach(([id, codes]) => {
+            if (!invalid[id]) invalid[id] = codes;
+        });
         Object.entries(invalid).forEach(([key, codes]) => {
             const scoped = parseScopedFieldId(key);
             codes.forEach((code) => {
-                const rule = RULES[String(code)] ?? String(code);
+                const rule = RULES[String(code)] ?? String(code).toLowerCase();
                 problems.push(scoped ? { fieldId: scoped.childId, rule, item: scoped.index } : { fieldId: key, rule });
             });
         });
@@ -68,12 +76,14 @@ function respondentProblems(slides: StandardFormFieldDto[], answers: Record<stri
 const sorted = (problems: Problem[]) => problems.map((p) => JSON.stringify([p.fieldId, p.rule, p.item ?? null])).sort();
 
 describe('answer validation cases shared with the server', () => {
-    it('has uniquely named cases, many of them about Required', () => {
+    it('has uniquely named cases; those where the browser differs say why', () => {
         expect(new Set(corpus.cases.map((c) => c.name)).size).toBe(corpus.cases.length);
-        expect(REQUIRED_CASES.length).toBeGreaterThanOrEqual(25);
+        expect(corpus.cases.filter((c) => c.checks.includes('required')).length).toBeGreaterThanOrEqual(25);
+        expect(corpus.cases.filter((c) => c.checks.includes('rules')).length).toBeGreaterThanOrEqual(25);
+        corpus.cases.filter((c) => c.clientDiffers).forEach((c) => expect(c.checks).toEqual(['server']));
     });
 
-    it.each(REQUIRED_CASES.map((c) => [c.name, c] as const))('%s', (_name, testCase) => {
+    it.each(CLIENT_CASES.map((c) => [c.name, c] as const))('%s', (_name, testCase) => {
         expect(sorted(respondentProblems(testCase.form, testCase.answers))).toEqual(sorted(testCase.errors));
     });
 });

@@ -1,5 +1,6 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, scopedFieldId } from '@app/utils/repeating-groups';
 
 /**
  * "Answer rules": the limits a creator puts on an answer beyond Required,
@@ -47,8 +48,12 @@ export const FORMAT_PRESETS: ReadonlyArray<FormatPreset> = [
     { id: 'letters', label: 'Letters only', summary: 'letters only', pattern: "^[\\p{L} '-]+$", example: 'Anne-Marie' }
 ];
 
-/** Patterns longer than this are not accepted from the builder. */
-export const PATTERN_MAX_LENGTH = 300;
+/**
+ * Patterns longer than this are not accepted from the builder. The same cap
+ * as the form spec (common form_spec PATTERN_MAX_LENGTH, the schema's
+ * maxLength) and the server, which does not enforce a longer pattern.
+ */
+export const PATTERN_MAX_LENGTH = 200;
 
 export function presetForPattern(pattern: string | undefined | null): FormatPreset | undefined {
     return pattern ? FORMAT_PRESETS.find((preset) => preset.pattern === pattern) : undefined;
@@ -145,12 +150,28 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
 
 /**
  * The answer-rule problems of the fields on a page, keyed by field id (the
- * same shape as validateSlide's), for the fields the respondent sees.
+ * same shape as validateSlide's), for the fields the respondent sees. Inside
+ * a repeating group every displayed item is checked, keyed by the item-scoped
+ * id its question renders under, skipping questions hidden in that item (the
+ * server checks items the same way).
  */
 export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFieldDto> | undefined, answers: Record<string, any>): Record<string, AnswerRuleProblem[]> {
     const invalid: Record<string, AnswerRuleProblem[]> = {};
     (fields ?? []).forEach((field) => {
         if (field.internal) return;
+        if (isRepeatingGroup(field)) {
+            const items = getGroupItems(answers, field.id);
+            const count = getDisplayedItemCount(field, answers);
+            for (let index = 0; index < count; index++) {
+                const hidden = getItemHiddenChildIds(field, answers, index);
+                getGroupChildren(field).forEach((child) => {
+                    if (child.internal || hidden.has(child.id)) return;
+                    const problems = checkAnswerRules(child, items[index]?.[child.id]);
+                    if (problems.length) invalid[scopedFieldId(child.id, index)] = problems;
+                });
+            }
+            return;
+        }
         const problems = checkAnswerRules(field, answers[field.id]);
         if (problems.length) invalid[field.id] = problems;
     });
@@ -231,5 +252,6 @@ export function answerRuleConflicts(rules: IFormFieldValidation | undefined): st
     if (isSet(rules.minValue) && isSet(rules.maxValue) && rules.minValue > rules.maxValue) conflicts.push('The lowest value is more than the highest.');
     if (isSet(rules.minChoices) && isSet(rules.maxChoices) && rules.minChoices > rules.maxChoices) conflicts.push('The minimum number of options is more than the maximum.');
     if (rules.regex && !compilePattern(rules.regex)) conflicts.push('The pattern is not a valid regular expression, so it is not checked.');
+    else if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
     return conflicts;
 }

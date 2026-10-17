@@ -1,5 +1,5 @@
 {
-  "description": "Submitted answers checked against their form: Required on the pages a respondent goes through (visibility rules and page jumps), answer rules and answer types. Run by backend/tests/app/services/test_answer_validation.py (every case) and webapp src/utils/answer-validation-cases.test.ts (the cases whose checks include 'required'). 'form' is the list of pages as the respondent page receives it; 'errors' lists every problem, in any order.",
+  "description": "Submitted answers checked against their form: Required on the pages a respondent goes through (visibility rules and page jumps), answer rules and answer types. Run by backend/tests/app/services/test_answer_validation.py (every case) and webapp src/utils/answer-validation-cases.test.ts (the cases whose checks include 'required' or 'rules'). Checks 'server' are the server's alone: answer types and unknown ids (the respondent page builds its answers itself), and the cases in 'clientDiffers', which says why the browser differs on purpose. 'form' is the list of pages as the respondent page receives it; 'errors' lists every problem, in any order.",
   "cases": [
     {
       "name": "required question unanswered",
@@ -1322,6 +1322,7 @@
       "checks": [
         "server"
       ],
+      "clientDiffers": "The respondent page treats a required flag on a content block like a question's, so such a form cannot be finished there. The builder never sets it; the server ignores it so a stray flag cannot refuse responses.",
       "form": [
         {
           "id": "p1",
@@ -3093,7 +3094,7 @@
     {
       "name": "rules apply inside a group item",
       "checks": [
-        "server"
+        "rules"
       ],
       "form": [
         {
@@ -3157,6 +3158,7 @@
       "checks": [
         "server"
       ],
+      "clientDiffers": "The browser enforces it (JavaScript supports the construct); the server matches with RE2, which does not, so it accepts rather than guess.",
       "form": [
         {
           "id": "p1",
@@ -3188,6 +3190,7 @@
       "checks": [
         "server"
       ],
+      "clientDiffers": "The browser enforces it (JavaScript supports the construct); the server matches with RE2, which does not, so it accepts rather than guess.",
       "form": [
         {
           "id": "p1",
@@ -3219,6 +3222,7 @@
       "checks": [
         "server"
       ],
+      "clientDiffers": "The builder and the form spec accept at most 200 characters (the builder flags a longer stored pattern); the browser still checks one, the server does not.",
       "form": [
         {
           "id": "p1",
