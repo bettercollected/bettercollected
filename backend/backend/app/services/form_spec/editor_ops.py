@@ -44,9 +44,13 @@ from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.enum.permission import Permission
-from backend.app.services.ai import ops as ops_module
 from backend.app.services.ai.chat import persist_ops_to_form
-from backend.app.services.ai.ops import OP_NAMES, parse_ops, too_many_ops
+from backend.app.services.ai.ops import (
+    EDITOR_ONLY_OPS,
+    OP_NAMES,
+    parse_ops,
+    too_many_ops,
+)
 from backend.app.services.form_spec.service import (
     ops_errors,
     parse_json_document,
@@ -78,9 +82,7 @@ _NOT_KEPT = {HTTPStatus.PRECONDITION_FAILED, HTTPStatus.PRECONDITION_REQUIRED}
 # Editor-only ops (lossless, id-addressed edits only the builder makes) are
 # refused on the AI, MCP and public API paths; this endpoint is the one place
 # they are allowed, next to every op those paths accept.
-EDITOR_OP_NAMES = frozenset(OP_NAMES) | frozenset(
-    getattr(ops_module, "EDITOR_ONLY_OPS", frozenset())
-)
+EDITOR_OP_NAMES = frozenset(OP_NAMES) | EDITOR_ONLY_OPS
 
 
 class EditorOpsRequest(BaseModel):
@@ -325,7 +327,7 @@ class EditorOpsService:
     ) -> List[Dict[str, Any]]:
         payload = _parse_request(body)
         try:
-            ops = parse_ops(payload.ops)
+            ops = parse_ops(payload.ops, allow_editor_ops=True)
         except ValidationError as error:
             raise _unprocessable(
                 "invalid_ops", "The operations are not valid.", ops_errors(error)

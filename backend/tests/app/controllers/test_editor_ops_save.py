@@ -412,8 +412,36 @@ class TestSave:
     def test_editor_only_ops_are_allowed_here(self):
         from backend.app.services.ai import ops
 
-        assert getattr(ops, "EDITOR_ONLY_OPS", frozenset()) <= EDITOR_OP_NAMES
+        assert ops.EDITOR_ONLY_OPS <= EDITOR_OP_NAMES
         assert ops.OP_NAMES <= EDITOR_OP_NAMES
+
+    async def test_the_editor_saves_editor_ops_the_public_api_refuses(
+        self, client: AsyncClient, workspace, v2_form, test_user_cookies
+    ):
+        from tests.app.controllers.test_public_api import BASE, _auth, _token
+
+        batch = {"ops": [{"op": "update_logo", "alt": "Our logo", "position": "left"}]}
+        etag = await _etag(client, workspace, v2_form.form_id, test_user_cookies)
+        response = await client.post(
+            _ops_url(workspace, v2_form.form_id),
+            json=batch,
+            headers=_headers(etag, "editor-op"),
+            cookies=test_user_cookies,
+        )
+        assert response.status_code == 200, response.text
+        stored = await container.form_repo().get_form_document_by_id(v2_form.form_id)
+        assert (stored.logo_alt, stored.logo_position) == ("Our logo", "left")
+
+        token = await _token(workspace.id)
+        refused = await client.post(
+            f"{BASE}/forms/{v2_form.form_id}/ops",
+            json={**batch, "atomic": True},
+            headers=_auth(token),
+        )
+        assert refused.status_code == 422, refused.text
+        [error] = refused.json()["errors"]
+        assert error["path"] == "/ops/0"
+        assert "only available in the form editor" in error["message"]
 
 
 class TestIdempotency:

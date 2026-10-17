@@ -23,6 +23,12 @@ FORM_PARTS = (
     "theme",
     "welcome_page",
     "thankyou_page",
+    # the editor ops set_hidden_fields and update_logo (logo settings only:
+    # the logo itself changes only through an upload)
+    "hidden_fields",
+    "logo_position",
+    "logo_alt",
+    "use_workspace_logo",
 )
 
 
