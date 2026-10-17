@@ -5,6 +5,7 @@ import { useSetAtom, useStore } from 'jotai';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { followActiveFieldAtom } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom, { undoIfLatestAtom } from '@app/store/jotai/field-selectors';
 import { HistoryStep, docHistoryAtom, latestStep } from '@app/store/jotai/form-document';
 import { locateField, outlinePageName } from '@app/utils/form-outline';
@@ -28,6 +29,7 @@ export function useOutlineMoves() {
     const { formFields, movePage, moveFieldToPage } = useFormFieldsAtom();
     const { toast } = useToast();
     const undoIfLatest = useSetAtom(undoIfLatestAtom);
+    const followActiveField = useSetAtom(followActiveFieldAtom);
     const store = useStore();
 
     /** Run a move; also say which undo step it made (null when none). */
@@ -48,7 +50,8 @@ export function useOutlineMoves() {
                 <ToastAction
                     altText="Undo the move"
                     onClick={() => {
-                        if (!undoIfLatest(after)) toast({ description: 'You changed the form since. Use Undo in the toolbar to step back.' });
+                        if (undoIfLatest(after)) followActiveField();
+                        else toast({ description: 'You changed the form since. Use Undo in the toolbar to step back.' });
                     }}
                 >
                     Undo

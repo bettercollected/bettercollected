@@ -3,7 +3,7 @@
 import { useAtomValue, useSetAtom } from 'jotai';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { ActiveFormBuilderComponent, useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { ActiveFormBuilderComponent, followActiveFieldAtom, useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { builderFieldsAtom, canRedoAtom, canUndoAtom, commitBuilderFieldsAtom, initBuilderFieldsAtom, redoAtom, undoAtom } from '@app/store/jotai/form-document';
 import { locateField } from '@app/utils/form-outline';
 
@@ -52,6 +52,7 @@ export default function useFormFieldsAtom() {
     const canRedo = useAtomValue(canRedoAtom);
     const undoStep = useSetAtom(undoAtom);
     const redoStep = useSetAtom(redoAtom);
+    const followActiveField = useSetAtom(followActiveFieldAtom);
 
     // Every mutation funnels through this setter, so each change becomes an
     // undo step (as ops on the form document). Undo/redo bypass it.
@@ -68,11 +69,11 @@ export default function useFormFieldsAtom() {
     };
 
     const undo = () => {
-        undoStep();
+        if (undoStep()) followActiveField();
     };
 
     const redo = () => {
-        redoStep();
+        if (redoStep()) followActiveField();
     };
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();

@@ -2,6 +2,7 @@
 
 import { atom, useAtom } from 'jotai';
 
+import { formDocAtom } from './form-document';
 import { EntityLocation, locationIndexAtom } from './form-document-selectors';
 
 export type SetAtom<Args extends any[], Result> = (...args: Args) => Result;
@@ -52,6 +53,19 @@ const slide = idFirstSelection((at) => (at.fieldIdx === undefined ? at.pageIdx :
 export const activeFieldAtom = field.current;
 /** The selected page (id first; the index is where it is now in the form). */
 export const activeSlideAtom = slide.current;
+
+/**
+ * After undo or redo: the selected page follows the selected question to the
+ * page it is on now (undoing a move to another page takes it back).
+ */
+export const followActiveFieldAtom = atom(null, (get, set) => {
+    const field = get(activeFieldAtom);
+    if (!field?.id) return;
+    const at = get(locationIndexAtom).get(field.id);
+    if (!at || at.fieldIdx === undefined) return;
+    const page = get(formDocAtom).fields?.[at.pageIdx];
+    if (page && get(activeSlideAtom)?.id !== page.id) set(activeSlideAtom, { id: page.id, index: at.pageIdx });
+});
 
 export function useActiveFieldComponent() {
     const [activeFieldComponent, setActiveFieldComponent] = useAtom(activeFieldAtom);
