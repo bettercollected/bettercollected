@@ -18,6 +18,12 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from common.models.standard_form import (
     DATE_RULES_MAX,
+    ENDING_BUTTON_TEXT_MAX_LENGTH,
+    ENDING_ID_PATTERN,
+    ENDING_MESSAGE_MAX_LENGTH,
+    ENDING_NAME_MAX_LENGTH,
+    ENDING_TITLE_MAX_LENGTH,
+    MAX_ENDINGS,
     LOGO_ALT_MAX_LENGTH,
     REPEAT_MAX_ITEMS_LIMIT,
     SECTION_TITLE_MAX_LENGTH,
@@ -255,11 +261,18 @@ class Logic(_Spec):
 class PageJump(_Spec):
     """After this page, go to ``target`` (a page id, or "__SUBMIT__" to
     end the form) when the conditions match. The first matching jump wins;
-    no match goes to the next page."""
+    no match goes to the next page. With "__SUBMIT__", ``endingId`` names
+    the ending shown after submitting (default: the form's default
+    ending)."""
 
     operator: Optional[Literal["AND", "OR"]] = None
     conditions: Optional[List[Condition]] = None
     target: Optional[str] = None
+    ending_id: Optional[str] = Field(
+        None,
+        pattern=ENDING_ID_PATTERN,
+        description='The id of an ending of this form; only with target "__SUBMIT__".',
+    )
 
 
 class DateRule(_Spec):
@@ -387,11 +400,26 @@ class WelcomePage(_Spec):
 
 
 class Ending(_Spec):
-    """A page shown after submitting."""
+    """A page shown after submitting. A page jump may choose one by its
+    ``id``; a plain submit shows the default ending (the one with
+    ``isDefault``, else the first)."""
 
-    title: Optional[str] = None
-    message: Optional[str] = None
-    button_text: Optional[str] = None
+    id: Optional[str] = Field(
+        None,
+        pattern=ENDING_ID_PATTERN,
+        description="Stable id that page jumps name. Given when left out.",
+    )
+    name: Optional[str] = Field(
+        None,
+        max_length=ENDING_NAME_MAX_LENGTH,
+        description="Short internal name, e.g. Eligible. Respondents never see it.",
+    )
+    is_default: Optional[bool] = Field(
+        None, description="Shown after a plain submit. At most one ending."
+    )
+    title: Optional[str] = Field(None, max_length=ENDING_TITLE_MAX_LENGTH)
+    message: Optional[str] = Field(None, max_length=ENDING_MESSAGE_MAX_LENGTH)
+    button_text: Optional[str] = Field(None, max_length=ENDING_BUTTON_TEXT_MAX_LENGTH)
     button_link: Optional[str] = Field(None, description="An http(s) URL.")
     layout: Optional[Layout] = None
     image_url: Optional[str] = None
@@ -446,7 +474,9 @@ class FormSpec(_Spec):
         description=f"At most {MAX_PAGES} pages, with at most {MAX_FIELDS} "
         "fields in all (group questions included).",
     )
-    endings: Optional[List[Ending]] = None
+    endings: Optional[List[Ending]] = Field(
+        None, max_length=MAX_ENDINGS, description=f"At most {MAX_ENDINGS} endings."
+    )
     theme: Optional[Theme] = None
     hidden_fields: Optional[List[str]] = Field(
         None,

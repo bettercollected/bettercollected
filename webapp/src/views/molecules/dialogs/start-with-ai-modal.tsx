@@ -7,7 +7,7 @@ import { ChevronDown } from 'lucide-react';
 import styled from 'styled-components';
 
 import { AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
-import OutlineReview from '@app/components/ai/outline-review';
+import OutlineReview, { OutlineDeletion, UndoNotice } from '@app/components/ai/outline-review';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { cn } from '@app/shadcn/util/lib';
@@ -70,8 +70,11 @@ export default function StartWithAi() {
     const [buildForm] = useBuildFormFromOutlineMutation();
     const [step, setStep] = useState<Step>('prompt');
     const [outline, setOutline] = useState<FormOutline | null>(null);
-    // shown in the dialog until the next attempt (a toast is gone too soon)
-    const [error, setError] = useState<string | null>(null);
+    // shown in the dialog until the next attempt (a toast is gone too soon);
+    // its code, so "AI is off" goes once AI is on again
+    const [error, setError] = useState<{ message: string; code?: string } | null>(null);
+    // the last deleted question, until undone or the next edit
+    const [deletion, setDeletion] = useState<OutlineDeletion | null>(null);
     // the person's choice: may the AI fill in missing choices and reasons?
     const [fillGaps, setFillGaps] = useState(true);
     // Workspace AI opt-in (#715)
@@ -80,7 +83,7 @@ export default function StartWithAi() {
     const router = useRouter();
 
     const failed = (responseError: any, fallback: string) => {
-        setError(aiErrorMessage(responseError, fallback));
+        setError({ message: aiErrorMessage(responseError, fallback), code: responseError?.data?.code });
         // AI was turned off meanwhile: show it as off (button, notice)
         if (isAINotEnabledError(responseError)) refetchAI?.();
     };
@@ -118,6 +121,9 @@ export default function StartWithAi() {
         failed(response.error, 'Could not build the form. Please try again.');
     };
 
+    // "AI is off" stops being true the moment AI is on
+    const shownError = error && !(error.code === 'ai_not_enabled' && aiEnabled) ? error.message : null;
+
     if (step === 'outlining') return <Waiting title="Drafting an outline" detail="You can review and change it before anything is created" />;
     if (step === 'building') return <Waiting title="Building your form" detail="Your draft opens in the editor when it is ready" />;
 
@@ -125,9 +131,11 @@ export default function StartWithAi() {
         const problems = outlineProblems(outline);
         const gapPages = pagesWithGaps(outline).length;
         return (
-            <div>
-                <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
-                <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
+            // Header and footer stay put; only the outline list scrolls, so
+            // the dialog fits the screen (its max height: use-dialog-modal).
+            <div className="flex min-h-0 flex-1 flex-col" data-testid="start-with-ai-review">
+                <div className="p2-new shrink-0 border-b border-b-black-300 p-4">Start with AI</div>
+                <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-10">
                     <div>
                         <div className="tex-black-800 text-normal font-medium">Review the outline</div>
                         <p className="mt-1 text-xs text-black-600">
@@ -135,53 +143,65 @@ export default function StartWithAi() {
                             until you do.
                         </p>
                     </div>
-                    <ErrorNotice message={error} />
+                    <ErrorNotice message={shownError} />
                     <div>
                         <label htmlFor="outline-title" className="text-xs text-black-700">
                             Form title
                         </label>
                         <input id="outline-title" className="w-full rounded-md border border-black-300 px-2 py-1.5 text-sm" value={outline.title} maxLength={200} onChange={(event) => setOutline({ ...outline, title: event.target.value })} />
                     </div>
-                    <div className="max-h-[55vh] overflow-y-auto sm:pr-1">
-                        <OutlineReview outline={outline} onChange={setOutline} />
-                    </div>
-                    {problems.length > 0 && (
-                        <ul className="text-xs text-red-600" aria-live="polite">
-                            {problems.map((problem) => (
-                                <li key={problem}>{problem}</li>
-                            ))}
-                        </ul>
-                    )}
-                    {gapPages > 0 && aiEnabled && (
-                        <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
-                            <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
-                                <input id="outline-fill-gaps" type="checkbox" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
-                                Let AI fill in missing choices and reasons
-                            </label>
-                            <p id="outline-fill-gaps-notice">
-                                {fillGaps
-                                    ? `Build form sends pages that are missing choices or a reason, together with your workspace AI profile, to ${providerName}, so it can suggest them.`
-                                    : 'Build form sends nothing to the AI. Choice questions without choices are asked as short text, and missing reasons are listed for you to add.'}
-                            </p>
-                        </div>
-                    )}
-                    <div className="flex justify-between gap-4">
-                        <Button
-                            type="button"
-                            variant="v2Button"
-                            onClick={() => {
-                                setError(null);
-                                setStep('prompt');
-                            }}
-                        >
-                            Back to prompt
-                        </Button>
-                        <Button data-umami-event={'Building Form from AI outline'} type="button" onClick={handleBuild} disabled={problems.length > 0 || !aiEnabled}>
-                            <div className="z-10 flex items-center gap-2">
-                                <AIIcon aria-hidden="true" />
-                                Build form
+                </div>
+                <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-4 sm:px-10" data-testid="outline-scroll">
+                    <OutlineReview outline={outline} onChange={setOutline} onDeleted={setDeletion} onEdited={() => setDeletion(null)} aiFillsGaps={fillGaps && aiEnabled} />
+                </div>
+                <div className="shrink-0 border-t border-t-black-300 px-4 py-4 sm:px-10">
+                    {/* outside the spaced column: no gap while it is empty */}
+                    <UndoNotice
+                        deletion={deletion}
+                        onUndo={() => {
+                            if (deletion) setOutline(deletion.previous);
+                            setDeletion(null);
+                        }}
+                    />
+                    <div className="flex flex-col gap-3">
+                        {problems.length > 0 && (
+                            <ul className="text-xs text-red-600" aria-live="polite">
+                                {problems.map((problem) => (
+                                    <li key={problem}>{problem}</li>
+                                ))}
+                            </ul>
+                        )}
+                        {gapPages > 0 && aiEnabled && (
+                            <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
+                                <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
+                                    <input id="outline-fill-gaps" type="checkbox" aria-describedby="outline-fill-gaps-notice" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
+                                    Let AI fill in missing choices and reasons
+                                </label>
+                                <p id="outline-fill-gaps-notice">
+                                    {fillGaps
+                                        ? `Build form sends pages that are missing choices or a reason, together with your workspace AI profile, to ${providerName}, so it can suggest them.`
+                                        : 'Build form sends nothing to the AI. Choice questions without choices are asked as short text, and missing reasons are listed for you to add.'}
+                                </p>
                             </div>
-                        </Button>
+                        )}
+                        <div className="flex justify-between gap-4">
+                            <Button
+                                type="button"
+                                variant="v2Button"
+                                onClick={() => {
+                                    setError(null);
+                                    setStep('prompt');
+                                }}
+                            >
+                                Back to prompt
+                            </Button>
+                            <Button data-umami-event={'Building Form from AI outline'} type="button" onClick={handleBuild} disabled={problems.length > 0 || !aiEnabled}>
+                                <div className="z-10 flex items-center gap-2">
+                                    <AIIcon aria-hidden="true" />
+                                    Build form
+                                </div>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -189,12 +209,12 @@ export default function StartWithAi() {
     }
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto">
             <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
                 <div className="tex-black-800 text-normal font-medium">Create a new form with AI</div>
-                <ErrorNotice message={error} />
-                {aiSettings && !aiEnabled && <AIOptIn feature="Start with AI" sends="your prompt, the workspace AI profile and your AI memory" />}
+                <ErrorNotice message={shownError} />
+                {aiSettings && !aiEnabled && <AIOptIn feature="Start with AI" sends="your prompt, the workspace AI profile and your AI memory" onEnabled={() => setError(null)} />}
                 <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">
                     <div className="rounded-lg bg-white">
                         <label htmlFor="start-with-ai-prompt" className="sr-only">

@@ -11,7 +11,9 @@ submission and the respondent's edit of it). Shared cases with the webapp:
 - **Which questions count:** the pages the respondent goes through, replayed
   from the first page with the submitted answers and the same jump resolution
   as the form (the first matching jump wins; a jump to a page that no longer
-  exists falls through to the next page). On those pages, questions hidden by
+  exists falls through to the next page; a jump to "submit", with or without
+  a chosen ending, ends the path). ``reached_ending_id`` replays the same
+  path to record which ending the respondent saw. On those pages, questions hidden by
   their visibility rule, internal (staff-only) questions and content blocks
   are left out. Hidden fields (URL parameters) are not questions.
 - **Required:** a counted required question needs an answer with a value. A
@@ -51,10 +53,11 @@ from collections import OrderedDict
 from dataclasses import dataclass, field as dataclass_field
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import re2
 from common.form_spec.models import PATTERN_MAX_LENGTH
+from common.models.standard_form import default_ending, ending_by_id
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -493,19 +496,28 @@ def answer_ids(*forms: Any) -> Set[str]:
     return ids
 
 
-def resolve_jump_target(slide: Any, answers: Dict[str, Any]) -> Optional[str]:
-    """Twin of the webapp's ``resolveJumpTargetId``: the first jump whose
+def resolve_jump(slide: Any, answers: Dict[str, Any]) -> Optional[Any]:
+    """Twin of the webapp's ``resolveJump``: the first jump whose
     conditions hold decides, even when its target is gone."""
     for jump in getattr(_props(slide), "jumps", None) or []:
         if jump.conditions and evaluate_conditions(
             jump.operator, jump.conditions, answers
         ):
-            return jump.target or None
+            return jump
     return None
 
 
-def visited_slides(slides: List[Any], answers: Dict[str, Any]) -> List[Any]:
-    """The pages a respondent goes through with these answers, in order."""
+def resolve_jump_target(slide: Any, answers: Dict[str, Any]) -> Optional[str]:
+    """Twin of the webapp's ``resolveJumpTargetId``."""
+    jump = resolve_jump(slide, answers)
+    return (jump.target or None) if jump is not None else None
+
+
+def _walk(slides: List[Any], answers: Dict[str, Any]) -> Tuple[List[Any], Any]:
+    """The pages a respondent goes through, and the jump to "submit" that
+    ended the path (None when it ended after the last page). A jump that
+    chooses an ending (``ending_id``) is a jump to "submit": the path ends
+    there too."""
     index_by_id = {str(slide.id): i for i, slide in enumerate(slides)}
     visited: List[Any] = []
     seen: Set[int] = set()
@@ -516,11 +528,32 @@ def visited_slides(slides: List[Any], answers: Dict[str, Any]) -> List[Any]:
         seen.add(index)
         slide = slides[index]
         visited.append(slide)
-        target = resolve_jump_target(slide, answers)
+        jump = resolve_jump(slide, answers)
+        target = (jump.target or None) if jump is not None else None
         if target == JUMP_TARGET_SUBMIT:
-            break
+            return visited, jump
         index = index_by_id.get(target, index + 1) if target else index + 1
-    return visited
+    return visited, None
+
+
+def visited_slides(slides: List[Any], answers: Dict[str, Any]) -> List[Any]:
+    """The pages a respondent goes through with these answers, in order."""
+    return _walk(slides, answers)[0]
+
+
+def reached_ending_id(form: Any, answers: Any) -> Optional[str]:
+    """The id of the ending a respondent sees after submitting these
+    answers: the one the ending jump names, if the form has it, else the
+    default ending. None when the form has no endings."""
+    endings = getattr(form, "thankyou_page", None) or []
+    fallback = default_ending(endings)
+    slides = _slides(form)
+    if slides is not None:
+        _, jump = _walk(slides, _plain(answers))
+        chosen = ending_by_id(endings, getattr(jump, "ending_id", None))
+        if chosen is not None:
+            return chosen.id
+    return fallback.id if fallback is not None else None
 
 
 # ---------------------------------------------------------------------------

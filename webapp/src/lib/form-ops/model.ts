@@ -43,13 +43,20 @@ export const WHY_WE_ASK_MAX_LENGTH = 280;
 export const SECTION_TITLE_MAX_LENGTH = 120;
 export const LABEL_MAX_LENGTH = 120;
 export const REPEAT_MAX_ITEMS_LIMIT = 50;
+export const MAX_ENDINGS = 20;
+export const ENDING_NAME_MAX_LENGTH = 60;
+export const ENDING_TITLE_MAX_LENGTH = 300;
+export const ENDING_MESSAGE_MAX_LENGTH = 5000;
+export const ENDING_BUTTON_TEXT_MAX_LENGTH = 80;
+/** Uuids from the builder, `ending-<n>` derived ids. */
+export const ENDING_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const SIZE_LIMIT_SKIPPED = "Not applied: an earlier operation reached the form's size limit.";
 export const JUMP_TARGET_SUBMIT = '__SUBMIT__';
 export const REF_PREFIX = '$ref:';
 export const REF_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 /** Keys whose values may be a client reference (`"$ref:<name>"`). */
-export const REF_ID_KEYS = new Set(['pageId', 'fieldId', 'groupId', 'afterFieldId', 'toPageId', 'toGroupId', 'childFieldId', 'target']);
+export const REF_ID_KEYS = new Set(['pageId', 'fieldId', 'groupId', 'afterFieldId', 'toPageId', 'toGroupId', 'childFieldId', 'target', 'endingId']);
 
 /** Field types an op may create (backend ADDABLE_FIELD_TYPES). */
 export const ADDABLE_FIELD_TYPES = new Set<string>([

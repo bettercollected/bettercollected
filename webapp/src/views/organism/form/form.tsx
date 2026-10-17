@@ -9,6 +9,7 @@ import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { endingToShow } from '@app/utils/endings';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 
@@ -43,7 +44,7 @@ const fadeVariants = {
 const slideTransition = { duration: 0.35, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
 
 const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: boolean; showDesktopLayout?: boolean }) => {
-    const { currentSlide, prevActiveSlide: previousSlide } = useResponderState();
+    const { currentSlide, prevActiveSlide: previousSlide, endingId } = useResponderState();
     const prefersReducedMotion = useReducedMotion();
 
     const standardForm = useAppSelector(selectResponderForm);
@@ -122,8 +123,8 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                                 showDesktopLayout={showDesktopLayout}
                                 theme={standardForm.theme}
                                 disabled
-                                layout={standardForm?.thankyouPage?.[0]?.layout}
-                                imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}
+                                layout={endingToShow(standardForm?.thankyouPage, endingId)?.layout}
+                                imageUrl={endingToShow(standardForm?.thankyouPage, endingId)?.imageUrl}
                                 topAligned={topAligned}
                                 logo={logo}
                                 logoAction={logo ? <UserAvatarDropDown inline disabled /> : undefined}

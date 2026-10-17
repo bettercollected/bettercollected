@@ -45,7 +45,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     const router = useRouter();
     const trackedViewRef = useRef(false);
-    const { currentSlide } = useResponderState();
+    const { currentSlide, endingId } = useResponderState();
     const roomy = useMinViewportSize(640);
 
     useEffect(() => {
@@ -170,7 +170,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                         ownerImage={workspace?.profileImage}
                         settings={data?.settings}
                         portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
-                        layout={layoutOfPage(data, currentSlide)}
+                        layout={layoutOfPage(data, currentSlide, endingId)}
                         // Open on the welcome page when the screen has room for
                         // both; a strip with the toggle elsewhere, and on phones,
                         // where the open panel would take half the screen.

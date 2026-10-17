@@ -37,6 +37,7 @@ export function smallForm(): FormDoc {
         description: 'About you',
         welcomePage: { title: 'Intake', description: 'Welcome' },
         hiddenFields: ['utm_source'],
+        thankyouPage: [{ id: 'thanks', title: 'Thanks', layout: 'SINGLE_COLUMN_NO_BACKGROUND' as any }, { id: 'sorry', name: 'Not eligible', title: 'Sorry', isDefault: true }],
         theme: { title: 'Default', primary: '#101828', secondary: '#1649E2', tertiary: '#818CA0', accent: '#F5F7FB' },
         settings: { purpose: 'Research', requireVerifiedIdentity: false, allowEditingResponse: false, showSubmissionNumber: false } as any,
         fields: [
@@ -147,6 +148,8 @@ export function randomOp(doc: FormDoc, random: () => number, newId: () => string
     const fieldId = pick(questions) ?? 'missing-field';
     const groups = (doc.fields ?? []).flatMap((p) => (p.properties?.fields ?? []).filter((f) => f.properties?.repeat)).map((f) => f.id);
     const choiceFields = (doc.fields ?? []).flatMap((p) => (p.properties?.fields ?? []).filter((f) => f.type === 'multiple_choice' || f.type === 'dropdown'));
+    const endings = (doc.thankyouPage ?? []).map((e) => e.id).filter(Boolean) as string[];
+    const endingId = pick(endings) ?? 'missing-ending';
     const kinds = [
         () => ({ op: 'update_field', fieldId, patch: { title: `T${Math.floor(random() * 100)}` } }),
         () => ({ op: 'update_field', fieldId, patch: { required: random() < 0.5, description: 'd' } }),
@@ -160,7 +163,12 @@ export function randomOp(doc: FormDoc, random: () => number, newId: () => string
         () => ({ op: 'move_page', pageId, index: Math.floor(random() * 4) }),
         () => ({ op: 'duplicate_page', pageId }),
         () => ({ op: 'set_field_logic', fieldId, logic: random() < 0.3 ? null : { action: 'HIDE', conditions: [{ fieldId: pick(questions), comparison: 'IS_NOT_EMPTY' }] } }),
-        () => ({ op: 'set_page_jumps', pageId, jumps: random() < 0.3 ? null : [{ target: '__SUBMIT__', conditions: [{ fieldId: pick(questions), comparison: 'IS_EMPTY' }] }] }),
+        () => ({ op: 'set_page_jumps', pageId, jumps: random() < 0.3 ? null : [{ target: '__SUBMIT__', ...(random() < 0.5 ? { endingId } : {}), conditions: [{ fieldId: pick(questions), comparison: 'IS_EMPTY' }] }] }),
+        () => ({ op: 'add_ending', name: random() < 0.5 ? 'Eligible' : undefined, title: 'Done', isDefault: random() < 0.3 ? true : random() < 0.5 ? false : undefined, index: random() < 0.5 ? 0 : undefined }),
+        () => ({ op: 'update_ending', endingId, patch: { message: random() < 0.3 ? '' : 'See you', isDefault: random() < 0.5 ? random() < 0.5 : undefined, buttonLink: random() < 0.3 ? 'https://example.org' : undefined } }),
+        () => ({ op: 'remove_ending', endingId }),
+        // every ending kept (in another order): jumps never lose theirs here
+        () => ({ op: 'set_endings', endings: [...(doc.thankyouPage ?? [])].reverse().map((e) => ({ ...e })) }),
         () => ({ op: 'set_section_title', pageId, title: random() < 0.3 ? '' : 'Section' }),
         () => ({ op: 'set_question_numbering', show: random() < 0.5 }),
         () => ({ op: 'set_field_validation', fieldId, validation: { minLength: 1, maxLength: 10 } }),

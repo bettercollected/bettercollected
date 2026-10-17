@@ -352,7 +352,15 @@ async def update_form(
     a repeating group is referenced as a whole: "groupMode":"COUNT"|"ANY"|"ALL", with
     "childFieldId" for ANY/ALL; siblings inside a group refer to the same item) ·
     {"op":"set_page_jumps","pageId":str,"jumps":[{"operator":"AND"|"OR","conditions":[...],
-    "target":"<page id or __SUBMIT__>"}]|null} (branching) ·
+    "target":"<page id or __SUBMIT__>","endingId"?:str}]|null} (branching; "__SUBMIT__"
+    submits and shows the default ending, or the ending "endingId" names) ·
+    {"op":"add_ending","name"?:str,"title"?:str,"message"?:str,"buttonText"?:str,
+    "buttonLink"?:str,"isDefault"?:bool,"index"?:int} (a page shown after submitting; "name"
+    is internal, at most 60 characters) ·
+    {"op":"update_ending","endingId":str,"patch":{...same keys}} ("" clears a text;
+    "isDefault":true makes it the ending a plain submit shows) ·
+    {"op":"remove_ending","endingId":str} (never the last one; its jumps then show the
+    default ending) ·
     {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids) ·
     {"op":"set_section_title","pageId"?:str,"pageIndex"?:int,"title":str|null} (a question
     page's section title, shown by the Leaflet style in the section bar and the welcome
@@ -371,10 +379,10 @@ async def update_form(
     preset's own (Leaflet) or the current one) ·
     {"op":"update_theme","theme":{"title":str,"primary":str,"secondary":str,"tertiary":str,
     "accent":str,"style"?:str,"background"?:{...}}} (exact colours of your own).
-    References: add_page, add_field, add_group and duplicate_page (and the fields inside
+    References: add_page, add_field, add_group, duplicate_page and add_ending (and the fields inside
     add_page/add_group) take "ref":"<name>"; later ops in the same call may use "$ref:<name>"
     wherever a page or field id is expected (pageId, fieldId, groupId, afterFieldId, toPageId,
-    toGroupId, childFieldId, a jump's target), conditions and jumps included. Each result
+    toGroupId, childFieldId, a jump's target, endingId), conditions and jumps included. Each result
     reports the "createdId". atomic=true applies all ops or none (any error: nothing is stored,
     every error is returned); the default applies what it can. Preview with dry_run_ops.
     At most 200 ops per call.

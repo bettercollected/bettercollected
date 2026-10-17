@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 
@@ -21,22 +21,65 @@ import {
     setSectionTitle
 } from '@app/utils/ai-outline';
 
+export interface OutlineDeletion {
+    previous: FormOutline;
+    message: string;
+}
+
 interface OutlineReviewProps {
     outline: FormOutline;
     onChange: (outline: FormOutline) => void;
+    /** A question was deleted: what the outline was, and what went with it. */
+    onDeleted?: (deletion: OutlineDeletion) => void;
+    /** Any other edit (ends the chance to undo a deletion). */
+    onEdited?: () => void;
+    /** Whether Build form lets the AI fill in missing choices. */
+    aiFillsGaps?: boolean;
 }
 
 const inputClass = 'w-full rounded-md border border-black-300 bg-white px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500';
 const iconButtonClass = 'rounded p-1 text-black-600 hover:bg-black-200 hover:text-black-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40';
 
-function ChoicesEditor({ question, onChange }: { question: OutlineQuestion; onChange: (text: string) => void }) {
+/** Question text that wraps and grows with its content (one paragraph:
+ * Enter does not add a line). */
+const QuestionText = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(function QuestionText({ value, onChange, ...props }, ref) {
+    const inner = useRef<HTMLTextAreaElement | null>(null);
+    useLayoutEffect(() => {
+        const element = inner.current;
+        if (!element) return;
+        element.style.height = 'auto';
+        if (element.scrollHeight) element.style.height = `${element.scrollHeight + 2}px`;
+    }, [value]);
+    return (
+        <textarea
+            {...props}
+            ref={(element) => {
+                inner.current = element;
+                if (typeof ref === 'function') ref(element);
+                else if (ref) ref.current = element;
+            }}
+            rows={1}
+            value={value}
+            className={`${inputClass} resize-none overflow-hidden break-words`}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter') event.preventDefault();
+            }}
+            onChange={(event) => {
+                event.target.value = event.target.value.replace(/\s*\n\s*/g, ' ');
+                onChange?.(event);
+            }}
+        />
+    );
+});
+
+function ChoicesEditor({ question, onChange, aiFills }: { question: OutlineQuestion; onChange: (text: string) => void; aiFills: boolean }) {
     // edited as text, so a blank line while typing is kept until it is used
     const [text, setText] = useState((question.choices ?? []).join('\n'));
     const id = `choices-${question.key}`;
     return (
         <div className="mt-2">
             <label htmlFor={id} className="mb-1 block text-xs text-black-700">
-                Choices, one per line{(question.choices ?? []).length < 2 ? ' (left empty, the AI suggests some when you build)' : ''}
+                Choices, one per line{(question.choices ?? []).length < 2 ? (aiFills ? ' (left empty, the AI suggests some when you build)' : ' (left empty, it is asked as short text)') : ''}
             </label>
             <textarea
                 id={id}
@@ -66,10 +109,10 @@ export function deletionMessage(before: FormOutline, after: FormOutline): string
     return `Question deleted. ${parts.join(' and ')} that used this question ${verb} dropped.`;
 }
 
-export default function OutlineReview({ outline, onChange }: OutlineReviewProps) {
+export default function OutlineReview({ outline, onChange, onDeleted, onEdited, aiFillsGaps = true }: OutlineReviewProps) {
     // focus the text of a question just added
     const [focusKey, setFocusKey] = useState<string | null>(null);
-    const focusRef = useRef<HTMLInputElement | null>(null);
+    const focusRef = useRef<HTMLTextAreaElement | null>(null);
     useEffect(() => {
         if (focusKey && focusRef.current) {
             focusRef.current.focus();
@@ -77,40 +120,20 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
         }
     }, [focusKey]);
 
-    // a deletion and what it took with it, until undone or the next edit
-    const [undo, setUndo] = useState<{ previous: FormOutline; message: string } | null>(null);
     const change = (next: FormOutline) => {
-        setUndo(null);
+        onEdited?.();
         onChange(next);
     };
     const remove = (key: string) => {
         const next = deleteQuestion(outline, key);
-        setUndo({ previous: outline, message: deletionMessage(outline, next) });
         onChange(next);
+        onDeleted?.({ previous: outline, message: deletionMessage(outline, next) });
     };
 
     // questions are numbered across pages: how many come before each page
     const before = outline.pages.map((_, i) => outline.pages.slice(0, i).reduce((sum, p) => sum + p.questions.length, 0));
     return (
         <div className="flex flex-col gap-4">
-            <div aria-live="polite">
-                {undo && (
-                    <div className="flex items-center justify-between gap-2 rounded-md bg-black-800 px-3 py-2 text-xs text-white">
-                        <span>{undo.message}</span>
-                        <button
-                            type="button"
-                            className="shrink-0 rounded px-1 font-semibold underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                            onClick={() => {
-                                const previous = undo.previous;
-                                setUndo(null);
-                                onChange(previous);
-                            }}
-                        >
-                            Undo
-                        </button>
-                    </div>
-                )}
-            </div>
             {outline.pages.map((page, pageIndex) => {
                 const sectionId = `section-${page.key}`;
                 return (
@@ -131,7 +154,7 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                                 const name = question.label.trim() || `question ${number}`;
                                 return (
                                     <li key={question.key} className="rounded-md bg-black-100 p-1.5 sm:p-2">
-                                        <div className="flex items-start gap-1 sm:gap-2">
+                                        <div className="flex items-start gap-2.5 sm:gap-3">
                                             <span className="mt-1.5 w-4 shrink-0 text-right text-xs text-black-600 sm:w-5" aria-hidden="true">
                                                 {number}.
                                             </span>
@@ -139,10 +162,9 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                                                 <label htmlFor={labelId} className="sr-only">
                                                     Question {number}
                                                 </label>
-                                                <input
+                                                <QuestionText
                                                     id={labelId}
                                                     ref={focusKey === question.key ? focusRef : undefined}
-                                                    className={inputClass}
                                                     value={question.label}
                                                     maxLength={LABEL_MAX}
                                                     placeholder="Type the question"
@@ -178,7 +200,9 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                                                     )}
                                                 </div>
                                                 {question.whyWeAsk && <p className="text-xs text-black-600">Why we ask: {question.whyWeAsk}</p>}
-                                                {CHOICE_TYPES.includes(question.type) && <ChoicesEditor key={`${question.key}-${question.type}`} question={question} onChange={(text) => change(setChoices(outline, question.key, text))} />}
+                                                {CHOICE_TYPES.includes(question.type) && (
+                                                    <ChoicesEditor key={`${question.key}-${question.type}`} question={question} aiFills={aiFillsGaps} onChange={(text) => change(setChoices(outline, question.key, text))} />
+                                                )}
                                             </div>
                                             <div className="flex shrink-0 items-center">
                                                 <button type="button" className={iconButtonClass} aria-label={`Move ${name} up`} disabled={!canMove(outline, question.key, -1)} onClick={() => change(moveQuestion(outline, question.key, -1))}>
@@ -227,6 +251,30 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                             </li>
                         ))}
                     </ul>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/** The last deletion, with Undo. Kept outside the scrolling list so it is
+ * seen wherever the deleted question was; announced to screen readers. */
+export function UndoNotice({ deletion, onUndo }: { deletion: OutlineDeletion | null; onUndo: () => void }) {
+    // the deleted question's place is gone: focus moves to Undo
+    const undoRef = useRef<HTMLButtonElement | null>(null);
+    useEffect(() => {
+        if (deletion) undoRef.current?.focus();
+    }, [deletion]);
+    return (
+        // always mounted (a live region must exist before it changes); it
+        // takes no space while empty
+        <div aria-live="polite">
+            {deletion && (
+                <div className="mb-3 flex items-center justify-between gap-2 rounded-md bg-black-800 px-3 py-2 text-xs text-white">
+                    <span>{deletion.message}</span>
+                    <button ref={undoRef} type="button" className="shrink-0 rounded px-1 font-semibold underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white" onClick={onUndo}>
+                        Undo
+                    </button>
                 </div>
             )}
         </div>

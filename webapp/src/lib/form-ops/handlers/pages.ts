@@ -4,6 +4,7 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT, MAX_NEW_PAGE_FIELDS, OpError, SECTION_TITLE_MAX_LENGTH, childrenOf, clone, collapseWhitespace, findPage, isRepeatingGroup, locateField, pagesOf, pyLen, subtreeIds, titleText } from '../model';
 import type { AddPageOp, DuplicatePageOp, FormField, MovePageOp, RemovePageOp, SetPageJumpsOp, SetQuestionNumberingOp, SetSectionTitleOp } from '../types';
 import { type Handler, droppedReferencesNote, droppedRulesNote, ensureProperties, insertedAt, removedAt, setKey } from './context';
+import { checkJumpEnding } from './endings';
 import { buildField, validatedConditions } from './fields';
 
 export const NEW_PAGE_LAYOUT = 'SINGLE_COLUMN_NO_BACKGROUND';
@@ -59,8 +60,9 @@ export const setPageJumps: Handler<SetPageJumpsOp> = (ctx, op) => {
             const target = findPage(ctx.state, spec.target);
             if (target.page.id === op.pageId) throw new OpError('A page cannot jump to itself.');
         }
+        checkJumpEnding(ctx.state, spec);
         if (!spec.conditions?.length) throw new OpError('List should have at least 1 item after validation, not 0');
-        return { operator: spec.operator ?? 'AND', conditions: validatedConditions(ctx.state, spec.conditions), target: spec.target };
+        return { operator: spec.operator ?? 'AND', conditions: validatedConditions(ctx.state, spec.conditions), target: spec.target, ...(spec.endingId != null ? { endingId: spec.endingId } : {}) };
     });
     properties.jumps = jumps as any;
     return `Set ${jumps.length} jump rule(s) on page '${op.pageId}'`;

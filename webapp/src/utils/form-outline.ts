@@ -4,6 +4,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 import { ANSWER_PIPE_NODE } from '@app/utils/answer-piping';
 import { isJumpTargetValid, slideHasLogic } from '@app/utils/conditional-logic';
+import { Ending, isJumpEndingMissing } from '@app/utils/endings';
 import { getPublishProblems, questionText } from '@app/utils/publish-checks';
 
 /**
@@ -194,12 +195,12 @@ export interface PageStatus {
 }
 
 /** Same rules as the Flow view's page badges and the publish checks. */
-export function pageStatus(slide: StandardFormFieldDto, slideIds: Set<string>): PageStatus {
+export function pageStatus(slide: StandardFormFieldDto, slideIds: Set<string>, endings?: Ending[]): PageStatus {
     const fields = slide?.properties?.fields ?? [];
     const jumps = (slide?.properties?.jumps as PageJump[] | undefined) ?? [];
     return {
         hasLogic: slideHasLogic(slide),
-        brokenJumps: jumps.filter((jump) => jump?.conditions?.length && !isJumpTargetValid(jump.target, slideIds)).length,
+        brokenJumps: jumps.filter((jump) => jump?.conditions?.length && (!isJumpTargetValid(jump.target, slideIds) || (endings !== undefined && isJumpEndingMissing(jump, endings)))).length,
         empty: fields.length === 0,
         missingWhyWeAsk: getPublishProblems([slide]).filter((problem) => problem.code === 'missing_why_we_ask').length,
         internal: fields.filter((field) => field?.internal).length

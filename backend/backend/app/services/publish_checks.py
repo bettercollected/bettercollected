@@ -22,6 +22,10 @@ the two in step).
   legacy title, which names no option), so nobody's agreement is given for
   them.
 
+- **Endings exist:** a page jump that names an ending names one of the
+  form's endings (respondents would otherwise see the default ending
+  instead of the one the creator chose).
+
 Internal ("for office use") fields are not respondent-facing and are skipped.
 
 "Why we ask this" is required only of forms created under these checks
@@ -31,9 +35,12 @@ builder shows the missing reasons as a recommendation. The other two rules
 hold for every form.
 """
 
+import copy
 import re
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
+
+from common.models.standard_form import with_ending_ids
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.internal_fields import (
@@ -52,6 +59,7 @@ PUBLISH_CHECKS_VERSION = 1
 MISSING_WHY_WE_ASK = "missing_why_we_ask"
 REQUIRED_UNANSWERABLE = "required_unanswerable"
 PRESET_ANSWER = "preset_answer"
+MISSING_ENDING = "missing_ending"
 
 # Questions whose answer identifies the respondent by type alone.
 IDENTIFYING_TYPES = {"email", "phone_number"}
@@ -221,6 +229,29 @@ def publish_problems(form: Any) -> List[Dict[str, Optional[str]]]:
                         "message": f"{label} asks for personal details. Add a "
                         "short \"Why we ask this\" line to the question so "
                         "respondents know why you need it.",
+                    }
+                )
+    problems += _missing_ending_problems(form)
+    return problems
+
+
+def _missing_ending_problems(form: Any) -> List[Dict[str, Optional[str]]]:
+    """A jump to an ending the form does not have. ``fieldId`` is the page."""
+    # ids as read (an ending stored without one gets its derived id)
+    endings = with_ending_ids(copy.deepcopy(list(_get(form, "thankyou_page") or [])))
+    ids = {_get(ending, "id") for ending in endings}
+    problems = []
+    for number, page in enumerate(_get(form, "fields") or [], start=1):
+        jumps = _get(_get(page, "properties"), "jumps") or []
+        for jump in jumps:
+            ending_id = _get(jump, "ending_id") or _get(jump, "endingId")
+            if ending_id and ending_id not in ids:
+                problems.append(
+                    {
+                        "code": MISSING_ENDING,
+                        "fieldId": _get(page, "id"),
+                        "message": f"A jump on page {number} goes to an ending "
+                        "that no longer exists. Choose another ending for it.",
                     }
                 )
     return problems

@@ -1,9 +1,11 @@
 import React from 'react';
 
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { Provider as JotaiProvider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DialogModalContainer, START_WITH_AI_DIALOG_CLASS, useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { readBuildReport } from '@app/utils/ai-build-report';
@@ -30,9 +32,23 @@ vi.mock('@app/components/ai/ai-consent', async (importOriginal) => {
     return {
         ...actual,
         useWorkspaceAI: () => ({ settings: { enabled: ai.enabled }, enabled: ai.enabled, providerName: 'OpenAI', refetch: () => ai.refetch() }),
-        AIOptIn: () => <p>AI is off for this workspace.</p>
+        AIOptIn: ({ onEnabled }: { onEnabled?: () => void }) => (
+            <div>
+                <p>AI is off for this workspace.</p>
+                <button
+                    type="button"
+                    onClick={() => {
+                        ai.enabled = true;
+                        onEnabled?.();
+                    }}
+                >
+                    Turn AI on
+                </button>
+            </div>
+        )
     };
 });
+vi.mock('next/navigation', () => ({ usePathname: () => '/acme/dashboard/forms/create' }));
 vi.mock('next-nprogress-bar', () => ({ useRouter: () => ({ replace: replaceMock, push: vi.fn() }) }));
 vi.mock('next/image', () => ({ default: (props: any) => <span role="img" aria-label={props.alt} /> }));
 
@@ -269,5 +285,113 @@ describe('OutlineReview list', () => {
         // the next edit ends the chance to undo
         fireEvent.change(screen.getByLabelText('Question 1'), { target: { value: 'Email' } });
         expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+    });
+});
+
+describe('Start with AI: errors, hints and layout', () => {
+    beforeEach(() => {
+        outlineMock.mockReset();
+        buildMock.mockReset();
+        ai.enabled = true;
+        ai.refetch = vi.fn();
+    });
+
+    it('drops the "AI is off" error once AI is turned on again', async () => {
+        ai.refetch = vi.fn(() => {
+            ai.enabled = false;
+        });
+        outlineMock.mockResolvedValue({ error: { status: 403, data: { code: 'ai_not_enabled', message: 'AI features are off for this workspace.' } } });
+        renderModal();
+        fireEvent.change(screen.getByLabelText('Describe the form you need'), { target: { value: 'a form' } });
+        fireEvent.click(screen.getByRole('button', { name: /Draft outline/ }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('AI features are off');
+        expect(screen.getByRole('button', { name: /Draft outline/ })).toBeDisabled();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Turn AI on' }));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Draft outline/ })).toBeEnabled();
+    });
+
+    it('the choices hint follows the fill-in choice', async () => {
+        await toReview();
+        fireEvent.change(screen.getByLabelText(/Choices, one per line/), { target: { value: '' } });
+        expect(screen.getByText(/left empty, the AI suggests some when you build/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Let AI fill in missing choices and reasons' }));
+        expect(screen.getByText(/left empty, it is asked as short text/)).toBeInTheDocument();
+        expect(screen.queryByText(/the AI suggests some/)).not.toBeInTheDocument();
+    });
+
+    it('the fill-in checkbox is described by its notice', async () => {
+        await toReview();
+        fireEvent.change(screen.getByLabelText(/Choices, one per line/), { target: { value: '' } });
+        const allow = screen.getByRole('checkbox', { name: 'Let AI fill in missing choices and reasons' });
+        expect(allow).toHaveAttribute('aria-describedby', 'outline-fill-gaps-notice');
+        expect(allow).toHaveAccessibleDescription(/Build form sends pages that are missing choices or a reason/);
+        fireEvent.click(allow);
+        expect(allow).toHaveAccessibleDescription(/Build form sends nothing to the AI/);
+    });
+
+    it('shows the Undo notice outside the scrolling list', async () => {
+        await toReview();
+        fireEvent.click(screen.getByRole('button', { name: 'Delete Which other task?' }));
+        const undo = screen.getByRole('button', { name: 'Undo' });
+        expect(within(screen.getByTestId('outline-scroll')).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+        expect(undo.closest('[aria-live="polite"]')).not.toBeNull();
+    });
+
+    it('moves focus to Undo after a deletion, and the empty live region takes no space', async () => {
+        await toReview();
+        const live = screen
+            .getByRole('button', { name: /Build form/ })
+            .closest('[data-testid="start-with-ai-review"]')!
+            .querySelector('[aria-live="polite"]')!;
+        // mounted while empty, and not an item of the spaced footer column
+        expect(live).toBeEmptyDOMElement();
+        expect(live.parentElement!.className).not.toContain('gap-');
+        fireEvent.click(screen.getByRole('button', { name: 'Delete What is your email address?' }));
+        expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus();
+        expect(live).not.toBeEmptyDOMElement();
+    });
+
+    it('question text wraps in a growing field', async () => {
+        await toReview();
+        const text = screen.getByLabelText('Question 1');
+        expect(text.tagName).toBe('TEXTAREA');
+        fireEvent.change(text, { target: { value: 'A long question\nthat was pasted' } });
+        expect(screen.getByLabelText('Question 1')).toHaveValue('A long question that was pasted');
+    });
+
+    it('fits the screen: a capped dialog where only the outline list scrolls', async () => {
+        expect(START_WITH_AI_DIALOG_CLASS.split(' ')).toEqual(expect.arrayContaining(['flex', 'flex-col', 'overflow-hidden', 'max-h-[calc(100dvh-2rem)]']));
+
+        function Opener() {
+            const { openDialogModal } = useDialogModal();
+            React.useEffect(() => openDialogModal('START_WITH_AI'), []);
+            return null;
+        }
+        outlineMock.mockResolvedValue({ data: { outline: structuredClone(OUTLINE) } });
+        store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme' } as any));
+        render(
+            <ReduxProvider store={store}>
+                <JotaiProvider>
+                    <Opener />
+                    <DialogModalContainer />
+                </JotaiProvider>
+            </ReduxProvider>
+        );
+        const dialog = await screen.findByRole('dialog', { name: 'Start with AI' });
+        expect(dialog.className).toContain('max-h-[calc(100dvh-2rem)]');
+        expect(dialog.className).toContain('overflow-hidden');
+        fireEvent.change(within(dialog).getByLabelText('Describe the form you need'), { target: { value: 'a form' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: /Draft outline/ }));
+        await within(dialog).findByText('Review the outline');
+        const review = within(dialog).getByTestId('start-with-ai-review');
+        expect(review.className.split(' ')).toEqual(expect.arrayContaining(['flex', 'min-h-0', 'flex-1', 'flex-col']));
+        const list = within(dialog).getByTestId('outline-scroll');
+        expect(list.className.split(' ')).toEqual(expect.arrayContaining(['min-h-0', 'flex-1', 'overflow-y-auto']));
+        // header and footer stay out of the scrolling part
+        expect(list.contains(within(dialog).getByRole('button', { name: /Build form/ }))).toBe(false);
+        expect(list.contains(within(dialog).getByLabelText('Form title'))).toBe(false);
+        expect(list.contains(within(dialog).getByLabelText('Question 1'))).toBe(true);
     });
 });

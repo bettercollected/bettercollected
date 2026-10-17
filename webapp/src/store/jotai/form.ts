@@ -2,6 +2,7 @@ import { atom, useAtom } from 'jotai';
 import { selectAtom } from 'jotai/utils';
 
 import { FormSlideLayout } from '@app/models/enums/form';
+import { withEndingIds } from '@app/utils/endings';
 import { deepCopy } from '@app/utils/object-utils';
 
 import { useActiveThankYouPageComponent } from './active-builder-component';
@@ -57,7 +58,7 @@ export function formStateFromServerForm(prev: IFormState, form: any): IFormState
         // null is a real value here: the AI may clear the description.
         description: form.description === undefined ? prev.description : form.description,
         welcomePage: take('welcomePage', form.welcomePage),
-        thankyouPage: take('thankyouPage', form.thankyouPage),
+        thankyouPage: form.thankyouPage === undefined || form.thankyouPage === null ? prev.thankyouPage : withEndingIds(deepCopy(form.thankyouPage)),
         theme: take('theme', form.theme),
         hiddenFields: take('hiddenFields', form.hiddenFields),
         logoPosition: take('logoPosition', form.logoPosition),

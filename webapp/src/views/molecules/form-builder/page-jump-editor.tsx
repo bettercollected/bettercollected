@@ -2,7 +2,9 @@
 
 import { JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
 import { isJumpTargetValid } from '@app/utils/conditional-logic';
+import { defaultEnding, endingLabel, isJumpEndingMissing, jumpChoiceValue, jumpFromChoice, withEndingIds } from '@app/utils/endings';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, pageLabel, selectClass } from './condition-editor-shared';
 
@@ -10,6 +12,7 @@ const MISSING = '__MISSING_TARGET__';
 
 export default function PageJumpEditor() {
     const { formFields, activeSlide, updateSlideJumps } = useFormFieldsAtom();
+    const { formState } = useFormState();
 
     if (!activeSlide) return null;
 
@@ -17,11 +20,16 @@ export default function PageJumpEditor() {
     // leaves this page: everything on this slide and every earlier slide.
     const sources = buildSourceFields(formFields || [], (_slide, sIdx, field) => sIdx <= activeSlide.index && isConditionSource(field));
 
-    // Jump targets: every other page (stable content-derived label), plus "submit".
+    // Jump targets: every other page (stable content-derived label), then
+    // "submit", showing the default ending or a chosen one.
     const slideIds = new Set((formFields || []).map((s) => s.id));
-    const targets = [
-        ...(formFields || []).map((slide, i) => ({ id: slide.id, label: pageLabel(slide, i) })).filter((_, i) => i !== activeSlide.index),
-        { id: JUMP_TARGET_SUBMIT, label: 'Submit form' }
+    const endings = withEndingIds(formState.thankyouPage);
+    const named = (index: number) => endingLabel(endings[index], index, endings.length);
+    const fallbackEnding = defaultEnding(endings);
+    const pageTargets = (formFields || []).map((slide, i) => ({ id: slide.id, label: pageLabel(slide, i) })).filter((_, i) => i !== activeSlide.index);
+    const endingTargets = [
+        { id: JUMP_TARGET_SUBMIT, label: fallbackEnding ? `Submit → default ending (${named(endings.indexOf(fallbackEnding))})` : 'Submit form' },
+        ...(endings.length > 1 ? endings.map((ending, i) => ({ id: jumpChoiceValue({ target: JUMP_TARGET_SUBMIT, endingId: ending.id }), label: `Submit → ${named(i)}` })) : [])
     ];
     const nextPageId = (formFields || [])[activeSlide.index + 1]?.id;
 
@@ -38,7 +46,7 @@ export default function PageJumpEditor() {
         [next[idx], next[to]] = [next[to], next[idx]];
         commit(next);
     };
-    const addJump = () => commit([...jumps, { operator: LogicalOperator.AND, conditions: [newConditionFor(sources)], target: targets[0]?.id ?? JUMP_TARGET_SUBMIT }]);
+    const addJump = () => commit([...jumps, { operator: LogicalOperator.AND, conditions: [newConditionFor(sources)], target: pageTargets[0]?.id ?? JUMP_TARGET_SUBMIT }]);
 
     if (sources.length === 0) {
         return (
@@ -57,7 +65,8 @@ export default function PageJumpEditor() {
             </div>
 
             {jumps.map((jump, jIdx) => {
-                const targetValid = isJumpTargetValid(jump.target, slideIds);
+                const endingMissing = isJumpEndingMissing(jump, endings);
+                const targetValid = isJumpTargetValid(jump.target, slideIds) && !endingMissing;
                 const isNoOp = targetValid && jump.target === nextPageId;
                 return (
                     <div key={jIdx} className="border-black-300 relative flex flex-col gap-2 rounded-md border p-2">
@@ -111,18 +120,36 @@ export default function PageJumpEditor() {
                             <span className="shrink-0">→ go to</span>
                             <select
                                 className={targetValid ? selectClass : selectClass.replace('border-control', 'border-amber-400')}
-                                value={targetValid ? jump.target : MISSING}
-                                onChange={(e) => patchJump(jIdx, { target: e.target.value })}
+                                aria-label={`Destination of rule ${jIdx + 1}`}
+                                value={targetValid ? jumpChoiceValue(jump) : MISSING}
+                                onChange={(e) => {
+                                    const { target, endingId } = jumpFromChoice(e.target.value);
+                                    const { endingId: _previous, ...rest } = jump;
+                                    commit(jumps.map((j, i) => (i === jIdx ? { ...rest, target, ...(endingId ? { endingId } : {}) } : j)));
+                                }}
                             >
-                                {!targetValid && <option value={MISSING}>⚠ Deleted page — pick a target</option>}
-                                {targets.map((t) => (
-                                    <option key={t.id} value={t.id}>
-                                        {t.label}
-                                    </option>
-                                ))}
+                                {!targetValid && <option value={MISSING}>{endingMissing ? '⚠ Deleted ending — pick a target' : '⚠ Deleted page — pick a target'}</option>}
+                                {pageTargets.length > 0 && (
+                                    <optgroup label="Go to page">
+                                        {pageTargets.map((t) => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.label}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                )}
+                                <optgroup label="Submit and show">
+                                    {endingTargets.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.label}
+                                        </option>
+                                    ))}
+                                </optgroup>
                             </select>
                         </div>
-                        {!targetValid && <span className="text-[11px] text-amber-700">This rule points to a page that was deleted. Pick a new destination.</span>}
+                        {!targetValid && (
+                            <span className="text-[11px] text-amber-700">{endingMissing ? 'This rule shows an ending that was deleted. Pick a new destination.' : 'This rule points to a page that was deleted. Pick a new destination.'}</span>
+                        )}
                         {isNoOp && <span className="text-black-600 text-[11px]">This is already the next page, so the rule has no effect.</span>}
                     </div>
                 );

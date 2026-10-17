@@ -19,7 +19,7 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
     const { updateFormTheme } = useFormState();
 
     const workspace = useAppSelector(selectWorkspace);
-    const { currentSlide } = useResponderState();
+    const { currentSlide, endingId } = useResponderState();
     const { data } = useGetWorkspaceFormQuery(
         {
             workspace_id: workspace.id,
@@ -46,7 +46,7 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
             <Form isPreviewMode />
         </div>
         <div className="relative z-40 shrink-0">
-            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={data?.settings} layout={layoutOfPage(data, currentSlide)} />
+            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={data?.settings} layout={layoutOfPage(data, currentSlide, endingId)} />
         </div>
     </div>
 }
