@@ -16,6 +16,12 @@ from common.form_spec import (
     spec_trust_settings,
     validation_errors,
 )
+from common.form_spec.roundtrip import (
+    EXCLUDED_FIELD,
+    EXCLUDED_FORM,
+    EXCLUDED_PROPERTIES,
+    creator_view,
+)
 from common.form_spec.schema import SCHEMA_PATH, main, render_schema
 from common.models.standard_form import (
     StandardFieldProperty,
@@ -24,82 +30,6 @@ from common.models.standard_form import (
     StandardFormField,
 )
 from tests.form_spec_fixture import RICH_TITLE, varied_form, varied_form_data
-
-# What the spec leaves out of each stored model, on purpose (adapters.py
-# docstring and docs/spec/README.md say why). Everything else must survive a
-# round trip.
-EXCLUDED_FORM = {
-    "form_id",
-    "imported_form_id",
-    "type",
-    "state",
-    "published_at",
-    "actions",
-    "parameters",
-    "secrets",
-    "builder_version",
-    "is_multi_page",
-    "consent",
-    "button_text",
-    "cover_image",
-    "row_titles",
-    "column_titles",
-}
-EXCLUDED_FIELD = {"index", "tag", "ref"}
-EXCLUDED_PROPERTIES = {
-    "actions",
-    "conditions",
-    "logical_operator",
-    "update_id",
-    "mentions",
-    "hidden",
-    "button_text",
-    "description",
-}
-# a question's own theme and layout (pages keep theirs)
-EXCLUDED_QUESTION_PROPERTIES = EXCLUDED_PROPERTIES | {"theme", "layout"}
-KEPT_SETTINGS = {
-    "privacy_policy_url",
-    "response_expiration",
-    "response_expiration_type",
-}
-
-
-def _strip(value):
-    """Drop None values, then empty containers."""
-    if isinstance(value, dict):
-        out = {k: _strip(v) for k, v in value.items() if v is not None}
-        return {k: v for k, v in out.items() if v not in ({}, [])}
-    if isinstance(value, list):
-        return [_strip(v) for v in value]
-    return value
-
-
-def _creator_view(form: StandardForm) -> dict:
-    """The stored form reduced to what the spec promises to keep."""
-    data = form.model_dump(mode="json")
-    for key in EXCLUDED_FORM:
-        data.pop(key, None)
-    data["settings"] = {
-        k: v for k, v in (data.get("settings") or {}).items() if k in KEPT_SETTINGS
-    }
-
-    def field(item: dict, page: bool) -> dict:
-        for key in EXCLUDED_FIELD:
-            item.pop(key, None)
-        props = item.get("properties") or {}
-        if item.get("description") is None:
-            item["description"] = props.get("description")
-        excluded = EXCLUDED_PROPERTIES if page else EXCLUDED_QUESTION_PROPERTIES
-        for key in excluded:
-            props.pop(key, None)
-        for choice in props.get("choices") or []:
-            choice.pop("ref", None)
-        props["fields"] = [field(child, False) for child in props.get("fields") or []]
-        return item
-
-    data["fields"] = [field(page, True) for page in data.get("fields") or []]
-    return _strip(data)
 
 
 def test_the_committed_schema_is_up_to_date():
@@ -137,7 +67,7 @@ def test_round_trip_keeps_every_creator_controlled_value():
     form = varied_form()
     spec = form_to_spec(form)
     back = spec_to_form(spec)
-    assert _creator_view(back) == _creator_view(form)
+    assert creator_view(back) == creator_view(form)
     # the spec of the copy is the same document
     assert form_to_spec(back) == spec
     # rich titles survive byte for byte, nulls included
@@ -148,7 +78,7 @@ def test_round_trip_keeps_every_creator_controlled_value():
     assert back.builder_version == "v2"
     # the comparison sees deep values (it is not vacuous)
     back.fields[1].properties.fields[3].properties.repeat.max_items = 5
-    assert _creator_view(back) != _creator_view(form)
+    assert creator_view(back) != creator_view(form)
 
 
 def test_round_trip_through_json():
@@ -156,7 +86,7 @@ def test_round_trip_through_json():
     document = json.loads(json.dumps(form_to_spec_dict(form)))
     assert document["specVersion"] == "1"
     back = spec_to_form(FormSpec.model_validate(document))
-    assert _creator_view(back) == _creator_view(form)
+    assert creator_view(back) == creator_view(form)
 
 
 def test_the_spec_document_shape():

@@ -46,6 +46,10 @@ conditions and page jumps refer to them; a jump's `target` is a page id or
   provider references, the consent list). Forms that are not built from
   pages have no spec document.
 
+Converting a form to a document and back keeps everything else
+(`common/common/form_spec/roundtrip.py` states this as code, and tests
+check it).
+
 ## Example
 
 ```json

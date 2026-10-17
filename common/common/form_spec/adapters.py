@@ -22,7 +22,12 @@ StandardForm. Not covered, and so not carried over (see docs/spec/README.md):
   ``button_text``, ``cover_image`` and the form-level ``row_titles``/
   ``column_titles``;
 - ``properties.description``, a copy of the field's ``description`` the
-  editor never reads (the spec has the one description).
+  editor never reads (the spec has the one description);
+- on a page, anything but its id, image, section title, layout, theme,
+  numbering switch, flow position, jumps and questions (the page-based
+  builder sets nothing else on a page).
+
+``common.form_spec.roundtrip.creator_view`` states the guarantee as code.
 """
 
 from typing import Any, Dict, List, Optional
