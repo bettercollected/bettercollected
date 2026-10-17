@@ -4,7 +4,7 @@ import { JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { isJumpTargetValid } from '@app/utils/conditional-logic';
-import { defaultEnding, endingLabel, isJumpEndingMissing, jumpChoiceValue, jumpFromChoice, withEndingIds } from '@app/utils/endings';
+import { defaultEnding, endingLabel, isJumpEndingMissing, jumpChoiceValue, jumpEndingId, jumpFromChoice, withEndingIds } from '@app/utils/endings';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, pageLabel, selectClass } from './condition-editor-shared';
 
@@ -27,9 +27,17 @@ export default function PageJumpEditor() {
     const named = (index: number) => endingLabel(endings[index], index, endings.length);
     const fallbackEnding = defaultEnding(endings);
     const pageTargets = (formFields || []).map((slide, i) => ({ id: slide.id, label: pageLabel(slide, i) })).filter((_, i) => i !== activeSlide.index);
+    // Short labels: the panel is narrow. The default ending is offered once,
+    // as "submit" (it follows the default), unless a jump names it itself.
+    const namesDefault = ((activeSlide?.properties?.jumps as PageJump[] | undefined) ?? []).some((jump) => fallbackEnding && jumpEndingId(jump) === fallbackEnding.id);
     const endingTargets = [
-        { id: JUMP_TARGET_SUBMIT, label: fallbackEnding ? `Submit → default ending (${named(endings.indexOf(fallbackEnding))})` : 'Submit form' },
-        ...(endings.length > 1 ? endings.map((ending, i) => ({ id: jumpChoiceValue({ target: JUMP_TARGET_SUBMIT, endingId: ending.id }), label: `Submit → ${named(i)}` })) : [])
+        { id: JUMP_TARGET_SUBMIT, label: fallbackEnding && endings.length > 1 ? `Submit · ${named(endings.indexOf(fallbackEnding))} (default)` : 'Submit' },
+        ...(endings.length > 1
+            ? endings
+                  .map((ending, i) => ({ ending, id: jumpChoiceValue({ target: JUMP_TARGET_SUBMIT, endingId: ending.id }), label: `Submit · ${named(i)}` }))
+                  .filter(({ ending }) => ending !== fallbackEnding || namesDefault)
+                  .map(({ id, label }) => ({ id, label }))
+            : [])
     ];
     const nextPageId = (formFields || [])[activeSlide.index + 1]?.id;
 
@@ -121,6 +129,8 @@ export default function PageJumpEditor() {
                             <select
                                 className={targetValid ? selectClass : selectClass.replace('border-control', 'border-amber-400')}
                                 aria-label={`Destination of rule ${jIdx + 1}`}
+                                aria-invalid={targetValid ? undefined : true}
+                                aria-describedby={targetValid ? undefined : `jump-target-hint-${activeSlide.id}-${jIdx}`}
                                 value={targetValid ? jumpChoiceValue(jump) : MISSING}
                                 onChange={(e) => {
                                     const { target, endingId } = jumpFromChoice(e.target.value);
@@ -148,7 +158,9 @@ export default function PageJumpEditor() {
                             </select>
                         </div>
                         {!targetValid && (
-                            <span className="text-[11px] text-amber-700">{endingMissing ? 'This rule shows an ending that was deleted. Pick a new destination.' : 'This rule points to a page that was deleted. Pick a new destination.'}</span>
+                            <span id={`jump-target-hint-${activeSlide.id}-${jIdx}`} className="text-[11px] text-amber-700">
+                                {endingMissing ? 'This rule shows an ending that was deleted. Pick a new destination.' : 'This rule points to a page that was deleted. Pick a new destination.'}
+                            </span>
                         )}
                         {isNoOp && <span className="text-black-600 text-[11px]">This is already the next page, so the rule has no effect.</span>}
                     </div>

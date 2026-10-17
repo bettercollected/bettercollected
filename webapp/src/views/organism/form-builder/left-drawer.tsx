@@ -146,6 +146,9 @@ function StaticRow({ label, secondary, selected, onSelect, chip }: { label: stri
 function EndingNameInput({ initial, placeholder, onDone }: { initial: string; placeholder: string; onDone: (name: string | null) => void }) {
     const [value, setValue] = useState(initial);
     const done = useRef(false);
+    // Leaving the field saves, but only once it has had focus: the menu that
+    // opened it may still be handing focus around.
+    const focused = useRef(false);
     // Focus moves into the field the creator just asked to edit.
     const input = useRef<HTMLInputElement>(null);
     useEffect(() => {
@@ -160,13 +163,15 @@ function EndingNameInput({ initial, placeholder, onDone }: { initial: string; pl
     return (
         <input
             ref={input}
+            data-ending-name-input=""
             type="text"
             value={value}
             maxLength={ENDING_NAME_MAX_LENGTH}
             aria-label="Ending name (respondents never see it)"
             placeholder={placeholder}
             onChange={(event) => setValue(event.target.value)}
-            onBlur={() => finish(value)}
+            onFocus={() => (focused.current = true)}
+            onBlur={() => focused.current && finish(value)}
             onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                     event.preventDefault();
@@ -544,6 +549,11 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                 canDelete={endings.length > 1}
                                                 canDuplicate={canAdd}
                                                 onRename={() => setRenaming(ending.id ?? null)}
+                                                onRenameReady={() => {
+                                                    const field = document.querySelector<HTMLInputElement>('[data-ending-name-input]');
+                                                    field?.focus();
+                                                    field?.select();
+                                                }}
                                                 onDuplicate={() => {
                                                     duplicateEnding(index);
                                                     setMessage(`${label} duplicated.`);

@@ -306,6 +306,39 @@ describe('builder outline', () => {
         expect(await screen.findByRole('menuitem', { name: 'Duplicate' })).toHaveAttribute('aria-disabled', 'true');
     });
 
+    const nextFrame = () => act(async () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0))));
+
+    it('Rename from the keyboard puts focus in the name field; Escape cancels and goes back to the row', async () => {
+        renderOutline();
+        await tick();
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Ending 2' }), { key: 'Enter' });
+        const item = await screen.findByRole('menuitem', { name: 'Rename' });
+        await act(async () => fireEvent.keyDown(item, { key: 'Enter' }));
+        await nextFrame();
+        const field = screen.getByRole('textbox', { name: /Ending name/ });
+        expect(document.activeElement).toBe(field);
+        fireEvent.change(field, { target: { value: 'Typed' } });
+        await act(async () => fireEvent.keyDown(field, { key: 'Escape' }));
+        await tick();
+        expect(screen.queryByRole('textbox', { name: /Ending name/ })).not.toBeInTheDocument();
+        expect(seen.endingState.formState.thankyouPage[1].name).toBeUndefined();
+        expect(document.activeElement).toBe(within(screen.getByRole('list', { name: 'Endings' })).getByRole('button', { name: /^Ending 2/ }));
+    });
+
+    it('Rename with the mouse puts focus in the name field; Enter saves', async () => {
+        renderOutline();
+        await tick();
+        const trigger = screen.getByRole('button', { name: 'Options for Ending 2' });
+        fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: 'mouse' });
+        await act(async () => fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename' })));
+        await nextFrame();
+        const field = screen.getByRole('textbox', { name: /Ending name/ });
+        expect(document.activeElement).toBe(field);
+        fireEvent.change(field, { target: { value: 'Waiting list' } });
+        await act(async () => fireEvent.keyDown(field, { key: 'Enter' }));
+        expect(seen.endingState.formState.thankyouPage[1].name).toBe('Waiting list');
+    });
+
     it('keeps at least one ending', async () => {
         renderOutline();
         await tick();
