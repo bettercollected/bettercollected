@@ -1,14 +1,15 @@
-"""Form spec v1 endpoints: validate a document, dry-run edit operations.
+"""Form spec v1 endpoints: validate a document, dry-run edit operations,
+and the builder's op-batch save.
 
-Both need ``form.edit`` in the workspace (the form edit permission) and
-store nothing. docs/spec/README.md describes the document."""
+All need ``form.edit`` in the workspace (the form edit permission); only the
+save stores anything. docs/spec/README.md describes the document."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, post
 from common.models.user import User
-from fastapi import Depends, Request
+from fastapi import Depends, Header, Request
 
 from backend.app.container import container
 from backend.app.router import router
@@ -57,4 +58,55 @@ class FormSpecRouter(Routable):
         document, a diff and per-operation results. Never stores anything."""
         return await container.form_spec_service().dry_run(
             workspace_id=workspace_id, form_id=form_id, request=request, user=user
+        )
+
+    @post(
+        "/{form_id}/ops",
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["ops"],
+                            "properties": {
+                                "ops": {"type": "array", "items": {"type": "object"}},
+                                "atomic": {"type": "boolean", "enum": [True]},
+                            },
+                        }
+                    }
+                },
+            }
+        },
+        responses={
+            400: {"description": "No (or an invalid) Idempotency-Key."},
+            404: {"description": "No such form, or op saves are not enabled."},
+            409: {"description": "A request with this Idempotency-Key still runs."},
+            412: {"description": "The form changed since the ETag in If-Match."},
+            413: {"description": "The body is larger than 1 MB."},
+            422: {"description": "Invalid operations, or one failed (nothing stored)."},
+            428: {"description": "If-Match is required."},
+        },
+    )
+    async def save_form_ops(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        request: Request,
+        if_match: Optional[str] = Header(None, alias="If-Match"),
+        idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+        user: User = Depends(get_logged_user),
+    ):
+        """Save a batch of edits to the draft as operations, all or nothing,
+        only while it is still the version ``If-Match`` names. Answers the
+        form as the editor's GET serves it, its new ``ETag`` (header and
+        ``etag``) and per-operation results."""
+        return await container.editor_ops_service().save(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            request=request,
+            user=user,
+            if_match=if_match,
+            idempotency_key=idempotency_key,
         )

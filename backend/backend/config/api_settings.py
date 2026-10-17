@@ -50,5 +50,8 @@ class ApiSettings(BaseSettings):
     # POST /workspaces/{id}/images/import: copies per person in each window.
     IMAGE_IMPORTS_PER_WINDOW: int = 30
     IMAGE_IMPORTS_WINDOW_SECONDS: int = 600
+    # The builder's op-batch save (POST /workspaces/{id}/forms/{form_id}/ops,
+    # services/form_spec/editor_ops.py); 404 while off.
+    EDITOR_OPS_SAVE_ENABLED: bool = False
 
     model_config = SettingsConfigDict(env_prefix="API_")
