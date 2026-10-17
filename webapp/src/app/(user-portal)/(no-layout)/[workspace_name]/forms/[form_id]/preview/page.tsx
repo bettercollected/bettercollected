@@ -32,7 +32,7 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
     useEffect(() => {
         if (data?.formId) {
             dispatch(setForm(data));
-            data.theme && updateFormTheme(data.theme);
+            data.theme && updateFormTheme(data.theme, { undoable: false });
         }
     }, [data]);
 

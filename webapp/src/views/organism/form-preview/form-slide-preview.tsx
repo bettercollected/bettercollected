@@ -16,7 +16,7 @@ export default function FormSlidePreview({ slide, theme }: { slide: StandardForm
     const standardForm = useAppSelector(selectForm);
     const { updateFormTheme, theme: a } = useFormState();
     useEffect(() => {
-        standardForm.theme && updateFormTheme(standardForm?.theme);
+        standardForm.theme && updateFormTheme(standardForm?.theme, { undoable: false });
     }, [standardForm.formId]);
     const slideTheme = theme ? theme : standardForm.theme;
     return (

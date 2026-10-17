@@ -6,7 +6,7 @@ import { deepCopy } from '@app/utils/object-utils';
 
 import { useActiveThankYouPageComponent } from './active-builder-component';
 import { IFormState, IThemeState } from './form-defaults';
-import { FORM_STATE_KEYS, FormDocument, FormStateKey, commitFormKeysAtom, formDocAtom } from './form-document';
+import { CommitMeta, FORM_STATE_KEYS, FormDocument, FormStateKey, commitFormKeysAtom, formDocAtom } from './form-document';
 
 export type { IFormState, IThemeState } from './form-defaults';
 export { initialFormState } from './form-defaults';
@@ -25,16 +25,17 @@ const formSectionsAtom = selectAtom(formDocAtom, pickFormState, sameFormState);
  * The form-level part of the builder's document (title, welcome and ending
  * pages, theme, hidden fields, logo settings): a view of the form document
  * (form-document.ts). A write becomes ops on the document — one undo step,
- * merged with the previous one while typing under the same `coalesceKey`.
+ * merged with the previous one while typing under the same coalesce key (or
+ * none, with `{ undoable: false }`).
  * Keys the written state leaves out are removed, as before.
  */
 export const formStateAtom = atom(
     (get) => get(formSectionsAtom),
-    (get, set, update: FormStateUpdate, coalesceKey?: string) => {
+    (get, set, update: FormStateUpdate, meta?: string | CommitMeta) => {
         const next = typeof update === 'function' ? update(get(formSectionsAtom)) : update;
         const values: Partial<Record<FormStateKey, unknown>> = {};
         for (const key of FORM_STATE_KEYS) values[key] = (next as unknown as Record<string, unknown>)?.[key];
-        set(commitFormKeysAtom, values, coalesceKey);
+        set(commitFormKeysAtom, values, typeof meta === 'string' ? { coalesceKey: meta } : (meta ?? {}));
     }
 );
 
@@ -86,7 +87,8 @@ export function useFormState() {
         setFormState((prev) => ({ ...prev, title }), 'form:title');
     };
 
-    const setFormDescription = (description?: string) => {
+    /** `options.undoable` false: a default written on mount, not an edit (no undo step). */
+    const setFormDescription = (description?: string, options: { undoable?: boolean } = {}) => {
         setFormState(
             (prev) => ({
                 ...prev,
@@ -95,7 +97,7 @@ export function useFormState() {
                     description: description
                 }
             }),
-            'welcome:description'
+            { coalesceKey: 'welcome:description', undoable: options.undoable }
         );
     };
 
@@ -125,8 +127,9 @@ export function useFormState() {
         );
     };
 
-    const updateFormTheme = (theme: IThemeState) => {
-        setFormState((prev) => ({ ...prev, theme }), 'form:theme');
+    /** `options.undoable` false: the loaded form's theme put in place, not an edit (no undo step). */
+    const updateFormTheme = (theme: IThemeState, options: { undoable?: boolean } = {}) => {
+        setFormState((prev) => ({ ...prev, theme }), { coalesceKey: 'form:theme', undoable: options.undoable });
     };
 
     const setHiddenFields = (hiddenFields: string[]) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import cn from 'classnames';
 import { useDebounceValue } from 'usehooks-ts';
@@ -26,8 +26,11 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     useEffect(() => {
         formState?.welcomePage?.description && setDescription(formState?.welcomePage?.description);
     }, [formState?.welcomePage?.description]);
+    // The first write is the mount's default, not an edit: no undo step.
+    const mounted = useRef(false);
     useEffect(() => {
-        setFormDescription(debouncedDescription);
+        setFormDescription(debouncedDescription, { undoable: mounted.current });
+        mounted.current = true;
     }, [debouncedDescription]);
 
     if (styleTokens(theme?.style).key === 'leaflet') {
