@@ -1,6 +1,7 @@
 """The builder's optimistic concurrency on whole-form saves: a save based on
 an older draft is refused (409) instead of overwriting newer changes."""
 
+import asyncio
 import datetime as dt
 import json
 from types import SimpleNamespace
@@ -10,11 +11,15 @@ from httpx import AsyncClient
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.postgres.forms import PostgresFormRepository
 from backend.app.services.ai.chat import camel_form_reply
 from backend.app.services.form_concurrency import (
     FORM_CHANGED_CODE,
+    _in_ms,
     ensure_not_changed_since,
     is_changed_since,
+    next_updated_at,
     parse_expected_updated_at,
 )
 from common.models.standard_form import StandardForm
@@ -142,6 +147,125 @@ class TestFormSaveConflict:
         assert stored.fields == []
 
 
+@pytest.fixture()
+def saves_read_together(monkeypatch):
+    """Two conditional saves both read the stored draft before either
+    writes: each waits after its read until the other has read too. That
+    gets both past every check made on what they read, so only the
+    conditional write can tell them apart. Gates whichever store serves."""
+    barrier = asyncio.Barrier(2)
+    reads = []
+    for repository in (FormRepository, PostgresFormRepository):
+        read = repository._stored_draft
+
+        async def gated(self, form_id, _read=read):
+            found = await _read(self, form_id)
+            reads.append(form_id)
+            if len(reads) <= 2:  # the two racing saves; later ones run freely
+                await asyncio.wait_for(barrier.wait(), timeout=10)
+            return found
+
+        monkeypatch.setattr(repository, "_stored_draft", gated)
+
+
+def _one_winner(results):
+    saved = [r for r in results if not isinstance(r, BaseException)]
+    refused = [r for r in results if isinstance(r, BaseException)]
+    assert len(saved) == 1 and len(refused) == 1, results
+    assert isinstance(refused[0], HTTPException)
+    assert refused[0].status_code == 409
+    return saved[0]
+
+
+class TestSimultaneousSaves:
+    """Two saves based on the same version landing at the same moment."""
+
+    async def test_the_repository_writes_only_one(
+        self, workspace_form, saves_read_together
+    ):
+        repository = container.form_repo()
+        stored = await repository.get_form_document_by_id(workspace_form.form_id)
+        expected = stored.updated_at
+
+        results = await asyncio.gather(
+            repository.update_form_if_unchanged(
+                form_id=workspace_form.form_id,
+                form=StandardForm(title="Save A"),
+                expected_updated_at=expected,
+            ),
+            repository.update_form_if_unchanged(
+                form_id=workspace_form.form_id,
+                form=StandardForm(title="Save B"),
+                expected_updated_at=expected,
+            ),
+            return_exceptions=True,
+        )
+        winner = _one_winner(results)
+
+        after = await repository.get_form_document_by_id(workspace_form.form_id)
+        assert after.title == winner.title
+        # the write set updated_at itself: what it returned is what is stored
+        assert after.updated_at == winner.updated_at
+        assert is_changed_since(after.updated_at, expected)
+
+    async def test_the_endpoint_answers_409_and_writes_nothing_for_the_other(
+        self,
+        client: AsyncClient,
+        form_url,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        saves_read_together,
+    ):
+        first = await _patch(client, form_url, test_user_cookies, {"title": "One"})
+        seen = first.json()["updatedAt"]
+
+        def save(name):
+            return _patch(
+                client,
+                form_url,
+                test_user_cookies,
+                {
+                    "title": f"From {name}",
+                    "settings": {"privacyPolicyUrl": f"https://{name}.example"},
+                },
+                expected=seen,
+            )
+
+        responses = await asyncio.gather(save("a"), save("b"))
+        codes = sorted(r.status_code for r in responses)
+        assert codes == [200, 409], codes
+        won = next(r for r in responses if r.status_code == 200).json()
+        lost = next(r for r in responses if r.status_code == 409).json()
+        assert lost["code"] == FORM_CHANGED_CODE
+
+        stored = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        assert stored.title == won["title"]
+        assert _in_ms(stored.updated_at) == _in_ms(
+            parse_expected_updated_at(won["updatedAt"])
+        )
+        # the refused save's settings were not written either
+        workspace_form_doc = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, workspace_form.form_id
+        )
+        winner = "a" if won["title"] == "From a" else "b"
+        assert workspace_form_doc.settings.privacy_policy_url == (
+            f"https://{winner}.example"
+        )
+
+        # and the winner's version is the one the next save builds on
+        again = await _patch(
+            client,
+            form_url,
+            test_user_cookies,
+            {"title": "Next"},
+            expected=won["updatedAt"],
+        )
+        assert again.status_code == 200
+
+
 class TestVersionComparison:
     def test_milliseconds_decide(self):
         saved = dt.datetime(2026, 10, 17, 9, 0, 0, 123456, tzinfo=dt.timezone.utc)
@@ -170,6 +294,16 @@ class TestVersionComparison:
         assert parsed == dt.datetime(
             2026, 10, 17, 9, 0, 0, 123000, tzinfo=dt.timezone.utc
         )
+
+    def test_each_save_stores_a_newer_version(self):
+        previous = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=5)
+        stamp = next_updated_at(previous)
+        # in whole milliseconds, and later than the one before even when the
+        # clock says otherwise (two saves in the same millisecond)
+        assert stamp.microsecond % 1000 == 0
+        assert is_changed_since(stamp, previous)
+        assert _in_ms(stamp) == _in_ms(previous) + 1
+        assert next_updated_at(None).tzinfo is not None
 
     def test_a_newer_draft_raises_409(self):
         now = dt.datetime.now(dt.timezone.utc)

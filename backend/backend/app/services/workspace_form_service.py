@@ -638,7 +638,11 @@ class WorkspaceFormService:
     ):
         """``expected_updated_at``: the draft's ``updated_at`` as the caller
         last saw it; when the stored draft is newer the save is refused with
-        409 (form_concurrency.py). None skips the check."""
+        409 (form_concurrency.py). None skips the check.
+
+        With it, the form is written conditionally, and the settings only
+        after that write succeeded: a save refused at the write (another save
+        landed in between) leaves the settings untouched too."""
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
@@ -657,6 +661,9 @@ class WorkspaceFormService:
         ensure_not_changed_since(
             existing_form.updated_at if existing_form else None, expected_updated_at
         )
+        # Settings are checked and applied here but stored after the form:
+        # the form's conditional write is what can still refuse the save.
+        settings_changed = bool(form.settings)
         if form.settings:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
@@ -671,7 +678,6 @@ class WorkspaceFormService:
                     checked_policy_url, form.settings.privacy_policy_url
                 )
             _apply_retention_update(workspace_form.settings, form.settings)
-            await self.workspace_form_repository.save(workspace_form)
 
         keep_section_titles(form, existing_form)
 
@@ -695,7 +701,20 @@ class WorkspaceFormService:
                 if form.cover_image is not None
                 else existing_form.cover_image
             )
-        updated = await self.form_service.update_form(form_id=form_id, form=form)
+        if expected_updated_at is None:
+            updated = await self.form_service.update_form(form_id=form_id, form=form)
+        else:
+            try:
+                updated = await self.form_service.update_form_if_unchanged(
+                    form_id=form_id, form=form, expected_updated_at=expected_updated_at
+                )
+            except HTTPException:
+                # nothing was written: drop the logo this save uploaded
+                if logo:
+                    await self._release_logo(str(form_id), form.logo)
+                raise
+        if settings_changed:
+            await self.workspace_form_repository.save(workspace_form)
         if logo and existing_form.logo != form.logo:
             await self._release_logo(str(form_id), existing_form.logo)
         return updated
