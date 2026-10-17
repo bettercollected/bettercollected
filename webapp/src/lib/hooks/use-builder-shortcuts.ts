@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useInsertTarget } from '@app/store/jotai/insert-target';
 
 /** Is focus somewhere typing goes: a text field, a select or a rich-text editor? */
@@ -77,7 +77,8 @@ function focusCanvasField(index: number) {
 
 /** Builder-wide keyboard authoring; mounted once (navbar). */
 export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
-    const { formFields, moveFieldInASlide, duplicateField } = useFormFieldsAtom();
+    // The pages are read when a shortcut runs, not subscribed to.
+    const { getFormFields, moveFieldInASlide, duplicateField } = useBuilderActions();
     const { deleteQuestion } = useUndoableDelete();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
@@ -87,6 +88,7 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
     // selection and the actions over the current builder state.
     const latest = useRef<{ hasSelection: boolean; run: (action: BuilderShortcut) => void }>({ hasSelection: false, run: () => {} });
     const run = (action: BuilderShortcut) => {
+        const formFields = getFormFields();
         const slideIndex = activeSlideComponent?.index ?? -1;
         const slide = slideIndex >= 0 ? formFields?.[slideIndex] : undefined;
         const fields = slide?.properties?.fields ?? [];

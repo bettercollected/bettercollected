@@ -12,8 +12,9 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useInsertField } from '@app/lib/hooks/use-insert-field';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import useFormFieldsAtom, { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { builderFieldsAtom, canRedoAtom, canUndoAtom } from '@app/store/jotai/form-document';
 import { autosaveStatusLabel, isAutosaveProblem, useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
@@ -30,7 +31,8 @@ import { TextOutlinedIcon } from '@Components/icons/text-outlined';
 import { hasBuildReport } from '@app/utils/ai-build-report';
 import { slideHasLogic } from '@app/utils/conditional-logic';
 import { PlayIcon, Redo2, Undo2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ComponentProps, useEffect, useRef, useState } from 'react';
+import { useAtomValue, useStore } from 'jotai';
 import dynamic from 'next/dynamic';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
 import BackButton from '../molecules/form-builder/back-button';
@@ -42,8 +44,19 @@ import PreviewWrapper from '../molecules/form-builder/preview-wrapper';
 import PublishButton from '../molecules/form-builder/publish-button';
 import Form from './form/form';
 
+/** The Insert menu while it is open: only then does it follow the form. */
+function NavbarInsertMenu(props: Omit<ComponentProps<typeof InsertFieldComponent>, 'formFields'>) {
+    const { formFields } = useFormFieldsAtom();
+    return <InsertFieldComponent formFields={formFields} {...props} />;
+}
+
 const Navbar = () => {
-    const { formFields, undo, redo, canUndo, canRedo } = useFormFieldsAtom();
+    // Acts on the form and follows whether there is anything to undo; it does
+    // not subscribe to the form itself, so typing does not re-render the bar.
+    const { undo, redo, getFormFields } = useBuilderActions();
+    const canUndo = useAtomValue(canUndoAtom);
+    const canRedo = useAtomValue(canRedoAtom);
+    const store = useStore();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
     const { toast } = useToast();
@@ -90,16 +103,22 @@ const Navbar = () => {
     const flowAutoOpened = useRef(false);
     useEffect(() => {
         const formId = standardForm?.formId;
-        if (!formId || flowAutoOpened.current) return;
-        // Defensive: the atom can transiently hold non-array state (e.g. a stale
-        // reset from another route) before this editor re-initializes it.
-        if (!Array.isArray(formFields) || !formFields.some((slide) => slideHasLogic(slide))) return;
-        if (localStorage.getItem(`bc-default-view-${formId}`)) return;
-        // A form just built from an AI outline opens on its checklist first.
-        if (hasBuildReport(formId)) return;
-        flowAutoOpened.current = true;
-        setFlowViewOpen(true);
-    }, [standardForm?.formId, formFields]);
+        // Checked now and after every change of the form, without re-rendering for it.
+        const check = () => {
+            if (!formId || flowAutoOpened.current) return;
+            const formFields = store.get(builderFieldsAtom);
+            // Defensive: the atom can transiently hold non-array state (e.g. a stale
+            // reset from another route) before this editor re-initializes it.
+            if (!Array.isArray(formFields) || !formFields.some((slide) => slideHasLogic(slide))) return;
+            if (localStorage.getItem(`bc-default-view-${formId}`)) return;
+            // A form just built from an AI outline opens on its checklist first.
+            if (hasBuildReport(formId)) return;
+            flowAutoOpened.current = true;
+            setFlowViewOpen(true);
+        };
+        check();
+        return store.sub(builderFieldsAtom, check);
+    }, [standardForm?.formId, store]);
 
     const handleFlowViewOpenChange = (open: boolean) => {
         setFlowViewOpen(open);
@@ -186,8 +205,7 @@ const Navbar = () => {
                         </button>
                     </PopoverTrigger>
                     <PopoverContent align="center" className="w-auto overflow-hidden p-0" aria-label="Insert a field">
-                        <InsertFieldComponent
-                            formFields={formFields}
+                        <NavbarInsertMenu
                             activeSlideComponent={activeSlideComponent}
                             closeDropdown={() => {
                                 setInsertDropdownOpen(false);
@@ -262,7 +280,7 @@ const Navbar = () => {
                     </Button>
                 )}
 
-                <PublishButton fields={formFields} />
+                <PublishButton getFields={getFormFields} />
             </div>
 
             {/* Flow view — mounted at the navbar root so the default-view heuristic

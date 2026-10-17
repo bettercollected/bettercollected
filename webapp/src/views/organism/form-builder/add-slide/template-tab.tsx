@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useGetTemplatesQuery } from '@app/store/redux/template-api';
 import { IFormTemplateDto } from '@app/store/redux/types';
@@ -14,7 +14,7 @@ import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 export default function TemplateTab({ closePopover }: { closePopover: () => void }) {
     const [selectedTemplate, setSelectedTemplate] = useState<IFormTemplateDto | undefined>();
 
-    const { addSlideFormTemplate } = useFormFieldsAtom();
+    const { addSlideFormTemplate } = useBuilderActions();
     const { theme } = useFormState();
     const { data: templates } = useGetTemplatesQuery({ v2: true });
 

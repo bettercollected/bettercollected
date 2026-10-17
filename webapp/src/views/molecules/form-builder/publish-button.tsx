@@ -35,7 +35,7 @@ function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string
  * first stores them (flushAutosave), so what is checked is what the server
  * checks and publishes.
  */
-const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?: Array<StandardFormFieldDto> }) => {
+const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { refresh?: boolean; fields?: Array<StandardFormFieldDto>; /** The live pages, read when the checks run (instead of `fields`). */ getFields?: () => Array<StandardFormFieldDto> }) => {
     const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
@@ -87,6 +87,7 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
     };
 
     const publishForm = async () => {
+        const fields = getFields?.() ?? givenFields;
         // Honest defaults first: the creator sees what to fix, and where.
         // The builder's live endings with its live pages; the saved ones otherwise.
         const found = fields?.length ? getPublishProblems(fields, formState.thankyouPage ?? null) : getPublishProblems(standardForm?.fields, standardForm?.thankyouPage ?? null);
@@ -97,8 +98,13 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
         await publish();
     };
 
+    const shownFields = () => {
+        const fields = getFields?.() ?? givenFields;
+        return fields?.length ? fields : standardForm?.fields;
+    };
+
     const showQuestion = (fieldId: string) => {
-        const place = locate(fields?.length ? fields : standardForm?.fields, fieldId);
+        const place = locate(shownFields(), fieldId);
         if (!place) return;
         setActiveSlideComponent(place.slide);
         setActiveFieldComponent(place.field);
@@ -116,7 +122,7 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
                 onClose={() => setProblems([])}
                 onPublishAnyway={publish}
                 onShowQuestion={showQuestion}
-                canShowQuestion={(fieldId) => !!locate(fields?.length ? fields : standardForm?.fields, fieldId)}
+                canShowQuestion={(fieldId) => !!locate(shownFields(), fieldId)}
             />
         </>
     );
