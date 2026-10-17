@@ -32,8 +32,9 @@ from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import persist_ops_to_form
-from backend.app.services.ai.ops import parse_ops
+from backend.app.services.ai.ops import applied, parse_ops
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.form_spec.checks import check_spec_document
 
 
 def _c():
@@ -254,7 +255,9 @@ async def create_form_with_ai(prompt: str) -> str:
 
 
 @mcp.tool()
-async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
+async def update_form(
+    form_id: str, ops: List[Dict[str, Any]], atomic: bool = False
+) -> str:
     """Edit a form with typed operations — the same pipeline the builder's AI
     chat uses. Reference page/field ids from get_form. Op shapes (camelCase):
     {"op":"add_field","pageId":str,"field":{"title":str,"type":str,"required"?:bool,
@@ -287,7 +290,19 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     {"op":"set_section_title","pageId"?:str,"pageIndex"?:int,"title":str|null} (a question
     page's section title, shown by the Leaflet style in the section bar and the welcome
     page's contents list; give pageId or pageIndex (0-based among the question pages); a few
-    plain words, at most 120 characters; null or "" clears; not for the welcome page or ending).
+    plain words, at most 120 characters; null or "" clears; not for the welcome page or ending) ·
+    {"op":"move_page","pageId":str,"index":int} (0-based among the question pages) ·
+    {"op":"set_field_validation","fieldId":str,"validation":{"required"?:bool,"minLength"?:int,
+    "maxLength"?:int,"minValue"?:num,"maxValue"?:num,"minChoices"?:int,"maxChoices"?:int,
+    "pattern"?:str,"preset"?:"digits"|"letters"|"alphanumeric"}} (absent = unchanged, null clears;
+    lengths/pattern: text questions, values: number, choices: multiple choice with several answers) ·
+    {"op":"set_question_numbering","pageId"?:str,"show":bool} (no pageId: every page).
+    References: add_page, add_field, add_group and duplicate_page (and the fields inside
+    add_page/add_group) take "ref":"<name>"; later ops in the same call may use "$ref:<name>"
+    wherever a page or field id is expected (pageId, fieldId, groupId, afterFieldId, toPageId,
+    toGroupId, childFieldId, a jump's target), conditions and jumps included. Each result
+    reports the "createdId". atomic=true applies all ops or none (any error: nothing is stored,
+    every error is returned); the default applies what it can. Preview with dry_run_ops.
     Field types: short_text, long_text, email, number, url, phone_number, date,
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
     key = await _key("forms:write")
@@ -297,13 +312,89 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
     _, results, updated_settings = await persist_ops_to_form(
-        form_document, form, parsed
+        form_document, form, parsed, atomic=atomic
     )
     payload = [r.model_dump(by_alias=True) for r in results]
     await _audit(
-        "update_form", all(r.ok for r in results), f"{form_id}: {len(results)} ops"
+        "update_form",
+        all(r.ok for r in results),
+        f"{form_id}: {len(results)} ops" + (" (atomic)" if atomic else ""),
     )
-    return json.dumps({"results": payload, "settings": updated_settings})
+    return json.dumps(
+        {
+            "applied": applied(results, atomic),
+            "results": payload,
+            "settings": updated_settings,
+        }
+    )
+
+
+@mcp.tool()
+async def get_form_spec(form_id: str) -> str:
+    """Get a form as a form spec v1 document (docs/spec/README.md): what
+    its creator controls, without server-owned data. Page-based forms
+    only."""
+    key = await _key("forms:read")
+    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    _require_form_in_workspace(form_id, workspace_forms)
+    service = _c().form_spec_service()
+    form, settings = await service.load(key.workspace_id, form_id)
+    try:
+        document = service.spec_of(form, settings)
+    except HTTPException as e:
+        await _audit("get_form_spec", False, form_id)
+        raise ValueError(_error_text(e)) from e
+    await _audit("get_form_spec", True, form_id)
+    return json.dumps(document)
+
+
+@mcp.tool()
+async def validate_form(spec: Dict[str, Any]) -> str:
+    """Check a form spec v1 document without storing anything. Returns
+    {"valid","errors":[{"path","message"}],"warnings","compliance"}; paths
+    are JSON pointers into the document. The organisation's compliance rules
+    need an AI review and are not checked here."""
+    await _key("forms:read")
+    result = check_spec_document(spec)
+    await _audit("validate_form", result["valid"], f"{len(result['errors'])} errors")
+    return json.dumps(result)
+
+
+@mcp.tool()
+async def dry_run_ops(
+    form_id: str, ops: List[Dict[str, Any]], atomic: bool = False
+) -> str:
+    """Preview update_form: apply the same ops to a copy of the form and
+    return {"ok","applied","atomic","form" (the resulting spec document),
+    "diff" (pages and fields added, removed, moved, changed, with paths),
+    "results"}. Nothing is stored. Op shapes: see update_form."""
+    key = await _key("forms:write")
+    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    _require_form_in_workspace(form_id, workspace_forms)
+    service = _c().form_spec_service()
+    form, settings = await service.load(key.workspace_id, form_id)
+    try:
+        preview = service.preview(form, settings, ops, atomic)
+    except HTTPException as e:
+        await _audit("dry_run_ops", False, form_id)
+        raise ValueError(_error_text(e)) from e
+    await _audit(
+        "dry_run_ops", preview.ok, f"{form_id}: {len(preview.results)} ops (dry run)"
+    )
+    return json.dumps(preview.model_dump(mode="json", by_alias=True))
+
+
+def _error_text(error: HTTPException) -> str:
+    """An HTTPException's message (and located errors) in words."""
+    content = error.content
+    if isinstance(content, dict):
+        details = "; ".join(
+            f"{e.get('path') or '/'}: {e.get('message')}"
+            for e in content.get("errors") or []
+        )
+        message = str(content.get("message") or "")
+        return message + (f" ({details})" if details else "")
+    return str(content)
 
 
 @mcp.tool()
