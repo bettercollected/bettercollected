@@ -1,0 +1,44 @@
+{
+  "name": "gen_en_missing_why_we_ask",
+  "kind": "generate",
+  "description": "Email and phone questions without a reason for asking.",
+  "language": "en",
+  "expected_findings": [
+    "missing_why_we_ask",
+    "missing_why_we_ask"
+  ],
+  "reply": {
+    "title": "Workshop registration",
+    "description": "Register for the evening pottery workshop.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Your details",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "What is your full name?",
+              "type": "short_text",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "What is your email address?",
+              "type": "email",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "What is your phone number?",
+              "type": "phone_number"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

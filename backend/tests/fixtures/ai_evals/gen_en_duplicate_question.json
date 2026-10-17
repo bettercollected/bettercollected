@@ -1,0 +1,63 @@
+{
+  "name": "gen_en_duplicate_question",
+  "kind": "generate",
+  "description": "The same question asked twice across pages.",
+  "language": "en",
+  "expected_findings": [
+    "duplicate_question"
+  ],
+  "reply": {
+    "title": "Book club sign-up",
+    "description": "Join our monthly book club.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "About you",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "What is your name?",
+              "type": "short_text",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "Which genres do you enjoy?",
+              "type": "multiple_choice",
+              "properties": {
+                "choices": [
+                  "Fiction",
+                  "History",
+                  "Science"
+                ],
+                "allowMultiple": true
+              }
+            }
+          ]
+        },
+        "sectionTitle": "About you"
+      },
+      {
+        "title": "Final details",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "What is your name",
+              "type": "short_text"
+            },
+            {
+              "title": "How did you hear about us?",
+              "type": "long_text"
+            }
+          ]
+        },
+        "sectionTitle": "Final details"
+      }
+    ]
+  }
+}

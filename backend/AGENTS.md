@@ -432,6 +432,19 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   and policy links are checked (`image_urls.py`, `policy_url.py`).
 - **Logging:** AI paths log error types, counts and ids only, never a prompt,
   a reply, a tool query or an exception message.
+- **Quality evals:** `services/ai/quality.check_form_quality` scores a
+  generated or edited form (why-we-ask, questions per page, section titles,
+  EN/NL language, duplicates, required fields, choices, image hosts, logic
+  references, the Leaflet default) with findings that carry codes and ids,
+  never form text. The synthetic golden replies in `tests/fixtures/ai_evals/`
+  run through the real pipeline (`services/ai/eval_pipeline.py`) in CI; when a
+  prompt change moves a finding on purpose, update the fixture. To measure a
+  prompt change against a provider, run `AI_EVAL_ALLOW_LIVE=1 uv run python -m
+  scripts.ai_eval --live --out <dir outside the repo>` (both the flag and the
+  variable are needed; it sends only the synthetic prompts in `prompts.json`,
+  costs tokens, honours the AI limits unless `--ignore-limits`, and writes
+  `report.json` and `report.md`). Without `--live` it replays the fixtures and
+  never reads `backend/.env`. Never in CI.
 
 ## PDF form import (in progress)
 
