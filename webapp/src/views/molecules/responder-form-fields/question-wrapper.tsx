@@ -17,7 +17,7 @@ import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-fr
 import { isAnswerableField } from '@app/utils/leaflet-sections';
 import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
-import { getPlaceholderValueForTitle } from '../rich-text-editor';
+import { legacyTitleText } from '@app/utils/legacy-title';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
@@ -51,7 +51,10 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // Plain-string titles (groups, AI/MCP-created fields) go through the TipTap
     // path as text nodes — never as raw HTML — so neither the title nor a piped
     // answer or URL prefill can inject markup. Bold keeps the string path's look.
-    const title = typeof field?.title === 'string' && field.title ? stringTitleToDoc(field.title, [{ type: 'bold' }]) : field?.title;
+    // An untitled field shows no title: never the builder's placeholder hint.
+    const legacy = field ? legacyTitleText(field) : undefined;
+    const stringTitle = typeof field?.title === 'string' && field.title ? field.title : legacy;
+    const title = stringTitle ? stringTitleToDoc(stringTitle, [{ type: 'bold' }]) : field?.title;
     const resolvedTitle = resolvePipesInTitle(title, pipeContext);
     const resolvedDescription = resolvePipesInText(field?.description, pipeContext);
     // "Why we ask this": the creator's reason for an identifying question.
@@ -94,7 +97,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                     {/* Labels: weight and contrast carry the hierarchy, not size
                         (ratified 2026-07-08 against the form-redesign mocks). */}
                     <div id={`q-title-${field.id}`} className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
-                        {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
+                        {parse(getHtmlFromJson(resolvedTitle) ?? '')}
                         {isAnswerable && isRequired && (
                             <>
                                 <span aria-hidden="true" style={{ color: requiredMarkColour(theme) }}>
