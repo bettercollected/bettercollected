@@ -148,7 +148,7 @@ describe('a hidden calculation piped into respondent text', () => {
         const calc = field('risk', FieldTypes.CALCULATED, 'Risk', { expression: 1, hiddenFromRespondents: true });
         const slides = [{ id: 'p', index: 0, type: FieldTypes.SLIDE, properties: { fields: [calc, { ...field('q', FieldTypes.SHORT_TEXT, 'Why?'), description: 'Your risk is {{field:risk}}' }] } }] as StandardFormFieldDto[];
         render(<CalculatedFieldSettings field={calc} slides={slides} hiddenNames={[]} onChange={() => {}} />);
-        expect(screen.getByTestId('hidden-piped-warning').textContent).toMatch(/piped into Why\?/);
+        expect(screen.getByTestId('hidden-piped-warning').textContent).toMatch(/piped into the description of question 2 on page 1 \(“Why\?”\)/);
     });
 
     it('is not warned about when nothing pipes it', () => {

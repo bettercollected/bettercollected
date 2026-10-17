@@ -98,19 +98,38 @@ function pipesField(node: unknown, fieldId: string): boolean {
 export function pipedInto(slides: StandardFormFieldDto[] | undefined | null, fieldId: string, endings: Array<{ title?: string; message?: string }> = []): string[] {
     const token = new RegExp(`\\{\\{\\s*field\\s*:\\s*${fieldId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(\\||\\}\\})`);
     const places: string[] = [];
-    const visit = (field: StandardFormFieldDto) => {
+    // Places are named, and a title is shown with its pipes as {Label}: with
+    // the piped value left out it would read oddly.
+    const labels = new Map(pageFields(slides).map((f) => [f.id, fieldLabel(f)]));
+    const visit = (field: StandardFormFieldDto, where: string) => {
         if (!field || field.internal || field.id === fieldId || !isShownToRespondents(field)) return;
         const title = field.title as unknown;
         const inTitle = typeof title === 'string' ? token.test(title) : pipesField(title, fieldId);
-        if (inTitle || (typeof field.description === 'string' && token.test(field.description))) places.push(fieldLabel(field));
-        (field.properties?.fields ?? []).forEach(visit);
+        const inDescription = typeof field.description === 'string' && token.test(field.description);
+        if (inTitle || inDescription) {
+            const text = shorten(titleWithPipes(title, labels).replace(/\s+/g, ' ').trim());
+            places.push(`the ${inTitle ? 'title' : 'description'} of ${where}${text ? ` (“${text}”)` : ''}`);
+        }
+        (field.properties?.fields ?? []).forEach((child, i) => visit(child, `question ${i + 1} of ${where}`));
     };
-    pageFields(slides).forEach(visit);
+    (slides ?? []).forEach((slide, pageIndex) => ((slide?.properties?.fields ?? []) as StandardFormFieldDto[]).forEach((field, i) => visit(field, `question ${i + 1} on page ${pageIndex + 1}`)));
     endings.forEach((ending, i) => {
         if ((ending?.title && token.test(ending.title)) || (ending?.message && token.test(ending.message))) places.push(`the ending${endings.length > 1 ? ` ${i + 1}` : ''}`);
     });
     return places;
 }
+
+/** A title as plain text with its answer pipes written `{Label}`. */
+function titleWithPipes(node: unknown, labels: Map<string, string>): string {
+    if (typeof node === 'string') return node.replace(/\{\{\s*field\s*:\s*([^}|]+?)\s*(\|[^}]*)?\}\}/g, (_m, key) => `{${labels.get(key) ?? key}}`);
+    if (!node || typeof node !== 'object') return '';
+    const item = node as { type?: string; text?: string; attrs?: { pipeKey?: string; label?: string }; content?: unknown[] };
+    if (item.type === 'text' && typeof item.text === 'string') return item.text;
+    if (item.type === 'answerPipe') return `{${labels.get(item.attrs?.pipeKey ?? '') ?? item.attrs?.label ?? item.attrs?.pipeKey ?? ''}}`;
+    return (item.content ?? []).map((child) => titleWithPipes(child, labels)).join(item.type === 'doc' ? ' ' : '');
+}
+
+const shorten = (text: string, max = 60): string => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
 
 /** A field's own title as plain text ('' when untitled). */
 export const fieldTitleText = (field: StandardFormFieldDto): string => (titleText(field.title) || (typeof field.value === 'string' ? field.value : '')).replace(/\s+/g, ' ').trim();

@@ -159,7 +159,25 @@ describe('a hidden calculation piped into text respondents see', () => {
                 field('fine', FieldTypes.SHORT_TEXT, 'No pipe {{field:riskier}}')
             ])
         ];
-        expect(pipedInto(slides, 'risk', [{ message: 'Bye {{ field:risk }}' }])).toEqual(['Score:', 'Other', 'the ending']);
+        expect(pipedInto(slides, 'risk', [{ message: 'Bye {{ field:risk }}' }])).toEqual(['the title of question 3 on page 1 (“Score: {Risk}”)', 'the description of question 4 on page 1 (“Other”)', 'the ending']);
+        // a long title is named, with the pipe written as {Label}, and cut short
+        const margin = calc('margin', 'Internal margin estimate', 1, { hiddenFromRespondents: true });
+        const notes = field('notes', FieldTypes.LONG_TEXT, {
+            type: 'doc',
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        { type: 'text', text: 'Our margin on this order is ' },
+                        { type: 'answerPipe', attrs: { kind: 'field', pipeKey: 'margin' } },
+                        { type: 'text', text: '. Any notes for us?' }
+                    ]
+                }
+            ]
+        } as any);
+        const [place] = pipedInto([page('p', [QTY, margin, notes])], 'margin');
+        expect(place.startsWith('the title of question 3 on page 1 (“Our margin on this order is {Internal margin estimate}.')).toBe(true);
+        expect(place.endsWith('…”)')).toBe(true);
         expect(pipedInto(slides, 'qty')).toEqual([]);
     });
 });
