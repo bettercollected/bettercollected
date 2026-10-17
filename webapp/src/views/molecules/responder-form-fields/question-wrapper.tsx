@@ -189,7 +189,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                         aria-hidden="true"
                         data-testid="question-number"
                         className={cn('text-[16px] leading-[1.4] tabular-nums', numbering?.hang && '@min-[880px]/page:absolute @min-[880px]/page:top-0 @min-[880px]/page:-left-16 @min-[880px]/page:w-12 @min-[880px]/page:text-right')}
-                        style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberColour }}
+                        style={numbering?.plain ? { fontWeight: 600, color: theme?.primary } : { fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberColour }}
                     >
                         {number}
                     </span>

@@ -26,6 +26,7 @@ import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { validateSlide } from '@app/utils/vvalidation-utils';
@@ -192,7 +193,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
           )
         : null;
     const pageFields = section?.openingTextId ? visibleFields.filter((field) => field.id !== section.openingTextId) : visibleFields;
-    const numbering = leaflet ? { numbers: questionNumbers(pageFields, index + 1), hang: leafletNumbersHang(pageLayout) } : null;
+    // Leaflet always numbers its questions; other styles when the form has
+    // question numbering on (utils/question-numbering.ts).
+    const numbering = leaflet
+        ? { numbers: questionNumbers(pageFields, index + 1), hang: leafletNumbersHang(pageLayout) }
+        : formSlide?.properties?.showQuestionNumbers
+          ? { numbers: plainQuestionNumbers(pageFields, index + 1, hasSeveralPages(standardForm?.fields)), hang: false, plain: true }
+          : null;
     const theme = standardForm?.theme;
     const marginVar = numbering ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbering.numbers, index + 1)}px` } as React.CSSProperties) : undefined;
     // The header's words in the action colour where it reads as text on the page.
