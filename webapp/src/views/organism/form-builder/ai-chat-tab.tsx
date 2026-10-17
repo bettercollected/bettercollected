@@ -9,7 +9,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { selectForm, setForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
+import { formStateFromServerForm, useFormState } from '@app/store/jotai/form';
 import { useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
 import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery, useUpdateAIMemorySettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -82,7 +82,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
     const workspace = useAppSelector(selectWorkspace);
     const standardForm: StandardFormDto = useAppSelector(selectForm);
     const { setFormFields } = useFormFieldsAtom();
-    const { setFormState, formState } = useFormState();
+    const { setFormState } = useFormState();
     const [chatEdit, { isLoading }] = useChatEditFormWithAIMutation();
     const [reviewForm, { isLoading: isReviewing }] = useReviewFormWithAIMutation();
     const [applyReviewFix] = useApplyAIReviewFixMutation();
@@ -174,10 +174,16 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
 
     // One canvas-apply path for chat turns and review fixes. deepCopy per
     // store is LOAD-BEARING — see the note in send().
+    //
+    // Copy EVERY part of the returned form the ops engine can change, not
+    // just the fields: autosave PATCHes the whole form from the editor state,
+    // so a theme (or title, description, welcome/ending page) left behind
+    // here is written back over the AI's change by the next save.
     const applyFormToCanvas = (form: any, settings?: any) => {
+        // The one undo step of the turn (only fields are in undo history).
         setFormFields(deepCopy(form.fields ?? []));
-        setFormState({ ...formState, title: form.title ?? formState.title });
-        dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: deepCopy(form.fields ?? []) }));
+        setFormState((prev) => formStateFromServerForm(prev, form));
+        dispatch(setForm({ ...standardForm, ...deepCopy(form), settings: standardForm?.settings }));
         // Settings (purpose/retention/… — the Form tab) live on the
         // workspace-form association; the backend returns them separately.
         if (settings) dispatch(setFormSettings(settings));

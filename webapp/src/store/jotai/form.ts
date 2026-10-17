@@ -3,6 +3,7 @@ import { atom, useAtom } from 'jotai';
 
 import { ThemeColor } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { deepCopy } from '@app/utils/object-utils';
 
 import { useActiveThankYouPageComponent } from './active-builder-component';
 
@@ -69,6 +70,33 @@ export const initialFormState: IFormState = {
     }
 }
 export const formStateAtom = atom<IFormState>(initialFormState);
+
+/**
+ * The editor state with every form-level part of a server form copied in:
+ * title, description, welcome and ending pages, theme, hidden fields and the
+ * logo settings. Used when a whole form comes back from the server mid-edit
+ * (an AI turn, a review fix), because autosave PATCHes the whole form from
+ * this state — anything not copied here is written back over the server's
+ * change. Parts the server form leaves out keep their current value; each
+ * copy is deep, so the editor never shares objects with Redux or the response.
+ */
+export function formStateFromServerForm(prev: IFormState, form: any): IFormState {
+    if (!form) return prev;
+    const take = <K extends keyof IFormState>(key: K, value: any): IFormState[K] => (value === undefined || value === null ? prev[key] : deepCopy(value));
+    return {
+        ...prev,
+        title: take('title', form.title),
+        // null is a real value here: the AI may clear the description.
+        description: form.description === undefined ? prev.description : form.description,
+        welcomePage: take('welcomePage', form.welcomePage),
+        thankyouPage: take('thankyouPage', form.thankyouPage),
+        theme: take('theme', form.theme),
+        hiddenFields: take('hiddenFields', form.hiddenFields),
+        logoPosition: take('logoPosition', form.logoPosition),
+        logoAlt: take('logoAlt', form.logoAlt),
+        useWorkspaceLogo: take('useWorkspaceLogo', form.useWorkspaceLogo)
+    };
+}
 
 /** Immutable update of one thank-you page entry against the CURRENT state. */
 function patchThankYouPage(prev: IFormState, index: number, patch: Partial<NonNullable<IFormState['thankyouPage']>[number]>): IFormState {
