@@ -1829,6 +1829,45 @@
       },
       "Ending": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Stable id that page jumps name. Given when left out."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Short internal name, e.g. Eligible. Respondents never see it."
+          },
+          "isDefault": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isdefault",
+            "description": "Shown after a plain submit. At most one ending."
+          },
           "title": {
             "anyOf": [
               {
@@ -1899,7 +1938,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "Ending",
-        "description": "A page shown after submitting."
+        "description": "A page shown after submitting. A page jump may choose one by its\n``id``; a plain submit shows the default ending (the one with\n``isDefault``, else the first)."
       },
       "Error": {
         "properties": {
@@ -3014,12 +3053,24 @@
               }
             ],
             "title": "Target"
+          },
+          "endingId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endingid",
+            "description": "The id of an ending of this form; only with target \"__SUBMIT__\"."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "PageJump",
-        "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page."
+        "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page. With \"__SUBMIT__\", ``endingId`` names\nthe ending shown after submitting (default: the form's default\nending)."
       },
       "Position": {
         "properties": {

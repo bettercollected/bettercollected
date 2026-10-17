@@ -5,7 +5,10 @@ user preference memory (memory arrives in P1). Compliance is the only block
 that may veto the user's request; everything user-authored is fenced as data.
 """
 
+import copy
 from typing import Optional
+
+from common.models.standard_form import default_ending, with_ending_ids
 
 from backend.app.constants.themes import (
     LEGACY_PRESET_NAMES,
@@ -140,8 +143,18 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   "comparison":"GREATER_THAN_EQUAL","value":2} (number of items), or "groupMode":"ANY"|"ALL"
   with "childFieldId":"<question in the group>" plus comparison/value. There is no
   condition on a specific item position.)
-- {"op":"set_page_jumps","pageId":"...","jumps":[{"operator":"AND","conditions":[...],"target":"<page id or __SUBMIT__>"}]}
-  (branching after a page; first matching jump wins, no match = next page. "jumps":null clears.)
+- {"op":"set_page_jumps","pageId":"...","jumps":[{"operator":"AND","conditions":[...],"target":"<page id or __SUBMIT__>","endingId":"<ending id>"?}]}
+  (branching after a page; first matching jump wins, no match = next page. "jumps":null clears.
+  "__SUBMIT__" submits the form and shows the default ending; add "endingId" to show another
+  ending of the snapshot's "endings" instead, e.g. "eligible" / "not eligible" outcomes.)
+- {"op":"add_ending","name":"Eligible"?,"title":"?","message":"?","buttonText":"?","buttonLink":"https://..."?,"isDefault":true?,"index":0?}
+  (an ending is a page shown after submitting; a form has one or more. "name" is a short
+  internal label respondents never see (at most 60 characters). Add one only when the user
+  wants different endings for different answers, then send people to it with a jump.)
+- {"op":"update_ending","endingId":"...","patch":{"name":"?","title":"?","message":"?","buttonText":"?","buttonLink":"?","isDefault":true?}}
+  ("" clears a text. "isDefault":true makes it the ending shown after a plain submit.)
+- {"op":"remove_ending","endingId":"..."}
+  (never the last ending; jumps that showed it show the default ending instead.)
 - {"op":"duplicate_page","pageId":"...","index":0?} (clones a page with all fields, fresh ids)
 - {"op":"set_section_title","pageId":"...","title":"About your visit"}
   (or "pageIndex": the page's "index" from the snapshot instead of "pageId". Names the
@@ -170,11 +183,11 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   ground; keep text readable on the ground. Never invent a background image URL.)
 
 References to things you create in the same reply: add_page, add_field, add_group and
-duplicate_page (and each field inside add_page / add_group "fields") may carry
+duplicate_page, add_ending (and each field inside add_page / add_group "fields") may carry
 "ref":"<short name>" (letters, digits, "_", "-", "."; unique within the reply). A later op
 in the same reply uses "$ref:<short name>" wherever it needs that page or field id —
 pageId, fieldId, groupId, afterFieldId, toPageId, toGroupId, a condition's fieldId or
-childFieldId, a jump's target. Ops run in order, so define a ref before using it. E.g.:
+childFieldId, a jump's target or endingId, an ending's endingId. Ops run in order, so define a ref before using it. E.g.:
 [{"op":"add_page","ref":"pets","fields":[{"title":"Do you have pets?","type":"yes_no","ref":"has_pets"}]},
  {"op":"add_field","pageId":"$ref:pets","ref":"pet_names","field":{"title":"Their names","type":"short_text"}},
  {"op":"set_field_logic","fieldId":"$ref:pet_names","logic":{"action":"SHOW","conditions":[{"fieldId":"$ref:has_pets","comparison":"IS_EQUAL","value":"Yes"}]}}]
@@ -294,6 +307,7 @@ def project_form(form, settings=None) -> str:
                 {
                     "operator": j.operator,
                     "target": j.target,
+                    **({"endingId": j.ending_id} if j.ending_id else {}),
                     "conditions": [
                         _project_condition(c)
                         for c in (j.conditions or [])
@@ -303,6 +317,23 @@ def project_form(form, settings=None) -> str:
             ]
         pages.append(page_entry)
     snapshot = {"title": form.title, "description": form.description, "pages": pages}
+    endings = with_ending_ids(copy.deepcopy(list(getattr(form, "thankyou_page", None) or [])))
+    if endings:
+        default_id = default_ending(endings).id
+        snapshot["endings"] = [
+            {
+                key: value
+                for key, value in (
+                    ("endingId", e.id),
+                    ("name", e.name),
+                    ("title", e.title),
+                    ("message", e.message),
+                    ("isDefault", True if e.id == default_id else None),
+                )
+                if value
+            }
+            for e in endings
+        ]
     theme = getattr(form, "theme", None)
     if theme is not None:
         # Which look the form has (preset name and style), never its colours.

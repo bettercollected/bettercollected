@@ -54,6 +54,10 @@ from common.models.standard_form import (
     StandardFormField,
     StandardFormFieldType,
     Theme,
+    ThankYouPageField,
+    ENDING_NAME_MAX_LENGTH,
+    ending_by_id,
+    with_ending_ids,
     date_rule_problems,
     prune_date_rules,
     SECTION_TITLE_MAX_LENGTH,
@@ -68,7 +72,7 @@ from backend.app.constants.themes import (
 )
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
-from backend.app.services.policy_url import checked_policy_url
+from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from pydantic.alias_generators import to_camel
 
 
@@ -126,6 +130,7 @@ REF_ID_KEYS = frozenset(
         "to_group_id",
         "child_field_id",
         "target",
+        "ending_id",
     }
 )
 _RefName = Annotated[Optional[str], Field(None, pattern=REF_PATTERN)]
@@ -374,6 +379,8 @@ class PageJumpSpec(_CamelModel):
     operator: Literal["AND", "OR"] = "AND"
     conditions: List[LogicConditionSpec] = Field(..., min_length=1)
     target: str  # a page id, or JUMP_TARGET_SUBMIT
+    # With JUMP_TARGET_SUBMIT: the ending shown (default: the form's default)
+    ending_id: Optional[str] = None
 
 
 class SetPageJumpsOp(_CamelModel):
@@ -453,6 +460,50 @@ class SetSectionTitleOp(_CamelModel):
     title: Optional[str] = None
 
 
+# ---------------------------------------------------------------------------
+# Endings: the pages shown after submitting (add_ending / update_ending /
+# remove_ending). A form keeps at least one; a page jump to "submit" may
+# choose one by id (``endingId``), otherwise respondents see the default
+# ending (the one marked ``isDefault``, else the first).
+# ---------------------------------------------------------------------------
+
+
+class EndingPatch(_CamelModel):
+    """What add_ending / update_ending set. ``""`` clears a text; the name
+    and the link are checked when the op is applied, so one bad value fails
+    alone."""
+
+    name: Optional[str] = None
+    title: Optional[str] = None
+    message: Optional[str] = None
+    button_text: Optional[str] = None
+    button_link: Optional[str] = None
+    layout: Optional[LayoutType] = None
+    # true makes it the default ending (the others stop being it); false
+    # leaves the first ending as the default
+    is_default: Optional[bool] = None
+
+
+class AddEndingOp(EndingPatch):
+    op: Literal["add_ending"] = "add_ending"
+    index: Optional[int] = None  # default: append
+    ref: _RefName = None
+
+
+class UpdateEndingOp(_CamelModel):
+    op: Literal["update_ending"] = "update_ending"
+    ending_id: str
+    patch: EndingPatch
+
+
+class RemoveEndingOp(_CamelModel):
+    """Remove an ending (never the last one). Jumps that chose it show the
+    default ending instead."""
+
+    op: Literal["remove_ending"] = "remove_ending"
+    ending_id: str
+
+
 FormOp = Annotated[
     Union[
         AddFieldOp,
@@ -473,6 +524,10 @@ FormOp = Annotated[
         MovePageOp,
         SetFieldValidationOp,
         SetQuestionNumberingOp,
+        # endings
+        AddEndingOp,
+        UpdateEndingOp,
+        RemoveEndingOp,
     ],
     Field(discriminator="op"),
 ]
@@ -1189,8 +1244,9 @@ def _apply_set_page_jumps(form: StandardForm, op: SetPageJumpsOp) -> str:
             target_page = _find_page(form, spec.target)  # raises if unknown
             if target_page.id == op.page_id:
                 raise OpError("A page cannot jump to itself.")
+        _check_jump_ending(form, spec)
         jumps.append(
-            PageJump(operator=spec.operator, conditions=_validated_conditions(form, spec.conditions), target=spec.target)
+            PageJump(operator=spec.operator, conditions=_validated_conditions(form, spec.conditions), target=spec.target, ending_id=spec.ending_id)
         )
     page.properties.jumps = jumps
     return f"Set {len(jumps)} jump rule(s) on page '{op.page_id}'"
@@ -1477,6 +1533,125 @@ def _apply_set_question_numbering(form: StandardForm, op: SetQuestionNumberingOp
     return f"Turned question numbers {'on' if op.show else 'off'} for {where}"
 
 
+# --- endings ---------------------------------------------------------------
+
+
+def _endings(form: StandardForm) -> List[ThankYouPageField]:
+    if form.thankyou_page is None:
+        form.thankyou_page = []
+    with_ending_ids(form.thankyou_page)
+    return form.thankyou_page
+
+
+def _find_ending(form: StandardForm, ending_id: str) -> ThankYouPageField:
+    ending = ending_by_id(_endings(form), ending_id)
+    if ending is None:
+        raise OpError(f"Ending '{ending_id}' not found.")
+    return ending
+
+
+def _ending_label(ending: ThankYouPageField) -> str:
+    return ending.name or ending.title or ending.id
+
+
+def _check_jump_ending(form: StandardForm, spec: "PageJumpSpec") -> None:
+    if spec.ending_id is None:
+        return
+    if spec.target != JUMP_TARGET_SUBMIT:
+        raise OpError(
+            f'A jump chooses an ending only with target "{JUMP_TARGET_SUBMIT}".'
+        )
+    _find_ending(form, spec.ending_id)
+
+
+def _patch_ending(
+    form: StandardForm, ending: ThankYouPageField, patch: EndingPatch
+) -> List[str]:
+    changed: List[str] = []
+    if patch.name is not None:
+        name = patch.name.strip()
+        if len(name) > ENDING_NAME_MAX_LENGTH:
+            raise OpError(
+                f"An ending's name can be at most {ENDING_NAME_MAX_LENGTH} characters."
+            )
+        ending.name = name or None
+        changed.append("name")
+    texts = (("title", "title"), ("message", "message"), ("button_text", "buttonText"))
+    for key, attr in texts:
+        value = getattr(patch, key)
+        if value is not None:
+            setattr(ending, attr, value or None)
+            changed.append(key)
+    if patch.button_link is not None:
+        try:
+            link = checked_button_link(patch.button_link)
+        except ValueError as error:
+            raise OpError(str(error))
+        ending.buttonLink = link or None
+        changed.append("button_link")
+    if patch.layout is not None:
+        ending.layout = patch.layout
+        changed.append("layout")
+    if patch.is_default is not None:
+        for other in _endings(form):
+            other.isDefault = None
+        if patch.is_default:
+            ending.isDefault = True
+        changed.append("is_default")
+    return changed
+
+
+def _apply_add_ending(form: StandardForm, op: AddEndingOp) -> str:
+    endings = _endings(form)
+    ending = ThankYouPageField(
+        id=str(uuid.uuid4()), layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND
+    )
+    _patch_ending(form, ending, op)
+    if op.index is None:
+        endings.append(ending)
+    else:
+        endings.insert(max(0, min(op.index, len(endings))), ending)
+    _note_created(ending.id)
+    return f"Added the ending '{_ending_label(ending)}'"
+
+
+def _apply_update_ending(form: StandardForm, op: UpdateEndingOp) -> str:
+    ending = _find_ending(form, op.ending_id)
+    changed = _patch_ending(form, ending, op.patch)
+    if not changed:
+        return f"Nothing to change on the ending '{_ending_label(ending)}'"
+    return f"Updated the ending '{_ending_label(ending)}' ({', '.join(changed)})"
+
+
+def jumps_to_ending(form: StandardForm, ending_id: str) -> List[PageJump]:
+    """The page jumps that choose this ending."""
+    return [
+        jump
+        for page in _pages(form)
+        for jump in ((page.properties.jumps if page.properties else None) or [])
+        if jump.ending_id == ending_id
+    ]
+
+
+def _apply_remove_ending(form: StandardForm, op: RemoveEndingOp) -> str:
+    endings = _endings(form)
+    ending = _find_ending(form, op.ending_id)
+    if len(endings) <= 1:
+        raise OpError("A form keeps at least one ending; change this one instead.")
+    endings.remove(ending)
+    # Its jumps still submit; they lose the ending, so respondents see the
+    # default ending instead.
+    jumps = jumps_to_ending(form, op.ending_id)
+    for jump in jumps:
+        jump.ending_id = None
+    note = (
+        f"; {len(jumps)} jump(s) that went to it now show the default ending"
+        if jumps
+        else ""
+    )
+    return f"Removed the ending '{_ending_label(ending)}'{note}"
+
+
 _HANDLERS = {
     "add_field": _apply_add_field,
     "add_group": _apply_add_group,
@@ -1496,6 +1671,10 @@ _HANDLERS = {
     "move_page": _apply_move_page,
     "set_field_validation": _apply_set_field_validation,
     "set_question_numbering": _apply_set_question_numbering,
+    # endings
+    "add_ending": _apply_add_ending,
+    "update_ending": _apply_update_ending,
+    "remove_ending": _apply_remove_ending,
 }
 OP_NAMES = frozenset(_HANDLERS)
 
