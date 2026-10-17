@@ -5,6 +5,7 @@ import { use, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
+import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -87,16 +88,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
 
     const canvasScale = canvasZoom === 'full' ? 1 : fitScale;
 
-    // Esc deselects the active field — the drawer otherwise traps you until
-    // you discover that clicking empty canvas goes back.
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setActiveFieldComponent(null);
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // Esc goes up one inspector level (question → page → form), unless a
+    // popover, menu or dialog handles it.
+    useInspectorEscape();
 
     useEffect(() => {
         return () => {

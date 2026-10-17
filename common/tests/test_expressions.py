@@ -5,6 +5,7 @@ vitest suite, so both implementations are held to the same results.
 """
 
 import json
+import time
 from decimal import Decimal
 from pathlib import Path
 
@@ -48,10 +49,26 @@ def test_corpus_is_large_enough():
     assert len({case["name"] for case in CASES}) == len(CASES)
 
 
+def _build(spec):
+    """Expand a corpus ``repeat`` spec into a value."""
+    if isinstance(spec, dict) and "text" in spec:
+        return spec["text"] * spec["times"]
+    if isinstance(spec, dict) and "list" in spec:
+        return [_build(spec["list"]) for _ in range(spec["times"])]
+    return spec
+
+
+def _vars(case):
+    variables = dict(case.get("vars", {}))
+    for key, spec in case.get("repeat", {}).items():
+        variables[key] = _build(spec)
+    return variables
+
+
 @pytest.mark.parametrize("case", CASES, ids=[case["name"] for case in CASES])
 def test_corpus_case(case):
     run = lambda: evaluate_expression(  # noqa: E731
-        case["ast"], case.get("vars", {}), case.get("context", {})
+        case["ast"], _vars(case), case.get("context", {})
     )
     if "error" in case:
         with pytest.raises(ExpressionError) as info:
@@ -126,3 +143,33 @@ def test_error_message_is_neutral_and_has_path():
     assert info.value.code == "arity"
     assert info.value.path == "/round"
     assert "round" in str(info.value)
+
+
+def test_input_caps():
+    assert evaluate_expression({"var": "s"}, {"s": "a" * 10001}) is None
+    assert evaluate_expression({"var": "xs"}, {"xs": ("a",) * 1001}) is None
+    assert evaluate_expression({"var": "xs"}, {"xs": ["a" * 10001, "b"]}) == [
+        None,
+        "b",
+    ]
+
+
+def test_numeric_text_with_long_whitespace_runs():
+    padding = " " * 4999
+    assert evaluate_expression(
+        {"+": [{"var": "s"}, 1]}, {"s": f"{padding}2{padding}"}
+    ) == Decimal(3)
+    assert evaluate_expression({"+": [{"var": "s"}, 1]}, {"s": " " * 10000}) is None
+
+
+@pytest.mark.parametrize("size", [10000, 1000])
+def test_large_list_referenced_many_times_is_fast(size):
+    """A large list referenced ~500 times: over-cap input is dropped once and
+    each variable is normalised once per evaluation."""
+    ast = {"count": [{"var": "xs"} for _ in range(499)]}
+    xs = list(range(size))
+    started = time.perf_counter()
+    result = evaluate_expression(ast, {"xs": xs})
+    elapsed = time.perf_counter() - started
+    assert result == (Decimal(0) if size > 1000 else Decimal(499 * size))
+    assert elapsed < 0.5

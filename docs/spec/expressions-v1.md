@@ -10,6 +10,9 @@ readable formula. This document is the contract for both implementations:
 Both run the conformance corpus [`expressions-v1.cases.json`](expressions-v1.cases.json). A change
 to behaviour changes the corpus first.
 
+Servers must recompute every result they store or act on with the Python evaluator and never trust
+a result computed by a client.
+
 ## AST
 
 A node is one of:
@@ -42,6 +45,16 @@ the map is `null`. Only the map's own keys count (`constructor`, `__proto__` and
 Variable values are normalised on the way in: `null`/missing, booleans and strings are kept;
 numbers become decimals (see Numbers; non-finite or out-of-range numbers become `null`); a list
 keeps its items, with nested lists and objects becoming `null` items; any other value is `null`.
+
+Input values are capped, and an over-cap value becomes `null` (never truncated, so a result is
+never computed from part of an answer):
+
+- a string over **10,000** code points is `null` (as a list item, that item is `null`);
+- a list over **1000** items is `null` (repeating groups allow far fewer items, and multi-select
+  answers stay well below this);
+- nesting is at most one list level: nested lists and objects are `null` items, as above.
+
+Each variable is normalised once per evaluation, however often the expression references it.
 
 ## Values and coercion
 
@@ -135,6 +148,7 @@ never instants. The evaluator never reads a clock: `today` comes from the contex
 
 - At most **32** levels deep (the root is level 1) and **500** nodes (every literal and operator
   node counts).
+- Variable values are capped on the way in (see Variables).
 - String literals and string results are at most **1000** code points. Results of `concat`,
   `lower`, `upper` and a string returned by the expression are cut to 1000 code points.
 - No loops, recursion, network, clock or user-defined functions.

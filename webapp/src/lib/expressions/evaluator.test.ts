@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 import { ExpressionError } from '@app/lib/expressions/ast';
-import { ExprValue, evaluateExpression, formatExpressionValue } from '@app/lib/expressions/evaluator';
+import { ExprValue, asciiTrim, evaluateExpression, formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { isValidExpression, validateExpression } from '@app/lib/expressions/validator';
 
 /**
@@ -14,6 +14,7 @@ interface Case {
     name: string;
     ast: unknown;
     vars?: Record<string, unknown>;
+    repeat?: Record<string, unknown>;
     context?: { today?: string };
     expected?: ExprValue;
     error?: string;
@@ -23,6 +24,25 @@ const corpus = JSON.parse(readFileSync(resolve(__dirname, '../../../../docs/spec
 
 const CASES = corpus.cases;
 
+/** Expands a corpus `repeat` spec into a value. */
+function build(spec: unknown): unknown {
+    if (spec && typeof spec === 'object' && 'text' in spec) {
+        const { text, times } = spec as { text: string; times: number };
+        return text.repeat(times);
+    }
+    if (spec && typeof spec === 'object' && 'list' in spec) {
+        const { list, times } = spec as { list: unknown; times: number };
+        return Array.from({ length: times }, () => build(list));
+    }
+    return spec;
+}
+
+function varsOf(testCase: Case): Record<string, unknown> {
+    const variables: Record<string, unknown> = { ...(testCase.vars ?? {}) };
+    for (const [key, spec] of Object.entries(testCase.repeat ?? {})) variables[key] = build(spec);
+    return variables;
+}
+
 describe('expressions corpus', () => {
     it('has at least 150 uniquely named cases', () => {
         expect(CASES.length).toBeGreaterThanOrEqual(150);
@@ -30,7 +50,7 @@ describe('expressions corpus', () => {
     });
 
     it.each(CASES.map((c) => [c.name, c] as const))('%s', (_name, testCase) => {
-        const run = () => evaluateExpression(testCase.ast, testCase.vars ?? {}, testCase.context ?? {});
+        const run = () => evaluateExpression(testCase.ast, varsOf(testCase), testCase.context ?? {});
         if (testCase.error) {
             expect(run).toThrow(ExpressionError);
             try {
@@ -63,10 +83,50 @@ describe('evaluateExpression', () => {
         expect(evaluateExpression({ var: 'inherited' }, variables)).toBeNull();
     });
 
+    it('caps input values', () => {
+        expect(evaluateExpression({ var: 's' }, { s: 'a'.repeat(10001) })).toBeNull();
+        expect(evaluateExpression({ var: 'xs' }, { xs: new Array(1001).fill('a') })).toBeNull();
+        expect(evaluateExpression({ var: 'xs' }, { xs: ['a'.repeat(10001), 'b'] })).toEqual([null, 'b']);
+    });
+
+    it.each([10000, 1000])('evaluates a %i-item list referenced 499 times quickly', (size) => {
+        const ast = { count: Array.from({ length: 499 }, () => ({ var: 'xs' })) };
+        const xs = Array.from({ length: size }, (_, i) => i);
+        const started = performance.now();
+        const result = evaluateExpression(ast, { xs });
+        const elapsed = performance.now() - started;
+        expect(result).toBe(size > 1000 ? 0 : 499 * size);
+        expect(elapsed).toBeLessThan(500);
+    });
+
+    it('reads numeric text with long whitespace runs', () => {
+        const padding = ' '.repeat(4999);
+        expect(evaluateExpression({ '+': [{ var: 's' }, 1] }, { s: `${padding}2${padding}` })).toBe(3);
+        expect(evaluateExpression({ '+': [{ var: 's' }, 1] }, { s: ' '.repeat(10000) })).toBeNull();
+    });
+
     it('rejects a deeply nested AST without overflowing the stack', () => {
         let node: unknown = 1;
         for (let i = 0; i < 100000; i++) node = { '-': [node] };
         expect(() => evaluateExpression(node)).toThrow(ExpressionError);
+    });
+});
+
+describe('asciiTrim', () => {
+    it('trims only ASCII whitespace', () => {
+        expect(asciiTrim(' \t\n\r 1.5 \r\n')).toBe('1.5');
+        expect(asciiTrim('\u00a01\u00a0')).toBe('\u00a01\u00a0');
+        expect(asciiTrim('')).toBe('');
+        expect(asciiTrim('   ')).toBe('');
+    });
+
+    it('is linear on a 100k-space string', () => {
+        const spaces = ' '.repeat(100000);
+        const started = performance.now();
+        expect(asciiTrim(`${spaces}x${spaces}`)).toBe('x');
+        expect(asciiTrim(`${spaces}x ${spaces}y`)).toBe(`x ${spaces}y`);
+        expect(asciiTrim(spaces)).toBe('');
+        expect(performance.now() - started).toBeLessThan(100);
     });
 });
 

@@ -102,7 +102,8 @@ def test_ai_eval_prompts_cover_languages_lengths_and_theme_requests():
     assert all("base_form" in p for p in prompts if p["kind"] == "chat")
 
 
-def test_ai_eval_prompts_file_is_validated(tmp_path):
+def test_ai_eval_prompts_file_is_validated(tmp_path, monkeypatch):
+    monkeypatch.setattr(ai_eval, "FIXTURES", tmp_path)
     bad = tmp_path / "prompts.json"
     bad.write_text(json.dumps({"prompts": [{"name": "a", "kind": "chat", "prompt": "x"}]}))
     with pytest.raises(ai_eval.EvalError):
@@ -112,6 +113,55 @@ def test_ai_eval_prompts_file_is_validated(tmp_path):
     )
     with pytest.raises(ai_eval.EvalError):
         ai_eval.load_prompts(bad)
+
+
+def test_ai_eval_prompts_must_be_inside_the_fixtures(tmp_path):
+    outside = tmp_path / "prompts.json"
+    outside.write_text(ai_eval.DEFAULT_PROMPTS.read_text(encoding="utf-8"))
+    traversal = ai_eval.FIXTURES / ".." / ".." / ".." / "pyproject.toml"
+    for path in (outside, traversal, ai_eval.FIXTURES, ai_eval.FIXTURES / "missing.json"):
+        with pytest.raises(ai_eval.EvalError):
+            ai_eval.prompts_path(str(path))
+        with pytest.raises(ai_eval.EvalError):
+            ai_eval.load_prompts(path)
+    assert ai_eval.prompts_path(str(ai_eval.DEFAULT_PROMPTS)) == (
+        ai_eval.DEFAULT_PROMPTS.resolve()
+    )
+
+
+def test_ai_eval_prompts_symlink_out_of_the_fixtures_is_refused(tmp_path, monkeypatch):
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    secret = tmp_path / "elsewhere.json"
+    secret.write_text(json.dumps({"prompts": []}))
+    (fixtures / "link.json").symlink_to(secret)
+    (fixtures / "real.json").write_text(json.dumps({"prompts": []}))
+    monkeypatch.setattr(ai_eval, "FIXTURES", fixtures)
+    with pytest.raises(ai_eval.EvalError):
+        ai_eval.prompts_path(str(fixtures / "link.json"))
+    assert ai_eval.prompts_path(str(fixtures / "real.json")) == (fixtures / "real.json").resolve()
+
+
+@pytest.mark.parametrize("live", [False, True])
+def test_ai_eval_main_refuses_prompts_outside_the_fixtures(tmp_path, monkeypatch, live):
+    monkeypatch.setenv(ai_eval.ALLOW_LIVE_ENV, "1")
+
+    def no_provider(*_):
+        raise AssertionError("a provider was built")
+
+    monkeypatch.setattr(ai_eval, "_provider", no_provider)
+    outside = tmp_path / "prompts.json"
+    outside.write_text(ai_eval.DEFAULT_PROMPTS.read_text(encoding="utf-8"))
+    out = tmp_path / "report"
+    argv = ["--out", str(out), "--prompts", str(outside)] + (["--live"] if live else [])
+    assert ai_eval.main(argv) == 2
+    assert not out.exists()
+
+
+def test_ai_eval_help_warns_against_live_runs_on_production(capsys):
+    with pytest.raises(SystemExit):
+        ai_eval.parse_args(["--help"])
+    assert "Never run --live on a production host." in capsys.readouterr().out
 
 
 class _FakeProvider:

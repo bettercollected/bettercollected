@@ -1,232 +1,211 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useId, useState } from 'react';
 
+import { formFieldsList } from '@app/constants/form-fields';
 import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
-import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useActiveFieldComponent } from '@app/store/jotai/active-builder-component';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import { formFieldsList } from '@app/constants/form-fields';
-import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
-import { canBeInternal } from '@app/utils/internal-fields';
-import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
-import { isRepeatingGroup } from '@app/utils/repeating-groups';
-import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
+import { answerRuleKind } from '@app/utils/answer-rules';
 import { getDateRuleSources } from '@app/utils/date-rules';
-import { asksForIdentity, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
+import { canBeInternal } from '@app/utils/internal-fields';
+import { WHY_WE_ASK_MAX_LENGTH, asksForIdentity } from '@app/utils/publish-checks';
+import { isRepeatingGroup } from '@app/utils/repeating-groups';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import AnswerRulesSettings from '@app/views/molecules/form-builder/answer-rules-settings';
+import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
+import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
+import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
+import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
 
 // Field types that show content and collect no answer.
 const DISPLAY_ONLY_FIELD_TYPES: Array<string | null | undefined> = [FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT, FieldTypes.GROUP];
 
+// Field types that take no field image.
+const NON_IMAGE_FIELD_TYPES: Array<string | null | undefined> = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT, FieldTypes.GROUP];
+
+// 12-column grid: Full = 12, 1/2 = 6, … adjacent fields whose spans fit
+// share a row on desktop; mobile always stacks.
+const WIDTH_OPTIONS = [
+    { label: 'Full', name: 'Full width', span: 12 },
+    { label: '2/3', name: 'Two thirds', span: 8 },
+    { label: '1/2', name: 'Half', span: 6 },
+    { label: '1/3', name: 'One third', span: 4 },
+    { label: '1/4', name: 'One quarter', span: 3 }
+] as const;
+
+// Settings components that draw their own top rule: inside a section the
+// section's heading separates them already.
+const NO_OWN_RULE = '[&>div]:border-t-0 [&>div]:pt-0';
+
+/**
+ * The selected question's settings in the inspector, in groups: Basics,
+ * Answer rules, Privacy, Logic and Appearance. The breadcrumb above
+ * (properties-drawer.tsx) leads back to the page and the form.
+ */
 export default function FieldSettings() {
-    const { setActiveFieldComponent } = useActiveFieldComponent();
-    const { formFields, updateFieldRequired, updateFieldInternal, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
+    const { formFields, updateFieldRequired, updateFieldInternal, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField, updateFieldValidations } =
+        useFormFieldsAtom();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
-
-    useEffect(() => {
+    const baseId = useId();
+    // Another question selected (or the steps changed elsewhere): show its steps.
+    const [shownSteps, setShownSteps] = useState(activeField?.properties?.steps);
+    if (shownSteps !== activeField?.properties?.steps) {
+        setShownSteps(activeField?.properties?.steps);
         setStepValue(activeField?.properties?.steps);
-    }, [activeField?.properties?.steps]);
+    }
+
+    // The selection can point past the page's questions (e.g. right after a
+    // delete): every setting below writes to activeField, so show none (the
+    // breadcrumb above still leads back).
+    if (!activeField || !activeSlide) {
+        return <p className="px-4 py-6 text-xs text-black-600">This question is no longer on the page.</p>;
+    }
+
+    const field = activeField;
+    const slide = activeSlide;
 
     const handleStepsChange = (e: any) => {
         setErrorMsg('');
         if (e.target.value <= 0 || e.target.value >= 50) {
             setErrorMsg('Value cant be less than 1 or greater than 50.');
         } else {
-            updateRatingSteps(activeSlide!.index, activeField!.index, e.target.value, activeField?.type);
+            updateRatingSteps(slide.index, field.index, e.target.value, field.type);
         }
         setStepValue(e.target.value);
     };
 
-    const NonImageFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT, FieldTypes.GROUP];
-
-    function getImageValue(checked: boolean): string {
-        if (checked) {
-            return activeField?.imageUrl ? activeField!.imageUrl : globalConstants.defaultFieldImage;
-        } else return '';
-    }
-
-    // The selection can point past the page's questions (e.g. right after a
-    // delete): every setting below writes to activeField, so show none.
-    if (!activeField || !activeSlide) {
-        return (
-            <div className="flex flex-col gap-4 px-4 py-6">
-                <button type="button" onClick={() => setActiveFieldComponent(null)} className="text-black-600 hover:text-black-900 -mb-1 flex w-fit items-center gap-1 text-xs font-medium">
-                    ‹ Back to page
-                </button>
-            </div>
-        );
-    }
+    const typeName = formFieldsList.find((f) => f.type === field.type)?.name ?? field.type?.replaceAll('_', ' ').toLowerCase();
+    const title = extractTextfromJSON(field);
+    const isChoice = field.type === FieldTypes.MULTIPLE_CHOICE || field.type === FieldTypes.MATRIX;
+    const isRating = field.type === FieldTypes.LINEAR_RATING || field.type === FieldTypes.RATING;
+    // Content with nothing to answer can't be required (a dead end at
+    // publish); the switch stays while it is on, so it can be turned off.
+    const showRequired = field.type !== FieldTypes.TEXT && !isRepeatingGroup(field) && (!DISPLAY_ONLY_FIELD_TYPES.includes(field.type) || !!field.validations?.required);
+    const ruleKind = answerRuleKind(field);
+    const showWhyWeAsk = !field.internal && (asksForIdentity(field) || !!field.properties?.whyWeAsk);
+    const colSpan = Math.min(12, Math.max(1, field.properties?.colSpan ?? 12));
+    const stepsId = `${baseId}-steps`;
+    const widthId = `${baseId}-width`;
 
     return (
-        <div className="flex flex-col gap-4 px-4 py-6">
-            {/* The drawer replaces the Page/Design tabs while a field is
-                selected — give people an explicit way back (Esc also works). */}
-            <button type="button" onClick={() => setActiveFieldComponent(null)} className="text-black-600 hover:text-black-900 -mb-1 flex w-fit items-center gap-1 text-xs font-medium">
-                ‹ Back to page
-            </button>
-            <div className="flex flex-col gap-1.5">
-                <div className="text-black-800 truncate text-sm font-semibold" title={activeField ? extractTextfromJSON(activeField) : ''}>
-                    {activeField ? extractTextfromJSON(activeField) : ''}
+        <div className="flex flex-col">
+            <div className="flex flex-col gap-1.5 px-4 pt-4">
+                <div className="truncate text-sm font-semibold text-black-800" title={title}>
+                    {title || 'Untitled question'}
                 </div>
-                {activeField?.type && (
-                    <span className="bg-black-100 text-black-600 w-fit rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-                        {formFieldsList.find((f) => f.type === activeField.type)?.name ?? activeField.type.replaceAll('_', ' ').toLowerCase()}
-                    </span>
+                {field.type && <span className="w-fit rounded bg-black-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black-600 uppercase">{typeName}</span>}
+            </div>
+
+            <InspectorSection title="Basics">
+                <SettingSwitch label="Description" checked={field.description !== undefined && field.description !== null} onCheckedChange={(checked) => updateDescription(field.index, slide.index, checked ? '' : undefined)} />
+                {showRequired && (
+                    <SettingSwitch label={field.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'} checked={!!field.validations?.required} onCheckedChange={(checked) => updateFieldRequired(field.index, slide.index, checked)} />
                 )}
-            </div>
-            <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Settings</div>
-            <div className="flex w-full flex-col gap-1.5">
-                <div className="text-black-700 text-xs">Width</div>
-                {/* 12-column grid: Full = 12, 1/2 = 6, … — adjacent fields whose
-                    spans fit share a row on desktop; mobile always stacks. */}
-                <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label="Field width">
-                    {(
-                        [
-                            { label: 'Full', span: 12 },
-                            { label: '2/3', span: 8 },
-                            { label: '1/2', span: 6 },
-                            { label: '1/3', span: 4 },
-                            { label: '1/4', span: 3 }
-                        ] as const
-                    ).map((option) => {
-                        const current = Math.min(12, Math.max(1, activeField?.properties?.colSpan ?? 12));
-                        const selected = current === option.span;
-                        return (
-                            <button
-                                key={option.span}
-                                type="button"
-                                aria-pressed={selected}
-                                onClick={() => updateFieldColSpan(activeField!.index, activeSlide!.index, option.span)}
-                                className={`flex-1 px-1 py-1.5 text-[11px] font-medium transition-colors ${selected ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white'}`}
-                            >
-                                {option.label}
-                            </button>
-                        );
-                    })}
-                </div>
-                <p className="text-black-600 text-[11px] leading-relaxed">Fields that fit side by side share a row. Phones always stack.</p>
-            </div>
-            <div className="flex w-full items-center justify-between">
-                <div className="text-black-700 text-xs">Description</div>
-                <Switch
-                    checked={activeField?.description !== undefined && activeField?.description !== null}
-                    onCheckedChange={(checked) => {
-                        updateDescription(activeField!.index, activeSlide!.index, checked ? '' : undefined);
-                    }}
-                />
-            </div>
-            {activeField && activeSlide && !activeField.internal && (asksForIdentity(activeField) || !!activeField.properties?.whyWeAsk) && (
-                <WhyWeAskSetting value={activeField.properties?.whyWeAsk ?? ''} required={asksForIdentity(activeField)} onChange={(value) => updateFieldProperty(activeField.index, activeSlide.index, 'whyWeAsk', value)} />
-            )}
-            {/* Content with nothing to answer can't be required (a dead end at
-                publish); the switch stays while it is on, so it can be turned off. */}
-            {activeField?.type !== FieldTypes.TEXT && !isRepeatingGroup(activeField) && (!DISPLAY_ONLY_FIELD_TYPES.includes(activeField?.type) || !!activeField?.validations?.required) && (
-                <div className="flex w-full items-center justify-between">
-                    <div className="text-black-700 text-xs mr-4">{activeField?.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'}</div>
-                    <Switch
-                        checked={activeField?.validations?.required || false}
+                {field.type === FieldTypes.MULTIPLE_CHOICE && <SettingSwitch label="“Other” option" checked={!!field.properties?.allowOtherChoice} onCheckedChange={(checked) => updateFieldProperty(field.index, slide.index, 'allowOtherChoice', checked)} />}
+                {isChoice && (
+                    <SettingSwitch
+                        label="Multiple selection"
+                        checked={!!field.properties?.allowMultipleSelection}
                         onCheckedChange={(checked) => {
-                            updateFieldRequired(activeField!.index, activeSlide!.index, checked);
+                            if (field.type === FieldTypes.MATRIX) updateAllowMultipleSelectionMatrixField(checked);
+                            else updateFieldProperty(field.index, slide.index, 'allowMultipleSelection', checked);
                         }}
                     />
-                </div>
-            )}
-            {canBeInternal(activeField) && (
-                <div className="flex w-full flex-col gap-1">
-                    <div className="flex w-full items-center justify-between">
-                        <div className="text-black-700 mr-4 text-xs">Internal (staff only)</div>
-                        <Switch
-                            aria-label="Internal field, filled in by your team"
-                            checked={!!activeField?.internal}
-                            onCheckedChange={(checked) => {
-                                updateFieldInternal(activeField!.index, activeSlide!.index, checked);
-                            }}
-                        />
+                )}
+                {isRating && (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex flex-row items-center justify-between text-xs">
+                            <label htmlFor={stepsId} className="text-black-700">
+                                Steps
+                            </label>
+                            <input
+                                id={stepsId}
+                                type="number"
+                                value={stepValue ?? ''}
+                                onChange={(e) => handleStepsChange(e)}
+                                aria-invalid={!!errorMsg || undefined}
+                                aria-describedby={errorMsg ? `${stepsId}-error` : undefined}
+                                className="h-8 w-14 rounded border border-control p-0 px-2 text-center text-sm focus:border-brand-500"
+                            />
+                        </div>
+                        {errorMsg && (
+                            <span id={`${stepsId}-error`} className="text-xs text-[#C43D3D]">
+                                {errorMsg}
+                            </span>
+                        )}
                     </div>
-                    <p className="text-black-600 text-[11px] leading-relaxed">
-                        {activeField?.internal
-                            ? 'Respondents never see this field. Your team fills it in on each response. Required applies to your team, not respondents.'
-                            : 'For office use only: hide this field from respondents and fill it in on each response.'}
-                    </p>
-                </div>
-            )}
-            {!NonImageFieldType.includes(activeField?.type) && (
-                <div className="flex w-full items-center justify-between">
-                    <div className="text-black-700 text-xs">Field Image</div>
-                    <Switch
-                        checked={!!activeField?.imageUrl}
-                        onCheckedChange={(checked) => {
-                            updateFieldImage(getImageValue(checked));
-                        }}
-                    />
-                </div>
-            )}
+                )}
+                {isRepeatingGroup(field) && (
+                    <div className={NO_OWN_RULE}>
+                        <RepeatingGroupSettings field={field} slide={slide} />
+                    </div>
+                )}
+            </InspectorSection>
 
-            {(activeField?.type === FieldTypes.MULTIPLE_CHOICE || activeField?.type === FieldTypes.MATRIX) && (
-                <>
-                    {activeField?.type !== FieldTypes.MATRIX && (
-                        <>
-                            <div className="flex w-full items-center justify-between">
-                                <div className="text-black-700 text-xs">&quot;Other&quot; Option</div>
-                                <Switch
-                                    checked={activeField?.properties?.allowOtherChoice || false}
-                                    onCheckedChange={(checked) => {
-                                        updateFieldProperty(activeField!.index, activeSlide!.index, 'allowOtherChoice', checked);
-                                    }}
-                                />
-                            </div>
-                        </>
+            {(ruleKind || field.type === FieldTypes.DATE) && (
+                <InspectorSection title="Answer rules">
+                    {ruleKind && <AnswerRulesSettings field={field} onChange={(patch) => updateFieldValidations(field.index, slide.index, patch)} />}
+                    {field.type === FieldTypes.DATE && (
+                        <DateFieldSettings field={field} sources={getDateRuleSources(formFields || [], field.id)} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.index, slide.index, property, value))} />
                     )}
+                </InspectorSection>
+            )}
 
-                    <div className="flex w-full items-center justify-between">
-                        <div className="text-black-700 text-xs">Multiple Selection</div>
-                        <Switch
-                            checked={activeField?.properties?.allowMultipleSelection || false}
-                            onCheckedChange={(checked) => {
-                                if (activeField?.type === FieldTypes.MATRIX) {
-                                    updateAllowMultipleSelectionMatrixField(checked);
-                                } else {
-                                    updateFieldProperty(activeField!.index, activeSlide!.index, 'allowMultipleSelection', checked);
-                                }
-                            }}
+            {(showWhyWeAsk || canBeInternal(field)) && (
+                <InspectorSection title="Privacy">
+                    {showWhyWeAsk && <WhyWeAskSetting value={field.properties?.whyWeAsk ?? ''} required={asksForIdentity(field)} onChange={(value) => updateFieldProperty(field.index, slide.index, 'whyWeAsk', value)} />}
+                    {canBeInternal(field) && (
+                        <SettingSwitch
+                            label="Internal (staff only)"
+                            checked={!!field.internal}
+                            onCheckedChange={(checked) => updateFieldInternal(field.index, slide.index, checked)}
+                            hint={
+                                field.internal
+                                    ? 'Respondents never see this field. Your team fills it in on each response. Required applies to your team, not respondents.'
+                                    : 'For office use only: hide this field from respondents and fill it in on each response.'
+                            }
                         />
+                    )}
+                </InspectorSection>
+            )}
+
+            {!field.internal && (
+                <InspectorSection title="Logic">
+                    <div className={NO_OWN_RULE}>
+                        <FieldConditionalLogicEditor />
                     </div>
-                </>
+                </InspectorSection>
             )}
-            {(activeField?.type === FieldTypes.LINEAR_RATING || activeField?.type === FieldTypes.RATING) && (
-                <div className="flex flex-col gap-2">
-                    <div className="flex flex-row items-center justify-between text-xs">
-                        <span>Steps : </span>
-                        <input
-                            type="number"
-                            // defaultValue={defaultValue}
-                            value={stepValue}
-                            onChange={(e) => handleStepsChange(e)}
-                            placeholder="steps"
-                            className="focus:border-black-900 h-8 w-14 rounded border p-0 px-2 text-center text-sm"
-                        />
+
+            <InspectorSection title="Appearance">
+                <div className="flex w-full flex-col gap-1.5">
+                    <div id={widthId} className="text-xs text-black-700">
+                        Width
                     </div>
-                    {errorMsg && <span className="text-xs text-red-500">{errorMsg}</span>}
+                    <div className="flex overflow-hidden rounded-md border border-control" role="group" aria-labelledby={widthId}>
+                        {WIDTH_OPTIONS.map((option) => {
+                            const selected = colSpan === option.span;
+                            return (
+                                <button
+                                    key={option.span}
+                                    type="button"
+                                    aria-pressed={selected}
+                                    aria-label={option.name}
+                                    onClick={() => updateFieldColSpan(field.index, slide.index, option.span)}
+                                    className={`flex-1 px-1 py-1.5 text-[11px] font-medium transition-colors ${selected ? 'bg-brand-100 text-brand-600' : 'bg-white text-black-600 hover:bg-black-100'}`}
+                                >
+                                    {option.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-black-600">Fields that fit side by side share a row. Phones always stack.</p>
                 </div>
-            )}
-
-            {activeField && activeSlide && activeField.type === FieldTypes.DATE && (
-                <div className="border-t border-black-300 pt-4">
-                    <DateFieldSettings
-                        field={activeField}
-                        sources={getDateRuleSources(formFields || [], activeField.id)}
-                        onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(activeField.index, activeSlide.index, property, value))}
-                    />
-                </div>
-            )}
-
-            {activeField && activeSlide && isRepeatingGroup(activeField) && <RepeatingGroupSettings field={activeField} slide={activeSlide} />}
-
-            {!activeField?.internal && <FieldConditionalLogicEditor />}
+                {!NON_IMAGE_FIELD_TYPES.includes(field.type) && <SettingSwitch label="Field image" checked={!!field.imageUrl} onCheckedChange={(checked) => updateFieldImage(checked ? field.imageUrl || globalConstants.defaultFieldImage : '')} />}
+            </InspectorSection>
         </div>
     );
 }
@@ -240,7 +219,7 @@ export function WhyWeAskSetting({ value, required, onChange }: { value: string; 
     const missing = required && !value.trim();
     return (
         <div className="flex w-full flex-col gap-1">
-            <label htmlFor="why-we-ask" className="text-black-700 text-xs font-medium">
+            <label htmlFor="why-we-ask" className="text-xs font-medium text-black-700">
                 Why we ask this
             </label>
             <textarea
@@ -252,7 +231,7 @@ export function WhyWeAskSetting({ value, required, onChange }: { value: string; 
                 aria-invalid={missing}
                 aria-describedby="why-we-ask-help"
                 onChange={(e) => onChange(e.target.value)}
-                className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-black-300 focus:border-black-400'}`}
+                className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-control focus:border-brand-500'}`}
             />
             <span id="why-we-ask-help" className={`text-[11px] leading-relaxed ${missing ? 'text-amber-700' : 'text-black-600'}`}>
                 {missing ? 'This question asks for personal details. Say briefly why you need them; the form can’t be published without it.' : 'Shown to respondents under the question.'}

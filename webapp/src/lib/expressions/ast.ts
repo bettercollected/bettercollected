@@ -16,6 +16,9 @@ export const MAX_NODES = 500;
 export const MAX_STRING_LENGTH = 1000;
 /** Variable keys are at most this many characters. */
 export const MAX_VAR_LENGTH = 200;
+/** Caps on variable values (evaluator input); over-cap values become null. */
+export const MAX_INPUT_STRING_LENGTH = 10000;
+export const MAX_INPUT_LIST_ITEMS = 1000;
 
 /** Allowed argument counts: [min, max]; max `Infinity` = variadic. */
 export const OPERATORS: Record<string, [number, number]> = {

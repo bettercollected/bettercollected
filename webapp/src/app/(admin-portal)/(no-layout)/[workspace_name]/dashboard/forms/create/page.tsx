@@ -18,7 +18,6 @@ import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permission
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@app/shadcn/components/ui/sheet';
-import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
@@ -47,7 +46,6 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const { openModal } = useModal();
     const { openDialogModal } = useDialogModal();
     const isMobile = useIsMobile();
-    const authState = useAppSelector(selectAuth);
     const { can, isLoading: permissionsLoading } = useWorkspacePermissions();
     const canCreate = can(WorkspacePermission.FORM_CREATE);
 
@@ -148,11 +146,11 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                 {templates?.map((template) => (
                                     // Plain div: the scaled WelcomePage preview inside contains buttons,
                                     // and <button> can't nest inside <button> (hydration error).
-                                    <div key={template?.id} className="outline-hidden" data-umami-event={'Create Form With Template'} data-umami-event-email={authState.email}>
+                                    <div key={template?.id} className="outline-hidden" data-umami-event={'Create Form With Template'}>
                                         <div className="flex flex-col rounded-lg border border-transparent">
                                             <div
                                                 data-umami-event={'Create Form With Template'}
-                                                data-umami-event-email={authState.email}
+                                               
                                                 className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-black-300"
                                                 onClick={() => createFormFromTemplate(template.id)}
                                             >
@@ -186,12 +184,11 @@ interface CardWrapperProps {
 }
 
 const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapperProps) => {
-    const authState = useAppSelector(selectAuth);
 
     return (
         <div
             data-umami-event={content}
-            data-umami-event-email={authState.email}
+           
             className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded border border-black-400 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
             onClick={onClick}
         >

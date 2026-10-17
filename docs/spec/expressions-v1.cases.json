@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Conformance cases for docs/spec/expressions-v1.md. Each case evaluates ast with vars and context; expected is the result, error is the code of the first validation problem.",
+  "description": "Conformance cases for docs/spec/expressions-v1.md. Each case evaluates ast with vars and context; expected is the result, error is the code of the first validation problem. repeat builds large variable values: {\"text\": t, \"times\": n} is t repeated n times, {\"list\": v, \"times\": n} is a list of n copies of v (itself a value or a repeat spec); they are merged into vars.",
   "cases": [
     {"name": "add integers", "ast": {"+": [1, 2]}, "expected": 3},
     {"name": "add variadic", "ast": {"+": [1, 2, 3, 4]}, "expected": 10},
@@ -262,6 +262,14 @@
     {"name": "variable list", "ast": {"var": "xs"}, "vars": {"xs": ["a", 1, null]}, "expected": ["a", 1, null]},
     {"name": "variable object is null", "ast": {"var": "o"}, "vars": {"o": {"a": 1}}, "expected": null},
     {"name": "variable nested list items are null", "ast": {"var": "xs"}, "vars": {"xs": [[1], 1]}, "expected": [null, 1]},
+    {"name": "variable deeply nested list items are null", "ast": {"var": "xs"}, "vars": {"xs": [[[1]], [{"a": [1]}], 1]}, "expected": [null, null, 1]},
+    {"name": "input text at the cap is kept", "ast": {"length": [{"var": "s"}]}, "repeat": {"s": {"text": "a", "times": 10000}}, "expected": 10000},
+    {"name": "input text over the cap is null", "ast": {"var": "s"}, "repeat": {"s": {"text": "a", "times": 10001}}, "expected": null},
+    {"name": "input text cap counts code points", "ast": {"length": [{"var": "s"}]}, "repeat": {"s": {"text": "\ud83d\ude00", "times": 10000}}, "expected": 10000},
+    {"name": "input text over the cap in a list is a null item", "ast": {"var": "xs"}, "repeat": {"xs": {"list": {"text": "a", "times": 10001}, "times": 2}}, "expected": [null, null]},
+    {"name": "input list at the cap is kept", "ast": {"sum": [{"var": "xs"}]}, "repeat": {"xs": {"list": 2, "times": 1000}}, "expected": 2000},
+    {"name": "input list over the cap is null", "ast": {"var": "xs"}, "repeat": {"xs": {"list": 2, "times": 1001}}, "expected": null},
+    {"name": "count of an over-cap list is zero", "ast": {"count": [{"var": "xs"}]}, "repeat": {"xs": {"list": "a", "times": 1001}}, "expected": 0},
     {"name": "variable list number noise", "ast": {"var": "xs"}, "vars": {"xs": [0.30000000000000004]}, "expected": [0.3]},
     {"name": "hidden field name", "ast": {"concat": ["from ", {"var": "utm_source"}]}, "vars": {"utm_source": "newsletter"}, "expected": "from newsletter"},
     {"name": "group child key", "ast": {"count": [{"var": "g1.c1"}]}, "vars": {"g1.c1": ["x", "y", "z"]}, "expected": 3},

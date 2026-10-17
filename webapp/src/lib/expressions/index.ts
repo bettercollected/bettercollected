@@ -2,7 +2,7 @@
  * Expressions v1: computed values, scores and conditional text.
  * Spec: docs/spec/expressions-v1.md. Python twin: common/common/expressions/.
  */
-export { ExpressionError, MAX_DEPTH, MAX_NODES, MAX_STRING_LENGTH, OPERATORS } from '@app/lib/expressions/ast';
+export { ExpressionError, MAX_DEPTH, MAX_INPUT_LIST_ITEMS, MAX_INPUT_STRING_LENGTH, MAX_NODES, MAX_STRING_LENGTH, OPERATORS } from '@app/lib/expressions/ast';
 export type { ExpressionErrorCode, ExpressionProblem, ExprNode, Literal, OpNode } from '@app/lib/expressions/ast';
 export { evaluateExpression, formatExpressionValue, isoDayNumber } from '@app/lib/expressions/evaluator';
 export type { EvalContext, ExprValue } from '@app/lib/expressions/evaluator';
