@@ -225,3 +225,118 @@ def test_every_corpus_op_matches_the_schema():
                 continue  # may be refused for its shape, when it is applied
             errors = list(validator.iter_errors(op))
             assert not errors, (case["name"], op["op"], errors[0].message)
+
+
+RICH_TITLE = {
+    "type": "doc",
+    "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi"}]}],
+}
+
+
+def test_a_rich_text_title_comes_only_from_the_editor():
+    payload = [{"op": "update_field", "fieldId": "a", "patch": {"title": RICH_TITLE}}]
+    with pytest.raises(ValidationError) as raised:
+        parse_ops(payload)
+    assert "rich-text titles come only from the form editor" in str(raised.value)
+    with pytest.raises(ValidationError):
+        _ChatTurnReply.model_validate({"reply": "x", "ops": payload})
+    [op] = parse_ops(payload, allow_editor_ops=True)
+    assert op.patch.title == RICH_TITLE
+    # plain titles are as before everywhere
+    [op] = parse_ops([{"op": "update_field", "fieldId": "a", "patch": {"title": "Hi"}}])
+    assert op.patch.title == "Hi"
+
+
+def test_a_title_with_an_unknown_node_type_is_refused():
+    form = from_document("small", _corpus()["forms"])
+    title = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "mention", "attrs": {"id": "x"}}],
+            }
+        ],
+    }
+    for op in (
+        {"op": "update_field", "fieldId": "a", "patch": {"title": title}},
+        {
+            "op": "insert_field",
+            "pageId": "p1",
+            "index": 0,
+            "field": {"id": "n", "type": "short_text", "title": title},
+        },
+    ):
+        after, results = apply_form_ops(form, parse_ops([op], allow_editor_ops=True))
+        assert not results[0].ok
+        assert "cannot hold a 'mention' node" in results[0].message
+        assert after.model_dump() == form.model_dump()
+
+
+def test_pruning_counts_only_what_the_op_removed():
+    form = from_document("small", _corpus()["forms"])
+    document = form.model_dump()
+    # an older orphan: logic on a question that is long gone
+    document["fields"][0]["properties"]["fields"][1]["properties"] = {
+        "logic": {
+            "action": "SHOW",
+            "conditions": [
+                {"fieldId": "gone-long-ago", "comparison": "IS_NOT_EMPTY"},
+                {"fieldId": "a", "comparison": "IS_NOT_EMPTY"},
+            ],
+        }
+    }
+    form = StandardForm.model_validate(document)
+    after, results = apply_form_ops(
+        form, parse_ops([{"op": "remove_field", "fieldId": "a"}])
+    )
+    assert results[0].ok
+    assert "(and 1 logic or piping reference(s) to it)" in results[0].message
+    # both are gone, as in the editor
+    assert after.fields[0].properties.fields[0].properties.logic is None
+
+
+def test_a_jump_to_a_removed_page_stays():
+    form = from_document("base", _corpus()["forms"])
+    after, results = apply_form_ops(
+        form, parse_ops([{"op": "remove_page", "pageId": "p3"}])
+    )
+    assert results[0].ok
+    targets = [j.target for j in after.fields[1].properties.jumps]
+    assert "p3" in targets
+
+
+def test_image_checks_never_copy_the_form(monkeypatch):
+    """A batch of editor ops on a large form copies it a fixed number of
+    times (the working copy and the final check), never once per op."""
+    form = from_document(
+        {"$generated": {"pages": 20, "fieldsPerPage": 90}}, _corpus()["forms"]
+    )
+    copies = {"deep": 0}
+    original = StandardForm.model_copy
+
+    def counting(self, *args, **kwargs):
+        if kwargs.get("deep"):
+            copies["deep"] += 1
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(StandardForm, "model_copy", counting)
+    unsplash = "https://images.unsplash.com/photo-1500000000000-abcdef"
+    ops = []
+    for i in range(50):
+        ops += [
+            {
+                "op": "insert_field",
+                "pageId": "p0",
+                "index": 0,
+                "field": {"id": f"n{i}", "type": "short_text", "imageUrl": unsplash},
+            },
+            {"op": "replace_field", "field": {"id": f"p1f{i}", "type": "long_text"}},
+            {"op": "update_page", "pageId": "p2", "patch": {"imageUrl": unsplash}},
+            {"op": "update_welcome_page", "patch": {"title": f"T{i}"}},
+        ]
+    _, results = apply_form_ops(
+        form, parse_ops(ops, allow_editor_ops=True), atomic=True
+    )
+    assert all(r.ok for r in results), [r.message for r in results if not r.ok][:3]
+    assert copies["deep"] <= 3
