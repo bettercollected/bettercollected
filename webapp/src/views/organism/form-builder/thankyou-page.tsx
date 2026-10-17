@@ -75,13 +75,13 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                         aria-label="Ending title"
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
                         className="w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
-                        value={formState.thankyouPage![activeThankYouPageComponent?.index || 0]?.title ?? ''}
+                        value={formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.title ?? ''}
                         onChange={(event: any) => setThankYouPageTitle(activeThankYouPageComponent?.index || 0, event.target.value)}
                     />
-                    {formState.thankyouPage && IsValidString(formState.thankyouPage[activeThankYouPageComponent?.index || 0].message) ? (
+                    {formState.thankyouPage && IsValidString(formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.message) ? (
                         <AutosizeTextarea
                             placeholder="Your answers have been sent."
-                            value={formState.thankyouPage![activeThankYouPageComponent?.index || 0].message}
+                            value={formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.message}
                             aria-label="Ending message"
                             className="ring-none mt-4 w-full border-0 bg-transparent px-0 [text-align:inherit] text-base text-black-700 outline-hidden"
                             onChange={(e: any) => setThankYouPageDescription(activeThankYouPageComponent?.index || 0, e.target.value)}
@@ -89,9 +89,9 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                     ) : (
                         <></>
                     )}
-                    {formState.thankyouPage && IsValidString(formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonText) ? (
+                    {formState.thankyouPage && IsValidString(formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.buttonText) ? (
                         <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={{ background: theme?.secondary }}>
-                            {formState.thankyouPage![activeThankYouPageComponent?.index || 0].buttonText || 'Try bettercollected'}
+                            {formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.buttonText || 'Try bettercollected'}
                         </Button>
                     ) : (
                         <></>

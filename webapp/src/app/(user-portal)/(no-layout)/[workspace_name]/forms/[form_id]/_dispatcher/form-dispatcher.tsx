@@ -12,7 +12,7 @@ export function FormDispatcher({ form, children }: { form: any; children?: React
     useEffect(() => {
         if (form.formId) {
             dispatch(setForm(form));
-            updateFormTheme(form.theme);
+            updateFormTheme(form.theme, { undoable: false });
             dispatch(setForm(form));
         }
     }, [form.formId]);

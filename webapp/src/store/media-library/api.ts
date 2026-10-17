@@ -1,6 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
+import { rememberStorageImageUrls } from '@app/utils/storage-image-urls';
+
 import { MediaLibrary, MediaLibraryDeleteRequestDto, MediaLibraryPostRequestDto, MediaLibraryRequestDto } from './type';
 
 const MEDIA_LIBRARY_REDUCER_PATH = 'mediaLibraryApi';
@@ -26,6 +28,11 @@ export const mediaLibraryApi = createApi({
                 url: `/${data.workspace_id}/media?${data.media_query ? `media_query=${data.media_query}` : ''}`,
                 method: 'GET'
             }),
+            // The builder takes these as our own images (utils/storage-image-urls.ts).
+            transformResponse: (media: Array<MediaLibrary>) => {
+                rememberStorageImageUrls((media ?? []).map((item) => item?.mediaUrl));
+                return media;
+            },
             providesTags: [MEDIA_LIBRARY]
         }),
         addPhotoInWorkspaceMediaLibrary: builder.mutation<MediaLibrary, MediaLibraryPostRequestDto>({
@@ -34,6 +41,10 @@ export const mediaLibraryApi = createApi({
                 method: 'POST',
                 body: data.media
             }),
+            transformResponse: (media: MediaLibrary) => {
+                rememberStorageImageUrls([media?.mediaUrl]);
+                return media;
+            },
             invalidatesTags: [MEDIA_LIBRARY]
         }),
         deletePhotoFromWorkspaceMediaLibrary: builder.mutation<void, MediaLibraryDeleteRequestDto>({
@@ -50,7 +61,11 @@ export const mediaLibraryApi = createApi({
                 url: `/${data.workspace_id}/images/import`,
                 method: 'POST',
                 body: { url: data.url }
-            })
+            }),
+            transformResponse: (response: { url: string }) => {
+                rememberStorageImageUrls([response?.url]);
+                return response;
+            }
         })
     })
 });

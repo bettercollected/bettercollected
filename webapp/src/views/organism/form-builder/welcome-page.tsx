@@ -1,7 +1,4 @@
-import { useEffect, useState } from 'react';
-
 import cn from 'classnames';
-import { useDebounceValue } from 'usehooks-ts';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
@@ -21,14 +18,10 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     const logo = useBuilderFormLogo();
     // The pages, for the leaflet cover's contents.
     const form = useAppSelector(selectForm);
-    const [description, setDescription] = useState('');
-    const [debouncedDescription] = useDebounceValue(description, 300);
-    useEffect(() => {
-        formState?.welcomePage?.description && setDescription(formState?.welcomePage?.description);
-    }, [formState?.welcomePage?.description]);
-    useEffect(() => {
-        setFormDescription(debouncedDescription);
-    }, [debouncedDescription]);
+    // Read from and written to the form state directly: showing the page
+    // writes nothing, and typing is one undo step (the setter coalesces).
+    const description = formState?.welcomePage?.description ?? '';
+    const setDescription = (value: string) => setFormDescription(value);
 
     if (styleTokens(theme?.style).key === 'leaflet') {
         // WYSIWYG with the respondent's leaflet cover: the title edited on the

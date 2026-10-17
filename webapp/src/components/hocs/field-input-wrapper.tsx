@@ -18,8 +18,9 @@ const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', style, i
     const [inputVal, setInputVal] = useState(value);
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
 
+    // Only what was typed is reported: not the value it already has (on mount).
     useEffect(() => {
-        if (onChange) {
+        if (onChange && (debouncedInputValue ?? '') !== (value ?? '')) {
             onChange(debouncedInputValue);
         }
     }, [debouncedInputValue]);
@@ -33,7 +34,7 @@ const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', style, i
 
     return (
         <>
-            <Component id={id} type={type} value={inputVal} style={style} $formTheme={theme} onChange={(e: any) => setInputVal(e.target.value)} {...props} />
+            <Component id={id} type={type} value={inputVal ?? ''} style={style} $formTheme={theme} onChange={(e: any) => setInputVal(e.target.value)} {...props} />
         </>
     );
 };

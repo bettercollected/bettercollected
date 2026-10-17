@@ -8,10 +8,13 @@ import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useSetAtom } from 'jotai';
+
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import useFormFieldsAtom, { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
+import { resetFromServerAtom } from '@app/store/jotai/form-document';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { withEndingIds } from '@app/utils/endings';
 import { deepCopy } from '@app/utils/object-utils';
@@ -31,11 +34,12 @@ import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormEditPage(props: { params: Promise<{ form_id: string }> }) {
     const params = use(props.params);
-    const { formFields, setFormFields, initFormFields } = useFormFieldsAtom();
-    const { setFormState, formState, } = useFormState();
+    const { formFields } = useFormFieldsAtom();
+    const { formState } = useFormState();
+    const resetFromServer = useSetAtom(resetFromServerAtom);
     const { setHydratedFormId } = useBuilderHydration();
 
-    const { activeSlideComponent } = useActiveSlideComponent();
+    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     // The AI tab's Preview: the canvas shows the proposal, read-only.
     const previewingProposal = useProposalPreviewOn();
 
@@ -97,12 +101,10 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     useEffect(() => {
         return () => {
             setHydratedFormId(null);
-            setFormState({ ...initialFormState });
-            // initialFieldsState is an ARRAY — `{ ...array }` turns it into an
-            // object and poisons the atom for the next editor mount (anything
-            // calling formFields.some/map then crashes). Deep-copy keeps the
-            // module-level template safe from later in-place mutations too.
-            setFormFields(deepCopy(initialFieldsState));
+            // Back to an empty document, with no undo history. Deep-copy
+            // keeps the module-level template safe from later in-place
+            // mutations too.
+            resetFromServer({ ...initialFormState, fields: deepCopy(initialFieldsState) });
         };
     }, []);
 
@@ -115,17 +117,20 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
 
     useEffect(() => {
         if (standardForm.formId) {
+            // The loaded form becomes the document (no undo history): its
+            // form-level parts as below, its pages as they are.
+            let form: any;
             if (!standardForm.welcomePage || !standardForm.thankyouPage) {
                 // formState's own (empty) description must not hide the form's:
                 // autosave writes it back on every save.
-                const form = { ...standardForm, ...formState, description: standardForm.description };
+                form = { ...standardForm, ...formState, description: standardForm.description };
                 form.thankyouPage = withEndingIds(form.thankyouPage);
-                setFormState(form);
             } else {
                 // Endings stored before they had ids get them as the server derives them.
                 const copiedThankyouPage = withEndingIds(deepCopy(standardForm?.thankyouPage || formState.thankyouPage));
                 const copiedWelcomePage = deepCopy(standardForm?.welcomePage || formState.welcomePage);
-                const form = {
+                form = {
+                    ...standardForm,
                     ...formState,
                     title: standardForm.title,
                     description: standardForm.description,
@@ -136,10 +141,14 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     logoAlt: standardForm.logoAlt,
                     useWorkspaceLogo: standardForm.useWorkspaceLogo
                 };
-                setFormState(form);
             }
-            const deepCopiedFormFields = deepCopy(standardForm?.fields || []);
-            initFormFields(deepCopiedFormFields);
+            resetFromServer({ ...form, fields: deepCopy(standardForm?.fields || []) });
+            // A selection left from another form must not point into this one.
+            const pages: Array<{ id: string }> = standardForm?.fields || [];
+            if (activeSlideComponent && activeSlideComponent.index >= 0 && !pages.some((page) => page.id === activeSlideComponent.id)) {
+                setActiveSlideComponent(pages[0] ? { id: pages[0].id, index: 0 } : { id: 'welcome-page', index: -10 });
+            }
+            setActiveFieldComponent(null);
             setNavbarState({
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage
@@ -193,7 +202,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                         <AIProposalPreviewCanvas activeSlideId={activeSlideComponent?.id} />
                                     ) : (
                                         <>
-                                            {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
+                                            {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && formFields[activeSlideComponent.index] && <SlideBuilder slide={formFields[activeSlideComponent.index]} />}
                                             {!activeSlideComponent?.id && <div>Add a slide to start</div>}
                                             {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 

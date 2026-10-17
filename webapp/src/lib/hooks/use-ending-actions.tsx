@@ -1,31 +1,34 @@
 'use client';
 
-import { useStore } from 'jotai';
+import { useSetAtom, useStore } from 'jotai';
 
 import { DELETE_UNDO_MS } from '@app/lib/hooks/use-undoable-delete';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { JUMP_TARGET_SUBMIT, PageJump } from '@app/models/types/form-builder-shared';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom, { initialFieldsAtom } from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
-import { ENDING_NAME_MAX_LENGTH, Ending, MAX_ENDINGS, defaultEndingIndex, endingLabel, jumpEndingId, jumpsFallBackToDefault, newEndingId, withEndingIds } from '@app/utils/endings';
+import useFormFieldsAtom, { undoIfLatestAtom } from '@app/store/jotai/field-selectors';
+import { formStateAtom, useFormState } from '@app/store/jotai/form';
+import { commitTogetherAtom, docHistoryAtom, latestStep } from '@app/store/jotai/form-document';
+import { ENDING_NAME_MAX_LENGTH, Ending, MAX_ENDINGS, defaultEndingIndex, endingLabel, jumpsFallBackToDefault, newEndingId, withEndingIds } from '@app/utils/endings';
 
 /**
  * The builder's ending actions (outline menu, properties panel): add,
  * duplicate, rename, make default and delete. A form keeps at least one
  * ending. Deleting an ending that page jumps name makes those jumps show the
- * default ending (they still submit), and the toast's Undo brings the ending
- * and those jumps back.
+ * default ending (they still submit), and the toast's Undo (the step's own
+ * undo) brings the ending and those jumps back. Each action is one undo
+ * step, endings and jumps together.
  */
 export function useEndingActions() {
     const { toast } = useToast();
     const { formState, setFormState } = useFormState();
-    const { formFields, setFormFields } = useFormFieldsAtom();
+    const { formFields } = useFormFieldsAtom();
+    const commitTogether = useSetAtom(commitTogetherAtom);
+    const undoIfLatest = useSetAtom(undoIfLatestAtom);
     const { setActiveThankYouPageComponent } = useActiveThankYouPageComponent();
     const { setActiveSlideComponent } = useActiveSlideComponent();
-    // The toast's Undo runs later: it reads the slides as they are then.
+    // Reads the current state when an action runs (not the render's).
     const store = useStore();
 
     const endings: Ending[] = withEndingIds(formState.thankyouPage?.length ? formState.thankyouPage : [{ layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }]);
@@ -35,8 +38,11 @@ export function useEndingActions() {
         setActiveSlideComponent({ id: 'thank-you-page', index: -20 });
     };
 
-    const setEndings = (update: (current: Ending[]) => Ending[]) => {
-        setFormState((prev) => ({ ...prev, thankyouPage: update(withEndingIds(prev.thankyouPage?.length ? prev.thankyouPage : [{ layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }])) }));
+    const currentEndings = (thankyouPage?: Ending[]) => withEndingIds(thankyouPage?.length ? thankyouPage : [{ layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }]);
+
+    // `coalesceKey`: typing a name is one undo step.
+    const setEndings = (update: (current: Ending[]) => Ending[], coalesceKey?: string) => {
+        setFormState((prev) => ({ ...prev, thankyouPage: update(currentEndings(prev.thankyouPage)) }), coalesceKey);
     };
 
     const canAdd = endings.length < MAX_ENDINGS;
@@ -62,7 +68,7 @@ export function useEndingActions() {
 
     const renameEnding = (index: number, name: string) => {
         const trimmed = name.slice(0, ENDING_NAME_MAX_LENGTH);
-        setEndings((current) => current.map((ending, i) => (i === index ? { ...ending, name: trimmed.trim() ? trimmed : undefined } : ending)));
+        setEndings((current) => current.map((ending, i) => (i === index ? { ...ending, name: trimmed.trim() ? trimmed : undefined } : ending)), `ending:${endings[index]?.id ?? index}:name`);
     };
 
     const makeDefault = (index: number) => {
@@ -74,16 +80,20 @@ export function useEndingActions() {
         const removed = endings[index];
         if (!removed) return;
         const label = endingLabel(removed, index, endings.length);
-        setEndings((current) => current.filter((ending) => ending.id !== removed.id));
-        // Which jumps named it, so Undo can point them back.
-        const repointed: Array<{ slideId: string; jumpIndex: number }> = [];
-        (formFields ?? []).forEach((slide) =>
-            ((slide.properties?.jumps as PageJump[] | undefined) ?? []).forEach((jump, jumpIndex) => {
-                if (jumpEndingId(jump) === removed.id) repointed.push({ slideId: slide.id, jumpIndex });
-            })
-        );
         const fallback = removed.id ? jumpsFallBackToDefault(formFields ?? [], removed.id) : null;
-        if (fallback) setFormFields(fallback.slides);
+        // Endings stored before they had ids get them first (not an edit), so
+        // that undoing the delete brings back the ids the jumps name.
+        if ((store.get(formStateAtom).thankyouPage ?? []).some((ending) => !ending?.id)) setFormState((prev) => ({ ...prev, thankyouPage: currentEndings(prev.thankyouPage) }), { undoable: false });
+        // One undo step: the jumps let go of the ending, then it goes.
+        const before = latestStep(store.get(docHistoryAtom));
+        commitTogether({
+            fields: fallback?.slides,
+            formValues: { thankyouPage: currentEndings(store.get(formStateAtom).thankyouPage).filter((ending) => ending.id !== removed.id) },
+            fieldsFirst: true,
+            label: 'Delete ending'
+        });
+        const after = latestStep(store.get(docHistoryAtom));
+        const step = after !== before ? after : null;
         // Stay on the endings: show the one respondents now see by default.
         const remaining = endings.filter((ending) => ending.id !== removed.id);
         select(Math.max(0, defaultEndingIndex(remaining)));
@@ -93,37 +103,18 @@ export function useEndingActions() {
             description: count ? `${label} deleted. ${count} jump${count === 1 ? ' now shows' : 's now show'} the default ending.` : `${label} deleted`,
             duration: DELETE_UNDO_MS,
             action: (
-                <ToastAction altText="Undo deleting the ending" onClick={() => undoDelete(removed, index, repointed)}>
+                <ToastAction
+                    altText="Undo deleting the ending"
+                    onClick={() => {
+                        // The step's own undo: the ending and its jumps come back together.
+                        if (undoIfLatest(step)) select(index);
+                        else toast({ description: 'You changed the form since. Use Undo in the toolbar to step back.' });
+                    }}
+                >
                     Undo
                 </ToastAction>
             )
         });
-    };
-
-    // Bring the ending back where it was and point its jumps at it again
-    // (only jumps that still submit to the default ending).
-    const undoDelete = (removed: Ending, index: number, repointed: Array<{ slideId: string; jumpIndex: number }>) => {
-        setFormState((prev) => {
-            const current = withEndingIds(prev.thankyouPage);
-            if (current.some((ending) => ending.id === removed.id)) return prev;
-            // Only one default: the restored one keeps it only if no other has it now.
-            const restored = removed.isDefault && current.some((ending) => ending.isDefault) ? { ...removed, isDefault: undefined } : removed;
-            const at = Math.min(index, current.length);
-            return { ...prev, thankyouPage: [...current.slice(0, at), restored, ...current.slice(at)] };
-        });
-        if (repointed.length) {
-            setFormFields(
-                (store.get(initialFieldsAtom) ?? []).map((slide) => {
-                    const mine = repointed.filter((entry) => entry.slideId === slide.id);
-                    if (!mine.length) return slide;
-                    const jumps = ((slide.properties?.jumps as PageJump[] | undefined) ?? []).map((jump, jumpIndex) =>
-                        mine.some((entry) => entry.jumpIndex === jumpIndex) && jump.target === JUMP_TARGET_SUBMIT && !jump.endingId ? { ...jump, endingId: removed.id } : jump
-                    );
-                    return { ...slide, properties: { ...slide.properties, jumps } };
-                })
-            );
-        }
-        select(Math.min(index, endings.length - 1));
     };
 
     return { endings, canAdd, addEnding, duplicateEnding, renameEnding, makeDefault, deleteEnding };

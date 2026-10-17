@@ -21,11 +21,15 @@ export default function AddFormTitleModal() {
         <form
             onSubmit={(event) => {
                 event.preventDefault();
-                setFormState({
-                    ...formState,
-                    title,
-                    welcomePage: { ...formState.welcomePage, title }
-                });
+                // Naming a new form completes loading it: no undo step.
+                setFormState(
+                    {
+                        ...formState,
+                        title,
+                        welcomePage: { ...formState.welcomePage, title }
+                    },
+                    { undoable: false }
+                );
                 setTimeout(() => {
                     setActiveSlideComponent({
                         id: formFields?.[0]?.id,
