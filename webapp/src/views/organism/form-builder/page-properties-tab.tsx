@@ -16,8 +16,6 @@ import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
-import { selectAuth } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
@@ -43,7 +41,6 @@ export default function PagePropertiesTab({}: {}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
-    const authState = useAppSelector(selectAuth);
     const {
         formState,
         setFormState,
@@ -182,7 +179,6 @@ export default function PagePropertiesTab({}: {}) {
                                 type="button"
                                 aria-pressed={selected}
                                 data-umami-event={`${item.style} Layout`}
-                                data-umami-event-email={authState.email}
                                 onClick={() => handleSlideLayoutChange(item.style)}
                                 className="group flex flex-col items-center gap-1 rounded-lg"
                             >
