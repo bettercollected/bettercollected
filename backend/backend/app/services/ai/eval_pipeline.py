@@ -77,6 +77,10 @@ def options_for(case: Dict[str, Any]) -> QualityOptions:
     }
     if case.get("max_questions_per_page"):
         kwargs["max_questions_per_page"] = int(case["max_questions_per_page"])
+    if case.get("max_questions"):
+        kwargs["max_questions"] = int(case["max_questions"])
+    if case.get("expected_types"):
+        kwargs["expected_types"] = frozenset(case["expected_types"])
     return QualityOptions(**kwargs)
 
 

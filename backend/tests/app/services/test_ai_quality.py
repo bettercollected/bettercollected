@@ -237,6 +237,22 @@ def test_ai_quality_language_detection():
     assert _codes(_form(), language="nl") == ["wrong_language"]
 
 
+def test_ai_quality_request_caps_the_number_of_questions():
+    assert _codes(_form(), max_questions=4) == []
+    report = check_form_quality(_form(), QualityOptions(max_questions=3))
+    assert report.codes == ["too_many_questions"]
+    assert report.findings[0].severity == ERROR
+
+
+def test_ai_quality_request_implies_question_types():
+    assert _codes(_form(), expected_types=frozenset({"yes_no", "long_text"})) == []
+    report = check_form_quality(
+        _form(), QualityOptions(expected_types=frozenset({"email", "date", "yes_no"}))
+    )
+    assert report.codes == ["missing_field_type", "missing_field_type"]
+    assert [f.where for f in report.findings] == [("date",), ("email",)]
+
+
 def test_ai_quality_yes_no_fixed_choices_do_not_count_as_english():
     form = {
         "title": "Aanmelding",

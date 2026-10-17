@@ -17,7 +17,7 @@ report can be shared without quoting what was generated.
 
 import re
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Sequence, Tuple
 
 from backend.app.constants.themes import NEW_FORM_THEME
 from backend.app.services.image_urls import is_allowed_image_url
@@ -48,6 +48,8 @@ CHOICE_TYPES = {"multiple_choice", "dropdown", "ranking"}
 MISSING_TITLE = "missing_title"
 NO_QUESTIONS = "no_questions"
 TOO_MANY_QUESTIONS_ON_PAGE = "too_many_questions_on_page"
+TOO_MANY_QUESTIONS = "too_many_questions"
+MISSING_FIELD_TYPE = "missing_field_type"
 MISSING_SECTION_TITLES = "missing_section_titles"
 WRONG_LANGUAGE = "wrong_language"
 MIXED_LANGUAGE = "mixed_language"
@@ -74,11 +76,16 @@ class QualityOptions:
 
     ``language``: "en" or "nl" (None skips the check). ``theme_requested``:
     the request asked for other colours, a mood or a named theme, so a theme
-    other than Leaflet is expected rather than a deviation."""
+    other than Leaflet is expected rather than a deviation.
+    ``max_questions``: a cap the request set on the whole form ("make it
+    short"). ``expected_types``: question types an unambiguous request
+    implies (an email address asked for means an ``email`` question)."""
 
     language: Optional[str] = None
     theme_requested: bool = False
     max_questions_per_page: int = DEFAULT_MAX_QUESTIONS_PER_PAGE
+    max_questions: Optional[int] = None
+    expected_types: FrozenSet[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -288,6 +295,32 @@ def _check_page_length(form: Any, limit: int) -> List[Finding]:
                     (str(page_id or number),),
                 )
             )
+    return findings
+
+
+def _check_request(form: Any, options: QualityOptions) -> List[Finding]:
+    """What the request itself asked for: a length cap, question types."""
+    questions = _all_questions(form)
+    findings = []
+    if options.max_questions is not None and len(questions) > options.max_questions:
+        findings.append(
+            Finding(
+                TOO_MANY_QUESTIONS,
+                ERROR,
+                f"The form has {len(questions)} questions; the request asked "
+                f"for at most {options.max_questions}.",
+            )
+        )
+    present = {_type_value(q) for q in questions}
+    for missing in sorted(set(options.expected_types) - present):
+        findings.append(
+            Finding(
+                MISSING_FIELD_TYPE,
+                ERROR,
+                f"The request implies a '{missing}' question, and there is none.",
+                (missing,),
+            )
+        )
     return findings
 
 
@@ -552,6 +585,7 @@ def check_form_quality(
     findings += _check_basics(form)
     findings += _check_publish_rules(form)
     findings += _check_page_length(form, options.max_questions_per_page)
+    findings += _check_request(form, options)
     findings += _check_section_titles(form)
     findings += _check_language(form, options.language)
     findings += _check_duplicates(form)

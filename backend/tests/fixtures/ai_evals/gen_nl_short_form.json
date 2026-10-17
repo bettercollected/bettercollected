@@ -3,6 +3,7 @@
   "kind": "generate",
   "description": "'Maak het kort': een pagina met drie vragen.",
   "language": "nl",
+  "max_questions": 3,
   "expected_findings": [],
   "reply": {
     "title": "Inschrijven voor de nieuwsbrief",

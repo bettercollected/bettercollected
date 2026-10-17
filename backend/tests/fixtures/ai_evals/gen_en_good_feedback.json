@@ -3,6 +3,10 @@
   "kind": "generate",
   "description": "A clean two-page feedback form: Leaflet, section titles, reasons on email.",
   "language": "en",
+  "expected_types": [
+    "email",
+    "rating"
+  ],
   "expected_findings": [],
   "reply": {
     "title": "Bakery feedback",
