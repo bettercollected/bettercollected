@@ -234,6 +234,14 @@ names the preset on each side (`NEW_FORM_THEME_TITLE` in
 `webapp/src/constants/theme.ts`, `NEW_FORM_THEME` in
 `backend/app/constants/themes.py`), and a test keeps them together.
 
+**One list of presets.** The webapp's list (`ThemeColors`) is the source of
+truth: names, colours and styles. The backend keeps a copy for the forms it
+dresses (the AI assistant, the API, MCP, imports), and a backend test fails
+when the two drift, so a preset the AI picks shows as that preset in the
+builder's picker (which finds it by title). The backend's older names (Blue,
+Green, Red, Black, Orange, Purple) still work and mean the nearest preset
+(Ocean, Forest, Cherry, Mono, Sunset, Lavender).
+
 The **Leaflet** preset is the other one this system specifies; it is made
 for the Leaflet style, and picking it switches the form to that style:
 

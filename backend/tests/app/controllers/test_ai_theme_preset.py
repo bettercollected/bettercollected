@@ -11,6 +11,7 @@ from httpx import AsyncClient
 from common.models.standard_form import StandardForm, Theme, ThemeBackground
 
 from backend.app.constants.themes import (
+    LEGACY_PRESET_NAMES,
     NEW_FORM_THEME,
     THEME_STYLES,
     new_form_theme,
@@ -36,12 +37,32 @@ def _apply(form, *ops):
 
 class TestTheOp:
     def test_a_preset_by_name_in_any_case(self):
-        new_form, results = _apply(_form(new_form_theme()), {"op": "set_theme_preset", "name": " green "})
+        new_form, results = _apply(_form(new_form_theme()), {"op": "set_theme_preset", "name": " forest "})
         assert results[0].ok, results[0].message
-        expected = themes["Green"].model_dump(exclude={"style"})
+        expected = themes["Forest"].model_dump(exclude={"style"})
         assert new_form.theme.model_dump(exclude={"style"}) == expected
         # a preset without a style of its own keeps the form's
         assert new_form.theme.style == "leaflet"
+
+    @pytest.mark.parametrize("legacy, preset", sorted(LEGACY_PRESET_NAMES.items()))
+    def test_a_legacy_name_means_the_nearest_preset(self, legacy, preset):
+        new_form, results = _apply(
+            _form(new_form_theme()), {"op": "set_theme_preset", "name": legacy.lower()}
+        )
+        assert results[0].ok, results[0].message
+        # stored under the preset's own title, so the builder's picker shows it
+        assert new_form.theme.title == preset
+        assert new_form.theme.model_dump(exclude={"style"}) == themes[preset].model_dump(
+            exclude={"style"}
+        )
+
+    def test_every_legacy_name_points_at_a_preset(self):
+        assert set(LEGACY_PRESET_NAMES.values()) <= set(theme_dict)
+        assert not set(LEGACY_PRESET_NAMES) & set(theme_dict)
+
+    def test_the_unknown_name_error_lists_the_presets(self):
+        _, results = _apply(_form(new_form_theme()), {"op": "set_theme_preset", "name": "Neon"})
+        assert "Ocean" in results[0].message and "Blue" not in results[0].message
 
     def test_a_style_can_be_set_with_it(self):
         new_form, results = _apply(
@@ -53,7 +74,7 @@ class TestTheOp:
         assert new_form.theme.style == "classic"
 
     def test_leaflet_brings_its_own_style_and_drops_a_background(self):
-        old = themes["Blue"].model_copy(deep=True)
+        old = themes["Ocean"].model_copy(deep=True)
         old.style = "studio"
         old.background = ThemeBackground(type="pattern", pattern="dots")
         new_form, results = _apply(_form(old), {"op": "set_theme_preset", "name": "leaflet"})
@@ -64,7 +85,7 @@ class TestTheOp:
         "op",
         [
             {"op": "set_theme_preset", "name": "Neon"},
-            {"op": "set_theme_preset", "name": "Green", "style": "brutalist"},
+            {"op": "set_theme_preset", "name": "Forest", "style": "brutalist"},
         ],
     )
     def test_an_unknown_name_or_style_fails_alone(self, op):
@@ -95,6 +116,9 @@ class TestTheGuide:
             assert f'- "{style}": ' in looks, style
         assert f"New forms use the {NEW_FORM_THEME} preset" in looks
         assert "plainer" in looks
+        for legacy, preset in LEGACY_PRESET_NAMES.items():
+            assert f"{legacy} = {preset}" in looks
+            assert f'- "{legacy}": ' not in looks
 
     def test_the_mcp_tool_names_every_preset(self):
         from backend.app.mcp import server

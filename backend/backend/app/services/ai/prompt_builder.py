@@ -8,6 +8,7 @@ that may veto the user's request; everything user-authored is fenced as data.
 from typing import Optional
 
 from backend.app.constants.themes import (
+    LEGACY_PRESET_NAMES,
     NEW_FORM_THEME,
     THEME_STYLES,
     theme_descriptions,
@@ -69,12 +70,14 @@ def _looks_guide() -> str:
         f'- "{name}": {theme_descriptions.get(name, "").split(". ")[0].rstrip(".")}.'
         for name in theme_dict
     )
+    legacy = ", ".join(f"{old} = {new}" for old, new in LEGACY_PRESET_NAMES.items())
     styles = "\n".join(f'- "{s}": {STYLE_DESCRIPTIONS.get(s, s)}.' for s in THEME_STYLES)
     return (
         "## Looks\n"
         f"New forms use the {NEW_FORM_THEME} preset; keep it unless the user asks for another\n"
         "look, and then follow their request. Theme presets (set_theme_preset \"name\"):\n"
         f"{presets}\n"
+        f"Colour words mean the nearest preset: {legacy}.\n"
         "Styles (set_theme_preset \"style\"):\n"
         f"{styles}\n"
         'For "plainer" or "simpler", use the Default preset with the "classic" style.'
