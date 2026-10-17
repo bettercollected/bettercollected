@@ -1,50 +1,75 @@
-import { useState } from 'react';
+import { useRef } from 'react';
+
+import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
+import { ArrowDown, ArrowUp, Copy, Ellipsis, Trash2 } from 'lucide-react';
 
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
-import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@app/shadcn/components/ui/dropdown-menu';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import DeleteIcon from '@Components/icons/delete';
-import EllipsisOption from '@Components/icons/ellipsis-option';
-import { Copy } from 'lucide-react';
 
-export default function SlideOptions({ slideIndex }: { slideIndex: number }) {
-    const { duplicateSlide } = useFormFieldsAtom();
+import { MoveOutcome, useOutlineMoves } from './outline/use-outline-moves';
+
+/** The outline's "…" trigger: shown on row hover, on focus, while open and on the selected row. */
+export const outlineMenuTriggerClass = (visible: boolean) =>
+    cn(
+        'text-black-600 hover:bg-black-300 hover:text-black-900 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm transition-opacity',
+        'focus-visible:opacity-100 group-hover/row:opacity-100 data-[state=open]:opacity-100 pointer-coarse:opacity-100',
+        visible ? 'opacity-100' : 'opacity-0'
+    );
+
+export const outlineMenuItemClass = 'text-black-800 gap-2 px-3 py-2 text-sm';
+
+/**
+ * A page's "…" menu in the outline: move it, duplicate it, delete it (the
+ * delete toast offers Undo, with its questions and the logic that used them).
+ */
+export default function SlideOptions({ slideIndex, pageName, visible, onMoved }: { slideIndex: number; pageName: string; visible: boolean; onMoved: (outcome: MoveOutcome) => void }) {
+    const { formFields, duplicateSlide } = useFormFieldsAtom();
     const { deletePage } = useUndoableDelete();
-    const { activeSlideComponent } = useActiveSlideComponent();
-    const [open, setOpen] = useState(false);
+    const { movePageTo } = useOutlineMoves();
+    // A move hands focus to the moved row instead of back to this trigger.
+    const moved = useRef(false);
+    const move = (to: number) => {
+        moved.current = true;
+        onMoved(movePageTo(slideIndex, to));
+    };
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger>
-                <EllipsisOption className={cn(' hidden cursor-pointer', activeSlideComponent?.index === slideIndex && 'block', 'group-hover:block')} width={16} height={16} />
-            </PopoverTrigger>
-            <PopoverContent side="right" align="start" className=" w-[220px]  bg-white p-0 shadow-large">
-                <div
-                    className="p2 mt-2! flex cursor-pointer items-center gap-2 px-4 py-2 hover:bg-gray-100"
-                    onClick={() => {
-                        duplicateSlide(slideIndex);
-                        setOpen(false);
-                    }}
-                >
-                    <Copy className="h-4 w-4" />
+        <DropdownMenuPrimitive.Root>
+            <DropdownMenuPrimitive.Trigger aria-label={`Options for ${pageName}`} className={outlineMenuTriggerClass(visible)}>
+                <Ellipsis className="h-4 w-4" aria-hidden="true" />
+            </DropdownMenuPrimitive.Trigger>
+            <DropdownMenuContent
+                side="right"
+                align="start"
+                className="w-[200px] bg-white"
+                onCloseAutoFocus={(event) => {
+                    if (moved.current) event.preventDefault();
+                    moved.current = false;
+                }}
+            >
+                <DropdownMenuItem className={outlineMenuItemClass} disabled={slideIndex === 0} onSelect={() => move(slideIndex - 1)}>
+                    <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                    Move up
+                </DropdownMenuItem>
+                <DropdownMenuItem className={outlineMenuItemClass} disabled={slideIndex >= formFields.length - 1} onSelect={() => move(slideIndex + 1)}>
+                    <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                    Move down
+                </DropdownMenuItem>
+                <DropdownMenuItem className={outlineMenuItemClass} onSelect={() => duplicateSlide(slideIndex)}>
+                    <Copy className="h-4 w-4" aria-hidden="true" />
                     Duplicate
-                </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {/* Deletes at once; the toast (and the toolbar's Undo) brings
                     the page back, with its questions and the logic that
                     pointed at them. */}
-                <div
-                    className=" p2 mb-2!  flex cursor-pointer items-center gap-2 px-4 py-2 text-red-500! hover:bg-red-50"
-                    onClick={() => {
-                        setOpen(false);
-                        deletePage(slideIndex);
-                    }}
-                >
-                    <DeleteIcon className="text-red-500" />
+                <DropdownMenuItem className={cn(outlineMenuItemClass, 'text-[#C43D3D] focus:bg-[#FBEFEF] focus:text-[#C43D3D]')} onSelect={() => deletePage(slideIndex)}>
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                     Delete
-                </div>
-            </PopoverContent>
-        </Popover>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenuPrimitive.Root>
     );
 }
