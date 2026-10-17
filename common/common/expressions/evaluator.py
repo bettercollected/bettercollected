@@ -12,6 +12,7 @@ numbers, and ``list`` of those.
 from __future__ import annotations
 
 import re
+from contextvars import ContextVar
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from common.expressions.decimal_num import CEIL, FLOOR, ZERO, Dec
@@ -56,12 +57,39 @@ def _cap(text: str) -> str:
     return text if len(text) <= MAX_STRING_LENGTH else text[:MAX_STRING_LENGTH]
 
 
+class _Memo:
+    """Coercions of one evaluation, computed once: a text's number, and a
+    list's numbers and joined text (lists come from variables, normalised
+    once per evaluation, so a list is the same object at every reference).
+    Without it a list variable read by many nodes would be parsed again at
+    each one."""
+
+    def __init__(self) -> None:
+        self.numbers: Dict[str, Optional[Dec]] = {}
+        self.list_numbers: Dict[int, Any] = {}
+        self.list_texts: Dict[int, str] = {}
+        self.keep: List[Any] = []  # keeps the lists keyed by id() alive
+
+
+_NO_NUMBERS = object()
+_MEMO: ContextVar[Optional[_Memo]] = ContextVar("expression_memo", default=None)
+
+
+def _parse_text_number(text: str) -> Optional[Dec]:
+    parsed = Dec.parse(text.strip(_ASCII_SPACE))
+    return parsed if isinstance(parsed, Dec) else None
+
+
 def _to_num(value: Value) -> Optional[Dec]:
     if isinstance(value, Dec):
         return value
     if isinstance(value, str):
-        parsed = Dec.parse(value.strip(_ASCII_SPACE))
-        return parsed if isinstance(parsed, Dec) else None
+        memo = _MEMO.get()
+        if memo is None:
+            return _parse_text_number(value)
+        if value not in memo.numbers:
+            memo.numbers[value] = _parse_text_number(value)
+        return memo.numbers[value]
     return None
 
 
@@ -75,7 +103,14 @@ def _to_text(value: Value) -> str:
     if value is None:
         return ""
     if isinstance(value, list):
-        return ", ".join(t for t in (_to_text(item) for item in value) if t != "")
+        memo = _MEMO.get()
+        if memo is not None and id(value) in memo.list_texts:
+            return memo.list_texts[id(value)]
+        text = ", ".join(t for t in (_to_text(item) for item in value) if t != "")
+        if memo is not None:
+            memo.keep.append(value)
+            memo.list_texts[id(value)] = text
+        return text
     if isinstance(value, Dec):
         return str(value)
     if isinstance(value, bool):
@@ -125,13 +160,43 @@ def _aggregate_items(values: List[Value]) -> List[Scalar]:
     return items
 
 
-def _aggregate_numbers(values: List[Value]) -> Optional[List[Dec]]:
+def _numbers_of(items: List[Scalar]) -> Optional[List[Dec]]:
     numbers: List[Dec] = []
-    for item in _aggregate_items(values):
+    for item in items:
+        if item is None or item == "":
+            continue
         number = _to_num(item)
         if number is None:
             return None
         numbers.append(number)
+    return numbers
+
+
+def _list_numbers(value: List[Scalar]) -> Optional[List[Dec]]:
+    """The numbers of a list's answered items (None: one is not a number),
+    once per list and evaluation."""
+    memo = _MEMO.get()
+    if memo is None:
+        return _numbers_of(value)
+    cached = memo.list_numbers.get(id(value))
+    if cached is None:
+        cached = _numbers_of(value)
+        memo.keep.append(value)
+        memo.list_numbers[id(value)] = _NO_NUMBERS if cached is None else cached
+        return cached
+    return None if cached is _NO_NUMBERS else cached
+
+
+def _aggregate_numbers(values: List[Value]) -> Optional[List[Dec]]:
+    numbers: List[Dec] = []
+    for value in values:
+        if isinstance(value, list):
+            part = _list_numbers(value)
+        else:
+            part = _numbers_of([value])
+        if part is None:
+            return None
+        numbers.extend(part)
     return numbers
 
 
@@ -364,8 +429,10 @@ def evaluate_expression(
         raise ExpressionError(problems[0])
     variables = variables or {}
     context = context or {}
-    # Each variable is normalised once per evaluation, however often it is referenced.
+    # Each variable is normalised once per evaluation, however often it is
+    # referenced, and its coercions are memoised (_Memo).
     normalised: Dict[str, Value] = {}
+    token = _MEMO.set(_Memo())
 
     def ev(node: Any) -> Value:
         if node is None or isinstance(node, (bool, str)):
@@ -381,7 +448,10 @@ def evaluate_expression(
             return normalised[value]
         return _OPS[op](value, ev, context)
 
-    return _to_output(ev(ast))
+    try:
+        return _to_output(ev(ast))
+    finally:
+        _MEMO.reset(token)
 
 
 def format_expression_value(value: Any) -> str:

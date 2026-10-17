@@ -4,7 +4,7 @@ import { resolve } from 'path';
 import { vi } from 'vitest';
 
 import { ExpressionError } from '@app/lib/expressions/ast';
-import { ExprValue, asciiTrim, evaluateExpression, formatExpressionValue } from '@app/lib/expressions/evaluator';
+import { ExprValue, asciiTrim, evaluateExpression, evaluatorStats, formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { isValidExpression, validateExpression } from '@app/lib/expressions/validator';
 
 /**
@@ -187,5 +187,24 @@ describe('formatExpressionValue', () => {
         expect(formatExpressionValue(true)).toBe('true');
         expect(formatExpressionValue(null)).toBe('');
         expect(formatExpressionValue(['a', null, 2])).toBe('a, 2');
+    });
+});
+
+describe('memoised coercions', () => {
+    it('parses a list variable once per evaluation, however many nodes read it', () => {
+        const items = Array.from({ length: 50 }, (_, i) => String(i));
+        const ast = { sum: Array.from({ length: 499 }, () => ({ var: 'g.amount' })) };
+        evaluatorStats.textNumberParses = 0;
+        expect(evaluateExpression(ast, { 'g.amount': items })).toBe(499 * 1225);
+        expect(evaluatorStats.textNumberParses).toBe(50);
+        // a scalar text read by many nodes is parsed once
+        evaluatorStats.textNumberParses = 0;
+        expect(evaluateExpression({ '+': Array.from({ length: 400 }, () => ({ var: 'n' })) }, { n: '2.5' })).toBe(1000);
+        expect(evaluatorStats.textNumberParses).toBe(1);
+        // the next evaluation starts afresh
+        evaluatorStats.textNumberParses = 0;
+        evaluateExpression({ sum: [{ var: 'g' }] }, { g: items });
+        expect(evaluatorStats.textNumberParses).toBe(50);
+        expect(evaluateExpression({ concat: [{ var: 'g' }, { var: 'g' }] }, { g: ['a', 'b'] })).toBe('a, ba, b');
     });
 });

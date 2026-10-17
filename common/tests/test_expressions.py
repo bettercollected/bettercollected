@@ -191,3 +191,36 @@ def test_large_list_referenced_many_times_is_fast(size, monkeypatch):
     assert len(items) == (0 if size > 1000 else size)
     # smoke check only, far above the expected time (shared CI runners vary)
     assert elapsed < 5
+
+
+def test_list_variables_are_parsed_once_per_evaluation(monkeypatch):
+    """A 500-node sum over a 50-item group answer parses each item once, not
+    once per reference (mechanism, not wall time)."""
+    from common.expressions import decimal_num, evaluator
+
+    calls = {"parse": 0}
+    original = decimal_num.Dec.parse
+
+    def counting(text):
+        calls["parse"] += 1
+        return original(text)
+
+    monkeypatch.setattr(decimal_num.Dec, "parse", staticmethod(counting))
+    items = [str(i) for i in range(50)]
+    ast = {"sum": [{"var": "g.amount"}] * 499}
+    result = evaluator.evaluate_expression(ast, {"g.amount": items})
+    assert result == 499 * sum(range(50))
+    assert calls["parse"] == 50
+    # a scalar text read by many nodes is parsed once
+    calls["parse"] = 0
+    ast = {"+": [{"var": "n"}] * 400}
+    assert evaluator.evaluate_expression(ast, {"n": "2.5"}) == 1000
+    assert calls["parse"] == 1
+    # a list's text is joined once; the memo ends with the evaluation
+    ast = {"concat": [{"var": "g.amount"}] * 2}
+    assert evaluator.evaluate_expression(ast, {"g.amount": ["a", "b"]}) == "a, ba, b"
+    assert evaluator._MEMO.get() is None
+    # and the next evaluation starts afresh
+    calls["parse"] = 0
+    evaluator.evaluate_expression({"sum": [{"var": "g"}]}, {"g": items})
+    assert calls["parse"] == 50
