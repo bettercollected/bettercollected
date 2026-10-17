@@ -2,8 +2,9 @@
 
 New forms start with the Leaflet theme, so a query built from the theme name
 would search Unsplash for "Leaflet ...". The prompts ask for subject-only
-queries and the tool executor drops any theme or style name the model still
-puts at either end of the query.
+queries, and the tool executor drops the form's own theme name, the style
+names and the words theme/style when the model still puts them at either end
+of the query. A topic never loses a word ("Red Cross blood donation").
 """
 
 import json
@@ -54,29 +55,62 @@ class FakeCompletions:
 
 
 @pytest.mark.parametrize(
-    "raw, expected",
+    "raw, theme, expected",
     [
-        ("Leaflet community centre visit", "community centre visit"),
-        ("community centre visit leaflet style", "community centre visit"),
-        ("purple minimal healthcare", "minimal healthcare"),
-        ("Default theme customer feedback", "customer feedback"),
-        ("Red Cross blood donation", "Cross blood donation"),
-        ("volunteer Red Cross drive", "volunteer Red Cross drive"),
-        ("Leaflet", ""),
-        ("", ""),
+        ("Red Cross blood donation", "Leaflet", "Red Cross blood donation"),
+        ("Red Cross blood donation", "Red", "Red Cross blood donation"),
+        ("Leaflet community centre visit", "Leaflet", "community centre visit"),
+        (
+            "community centre activities leaflet",
+            "Leaflet",
+            "community centre activities",
+        ),
+        ("Ocean theme beach clean-up", "Ocean", "beach clean-up"),
+        ("Red theme community day", "Red", "community day"),
+        ("community day red theme", "Red", "community day"),
+        ("community day, red", "Red", "community day, red"),
+        # Other presets' names are never stripped: they may be the topic.
+        ("Green energy survey", "Leaflet", "Green energy survey"),
+        ("purple minimal healthcare", "Leaflet", "purple minimal healthcare"),
+        # Style names and theme/style words go whatever the theme.
+        ("studio style school trip", "Blue", "school trip"),
+        ("Default customer feedback", "Default", "customer feedback"),
+        # Look words in the middle are part of the topic.
+        ("printed leaflet distribution", "Leaflet", "printed leaflet distribution"),
+        ("Leaflet theme", "Leaflet", ""),
+        ("", "Leaflet", ""),
     ],
 )
-def test_image_query_drops_theme_and_style_names_at_the_ends(raw, expected):
-    assert image_query(raw) == expected
+def test_image_query_drops_only_look_words_at_the_ends(raw, theme, expected):
+    assert image_query(raw, theme) == expected
 
 
-@pytest.mark.parametrize("name", [*theme_dict, *THEME_STYLES])
-async def test_every_theme_and_style_name_is_kept_out_of_the_query(name):
+@pytest.mark.parametrize("name", list(theme_dict))
+async def test_the_chosen_theme_marked_as_theme_is_kept_out(name):
     unsplash = FakeUnsplash()
     await execute_tool(
-        "search_images", {"query": f"{name} school trip consent"}, unsplash
+        "search_images",
+        {"query": f"{name} theme school trip consent", "theme_name": name},
+        unsplash,
     )
     assert unsplash.queries == ["school trip consent"]
+
+
+@pytest.mark.parametrize("style", THEME_STYLES)
+async def test_style_names_are_kept_out(style):
+    unsplash = FakeUnsplash()
+    await execute_tool(
+        "search_images", {"query": f"school trip consent {style}"}, unsplash
+    )
+    assert unsplash.queries == ["school trip consent"]
+
+
+async def test_without_a_theme_name_the_new_form_theme_is_assumed():
+    unsplash = FakeUnsplash()
+    await execute_tool(
+        "search_images", {"query": "Leaflet Red Cross blood donation"}, unsplash
+    )
+    assert unsplash.queries == ["Red Cross blood donation"]
 
 
 async def test_a_query_of_only_look_words_searches_nothing():
@@ -106,7 +140,10 @@ async def test_leaflet_ai_form_image_queries_follow_the_topic():
                             _tool_call(
                                 "i1",
                                 "search_images",
-                                {"query": "Leaflet community centre visit"},
+                                {
+                                    "query": "Leaflet community centre visit",
+                                    "theme_name": "Leaflet",
+                                },
                             ),
                             _tool_call(
                                 "i2",

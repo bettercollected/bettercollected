@@ -28,7 +28,8 @@ describes a multi-page form. Follow the schema and rules below exactly.
 2. Call `get_available_layouts` ONCE → learn available layouts.
 3. Call `search_images` for the WELCOME PAGE with a query about the form's subject only,
    built from its title, description and first questions (e.g. "community centre activities"
-   or "hospital patient care"). Never put the theme name, the style or colour words in it.
+   or "hospital patient care"), and pass the chosen `theme_name`. Never put the theme
+   name, the style or colour words in the query.
    If photos are returned use the best URL as `welcome_image_url`.
 4. For EACH top-level field/group (= one slide), call `search_images` separately with a
    query about that slide's topic only, e.g. "personal information paperwork" or
