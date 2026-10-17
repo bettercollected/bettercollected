@@ -427,12 +427,17 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
 - **Proposals** (`services/ai/proposals.py`): the editor's chat turns use
   `mode: "propose"`: the ops are dry-run, nothing but the chat turn is
   stored, and `POST …/ai/proposals/{id}/accept` (optional `opIndexes`)
-  applies them atomically to the form as stored then, through
-  `persist_ops_to_form` with the conditional write (409 `proposal_stale`
-  with per-op errors when they no longer apply, 422 `proposal_dependency`
-  for a chosen op whose ref comes from one left out); `…/reject` only marks
-  it. A proposal lives on its chat turn (`messages[].proposal`, both
-  stores), can be accepted for `AI_PROPOSAL_TTL_SECONDS` (3600), and a
+  applies them atomically, only to the version of the form the proposal
+  was made from (`base_updated_at`; ops address pages and fields by
+  position too), through `persist_ops_to_form` with the conditional write
+  on that base: 409 `proposal_stale` when the form changed since, 422
+  `proposal_selection_changes_meaning` when a chosen op without the ones
+  left out would change something other than its step showed, 422
+  `proposal_dependency` for a chosen op whose ref comes from one left out;
+  `…/reject` only marks it. The editor saves pending edits before it asks.
+  A proposal lives on its chat turn (`messages[].proposal`, both stores;
+  statuses are written with `update_proposal`, never by saving the whole
+  session), can be accepted for `AI_PROPOSAL_TTL_SECONDS` (3600), and a
   one-time claim in the rate-limit counters (`FixedWindowRateLimiter.claim`)
   makes it apply once. Accepting uses the review-fix allowance. `apply`
   stays the API default (MCP, older clients).
