@@ -27,9 +27,9 @@ class TokenReportingProvider(FakeProvider):
 
     tokens = 150
 
-    async def generate_form(self, prompt: str) -> dict:
+    async def chat(self, system: str, messages: list, **options) -> str:
         await record_tokens(self.tokens)
-        return await super().generate_form(prompt)
+        return await super().chat(system, messages, **options)
 
 
 @pytest.fixture()
@@ -53,7 +53,7 @@ def _generate_url(workspace):
 
 
 async def _generate(client, workspace, cookies, fake):
-    fake.replies.append(dict(GENERATED_FORM))
+    fake.replies.append(GENERATED_FORM)
     return await client.post(
         _generate_url(workspace), cookies=cookies, json={"prompt": "a contact form"}
     )
@@ -119,7 +119,7 @@ class TestRateLimits:
         response = await _generate(client, workspace, test_user_cookies, fake)
         assert response.status_code == 200, response.text
 
-    @pytest.mark.parametrize("endpoint", range(4))
+    @pytest.mark.parametrize("endpoint", range(5))
     async def test_every_ai_endpoint_is_limited_before_the_provider(
         self,
         client: AsyncClient,

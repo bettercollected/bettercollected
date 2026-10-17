@@ -16,7 +16,6 @@ from common.models.standard_form import (
     ThemeBackground,
 )
 
-from backend.app.container import container
 from backend.app.services import unsplash_route
 from backend.app.services.ai.ops import UpdateThemeOp, apply_form_ops, parse_ops
 from backend.app.services.image_urls import (
@@ -297,42 +296,6 @@ def test_update_theme_without_an_image_is_fine(url):
     )
     assert results[0].ok
     assert new_form.theme.background.imageUrl is None
-
-
-# -- AI form creation (dashboard and MCP create_form_with_ai) -------------------
-
-
-def test_ai_created_forms_keep_only_allowed_images():
-    form = container.openai_service().convert_openai_form_to_standard_form(
-        {
-            "title": "Intake",
-            "welcome_image_url": "https://tracker.example.com/welcome.jpg",
-            "cover_image_url": "https://tracker.example.com/cover.jpg",
-            "fields": [
-                {
-                    "type": "short_text",
-                    "title": "Name",
-                    "image_url": "https://tracker.example.com/page.jpg",
-                    "layout": "TWO_COLUMN_IMAGE_LEFT",
-                },
-                {
-                    "type": "short_text",
-                    "title": "City",
-                    "image_url": UNSPLASH,
-                    "layout": "TWO_COLUMN_IMAGE_RIGHT",
-                },
-            ],
-        }
-    )
-    assert form.welcome_page.imageUrl is None
-    assert form.welcome_page.layout == "SINGLE_COLUMN_NO_BACKGROUND"
-    assert form.cover_image is None
-    refused, kept = form.fields
-    assert refused.image_url is None
-    assert refused.properties.layout != "TWO_COLUMN_IMAGE_LEFT"
-    # kept by its canonical address (respondents load it through our route)
-    assert kept.image_url == CANONICAL
-    assert kept.properties.layout == "TWO_COLUMN_IMAGE_RIGHT"
 
 
 # -- no API host is ever stored ------------------------------------------------

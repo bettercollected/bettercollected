@@ -1,0 +1,91 @@
+{
+  "name": "outline_en_too_many_questions",
+  "kind": "outline",
+  "description": "Ten questions crammed onto one page.",
+  "language": "en",
+  "expected_findings": [
+    "too_many_questions_on_page"
+  ],
+  "reply": {
+    "title": "Office move survey",
+    "description": "Help us plan the move to the new office.",
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Which floor do you work on now?",
+            "type": "short_text",
+            "required": false
+          },
+          {
+            "key": "q2",
+            "label": "How do you usually travel to the office?",
+            "type": "dropdown",
+            "required": false,
+            "choices": [
+              "Bike",
+              "Car",
+              "Train",
+              "Walk"
+            ]
+          },
+          {
+            "key": "q3",
+            "label": "How many days a week are you in the office?",
+            "type": "number",
+            "required": false
+          },
+          {
+            "key": "q4",
+            "label": "Do you need a standing desk?",
+            "type": "yes_no",
+            "required": false
+          },
+          {
+            "key": "q5",
+            "label": "Do you need a locker?",
+            "type": "yes_no",
+            "required": false
+          },
+          {
+            "key": "q6",
+            "label": "Which team are you part of?",
+            "type": "short_text",
+            "required": false
+          },
+          {
+            "key": "q7",
+            "label": "Which rooms do you book most?",
+            "type": "long_text",
+            "required": false
+          },
+          {
+            "key": "q8",
+            "label": "How important is natural light to you?",
+            "type": "linear_rating",
+            "required": false
+          },
+          {
+            "key": "q9",
+            "label": "Do you have accessibility needs we should plan for?",
+            "type": "long_text",
+            "required": false
+          },
+          {
+            "key": "q10",
+            "label": "Anything else you would like us to know?",
+            "type": "long_text",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

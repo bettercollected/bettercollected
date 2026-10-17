@@ -108,9 +108,19 @@ async def test_a_form_that_brings_its_theme_keeps_it(
 def test_an_ai_created_form_starts_with_leaflet_unless_a_preset_was_picked(
     picked, expected
 ):
-    form = container.openai_service().convert_openai_form_to_standard_form(
-        {"title": "Intake", "fields": [], **picked}
+    from backend.app.services.ai.outline import FormOutline
+    from backend.app.services.ai.outline_compile import build_form
+
+    outline = FormOutline.model_validate(
+        {
+            "title": "Intake",
+            "theme": picked.get("theme_name"),
+            "pages": [
+                {"key": "p1", "questions": [{"key": "q1", "label": "Name", "type": "short_text"}]}
+            ],
+        }
     )
+    form, _ = build_form(outline)
     assert form.theme.title == expected
     if expected == "Leaflet":
         assert _theme(form.theme) == LEAFLET

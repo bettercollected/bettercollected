@@ -18,7 +18,7 @@ import { EDITOR_ONLY_OPS, HANDLERS } from './handlers';
 import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_MARK, type OpContext, draftAt, droppedRulesText, setKey } from './handlers/context';
 import { editorGrowth } from './handlers/editor';
 import { buildInverse, touchedEntities } from './inverse';
-import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, isRepeatingGroup, isSlide, sizeProblem } from './model';
+import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, hasOwn, isRepeatingGroup, isSlide, sizeProblem } from './model';
 import { referenceFixes } from './references';
 import { type RefTable, refsDefined, resolveRefs } from './refs';
 import type { ApplyOptions, ApplyResult, FormDoc, FormField, FormOp, OpResult } from './types';
@@ -164,7 +164,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             results.push({ index: i, op: name, ok: false, message: SIZE_LIMIT_SKIPPED });
             continue;
         }
-        const handler = (HANDLERS as Record<string, ((ctx: OpContext, op: any) => string) | undefined>)[name];
+        const handler = hasOwn(HANDLERS, name) ? (HANDLERS as Record<string, (ctx: OpContext, op: any) => string>)[name] : undefined;
         let created: [string, string[]] | null = null;
         let defined: Array<[string, number | null]> = [];
         try {

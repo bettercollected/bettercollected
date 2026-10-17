@@ -239,42 +239,43 @@ class TestMCP:
         assert await _stored_titles(workspace_form.form_id) == [None, None]
 
 
-GENERATED = {
-    "title": "Community centre visit",
-    "description": "Tell us about your visit.",
-    "fields": [
-        {
-            "title": "About you",
-            "type": "group",
-            "layout": "SINGLE_COLUMN_NO_BACKGROUND",
-            "sectionTitle": "About you",
-            "properties": {
-                "fields": [
-                    {"title": "Your name", "type": "short_text"},
-                    {"title": "Your age group", "type": "dropdown",
-                     "properties": {"choices": ["Under 18", "18 or older"]}},
-                ]
+# What generation asks the model for first: an outline (services/ai/outline.py).
+GENERATED = json.dumps(
+    {
+        "title": "Community centre visit",
+        "description": "Tell us about your visit.",
+        "language": "en",
+        "pages": [
+            {
+                "key": "p1",
+                "sectionTitle": "About you",
+                "questions": [
+                    {"key": "q1", "label": "Your name", "type": "short_text"},
+                    {
+                        "key": "q2",
+                        "label": "Your age group",
+                        "type": "dropdown",
+                        "choices": ["Under 18", "18 or older"],
+                    },
+                ],
             },
-        },
-        {
-            "title": "Your visit",
-            "type": "group",
-            "layout": "SINGLE_COLUMN_NO_BACKGROUND",
-            "sectionTitle": "x" * 121,
-            "properties": {
-                "fields": [
-                    {"title": "When did you come?", "type": "date"},
-                    {"title": "What did you do?", "type": "long_text"},
-                ]
+            {
+                "key": "p2",
+                "sectionTitle": "   ",
+                "questions": [
+                    {"key": "q3", "label": "When did you come?", "type": "date"},
+                    {"key": "q4", "label": "What did you do?", "type": "long_text"},
+                ],
             },
-        },
-        {
-            "title": "Anything else?",
-            "type": "long_text",
-            "layout": "SINGLE_COLUMN_NO_BACKGROUND",
-        },
-    ],
-}
+            {
+                "key": "p3",
+                "questions": [
+                    {"key": "q5", "label": "Anything else?", "type": "long_text"}
+                ],
+            },
+        ],
+    }
+)
 
 
 class TestGeneration:
@@ -294,7 +295,7 @@ class TestGeneration:
         assert response.status_code == 200, response.text
         body = response.json()
         form_id = body.get("formId") or body["form_id"]
-        # set where given, left out where too long or not given
+        # set where given, left out where blank or not given
         assert await _stored_titles(form_id) == ["About you", None, None]
 
     async def test_mcp_create_form_with_ai_keeps_them_too(

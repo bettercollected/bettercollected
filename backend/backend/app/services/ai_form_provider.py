@@ -1,4 +1,4 @@
-"""Abstract interface for AI-based form generation providers."""
+"""The interface of the AI providers (OpenAI, Gemini, OpenAI-compatible)."""
 
 import abc
 import asyncio
@@ -45,27 +45,11 @@ class AIFormProvider(abc.ABC):
     """Base contract that all AI provider implementations must satisfy.
 
     Every call is bounded (backend/AGENTS.md "AI limits"): output tokens per
-    call type, a timeout per request and per call, and form generation's
-    tool loop by AI_MAX_TOOL_ITERATIONS / AI_MAX_TOOL_CALLS and
-    AI_GENERATION_TIMEOUT_SECONDS. Providers report each call's tokens with
-    ``services.ai.usage.record_tokens``.
+    call type and a timeout per request and per call. Providers report each
+    call's tokens with ``services.ai.usage.record_tokens``. Form generation
+    is outline-first (services/ai/outline_service.py) and only uses
+    ``chat``.
     """
-
-    @abc.abstractmethod
-    async def generate_form(self, prompt: str) -> Dict[str, Any]:
-        """Generate a raw form dict from a natural-language prompt.
-
-        The returned dict is validated (``services.ai.structured.GeneratedForm``)
-        and is what ``OpenAIService.convert_openai_form_to_standard_form``
-        consumes: title, description, theme_name, welcome_image_url,
-        cover_image_url and the fields.
-
-        Args:
-            prompt: Natural-language description of the desired form.
-
-        Returns:
-            Intermediate form dict.
-        """
 
     async def chat(
         self,
@@ -74,6 +58,7 @@ class AIFormProvider(abc.ABC):
         *,
         max_output_tokens: Optional[int] = None,
         json_mode: bool = False,
+        json_schema: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Multi-turn chat completion (used by AI form editing).
 
@@ -83,6 +68,9 @@ class AIFormProvider(abc.ABC):
                 ending with the latest user message.
             max_output_tokens: Output token cap (default AI_MAX_OUTPUT_TOKENS_CHAT).
             json_mode: Ask for a JSON object where the provider supports it.
+            json_schema: {"name", "schema"}: a strict JSON schema the reply
+                must follow, where the provider supports structured output
+                (others fall back to JSON mode; callers validate either way).
 
         Returns:
             The assistant's raw text reply.
