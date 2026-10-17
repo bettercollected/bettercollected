@@ -5,6 +5,8 @@ description = "Typed client and forms-as-code CLI for the BetterCollected public
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "See LICENSE in the repository root" }
+# Not on PyPI yet: refuse an accidental upload.
+classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.11",

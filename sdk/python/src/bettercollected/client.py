@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Generic, Mapping, Sequence, TypeVar
 
+import warnings
+
 import httpx
 from urllib.parse import quote
 
@@ -57,6 +59,21 @@ class CreatedForm:
 SpecLike = FormSpec | Mapping[str, Any]
 
 
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def sends_key_in_clear(base_url: str) -> bool:
+    """Whether ``base_url`` would send the key unencrypted to another
+    machine (plain http to anything but this one)."""
+    url = httpx.URL(base_url)
+    host = (url.host or "").lower()
+    return (
+        url.scheme == "http"
+        and host not in _LOCAL_HOSTS
+        and not host.endswith(".localhost")
+    )
+
+
 def _q(value: str) -> str:
     return quote(str(value), safe="")
 
@@ -81,6 +98,12 @@ class BetterCollected:
     ):
         if not api_key:
             raise ValueError("api_key is required")
+        if sends_key_in_clear(base_url):
+            warnings.warn(
+                "The base URL uses http://: the API key is sent unencrypted. "
+                "Use https://.",
+                stacklevel=2,
+            )
         self._http = httpx.Client(
             base_url=base_url.rstrip("/") + API_PATH,
             headers={

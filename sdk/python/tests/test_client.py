@@ -96,3 +96,17 @@ def test_unknown_key_is_401():
 def test_needs_a_key():
     with pytest.raises(ValueError):
         BetterCollected("", "https://x.test")
+
+
+def test_warns_when_the_key_would_travel_over_plain_http(recwarn):
+    for url in ("http://localhost:8000", "http://127.0.0.1", "https://x.test"):
+        BetterCollected(KEY, url).close()
+    assert len(recwarn) == 0
+    with pytest.warns(UserWarning, match="unencrypted"):
+        BetterCollected(KEY, "http://forms.example.org").close()
+
+
+def test_trailing_slashes_are_dropped(api):
+    with BetterCollected(KEY, "https://x.test///", transport=api.transport()) as c:
+        c.list_forms()
+    assert api.requests[-1].url.path == "/api/v1/public/v1/forms"
