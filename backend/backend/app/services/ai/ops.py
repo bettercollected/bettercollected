@@ -42,6 +42,7 @@ from common.models.standard_form import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.services.image_urls import checked_image_url
 from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
 from backend.app.services.policy_url import checked_policy_url
 from pydantic.alias_generators import to_camel
@@ -1057,7 +1058,16 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
 
 
 def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
-    form.theme = op.theme
+    theme = op.theme.model_copy(deep=True)
+    background = theme.background
+    if background is not None and background.imageUrl is not None:
+        # Respondent pages load it directly: our storage or Unsplash only
+        # (services/image_urls.py).
+        try:
+            background.imageUrl = checked_image_url(background.imageUrl) or None
+        except ValueError as error:
+            raise OpError(f"Background image refused: {error}")
+    form.theme = theme
     return f"Applied theme '{op.theme.title}'"
 
 

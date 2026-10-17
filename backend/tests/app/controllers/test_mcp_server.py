@@ -182,6 +182,55 @@ class TestMCPServer:
         logs = await container.mcp_audit_log_repo().list_by_workspace(workspace.id)
         assert any(log.tool == "update_form" and log.ok for log in logs)
 
+    async def test_update_form_refuses_a_third_party_background_image(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+    ):
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        await _make_v2(form_doc)
+        before = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        token = await _make_key(workspace.id, ["forms:read", "forms:write"])
+
+        result = _tool_text(
+            await _call_tool(
+                client,
+                token,
+                "update_form",
+                {
+                    "form_id": workspace_form.form_id,
+                    "ops": [
+                        {
+                            "op": "update_theme",
+                            "theme": {
+                                "title": "Pictured",
+                                "primary": "#111827",
+                                "secondary": "#1D4ED8",
+                                "tertiary": "#2563EB",
+                                "accent": "#DBEAFE",
+                                "background": {
+                                    "type": "image",
+                                    "imageUrl": "https://tracker.example.com/bg.jpg",
+                                },
+                            },
+                        }
+                    ],
+                },
+            )
+        )
+        assert [r["ok"] for r in result["results"]] == [False]
+        assert "Background image refused" in result["results"][0]["message"]
+
+        refreshed = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        assert refreshed.theme == before.theme
+
     async def test_create_form_blank_then_build_with_ops(
         self,
         client: AsyncClient,
