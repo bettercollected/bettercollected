@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { calculationVariables } from '@app/utils/calculated-fields';
 import AnswerRulesSettings from '@app/views/molecules/form-builder/answer-rules-settings';
-import CalculatedFieldSettings, { openReference, suggestionsFor } from '@app/views/molecules/form-builder/calculated-field-settings';
+import CalculatedFieldSettings, { FORMULA_IDLE_MS, firstQuestionKey, isIncompleteError, openReference, suggestionsFor } from '@app/views/molecules/form-builder/calculated-field-settings';
 
 const field = (id: string, type: string, title: string, properties: any = {}): StandardFormFieldDto => ({ id, index: 0, type, title, properties: { fields: [], ...properties } });
 
@@ -106,6 +107,72 @@ describe('the formula input', () => {
         expect(screen.getByTestId('calculation-preview').textContent).toBe('€10.00');
         fireEvent.click(screen.getByLabelText('Hide from respondents'));
         expect(changes.at(-1)).toEqual(['hiddenFromRespondents', true]);
+    });
+});
+
+describe('errors of an unfinished formula', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('wait until typing pauses, or the input is left', () => {
+        vi.useFakeTimers();
+        render(<Harness />);
+        const input = screen.getByLabelText('Formula');
+        fireEvent.change(input, { target: { value: 'round({Price}', selectionStart: 13 } });
+        expect(screen.queryByRole('alert')).toBeNull();
+        act(() => vi.advanceTimersByTime(FORMULA_IDLE_MS - 100));
+        expect(screen.queryByRole('alert')).toBeNull();
+        act(() => vi.advanceTimersByTime(200));
+        expect(screen.getByRole('alert').textContent).toMatch(/Expected/);
+        fireEvent.change(input, { target: { value: 'round({Price}, ', selectionStart: 15 } });
+        expect(screen.queryByRole('alert')).toBeNull();
+        fireEvent.blur(input);
+        expect(screen.getByRole('alert')).toBeTruthy();
+    });
+
+    it('a mistake inside the formula shows at once', () => {
+        vi.useFakeTimers();
+        render(<Harness />);
+        fireEvent.change(screen.getByLabelText('Formula'), { target: { value: '{Price} = 2 + 1', selectionStart: 15 } });
+        expect(screen.getByRole('alert').textContent).toMatch(/==/);
+    });
+
+    it('tells an unfinished formula from a mistake', () => {
+        expect(isIncompleteError('round({Price}', { start: 13 })).toBe(true);
+        expect(isIncompleteError('round({Price}  ', { start: 13 })).toBe(true);
+        expect(isIncompleteError('{Price} = 2', { start: 8 })).toBe(false);
+    });
+});
+
+describe('the suggestion list', () => {
+    it('opens in flow, about five rows high, so it does not cover the preview', () => {
+        render(<Harness />);
+        fireEvent.change(screen.getByLabelText('Formula'), { target: { value: '{', selectionStart: 1 } });
+        const list = screen.getByRole('listbox');
+        expect(list.className).not.toMatch(/\babsolute\b/);
+        expect(list.className).toContain('max-h-[148px]');
+        expect(list.className).toContain('overflow-auto');
+    });
+});
+
+describe('the preview without an answer', () => {
+    it('finds the first question through other calculations', () => {
+        const slides = [
+            {
+                id: 'p',
+                index: 0,
+                type: FieldTypes.SLIDE,
+                properties: {
+                    fields: [
+                        field('qty', FieldTypes.NUMBER, 'Quantity'),
+                        field('sub', FieldTypes.CALCULATED, 'Subtotal', { expression: { '*': [{ var: 'qty' }, 2] } }),
+                        field('vat', FieldTypes.CALCULATED, 'VAT', { expression: { '*': [{ var: 'sub' }, 0.21] } })
+                    ]
+                }
+            }
+        ] as StandardFormFieldDto[];
+        const variables = calculationVariables(slides);
+        expect(firstQuestionKey({ '+': [{ var: 'vat' }, { var: 'sub' }] }, variables, slides)?.label).toBe('Quantity');
+        expect(firstQuestionKey({ '+': [1, 2] }, variables, slides)).toBeUndefined();
     });
 });
 

@@ -83,6 +83,9 @@ function titleText(title: unknown): string {
     return (node.content ?? []).map(titleText).join(node.type === 'doc' ? ' ' : '');
 }
 
+/** A field's own title as plain text ('' when untitled). */
+export const fieldTitleText = (field: StandardFormFieldDto): string => (titleText(field.title) || (typeof field.value === 'string' ? field.value : '')).replace(/\s+/g, ' ').trim();
+
 const fieldLabel = (field: StandardFormFieldDto): string => (titleText(field.title) || (typeof field.value === 'string' ? field.value : '')).replace(/\s+/g, ' ').trim() || field.id;
 
 /** Every variable of the form, in form order (hidden fields last). */

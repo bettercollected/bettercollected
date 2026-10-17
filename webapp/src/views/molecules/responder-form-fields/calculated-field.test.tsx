@@ -61,4 +61,18 @@ describe('a calculated field for respondents', () => {
         await act(async () => fireEvent.click(screen.getByText('clear')));
         expect(output.textContent).toBe('Not calculated yet');
     });
+
+    it('names the value "Calculation" when the field has no title', () => {
+        const untitled = { ...TOTAL, title: '' };
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <CalculatedField field={untitled} slides={SLIDES} />
+                </Provider>
+            </ReduxProvider>
+        );
+        const output = screen.getByTestId('calculated-value');
+        expect(output.getAttribute('aria-labelledby')).toBeNull();
+        expect(output.getAttribute('aria-label')).toBe('Calculation');
+    });
 });

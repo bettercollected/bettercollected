@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyboardEvent, useId, useMemo, useRef, useState } from 'react';
+import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { ExprNode, ExprValue, evaluateExpression, formatExpressionValue } from '@app/lib/expressions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -70,10 +70,29 @@ export function previewValue(slides: StandardFormFieldDto[], field: StandardForm
 }
 
 /** The first question (not a calculation) a formula reads: the one the preview leaves unanswered. */
-export function firstQuestionKey(expression: unknown, variables: CalculationVariable[]): CalculationVariable | undefined {
-    const used = new Set(expressionVariables(expression));
-    return variables.find((variable) => variable.kind === 'field' && used.has(variable.key));
+export function firstQuestionKey(expression: unknown, variables: CalculationVariable[], slides: StandardFormFieldDto[] = []): CalculationVariable | undefined {
+    // Through other calculations too: the first answered question the
+    // dependency chain reaches.
+    const formulas = new Map(getCalculatedFields(slides).map((calc) => [calc.id, calc.properties?.expression]));
+    const byKey = new Map(variables.map((variable) => [variable.key, variable]));
+    const seen = new Set<string>();
+    const pending = [...expressionVariables(expression)];
+    while (pending.length) {
+        const key = pending.shift()!;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const variable = byKey.get(key);
+        if (variable?.kind === 'field') return variable;
+        if (formulas.has(key)) pending.push(...expressionVariables(formulas.get(key)));
+    }
+    return undefined;
 }
+
+/** An error at the end of the formula: it is probably still being typed. */
+export const isIncompleteError = (text: string, error: { start: number }): boolean => error.start >= text.trimEnd().length;
+
+/** How long typing must pause before an unfinished formula's error shows. */
+export const FORMULA_IDLE_MS = 800;
 
 /**
  * The inspector's Calculation settings: the formula (with `{Field}`
@@ -101,6 +120,14 @@ export default function CalculatedFieldSettings({
 
     const [draft, setDraft] = useState(() => formulaText(expression, variables));
     const [error, setError] = useState<{ message: string; start: number; end: number } | null>(null);
+    const [settled, setSettled] = useState(true);
+    const idle = useRef<number | undefined>(undefined);
+    useEffect(() => () => window.clearTimeout(idle.current), []);
+    const typing = () => {
+        setSettled(false);
+        window.clearTimeout(idle.current);
+        idle.current = window.setTimeout(() => setSettled(true), FORMULA_IDLE_MS);
+    };
     // Another field selected, or the formula changed elsewhere (AI, undo):
     // show it, unless the draft already says the same.
     const [shown, setShown] = useState({ id: field.id, stored });
@@ -167,12 +194,14 @@ export default function CalculatedFieldSettings({
     const show = (value: ExprValue) => (value === null ? '' : typeof value === 'number' ? formatCalculatedValue(value, format, 'en') : formatExpressionValue(value));
     const previewText = error ? '' : show(previewValue(slides, field, expression, variables));
     // The same with one answer left out: what "unanswered as 0" changes.
-    const emptied = error ? undefined : firstQuestionKey(expression, variables);
+    const emptied = error ? undefined : firstQuestionKey(expression, variables, slides);
     const emptiedText = emptied ? show(previewValue(slides, field, expression, variables, emptied.key)) : '';
     const asZero = unansweredAsZero(field);
     // While the reference list is open, the formula is unfinished on purpose
     // ("missing }"): its error waits until a field is picked or typing goes on.
-    const shownError = listOpen ? null : error;
+    // Other errors show at once; an unfinished one ("Expected \",\" or \")\"")
+    // waits until typing pauses or the input is left.
+    const shownError = listOpen || (error && !settled && isIncompleteError(draft, error)) ? null : error;
     const setFormat = (patch: Partial<CalculationFormat>) => {
         const next = { ...format, ...patch };
         (Object.keys(next) as Array<keyof CalculationFormat>).forEach((key) => next[key] === undefined && delete next[key]);
@@ -190,7 +219,7 @@ export default function CalculatedFieldSettings({
                 <label htmlFor={formulaId} className="text-xs font-medium text-black-700">
                     Formula
                 </label>
-                {/* The suggestions hang from the input itself, over the hint below it. */}
+                {/* The suggestions open in flow under the input (about five rows, scrolling), pushing the hint and preview down instead of covering them. */}
                 <div className="relative">
                     <textarea
                         ref={textareaRef}
@@ -209,16 +238,20 @@ export default function CalculatedFieldSettings({
                         onChange={(event) => {
                             setCaret(event.target.selectionStart ?? event.target.value.length);
                             setDismissed(false);
+                            typing();
                             setActive(0);
                             apply(event.target.value);
                         }}
                         onSelect={(event) => setCaret((event.target as HTMLTextAreaElement).selectionStart ?? 0)}
                         onKeyDown={onKeyDown}
-                        onBlur={() => window.setTimeout(() => setDismissed(true), 150)}
+                        onBlur={() => {
+                            setSettled(true);
+                            window.setTimeout(() => setDismissed(true), 150);
+                        }}
                         className={`w-full rounded-lg border p-2 font-mono text-xs ${shownError || problems.length ? 'border-[#C43D3D]' : 'border-control focus:border-brand-500'}`}
                     />
                     {listOpen && (
-                        <ul id={listId} role="listbox" aria-label="Fields" className="absolute top-full right-0 left-0 z-popover mt-1 max-h-56 overflow-auto rounded border border-black-300 bg-white py-1 shadow-large">
+                        <ul id={listId} role="listbox" aria-label="Fields" className="mt-1 max-h-[148px] overflow-auto rounded border border-black-300 bg-white py-1">
                             {suggestions.map((variable, index) => (
                                 <li
                                     key={variable.key}

@@ -5,7 +5,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
-import { calculatedAnswerValue, formatCalculatedValue, usesAnyAnswer } from '@app/utils/calculated-fields';
+import { calculatedAnswerValue, fieldTitleText, formatCalculatedValue, usesAnyAnswer } from '@app/utils/calculated-fields';
 
 import QuestionWrapper from './question-wrapper';
 
@@ -28,6 +28,8 @@ export default function CalculatedField({ field, slides }: { field: StandardForm
     const formSlides = slides ?? responderForm?.fields;
     const { theme } = useFormState();
     const { t, language } = useRespondentLanguage();
+    // An untitled calculation shows no title: its value is still named.
+    const titled = !!fieldTitleText(field);
     const answered = usesAnyAnswer(field, formSlides, formResponse.answers ?? {}, hiddenValues);
     const value = answered ? calculatedAnswerValue(formResponse.answers?.[field.id]) : null;
     const text = typeof value === 'boolean' ? t(value ? 'FIELD.CALCULATED_TRUE' : 'FIELD.CALCULATED_FALSE') : formatCalculatedValue(value, field.properties?.format, language);
@@ -38,7 +40,8 @@ export default function CalculatedField({ field, slides }: { field: StandardForm
                 id={`calculated-${field.id}`}
                 aria-live="polite"
                 aria-atomic="true"
-                aria-labelledby={`q-title-${field.id} calculated-${field.id}`}
+                aria-labelledby={titled ? `q-title-${field.id} calculated-${field.id}` : undefined}
+                aria-label={titled ? undefined : t('FIELD.CALCULATION')}
                 data-testid="calculated-value"
                 className="mt-2 block text-2xl font-semibold tabular-nums"
                 style={{ color: theme?.primary }}
