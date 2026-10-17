@@ -39,6 +39,7 @@ MINIMAL = {
     "add_choice": {"fieldId": "a", "choice": {"id": "c"}},
     "remove_choice": {"fieldId": "a", "choiceId": "c"},
     "move_choice": {"fieldId": "a", "choiceId": "c", "index": 0},
+    "set_endings": {"endings": [{"id": "e1", "title": "Thanks"}]},
 }
 EDITOR_ONLY_MESSAGE = "only available in the form editor"
 

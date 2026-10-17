@@ -105,6 +105,8 @@ export interface PageJumpSpec {
     conditions: LogicConditionSpec[];
     /** A page id, or `__SUBMIT__`. */
     target: string;
+    /** With `__SUBMIT__`: the ending shown (default: the form's default ending). */
+    endingId?: string | null;
 }
 
 /** The form settings ops may change (backend FormSettingsPatch). */
@@ -302,6 +304,43 @@ export interface UpdateWelcomePageOp {
     patch: WelcomePagePatch;
 }
 
+/** What add_ending / update_ending set (backend EndingPatch). Absent (or null) = unchanged; "" clears a text. */
+export interface EndingPatch {
+    name?: string | null;
+    title?: string | null;
+    message?: string | null;
+    buttonText?: string | null;
+    buttonLink?: string | null;
+    layout?: string | null;
+    /** true makes it the default ending (the others stop being it); false unmarks only this one. */
+    isDefault?: boolean | null;
+}
+
+export interface AddEndingOp extends EndingPatch {
+    op: 'add_ending';
+    /** Default: append. */
+    index?: number | null;
+    ref?: string | null;
+}
+
+export interface UpdateEndingOp {
+    op: 'update_ending';
+    endingId: string;
+    patch: EndingPatch;
+}
+
+/** Remove an ending (never the last one); jumps that chose it show the default ending instead. */
+export interface RemoveEndingOp {
+    op: 'remove_ending';
+    endingId: string;
+}
+
+/** The endings as a whole, ids kept (editor only); page jumps are left as they are. An empty list removes them. */
+export interface SetEndingsOp {
+    op: 'set_endings';
+    endings: Array<Record<string, any>>;
+}
+
 /** The form's hidden fields (URL parameter names), as a whole; pipes of names no longer listed are removed. */
 export interface SetHiddenFieldsOp {
     op: 'set_hidden_fields';
@@ -370,9 +409,12 @@ export type AiFormOp =
     | SetSectionTitleOp
     | MovePageOp
     | SetFieldValidationOp
-    | SetQuestionNumberingOp;
+    | SetQuestionNumberingOp
+    | AddEndingOp
+    | UpdateEndingOp
+    | RemoveEndingOp;
 
-export type EditorFormOp = InsertFieldOp | ReplaceFieldOp | InsertPageOp | UpdatePageOp | UpdateWelcomePageOp | SetHiddenFieldsOp | UpdateLogoOp | SetChoiceOp | AddChoiceOp | RemoveChoiceOp | MoveChoiceOp;
+export type EditorFormOp = InsertFieldOp | ReplaceFieldOp | InsertPageOp | UpdatePageOp | UpdateWelcomePageOp | SetHiddenFieldsOp | UpdateLogoOp | SetChoiceOp | AddChoiceOp | RemoveChoiceOp | MoveChoiceOp | SetEndingsOp;
 
 export type FormOp = AiFormOp | EditorFormOp;
 export type FormOpName = FormOp['op'];

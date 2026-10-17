@@ -181,7 +181,7 @@ function checkNewIds(doc: FormDoc, item: FormField, replaced: Set<string> = new 
 }
 
 /** The address to store for one image: first-party, or already on the form. */
-function editorImage(url: unknown, keep: Set<string>, options: ApplyOptions): any {
+export function editorImage(url: unknown, keep: Set<string>, options: ApplyOptions): any {
     if (typeof url !== 'string' || !url.trim()) return url;
     const stored = firstPartyImageUrl(url, options);
     if (stored !== null) return stored;

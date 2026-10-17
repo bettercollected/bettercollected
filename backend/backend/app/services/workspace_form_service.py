@@ -56,7 +56,11 @@ from backend.app.services.form_logo import (
 from backend.app.services.form_concurrency import ensure_not_changed_since
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
-from backend.app.services.answer_validation import answer_ids, check_answers
+from backend.app.services.answer_validation import (
+    answer_ids,
+    check_answers,
+    reached_ending_id,
+)
 from backend.app.services.date_rules import today_range, validate_date_rule_answers
 from backend.app.services.form_service import FormService
 from backend.app.services.internal_fields import (
@@ -94,6 +98,14 @@ def _unprocessable_unless(check, *args):
         return check(*args)
     except ValueError as error:
         raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+
+
+def _checked_answers_ending(form, answers, form_id: str, known_ids) -> Optional[str]:
+    """Check a submission's answers (422 on problems, see check_answers),
+    then the id of the ending its path reaches. CPU-bound: run it off the
+    event loop."""
+    check_answers(form, answers, form_id, known_ids=known_ids)
+    return reached_ending_id(form, answers)
 
 
 def _check_ending_links(form, drop_unusable: bool, keep_as_is=()) -> None:
@@ -1047,12 +1059,14 @@ class WorkspaceFormService:
         # Answers may use the ids of the draft and the published version:
         # anything else is not a question of this form.
         # CPU-bound (creator patterns): off the event loop.
-        await run_in_threadpool(
-            check_answers,
+        # Which ending the respondent saw is replayed from the answers in the
+        # same call, never taken from the request.
+        response.ending_id = await run_in_threadpool(
+            _checked_answers_ending,
             latest_version_of_form or form,
             response.answers,
             str(form_id),
-            known_ids=answer_ids(form, latest_version_of_form),
+            answer_ids(form, latest_version_of_form),
         )
         _check_date_rules(latest_version_of_form or form, response.answers)
         # Files go up only once the submission is known to be accepted, so a

@@ -10,7 +10,7 @@
  * engine shares structure), so only the pages whose reference differs are
  * looked into.
  *
- * Not expressed: form-level keys no op sets (endings, actions, ...), and
+ * Not expressed: form-level keys no op sets (actions, ...), and
  * clearing a title, description or theme entirely; such differences are
  * left as they are.
  */
@@ -46,6 +46,8 @@ function formLevelOps(from: FormDoc, to: FormDoc): FormOp[] {
         if (Object.keys(patch).length) ops.push({ op: 'update_welcome_page', patch });
     }
     if (from.theme !== to.theme && to.theme != null && !jsonEqual(from.theme, to.theme)) ops.push({ op: 'update_theme', theme: clone(to.theme) });
+    // endings as a whole, ids kept (before the pages: jumps may name them)
+    if (from.thankyouPage !== to.thankyouPage && !jsonEqual(from.thankyouPage ?? [], to.thankyouPage ?? [])) ops.push({ op: 'set_endings', endings: clone(to.thankyouPage ?? []) as Array<Record<string, any>> });
     if (from.hiddenFields !== to.hiddenFields && !jsonEqual(from.hiddenFields ?? [], to.hiddenFields ?? [])) ops.push({ op: 'set_hidden_fields', names: [...(to.hiddenFields ?? [])] });
     const logo: Record<string, any> = {};
     for (const [key, opKey] of Object.entries(LOGO_KEYS)) if (!jsonEqual((from as any)[key], (to as any)[key])) logo[opKey] = (to as any)[key] ?? null;
@@ -124,6 +126,7 @@ function pageOps(a: FormField, b: FormField): FormOp[] {
         const jumps = (pb.jumps ?? []).map((jump: any) => ({
             operator: jump.operator,
             target: jump.target,
+            endingId: jump.endingId,
             conditions: (jump.conditions ?? []).map((c: any) => ({ fieldId: c.fieldId, comparison: c.comparison, value: c.value, groupMode: c.groupMode, childFieldId: c.childFieldId }))
         }));
         ops.push({ op: 'set_page_jumps', pageId: b.id, jumps: jumps.length ? withoutNulls(jumps) : null });
@@ -134,11 +137,6 @@ function pageOps(a: FormField, b: FormField): FormOp[] {
 /** Content ops only: replace the questions and update the pages that differ, structure being equal. */
 function contentOps(fromPages: Map<string, FormField>, toPages: FormField[], from: ReturnType<typeof indexPages>, to: ReturnType<typeof indexPages>, forced: Set<string>): FormOp[] {
     const ops: FormOp[] = [];
-    for (const page of toPages) {
-        const before = fromPages.get(page.id);
-        if (!before || before === page) continue;
-        ops.push(...pageOps(before, page));
-    }
     const replaced = new Set<string>();
     for (const [id, { field }] of to.fields) {
         const entry = to.fields.get(id)!;
@@ -149,6 +147,12 @@ function contentOps(fromPages: Map<string, FormField>, toPages: FormField[], fro
             ops.push({ op: 'replace_field', field: clone(field) });
             replaced.add(id);
         }
+    }
+    // pages' own settings last: their jumps may use questions replaced above
+    for (const page of toPages) {
+        const before = fromPages.get(page.id);
+        if (!before || before === page) continue;
+        ops.push(...pageOps(before, page));
     }
     return ops;
 }
@@ -267,6 +271,22 @@ function structureOps(from: FormDoc, to: FormDoc): FormOp[] {
     for (const page of changedTo) {
         for (const group of childrenOf(page).filter(isRepeatingGroup)) {
             const key = `g:${group.id}`;
+            // A question that becomes a repeating group again (it was replaced
+            // by another type): it must be a group before questions go in.
+            const was = fromIdx.fields.get(group.id)?.field;
+            if (was && !isRepeatingGroup(was) && !inserted.has(group.id)) {
+                const copy = withoutRules(clone(group));
+                copy.properties!.fields = childrenOf(copy).filter((child) => isNew(child.id));
+                ops.push({ op: 'replace_field', field: copy });
+                containers.set(
+                    key,
+                    childrenOf(copy).map((child) => {
+                        inserted.add(child.id);
+                        where.set(child.id, key);
+                        return child.id;
+                    })
+                );
+            }
             if (!containers.has(key)) containers.set(key, []);
             childrenOf(group).forEach((child, k) => {
                 if (isNew(child.id)) {
