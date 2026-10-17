@@ -193,6 +193,44 @@ describe('Start with AI: outline review', () => {
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
+    it('says nothing more is sent when the outline has no gaps', async () => {
+        await toReview();
+        expect(screen.queryByRole('checkbox', { name: 'Let AI fill in missing choices and reasons' })).not.toBeInTheDocument();
+        expect(screen.queryByText(/Build form sends/)).not.toBeInTheDocument();
+        buildMock.mockResolvedValue({ data: { formId: 'f-2', title: 't', quality: { score: 100, passed: true, findings: [] }, notes: [] } });
+        fireEvent.click(screen.getByRole('button', { name: /Build form/ }));
+        await waitFor(() => expect(buildMock).toHaveBeenCalled());
+        expect(buildMock.mock.calls[0][0].body.fillGaps).toBe(false);
+    });
+
+    it('asks before sending pages with gaps, and sends nothing when told not to', async () => {
+        await toReview();
+        fireEvent.change(screen.getByLabelText(/Choices, one per line/), { target: { value: '' } });
+        const allow = screen.getByRole('checkbox', { name: 'Let AI fill in missing choices and reasons' });
+        expect(allow).toBeChecked();
+        expect(screen.getByText('Build form sends pages that are missing choices or a reason, together with your workspace AI profile, to OpenAI, so it can suggest them.')).toBeInTheDocument();
+
+        fireEvent.click(allow);
+        expect(allow).not.toBeChecked();
+        expect(screen.getByText(/Build form sends nothing to the AI/)).toBeInTheDocument();
+        expect(screen.queryByText(/so it can suggest them/)).not.toBeInTheDocument();
+        buildMock.mockResolvedValue({ data: { formId: 'f-3', title: 't', quality: { score: 100, passed: true, findings: [] }, notes: [] } });
+        fireEvent.click(screen.getByRole('button', { name: /Build form/ }));
+        await waitFor(() => expect(buildMock).toHaveBeenCalledTimes(1));
+        expect(buildMock.mock.calls[0][0].body.fillGaps).toBe(false);
+    });
+
+    it('lets the AI fill gaps by default', async () => {
+        await toReview();
+        // an identity question without a reason is a gap too
+        fireEvent.change(screen.getByLabelText('Question 1'), { target: { value: 'What is your passport number?' } });
+        expect(screen.getByRole('checkbox', { name: 'Let AI fill in missing choices and reasons' })).toBeChecked();
+        buildMock.mockResolvedValue({ data: { formId: 'f-4', title: 't', quality: { score: 100, passed: true, findings: [] }, notes: [] } });
+        fireEvent.click(screen.getByRole('button', { name: /Build form/ }));
+        await waitFor(() => expect(buildMock).toHaveBeenCalledTimes(1));
+        expect(buildMock.mock.calls[0][0].body.fillGaps).toBe(true);
+    });
+
     it('goes back to the prompt and returns to the same outline', async () => {
         await toReview();
         fireEvent.change(screen.getByLabelText('Question 1'), { target: { value: 'Changed' } });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { FormOutline, addQuestion, canMove, changeType, deleteQuestion, moveQuestion, outlineForBuild, outlineProblems, pruneRules, renameQuestion, setChoices, setSectionTitle } from './ai-outline';
+import { FormOutline, addQuestion, canMove, changeType, deleteQuestion, moveQuestion, outlineForBuild, outlineProblems, pagesWithGaps, pruneRules, renameQuestion, setChoices, setSectionTitle } from './ai-outline';
 
 const outline = (): FormOutline => ({
     title: 'Volunteer sign-up',
@@ -78,6 +78,19 @@ describe('outline edits', () => {
         o.jumps.push({ fromPage: 'p3', to: 'p1', match: 'all', conditions: [{ question: 'notes', comparison: 'is_answered' }] });
         o.jumps.push({ fromPage: 'gone', to: 'end', match: 'all', conditions: [{ question: 'notes', comparison: 'is_answered' }] });
         expect(pruneRules(o).jumps).toHaveLength(1);
+    });
+
+    it('finds the pages the AI may fill in', () => {
+        expect(pagesWithGaps(outline())).toEqual([]);
+        const noChoices = setChoices(outline(), 'role', 'Stalls');
+        expect(pagesWithGaps(noChoices)).toEqual(['p1']);
+        const passport = renameQuestion(outline(), 'notes', 'Your passport number');
+        expect(pagesWithGaps(changeType(passport, 'notes', 'short_text'))).toEqual(['p3']);
+        const email = changeType(outline(), 'notes', 'email');
+        expect(pagesWithGaps(email)).toEqual(['p3']);
+        expect(pagesWithGaps({ ...email, pages: email.pages.map((p) => ({ ...p, questions: p.questions.map((q) => (q.key === 'notes' ? { ...q, whyWeAsk: 'To reply.' } : q)) })) })).toEqual([]);
+        // "Order ID" is not an ID number
+        expect(pagesWithGaps(renameQuestion(outline(), 'name', 'Your order ID'))).toEqual([]);
     });
 
     it('trims the outline for the build', () => {

@@ -224,6 +224,29 @@ export function setSectionTitle(outline: FormOutline, pageKey: string, title: st
     return updatePage(outline, pageKey, (page) => ({ ...page, sectionTitle: title.slice(0, SECTION_TITLE_MAX) }));
 }
 
+// Questions whose answer identifies the respondent, as the backend's publish
+// checks decide it (services/publish_checks.py): email and phone by type,
+// ID numbers by the question's text.
+const IDENTIFYING_TYPES: OutlineQuestionType[] = ['email', 'phone_number'];
+const ID_NUMBER_CANDIDATE_TYPES: OutlineQuestionType[] = ['short_text', 'long_text', 'number'];
+const ID_NUMBER_TITLE =
+    /\b(bsn|burgerservicenummer|sofinummer|sofi-nummer|passport\s*(?:number|no\.?|nr\.?)|paspoortnummer|paspoort\s*(?:nummer|nr\.?)|id[\s-]?(?:number|nummer|nr\.?|no\.?)|identification\s+number|identity\s+(?:card\s+)?number|identiteitsnummer|identiteitskaartnummer|national\s+(?:id|identity|insurance)\s+number|social\s+security\s+number|ssn)(?![\w-])/i;
+
+export function asksForIdentity(question: OutlineQuestion): boolean {
+    if (IDENTIFYING_TYPES.includes(question.type)) return true;
+    return ID_NUMBER_CANDIDATE_TYPES.includes(question.type) && ID_NUMBER_TITLE.test(question.label);
+}
+
+function distinctChoices(question: OutlineQuestion): number {
+    return new Set((question.choices ?? []).map((c) => c.trim().toLowerCase()).filter(Boolean)).size;
+}
+
+/** Pages with something the AI may fill in on build: a choice question
+ * without two choices, or an identity question without a reason. */
+export function pagesWithGaps(outline: FormOutline): string[] {
+    return outline.pages.filter((page) => page.questions.some((q) => (CHOICE_TYPES.includes(q.type) && distinctChoices(q) < 2) || (asksForIdentity(q) && !(q.whyWeAsk ?? '').trim()))).map((page) => page.key);
+}
+
 /** What still has to be fixed before building (shown to the person). */
 export function outlineProblems(outline: FormOutline): string[] {
     const problems: string[] = [];

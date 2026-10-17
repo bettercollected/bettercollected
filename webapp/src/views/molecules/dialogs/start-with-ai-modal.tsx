@@ -15,7 +15,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useBuildFormFromOutlineMutation, useOutlineFormWithAIMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { saveBuildReport } from '@app/utils/ai-build-report';
-import { FormOutline, outlineForBuild, outlineProblems, questionCount } from '@app/utils/ai-outline';
+import { FormOutline, outlineForBuild, outlineProblems, pagesWithGaps, questionCount } from '@app/utils/ai-outline';
 
 const GradiantBorderDiv = styled.div`
     position: relative;
@@ -72,6 +72,8 @@ export default function StartWithAi() {
     const [outline, setOutline] = useState<FormOutline | null>(null);
     // shown in the dialog until the next attempt (a toast is gone too soon)
     const [error, setError] = useState<string | null>(null);
+    // the person's choice: may the AI fill in missing choices and reasons?
+    const [fillGaps, setFillGaps] = useState(true);
     // Workspace AI opt-in (#715)
     const { settings: aiSettings, enabled: aiEnabled, providerName, refetch: refetchAI } = useWorkspaceAI();
 
@@ -105,7 +107,8 @@ export default function StartWithAi() {
         if (!outline || outlineProblems(outline).length) return;
         setError(null);
         setStep('building');
-        const response: any = await buildForm({ workspaceId: workspace.id, body: { outline: outlineForBuild(outline) } });
+        const sendGaps = fillGaps && aiEnabled && pagesWithGaps(outline).length > 0;
+        const response: any = await buildForm({ workspaceId: workspace.id, body: { outline: outlineForBuild(outline), fillGaps: sendGaps } });
         if (response.data?.formId) {
             saveBuildReport(response.data.formId, response.data);
             router.replace(`/${workspace?.workspaceName}/dashboard/forms/${response.data.formId}/edit`);
@@ -120,6 +123,7 @@ export default function StartWithAi() {
 
     if (step === 'review' && outline) {
         const problems = outlineProblems(outline);
+        const gapPages = pagesWithGaps(outline).length;
         return (
             <div>
                 <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
@@ -147,6 +151,19 @@ export default function StartWithAi() {
                                 <li key={problem}>{problem}</li>
                             ))}
                         </ul>
+                    )}
+                    {gapPages > 0 && aiEnabled && (
+                        <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
+                            <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
+                                <input id="outline-fill-gaps" type="checkbox" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
+                                Let AI fill in missing choices and reasons
+                            </label>
+                            <p id="outline-fill-gaps-notice">
+                                {fillGaps
+                                    ? `Build form sends pages that are missing choices or a reason, together with your workspace AI profile, to ${providerName}, so it can suggest them.`
+                                    : 'Build form sends nothing to the AI. Choice questions without choices are asked as short text, and missing reasons are listed for you to add.'}
+                            </p>
+                        </div>
                     )}
                     <div className="flex justify-between gap-4">
                         <Button
@@ -235,7 +252,11 @@ export default function StartWithAi() {
                         Back to the outline you were reviewing
                     </button>
                 )}
-                {aiEnabled && <p className="text-xs leading-relaxed text-black-600">Draft outline sends your prompt, the workspace AI profile and your AI memory to {providerName}. You review the outline before anything is created.</p>}
+                {aiEnabled && (
+                    <p className="text-xs leading-relaxed text-black-600">
+                        Draft outline sends your prompt, the workspace AI profile and your AI memory to {providerName}. You review the outline before anything is created, and building asks before it sends anything more.
+                    </p>
+                )}
             </div>
         </form>
     );
