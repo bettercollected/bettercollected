@@ -9,6 +9,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useEffect } from 'react';
+import { isShownToRespondents } from '@app/utils/calculated-fields';
 import { FormFieldComponent } from '../form/form-slide';
 import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 
@@ -23,7 +24,8 @@ export default function FormSlidePreview({ slide, theme }: { slide: StandardForm
         <SlideLayoutWrapper showDesktopLayout slide={slide} theme={slideTheme} disabled>
             {/* Same column and question rhythm as the builder canvas and the live form (form-column.ts). */}
             <div className={cn(FORM_COLUMN, columnPlacementClass(slide?.properties?.layout), 'relative flex flex-col gap-12 pt-12 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-12')}>
-                {(slide?.properties?.fields ?? []).map((field, position, fields) => {
+                {/* Calculations kept from respondents are not shown, as on the live form. */}
+                {(slide?.properties?.fields ?? []).filter(isShownToRespondents).map((field, position, fields) => {
                     const span = clampSpan(field);
                     return (
                         <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, position === fields.length - 1))} style={{ gridColumn: `span ${span} / span ${span}` }}>

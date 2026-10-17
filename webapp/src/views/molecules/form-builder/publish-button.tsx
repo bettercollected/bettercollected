@@ -151,7 +151,7 @@ export function PublishProblemsDialog({
                     <span className="text-black-800">{problem.message}</span>
                     {canShowQuestion(problem.fieldId) && (
                         <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
-                            Show the question
+                            {problem.code === 'missing_ending' ? 'Show the page' : 'Show the question'}
                         </button>
                     )}
                 </li>

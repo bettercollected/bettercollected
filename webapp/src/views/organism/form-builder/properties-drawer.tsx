@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
 import { PropertiesTab, usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import InspectorBreadcrumb, { InspectorCrumb } from '@app/views/molecules/form-builder/inspector-breadcrumb';
@@ -19,11 +20,11 @@ import FormSettingsTab from '@app/views/organism/form-builder/form-settings-tab'
 import PageDesignTab from '@app/views/organism/form-builder/page-design-tab';
 import PagePropertiesTab from '@app/views/organism/form-builder/page-properties-tab';
 
-/** What the Page crumb says for the selected page. */
-export function pageCrumbLabel(slide: { id?: string; index?: number } | null | undefined): string {
+/** What the Page crumb says for the selected page; an ending by its name, else its title. */
+export function pageCrumbLabel(slide: { id?: string; index?: number } | null | undefined, ending?: { name?: string; title?: string } | null): string {
     if (!slide) return 'Page';
     if (slide.id === 'welcome-page') return 'Welcome page';
-    if (slide.id === 'thank-you-page') return 'Ending';
+    if (slide.id === 'thank-you-page') return ending?.name?.trim() || ending?.title?.trim() || 'Ending';
     return `Page ${(slide.index ?? 0) + 1}`;
 }
 
@@ -46,6 +47,8 @@ export default function PropertiesDrawer({}: {}) {
     const { propertiesTab, setPropertiesTab } = usePropertiesTab();
     const { activeField } = useFormFieldsAtom();
     const standardForm = useAppSelector(selectForm);
+    const { formState } = useFormState();
+    const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
 
     // Start-with-AI handoff: a pending prompt (stashed by the dashboard
     // dialog) opens the drawer on the AI tab; the tab itself consumes and
@@ -58,7 +61,8 @@ export default function PropertiesDrawer({}: {}) {
 
     const level = inspectorLevel(!!activeFieldComponent?.id, propertiesTab);
     const questionLabel = activeField ? extractTextfromJSON(activeField).trim() || formFieldsList.find((f) => f.type === activeField.type)?.name || 'Question' : 'Question';
-    const crumbs: InspectorCrumb[] = [{ level: 'form', label: 'Form' }, { level: 'page', label: pageCrumbLabel(activeSlideComponent) }, ...(activeFieldComponent?.id ? [{ level: 'question' as const, label: questionLabel }] : [])];
+    const ending = formState.thankyouPage?.[activeThankYouPageComponent?.index ?? 0];
+    const crumbs: InspectorCrumb[] = [{ level: 'form', label: 'Form' }, { level: 'page', label: pageCrumbLabel(activeSlideComponent, ending) }, ...(activeFieldComponent?.id ? [{ level: 'question' as const, label: questionLabel }] : [])];
 
     const goTo = (target: InspectorLevel) => {
         if (target === 'question') return;

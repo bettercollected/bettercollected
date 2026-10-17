@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 import re
 import json
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 FieldTypes = {
     'TEXT': 'text',
@@ -19,7 +20,8 @@ FieldTypes = {
     'MULTIPLE_CHOICE': 'multiple_choice',
     'DROP_DOWN': 'dropdown',
     'PHONE_NUMBER': 'phone_number',
-    'FILE_UPLOAD': 'file_upload'
+    'FILE_UPLOAD': 'file_upload',
+    'CALCULATED': 'calculated'
 }
 
 FormBuilderTagNames = {
@@ -68,7 +70,16 @@ def extract_text_from_json(field, is_row = False) -> str:
         return "Row " + str(field.get("index") + 1)
     return get_placeholder_value_for_title(field.get("type"))
 
-def get_fields_from_v2_form(form: Dict[str, Any]) -> List[Dict[str, Any]]:
+def is_hidden_calculation(field: Dict[str, Any]) -> bool:
+    """A calculated field kept from respondents ("internal result")."""
+    return field.get('type') == FieldTypes['CALCULATED'] and bool(
+        _get(field.get('properties') or {}, 'hidden_from_respondents', 'hiddenFromRespondents')
+    )
+
+
+def get_fields_from_v2_form(form: Dict[str, Any], respondent: bool = False) -> List[Dict[str, Any]]:
+    """The answered fields of a v2 form. ``respondent``: for a copy the
+    respondent receives, so without calculations kept from them."""
     fields = []
     for slide in form.get('fields', []):
         filtered_fields = [
@@ -77,6 +88,7 @@ def get_fields_from_v2_form(form: Dict[str, Any]) -> List[Dict[str, Any]]:
             # Internal ("for office use only") fields belong to the
             # organisation: never in respondent copies, webhooks or chat posts.
             and not field.get('internal')
+            and not (respondent and is_hidden_calculation(field))
         ]
         for field in filtered_fields:
             field["title"] = extract_text_from_json(field)
@@ -125,7 +137,52 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
         return ', '.join(choice['value'] for choice in answer.get('choices', {}).get('values', []))
     if field['type'] in [FormBuilderTagNames['INPUT_FILE_UPLOAD'], FieldTypes['FILE_UPLOAD']]:
         return answer.get('file_metadata', {}).get('name')
+    if field['type'] == FieldTypes['CALCULATED']:
+        return format_calculated_value(answer, (field.get('properties') or {}).get('format'))
     return ''
+
+def format_calculated_value(answer: Dict[str, Any], fmt: Dict[str, Any] | None) -> str:
+    """A stored calculated value as the field shows it (number with its
+    decimals, an amount, a percentage or plain text). English number
+    formatting: actions do not know the form's language."""
+    if not isinstance(answer, dict):
+        return ''
+    for slot in ('number', 'boolean', 'text'):
+        if answer.get(slot) is not None:
+            value = answer[slot]
+            break
+    else:
+        return ''
+    if isinstance(value, bool):
+        return 'Yes' if value else 'No'
+    if isinstance(value, str):
+        return value
+    fmt = fmt if isinstance(fmt, dict) else {}
+    style = fmt.get('style') or 'number'
+    decimals = fmt.get('decimals')
+    try:
+        number = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return str(value)
+    if style == 'text':
+        return format(number.normalize(), 'f') if number != number.to_integral_value() else str(int(number))
+
+    def fixed(amount: Decimal, places: int | None) -> str:
+        if places is None:
+            text = format(amount, ',f')
+            return text.rstrip('0').rstrip('.') if '.' in text else text
+        quantum = Decimal(1).scaleb(-places)
+        return format(amount.quantize(quantum, rounding=ROUND_HALF_UP), f',.{places}f')
+
+    if style == 'currency':
+        currency = fmt.get('currency') or 'EUR'
+        symbol = '€' if currency == 'EUR' else f'{currency} '
+        text = fixed(abs(number), 2 if decimals is None else decimals)
+        return f"{'-' if number < 0 else ''}{symbol}{text}"
+    if style == 'percent':
+        return f"{fixed(number * 100, 0 if decimals is None else decimals)}%"
+    return fixed(number, decimals)
+
 
 def get_choices_value(field: Dict[str, Any], answer: Dict[str, Any]) -> str:
     choices = field.get('properties', {}).get('choices', [])
@@ -238,7 +295,10 @@ def _item_answer(item: Dict[str, Any], child: Dict[str, Any]):
 
 
 def get_questions_and_answers(
-    form: Dict[str, Any], response: Dict[str, Any], fixed_columns: bool = False
+    form: Dict[str, Any],
+    response: Dict[str, Any],
+    fixed_columns: bool = False,
+    respondent: bool = False,
 ) -> List[Dict[str, Any]]:
     """Question/answer pairs of a response.
 
@@ -250,7 +310,7 @@ def get_questions_and_answers(
     """
     entries: List[Dict[str, Any]] = []
     has_row_tables = False
-    for field in get_fields_from_v2_form(form):
+    for field in get_fields_from_v2_form(form, respondent=respondent):
         repeat = get_repeat_settings(field)
         if repeat is None:
             entries.append({

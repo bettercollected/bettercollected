@@ -34,6 +34,7 @@
     "NAV": {
         "BACK": "Back",
         "PAGE_OF": "Page {{current}} of {{total}}",
+        "LAST_PAGE": "Last page",
         "CONTINUE": "Continue",
         "SUBMIT": "Submit response",
         "SUBMIT_ERROR": "Your response could not be sent. Please try again.",
@@ -82,6 +83,10 @@
     },
     "FIELD": {
         "REQUIRED": "(required)",
+        "CALCULATED_EMPTY": "Not calculated yet",
+        "CALCULATION": "Calculation",
+        "CALCULATED_TRUE": "Yes",
+        "CALCULATED_FALSE": "No",
         "OPTIONAL": "Optional",
         "ANSWER_REQUIRED": "Please answer this question to continue.",
         "YES": "Yes",

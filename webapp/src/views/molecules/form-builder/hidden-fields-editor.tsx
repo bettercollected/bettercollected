@@ -8,6 +8,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
+import { pruneOrphanedCalculationRefs } from '@app/utils/calculated-fields';
 
 // URL-parameter-safe names only; these become `?name=value` on the share link.
 const VALID_NAME = /^[a-zA-Z0-9_-]+$/;
@@ -44,7 +45,8 @@ export default function HiddenFieldsEditor() {
     const removeName = (name: string) => {
         setHiddenFields(names.filter((n) => n !== name));
         // Sweep any piping chips that referenced the removed name.
-        setFormFields([...pruneOrphanedPipes(formFields, names.filter((n) => n !== name))]);
+        const remaining = names.filter((n) => n !== name);
+        setFormFields([...pruneOrphanedCalculationRefs(pruneOrphanedPipes(formFields, remaining), remaining)]);
     };
 
     return (

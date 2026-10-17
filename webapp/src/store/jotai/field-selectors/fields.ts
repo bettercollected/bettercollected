@@ -7,6 +7,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { reorder } from '@app/utils/array-utils';
+import { pruneOrphanedCalculationRefs } from '@app/utils/calculated-fields';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules } from '@app/utils/date-rules';
 import { fieldAndChildIds, locateField, moveFieldInSlides, pruneOutOfOrderReferences } from '@app/utils/form-outline';
@@ -89,6 +90,7 @@ export function fieldMutators(ctx: BuilderContext) {
             pruneOrphanedConditions(formFields);
             pruneOrphanedPipes(formFields);
             pruneOrphanedDateRules(formFields);
+            pruneOrphanedCalculationRefs(formFields);
         }
         setFormFields([...formFields]);
     };
@@ -130,7 +132,8 @@ export function fieldMutators(ctx: BuilderContext) {
             ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
             [property]: value
         };
-        setFormFields([...formFields]);
+        // Typing into one property (a formula, a label) is one undo step.
+        setFormFields([...formFields], `property:${formFields![slideIndex]!.properties!.fields![fieldIndex].id}:${property}`);
     };
 
     // Duplicate a question in place. The clone gets a fresh id and lands right
@@ -163,6 +166,7 @@ export function fieldMutators(ctx: BuilderContext) {
         pruneOrphanedConditions(formFields);
         pruneOrphanedPipes(formFields);
         pruneOrphanedDateRules(formFields);
+        pruneOrphanedCalculationRefs(formFields);
         const next = [...formFields];
         setFormFields(next);
         setTimeout(() => {
@@ -317,6 +321,7 @@ export function fieldMutators(ctx: BuilderContext) {
             pruneOrphanedConditions(formFields);
             pruneOrphanedPipes(formFields);
             pruneOrphanedDateRules(formFields);
+            pruneOrphanedCalculationRefs(formFields);
         }
         setFormFields([...formFields]);
     };

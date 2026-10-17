@@ -139,9 +139,10 @@ async def run_action(
             TEMPLATE_FOLDER="templates",
         )
 
-    def get_simple_form_response():
+    def get_simple_form_response(respondent: bool = False):
+        # a copy the respondent receives leaves out calculations kept from them
         extracted_question_answers = get_questions_and_answers(
-            form=form, response=response
+            form=form, response=response, respondent=respondent
         )
         return extracted_question_answers
 
@@ -155,7 +156,7 @@ async def run_action(
             recipients=recipient,
             subtype=MessageType.html,
             template_body=response_mail_context(
-                fields=get_simple_form_response(),
+                fields=get_simple_form_response(respondent=not creator_mail),
                 creator_mail=creator_mail,
                 title=form.get("welcome_page", {}).get("title", "Untitled Form"),
                 description=form.get("welcome_page", {}).get("description", ""),

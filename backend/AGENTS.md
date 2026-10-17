@@ -234,6 +234,17 @@ big for a float count as Infinity, as in JavaScript. Problems answer 422 `{"code
 never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
 v1 and imported forms (fields not on pages) are not validated.
 
+**Calculated fields** (`services/calculated_fields.py`, webapp twin `utils/calculated-fields.ts`): a
+`calculated` field on a page stores an expressions-v1 AST at `properties.expression`
+([../docs/spec/expressions-v1.md](../docs/spec/expressions-v1.md)), a display `format` and
+`hidden_from_respondents`. Variables share logic's namespace: page question ids (as logic reads them),
+`<group id>.<question id>` lists, declared hidden-field names, other calculated ids. Every save (builder,
+spec, AI ops after each op) refuses a malformed AST, unknown or internal variables and circles (422
+`invalid_calculation` with `fieldId` and the JSON pointer `path`). Submit and respondent edit recompute
+every calculated field with the Python evaluator, in dependency order, and store the server's value
+(`number`, `boolean` or `text` slot); client values are dropped, and answer validation replays logic and
+jumps with the server values. "today" is the server's UTC date on submit, the submission day on an edit.
+
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
 `_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:

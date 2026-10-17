@@ -1,6 +1,7 @@
 import { JSONContent } from '@tiptap/react';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { calculatedAnswerValue, formatCalculatedValue, isCalculatedField } from '@app/utils/calculated-fields';
 import { getComparableAnswerValue } from '@app/utils/conditional-logic';
 import { GroupAggregate, resolveGroupAggregate } from '@app/utils/group-aggregates';
 
@@ -42,6 +43,8 @@ export interface PipeContext {
     answers?: Record<string, any>;
     /** Captured hidden-field (URL parameter) values, keyed by declared name. */
     hiddenValues?: Record<string, string>;
+    /** The form's language, for number formatting of calculated values (EN when absent). */
+    language?: string;
 }
 
 /**
@@ -101,6 +104,8 @@ export function resolvePipeValue(kind: PipeKind | string, pipeKey: string, conte
     }
     const field = getInputFieldsById(context.slides)[pipeKey];
     if (!field) return undefined;
+    // A calculated value is shown as its field formats it.
+    if (isCalculatedField(field)) return formatCalculatedValue(calculatedAnswerValue(context.answers?.[pipeKey]), field.properties?.format, context.language) || undefined;
     return formatPipeValue(getComparableAnswerValue(context.answers?.[pipeKey], field.type));
 }
 

@@ -19,6 +19,7 @@ the required questions of the items a group shows on the respondent's path.)
 
 from typing import Any, Dict, Iterable, List, Optional
 
+from common.expressions import format_expression_value
 from common.models.standard_form import (
     StandardForm,
     StandardFormFieldType,
@@ -71,6 +72,13 @@ def comparable_answer_value(answer: Any, field_type: Optional[str]) -> Any:
         return answer.get("date")
     if field_type == "phone_number":
         return answer.get("phoneNumber") or answer.get("phone_number")
+    if field_type == "calculated":
+        # the server's stored value (services/calculated_fields.py), as the
+        # plain text the expressions spec prints: 12.5, "true", a text
+        for slot in ("number", "boolean", "text"):
+            if answer.get(slot) is not None:
+                return format_expression_value(answer[slot])
+        return None
     if field_type in ("multiple_choice", "dropdown"):
         choices = answer.get("choices") or {}
         if isinstance(choices, dict) and choices.get("values") is not None:

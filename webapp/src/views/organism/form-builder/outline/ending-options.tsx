@@ -21,6 +21,7 @@ export default function EndingOptions({
     canDelete,
     canDuplicate = true,
     onRename,
+    onRenameReady,
     onDuplicate,
     onMakeDefault,
     onDelete
@@ -31,6 +32,8 @@ export default function EndingOptions({
     canDelete: boolean;
     canDuplicate?: boolean;
     onRename: () => void;
+    /** Called once the menu has closed after Rename: focus the name field. */
+    onRenameReady?: () => void;
     onDuplicate: () => void;
     onMakeDefault: () => void;
     onDelete: () => void;
@@ -47,7 +50,13 @@ export default function EndingOptions({
                 align="start"
                 className="w-[200px] bg-white"
                 onCloseAutoFocus={(event) => {
-                    if (renaming.current) event.preventDefault();
+                    if (renaming.current) {
+                        // The menu would put focus back on its trigger (or,
+                        // with the row re-rendering, on the page): hand it to
+                        // the name field once the menu has gone.
+                        event.preventDefault();
+                        requestAnimationFrame(() => onRenameReady?.());
+                    }
                     renaming.current = false;
                 }}
             >

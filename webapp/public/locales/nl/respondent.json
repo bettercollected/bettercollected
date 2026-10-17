@@ -34,6 +34,7 @@
     "NAV": {
         "BACK": "Vorige",
         "PAGE_OF": "Pagina {{current}} van {{total}}",
+        "LAST_PAGE": "Laatste pagina",
         "CONTINUE": "Volgende",
         "SUBMIT": "Antwoorden versturen",
         "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer.",
@@ -82,6 +83,10 @@
     },
     "FIELD": {
         "REQUIRED": "(verplicht)",
+        "CALCULATED_EMPTY": "Nog niet berekend",
+        "CALCULATION": "Berekening",
+        "CALCULATED_TRUE": "Ja",
+        "CALCULATED_FALSE": "Nee",
         "OPTIONAL": "Niet verplicht",
         "ANSWER_REQUIRED": "Beantwoord deze vraag om verder te gaan.",
         "YES": "Ja",

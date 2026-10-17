@@ -91,7 +91,7 @@ describe('ending chosen by a page jump', () => {
     it('submits, then shows the ending the jump names', async () => {
         start(form('sorry'));
         await answer('a', 'no');
-        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Continue' })));
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Submit response' })));
         // never an ending without submitting
         expect(submit).toHaveBeenCalledTimes(1);
         await vi.waitFor(() => expect(responder!.responderState.currentSlide).toBe(-2));
@@ -102,7 +102,7 @@ describe('ending chosen by a page jump', () => {
     it('a plain submit jump shows the default ending', async () => {
         start({ ...form(), thankyouPage: [ENDINGS[0], { ...ENDINGS[1], isDefault: true }] });
         await answer('a', 'no');
-        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Continue' })));
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Submit response' })));
         await vi.waitFor(() => expect(responder!.responderState.currentSlide).toBe(-2));
         expect(responder!.responderState.endingId).toBeUndefined();
         expect(screen.getByRole('heading', { level: 1, name: 'Sorry, you are not eligible' })).toBeInTheDocument();
@@ -111,25 +111,43 @@ describe('ending chosen by a page jump', () => {
     it('a jump to an ending that is gone shows the default ending', async () => {
         start(form('gone'));
         await answer('a', 'no');
-        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Continue' })));
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Submit response' })));
         await vi.waitFor(() => expect(responder!.responderState.currentSlide).toBe(-2));
         expect(screen.getByRole('heading', { level: 1, name: 'Thank you for applying' })).toBeInTheDocument();
     });
 
-    it('a failed submission shows no ending', async () => {
+    it('a failed submission shows no ending, and says so by the button until the next attempt', async () => {
         submit.mockResolvedValue({ error: { status: 500 } });
         start(form('sorry'));
         await answer('a', 'no');
-        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Continue' })));
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Submit response' })));
         expect(submit).toHaveBeenCalledTimes(1);
         await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
         expect(responder!.responderState.currentSlide).toBe(0);
+        expect(screen.getByRole('alert')).toHaveTextContent('Your response could not be sent. Please try again.');
+        // the next attempt clears it at once (this one is still on its way)
+        submit.mockReturnValue(new Promise(() => {}));
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Submit response' })));
+        expect(screen.queryByText('Your response could not be sent. Please try again.')).not.toBeInTheDocument();
+    });
+
+    it('a page whose jump will submit says Submit and is the last page', async () => {
+        start(form('sorry'));
+        // no jump applies yet: more pages follow
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+        expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
+        await answer('a', 'no');
+        expect(screen.getByRole('button', { name: 'Submit response' })).toBeInTheDocument();
+        expect(screen.getByText('Last page')).toBeInTheDocument();
+        expect(screen.queryByText('Page 1 of 2')).not.toBeInTheDocument();
+        await answer('a', 'yes');
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
     });
 
     it('in preview the chosen ending is shown without submitting', async () => {
         start(form('sorry'), true);
         await answer('a', 'no');
-        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Continue' })));
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Submit response' })));
         expect(submit).not.toHaveBeenCalled();
         expect(responder!.responderState.endingId).toBe('sorry');
         expect(screen.getByRole('heading', { level: 1, name: 'Sorry, you are not eligible' })).toBeInTheDocument();

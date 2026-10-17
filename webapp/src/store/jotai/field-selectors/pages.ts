@@ -6,6 +6,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { NodePosition } from '@app/models/types/form-builder-shared';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
+import { pruneOrphanedCalculationRefs } from '@app/utils/calculated-fields';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules, remapDateRules } from '@app/utils/date-rules';
 import { fieldAndChildIds, movePageInSlides, pruneOutOfOrderReferences } from '@app/utils/form-outline';
@@ -142,6 +143,7 @@ export function pageMutators(ctx: BuilderContext) {
         pruneOrphanedConditions(updatedFormFields);
         pruneOrphanedPipes(updatedFormFields);
         pruneOrphanedDateRules(updatedFormFields);
+        pruneOrphanedCalculationRefs(updatedFormFields);
         if (activeSlideComponent?.index === formFields.length) {
             setActiveSlideComponent({
                 id: 'welcome-page',

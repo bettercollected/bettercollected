@@ -24,6 +24,11 @@ describe('splitPublishProblems', () => {
 });
 
 describe('"Before you publish" dialog', () => {
+    it('a jump problem leads to its page, a question problem to its question', () => {
+        renderDialog([deadEnd, { code: 'missing_ending', fieldId: 'p1', message: 'A jump on page 1 goes to an ending that no longer exists.' }], 1);
+        expect(screen.getAllByRole('button', { name: /^Show the / }).map((b) => b.textContent)).toEqual(['Show the question', 'Show the page']);
+    });
+
     it('blocks a new form without a reason: no way to publish from the dialog', () => {
         renderDialog([reason], 1);
         expect(screen.getByRole('dialog', { name: 'Before you publish' })).toBeInTheDocument();

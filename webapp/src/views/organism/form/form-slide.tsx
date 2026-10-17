@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
+
 import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
+import { useCalculatedFields } from '@app/lib/hooks/use-calculated-fields';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
@@ -21,6 +24,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
+import { isShownToRespondents, localToday } from '@app/utils/calculated-fields';
 import { getHiddenFieldIds, resolveJump } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
@@ -34,6 +38,7 @@ import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
+import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
@@ -105,6 +110,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             );
         case FieldTypes.TABULAR_INPUT:
             return <TabularInputResponderField field={field} />;
+        case FieldTypes.CALCULATED:
+            return <CalculatedField field={field} />;
         case FieldTypes.GROUP:
             if (isRepeatingGroup(field)) return <RepeatingGroupField field={field} renderChild={(child) => <FormFieldComponent field={child} slideIndex={slideIndex} />} />;
             return <QuestionWrapper field={field} />;
@@ -124,6 +131,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
+    // Calculated fields follow the answers live (logic, jumps and piping read them).
+    useCalculatedFields(standardForm?.fields);
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
@@ -151,6 +160,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         };
 
         formData.append('response', JSON.stringify(postBody));
+        // The date calculations used (today()); the server takes it when it is plausible.
+        formData.append('today', localToday());
         const aiNoticeToken = aiNoticeTokenToSend(standardForm);
         if (aiNoticeToken) formData.append('ai_notice_token', aiNoticeToken);
         files.forEach((fileObj) => {
@@ -179,7 +190,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // Fields hidden by conditional logic given the answers so far. Recomputed each
     // render, so the form reacts live as the responder answers earlier questions.
     const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
-    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id));
+    // Calculations kept from respondents ("internal results") are computed, never shown.
+    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id) && isShownToRespondents(field));
 
     // Leaflet: the page is a numbered section (its position in the form, the
     // same number "Page x of y" shows) and its questions are numbered among
@@ -208,6 +220,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // The header's words in the action colour where it reads as text on the page.
     const leafletHeaderInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
+    // Where "Next" goes with the answers so far: a jump that submits makes
+    // this page the last one, whatever its place in the form.
+    const isLastPage = (standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index;
+    const endsHere = currentSlide === index && resolveJump(formSlide, formResponse.answers || {})?.target === JUMP_TARGET_SUBMIT;
+    const submitsHere = isLastPage || endsHere;
+    // A failed submission, shown by the button until the next attempt.
+    const [submitError, setSubmitError] = useState(false);
+
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
     const emitFlow = (fromPage: string, toPage: string) => {
@@ -230,7 +250,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     });
                 })
                 .catch((e) => {
-                    if (!showServerAnswerErrors(e?.response)) toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
+                    if (!showServerAnswerErrors(e?.response)) {
+                        toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
+                        setSubmitError(true);
+                    }
                 });
     };
 
@@ -258,6 +281,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     };
 
     const onNext = () => {
+        setSubmitError(false);
         // Only validate fields the responder can actually see.
         const visibleSlide = { ...formSlide, properties: { ...formSlide?.properties, fields: (formSlide?.properties?.fields || []).filter((f: StandardFormFieldDto) => !hiddenFieldIds.has(f.id)) } };
         const invalidations = {
@@ -358,7 +382,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     </span>
                                 )}
                                 <span className="font-medium whitespace-nowrap tabular-nums" lang={language}>
-                                    {t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
+                                    {endsHere && !isLastPage ? t('NAV.LAST_PAGE') : t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
                                 </span>
                             </div>
                         </div>
@@ -398,7 +422,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         className={cn('-mt-4 flex flex-col items-start gap-4', leaflet && 'ml-[var(--leaflet-margin,34px)]', leaflet && numbering?.hang && '@min-[880px]/page:ml-0')}
                         style={{ gridColumn: 'span 12 / span 12' }}
                     >
-                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
+                        {submitsHere && (
                             <>
                                 {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
                                     // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
@@ -438,8 +462,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             onClick={onNext}
                             size="medium"
                         >
-                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? t('NAV.SUBMIT') : t('NAV.CONTINUE')}
+                            {submitsHere ? t('NAV.SUBMIT') : t('NAV.CONTINUE')}
                         </Button>
+                        {/* Stays until the next attempt; the toast alone is gone in a moment. */}
+                        {submitError && (
+                            <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>
+                                {t('NAV.SUBMIT_ERROR')}
+                            </p>
+                        )}
                     </div>
                 </div>
             </SlideLayoutWrapper>

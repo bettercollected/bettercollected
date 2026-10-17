@@ -3,6 +3,7 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { RepeatSettings } from '@app/models/types/form-builder-shared';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
+import { pruneOrphanedCalculationRefs } from '@app/utils/calculated-fields';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules } from '@app/utils/date-rules';
 
@@ -28,6 +29,7 @@ export function groupMutators(ctx: BuilderContext) {
         }
         // A question whose type changed is no longer a date its siblings can use.
         pruneOrphanedDateRules(formFields);
+        pruneOrphanedCalculationRefs(formFields);
         setFormFields([...formFields]);
     };
 
