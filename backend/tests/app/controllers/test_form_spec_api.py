@@ -495,3 +495,102 @@ class TestDryRun:
             cookies=test_user_cookies,
         )
         assert response.status_code == 404
+
+
+class TestLimits:
+    async def test_a_document_over_1_mb_is_refused_with_413(
+        self, client: AsyncClient, workspace, test_user_cookies
+    ):
+        document = copy.deepcopy(VALID)
+        document["description"] = "x" * (1024 * 1024)
+        response = await client.post(
+            _url(workspace), json=document, cookies=test_user_cookies
+        )
+        assert response.status_code == 413, response.text
+        assert "larger than 1 MB" in response.json()["message"]
+
+    async def test_a_large_body_without_a_length_is_cut_off(
+        self, client: AsyncClient, workspace, test_user_cookies
+    ):
+        async def chunks():
+            yield b'{"specVersion": "1", "description": "'
+            for _ in range(20):
+                yield b"x" * 65536
+            yield b'"}'
+
+        response = await client.post(
+            _url(workspace),
+            content=chunks(),
+            headers={"content-type": "application/json"},
+            cookies=test_user_cookies,
+        )
+        assert response.status_code == 413, response.text
+
+    async def test_not_json_is_a_422(
+        self, client: AsyncClient, workspace, test_user_cookies
+    ):
+        response = await client.post(
+            _url(workspace),
+            content=b"{not json",
+            headers={"content-type": "application/json"},
+            cookies=test_user_cookies,
+        )
+        assert response.status_code == 422
+        assert response.json()["message"] == "The body is not valid JSON."
+
+    async def test_outsiders_are_refused_before_the_body_is_read(
+        self, client: AsyncClient, workspace, test_user_cookies_1
+    ):
+        document = {"specVersion": "1", "description": "x" * (1024 * 1024)}
+        response = await client.post(
+            _url(workspace), json=document, cookies=test_user_cookies_1
+        )
+        assert response.status_code == 403
+
+    async def test_page_and_field_counts_are_capped(
+        self, client: AsyncClient, workspace, test_user_cookies
+    ):
+        too_many_pages = {
+            "specVersion": "1",
+            "pages": [{"id": f"p{i}"} for i in range(201)],
+        }
+        body = (
+            await client.post(
+                _url(workspace), json=too_many_pages, cookies=test_user_cookies
+            )
+        ).json()
+        assert body["valid"] is False and body["errors"][0]["path"] == "/pages"
+        too_many_fields = {
+            "specVersion": "1",
+            "pages": [
+                {
+                    "id": f"p{p}",
+                    "fields": [
+                        {"id": f"f{p}-{f}", "type": "short_text"} for f in range(201)
+                    ],
+                }
+                for p in range(10)
+            ],
+        }
+        body = (
+            await client.post(
+                _url(workspace), json=too_many_fields, cookies=test_user_cookies
+            )
+        ).json()
+        assert body["valid"] is False
+        assert "at most 2000 fields" in body["errors"][0]["message"]
+
+    async def test_a_dry_run_takes_at_most_200_ops(
+        self, client: AsyncClient, workspace, v2_form, test_user_cookies
+    ):
+        url = _url(workspace, v2_form.form_id)
+        op = {"op": "update_form_info", "title": "T"}
+        response = await client.post(
+            url, json={"ops": [op] * 201}, cookies=test_user_cookies
+        )
+        assert response.status_code == 422, response.text
+        assert "At most 200 operations" in response.json()["message"]
+        response = await client.post(
+            url, json={"ops": [op] * 200}, cookies=test_user_cookies
+        )
+        assert response.status_code == 200, response.text

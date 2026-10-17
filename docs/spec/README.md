@@ -105,5 +105,7 @@ check it).
   edit operations to a copy of a form and returns the resulting document, a
   diff and per-operation results. Nothing is stored.
 
-Both need permission to edit forms in the workspace. The MCP server offers
+Both need permission to edit forms in the workspace. A document can be at
+most 1 MB, with at most 200 pages and 2000 fields in all (group questions
+included); a batch can have at most 200 operations. The MCP server offers
 the same as `validate_form`, `dry_run_ops` and `get_form_spec`.

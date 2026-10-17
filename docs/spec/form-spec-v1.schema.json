@@ -1728,9 +1728,11 @@
       "default": null
     },
     "pages": {
+      "description": "At most 200 pages, with at most 2000 fields in all (group questions included).",
       "items": {
         "$ref": "#/$defs/Page"
       },
+      "maxItems": 200,
       "title": "Pages",
       "type": "array"
     },

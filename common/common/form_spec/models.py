@@ -24,7 +24,7 @@ from common.models.standard_form import (
     LayoutType,
     StandardFormFieldType,
 )
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 SPEC_VERSION = "1"
@@ -33,6 +33,9 @@ SCHEMA_ID = (
     "develop/docs/spec/form-spec-v1.schema.json"
 )
 JUMP_TARGET_SUBMIT = "__SUBMIT__"
+# Size limits of one document (far above any real form).
+MAX_PAGES = 200
+MAX_FIELDS = 2000  # questions and content blocks, group questions included
 
 # Every question type a page may hold: all stored types except the page
 # itself. Built from the stored enum, so a new type shows up as a change of
@@ -384,7 +387,12 @@ class FormSpec(_Spec):
     title: Optional[str] = None
     description: Optional[str] = None
     welcome_page: Optional[WelcomePage] = None
-    pages: List[Page] = Field(default_factory=list)
+    pages: List[Page] = Field(
+        default_factory=list,
+        max_length=MAX_PAGES,
+        description=f"At most {MAX_PAGES} pages, with at most {MAX_FIELDS} "
+        "fields in all (group questions included).",
+    )
     endings: Optional[List[Ending]] = None
     theme: Optional[Theme] = None
     hidden_fields: Optional[List[str]] = Field(
@@ -394,6 +402,18 @@ class FormSpec(_Spec):
     )
     logo: Optional[Logo] = None
     trust: Optional[Trust] = None
+
+    @model_validator(mode="after")
+    def _check_field_count(self):
+        count = sum(
+            1 + len(field.fields or []) for page in self.pages for field in page.fields
+        )
+        if count > MAX_FIELDS:
+            raise ValueError(
+                f"A form can have at most {MAX_FIELDS} fields in all; this one "
+                f"has {count}."
+            )
+        return self
 
 
 FormField.model_rebuild()

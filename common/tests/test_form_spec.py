@@ -25,6 +25,8 @@ from common.form_spec.roundtrip import (
 from common.form_spec.models import (
     CURRENT_FIELD_TYPES,
     LEGACY_FIELD_TYPES,
+    MAX_FIELDS,
+    MAX_PAGES,
 )
 from common.form_spec.schema import SCHEMA_PATH, main, render_schema
 from common.models.standard_form import (
@@ -67,6 +69,7 @@ def test_the_schema_is_versioned_and_closed():
     for absent in ("formId", "workspaceId", "publishedAt", "createdAt", "secrets"):
         assert absent not in schema["properties"]
     assert schema["$defs"]["Logo"]["properties"]["url"]["readOnly"] is True
+    assert schema["properties"]["pages"]["maxItems"] == MAX_PAGES
 
 
 def test_legacy_field_types_are_deprecated_but_still_read():
@@ -87,6 +90,42 @@ def test_legacy_field_types_are_deprecated_but_still_read():
     }
     form = spec_to_form(FormSpec.model_validate(document))
     assert form_to_spec(form).pages[0].fields[0].type == "h1"
+
+
+def _document(pages: int, fields_per_page: int, children: int = 0) -> dict:
+    def field(p, f):
+        item = {"id": f"f{p}-{f}", "type": "short_text"}
+        if children:
+            item = {
+                "id": f"g{p}-{f}",
+                "type": "group",
+                "fields": [
+                    {"id": f"c{p}-{f}-{c}", "type": "short_text"}
+                    for c in range(children)
+                ],
+            }
+        return item
+
+    return {
+        "specVersion": "1",
+        "pages": [
+            {"id": f"p{p}", "fields": [field(p, f) for f in range(fields_per_page)]}
+            for p in range(pages)
+        ],
+    }
+
+
+def test_size_limits_of_a_document():
+    FormSpec.model_validate(_document(MAX_PAGES, 10))  # 200 pages, 2000 fields
+    with pytest.raises(ValidationError) as error:
+        FormSpec.model_validate(_document(MAX_PAGES + 1, 1))
+    assert validation_errors(error.value)[0]["path"] == "/pages"
+    with pytest.raises(ValidationError) as error:
+        FormSpec.model_validate(_document(10, 201))
+    assert f"at most {MAX_FIELDS} fields" in str(error.value)
+    # group questions count too: 10 pages x 10 groups x 20 questions + groups
+    with pytest.raises(ValidationError):
+        FormSpec.model_validate(_document(10, 10, children=20))
 
 
 def test_round_trip_keeps_every_creator_controlled_value():

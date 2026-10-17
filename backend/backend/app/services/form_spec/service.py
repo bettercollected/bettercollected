@@ -1,6 +1,7 @@
 """Validate a form spec document, read a form as one, and dry-run edit
 operations against a form. Nothing here writes."""
 
+import json
 from http import HTTPStatus
 from typing import Any, Dict, List
 
@@ -12,7 +13,7 @@ from common.form_spec import (
 )
 from common.models.standard_form import StandardForm
 from common.models.user import User
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
@@ -28,12 +29,17 @@ from backend.app.services.ai.ops import (
     apply_settings_ops,
     apply_form_ops,
     parse_ops,
+    too_many_ops,
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.form_spec.checks import check_spec_document
 from backend.app.services.form_spec.diff import spec_diff
 
-MAX_DRY_RUN_OPS = 200
+# Largest spec document the validate endpoint (and MCP validate_form) reads.
+MAX_DOCUMENT_BYTES = 1024 * 1024
+DOCUMENT_TOO_LARGE = (
+    "The document is larger than 1 MB; a form spec document is far smaller."
+)
 
 
 class _CamelModel(BaseModel):
@@ -41,7 +47,7 @@ class _CamelModel(BaseModel):
 
 
 class DryRunRequest(_CamelModel):
-    ops: List[Dict[str, Any]] = Field(..., max_length=MAX_DRY_RUN_OPS)
+    ops: List[Dict[str, Any]]
     atomic: bool = False
 
 
@@ -61,6 +67,33 @@ def _unprocessable(message: str, errors: List[Dict[str, str]]) -> HTTPException:
         status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         content={"message": message, "errors": errors},
     )
+
+
+def document_too_large() -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+        content={"message": DOCUMENT_TOO_LARGE},
+    )
+
+
+async def read_json_document(request) -> Any:
+    """The JSON body of ``request``, read up to MAX_DOCUMENT_BYTES: 413
+    beyond that (without reading the rest), 422 when it is not JSON."""
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_DOCUMENT_BYTES:
+        raise document_too_large()
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > MAX_DOCUMENT_BYTES:
+            raise document_too_large()
+    try:
+        return json.loads(bytes(body))
+    except ValueError:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={"message": "The body is not valid JSON."},
+        )
 
 
 def ops_errors(error: ValidationError) -> List[Dict[str, str]]:
@@ -98,11 +131,13 @@ class FormSpecService:
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
 
-    async def validate(
-        self, workspace_id: PydanticObjectId, document: Any, user: User
+    async def validate_request(
+        self, workspace_id: PydanticObjectId, request: Any, user: User
     ) -> Dict[str, Any]:
+        """Authorise, then read the body (at most MAX_DOCUMENT_BYTES) and
+        check it: a non-member never gets the body read."""
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
-        return check_spec_document(document)
+        return check_spec_document(await read_json_document(request))
 
     async def load(self, workspace_id: PydanticObjectId, form_id: str):
         """(StandardForm, association settings) of a form of this workspace,
@@ -148,6 +183,9 @@ class FormSpecService:
     ) -> DryRunResponse:
         """What ``raw_ops`` would make of ``form``: the resulting spec, the
         diff and per-op results. Stores nothing."""
+        refusal = too_many_ops(len(raw_ops))
+        if refusal:
+            raise _unprocessable(refusal, [{"path": "/ops", "message": refusal}])
         before = self.spec_of(form, settings)
         try:
             ops = parse_ops(raw_ops)

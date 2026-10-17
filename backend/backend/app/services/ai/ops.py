@@ -1435,6 +1435,19 @@ _HANDLERS = {
 }
 OP_NAMES = frozenset(_HANDLERS)
 
+# Most ops one MCP update_form call or one dry run may carry.
+MAX_OPS_PER_BATCH = 200
+
+
+def too_many_ops(count: int) -> Optional[str]:
+    """The plain refusal for a batch over MAX_OPS_PER_BATCH, or None."""
+    if count <= MAX_OPS_PER_BATCH:
+        return None
+    return (
+        f"At most {MAX_OPS_PER_BATCH} operations can be sent at once (this batch "
+        f"has {count}); split them into several batches."
+    )
+
 
 # ---------------------------------------------------------------------------
 # Client references (``ref`` / ``"$ref:<name>"``)

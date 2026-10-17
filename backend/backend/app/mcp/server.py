@@ -32,9 +32,13 @@ from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import persist_ops_to_form
-from backend.app.services.ai.ops import applied, parse_ops
+from backend.app.services.ai.ops import applied, parse_ops, too_many_ops
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.form_spec.checks import check_spec_document
+from backend.app.services.form_spec.service import (
+    DOCUMENT_TOO_LARGE,
+    MAX_DOCUMENT_BYTES,
+)
 
 
 def _c():
@@ -303,12 +307,17 @@ async def update_form(
     toGroupId, childFieldId, a jump's target), conditions and jumps included. Each result
     reports the "createdId". atomic=true applies all ops or none (any error: nothing is stored,
     every error is returned); the default applies what it can. Preview with dry_run_ops.
+    At most 200 ops per call.
     Field types: short_text, long_text, email, number, url, phone_number, date,
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
     key = await _key("forms:write")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     form_document = await _c().form_repo().get_form_document_by_id(form_id)
+    refusal = too_many_ops(len(ops))
+    if refusal:
+        await _audit("update_form", False, f"{form_id}: {len(ops)} ops refused")
+        raise ValueError(refusal)
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
     _, results, updated_settings = await persist_ops_to_form(
@@ -353,8 +362,12 @@ async def validate_form(spec: Dict[str, Any]) -> str:
     """Check a form spec v1 document without storing anything. Returns
     {"valid","errors":[{"path","message"}],"warnings","compliance"}; paths
     are JSON pointers into the document. The organisation's compliance rules
-    need an AI review and are not checked here."""
+    need an AI review and are not checked here. At most 1 MB, 200 pages and
+    2000 fields."""
     await _key("forms:read")
+    if len(json.dumps(spec)) > MAX_DOCUMENT_BYTES:
+        await _audit("validate_form", False, "document too large")
+        raise ValueError(DOCUMENT_TOO_LARGE)
     result = check_spec_document(spec)
     await _audit("validate_form", result["valid"], f"{len(result['errors'])} errors")
     return json.dumps(result)
@@ -367,7 +380,8 @@ async def dry_run_ops(
     """Preview update_form: apply the same ops to a copy of the form and
     return {"ok","applied","atomic","form" (the resulting spec document),
     "diff" (pages and fields added, removed, moved, changed, with paths),
-    "results"}. Nothing is stored. Op shapes: see update_form."""
+    "results"}. Nothing is stored. Op shapes: see update_form
+    (at most 200 ops)."""
     key = await _key("forms:write")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)

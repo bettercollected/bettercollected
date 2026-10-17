@@ -8,7 +8,7 @@ from typing import Any, Dict
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, post
 from common.models.user import User
-from fastapi import Body, Depends
+from fastapi import Depends, Request
 
 from backend.app.container import container
 from backend.app.router import router
@@ -18,17 +18,31 @@ from backend.app.services.user_service import get_logged_user
 
 @router(prefix="/workspaces/{workspace_id}/forms", tags=["Form spec"])
 class FormSpecRouter(Routable):
-    @post("/validate")
+    @post(
+        "/validate",
+        # The body is read by hand (size-capped), so describe it here.
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {"application/json": {"schema": {"type": "object"}}},
+            }
+        },
+        responses={
+            413: {"description": "The document is larger than 1 MB."},
+            422: {"description": "The body is not valid JSON."},
+        },
+    )
     async def validate_form_spec(
         self,
         workspace_id: PydanticObjectId,
-        document: Any = Body(...),
+        request: Request,
         user: User = Depends(get_logged_user),
     ) -> Dict[str, Any]:
-        """Check a form spec document: ``{valid, errors: [{path, message}],
-        warnings, compliance}``. Never stores anything."""
-        return await container.form_spec_service().validate(
-            workspace_id=workspace_id, document=document, user=user
+        """Check a form spec document (the JSON body, at most 1 MB):
+        ``{valid, errors: [{path, message}], warnings, compliance}``. Never
+        stores anything."""
+        return await container.form_spec_service().validate_request(
+            workspace_id=workspace_id, request=request, user=user
         )
 
     @post("/{form_id}/ops/dry-run", response_model=DryRunResponse)

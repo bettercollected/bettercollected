@@ -205,3 +205,33 @@ class TestMCPFormSpec:
         logs = await _audited(workspace.id, "update_form")
         assert any("(atomic)" in log.detail for log in logs)
         assert json.dumps(result)  # serialisable as sent
+
+
+class TestMCPLimits:
+    async def test_update_form_and_dry_run_take_at_most_200_ops(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+    ):
+        form = await _v2(workspace_form.form_id)
+        token = await _make_key(workspace.id, ["forms:read", "forms:write"])
+        ops = [{"op": "update_form_info", "title": "Too many"}] * 201
+        for tool in ("update_form", "dry_run_ops"):
+            result = await _call_tool(
+                client, token, tool, {"form_id": form.form_id, "ops": ops}
+            )
+            assert "At most 200 operations" in _error_text(result), tool
+        stored = await container.form_repo().get_form_document_by_id(form.form_id)
+        assert stored.title == form.title
+        assert [log.ok for log in await _audited(workspace.id, "update_form")] == [
+            False
+        ]
+
+    async def test_validate_form_refuses_a_document_over_1_mb(
+        self, client: AsyncClient, workspace: Coroutine[Any, Any, WorkspaceDocument]
+    ):
+        token = await _make_key(workspace.id, ["forms:read"])
+        spec = {"specVersion": "1", "description": "x" * (1024 * 1024)}
+        result = await _call_tool(client, token, "validate_form", {"spec": spec})
+        assert "larger than 1 MB" in _error_text(result)
