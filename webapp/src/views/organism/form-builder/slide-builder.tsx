@@ -25,6 +25,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { insertTargetAtom } from '@app/store/jotai/insert-target';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
+import { locateField } from '@app/utils/form-outline';
 import { leafletMarginWidth, leafletSection, pageSectionTitle, questionNumbers } from '@app/utils/leaflet-sections';
 import { ownTitleText } from '@app/utils/publish-checks';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
@@ -208,8 +209,10 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
     const stored = useField(given ? null : fieldId);
     const field = given ?? stored;
     const setActiveFieldComponent = useSetAtom(activeFieldAtom);
-    const { duplicateField } = useBuilderActions();
+    const { duplicateField, getFormFields } = useBuilderActions();
     const { deleteQuestion } = useUndoableDelete();
+    // The toolbar acts on the question where it is now, found by id.
+    const locate = () => (field ? locateField(getFormFields(), field.id) : null);
     if (!field) return null;
     // Tips show for the question being edited only, so the canvas stays calm.
     const showHints = !disabled && !isScaledDown && active;
@@ -284,7 +287,8 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 className="p-2 text-black-700 hover:bg-black-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]"
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    duplicateField(slide.index, index);
+                                    const at = locate();
+                                    if (at) duplicateField(at.pageIndex, at.fieldIndex);
                                 }}
                             >
                                 <Copy width={16} height={16} aria-hidden="true" />
@@ -297,7 +301,8 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]"
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    deleteQuestion(slide.index, index);
+                                    const at = locate();
+                                    if (at) deleteQuestion(at.pageIndex, at.fieldIndex);
                                 }}
                             >
                                 <Trash width={16} height={16} aria-hidden="true" />
@@ -306,7 +311,7 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                     )}
                     {active && (
                         <div className={cn('absolute -left-10 -mt-1 text-black-600', '', isScaledDown ? 'hidden' : '')}>
-                            <MoveUpDown slideIndex={slide.index} field={field} />
+                            <MoveUpDown fieldId={field.id} />
                         </div>
                     )}
                     <div className={cn('mb-2 w-full', number && '[&>*:not(:first-child)]:pl-[var(--leaflet-margin,34px)]')}>
