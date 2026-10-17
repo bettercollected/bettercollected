@@ -9,6 +9,7 @@ import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { useOpenAIProposal } from '@app/store/jotai/ai-proposal';
 
 import LeftDrawer from './left-drawer';
 
@@ -41,9 +42,25 @@ function Editor() {
     return <LeftDrawer formFields={builder.formFields} activeSlideComponent={slide.activeSlideComponent} />;
 }
 
-const renderOutline = () =>
+// An open AI proposal that changes "Your name" on page 1 and adds a page.
+function OpenProposal() {
+    const { setOpenProposal } = useOpenAIProposal();
+    React.useEffect(() => {
+        setOpenProposal({
+            proposal: { id: 'x', ops: [], form: {}, diff: {}, results: [], summary: '' },
+            groups: [
+                { key: 'page:p1', label: 'Page 1', pageId: 'p1', changes: [{ key: '0:0', opIndex: 0, text: "Made 'Your name' required", kind: 'changed', fieldId: 'name', pageId: 'p1' }] },
+                { key: 'page:new', label: 'Page 4', pageId: 'new', changes: [{ key: '1:0', opIndex: 1, text: 'Added page 4', kind: 'added', pageId: 'new' }] }
+            ]
+        });
+    }, []);
+    return null;
+}
+
+const renderOutline = (withProposal = false) =>
     render(
         <Provider>
+            {withProposal && <OpenProposal />}
             <Editor />
             <Toaster />
         </Provider>
@@ -81,6 +98,16 @@ async function keyboardMove(handleName: string, steps: Array<'ArrowDown' | 'Arro
 }
 
 describe('builder outline', () => {
+    it('marks the pages and questions an open AI proposal changes', async () => {
+        renderOutline(true);
+        await tick();
+        const page = within(screen.getByRole('list', { name: 'Pages' })).getByRole('button', { name: /^About you/ });
+        expect(within(page).getByText('1 proposed AI change')).toBeDefined();
+        const name = screen.getByRole('button', { name: /^Your name/ });
+        expect(name.textContent).toContain('changed by an AI proposal');
+        expect(screen.getByRole('button', { name: /^Your city/ }).textContent).not.toContain('AI');
+    });
+
     it('shows pages by section title or number, their questions, and status chips', async () => {
         renderOutline();
         await tick();

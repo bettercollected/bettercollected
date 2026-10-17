@@ -10,6 +10,7 @@ import { AlertTriangle, ChevronRight, GripVertical, Lock, Search } from 'lucide-
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { ActiveFormBuilderComponent, useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
+import { useAIProposalHighlights } from '@app/store/jotai/ai-proposal';
 import { useFormState } from '@app/store/jotai/form';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { isPageKey, keyId, locateField, outlinePageName, pageKey, pageStatus, PageStatus, questionDropTarget, questionKey, questionMatches, resolveOutlineDrop } from '@app/utils/form-outline';
@@ -39,8 +40,9 @@ const rowClass = (selected: boolean) => cn('group/row relative flex items-start 
 const selectButtonClass = 'flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded-sm px-1 py-0.5 text-left';
 const handleClass = 'text-black-600 hover:text-black-900 flex h-6 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded-sm opacity-0 transition-opacity focus-visible:opacity-100 group-hover/row:opacity-100 pointer-coarse:opacity-100';
 
-function Chip({ tone, title, children }: { tone: 'logic' | 'danger' | 'warning' | 'neutral'; title?: string; children: ReactNode }) {
+function Chip({ tone, title, children }: { tone: 'logic' | 'danger' | 'warning' | 'neutral' | 'ai'; title?: string; children: ReactNode }) {
     const tones = {
+        ai: 'bg-[#FDF3E7] text-[#8A4A08]',
         logic: 'bg-brand-100 text-brand-600',
         danger: 'bg-[#FBEFEF] text-[#C43D3D]',
         warning: 'bg-brand-accent-100 text-brand-olive',
@@ -53,8 +55,18 @@ function Chip({ tone, title, children }: { tone: 'logic' | 'danger' | 'warning' 
     );
 }
 
-function PageChips({ status }: { status: PageStatus }) {
+/** ``aiChanges``: changes an open AI proposal makes on this page. */
+function PageChips({ status, aiChanges = 0 }: { status: PageStatus; aiChanges?: number }) {
     const chips: ReactNode[] = [];
+    if (aiChanges > 0)
+        chips.push(
+            <Chip key="ai" tone="ai" title={`The AI proposes ${aiChanges} change${aiChanges === 1 ? '' : 's'} on this page`}>
+                <span aria-hidden="true">AI · {aiChanges}</span>
+                <span className="sr-only">
+                    {aiChanges} proposed AI change{aiChanges === 1 ? '' : 's'}
+                </span>
+            </Chip>
+        );
     if (status.brokenJumps > 0)
         chips.push(
             <Chip key="broken" tone="danger" title="A page jump points at a page that no longer exists">
@@ -138,6 +150,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
     const { activeThankYouPageComponent, setActiveThankYouPageComponent } = useActiveThankYouPageComponent();
     const { formState } = useFormState();
     const { movePageTo, moveQuestion } = useOutlineMoves();
+    const proposed = useAIProposalHighlights();
 
     const [query, setQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -346,7 +359,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                             {slide.properties?.sectionTitle?.trim() ? `Page ${index + 1} · ` : ''}
                                                             {count} question{count === 1 ? '' : 's'}
                                                         </span>
-                                                        <PageChips status={pageStatus(slide, slideIds)} />
+                                                        <PageChips status={pageStatus(slide, slideIds)} aiChanges={proposed.pages[slide.id] ?? 0} />
                                                     </button>
                                                     <SlideOptions slideIndex={index} pageName={name} visible={selected} onMoved={onMenuMoved(key)} />
                                                 </>
@@ -366,6 +379,12 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                                         {handle}
                                                                         <button type="button" data-outline-key={qKey} className={cn(selectButtonClass, 'flex-row items-center gap-1')} aria-current={qSelected ? 'true' : undefined} onClick={() => selectQuestion(slide, index, field, fieldIndex)}>
                                                                             <span className="text-black-800 min-w-0 flex-1 truncate text-sm">{title}</span>
+                                                                            {proposed.fields[field.id] && (
+                                                                                <span title={proposed.fields[field.id] === 'added' ? 'The AI proposes adding this question' : 'The AI proposes changing this question'} className="shrink-0 rounded bg-[#FDF3E7] px-1 text-[10px] font-semibold leading-4 text-[#8A4A08]">
+                                                                                    <span aria-hidden="true">AI</span>
+                                                                                    <span className="sr-only">, {proposed.fields[field.id] === 'added' ? 'added' : 'changed'} by an AI proposal</span>
+                                                                                </span>
+                                                                            )}
                                                                             {missingWhy && (
                                                                                 <span title='Asks for personal details without a "Why we ask this" line' className="text-brand-olive shrink-0">
                                                                                     <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />

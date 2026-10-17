@@ -10,11 +10,14 @@ import { selectForm, setForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { formStateFromServerForm, useFormState } from '@app/store/jotai/form';
-import { useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
+import { useOpenAIProposal } from '@app/store/jotai/ai-proposal';
+import { useAcceptAIProposalMutation, useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useRejectAIProposalMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
 import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery, useUpdateAIMemorySettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { AIProposal, ProposalChangeGroup, acceptableOps, buildProposalChanges } from '@app/utils/ai-proposal';
 import { deepCopy } from '@app/utils/object-utils';
-import { adoptAutosaveVersion } from '@app/views/molecules/form-builder/audo-save-form';
+import { adoptAutosaveVersion, flushAutosave } from '@app/views/molecules/form-builder/audo-save-form';
+import AIProposalCard, { ProposalOpError, ProposalStatus } from '@app/views/organism/form-builder/ai-proposal-card';
 
 interface TurnResult {
     ok: boolean;
@@ -43,6 +46,33 @@ interface ChatTurn {
     forgotten?: boolean;
     // role 'review' only.
     findings?: ReviewFinding[];
+    // role 'assistant' only — a proposal waiting to be accepted (nothing
+    // is saved until then).
+    proposal?: AIProposal;
+    groups?: ProposalChangeGroup[];
+    proposalStatus?: ProposalStatus;
+    selected?: number[];
+    proposalError?: string;
+    proposalOpErrors?: ProposalOpError[];
+    appliedCount?: number;
+    // The message the proposal answered, for "Ask again".
+    prompt?: string;
+}
+
+const PROPOSAL_ERRORS: Record<string, ProposalStatus> = {
+    proposal_stale: 'stale',
+    proposal_closed: 'closed',
+    proposal_expired: 'expired'
+};
+
+/** What a saved conversation keeps of a turn's proposal. */
+function persistableTurn(turn: ChatTurn): ChatTurn {
+    if (!turn.proposal) return turn;
+    // An accept in flight did not finish for this tab.
+    const proposalStatus = turn.proposalStatus === 'accepting' ? 'pending' : turn.proposalStatus;
+    // Only an open proposal needs its (large) proposed form.
+    const proposal = proposalStatus === 'pending' ? turn.proposal : { ...turn.proposal, form: null };
+    return { ...turn, proposal, proposalStatus };
 }
 
 const MAX_MESSAGE_CHARS = 4000; // mirrors the backend's FormAIChatRequest limit
@@ -82,11 +112,16 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
     const dispatch = useAppDispatch();
     const workspace = useAppSelector(selectWorkspace);
     const standardForm: StandardFormDto = useAppSelector(selectForm);
-    const { setFormFields } = useFormFieldsAtom();
+    const { formFields, setFormFields } = useFormFieldsAtom();
     const { setFormState } = useFormState();
     const [chatEdit, { isLoading }] = useChatEditFormWithAIMutation();
     const [reviewForm, { isLoading: isReviewing }] = useReviewFormWithAIMutation();
     const [applyReviewFix] = useApplyAIReviewFixMutation();
+    const [acceptProposal] = useAcceptAIProposalMutation();
+    const [rejectProposal] = useRejectAIProposalMutation();
+    const { openProposal, setOpenProposal, preview, setPreview, close: closeOpenProposal } = useOpenAIProposal();
+    // The proposal that just arrived gets the focus once.
+    const [focusProposalId, setFocusProposalId] = useState<string | null>(null);
 
     const { data: memoryEntries = [], refetch: refetchMemory } = useGetAIMemoryQuery(workspace?.id, { skip: !workspace?.id });
     const [deleteMemoryEntry] = useDeleteAIMemoryEntryMutation();
@@ -117,7 +152,12 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             const saved = sessionStorage.getItem(storageKey);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed.turns)) setTurns(parsed.turns);
+                if (Array.isArray(parsed.turns)) {
+                    setTurns(parsed.turns);
+                    // The open proposal comes back with the conversation.
+                    const pending = [...parsed.turns].reverse().find((turn: ChatTurn) => turn.proposal?.form && turn.proposalStatus === 'pending');
+                    if (pending && !openProposal) setOpenProposal({ proposal: pending.proposal, groups: pending.groups ?? [] });
+                }
                 setSessionId(parsed.sessionId ?? null);
                 scrollToEnd();
             }
@@ -133,7 +173,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         try {
             // Strip transient flags: a persisted `applying` would freeze a Fix
             // button forever after a remount.
-            const persistable = turns.slice(-MAX_PERSISTED_TURNS).map((turn) => (turn.findings ? { ...turn, findings: turn.findings.map(({ applying, ...finding }) => finding) } : turn));
+            const persistable = turns.slice(-MAX_PERSISTED_TURNS).map((turn) => persistableTurn(turn.findings ? { ...turn, findings: turn.findings.map(({ applying, ...finding }) => finding) } : turn));
             sessionStorage.setItem(storageKey, JSON.stringify({ turns: persistable, sessionId }));
         } catch {
             /* quota — the conversation just won't survive a remount */
@@ -226,6 +266,51 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         }
     };
 
+    const patchTurn = (turnIndex: number, patch: Partial<ChatTurn>) => {
+        setTurns((t) => t.map((turn, i) => (i === turnIndex ? { ...turn, ...patch } : turn)));
+    };
+
+    // Accept: the server applies the chosen ops to the form as stored now,
+    // so every local edit is saved first; the reply is applied to the
+    // canvas as one undo step.
+    const acceptTurnProposal = async (turnIndex: number, opIndexes?: number[]) => {
+        const turn = turns[turnIndex];
+        if (!turn?.proposal || turn.proposalStatus !== 'pending') return;
+        patchTurn(turnIndex, { proposalStatus: 'accepting', proposalError: undefined, proposalOpErrors: undefined });
+        const saved = await flushAutosave();
+        if (saved !== 'saved') {
+            patchTurn(turnIndex, {
+                proposalStatus: 'pending',
+                proposalError:
+                    saved === 'conflict' ? 'This form was changed somewhere else. Reload the latest version, then ask again.' : "Your latest edits aren't saved yet, so nothing was applied. Check your connection and try again."
+            });
+            return;
+        }
+        const response: any = await acceptProposal({ workspaceId: workspace.id, formId: standardForm.formId, proposalId: turn.proposal.id, opIndexes });
+        if (response.data) {
+            applyFormToCanvas(response.data.form, response.data.settings);
+            patchTurn(turnIndex, { proposalStatus: 'accepted', appliedCount: response.data.acceptedOpIndexes?.length, selected: response.data.acceptedOpIndexes });
+            closeOpenProposal();
+            return;
+        }
+        const body = response.error?.data ?? {};
+        const closedAs = PROPOSAL_ERRORS[body.code];
+        const message = typeof body.message === 'string' ? body.message : 'The changes could not be applied — nothing was changed. Please try again.';
+        if (closedAs) closeOpenProposal();
+        // A stale proposal's own line says what happened and offers Ask again.
+        const formChanged = closedAs === 'stale' && !(Array.isArray(body.errors) && body.errors.length);
+        patchTurn(turnIndex, { proposalStatus: closedAs ?? 'pending', proposalError: formChanged ? undefined : message, proposalOpErrors: Array.isArray(body.errors) ? body.errors : undefined });
+    };
+
+    // Discard: nothing to undo, the form was never changed.
+    const discardTurnProposal = (turnIndex: number) => {
+        const turn = turns[turnIndex];
+        if (!turn?.proposal || turn.proposalStatus !== 'pending') return;
+        patchTurn(turnIndex, { proposalStatus: 'discarded', proposalError: undefined, proposalOpErrors: undefined });
+        if (openProposal?.proposal.id === turn.proposal.id) closeOpenProposal();
+        rejectProposal({ workspaceId: workspace.id, formId: standardForm.formId, proposalId: turn.proposal.id });
+    };
+
     const scrollToEnd = () => {
         requestAnimationFrame(() => listRef.current?.scrollTo?.({ top: listRef.current.scrollHeight, behavior: 'smooth' }));
     };
@@ -256,13 +341,42 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         scrollToEnd();
         const memoryIdsBeforeTurn = new Set(entriesRef.current.map((entry) => entry.id));
 
+        // The proposal is made from the stored form and can only be accepted
+        // on that version: save pending edits first, or every proposal would
+        // be stale the moment the autosave caught up.
+        const saved = await flushAutosave();
+        if (saved !== 'saved') {
+            const detail =
+                saved === 'conflict' ? 'This form was changed somewhere else. Reload the latest version, then ask again.' : "Your latest edits aren't saved yet, so nothing was sent. Check your connection and try again.";
+            setTurns((t) => [...t, { role: 'assistant', content: detail, error: true, retryMessage: message }]);
+            scrollToEnd();
+            return;
+        }
+
         const response: any = await chatEdit({
             workspaceId: workspace.id,
             formId: standardForm.formId,
-            body: { message, sessionId }
+            body: { message, sessionId, mode: 'propose' }
         });
 
-        if (response.data) {
+        if (response.data?.proposal) {
+            const { reply, results, proposal, sessionId: sid } = response.data;
+            setSessionId(sid);
+            // Read against what the editor shows now.
+            const groups = buildProposalChanges(proposal, { ...standardForm, fields: formFields });
+            // One open proposal at a time: an older one is set aside.
+            turns.forEach((turn) => {
+                if (turn.proposal && turn.proposalStatus === 'pending') rejectProposal({ workspaceId: workspace.id, formId: standardForm.formId, proposalId: turn.proposal.id });
+            });
+            setTurns((t) => [
+                ...t.map((turn): ChatTurn => (turn.proposal && turn.proposalStatus === 'pending' ? { ...turn, proposalStatus: 'superseded' } : turn)),
+                { role: 'assistant', content: reply, results, proposal, groups, proposalStatus: 'pending', selected: acceptableOps(proposal), prompt: message }
+            ]);
+            setOpenProposal({ proposal, groups });
+            setPreview({ on: false });
+            setFocusProposalId(proposal.id);
+            if (learnPreferences) surfaceNewMemories(memoryIdsBeforeTurn);
+        } else if (response.data) {
             const { reply, results, form, settings, sessionId: sid } = response.data;
             setSessionId(sid);
             // Apply the AI's edit to the canvas — ONE setFormFields call = one
@@ -275,7 +389,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             // and every subsequent edit threw "Cannot assign to read only
             // property". Each store gets its own copy (mirrors how the edit
             // page hydrates with deepCopy at mount).
-            if (results?.some((r: TurnResult) => r.ok)) {
+            if (form && results?.some((r: TurnResult) => r.ok)) {
                 applyFormToCanvas(form, settings);
             }
             setTurns((t) => [...t, { role: 'assistant', content: reply, results }]);
@@ -317,7 +431,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         </button>
                     </div>
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-black-600">Describe a change — it lands on the canvas, and every change is listed. Undo reverts a whole turn.</p>
+                <p className="mt-1 text-xs leading-relaxed text-black-600">Describe a change. The assistant proposes it, and nothing changes until you accept. Undo reverts an accepted change.</p>
             </div>
 
             {showMemory && (
@@ -467,7 +581,26 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                             Try again
                                         </button>
                                     )}
-                                    {!!turn.results?.length && (
+                                    {turn.proposal && turn.groups && (
+                                        <AIProposalCard
+                                            proposal={turn.proposal}
+                                            groups={turn.groups}
+                                            status={turn.proposalStatus ?? 'pending'}
+                                            selected={turn.selected ?? []}
+                                            error={turn.proposalError}
+                                            opErrors={turn.proposalOpErrors}
+                                            appliedCount={turn.appliedCount}
+                                            previewing={preview.on && openProposal?.proposal.id === turn.proposal.id}
+                                            autoFocus={focusProposalId === turn.proposal.id}
+                                            onSelect={(selected) => patchTurn(i, { selected })}
+                                            onAccept={(opIndexes) => acceptTurnProposal(i, opIndexes)}
+                                            onDiscard={() => discardTurnProposal(i)}
+                                            onTogglePreview={() => setPreview({ on: !preview.on, pageId: preview.pageId })}
+                                            onShowPage={(pageId) => setPreview({ on: true, pageId })}
+                                            onAskAgain={turn.prompt && !isLoading ? () => send(turn.prompt) : undefined}
+                                        />
+                                    )}
+                                    {!turn.proposal && !!turn.results?.length && (
                                         <ul className="mt-2 flex flex-col gap-1 border-t border-black-100 pt-2">
                                             {turn.results.map((result, j) => (
                                                 <li key={j} className="flex items-start gap-1.5 text-xs">

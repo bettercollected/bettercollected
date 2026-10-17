@@ -79,6 +79,37 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
     async def save(self, session: FormAISessionDocument) -> FormAISessionDocument:
         return await self.upsert(session)
 
+    async def update_proposal(
+        self,
+        session_id: PydanticObjectId,
+        proposal_id: str,
+        fields: dict,
+        only_if_status: Optional[str] = None,
+    ) -> bool:
+        """The Mongo original's targeted update: the row is locked, so a
+        chat turn saved at the same time waits and then keeps this change
+        only if it read the row afterwards (as with Mongo)."""
+        locked = (
+            select(FormAiSessionRow.doc)
+            .where(FormAiSessionRow.id == str(session_id))
+            .with_for_update()
+        )
+        async with self._session() as session, session.begin():
+            doc = (await session.execute(locked)).scalar_one_or_none()
+            if doc is None:
+                return False
+            document = from_row_doc(FormAISessionDocument, doc)
+            for message in document.messages or []:
+                record = message.get("proposal")
+                if not isinstance(record, dict) or record.get("id") != proposal_id:
+                    continue
+                if only_if_status is not None and record.get("status") != only_if_status:
+                    return False
+                record.update(fields)
+                await session.execute(self._upsert_statement(row_values(document)))
+                return True
+        return False
+
 
 class PostgresWorkspaceAIProfileRepository(PostgresRepositoryBase):
     row = WorkspaceAiProfileRow
