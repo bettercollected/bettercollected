@@ -91,6 +91,16 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
 - {"op":"set_page_jumps","pageId":"...","jumps":[{"operator":"AND","conditions":[...],"target":"<page id or __SUBMIT__>"}]}
   (branching after a page; first matching jump wins, no match = next page. "jumps":null clears.)
 - {"op":"duplicate_page","pageId":"...","index":0?} (clones a page with all fields, fresh ids)
+- {"op":"set_section_title","pageId":"...","title":"About your visit"}
+  (or "pageIndex": the page's "index" from the snapshot instead of "pageId". Names the
+  page's section: the Leaflet style shows each question page as a numbered section with
+  this title in its section bar and in the welcome page's contents list; without one it
+  shows the page's opening heading or first question. Use it on multi-page forms when a
+  page's questions belong together under a name the first question doesn't give: a few
+  plain words, at most 120 characters, ideally under 40, everyday language at B1 level
+  ("Your contact details", not "Applicant identification data"); no numbering, the section
+  number is added automatically. "title":null or "" clears it. Only question pages have
+  one, never the welcome page or the ending.)
 - {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?}}
   (the Form tab's trust & privacy metadata: "purpose" tells respondents why the
   data is collected, "retentionText" how long it is kept — e.g. "kept for 90
@@ -192,6 +202,9 @@ def project_form(form, settings=None) -> str:
         for f in (slide.properties.fields if slide.properties else None) or []:
             fields.append(_project_field(f))
         page_entry = {"pageId": slide.id, "index": slide.index, "fields": fields}
+        section_title = slide.properties.section_title if slide.properties else None
+        if section_title:
+            page_entry["sectionTitle"] = section_title
         if slide.properties and slide.properties.jumps:
             page_entry["jumps"] = [
                 {

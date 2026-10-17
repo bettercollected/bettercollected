@@ -38,6 +38,7 @@ from common.models.standard_form import (
     Theme,
     date_rule_problems,
     prune_date_rules,
+    SECTION_TITLE_MAX_LENGTH,
     WHY_WE_ASK_MAX_LENGTH,
 )
 from pydantic import BaseModel, ConfigDict, Field
@@ -313,6 +314,23 @@ class UpdateThemeOp(_CamelModel):
     theme: Theme
 
 
+class SetSectionTitleOp(_CamelModel):
+    """Name a question page's section (``properties.sectionTitle``): what
+    the Leaflet section bar and the welcome page's contents list show for
+    the page, before its opening heading and its first question. The page is
+    given by ``page_id`` or by ``page_index`` (0-based, among the question
+    pages, the ``index`` of the form snapshot). ``title`` null or "" clears
+    it. The welcome page and the ending have no section title.
+
+    The length is checked when the op is applied, not when it is parsed, so
+    one long title fails alone instead of the whole turn."""
+
+    op: Literal["set_section_title"] = "set_section_title"
+    page_id: Optional[str] = None
+    page_index: Optional[int] = None
+    title: Optional[str] = None
+
+
 FormOp = Annotated[
     Union[
         AddFieldOp,
@@ -328,6 +346,7 @@ FormOp = Annotated[
         SetPageJumpsOp,
         DuplicatePageOp,
         UpdateThemeOp,
+        SetSectionTitleOp,
     ],
     Field(discriminator="op"),
 ]
@@ -1061,6 +1080,69 @@ def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
     return f"Applied theme '{op.theme.title}'"
 
 
+# Ids a model may use for the pages that are not question pages.
+_WELCOME_PAGE_IDS = {"welcome", "welcome_page", "welcomepage", "start", "intro"}
+_ENDING_PAGE_IDS = {
+    "ending", "end", "thankyou", "thank_you", "thankyou_page", "thank_you_page",
+    "thankyoupage",
+}
+_NO_SECTION_TITLE = (
+    "Only question pages have a section title; the {page} has none. "
+    "Change the {instead} instead."
+)
+
+
+def _section_page(form: StandardForm, op: SetSectionTitleOp) -> Tuple[StandardFormField, int]:
+    """The question page an op addresses, with its 1-based number."""
+    pages = _pages(form)
+    if (op.page_id is None) == (op.page_index is None):
+        raise OpError("set_section_title needs either a pageId or a pageIndex.")
+    if op.page_index is not None:
+        if not 0 <= op.page_index < len(pages):
+            raise OpError(
+                f"There is no page with index {op.page_index}: the form has "
+                f"{len(pages)} question page(s), indexed from 0."
+            )
+        return pages[op.page_index], op.page_index + 1
+    key = op.page_id.strip().lower()
+    if key in _WELCOME_PAGE_IDS:
+        raise OpError(_NO_SECTION_TITLE.format(page="welcome page", instead="form title"))
+    if key in _ENDING_PAGE_IDS:
+        raise OpError(_NO_SECTION_TITLE.format(page="ending", instead="ending's heading"))
+    for number, page in enumerate(pages, start=1):
+        if page.id == op.page_id:
+            return page, number
+    try:
+        _, _, _, field, _ = _locate_field(form, op.page_id)
+    except OpError:
+        raise OpError(f"Page '{op.page_id}' was not found — it may have been removed.")
+    raise OpError(
+        f"'{_title_text(field)}' is a question, not a page: use the id of the page it is on."
+    )
+
+
+def _apply_set_section_title(form: StandardForm, op: SetSectionTitleOp) -> str:
+    if "title" not in op.model_fields_set:
+        raise OpError('set_section_title needs a "title" (null or "" clears it).')
+    page, number = _section_page(form, op)
+    # Plain text on one line: runs of whitespace (newlines too) become a space.
+    title = " ".join((op.title or "").split())
+    if len(title) > SECTION_TITLE_MAX_LENGTH:
+        raise OpError(
+            f"A section title can be at most {SECTION_TITLE_MAX_LENGTH} characters "
+            f"(this one has {len(title)}). Keep it short and plain."
+        )
+    if page.properties is None:
+        page.properties = StandardFieldProperty(fields=[])
+    page.properties.section_title = title or None
+    if not title:
+        return (
+            f"Cleared the section title of page {number} (it shows its opening "
+            "heading or first question again)"
+        )
+    return f"Section title of page {number}: '{title}'"
+
+
 _HANDLERS = {
     "add_field": _apply_add_field,
     "add_group": _apply_add_group,
@@ -1075,6 +1157,7 @@ _HANDLERS = {
     "set_page_jumps": _apply_set_page_jumps,
     "duplicate_page": _apply_duplicate_page,
     "update_theme": _apply_update_theme,
+    "set_section_title": _apply_set_section_title,
 }
 
 

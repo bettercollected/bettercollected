@@ -276,7 +276,11 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     "childFieldId" for ANY/ALL; siblings inside a group refer to the same item) ·
     {"op":"set_page_jumps","pageId":str,"jumps":[{"operator":"AND"|"OR","conditions":[...],
     "target":"<page id or __SUBMIT__>"}]|null} (branching) ·
-    {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids).
+    {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids) ·
+    {"op":"set_section_title","pageId"?:str,"pageIndex"?:int,"title":str|null} (a question
+    page's section title, shown by the Leaflet style in the section bar and the welcome
+    page's contents list; give pageId or pageIndex (0-based among the question pages); a few
+    plain words, at most 120 characters; null or "" clears; not for the welcome page or ending).
     Field types: short_text, long_text, email, number, url, phone_number, date,
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
     key = await _key("forms:write")
