@@ -51,6 +51,7 @@ dependencies = [
     "dnspython>=2.8",
     "idna>=3.20",
     "publicsuffixlist>=1.1.0.20261010",
+    "google-re2==1.1.20251105",
 ]
 
 [dependency-groups]
