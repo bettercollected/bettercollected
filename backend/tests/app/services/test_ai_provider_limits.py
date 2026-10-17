@@ -1,10 +1,9 @@
-"""Every AI provider call is bounded: tool-loop round trips and tool calls,
-output tokens per call type, request and overall timeouts. Model JSON is
-validated (strict schema where the provider has one) and retried once.
-Fake clients only: no provider is ever called."""
+"""Every AI provider call is bounded: output tokens per call type, request
+and overall timeouts. JSON is asked for (a strict schema where the provider
+has one); callers validate it (services/ai/structured.py). Fake clients
+only: no provider is ever called."""
 
 import asyncio
-import json
 from types import SimpleNamespace
 
 import pytest
@@ -12,10 +11,6 @@ from loguru import logger
 
 from backend.app.services import openai_compatible_provider, openai_provider
 from backend.app.services.ai.errors import AIError
-from backend.app.services.ai.structured import (
-    generated_form_schema,
-    parse_generated_form,
-)
 from backend.app.services.ai.untrusted import fence
 from backend.app.services.ai.usage import bind_usage
 from backend.app.services.google_ai_provider import GoogleAIFormProvider
@@ -25,45 +20,8 @@ from backend.app.services.openai_compatible_provider import (
 from backend.app.services.openai_provider import OpenAIFormProvider
 from backend.config import settings
 
-FORM = {
-    "title": "Visit feedback",
-    "fields": [
-        {
-            "title": "About your visit",
-            "type": "group",
-            "layout": "SINGLE_COLUMN_NO_BACKGROUND",
-            "properties": {
-                "fields": [
-                    {
-                        "title": "How was it?",
-                        "type": "rating",
-                        "properties": {"steps": 5},
-                    }
-                ]
-            },
-        }
-    ],
-}
-
-
-class FakeUnsplash:
-    def __init__(self):
-        self.queries = []
-
-    async def search_photos(self, query, per_page=5, orientation="landscape"):
-        self.queries.append(query)
-        return []
-
-
-def _tool_call(call_id, name="get_available_themes", args=None):
-    return SimpleNamespace(
-        id=call_id,
-        function=SimpleNamespace(name=name, arguments=json.dumps(args or {})),
-    )
-
-
-def _reply(tool_calls=None, content=None, tokens=None):
-    message = SimpleNamespace(tool_calls=tool_calls, content=content)
+def _reply(content=None, tokens=None):
+    message = SimpleNamespace(tool_calls=None, content=content)
     usage = SimpleNamespace(total_tokens=tokens) if tokens is not None else None
     return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=usage)
 
@@ -106,112 +64,38 @@ class FakeGuard:
 
 
 # ---------------------------------------------------------------------------
-# The tool loop
-# ---------------------------------------------------------------------------
-
-
-async def test_openai_tool_loop_stops_at_the_iteration_cap(limits):
-    limits(MAX_TOOL_ITERATIONS=3)
-    provider = OpenAIFormProvider(FakeUnsplash())
-
-    async def always_a_tool(kwargs):
-        return _reply([_tool_call(f"t{len(completions.calls)}")])
-
-    completions = _fake_client(provider, always_a_tool)
-    with pytest.raises(AIError) as raised:
-        await provider.generate_form("a form")
-    assert raised.value.status_code == 502
-    assert raised.value.code == "ai_step_limit"
-    assert len(completions.calls) == 3
-
-
-async def test_openai_tool_loop_stops_at_the_tool_call_cap(limits):
-    limits(MAX_TOOL_CALLS=4)
-    unsplash = FakeUnsplash()
-    provider = OpenAIFormProvider(unsplash)
-    completions = _fake_client(
-        provider,
-        [
-            _reply(
-                [
-                    _tool_call(f"i{n}", "search_images", {"query": f"topic {n}"})
-                    for n in range(5)
-                ]
-            )
-        ],
-    )
-    with pytest.raises(AIError) as raised:
-        await provider.generate_form("a form")
-    assert raised.value.code == "ai_step_limit"
-    # refused before any of the round's tools ran
-    assert unsplash.queries == [] and len(completions.calls) == 1
-
-
-async def test_unknown_tools_and_bad_arguments_go_back_to_the_model(limits):
-    provider = OpenAIFormProvider(FakeUnsplash())
-    bad_args = SimpleNamespace(
-        id="b1", function=SimpleNamespace(name="search_images", arguments="{oops")
-    )
-    completions = _fake_client(
-        provider,
-        [
-            _reply([_tool_call("u1", "run_shell", {"cmd": "ls"}), bad_args]),
-            _reply(content=json.dumps(FORM)),
-        ],
-    )
-    form = await provider.generate_form("a form")
-    assert form["title"] == "Visit feedback"
-    tool_answers = [
-        m
-        for m in completions.calls[1]["messages"]
-        if isinstance(m, dict) and m.get("role") == "tool"
-    ]
-    assert "Unknown tool" in tool_answers[0]["content"]
-
-
-async def test_gemini_tool_loop_stops_at_the_iteration_cap(limits, monkeypatch):
-    limits(MAX_TOOL_ITERATIONS=2)
-    provider = GoogleAIFormProvider(FakeUnsplash())
-    session = FakeGeminiChat(
-        lambda n: FakeGeminiResponse(calls=[("get_available_themes", {})])
-    )
-    monkeypatch.setattr(provider, "_model", FakeGeminiModel.factory(session))
-    with pytest.raises(AIError) as raised:
-        await provider.generate_form("a form")
-    assert raised.value.code == "ai_step_limit"
-    assert len(session.sent) == 2
-
-
-# ---------------------------------------------------------------------------
 # Tokens and timeouts reach the clients
 # ---------------------------------------------------------------------------
 
 
 async def test_openai_calls_carry_token_caps_timeouts_and_strict_output(limits):
-    limits(
-        MAX_OUTPUT_TOKENS_GENERATE=1234,
-        MAX_OUTPUT_TOKENS_CHAT=567,
-        REQUEST_TIMEOUT_SECONDS=11,
-    )
-    provider = OpenAIFormProvider(FakeUnsplash())
+    limits(MAX_OUTPUT_TOKENS_CHAT=567, REQUEST_TIMEOUT_SECONDS=11)
+    provider = OpenAIFormProvider()
     completions = _fake_client(
-        provider,
-        [_reply(content=json.dumps(FORM)), _reply(content='{"reply": "ok"}')],
+        provider, [_reply(content='{"reply": "ok"}'), _reply(content="{}")]
     )
-    await provider.generate_form("a form")
-    generate = completions.calls[0]
-    assert generate["max_completion_tokens"] == 1234
-    assert generate["timeout"] == 11
-    assert generate["response_format"]["type"] == "json_schema"
-    assert generate["response_format"]["json_schema"]["strict"] is True
-
     await provider.chat(
         "system JSON", [{"role": "user", "content": "hi"}], json_mode=True
     )
-    chat = completions.calls[1]
+    chat = completions.calls[0]
     assert chat["max_completion_tokens"] == 567
     assert chat["timeout"] == 11
     assert chat["response_format"] == {"type": "json_object"}
+
+    schema = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+    await provider.chat(
+        "s",
+        [{"role": "user", "content": "x"}],
+        max_output_tokens=1234,
+        json_mode=True,
+        json_schema={"name": "form_outline", "schema": schema},
+    )
+    structured = completions.calls[1]
+    assert structured["max_completion_tokens"] == 1234
+    assert structured["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {"name": "form_outline", "schema": schema, "strict": True},
+    }
 
 
 def test_openai_clients_are_built_with_timeout_and_retries(limits, monkeypatch):
@@ -227,56 +111,53 @@ def test_openai_clients_are_built_with_timeout_and_retries(limits, monkeypatch):
         "AsyncOpenAI",
         lambda **kwargs: built.append(kwargs) or object(),
     )
-    OpenAIFormProvider(FakeUnsplash()).client
+    OpenAIFormProvider().client
     OpenAICompatibleFormProvider().client
     assert [(b["timeout"], b["max_retries"]) for b in built] == [(17, 0), (17, 0)]
 
 
 async def test_compatible_calls_carry_max_tokens_and_json_mode(limits):
-    limits(MAX_OUTPUT_TOKENS_GENERATE=900, MAX_OUTPUT_TOKENS_REVIEW=300)
+    limits(MAX_OUTPUT_TOKENS_REVIEW=300)
     provider = OpenAICompatibleFormProvider()
     completions = _fake_client(
-        provider, [_reply(content=json.dumps(FORM)), _reply(content="{}")]
+        provider, [_reply(content="{}"), _reply(content="{}"), _reply(content="{}")]
     )
-    await provider.generate_form("a form")
-    assert completions.calls[0]["max_tokens"] == 900
-    assert completions.calls[0]["response_format"] == {"type": "json_object"}
     await provider.chat("s", [{"role": "user", "content": "x"}], max_output_tokens=300)
-    assert completions.calls[1]["max_tokens"] == 300
-    assert "response_format" not in completions.calls[1]
+    assert completions.calls[0]["max_tokens"] == 300
+    assert "response_format" not in completions.calls[0]
+    # a strict schema is not passed on: JSON mode, and the caller validates
+    await provider.chat(
+        "s", [{"role": "user", "content": "x"}], json_schema={"name": "n", "schema": {}}
+    )
+    assert completions.calls[1]["response_format"] == {"type": "json_object"}
 
     limits(COMPAT_JSON_MODE=False)
-    _fake_client(provider, [_reply(content=json.dumps(FORM))])
-    await provider.generate_form("a form")
-    assert "response_format" not in provider._client.chat.completions.calls[0]
+    await provider.chat("s", [{"role": "user", "content": "x"}], json_mode=True)
+    assert "response_format" not in completions.calls[2]
 
 
 async def test_gemini_calls_carry_token_caps_and_timeouts(limits, monkeypatch):
-    limits(
-        MAX_OUTPUT_TOKENS_GENERATE=2222,
-        MAX_OUTPUT_TOKENS_CHAT=333,
-        REQUEST_TIMEOUT_SECONDS=9,
-    )
-    provider = GoogleAIFormProvider(FakeUnsplash())
-    session = FakeGeminiChat(lambda n: FakeGeminiResponse(text=json.dumps(FORM)))
+    limits(MAX_OUTPUT_TOKENS_CHAT=333, REQUEST_TIMEOUT_SECONDS=9)
+    provider = GoogleAIFormProvider()
+    session = FakeGeminiChat(lambda n: FakeGeminiResponse(text="{}"))
     models = []
     monkeypatch.setattr(provider, "_model", FakeGeminiModel.factory(session, models))
 
-    await provider.generate_form("a form")
-    assert models[0]["generation_config"] == {"max_output_tokens": 2222}
-    assert session.options[0] == {"timeout": 9}
-
     await provider.chat("s", [{"role": "user", "content": "x"}], json_mode=True)
-    assert models[1]["generation_config"] == {
+    assert models[0]["generation_config"] == {
         "max_output_tokens": 333,
         "response_mime_type": "application/json",
     }
-    assert session.options[1] == {"timeout": 9}
+    assert session.options[0] == {"timeout": 9}
+    await provider.chat(
+        "s", [{"role": "user", "content": "x"}], json_schema={"name": "n", "schema": {}}
+    )
+    assert models[1]["generation_config"]["response_mime_type"] == "application/json"
 
 
 async def test_a_slow_call_is_a_504(limits):
     limits(CALL_TIMEOUT_SECONDS=0.05)
-    provider = OpenAIFormProvider(FakeUnsplash())
+    provider = OpenAIFormProvider()
 
     async def slow(kwargs):
         await asyncio.sleep(5)
@@ -287,34 +168,8 @@ async def test_a_slow_call_is_a_504(limits):
     assert raised.value.status_code == 504 and raised.value.code == "ai_timeout"
 
 
-async def test_a_slow_generation_is_a_504(limits):
-    # The whole-generation deadline fires while a round trip is still well
-    # within its own (much longer) call timeout. One quick round trip, then
-    # one that outlasts the deadline: the step and tool caps can't be reached,
-    # so only the deadline can end it, however slow the machine.
-    limits(
-        GENERATION_TIMEOUT_SECONDS=0.2,
-        CALL_TIMEOUT_SECONDS=60,
-        MAX_TOOL_ITERATIONS=1000,
-        MAX_TOOL_CALLS=1000,
-    )
-    provider = OpenAIFormProvider(FakeUnsplash())
-    calls = []
-
-    async def quick_then_slow(kwargs):
-        calls.append(1)
-        if len(calls) > 1:
-            await asyncio.sleep(30)
-        return _reply([_tool_call("t")])
-
-    _fake_client(provider, quick_then_slow)
-    with pytest.raises(AIError) as raised:
-        await provider.generate_form("a form")
-    assert raised.value.code == "ai_timeout"
-
-
 async def test_provider_failures_are_502_and_never_log_their_message(limits):
-    provider = OpenAIFormProvider(FakeUnsplash())
+    provider = OpenAIFormProvider()
 
     async def fails(kwargs):
         raise RuntimeError("the secret prompt text")
@@ -333,85 +188,13 @@ async def test_provider_failures_are_502_and_never_log_their_message(limits):
 
 
 # ---------------------------------------------------------------------------
-# Structured output: validated, retried once
-# ---------------------------------------------------------------------------
-
-
-async def test_generation_retries_once_with_the_problems(limits):
-    provider = OpenAIFormProvider(FakeUnsplash())
-    completions = _fake_client(
-        provider,
-        [
-            _reply(content=json.dumps({"title": "No fields"})),
-            _reply(content=json.dumps(FORM)),
-        ],
-    )
-    form = await provider.generate_form("a form")
-    assert form["fields"][0]["properties"]["fields"][0]["type"] == "rating"
-    retry = completions.calls[1]["messages"]
-    assert retry[-2] == {
-        "role": "assistant",
-        "content": json.dumps({"title": "No fields"}),
-    }
-    assert "fields: Field required" in retry[-1]["content"]
-
-
-@pytest.mark.parametrize("provider_kind", ["openai", "compatible"])
-async def test_generation_fails_cleanly_after_the_retry(limits, provider_kind):
-    provider = (
-        OpenAIFormProvider(FakeUnsplash())
-        if provider_kind == "openai"
-        else OpenAICompatibleFormProvider()
-    )
-    bad = {"title": "x", "fields": [{"type": "hologram"}]}
-    completions = _fake_client(
-        provider, [_reply(content="not json"), _reply(content=json.dumps(bad))]
-    )
-    with pytest.raises(AIError) as raised:
-        await provider.generate_form("a form")
-    assert raised.value.code == "ai_unusable_reply" and raised.value.status_code == 502
-    assert len(completions.calls) == 2
-
-
-async def test_gemini_generation_retries_once(limits, monkeypatch):
-    provider = GoogleAIFormProvider(FakeUnsplash())
-    replies = ["```json\n{}\n```", json.dumps(FORM)]
-    session = FakeGeminiChat(lambda n: FakeGeminiResponse(text=replies[n]))
-    monkeypatch.setattr(provider, "_model", FakeGeminiModel.factory(session))
-    form = await provider.generate_form("a form")
-    assert form["title"] == "Visit feedback"
-    assert "could not be used" in session.sent[1]
-
-
-def test_generated_form_schema_follows_strict_mode():
-    def walk(node):
-        if isinstance(node, dict):
-            if node.get("type") == "object":
-                assert node["additionalProperties"] is False
-                assert sorted(node["required"]) == sorted(node["properties"])
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for value in node:
-                walk(value)
-
-    walk(generated_form_schema())
-
-
-def test_strict_nulls_mean_absent():
-    reply = dict(FORM, description=None, theme_name=None)
-    form = parse_generated_form(json.dumps(reply))
-    assert "description" not in form and "theme_name" not in form
-
-
-# ---------------------------------------------------------------------------
 # Usage, fences
 # ---------------------------------------------------------------------------
 
 
 async def test_reported_tokens_are_counted_for_the_bound_workspace(limits):
     guard = FakeGuard()
-    provider = OpenAIFormProvider(FakeUnsplash())
+    provider = OpenAIFormProvider()
     _fake_client(provider, [_reply(content="{}", tokens=321)])
     bind_usage(guard, "ws-1")
     try:

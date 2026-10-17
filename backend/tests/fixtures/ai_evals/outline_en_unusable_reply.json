@@ -1,0 +1,30 @@
+{
+  "name": "outline_en_unusable_reply",
+  "kind": "outline",
+  "description": "A reply that is not a form (unknown question type) is refused.",
+  "language": "en",
+  "expect_invalid": true,
+  "expected_findings": [],
+  "reply": {
+    "title": "Broken",
+    "description": null,
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Pick one",
+            "type": "slider",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

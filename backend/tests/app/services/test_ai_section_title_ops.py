@@ -12,13 +12,7 @@ from common.models.standard_form import (
     WelcomePageField,
 )
 
-from backend.app.container import container
 from backend.app.mcp import server as mcp_server
-from backend.app.services import (
-    google_ai_provider,
-    openai_compatible_provider,
-    openai_provider,
-)
 from backend.app.services.ai.ops import (
     SetSectionTitleOp,
     apply_form_ops,
@@ -26,7 +20,9 @@ from backend.app.services.ai.ops import (
 )
 from backend.app.services.ai.prompt_builder import OPS_GUIDE, project_form
 from backend.app.services.ai.review import build_review_system_prompt
-from backend.app.services.form_generation_rules import SECTION_TITLE_RULES
+from backend.app.services.ai.outline import FormOutline
+from backend.app.services.ai.outline_compile import build_form
+from backend.app.services.ai.outline_service import OUTLINE_SYSTEM_PROMPT
 
 
 def _page(page_id: str, index: int, title: str, section_title=None) -> StandardFormField:
@@ -207,47 +203,38 @@ class TestTheModelIsTold:
     def test_mcp_update_form_documents_the_op(self):
         assert "set_section_title" in (mcp_server.update_form.__doc__ or "")
 
-    @pytest.mark.parametrize(
-        "prompt",
-        [
-            openai_provider.SYSTEM_PROMPT,
-            google_ai_provider.SYSTEM_PROMPT,
-            openai_compatible_provider.GENERATION_SYSTEM_PROMPT,
-        ],
-    )
-    def test_every_generator_may_set_section_titles(self, prompt):
-        assert "sectionTitle?: string" in prompt
-        assert SECTION_TITLE_RULES in prompt
-        assert "optional" in SECTION_TITLE_RULES.lower()
+    def test_the_outline_asks_for_section_titles(self):
+        assert '"sectionTitle"' in OUTLINE_SYSTEM_PROMPT
+        assert "Give one to every page of a multi-page form" in OUTLINE_SYSTEM_PROMPT
 
 
 class TestGeneratedSectionTitles:
-    def _convert(self, *pages):
-        return container.openai_service().convert_openai_form_to_standard_form(
-            {"title": "Visit", "fields": list(pages)}
+    def _build(self, *titles):
+        outline = FormOutline.model_validate(
+            {
+                "title": "Visit",
+                "pages": [
+                    {
+                        "key": f"p{n}",
+                        "sectionTitle": title,
+                        "questions": [{"key": f"q{n}", "label": f"Question {n}", "type": "long_text"}],
+                    }
+                    for n, title in enumerate(titles)
+                ],
+            }
         )
+        form, results = build_form(outline)
+        assert all(r.ok for r in results)
+        return form
 
     def test_generated_pages_keep_their_section_titles(self):
-        form = self._convert(
-            {"title": "Name", "type": "short_text", "sectionTitle": " About\nyou "},
-            {
-                "title": "Your visit",
-                "type": "group",
-                "sectionTitle": "About your visit",
-                "properties": {
-                    "fields": [
-                        {"title": "When?", "type": "date"},
-                        {"title": "Why?", "type": "long_text"},
-                    ]
-                },
-            },
-            {"title": "Comments", "type": "long_text"},
-        )
+        form = self._build(" About\nyou ", "About your visit", None)
         assert _section_titles(form) == ["About you", "About your visit", None]
 
-    @pytest.mark.parametrize(
-        "value", ["", "   ", "x" * (SECTION_TITLE_MAX_LENGTH + 1), 42, ["a"]]
-    )
-    def test_unusable_section_titles_are_left_out(self, value):
-        form = self._convert({"title": "Name", "type": "short_text", "sectionTitle": value})
-        assert _section_titles(form) == [None]
+    @pytest.mark.parametrize("value", ["", "   "])
+    def test_blank_section_titles_are_left_out(self, value):
+        assert _section_titles(self._build(value)) == [None]
+
+    def test_a_too_long_section_title_is_not_a_valid_outline(self):
+        with pytest.raises(ValueError):
+            self._build("x" * (SECTION_TITLE_MAX_LENGTH + 1))

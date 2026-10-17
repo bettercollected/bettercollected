@@ -11,7 +11,6 @@ from httpx import AsyncClient
 
 from backend.app.container import container
 from backend.app.schemas.workspace import WorkspaceDocument
-from backend.app.services.openai_service import OpenAIService
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 
 
@@ -62,15 +61,6 @@ def _yes_no_fields(fields):
             yield field
         if field.properties and field.properties.fields:
             yield from _yes_no_fields(field.properties.fields)
-
-
-def test_the_converter_stores_yes_no_without_labels():
-    properties = OpenAIService.convert_properties(
-        None, openai_properties={"choices": ["Ja", "Nee"]}, type="yes_no"
-    )
-    assert [c["value"] for c in properties["choices"]] == ["Yes", "No"]
-    assert all("label" not in c for c in properties["choices"])
-    assert len({c["id"] for c in properties["choices"]}) == 2
 
 
 async def test_a_dutch_generated_form_keeps_no_english_yes_no_labels(

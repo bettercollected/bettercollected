@@ -1,50 +1,22 @@
-import uuid
 from http import HTTPStatus
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
 from beanie import PydanticObjectId
 from loguru import logger
-from common.models.standard_form import (
-    StandardForm,
-    SECTION_TITLE_MAX_LENGTH,
-    WHY_WE_ASK_MAX_LENGTH,
-    LayoutType,
-    StandardFormFieldType,
-    ThankYouPageField,
-    WelcomePageField,
-    StandardFormField,
-)
 from common.models.user import User
 
 from backend.app.services.ai.consent import AIConsentService, ai_not_enabled
 from backend.app.services.ai.usage import AIUsageGuard, bind_usage
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
 from backend.config import settings
-from backend.app.constants.themes import new_form_theme, preset_name, themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.services.ai_form_provider import AIFormProvider
 from backend.app.services.google_ai_provider import GoogleAIFormProvider
-from backend.app.services.image_urls import allowed_image_url_or_none
 from backend.app.services.openai_provider import OpenAIFormProvider
-from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_service import WorkspaceService
-
-_DEFAULT_LAYOUT = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
-
-
-def _section_title(value: Any) -> Optional[str]:
-    """A generated page's section title, as plain one-line text. One that is
-    not text or longer than the cap is left out: the page then shows its
-    heading or first question, as it would without one."""
-    if not isinstance(value, str):
-        return None
-    title = " ".join(value.split())
-    if not title or len(title) > SECTION_TITLE_MAX_LENGTH:
-        return None
-    return title
 
 
 class OpenAIService:
@@ -61,10 +33,9 @@ class OpenAIService:
         self.ai_consent_service = ai_consent_service
         self.ai_usage_guard = ai_usage_guard
         self.workspace_form_service: WorkspaceFormService = workspace_form_service
-        self._unsplash = UnsplashService()
         self._providers: Dict[AIProvider, AIFormProvider] = {
-            AIProvider.OPENAI: OpenAIFormProvider(self._unsplash),
-            AIProvider.GOOGLE: GoogleAIFormProvider(self._unsplash),
+            AIProvider.OPENAI: OpenAIFormProvider(),
+            AIProvider.GOOGLE: GoogleAIFormProvider(),
         }
         # The self-host option: any OpenAI-compatible endpoint (Ollama, vLLM…),
         # registered only when actually configured.
@@ -170,194 +141,3 @@ class OpenAIService:
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 content="Could not create form using AI",
             )
-
-    # ------------------------------------------------------------------
-    # Conversion helpers: the earlier whole-form generation's reply shape.
-    # No product path uses them any more (generation is outline-first);
-    # kept for the golden "generate" eval fixtures until they are retired.
-    # ------------------------------------------------------------------
-
-    def convert_openai_form_to_standard_form(self, openai_form: Dict[str, Any]):
-        # New forms start with Leaflet; another preset only when the model
-        # picked one by name (the prompt asks it to, when the request wants
-        # other colours). Anything else falls back to Leaflet.
-        # A legacy preset name (Blue, Green, ...) means the nearest preset.
-        theme_name = preset_name(openai_form.get("theme_name"))
-        chosen_theme = (
-            themes[theme_name].model_copy(deep=True) if theme_name else new_form_theme()
-        )
-
-        # Only images from our storage or Unsplash (services/image_urls.py):
-        # respondents' browsers load them directly.
-        welcome_image_url: Optional[str] = allowed_image_url_or_none(
-            openai_form.get("welcome_image_url")
-        )
-        cover_image_url: Optional[str] = allowed_image_url_or_none(
-            openai_form.get("cover_image_url")
-        )
-
-        # Auto-select welcome layout: use image-side layout when image present
-        welcome_layout = (
-            LayoutType.TWO_COLUMN_IMAGE_LEFT
-            if welcome_image_url
-            else LayoutType.SINGLE_COLUMN_NO_BACKGROUND
-        )
-
-        standard_form = StandardForm()
-        standard_form.builder_version = "v2"
-        standard_form.title = openai_form.get("title")
-        standard_form.theme = chosen_theme
-        standard_form.cover_image = cover_image_url
-        standard_form.welcome_page = WelcomePageField(
-            title=openai_form.get("title"),
-            description=openai_form.get("description"),
-            layout=welcome_layout,
-            imageUrl=welcome_image_url,
-        )
-        standard_form.fields = [
-            StandardFormField(**field)
-            for field in self.convert_fields(openai_form.get("fields", []))
-        ]
-        standard_form.thankyou_page = [
-            ThankYouPageField(layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND)
-        ]
-        return standard_form
-
-    def convert_fields(
-        self,
-        openai_fields: List[Dict[str, Any]],
-    ):
-        fields = []
-        for index, field in enumerate(openai_fields):
-            # Per-field layout: read directly from the AI-generated field dict.
-            # Fall back to image-aware default: if image_url present use TWO_COLUMN_IMAGE_LEFT.
-            image_url: Optional[str] = allowed_image_url_or_none(field.get("image_url"))
-            layout_value: Optional[str] = field.get("layout")
-            if field.get("image_url") and not image_url:
-                # A refused image takes its image layout with it.
-                layout_value = None
-            if not layout_value:
-                layout_value = (
-                    LayoutType.TWO_COLUMN_IMAGE_LEFT.value
-                    if image_url
-                    else _DEFAULT_LAYOUT.value
-                )
-            try:
-                layout = LayoutType(layout_value)
-            except ValueError:
-                layout = (
-                    LayoutType.TWO_COLUMN_IMAGE_LEFT if image_url else _DEFAULT_LAYOUT
-                )
-
-            slide_fields = []
-            if field.get("type") != "group":
-                slide_fields.append(self.convert_single_field(field, 0))
-            else:
-                if field.get("title") is not None:
-                    slide_fields.append(
-                        {
-                            "id": str(uuid.uuid4()),
-                            "type": StandardFormFieldType.TEXT,
-                            "index": 0,
-                            "title": {
-                                "type": "doc",
-                                "content": [
-                                    {
-                                        "type": "paragraph",
-                                        "content": [
-                                            {
-                                                "text": field.get("title"),
-                                                "marks": [
-                                                    {"type": "bold"},
-                                                    {
-                                                        "type": "textStyle",
-                                                        "attrs": {
-                                                            "fontSize": "32",
-                                                            "color": None,
-                                                        },
-                                                    },
-                                                ],
-                                                "type": "text",
-                                            }
-                                        ],
-                                    }
-                                ],
-                            },
-                        }
-                    )
-                for field_index, group_field in enumerate(
-                    field.get("properties", {}).get("fields", [])
-                ):
-                    slide_fields.append(
-                        self.convert_single_field(
-                            group_field,
-                            (
-                                field_index + 1
-                                if field.get("title") is not None
-                                else field_index
-                            ),
-                        )
-                    )
-            properties = {"fields": slide_fields, "layout": layout}
-            section_title = _section_title(field.get("sectionTitle"))
-            if section_title:
-                properties["section_title"] = section_title
-            fields.append(
-                {
-                    "id": str(uuid.uuid4()),
-                    "type": StandardFormFieldType.SLIDE,
-                    "index": index,
-                    "image_url": image_url,
-                    "properties": properties,
-                }
-            )
-        return fields
-
-    def convert_single_field(self, openai_field: Dict[str, Any], index: int):
-        return {
-            "type": openai_field.get("type"),
-            "title": openai_field.get("title"),
-            "id": str(uuid.uuid4()),
-            "index": index,
-            "description": openai_field.get("description"),
-            "properties": self.convert_properties(
-                openai_properties=openai_field.get("properties", {}),
-                type=openai_field.get("type"),
-            ),
-            "validations": {
-                "required": openai_field.get("properties", {}).get("required", False)
-            },
-        }
-
-    def convert_properties(
-        self, openai_properties: Dict[str, Any], type: Optional[str] = None
-    ):
-        properties = {}
-        if openai_properties.get("placeholder") is not None:
-            properties["placeholder"] = openai_properties.get("placeholder")
-        if openai_properties.get("allowOther"):
-            properties["allow_other_choice"] = True
-        if openai_properties.get("allowMultiple"):
-            properties["allow_multiple_selection"] = True
-        if openai_properties.get("steps") is not None:
-            properties["steps"] = openai_properties.get("steps")
-        if openai_properties.get("startFrom") is not None:
-            properties["start_from"] = openai_properties.get("startFrom")
-        if openai_properties.get("choices") is not None:
-            properties["choices"] = [
-                {"id": str(uuid.uuid4()), "label": choice, "value": choice}
-                for choice in openai_properties.get("choices")
-            ]
-        why_we_ask = openai_properties.get("whyWeAsk")
-        if isinstance(why_we_ask, str) and why_we_ask.strip():
-            properties["why_we_ask"] = why_we_ask.strip()[:WHY_WE_ASK_MAX_LENGTH]
-        if type is not None and type == StandardFormFieldType.YES_NO:
-            # Stored the way the builder and the chat ops store them: "Yes" and
-            # "No" are fixed values (answers and logic map them to true and
-            # false) without a label, so the respondent form shows them in
-            # the respondent's language rather than in English.
-            properties["choices"] = [
-                {"id": str(uuid.uuid4()), "value": "Yes"},
-                {"id": str(uuid.uuid4()), "value": "No"},
-            ]
-        return properties

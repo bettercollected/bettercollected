@@ -1,0 +1,48 @@
+{
+  "name": "outline_nl_bsn_without_reason",
+  "kind": "outline",
+  "description": "Vraagt om een BSN zonder uitleg waarom.",
+  "language": "nl",
+  "expected_findings": [],
+  "expect_invalid": true,
+  "reply": {
+    "title": "Aanvraag tegemoetkoming",
+    "description": "Vraag een tegemoetkoming aan voor de kosten van je sportclub.",
+    "language": "nl",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Wat is je naam?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "q2",
+            "label": "Wat is je BSN?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "q3",
+            "label": "Bij welke sportclub ben je lid?",
+            "type": "short_text",
+            "required": false
+          },
+          {
+            "key": "q4",
+            "label": "Hoeveel kost het lidmaatschap per jaar?",
+            "type": "number",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

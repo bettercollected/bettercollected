@@ -1,0 +1,48 @@
+{
+  "name": "outline_en_theme_not_default",
+  "kind": "outline",
+  "description": "A plain request, yet the model picked another theme.",
+  "language": "en",
+  "expected_findings": [
+    "theme_not_default"
+  ],
+  "reply": {
+    "title": "Library card request",
+    "description": "Request a library card for the local library.",
+    "language": "en",
+    "theme": "Green",
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "What is your name?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "q2",
+            "label": "Which branch will you use most?",
+            "type": "dropdown",
+            "required": false,
+            "choices": [
+              "Central",
+              "North",
+              "South"
+            ]
+          },
+          {
+            "key": "q3",
+            "label": "Would you like to receive our newsletter?",
+            "type": "yes_no",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

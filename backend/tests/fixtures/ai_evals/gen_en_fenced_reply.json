@@ -1,8 +1,0 @@
-{
-  "name": "gen_en_fenced_reply",
-  "kind": "generate",
-  "description": "A reply wrapped in a markdown fence with prose after it still parses.",
-  "language": "en",
-  "expected_findings": [],
-  "reply": "```json\n{\n  \"title\": \"Newsletter sign-up\",\n  \"description\": \"Get our monthly update about the neighbourhood.\",\n  \"theme_name\": \"Leaflet\",\n  \"fields\": [\n    {\n      \"title\": \"Sign up\",\n      \"type\": \"group\",\n      \"layout\": \"SINGLE_COLUMN_NO_BACKGROUND\",\n      \"properties\": {\n        \"fields\": [\n          {\n            \"title\": \"What is your email address?\",\n            \"type\": \"email\",\n            \"properties\": {\n              \"required\": true,\n              \"whyWeAsk\": \"We need it to send you the newsletter.\"\n            }\n          },\n          {\n            \"title\": \"Which topics interest you?\",\n            \"type\": \"multiple_choice\",\n            \"properties\": {\n              \"choices\": [\n                \"Events\",\n                \"Local news\",\n                \"Volunteering\"\n              ],\n              \"allowMultiple\": true\n            }\n          }\n        ]\n      }\n    }\n  ]\n}\n```\nLet me know if you want any changes."
-}

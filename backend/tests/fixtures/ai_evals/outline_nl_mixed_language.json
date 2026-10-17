@@ -1,0 +1,49 @@
+{
+  "name": "outline_nl_mixed_language",
+  "kind": "outline",
+  "description": "Half Nederlands, half Engels.",
+  "language": "nl",
+  "expected_findings": [
+    "mixed_language"
+  ],
+  "reply": {
+    "title": "Feedback over het evenement",
+    "description": "Vertel ons wat je van het evenement vond.",
+    "language": "nl",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Wat vond je van het programma?",
+            "type": "long_text",
+            "required": false
+          },
+          {
+            "key": "q2",
+            "label": "How would you rate the venue and the food?",
+            "type": "rating",
+            "required": false
+          },
+          {
+            "key": "q3",
+            "label": "What should we change for the next edition?",
+            "type": "long_text",
+            "required": false
+          },
+          {
+            "key": "q4",
+            "label": "Would you come back next year?",
+            "type": "yes_no",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

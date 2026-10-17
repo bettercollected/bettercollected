@@ -59,10 +59,10 @@ def test_ai_eval_replay_writes_both_reports(tmp_path):
 
 def test_ai_eval_replay_selects_cases(tmp_path):
     assert ai_eval.main(
-        ["--out", str(tmp_path), "--only", "gen_en_good_feedback", "--only", "gen_nl_short_form"]
+        ["--out", str(tmp_path), "--only", "outline_en_good_feedback", "--only", "outline_nl_short_form"]
     ) == 0
     names = [r["name"] for r in json.loads((tmp_path / "report.json").read_text())["results"]]
-    assert names == ["gen_en_good_feedback", "gen_nl_short_form"]
+    assert names == ["outline_en_good_feedback", "outline_nl_short_form"]
     assert ai_eval.main(["--out", str(tmp_path), "--only", "nope"]) == 2
 
 

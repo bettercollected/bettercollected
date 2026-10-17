@@ -54,10 +54,6 @@ class FakeProvider:
         self.calls.append({"system": system, "messages": messages, **options})
         return self.replies.pop(0)
 
-    async def generate_form(self, prompt: str) -> dict:
-        self.calls.append({"prompt": prompt})
-        return self.replies.pop(0)
-
     async def analyze_page(self, system, prompt, image, schema):
         self.calls.append({"system": system, "prompt": prompt})
         return {}

@@ -27,10 +27,6 @@ class TokenReportingProvider(FakeProvider):
 
     tokens = 150
 
-    async def generate_form(self, prompt: str) -> dict:
-        await record_tokens(self.tokens)
-        return await super().generate_form(prompt)
-
     async def chat(self, system: str, messages: list, **options) -> str:
         await record_tokens(self.tokens)
         return await super().chat(system, messages, **options)
