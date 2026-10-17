@@ -132,8 +132,9 @@ and marked `"x-editorOnly": true` on their definition): they take whole
 questions and pages with the ids the builder chose (`insert_field`,
 `replace_field`, `insert_page`), page and welcome page settings
 (`update_page`, `update_welcome_page`), hidden fields (`set_hidden_fields`),
-logo settings (`update_logo`) and choices by id (`set_choice`, `add_choice`,
-`remove_choice`, `move_choice`). They are checked like a whole-form save
+logo settings (`update_logo`), choices by id (`set_choice`, `add_choice`,
+`remove_choice`, `move_choice`) and the endings as a whole, ids kept
+(`set_endings`; page jumps are left as they are). They are checked like a whole-form save
 (ids unique in the form, size limits, image addresses, answer patterns,
 repeating group rules). The public API, the MCP server and the AI assistant
 refuse them, with an error for each such operation.

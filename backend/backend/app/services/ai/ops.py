@@ -705,6 +705,16 @@ class MoveChoiceOp(_EditorOp):
     index: int = Field(ge=0)
 
 
+class SetEndingsOp(_EditorOp):
+    """The form's endings as a whole, ids kept (each as a whole-form save
+    takes it). Page jumps are left as they are: one that names an ending no
+    longer listed shows as broken, and blocks publishing, until it is
+    changed. An empty list removes the endings."""
+
+    op: Literal["set_endings"] = "set_endings"
+    endings: List[Dict[str, Any]]
+
+
 EDITOR_OP_TYPES = (
     InsertFieldOp,
     ReplaceFieldOp,
@@ -717,6 +727,7 @@ EDITOR_OP_TYPES = (
     AddChoiceOp,
     RemoveChoiceOp,
     MoveChoiceOp,
+    SetEndingsOp,
 )
 # Ops only the form editor may send (refused by parse_ops without allow_editor_ops=True).
 EDITOR_ONLY_OPS = frozenset(t.model_fields["op"].default for t in EDITOR_OP_TYPES)
@@ -762,6 +773,7 @@ FormOp = Annotated[
         AddChoiceOp,
         RemoveChoiceOp,
         MoveChoiceOp,
+        SetEndingsOp,
     ],
     Field(discriminator="op"),
 ]
@@ -1786,7 +1798,8 @@ def _endings(form: StandardForm) -> List[ThankYouPageField]:
 
 
 def _find_ending(form: StandardForm, ending_id: str) -> ThankYouPageField:
-    ending = ending_by_id(_endings(form), ending_id)
+    # a lookup: a form without endings is left as it is
+    ending = ending_by_id(with_ending_ids(form.thankyou_page or []), ending_id)
     if ending is None:
         raise OpError(f"Ending '{ending_id}' not found.")
     return ending
@@ -1806,37 +1819,53 @@ def _check_jump_ending(form: StandardForm, spec: "PageJumpSpec") -> None:
     _find_ending(form, spec.ending_id)
 
 
+# What each EndingPatch key is called in messages, and its text limit.
+_ENDING_TEXTS = (
+    ("title", "title", "title", ENDING_TITLE_MAX_LENGTH),
+    ("message", "message", "message", ENDING_MESSAGE_MAX_LENGTH),
+    ("button_text", "buttonText", "button text", ENDING_BUTTON_TEXT_MAX_LENGTH),
+)
+
+
+def _check_ending_texts(values: Dict[str, Optional[str]]) -> None:
+    """The text limits of an ending (``values`` by EndingPatch key)."""
+    name = values.get("name")
+    if name is not None and len(name.strip()) > ENDING_NAME_MAX_LENGTH:
+        raise OpError(
+            f"An ending's name can be at most {ENDING_NAME_MAX_LENGTH} characters."
+        )
+    for key, _, label, limit in _ENDING_TEXTS:
+        value = values.get(key)
+        if value is not None and len(value) > limit:
+            raise OpError(f"An ending's {label} can be at most {limit} characters.")
+
+
+def _checked_ending_link(link: Optional[str]) -> Optional[str]:
+    try:
+        return checked_button_link(link)
+    except ValueError as error:
+        raise OpError(str(error))
+
+
 def _patch_ending(
     form: StandardForm, ending: ThankYouPageField, patch: EndingPatch
 ) -> List[str]:
+    """Apply ``patch`` to ``ending``; checked as a whole first, so a refused
+    patch changes nothing. Returns what changed, in words."""
+    _check_ending_texts({key: getattr(patch, key) for key in ("name", "title", "message", "button_text")})
+    link = _checked_ending_link(patch.button_link)
     changed: List[str] = []
     if patch.name is not None:
-        name = patch.name.strip()
-        if len(name) > ENDING_NAME_MAX_LENGTH:
-            raise OpError(
-                f"An ending's name can be at most {ENDING_NAME_MAX_LENGTH} characters."
-            )
-        ending.name = name or None
+        ending.name = patch.name.strip() or None
         changed.append("name")
-    texts = (
-        ("title", "title", ENDING_TITLE_MAX_LENGTH),
-        ("message", "message", ENDING_MESSAGE_MAX_LENGTH),
-        ("button_text", "buttonText", ENDING_BUTTON_TEXT_MAX_LENGTH),
-    )
-    for key, attr, limit in texts:
+    for key, attr, label, _ in _ENDING_TEXTS:
         value = getattr(patch, key)
-        if value is not None and len(value) > limit:
-            raise OpError(f"An ending's {key} can be at most {limit} characters.")
         if value is not None:
             setattr(ending, attr, value or None)
-            changed.append(key)
+            changed.append(label)
     if patch.button_link is not None:
-        try:
-            link = checked_button_link(patch.button_link)
-        except ValueError as error:
-            raise OpError(str(error))
         ending.buttonLink = link or None
-        changed.append("button_link")
+        changed.append("button link")
     if patch.layout is not None:
         ending.layout = patch.layout
         changed.append("layout")
@@ -1845,12 +1874,12 @@ def _patch_ending(
         for other in _endings(form):
             other.isDefault = None
         ending.isDefault = True
-        changed.append("is_default")
+        changed.append("default")
     elif patch.is_default is False:
         # only this ending stops being the default (the default is then the
         # one still marked, else the first)
         ending.isDefault = None
-        changed.append("is_default")
+        changed.append("default")
     return changed
 
 
@@ -1889,8 +1918,8 @@ def jumps_to_ending(form: StandardForm, ending_id: str) -> List[PageJump]:
 
 
 def _apply_remove_ending(form: StandardForm, op: RemoveEndingOp) -> str:
-    endings = _endings(form)
     ending = _find_ending(form, op.ending_id)
+    endings = _endings(form)
     if len(endings) <= 1:
         raise OpError("A form keeps at least one ending; change this one instead.")
     endings.remove(ending)
@@ -1900,7 +1929,7 @@ def _apply_remove_ending(form: StandardForm, op: RemoveEndingOp) -> str:
     for jump in jumps:
         jump.ending_id = None
     note = (
-        f"; {len(jumps)} jump(s) that went to it now show the default ending"
+        f" (and {len(jumps)} jump(s) to it now show the default ending)"
         if jumps
         else ""
     )
@@ -2585,6 +2614,41 @@ def _payload_count(raw: Any) -> int:
     return total
 
 
+def _apply_set_endings(form: StandardForm, op: SetEndingsOp) -> str:
+    if len(op.endings) > MAX_ENDINGS:
+        raise OpError(f"A form can have at most {MAX_ENDINGS} endings.")
+    keep = _KeptImages(form)
+    endings: List[ThankYouPageField] = []
+    for raw in op.endings:
+        if not isinstance(raw, dict):
+            raise OpError("Each ending must be an object.")
+        try:
+            ending = ThankYouPageField.model_validate(raw)
+        except ValidationError as error:
+            raise OpError(_validation_message(error))
+        _check_ending_texts(
+            {
+                "title": ending.title,
+                "message": ending.message,
+                "button_text": ending.buttonText,
+            }
+        )
+        if ending.buttonLink is not None:
+            ending.buttonLink = _checked_ending_link(ending.buttonLink) or None
+        ending.imageUrl = _editor_image(ending.imageUrl, keep) or None
+        endings.append(ending)
+    with_ending_ids(endings)
+    seen: Set[str] = set()
+    for ending in endings:
+        if ending.id in seen:
+            raise OpError(f"The ending id '{ending.id}' is used more than once.")
+        seen.add(ending.id)
+    if sum(1 for ending in endings if ending.isDefault) > 1:
+        raise OpError("Only one ending can be the default.")
+    form.thankyou_page = endings or None
+    return f"Set {len(endings)} ending(s)"
+
+
 def _editor_growth(form: StandardForm, op) -> Tuple[int, int]:
     """Pages and fields an editor op adds (see _growth)."""
     if isinstance(op, InsertFieldOp):
@@ -2613,6 +2677,7 @@ _EDITOR_HANDLERS = {
     "add_choice": _apply_add_choice,
     "remove_choice": _apply_remove_choice,
     "move_choice": _apply_move_choice,
+    "set_endings": _apply_set_endings,
 }
 assert set(_EDITOR_HANDLERS) == EDITOR_ONLY_OPS
 
