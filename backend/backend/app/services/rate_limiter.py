@@ -73,3 +73,8 @@ class FixedWindowRateLimiter:
         ``expires_at``. Nothing releases a claim before then."""
         count = await self._repo.hit(self.counter_id(scope, key, 0), expires_at, 1)
         return count == 1
+
+    async def claimed(self, scope: str, key: str, expires_at: dt.datetime) -> bool:
+        """Whether ``key`` in ``scope`` has been claimed; claims nothing."""
+        count = await self._repo.hit(self.counter_id(scope, key, 0), expires_at, 0)
+        return count >= 1
