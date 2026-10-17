@@ -1,0 +1,44 @@
+{
+  "name": "gen_nl_mixed_language",
+  "kind": "generate",
+  "description": "Half Nederlands, half Engels.",
+  "language": "nl",
+  "expected_findings": [
+    "mixed_language"
+  ],
+  "reply": {
+    "title": "Feedback over het evenement",
+    "description": "Vertel ons wat je van het evenement vond.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Het evenement",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "Wat vond je van het programma?",
+              "type": "long_text"
+            },
+            {
+              "title": "How would you rate the venue and the food?",
+              "type": "rating",
+              "properties": {
+                "steps": 5
+              }
+            },
+            {
+              "title": "What should we change for the next edition?",
+              "type": "long_text"
+            },
+            {
+              "title": "Would you come back next year?",
+              "type": "yes_no"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

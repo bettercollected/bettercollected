@@ -1,0 +1,121 @@
+{
+  "name": "chat_nl_phone_without_reason",
+  "kind": "chat",
+  "description": "Voegt een telefoonvraag toe zonder uitleg waarom.",
+  "language": "nl",
+  "expected_findings": [
+    "missing_why_we_ask"
+  ],
+  "base_form": {
+    "title": "Aanmelden voor de buurttuin",
+    "builder_version": "v2",
+    "theme": {
+      "title": "Leaflet",
+      "primary": "#1A1A1A",
+      "secondary": "#0B3D91",
+      "tertiary": "#6B7A99",
+      "accent": "#FFFFFF",
+      "style": "leaflet"
+    },
+    "welcome_page": {
+      "title": "Aanmelden voor de buurttuin"
+    },
+    "fields": [
+      {
+        "id": "page-1",
+        "type": "slide",
+        "index": 0,
+        "properties": {
+          "section_title": "Over jou",
+          "fields": [
+            {
+              "id": "q-name",
+              "type": "short_text",
+              "index": 0,
+              "title": "Wat is je naam?",
+              "validations": {
+                "required": true
+              }
+            },
+            {
+              "id": "q-email",
+              "type": "email",
+              "index": 1,
+              "title": "Wat is je e-mailadres?",
+              "properties": {
+                "why_we_ask": "We sturen je hiermee het plantschema."
+              },
+              "validations": {
+                "required": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "page-2",
+        "type": "slide",
+        "index": 1,
+        "properties": {
+          "section_title": "Je tuinvak",
+          "fields": [
+            {
+              "id": "q-plot",
+              "type": "multiple_choice",
+              "index": 0,
+              "title": "Welke grootte tuinvak wil je?",
+              "properties": {
+                "choices": [
+                  {
+                    "id": "c-small",
+                    "label": "Klein",
+                    "value": "Klein"
+                  },
+                  {
+                    "id": "c-large",
+                    "label": "Groot",
+                    "value": "Groot"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "q-tools",
+              "type": "yes_no",
+              "index": 1,
+              "title": "Heb je zelf gereedschap?",
+              "properties": {
+                "choices": [
+                  {
+                    "id": "c-yes",
+                    "label": "Yes",
+                    "value": "Yes"
+                  },
+                  {
+                    "id": "c-no",
+                    "label": "No",
+                    "value": "No"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "reply": {
+    "reply": "Ik heb een vraag naar je telefoonnummer toegevoegd.",
+    "ops": [
+      {
+        "op": "add_field",
+        "pageId": "page-1",
+        "afterFieldId": "q-email",
+        "field": {
+          "title": "Wat is je telefoonnummer?",
+          "type": "phone_number"
+        }
+      }
+    ]
+  }
+}

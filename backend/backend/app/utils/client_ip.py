@@ -88,6 +88,18 @@ def _address(value: str) -> Optional[Address]:
     return mapped or address
 
 
+def rate_limit_key(client: Optional[str]) -> str:
+    """The key a client address is rate-limited under: an IPv4 address as
+    is, an IPv6 address by its /64 (one subscriber's network, so rotating
+    through its addresses does not multiply the limit)."""
+    address = _address(client or "")
+    if address is None:
+        return "unknown"
+    if address.version == 6:
+        return str(ipaddress.ip_network(f"{address}/64", strict=False))
+    return str(address)
+
+
 def _within(address: Address, networks: Tuple[Network, ...]) -> bool:
     return any(address.version == n.version and address in n for n in networks)
 

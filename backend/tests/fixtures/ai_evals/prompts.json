@@ -1,0 +1,182 @@
+{
+  "about": "Prompts for the opt-in live AI eval (backend/scripts/ai_eval.py). Synthetic requests only. Keys: kind (generate | chat), language (en | nl), theme_requested (the request asks for another look than Leaflet), max_questions (a length cap the request sets), expected_types (question types the request implies), base_fixture (chat: the golden fixture whose base_form is edited).",
+  "prompts": [
+    {
+      "name": "en_contact_simple",
+      "kind": "generate",
+      "language": "en",
+      "prompt": "A contact form for a small bakery."
+    },
+    {
+      "name": "en_feedback_bakery",
+      "kind": "generate",
+      "language": "en",
+      "expected_types": ["email", "rating"],
+      "prompt": "A customer feedback form for a small bakery: name, email, overall rating, and what we could do better."
+    },
+    {
+      "name": "en_wedding_rsvp",
+      "kind": "generate",
+      "language": "en",
+      "expected_types": ["yes_no", "number"],
+      "prompt": "An RSVP form for a wedding: guest name, attending yes/no, dietary requirements, number of guests."
+    },
+    {
+      "name": "en_job_application",
+      "kind": "generate",
+      "language": "en",
+      "expected_types": ["email", "phone_number", "file_upload"],
+      "prompt": "A job application form: full name, email, phone, CV upload, and why do you want to work here."
+    },
+    {
+      "name": "en_newsletter_dropdown",
+      "kind": "generate",
+      "language": "en",
+      "expected_types": ["email", "dropdown"],
+      "prompt": "A newsletter signup with just an email address and a topic preference dropdown."
+    },
+    {
+      "name": "en_nps",
+      "kind": "generate",
+      "language": "en",
+      "expected_types": ["linear_rating", "long_text"],
+      "prompt": "An NPS survey: how likely are you to recommend us on a 0-10 scale, plus one open comment."
+    },
+    {
+      "name": "en_appointment",
+      "kind": "generate",
+      "language": "en",
+      "expected_types": ["date"],
+      "prompt": "A booking form for a hairdresser collecting the client's name, preferred appointment date and the treatment they want."
+    },
+    {
+      "name": "en_make_it_short",
+      "kind": "generate",
+      "language": "en",
+      "max_questions": 3,
+      "prompt": "A sign-up form for a neighbourhood litter pick. Make it short: three questions at most."
+    },
+    {
+      "name": "en_plain_theme",
+      "kind": "generate",
+      "language": "en",
+      "theme_requested": true,
+      "prompt": "An equipment loan form for a makerspace: item, pick-up date, number of days. Use the Plain theme instead of Leaflet."
+    },
+    {
+      "name": "en_warm_colours",
+      "kind": "generate",
+      "language": "en",
+      "theme_requested": true,
+      "prompt": "An RSVP for a children's birthday party in warm orange colours."
+    },
+    {
+      "name": "en_id_number",
+      "kind": "generate",
+      "language": "en",
+      "prompt": "A membership form for a rowing club: name, email, date of birth and national ID number for the insurance."
+    },
+    {
+      "name": "en_school_trip_consent",
+      "kind": "generate",
+      "language": "en",
+      "prompt": "A consent form for parents for a school trip to a science museum: child's name, class, emergency phone number, medical notes and the parent's consent."
+    },
+    {
+      "name": "en_detailed_event_registration",
+      "kind": "generate",
+      "language": "en",
+      "prompt": "A detailed registration form for a two-day regional conference on community energy projects. Sections: personal details (name, email, organisation, role), which days and which of the six workshops they will attend, dietary and accessibility needs, whether they need a hotel recommendation, and how they heard about the conference."
+    },
+    {
+      "name": "en_detailed_legal_aid_intake",
+      "kind": "generate",
+      "language": "en",
+      "prompt": "An intake form for a volunteer-run legal advice clinic. Collect contact details, the kind of problem (housing, work, debt, family, other), a description of the situation, important dates, whether there is a deadline, documents they can upload, and when they are available for a call. Keep the tone calm and plain."
+    },
+    {
+      "name": "nl_contact_simple",
+      "kind": "generate",
+      "language": "nl",
+      "prompt": "Een contactformulier voor een kapsalon."
+    },
+    {
+      "name": "nl_language_course",
+      "kind": "generate",
+      "language": "nl",
+      "expected_types": ["email"],
+      "prompt": "Een aanmeldformulier voor een taalcursus in het buurthuis: naam, e-mailadres, telefoonnummer, huidig niveau, voorkeursdagen en wat je wilt leren."
+    },
+    {
+      "name": "nl_make_it_short",
+      "kind": "generate",
+      "language": "nl",
+      "max_questions": 3,
+      "prompt": "Een inschrijfformulier voor de nieuwsbrief van de buurtvereniging. Houd het kort: maximaal drie vragen."
+    },
+    {
+      "name": "nl_plain_theme",
+      "kind": "generate",
+      "language": "nl",
+      "theme_requested": true,
+      "prompt": "Een formulier om een ruimte in het buurthuis te reserveren: naam, datum, tijd en aantal personen. Gebruik het Plain-thema in plaats van Leaflet."
+    },
+    {
+      "name": "nl_sports_allowance",
+      "kind": "generate",
+      "language": "nl",
+      "prompt": "Een aanvraagformulier voor een tegemoetkoming in de kosten van een sportclub, met naam, adres, BSN, IBAN en de naam van de club."
+    },
+    {
+      "name": "nl_detailed_tenant_survey",
+      "kind": "generate",
+      "language": "nl",
+      "prompt": "Een uitgebreide enquete voor huurders van een woningcorporatie over hun woning, de buurt, onderhoud en reparaties, contact met de corporatie en wat beter kan. Gebruik duidelijke secties en eenvoudige taal."
+    },
+    {
+      "name": "nl_volunteer_application",
+      "kind": "generate",
+      "language": "nl",
+      "prompt": "Een aanmelding voor vrijwilligers bij de voedselbank: gegevens, beschikbaarheid per dagdeel, ervaring, of je een rijbewijs hebt en een vraag of je een verklaring omtrent gedrag kunt aanvragen."
+    },
+    {
+      "name": "chat_en_add_question_and_logic",
+      "kind": "chat",
+      "language": "en",
+      "base_fixture": "chat_en_add_question_and_logic",
+      "prompt": "Add a question asking which vegetables they plan to grow, and only ask about tools when they pick a large plot."
+    },
+    {
+      "name": "chat_en_make_it_short",
+      "kind": "chat",
+      "language": "en",
+      "base_fixture": "chat_en_make_it_short",
+      "max_questions": 3,
+      "prompt": "Make it short: keep at most three questions, only the ones we really need."
+    },
+    {
+      "name": "chat_en_plain_theme",
+      "kind": "chat",
+      "language": "en",
+      "base_fixture": "chat_en_make_it_short",
+      "theme_requested": true,
+      "prompt": "Use the Plain theme instead."
+    },
+    {
+      "name": "chat_nl_add_phone",
+      "kind": "chat",
+      "language": "nl",
+      "base_fixture": "chat_nl_phone_without_reason",
+      "expected_types": ["phone_number"],
+      "prompt": "Voeg een vraag toe naar het telefoonnummer, zodat we mensen kunnen bellen als de tuin dicht is."
+    },
+    {
+      "name": "chat_nl_make_it_short",
+      "kind": "chat",
+      "language": "nl",
+      "base_fixture": "chat_nl_phone_without_reason",
+      "max_questions": 2,
+      "prompt": "Maak het formulier korter: alleen naam en e-mailadres."
+    }
+  ]
+}

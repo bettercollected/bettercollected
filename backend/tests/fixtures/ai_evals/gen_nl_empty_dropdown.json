@@ -1,0 +1,44 @@
+{
+  "name": "gen_nl_empty_dropdown",
+  "kind": "generate",
+  "description": "Een verplichte keuzelijst zonder opties.",
+  "language": "nl",
+  "expected_findings": [
+    "required_unanswerable",
+    "too_few_choices"
+  ],
+  "reply": {
+    "title": "Afspraak maken",
+    "description": "Maak een afspraak met de wijkagent.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Je afspraak",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "Wat is je naam?",
+              "type": "short_text",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "Welke dag past je het beste?",
+              "type": "dropdown",
+              "properties": {
+                "required": true
+              }
+            },
+            {
+              "title": "Waar wil je het over hebben?",
+              "type": "long_text"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "name": "chat_en_make_it_short",
+  "kind": "chat",
+  "description": "'Make it short': removes a question; an op on a missing id fails alone.",
+  "language": "en",
+  "expected_findings": [],
+  "expected_failed_ops": 1,
+  "base_form": {
+    "title": "Community garden sign-up",
+    "builder_version": "v2",
+    "theme": {
+      "title": "Leaflet",
+      "primary": "#1A1A1A",
+      "secondary": "#0B3D91",
+      "tertiary": "#6B7A99",
+      "accent": "#FFFFFF",
+      "style": "leaflet"
+    },
+    "welcome_page": {
+      "title": "Community garden sign-up"
+    },
+    "fields": [
+      {
+        "id": "page-1",
+        "type": "slide",
+        "index": 0,
+        "properties": {
+          "section_title": "About you",
+          "fields": [
+            {
+              "id": "q-name",
+              "type": "short_text",
+              "index": 0,
+              "title": "What is your name?",
+              "validations": {
+                "required": true
+              }
+            },
+            {
+              "id": "q-email",
+              "type": "email",
+              "index": 1,
+              "title": "What is your email address?",
+              "properties": {
+                "why_we_ask": "We use it to send you the planting schedule."
+              },
+              "validations": {
+                "required": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "page-2",
+        "type": "slide",
+        "index": 1,
+        "properties": {
+          "section_title": "Your plot",
+          "fields": [
+            {
+              "id": "q-plot",
+              "type": "multiple_choice",
+              "index": 0,
+              "title": "Which plot size would you like?",
+              "properties": {
+                "choices": [
+                  {
+                    "id": "c-small",
+                    "label": "Small",
+                    "value": "Small"
+                  },
+                  {
+                    "id": "c-large",
+                    "label": "Large",
+                    "value": "Large"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "q-tools",
+              "type": "yes_no",
+              "index": 1,
+              "title": "Do you have your own tools?",
+              "properties": {
+                "choices": [
+                  {
+                    "id": "c-yes",
+                    "label": "Yes",
+                    "value": "Yes"
+                  },
+                  {
+                    "id": "c-no",
+                    "label": "No",
+                    "value": "No"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "reply": {
+    "reply": "I removed the tools question to keep the form short.",
+    "ops": [
+      {
+        "op": "remove_field",
+        "fieldId": "q-tools"
+      },
+      {
+        "op": "remove_field",
+        "fieldId": "q-does-not-exist"
+      }
+    ]
+  }
+}

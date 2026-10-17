@@ -1,0 +1,76 @@
+{
+  "name": "gen_en_too_many_questions",
+  "kind": "generate",
+  "description": "Ten questions crammed onto one page.",
+  "language": "en",
+  "expected_findings": [
+    "too_many_questions_on_page"
+  ],
+  "reply": {
+    "title": "Office move survey",
+    "description": "Help us plan the move to the new office.",
+    "theme_name": "Leaflet",
+    "fields": [
+      {
+        "title": "Everything about the move",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "Which floor do you work on now?",
+              "type": "short_text"
+            },
+            {
+              "title": "How do you usually travel to the office?",
+              "type": "dropdown",
+              "properties": {
+                "choices": [
+                  "Bike",
+                  "Car",
+                  "Train",
+                  "Walk"
+                ]
+              }
+            },
+            {
+              "title": "How many days a week are you in the office?",
+              "type": "number"
+            },
+            {
+              "title": "Do you need a standing desk?",
+              "type": "yes_no"
+            },
+            {
+              "title": "Do you need a locker?",
+              "type": "yes_no"
+            },
+            {
+              "title": "Which team are you part of?",
+              "type": "short_text"
+            },
+            {
+              "title": "Which rooms do you book most?",
+              "type": "long_text"
+            },
+            {
+              "title": "How important is natural light to you?",
+              "type": "linear_rating",
+              "properties": {
+                "steps": 10
+              }
+            },
+            {
+              "title": "Do you have accessibility needs we should plan for?",
+              "type": "long_text"
+            },
+            {
+              "title": "Anything else you would like us to know?",
+              "type": "long_text"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
