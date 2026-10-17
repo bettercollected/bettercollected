@@ -16,7 +16,7 @@ import { computeFlowTraffic, fieldHasLogic, FlowTraffic, isJumpTargetValid } fro
 import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
+import { autosaveStatusLabel, isAutosaveProblem, useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
 import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
@@ -557,10 +557,8 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     {/* The navbar's save indicator is hidden while Flow is fullscreen —
                         carry the same reassurance here. */}
                     {autosaveStatus.state !== 'idle' && (
-                        <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (autosaveStatus.state === 'error' ? 'text-brand-olive' : 'text-black-600')}>
-                            {autosaveStatus.state === 'saving' && 'Saving…'}
-                            {autosaveStatus.state === 'saved' && 'Saved'}
-                            {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
+                        <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (isAutosaveProblem(autosaveStatus.state) ? 'text-brand-olive' : 'text-black-600')}>
+                            {autosaveStatusLabel(autosaveStatus.state)}
                         </span>
                     )}
                     {/* Two instruments, labelled apart: node/edge counts replay the
@@ -718,11 +716,8 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 </div>
                                 <div className="flex shrink-0 items-center gap-3">
                                     {/* Live save state beats the static "changes save automatically" claim. */}
-                                    <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (autosaveStatus.state === 'error' ? 'font-medium text-brand-olive' : 'text-black-600')}>
-                                        {autosaveStatus.state === 'saving' && 'Saving…'}
-                                        {autosaveStatus.state === 'saved' && 'Saved'}
-                                        {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
-                                        {autosaveStatus.state === 'idle' && 'Changes save automatically'}
+                                    <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (isAutosaveProblem(autosaveStatus.state) ? 'font-medium text-brand-olive' : 'text-black-600')}>
+                                        {autosaveStatusLabel(autosaveStatus.state) ?? 'Changes save automatically'}
                                     </span>
                                     <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                                         <X className="h-3.5 w-3.5" /> Back to flow

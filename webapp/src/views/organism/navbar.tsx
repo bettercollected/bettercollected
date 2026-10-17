@@ -15,7 +15,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
+import { autosaveStatusLabel, isAutosaveProblem, useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
@@ -251,11 +251,9 @@ const Navbar = () => {
                     <span
                         aria-live="polite"
                         title={autosaveStatus.savedAt ? `Last saved ${new Date(autosaveStatus.savedAt).toLocaleTimeString()}` : undefined}
-                        className={cn('mr-1 whitespace-nowrap text-xs font-medium', autosaveStatus.state === 'error' ? 'text-brand-olive' : 'text-black-600')}
+                        className={cn('mr-1 whitespace-nowrap text-xs font-medium', isAutosaveProblem(autosaveStatus.state) ? 'text-brand-olive' : 'text-black-600')}
                     >
-                        {autosaveStatus.state === 'saving' && 'Saving…'}
-                        {autosaveStatus.state === 'saved' && 'Saved'}
-                        {autosaveStatus.state === 'error' && 'Couldn\'t save — edit to retry'}
+                        {autosaveStatusLabel(autosaveStatus.state)}
                     </span>
                 )}
                 <div className="mr-1 flex items-center gap-1">
