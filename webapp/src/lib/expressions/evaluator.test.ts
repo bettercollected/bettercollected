@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 import { ExpressionError } from '@app/lib/expressions/ast';
-import { ExprValue, evaluateExpression, formatExpressionValue } from '@app/lib/expressions/evaluator';
+import { ExprValue, asciiTrim, evaluateExpression, formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { isValidExpression, validateExpression } from '@app/lib/expressions/validator';
 
 /**
@@ -109,6 +109,24 @@ describe('evaluateExpression', () => {
         let node: unknown = 1;
         for (let i = 0; i < 100000; i++) node = { '-': [node] };
         expect(() => evaluateExpression(node)).toThrow(ExpressionError);
+    });
+});
+
+describe('asciiTrim', () => {
+    it('trims only ASCII whitespace', () => {
+        expect(asciiTrim(' \t\n\r 1.5 \r\n')).toBe('1.5');
+        expect(asciiTrim('\u00a01\u00a0')).toBe('\u00a01\u00a0');
+        expect(asciiTrim('')).toBe('');
+        expect(asciiTrim('   ')).toBe('');
+    });
+
+    it('is linear on a 100k-space string', () => {
+        const spaces = ' '.repeat(100000);
+        const started = performance.now();
+        expect(asciiTrim(`${spaces}x${spaces}`)).toBe('x');
+        expect(asciiTrim(`${spaces}x ${spaces}y`)).toBe(`x ${spaces}y`);
+        expect(asciiTrim(spaces)).toBe('');
+        expect(performance.now() - started).toBeLessThan(100);
     });
 });
 

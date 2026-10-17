@@ -22,8 +22,20 @@ export interface EvalContext {
 type Scalar = null | boolean | string | Dec;
 type Value = Scalar | Scalar[];
 
-const ASCII_TRIM = /^[ \t\n\r]+|[ \t\n\r]+$/g;
 const ISO_DATE = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
+
+function isAsciiSpace(code: number): boolean {
+    return code === 0x20 || code === 0x09 || code === 0x0a || code === 0x0d;
+}
+
+/** Trims ASCII whitespace (space, tab, LF, CR) in linear time. */
+export function asciiTrim(text: string): string {
+    let start = 0;
+    let end = text.length;
+    while (start < end && isAsciiSpace(text.charCodeAt(start))) start++;
+    while (end > start && isAsciiSpace(text.charCodeAt(end - 1))) end--;
+    return start === 0 && end === text.length ? text : text.slice(start, end);
+}
 
 function scalarFromInput(input: unknown): Scalar {
     if (input === null || input === undefined) return null;
@@ -57,7 +69,7 @@ function cap(text: string): string {
 function toNum(value: Value): Dec | null {
     if (value instanceof Dec) return value;
     if (typeof value === 'string') {
-        const parsed = Dec.parse(value.replace(ASCII_TRIM, ''));
+        const parsed = Dec.parse(asciiTrim(value));
         return parsed ?? null;
     }
     return null;
