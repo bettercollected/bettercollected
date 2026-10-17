@@ -20,7 +20,9 @@ from tests.app.controllers.data import testUser
 from tests.app.controllers.test_form_ai_insights import _seed_form_and_responses
 from tests.app.controllers.test_mcp_server import _call_tool, _make_key, _tool_text
 
-GENERATED_FORM = {"title": "Generated", "description": "", "fields": []}
+from tests.app.ai_helpers import OUTLINE_REPLY  # noqa: E402
+
+GENERATED_FORM = OUTLINE_REPLY
 
 
 @pytest.fixture()
@@ -47,6 +49,7 @@ def _ai_endpoints(workspace, form_id):
         (f"{base}/{form_id}/ai/review", {}),
         (f"{base}/{form_id}/ai/insights", {}),
         (f"{base}/ai", {"prompt": "a contact form"}),
+        (f"{base}/ai/outline", {"prompt": "a contact form"}),
     ]
 
 
@@ -168,11 +171,12 @@ class TestEnforcement:
             json.dumps({"summary": "Looks fine.", "findings": []}),
             json.dumps({"summary": "People like it.", "themes": [], "actionable": []}),
             GENERATED_FORM,
+            GENERATED_FORM,
         ]
         for url, body in _ai_endpoints(workspace, workspace_form.form_id):
             response = await client.post(url, cookies=test_user_cookies, json=body)
             assert response.status_code == 200, (url, response.text)
-        assert len(fake.calls) == 4
+        assert len(fake.calls) == 5
 
     async def test_turning_it_off_again_stops_the_calls(
         self,

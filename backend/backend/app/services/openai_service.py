@@ -17,12 +17,9 @@ from common.models.standard_form import (
 from common.models.user import User
 
 from backend.app.services.ai.consent import AIConsentService, ai_not_enabled
-from backend.app.services.ai.memory import AIMemoryService
-from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.usage import AIUsageGuard, bind_usage
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
 from backend.config import settings
-from backend.app.services.ai.prompt_builder import compose_generation_prompt
 from backend.app.constants.themes import new_form_theme, preset_name, themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
@@ -34,7 +31,6 @@ from backend.app.services.openai_provider import OpenAIFormProvider
 from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_service import WorkspaceService
-from backend.app.models.enum.permission import Permission
 
 _DEFAULT_LAYOUT = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
 
@@ -142,36 +138,24 @@ class OpenAIService:
         create_form_ai: CreateFormWithAI,
         user: User,
     ):
-        # Membership and the workspace's AI opt-in first (#717): nothing is
-        # loaded into a prompt or sent to a provider before both pass.
-        await self.authorization_service.authorize(
-            user, Permission.FORM_CREATE, workspace_id
-        )
-        provider = await self.provider_for_workspace(
-            workspace_id, create_form_ai.provider, user_id=user.id
-        )
+        """A new draft form from a prompt, in one request: the outline-first
+        pipeline (services/ai/outline_service.py), outline then build, so
+        every AI-built form goes through the ops engine. The membership and
+        the workspace's AI opt-in are checked first (#717): nothing is
+        loaded into a prompt or sent to a provider before both pass.
+        Returns the saved form, as before."""
+        from backend.app.container import container
 
         try:
-            # Ground the request in the workspace's AI profile (org guidelines /
-            # compliance) — plan §2.1/§2.3. Provider-agnostic: prepended to the
-            # user turn.
-            profile = await AIProfileService.get_profile_for_prompt(workspace_id)
-            memory_entries = await AIMemoryService.get_entries_for_prompt(
-                workspace_id, user.id
-            )
-            grounded_prompt = compose_generation_prompt(
-                create_form_ai.prompt, profile, memory_entries
-            )
-            openai_form = await provider.generate_form(grounded_prompt)
-
-            form = await self.workspace_form_service.create_form(
-                workspace_id=workspace_id,
-                form=self.convert_openai_form_to_standard_form(openai_form=openai_form),
-                user=user,
+            form, outline, _ = await container.form_outline_service().generate(
+                workspace_id,
+                create_form_ai.prompt,
+                user,
+                requested_provider=create_form_ai.provider,
             )
             create_form_prompt = CreateFormPrompt(
                 prompt=create_form_ai.prompt,
-                openai_response=openai_form,
+                openai_response=outline.dump(),
                 created_form=form.model_dump(mode="json"),
                 form_id=PydanticObjectId(form.form_id),
             )
@@ -188,7 +172,9 @@ class OpenAIService:
             )
 
     # ------------------------------------------------------------------
-    # Conversion helpers
+    # Conversion helpers: the earlier whole-form generation's reply shape.
+    # No product path uses them any more (generation is outline-first);
+    # kept for the golden "generate" eval fixtures until they are retired.
     # ------------------------------------------------------------------
 
     def convert_openai_form_to_standard_form(self, openai_form: Dict[str, Any]):

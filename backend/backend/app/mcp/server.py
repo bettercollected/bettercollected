@@ -226,6 +226,94 @@ async def create_form_with_ai(prompt: str) -> str:
     return json.dumps({"formId": form.form_id, "title": form.title, "published": False})
 
 
+def _http_message(error: HTTPException, fallback: str) -> str:
+    content = error.content
+    if isinstance(content, dict):
+        message = content.get("message") or fallback
+        errors = content.get("errors")
+        if errors:
+            message += " " + json.dumps(errors)
+        return message
+    return str(content or fallback)
+
+
+@mcp.tool()
+async def create_form_outline(prompt: str, document_text: str = "") -> str:
+    """Step 1 of two-step AI form creation: the platform's outline of a form
+    for a prompt (and optionally the text of a document to base it on):
+    title, language, pages with section titles, the questions of each page
+    (key, label, type, required, whyWeAsk, choices, validation), show/hide
+    rules ("logic") and page jumps ("jumps", "to": a page key or "end").
+    Nothing is created. Review or edit the outline, then pass it to
+    build_form_from_outline. Same AI opt-in and limits as create_form_with_ai."""
+    from backend.app.services.ai.outline_service import (
+        DOCUMENT_TEXT_MAX_LENGTH,
+        FormOutlineRequest,
+    )
+
+    key = await _key("forms:write")
+    if not (prompt or "").strip() or len(prompt) > AI_PROMPT_MAX_LENGTH:
+        await _audit("create_form_outline", False, "prompt length")
+        raise ValueError(
+            f"The prompt must be between 1 and {AI_PROMPT_MAX_LENGTH} characters."
+        )
+    if len(document_text or "") > DOCUMENT_TEXT_MAX_LENGTH:
+        await _audit("create_form_outline", False, "document length")
+        raise ValueError(
+            f"The document text can be at most {DOCUMENT_TEXT_MAX_LENGTH} characters."
+        )
+    try:
+        outline = await _c().form_outline_service().outline(
+            workspace_id=key.workspace_id,
+            request=FormOutlineRequest(
+                prompt=prompt, document_text=document_text or None
+            ),
+            user=_acting_user(key),
+        )
+    except HTTPException as e:
+        message = _http_message(e, "Could not outline the form")
+        await _audit("create_form_outline", False, message)
+        raise ValueError(message) from e
+    await _audit("create_form_outline", True, f"{len(outline.pages)} pages")
+    return json.dumps({"outline": outline.dump()})
+
+
+@mcp.tool()
+async def build_form_from_outline(
+    outline: Dict[str, Any], fill_gaps: bool = True
+) -> str:
+    """Step 2: build an outline (from create_form_outline, edited or not)
+    into a new draft form, through the same ops engine as update_form, all
+    or nothing. With fill_gaps the platform's AI suggests what the outline
+    leaves out (choices of a choice question, the "why we ask" reason of an
+    identity question); nothing you wrote is changed. Returns the formId,
+    quality findings (codes and ids) and notes on what was adjusted."""
+    from backend.app.services.ai.outline_service import (
+        BuildFromOutlineRequest,
+        outline_validation_problems,
+    )
+
+    key = await _key("forms:write")
+    parsed, problems = outline_validation_problems(outline)
+    if parsed is None:
+        await _audit("build_form_from_outline", False, "invalid outline")
+        raise ValueError("The outline is not valid: " + "; ".join(problems))
+    try:
+        result = await _c().form_outline_service().build_response(
+            workspace_id=key.workspace_id,
+            request=BuildFromOutlineRequest(outline=parsed, fill_gaps=fill_gaps),
+            user=_acting_user(key),
+        )
+    except HTTPException as e:
+        message = _http_message(e, "Could not build the form")
+        await _audit("build_form_from_outline", False, message)
+        raise ValueError(message) from e
+    await _audit("build_form_from_outline", True, result.form_id)
+    return json.dumps(
+        {**result.model_dump(by_alias=True, mode="json"), "published": False}
+    )
+
+
 @mcp.tool()
 async def update_form(
     form_id: str, ops: List[Dict[str, Any]], atomic: bool = False

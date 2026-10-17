@@ -489,6 +489,27 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   and policy links are checked (`image_urls.py`, `policy_url.py`).
 - **Logging:** AI paths log error types, counts and ids only, never a prompt,
   a reply, a tool query or an exception message.
+- **Outline-first generation** (`services/ai/outline.py`,
+  `outline_compile.py`, `outline_service.py`): every AI-built form is
+  planned as an outline (title, language, pages with section titles,
+  question intents with `whyWeAsk` on identity questions, show/hide and
+  jump intents, `omitted` questions) and then compiled into one atomic
+  ops batch with refs on a blank Leaflet form, saved once.
+  `POST …/forms/ai/outline` (`{prompt, documentText?}`, the document is
+  fenced) returns the outline only; `POST …/forms/ai/build`
+  (`{outline, fillGaps?}`) builds an outline the person may have edited and
+  returns `{formId, title, quality, notes}`; `POST …/forms/ai` runs both in
+  one request and still returns the saved form. A model outline gets one
+  corrective retry for shape and for `outline_problems` (choices, reasons,
+  rules on later answers, backward jumps); an edited one is authoritative:
+  rules that no longer fit are dropped with a note, and the model is only
+  asked (one structured call per page, at most 5) to fill missing choices
+  and reasons, never to change what the person wrote. A build without a
+  provider call still needs the opt-in and uses the fix allowance. MCP:
+  `create_form_outline`, `build_form_from_outline` (`forms:write`). The
+  compliance review is not run on build (it is a model call of its own).
+  The tool-loop generation (`generate_form`, the converter) is no longer
+  used by the product.
 - **Quality evals:** `services/ai/quality.check_form_quality` scores a
   generated or edited form (why-we-ask, questions per page, section titles,
   EN/NL language, duplicates, required fields, choices, image hosts, logic

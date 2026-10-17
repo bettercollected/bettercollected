@@ -3,6 +3,7 @@ the fixed values "Yes"/"No" without an English label, so the respondent
 form shows them in the respondent's language (a fake provider, never a
 real model)."""
 
+import json
 from typing import Any, Coroutine
 
 import pytest
@@ -22,31 +23,37 @@ async def fake_provider(monkeypatch, workspace):
     return fake
 
 
-# A Dutch form as a model returns it; the yes/no question comes without
-# choices, or with choices of its own that the converter replaces.
-GENERATED_NL = {
-    "title": "Aanmelding buurtfeest",
-    "description": "Meld je aan voor het buurtfeest.",
-    "fields": [
-        {
-            "title": "Over jou",
-            "type": "group",
-            "layout": "SINGLE_COLUMN_NO_BACKGROUND",
-            "properties": {
-                "fields": [
-                    {"title": "Je naam", "type": "short_text"},
-                    {"title": "Kom je met kinderen?", "type": "yes_no"},
-                ]
+# A Dutch form's outline as a model returns it: yes/no questions have no
+# choices; the ops engine stores the fixed Yes/No values.
+GENERATED_NL = json.dumps(
+    {
+        "title": "Aanmelding buurtfeest",
+        "description": "Meld je aan voor het buurtfeest.",
+        "language": "nl",
+        "pages": [
+            {
+                "key": "p1",
+                "sectionTitle": "Over jou",
+                "questions": [
+                    {"key": "q1", "label": "Je naam", "type": "short_text"},
+                    {"key": "q2", "label": "Kom je met kinderen?", "type": "yes_no"},
+                ],
             },
-        },
-        {
-            "title": "Help je mee met opruimen?",
-            "type": "yes_no",
-            "layout": "SINGLE_COLUMN_NO_BACKGROUND",
-            "properties": {"choices": ["Ja", "Nee"]},
-        },
-    ],
-}
+            {
+                "key": "p2",
+                "sectionTitle": "Helpen",
+                "questions": [
+                    {
+                        "key": "q3",
+                        "label": "Help je mee met opruimen?",
+                        "type": "yes_no",
+                        "choices": ["Ja", "Nee"],
+                    }
+                ],
+            },
+        ],
+    }
+)
 
 
 def _yes_no_fields(fields):
