@@ -1,11 +1,16 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { ComponentProps, useId, useState } from 'react';
+
+import { useAtomValue } from 'jotai';
 
 import { formFieldsList } from '@app/constants/form-fields';
 import globalConstants from '@app/constants/global';
-import { FieldTypes } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { jsonEqual } from '@app/lib/form-ops/model';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { activeFieldAtom, activeSlideAtom } from '@app/store/jotai/active-builder-component';
+import { useBuilderFieldsValue, useField, useFieldActions, usePageShell } from '@app/store/jotai/entity-hooks';
+import useFormFieldsAtom, { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { answerRuleKind } from '@app/utils/answer-rules';
 import { getDateRuleSources } from '@app/utils/date-rules';
@@ -46,9 +51,14 @@ const NO_OWN_RULE = '[&>div]:border-t-0 [&>div]:pt-0';
  * (properties-drawer.tsx) leads back to the page and the form.
  */
 export default function FieldSettings() {
-    const { formFields, updateFieldRequired, updateFieldInternal, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField, updateFieldValidations } =
-        useFormFieldsAtom();
-    const { formState } = useFormState();
+    // The selected question and its page's own settings only: typing in
+    // another question does not re-render the inspector.
+    const activeFieldComponent = useAtomValue(activeFieldAtom);
+    const activeSlideComponent = useAtomValue(activeSlideAtom);
+    const activeField = useField(activeFieldComponent?.id);
+    const activeSlide = usePageShell(activeSlideComponent?.id);
+    const { updateFieldRequired, updateDescription, updateFieldProperty, updateFieldColSpan, updateFieldValidations } = useFieldActions();
+    const { updateFieldInternal, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useBuilderActions();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
@@ -103,18 +113,18 @@ export default function FieldSettings() {
             </div>
 
             <InspectorSection title="Basics">
-                <SettingSwitch label="Description" checked={field.description !== undefined && field.description !== null} onCheckedChange={(checked) => updateDescription(field.index, slide.index, checked ? '' : undefined)} />
+                <SettingSwitch label="Description" checked={field.description !== undefined && field.description !== null} onCheckedChange={(checked) => updateDescription(field.id, checked ? '' : undefined)} />
                 {showRequired && (
-                    <SettingSwitch label={field.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'} checked={!!field.validations?.required} onCheckedChange={(checked) => updateFieldRequired(field.index, slide.index, checked)} />
+                    <SettingSwitch label={field.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'} checked={!!field.validations?.required} onCheckedChange={(checked) => updateFieldRequired(field.id, checked)} />
                 )}
-                {field.type === FieldTypes.MULTIPLE_CHOICE && <SettingSwitch label="“Other” option" checked={!!field.properties?.allowOtherChoice} onCheckedChange={(checked) => updateFieldProperty(field.index, slide.index, 'allowOtherChoice', checked)} />}
+                {field.type === FieldTypes.MULTIPLE_CHOICE && <SettingSwitch label="“Other” option" checked={!!field.properties?.allowOtherChoice} onCheckedChange={(checked) => updateFieldProperty(field.id, 'allowOtherChoice', checked)} />}
                 {isChoice && (
                     <SettingSwitch
                         label="Multiple selection"
                         checked={!!field.properties?.allowMultipleSelection}
                         onCheckedChange={(checked) => {
                             if (field.type === FieldTypes.MATRIX) updateAllowMultipleSelectionMatrixField(checked);
-                            else updateFieldProperty(field.index, slide.index, 'allowMultipleSelection', checked);
+                            else updateFieldProperty(field.id, 'allowMultipleSelection', checked);
                         }}
                     />
                 )}
@@ -150,23 +160,22 @@ export default function FieldSettings() {
 
             {field.type === FieldTypes.CALCULATED && (
                 <InspectorSection title="Calculation">
-                    <CalculatedFieldSettings field={field} slides={formFields || []} hiddenNames={formState.hiddenFields ?? []}
-                        endings={formState.thankyouPage ?? []} onChange={(property, value) => updateFieldProperty(field.index, slide.index, property, value)} />
+                    <CalculationSettings field={field} onChange={(property, value) => updateFieldProperty(field.id, property, value)} />
                 </InspectorSection>
             )}
 
             {(ruleKind || field.type === FieldTypes.DATE) && (
                 <InspectorSection title="Answer rules">
-                    {ruleKind && <AnswerRulesSettings field={field} onChange={(patch) => updateFieldValidations(field.index, slide.index, patch)} />}
+                    {ruleKind && <AnswerRulesSettings field={field} onChange={(patch) => updateFieldValidations(field.id, patch)} />}
                     {field.type === FieldTypes.DATE && (
-                        <DateFieldSettings field={field} sources={getDateRuleSources(formFields || [], field.id)} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.index, slide.index, property, value))} />
+                        <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />
                     )}
                 </InspectorSection>
             )}
 
             {(showWhyWeAsk || canBeInternal(field)) && (
                 <InspectorSection title="Privacy">
-                    {showWhyWeAsk && <WhyWeAskSetting value={field.properties?.whyWeAsk ?? ''} required={asksForIdentity(field)} onChange={(value) => updateFieldProperty(field.index, slide.index, 'whyWeAsk', value)} />}
+                    {showWhyWeAsk && <WhyWeAskSetting value={field.properties?.whyWeAsk ?? ''} required={asksForIdentity(field)} onChange={(value) => updateFieldProperty(field.id, 'whyWeAsk', value)} />}
                     {canBeInternal(field) && (
                         <SettingSwitch
                             label="Internal (staff only)"
@@ -204,7 +213,7 @@ export default function FieldSettings() {
                                     type="button"
                                     aria-pressed={selected}
                                     aria-label={option.name}
-                                    onClick={() => updateFieldColSpan(field.index, slide.index, option.span)}
+                                    onClick={() => updateFieldColSpan(field.id, option.span)}
                                     className={`flex-1 px-1 py-1.5 text-[11px] font-medium transition-colors ${selected ? 'bg-brand-100 text-brand-600' : 'bg-white text-black-600 hover:bg-black-100'}`}
                                 >
                                     {option.label}
@@ -218,6 +227,23 @@ export default function FieldSettings() {
             </InspectorSection>
         </div>
     );
+}
+
+/**
+ * A calculated question's settings: its variables, preview and problems
+ * read every question, so this section follows the whole form.
+ */
+function CalculationSettings({ field, onChange }: { field: StandardFormFieldDto; onChange: (property: string, value: unknown) => void }) {
+    const { formFields } = useFormFieldsAtom();
+    const { formState } = useFormState();
+    return <CalculatedFieldSettings field={field} slides={formFields || []} hiddenNames={formState.hiddenFields ?? []} endings={formState.thankyouPage ?? []} onChange={onChange} />;
+}
+
+/** A date question's rules: the earlier dates it may compare with, derived from the form. */
+function DateRuleSettings({ field, onChange }: { field: StandardFormFieldDto; onChange: ComponentProps<typeof DateFieldSettings>['onChange'] }) {
+    const fieldId = field.id;
+    const sources = useBuilderFieldsValue((formFields) => getDateRuleSources(formFields || [], fieldId), [fieldId], jsonEqual);
+    return <DateFieldSettings field={field} sources={sources} onChange={onChange} />;
 }
 
 /**

@@ -2,25 +2,44 @@
 
 import { FieldConditionalLogic, LogicalOperator, LogicCondition } from '@app/models/types/form-builder-shared';
 import { Switch } from '@app/shadcn/components/ui/switch';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, selectClass } from './condition-editor-shared';
+import { useAtomValue } from 'jotai';
+
+import { activeFieldAtom, activeSlideAtom } from '@app/store/jotai/active-builder-component';
+import { useBuilderFieldsValue, useField, useFieldActions, usePageShell } from '@app/store/jotai/entity-hooks';
+import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, sameSourceFields, selectClass } from './condition-editor-shared';
 
 export default function FieldConditionalLogicEditor() {
-    const { formFields, activeSlide, activeField, updateFieldConditionalLogic } = useFormFieldsAtom();
+    const activeFieldComponent = useAtomValue(activeFieldAtom);
+    const activeSlideComponent = useAtomValue(activeSlideAtom);
+    // The selected question and its page's own settings only.
+    const activeField = useField(activeFieldComponent?.id);
+    const activeSlide = usePageShell(activeSlideComponent?.id);
+    const { updateFieldLogic } = useFieldActions();
+    const slideIndex = activeSlide?.index;
+    const fieldIndex = activeField?.index;
+    const fieldId = activeField?.id;
+
+    // Fields answerable *before* this one (earlier slide, or earlier in the same slide):
+    // derived from the form, so typing elsewhere re-renders this only when they change.
+    const sources = useBuilderFieldsValue(
+        (formFields) =>
+            slideIndex === undefined || fieldIndex === undefined
+                ? []
+                : buildSourceFields(formFields || [], (_slide, sIdx, field) => {
+                      if (sIdx > slideIndex) return false;
+                      const isEarlier = sIdx < slideIndex || field.index < fieldIndex;
+                      return isEarlier && field.id !== fieldId && isConditionSource(field);
+                  }),
+        [slideIndex, fieldIndex, fieldId],
+        sameSourceFields
+    );
 
     if (!activeField || !activeSlide) return null;
-
-    // Fields answerable *before* this one (earlier slide, or earlier in the same slide).
-    const sources = buildSourceFields(formFields || [], (_slide, sIdx, field) => {
-        if (sIdx > activeSlide.index) return false;
-        const isEarlier = sIdx < activeSlide.index || field.index < activeField.index;
-        return isEarlier && field.id !== activeField.id && isConditionSource(field);
-    });
 
     const logic = activeField?.properties?.logic as FieldConditionalLogic | undefined;
     const enabled = !!logic;
 
-    const commit = (next: FieldConditionalLogic | undefined) => updateFieldConditionalLogic(activeField.index, activeSlide.index, next);
+    const commit = (next: FieldConditionalLogic | undefined) => updateFieldLogic(activeField.id, next);
 
     const toggle = (on: boolean) => {
         if (on) commit({ action: 'SHOW', operator: LogicalOperator.AND, conditions: [newConditionFor(sources)] });
