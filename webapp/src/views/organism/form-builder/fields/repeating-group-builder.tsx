@@ -67,6 +67,9 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
     }
 
     return (
+        // Clicks inside the group's own editor stay here (the canvas would
+        // otherwise treat them as selecting the group); not an action itself.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div className="border-black-300 flex w-full flex-col gap-3 rounded border border-dashed bg-white/60 p-3" onClick={(e) => e.stopPropagation()}>
             <div className="text-black-600 flex items-center justify-between text-xs">
                 <span className="font-semibold uppercase tracking-wide">

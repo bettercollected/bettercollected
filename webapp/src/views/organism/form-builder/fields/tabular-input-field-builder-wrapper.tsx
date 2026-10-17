@@ -21,14 +21,9 @@ export default function TabularInputFieldBuilderWrapper({ field, slide }: { fiel
     return (
         <div className="flex flex-col gap-4">
             <div style={{ color: theme?.secondary }} className={cn('flex w-full justify-end', field.id !== activeField?.id && 'invisible')}>
-                <span
-                    className="cursor-pointer"
-                    onClick={() => {
-                        addTabularColumn();
-                    }}
-                >
+                <button type="button" className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]" onClick={() => addTabularColumn()}>
                     Add Column
-                </span>
+                </button>
             </div>
             <TabularInputField
                 value={value}
@@ -41,14 +36,9 @@ export default function TabularInputFieldBuilderWrapper({ field, slide }: { fiel
                 onDeleteColumn={(colIndex) => deleteTabularColumn(slideIndex, field.index, colIndex)}
             />
             <div style={{ color: theme?.secondary }} className={cn('text-brand-500 flex w-full justify-start', field.id !== activeField?.id && 'invisible')}>
-                <span
-                    className="cursor-pointer"
-                    onClick={() => {
-                        addTabularRow();
-                    }}
-                >
+                <button type="button" className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]" onClick={() => addTabularRow()}>
                     Add Row
-                </span>
+                </button>
             </div>
         </div>
     );
