@@ -1,33 +1,35 @@
 'use client';
 
-import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
-import { FormSlideLayout } from '@app/models/enums/form';
-import { Switch } from '@app/shadcn/components/ui/switch';
-import { cn } from '@app/shadcn/util/lib';
-import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import RequiredIcon from '@Components/icons/required';
-import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-image-left-align';
+import Image from 'next/image';
 
-import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
-import { FieldTypes } from '@app/models/dtos/form';
-import { selectAuth } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { IsValidString } from '@app/utils/string-utils';
 import DeleteIcon from '@Components/icons/delete';
+import RequiredIcon from '@Components/icons/required';
 import SlideLayoutBackgroundImage from '@Components/icons/slide-layout-background-image';
 import SlideLayoutLeftImage from '@Components/icons/slide-layout-left-image';
 import SlideLayoutNoImage from '@Components/icons/slide-layout-no-image';
+import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-image-left-align';
 import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
-import Image from 'next/image';
+
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
+import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
+import { FieldTypes } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
+import { Switch } from '@app/shadcn/components/ui/switch';
+import { cn } from '@app/shadcn/util/lib';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
+import { SECTION_TITLE_MAX, leafletSection } from '@app/utils/leaflet-sections';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { IsValidString } from '@app/utils/string-utils';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 
-export default function PagePropertiesTab({ }: {}) {
-    const { formFields, activeSlide, updateSlideLayout, updateSlideImage, setFormFields } = useFormFieldsAtom();
+export default function PagePropertiesTab({}: {}) {
+    const { formFields, activeSlide, updateSlideLayout, updateSlideImage, setFormFields, updateSlideSectionTitle } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
@@ -168,11 +170,34 @@ export default function PagePropertiesTab({ }: {}) {
         });
     };
 
+    const questionPage = activeSlideComponent?.id !== 'welcome-page' && activeSlideComponent?.id !== 'thank-you-page' && (activeSlideComponent?.index ?? -1) >= 0 ? formFields[activeSlideComponent!.index] : undefined;
+    const sectionFallback = questionPage ? leafletSection(questionPage.properties?.fields ?? [], `Section ${activeSlideComponent!.index + 1}`).shortTitle : '';
+
     return (
         <>
+            {questionPage && (
+                <div className="flex flex-col gap-2 border-b px-4 pt-4 pb-4">
+                    <label htmlFor="page-section-title" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
+                        Section title
+                    </label>
+                    <input
+                        id="page-section-title"
+                        type="text"
+                        maxLength={SECTION_TITLE_MAX}
+                        value={questionPage.properties?.sectionTitle ?? ''}
+                        placeholder={sectionFallback}
+                        aria-describedby="page-section-title-hint"
+                        onChange={(event) => updateSlideSectionTitle(activeSlideComponent!.index, event.target.value)}
+                        className="rounded border border-control p-2 text-xs focus:border-brand-500"
+                    />
+                    <p id="page-section-title-hint" className="text-xs leading-[1.5] text-black-600">
+                        Shown on the section bar and in the contents list when the form uses the Leaflet style. Leave empty to use the page&apos;s opening heading, else its first question.
+                    </p>
+                </div>
+            )}
             {
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-4 text-xs font-semibold uppercase tracking-wide">Layout</div>
+                    <div className="px-4 pt-4 pb-3 text-xs font-semibold tracking-wide text-black-600 uppercase">Layout</div>
                     <div className="grid grid-cols-2 gap-2 border-b px-4 pb-4">
                         {getLayoutList().map((item: { style: FormSlideLayout; Icon: any; label: string }) => (
                             <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email} className="flex flex-col items-center gap-1">
@@ -185,7 +210,7 @@ export default function PagePropertiesTab({ }: {}) {
                                 >
                                     {item.Icon && <item.Icon />}
                                 </div>
-                                <span className={cn('text-[10px]', layout && layout === item.style ? 'text-black-800 font-medium' : 'text-black-600')}>{item.label}</span>
+                                <span className={cn('text-[10px]', layout && layout === item.style ? 'font-medium text-black-800' : 'text-black-600')}>{item.label}</span>
                             </button>
                         ))}
                     </div>
@@ -193,13 +218,13 @@ export default function PagePropertiesTab({ }: {}) {
             }
             {(activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page') && (
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-4 text-xs font-semibold uppercase tracking-wide">Settings</div>
+                    <div className="px-4 pt-4 pb-3 text-xs font-semibold tracking-wide text-black-600 uppercase">Settings</div>
 
                     <div className="flex w-full items-center justify-between border-b px-4 pb-4">
                         {activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page' ? (
                             <div className="flex w-full flex-col gap-4">
                                 <div className="flex flex-row justify-between">
-                                    <div className="text-black-700 text-xs">Description</div>
+                                    <div className="text-xs text-black-700">Description</div>
                                     <Switch
                                         checked={
                                             activeSlideComponent?.id === 'welcome-page' ? IsValidString(formState?.welcomePage?.description) : formState.thankyouPage && IsValidString(formState.thankyouPage[activeThankYouPageComponent?.index || 0].message)
@@ -212,7 +237,7 @@ export default function PagePropertiesTab({ }: {}) {
                                 {activeSlideComponent?.id === 'thank-you-page' ? (
                                     <div className="flex flex-col gap-3">
                                         <div className="flex flex-row justify-between">
-                                            <div className="text-black-700 text-xs">Button</div>
+                                            <div className="text-xs text-black-700">Button</div>
                                             <Switch
                                                 checked={formState.thankyouPage && IsValidString(formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonText)}
                                                 onCheckedChange={(checked) => {
@@ -227,10 +252,10 @@ export default function PagePropertiesTab({ }: {}) {
                                                     placeholder="Try bettercollected"
                                                     value={(formState.thankyouPage && formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonText) ?? ''}
                                                     onChange={(e: any) => setThankYouPageButtonText(activeThankYouPageComponent?.index || 0, e.target.value)}
-                                                    className="border border-control focus:border-brand-500 rounded p-2 text-xs"
+                                                    className="rounded border border-control p-2 text-xs focus:border-brand-500"
                                                 />
                                                 <div className="flex flex-row justify-between">
-                                                    <div className="text-black-700 text-xs">Button Link</div>
+                                                    <div className="text-xs text-black-700">Button Link</div>
                                                     <Switch
                                                         checked={formState.thankyouPage && IsValidString(formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonLink)}
                                                         onCheckedChange={(checked) => {
@@ -244,7 +269,7 @@ export default function PagePropertiesTab({ }: {}) {
                                                         placeholder="Enter your link here"
                                                         value={formState.thankyouPage && formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonLink}
                                                         onChange={(e: any) => setThankYouPageButtonLink(activeThankYouPageComponent?.index || 0, e.target.value)}
-                                                        className="border border-control focus:border-brand-500 rounded p-2 text-xs"
+                                                        className="rounded border border-control p-2 text-xs focus:border-brand-500"
                                                     />
                                                 )}
                                             </>
@@ -252,13 +277,13 @@ export default function PagePropertiesTab({ }: {}) {
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-3">
-                                        <div className="text-black-700 text-xs">Button</div>
+                                        <div className="text-xs text-black-700">Button</div>
                                         <input
                                             type="text"
                                             placeholder="Start"
                                             value={formState.welcomePage?.buttonText || ''}
                                             onChange={(e: any) => setWelcomePageButtonText(e.target.value)}
-                                            className="border border-control focus:border-brand-500 rounded p-2 text-xs"
+                                            className="rounded border border-control p-2 text-xs focus:border-brand-500"
                                         />
                                     </div>
                                 )}
@@ -269,22 +294,22 @@ export default function PagePropertiesTab({ }: {}) {
                     </div>
                 </>
             )}
-            <div className={cn('border-black-300 flex justify-between border-b px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
-                <span className="text-black-600 text-xs font-semibold uppercase tracking-wide">Layout Image</span>
+            <div className={cn('flex justify-between border-b border-black-300 px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center')}>
+                <span className="text-xs font-semibold tracking-wide text-black-600 uppercase">Layout Image</span>
                 {slide?.imageUrl ? (
                     <div className={`group relative my-4 max-h-[168px] w-full`}>
                         <div className={cn('absolute hidden h-full w-full items-start justify-start gap-2 p-2 group-hover:flex')}>
-                            <div className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={() => handleRemoveImage(activeSlideComponent?.id)}>
+                            <div className="cursor-pointer rounded-md bg-white p-2 shadow-large" onClick={() => handleRemoveImage(activeSlideComponent?.id)}>
                                 <DeleteIcon width={16} height={16} />
                             </div>
-                            <div className=" shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                            <div className="cursor-pointer rounded-md bg-white p-2 shadow-large" onClick={handleChangeImage}>
                                 <SwitchIcon width={16} height={16} />
                             </div>
                         </div>
                         <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" src={slide.imageUrl} alt={' image'} height={0} width={0} priority />
                     </div>
                 ) : (
-                    <div className="border-black-300 hover:bg-black-300 cursor-pointer rounded border p-1" onClick={handleClickMedia}>
+                    <div className="cursor-pointer rounded border border-black-300 p-1 hover:bg-black-300" onClick={handleClickMedia}>
                         <PlusIcon className="h-4 w-4" />
                     </div>
                 )}
@@ -296,14 +321,14 @@ export default function PagePropertiesTab({ }: {}) {
                 <></>
             ) : (
                 <>
-                    <div className="text-black-600 px-4 pb-2 pt-4 text-xs font-semibold uppercase tracking-wide">Used Fields</div>
+                    <div className="px-4 pt-4 pb-2 text-xs font-semibold tracking-wide text-black-600 uppercase">Used Fields</div>
                     <div className="mb-4 flex flex-col gap-3 px-4">
                         {activeSlideComponent?.index !== undefined &&
                             formFields[activeSlideComponent.index]?.properties?.fields?.map((field) => {
                                 return (
-                                    <div key={field.id} className="text-black-700 flex items-center justify-between gap-2 text-xs">
+                                    <div key={field.id} className="flex items-center justify-between gap-2 text-xs text-black-700">
                                         <div
-                                            className="cursor-pointer truncate text-xs "
+                                            className="cursor-pointer truncate text-xs"
                                             onClick={() => {
                                                 setActiveFieldComponent({
                                                     id: field.id,
@@ -326,7 +351,7 @@ export default function PagePropertiesTab({ }: {}) {
                                                 title="Field width (12-column grid)"
                                                 value={String(Math.min(12, Math.max(1, field?.properties?.colSpan ?? 12)))}
                                                 onChange={(e) => updateFieldColSpan(field.index, activeSlideComponent.index, Number(e.target.value))}
-                                                className="border-black-300 text-black-700 hover:border-black-400 h-5 cursor-pointer rounded border bg-white px-0.5 text-[10px] outline-hidden"
+                                                className="h-5 cursor-pointer rounded border border-black-300 bg-white px-0.5 text-[10px] text-black-700 outline-hidden hover:border-black-400"
                                             >
                                                 <option value="12">Full</option>
                                                 <option value="8">2/3</option>

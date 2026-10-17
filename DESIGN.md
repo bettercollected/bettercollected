@@ -221,6 +221,17 @@ on the form when it is saved, so forms that already use the old Default keep
 their colours; only forms set to Default from now on (and forms with no stored
 theme at all) get the new values.
 
+**New forms start with Leaflet.** A form that brings no theme of its own
+starts with the Leaflet preset, and so the Leaflet style: a blank form, a
+form made with the AI assistant (unless the request asks for other colours),
+through the API or MCP, a PDF import without brand colours, a Google Forms or
+Typeform import. A form made from a template keeps the template's theme and a
+copy keeps its source's. Stored forms never change, and a form with no stored
+theme still renders as Default. Default stays in the picker. One constant
+names the preset on each side (`NEW_FORM_THEME_TITLE` in
+`webapp/src/constants/theme.ts`, `NEW_FORM_THEME` in
+`backend/app/constants/themes.py`), and a test keeps them together.
+
 The **Leaflet** preset is the other one this system specifies; it is made
 for the Leaflet style, and picking it switches the form to that style:
 
@@ -295,8 +306,8 @@ These hold in every theme and every style; the colours are the form's own.
 A theme's **style** (`styleTokens` in
 `webapp/src/views/molecules/theme/theme-shared.tsx`) changes the register —
 label type, input radius, how options and numbers are drawn — and never the
-colours or the background. Classic is the default; Sheet, Studio and Leaflet
-are opt-in.
+colours or the background. New forms start in Leaflet (with its preset,
+above); a form with no style set is Classic; Sheet and Studio are opt-in.
 
 | Style | Question label | Input radius | Options |
 |---|---|---|---|
@@ -318,15 +329,29 @@ White sheet, one accent, no shadows, nothing decorative.
   page is top-aligned rather than centred so the bar starts at the top.
 - **Section numbers and titles.** The section number is the page's position
   in the form, the same number "Page x of y" shows; a page skipped by logic
-  skips its number too. The title is the page's opening heading; without
-  one, the page is named after its first visible question; a page with no
-  questions is "Section n" ("Deel n" in Dutch). Long fallback titles are
-  shortened at a word boundary to 60 characters with an ellipsis, and the
-  full title is what assistive tech reads.
+  skips its number too. The title is, in this order: the page's own section
+  title (a page setting, plain text, at most 120 characters); else the
+  page's opening heading; else its first visible question; else "Section n"
+  ("Deel n" in Dutch) for a page with no questions. The creator's own title
+  and heading are shown in full; a fallback question title is shortened at a
+  word boundary to 60 characters with an ellipsis, and the full title is
+  what assistive tech reads. Whatever its source, the title is the bar's
+  heading (h2, with the numeral).
 - **Intro band.** When a page opens with a text block, its heading goes to
   the bar and the rest sits in a pale band under it (16px, 1.6 line): a tint
   of `secondary` over the page, kept light enough that the ink reads at 7:1
-  or more on it.
+  or more on it. A page with a section title of its own keeps the whole
+  block, heading included, in the band.
+- **Editing the title.** In the builder the creator edits the title on the
+  navy bar itself. With a section title set, or on a page without an opening
+  heading, the bar holds a labelled one-line field ("Section title") whose
+  placeholder is the title the bar falls back to, so it is clear what
+  respondents see when it is left empty; clearing it returns to that
+  fallback. A page that opens with a heading and has no section title edits
+  that heading in place on the bar. The page's properties panel has the same
+  "Section title" field (with the fallback as its placeholder), in every
+  style. Other styles do not show it: they have no section bar, and a page
+  heading would add a level they never had.
 - **Question numbers.** Questions are numbered n.1, n.2… among the questions
   the respondent can see right now (a question hidden by logic takes no
   number, so the sequence never has gaps). Text blocks, images and videos
@@ -346,7 +371,8 @@ White sheet, one accent, no shadows, nothing decorative.
 - **Cover.** The welcome page repeats the 56px top rule, puts the form's
   title on the bar as the page heading (serif, 30px, 38px from `sm`, at most
   24ch), the introduction in the band, then "In this form": a numbered
-  contents list of every page with the same title its bar shows, on rules.
+  contents list of every page with the same title its bar shows (section
+  title first), on rules.
 - **Ending.** The title on the bar, the message in the band, then "What
   happens next" (serif 22px) with labelled rows on rules — how long the
   answers are kept and the respondent's rights, each term in semibold

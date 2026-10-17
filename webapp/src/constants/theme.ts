@@ -180,3 +180,17 @@ export const ThemeColors: Array<FormTheme> = [
         accent: '#FFE4E6'
     }
 ];
+
+// New forms start with the Leaflet preset (and so the Leaflet style) unless
+// they bring a theme of their own: a form made from a template, or a copy,
+// keeps its source's. The backend gives forms made without one (AI, API,
+// imports) the same preset (backend constants/themes.py NEW_FORM_THEME); a
+// test keeps the two together. Stored forms never change: their theme is
+// stored inline, and one without a theme still renders as Default.
+export const NEW_FORM_THEME_TITLE = 'Leaflet';
+
+/** A fresh copy of the theme new forms start with. */
+export function newFormTheme(): FormTheme {
+    const preset = ThemeColors.find((theme) => theme.title === NEW_FORM_THEME_TITLE) ?? ThemeColors[0];
+    return { ...preset };
+}

@@ -3,6 +3,7 @@
 import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -17,22 +18,19 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
-import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
-import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
-import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
-import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
-import { ResolvedFormLogo } from '@app/utils/form-logo';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
+import { ResolvedFormLogo } from '@app/utils/form-logo';
+import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
+import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
@@ -41,12 +39,14 @@ import LinearRatingField from '@app/views/molecules/responder-form-fields/linear
 import MultipleChoiceField from '@app/views/molecules/responder-form-fields/multiple-choice-field';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/responder-form-fields/multiple-choice-with-multiple-selections';
 import PhoneNumberField from '@app/views/molecules/responder-form-fields/phone-number-field';
+import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
 import QuestionWrapper from '@app/views/molecules/responder-form-fields/question-wrapper';
 import RatingField from '@app/views/molecules/responder-form-fields/rating-field';
 import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repeating-group-field';
 import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
 import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
 import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
+import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import ImageField from '../form-builder/fields/image-field';
 import MatrixField from '../form-builder/fields/matrix';
@@ -183,8 +183,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const pageLayout = formSlide?.properties?.layout;
     const section = leaflet
         ? leafletSection(
-              visibleFields.map((field, position) => (position === 0 && field.type === FieldTypes.TEXT ? { ...field, title: resolvePipesInTitle(field.title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues }) as any } : field)),
-              t('LEAFLET.SECTION', { n: index + 1 })
+              visibleFields.map((field, position) =>
+                  position === 0 && field.type === FieldTypes.TEXT ? { ...field, title: resolvePipesInTitle(field.title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues }) as any } : field
+              ),
+              t('LEAFLET.SECTION', { n: index + 1 }),
+              formSlide?.properties?.sectionTitle
           )
         : null;
     const pageFields = section?.openingTextId ? visibleFields.filter((field) => field.id !== section.openingTextId) : visibleFields;
@@ -278,7 +281,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     backgrounds) or questions scroll through the header text. */}
                 <div
                     className={cn('backdrop-blur-sm absolute top-0 right-0 left-0 z-10 mx-auto w-full', leaflet ? 'flex h-14 items-center border-b' : 'pt-5 pb-3')}
-                    style={{ background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent), ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {}) }}
+                    style={{
+                        background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent),
+                        ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {})
+                    }}
                 >
                     {/* Same gutter and column as the questions below, so Back
                         and the progress line up with the fields' edges. */}
@@ -368,7 +374,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                             }}
                                             type="checkbox"
                                             data-testid="share-email-consent"
-                                            className="border-control mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-[4px] border-2 text-[#0E8A5F] checked:border-[#0E8A5F]"
+                                            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-[4px] border-2 border-control text-[#0E8A5F] checked:border-[#0E8A5F]"
                                         />
                                         <span className="flex flex-col gap-0.5">
                                             <span className="text-[15px] leading-relaxed font-medium text-black-900">{t('CONSENT.SHARE_EMAIL')}</span>

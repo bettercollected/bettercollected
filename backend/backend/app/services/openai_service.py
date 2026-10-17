@@ -20,7 +20,7 @@ from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
 from backend.config import settings
 from backend.app.services.ai.prompt_builder import compose_generation_prompt
-from backend.app.constants.themes import themes
+from backend.app.constants.themes import new_form_theme, themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
@@ -147,8 +147,15 @@ class OpenAIService:
     # ------------------------------------------------------------------
 
     def convert_openai_form_to_standard_form(self, openai_form: Dict[str, Any]):
-        theme_name = openai_form.get("theme_name", "Black")
-        chosen_theme = themes.get(theme_name) or themes.get("Black")
+        # New forms start with Leaflet; another preset only when the model
+        # picked one by name (the prompt asks it to, when the request wants
+        # other colours). Anything else falls back to Leaflet.
+        theme_name = openai_form.get("theme_name")
+        chosen_theme = (
+            themes[theme_name].model_copy(deep=True)
+            if isinstance(theme_name, str) and theme_name in themes
+            else new_form_theme()
+        )
 
         welcome_image_url: Optional[str] = openai_form.get("welcome_image_url")
         cover_image_url: Optional[str] = openai_form.get("cover_image_url")

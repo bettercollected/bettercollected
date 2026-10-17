@@ -445,6 +445,8 @@ class RepeatSettings(BaseModel):
 DATE_RULES_MAX = 5
 # Length cap of a question's "why we ask this" line (StandardFieldProperty).
 WHY_WE_ASK_MAX_LENGTH = 280
+# Length cap of a page's own section title (StandardFieldProperty).
+SECTION_TITLE_MAX_LENGTH = 120
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
@@ -539,6 +541,12 @@ class StandardFieldProperty(BaseModel):
     # question (email, phone, ID number), shown to respondents under it.
     # Publishing needs one on every such question (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
+    # A question page's own section title (plain text): what the Leaflet
+    # section bar and the welcome page's contents list show for the page,
+    # before its opening heading and its first question. None means "not
+    # sent" on a save (an older client keeps the stored title); an empty
+    # string clears it.
+    section_title: Optional[str] = Field(None, max_length=SECTION_TITLE_MAX_LENGTH)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
