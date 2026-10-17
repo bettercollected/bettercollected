@@ -1,6 +1,8 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
+import { vi } from 'vitest';
+
 import { ExpressionError } from '@app/lib/expressions/ast';
 import { ExprValue, asciiTrim, evaluateExpression, formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { isValidExpression, validateExpression } from '@app/lib/expressions/validator';
@@ -92,11 +94,30 @@ describe('evaluateExpression', () => {
     it.each([10000, 1000])('evaluates a %i-item list referenced 499 times quickly', (size) => {
         const ast = { count: Array.from({ length: 499 }, () => ({ var: 'xs' })) };
         const xs = Array.from({ length: size }, (_, i) => i);
+        // Count reads of the variable and of the list's items.
+        let variableReads = 0;
+        let itemReads = 0;
+        const list = new Proxy(xs, {
+            get(target, key, receiver) {
+                if (typeof key === 'string' && /^\d+$/.test(key)) itemReads++;
+                return Reflect.get(target, key, receiver);
+            }
+        });
+        const variables = new Proxy({ xs: list } as Record<string, unknown>, {
+            get(target, key, receiver) {
+                if (key === 'xs') variableReads++;
+                return Reflect.get(target, key, receiver);
+            }
+        });
         const started = performance.now();
-        const result = evaluateExpression(ast, { xs });
+        const result = evaluateExpression(ast, variables);
         const elapsed = performance.now() - started;
         expect(result).toBe(size > 1000 ? 0 : 499 * size);
-        expect(elapsed).toBeLessThan(500);
+        // Normalised once; an over-cap list is dropped without reading its items.
+        expect(variableReads).toBe(1);
+        expect(itemReads).toBe(size > 1000 ? 0 : size);
+        // Smoke check only, far above the expected time (shared CI runners vary).
+        expect(elapsed).toBeLessThan(5000);
     });
 
     it('reads numeric text with long whitespace runs', () => {
@@ -122,11 +143,23 @@ describe('asciiTrim', () => {
 
     it('is linear on a 100k-space string', () => {
         const spaces = ' '.repeat(100000);
-        const started = performance.now();
-        expect(asciiTrim(`${spaces}x${spaces}`)).toBe('x');
-        expect(asciiTrim(`${spaces}x ${spaces}y`)).toBe(`x ${spaces}y`);
-        expect(asciiTrim(spaces)).toBe('');
-        expect(performance.now() - started).toBeLessThan(100);
+        // Each character is read at most once (plus the one stop per side).
+        const reads = vi.spyOn(String.prototype, 'charCodeAt');
+        try {
+            const started = performance.now();
+            expect(asciiTrim(`${spaces}x${spaces}`)).toBe('x');
+            expect(reads.mock.calls.length).toBeLessThanOrEqual(200001 + 2);
+            reads.mockClear();
+            expect(asciiTrim(`${spaces}x ${spaces}y`)).toBe(`x ${spaces}y`);
+            expect(reads.mock.calls.length).toBeLessThanOrEqual(100000 + 2);
+            reads.mockClear();
+            expect(asciiTrim(spaces)).toBe('');
+            expect(reads.mock.calls.length).toBeLessThanOrEqual(100000 + 1);
+            // Smoke check only, far above the expected time (shared CI runners vary).
+            expect(performance.now() - started).toBeLessThan(5000);
+        } finally {
+            reads.mockRestore();
+        }
     });
 });
 
