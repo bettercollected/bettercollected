@@ -23,6 +23,7 @@ stays the editor's explicit "Review" action.
 """
 
 import json
+import time
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -36,6 +37,7 @@ from backend.app.constants.themes import NEW_FORM_THEME, preset_name, theme_dict
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH
 from backend.app.models.enum.permission import Permission
+from backend.app.services.ai.errors import AIError
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.ops import applied
 from backend.app.services.ai.outline import (
@@ -48,6 +50,7 @@ from backend.app.services.ai.outline import (
     GapFillReply,
     fill_gaps,
     gaps,
+    needs_why_we_ask,
     outline_problems,
     prune_outline,
 )
@@ -277,7 +280,9 @@ async def fill_outline_gaps(
     provider, outline: FormOutline, profile=None
 ) -> Tuple[FormOutline, List[str]]:
     """The outline with its gaps filled by the model, one call per page
-    with gaps (at most MAX_GAP_FILL_PAGES), and a note of what was filled."""
+    with gaps (at most MAX_GAP_FILL_PAGES), and notes on what was filled and
+    what was not. All the calls share AI_GAP_FILL_DEADLINE_SECONDS: past
+    it, filling stops and the build goes on with what there is."""
     filled = outline.model_copy(deep=True)
     found = gaps(filled)
     if not found:
@@ -287,7 +292,15 @@ async def fill_outline_gaps(
     if org:
         system += "\n" + org
     choices = reasons = 0
-    for page_key, keys in list(found.items())[:MAX_GAP_FILL_PAGES]:
+    pages = list(found.items())
+    deadline = time.monotonic() + max(0.0, settings.ai.GAP_FILL_DEADLINE_SECONDS)
+    done = 0
+    stopped = False
+    for page_key, keys in pages[:MAX_GAP_FILL_PAGES]:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            stopped = True
+            break
         page = next(p for p in filled.pages if p.key == page_key)
         material = json.dumps(
             {
@@ -298,26 +311,56 @@ async def fill_outline_gaps(
             ensure_ascii=False,
         )
         message = fence("form_outline", material) + "\n\nfill: " + json.dumps(keys)
-        reply = await call_provider(
-            lambda: chat_structured(
-                provider,
-                system,
-                [{"role": "user", "content": message}],
-                _parse_gaps,
-                max_output_tokens=settings.ai.MAX_OUTPUT_TOKENS_CHAT,
-                unusable_message=UNUSABLE_GAPS,
-                json_schema=GAP_FILL_JSON_SCHEMA,
-            ),
-            settings.ai.GENERATION_TIMEOUT_SECONDS,
-        )
+        limit = min(settings.ai.GENERATION_TIMEOUT_SECONDS, remaining)
+        try:
+            reply = await call_provider(
+                lambda: chat_structured(
+                    provider,
+                    system,
+                    [{"role": "user", "content": message}],
+                    _parse_gaps,
+                    max_output_tokens=settings.ai.MAX_OUTPUT_TOKENS_CHAT,
+                    unusable_message=UNUSABLE_GAPS,
+                    json_schema=GAP_FILL_JSON_SCHEMA,
+                ),
+                limit,
+            )
+        except AIError as error:
+            # the shared deadline, not this call's own limit, ran out
+            if (
+                error.code == "ai_timeout"
+                and limit < settings.ai.GENERATION_TIMEOUT_SECONDS
+            ):
+                stopped = True
+                break
+            raise
         page_choices, page_reasons = fill_gaps(filled, page_key, reply)
         choices += page_choices
         reasons += page_reasons
+        done += 1
     notes = []
     if choices:
         notes.append(f"Suggested choices for {choices} question(s).")
     if reasons:
         notes.append(f'Suggested a "why we ask" reason for {reasons} question(s).')
+    if stopped:
+        notes.append(
+            "Filling in missing choices and reasons took too long, so the rest "
+            "was left as it was."
+        )
+    unfilled = {key for key, _ in pages[done:]}
+    without_reason = sum(
+        1
+        for page in filled.pages
+        if page.key in unfilled
+        for question in page.questions
+        if needs_why_we_ask(question)
+    )
+    if without_reason:
+        notes.append(
+            f"{without_reason} question(s) asking for identifying data on later "
+            'pages have no "why we ask" reason yet. Add one before publishing.'
+        )
     return filled, notes
 
 

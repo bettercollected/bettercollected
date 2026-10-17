@@ -90,9 +90,16 @@ def _acting_user(key: WorkspaceAPIKeyDocument) -> User:
     return acting_user(key)
 
 
+# The longest detail an audit entry keeps (an error list can be long).
+AUDIT_DETAIL_MAX = 500
+
+
 async def _audit(tool: str, ok: bool, detail: str = "") -> None:
     key = current_api_key.get()
     if key is not None:
+        detail = str(detail or "")
+        if len(detail) > AUDIT_DETAIL_MAX:
+            detail = detail[: AUDIT_DETAIL_MAX - 1] + "…"
         await audit_key_call(key, tool, ok, detail)
 
 

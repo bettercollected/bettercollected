@@ -439,3 +439,91 @@ def test_a_failing_op_builds_nothing():
     form, results = build_form(FormOutline.model_validate(data))
     assert not applied(results, atomic=True)
     assert form.fields == []
+
+
+# --- gap filling: one deadline, and what is left ----------------------------
+
+
+def _identity_pages(count: int) -> FormOutline:
+    return FormOutline.model_validate(
+        {
+            "title": "Contact",
+            "pages": [
+                {
+                    "key": f"p{n}",
+                    "questions": [
+                        {"key": f"mail{n}", "label": "Your email address", "type": "email"}
+                    ],
+                }
+                for n in range(1, count + 1)
+            ],
+        }
+    )
+
+
+async def test_gap_filling_is_capped_at_five_pages_and_says_what_is_left():
+    fake = FakeProvider()
+    fake.replies = [
+        json.dumps({"questions": [{"key": f"mail{n}", "whyWeAsk": "To reply to you."}]})
+        for n in range(1, 6)
+    ]
+    filled, notes = await fill_outline_gaps(fake, _identity_pages(7))
+    assert len(fake.calls) == 5
+    reasons = [q.why_we_ask for _, q in filled.questions()]
+    assert reasons == ["To reply to you."] * 5 + [None, None]
+    assert any(
+        n.startswith("2 question(s) asking for identifying data on later pages")
+        for n in notes
+    )
+
+
+async def test_gap_filling_stops_at_its_deadline_and_keeps_what_it_has(monkeypatch):
+    import asyncio
+
+    from backend.config import settings
+
+    monkeypatch.setattr(settings.ai, "GAP_FILL_DEADLINE_SECONDS", 0.3)
+
+    class SlowSecondPage(FakeProvider):
+        async def chat(self, system, messages, **options):
+            if len(self.calls) >= 1:
+                self.calls.append({})
+                await asyncio.sleep(30)
+            return await super().chat(system, messages, **options)
+
+    fake = SlowSecondPage()
+    fake.replies = [json.dumps({"questions": [{"key": "mail1", "whyWeAsk": "To reply."}]})]
+    filled, notes = await fill_outline_gaps(fake, _identity_pages(3))
+    reasons = [q.why_we_ask for _, q in filled.questions()]
+    assert reasons == ["To reply.", None, None]
+    assert any("took too long" in n for n in notes)
+    assert any(n.startswith("2 question(s) asking for identifying data") for n in notes)
+
+
+async def test_a_call_that_fails_on_its_own_still_fails_the_build():
+    class Broken(FakeProvider):
+        async def chat(self, system, messages, **options):
+            raise RuntimeError("down")
+
+    with pytest.raises(AIError) as raised:
+        await fill_outline_gaps(Broken(), _identity_pages(1))
+    assert raised.value.code == "ai_unavailable"
+
+
+async def test_mcp_audit_details_are_capped(monkeypatch):
+    from backend.app.mcp import server
+
+    seen = []
+
+    async def record(key, tool, ok, detail):
+        seen.append(detail)
+
+    monkeypatch.setattr(server, "audit_key_call", record)
+    token = server.current_api_key.set(object())
+    try:
+        await server._audit("build_form_from_outline", False, "x" * 5000)
+        await server._audit("build_form_from_outline", True, "short")
+    finally:
+        server.current_api_key.reset(token)
+    assert len(seen[0]) == server.AUDIT_DETAIL_MAX and seen[0].endswith("…")
+    assert seen[1] == "short"
