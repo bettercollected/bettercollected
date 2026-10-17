@@ -20,7 +20,10 @@ from backend.app.services.ai_form_provider import (
     PAGE_TIMEOUT_S,
     AIFormProvider,
 )
-from backend.app.services.form_generation_rules import HONEST_FORM_RULES
+from backend.app.services.form_generation_rules import (
+    HONEST_FORM_RULES,
+    SECTION_TITLE_RULES,
+)
 from backend.config import settings
 
 GENERATION_SYSTEM_PROMPT = """
@@ -46,6 +49,7 @@ interface InnerField {
 
 interface SlideField {
     title: string;
+    sectionTitle?: string;  // optional short name of this page's section (see below)
     type: 'group';
     layout: 'SINGLE_COLUMN_NO_BACKGROUND';
     properties: { fields: InnerField[] };
@@ -64,6 +68,7 @@ interface Form {
 4. Realistic, human-friendly content. Valid JSON only.
 """
 GENERATION_SYSTEM_PROMPT += HONEST_FORM_RULES
+GENERATION_SYSTEM_PROMPT += SECTION_TITLE_RULES
 
 
 class OpenAICompatibleFormProvider(AIFormProvider):

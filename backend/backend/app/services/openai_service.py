@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Optional
 from beanie import PydanticObjectId
 from common.models.standard_form import (
     StandardForm,
+    SECTION_TITLE_MAX_LENGTH,
     WHY_WE_ASK_MAX_LENGTH,
     LayoutType,
     StandardFormFieldType,
@@ -33,6 +34,18 @@ from backend.app.services.workspace_service import WorkspaceService
 from backend.app.models.enum.permission import Permission
 
 _DEFAULT_LAYOUT = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
+
+
+def _section_title(value: Any) -> Optional[str]:
+    """A generated page's section title, as plain one-line text. One that is
+    not text or longer than the cap is left out: the page then shows its
+    heading or first question, as it would without one."""
+    if not isinstance(value, str):
+        return None
+    title = " ".join(value.split())
+    if not title or len(title) > SECTION_TITLE_MAX_LENGTH:
+        return None
+    return title
 
 
 class OpenAIService:
@@ -259,16 +272,17 @@ class OpenAIService:
                             ),
                         )
                     )
+            properties = {"fields": slide_fields, "layout": layout}
+            section_title = _section_title(field.get("sectionTitle"))
+            if section_title:
+                properties["section_title"] = section_title
             fields.append(
                 {
                     "id": str(uuid.uuid4()),
                     "type": StandardFormFieldType.SLIDE,
                     "index": index,
                     "image_url": image_url,
-                    "properties": {
-                        "fields": slide_fields,
-                        "layout": layout,
-                    },
+                    "properties": properties,
                 }
             )
         return fields

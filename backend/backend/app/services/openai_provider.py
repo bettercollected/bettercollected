@@ -12,7 +12,10 @@ from backend.app.services.ai_form_provider import (
 )
 from backend.app.services.ai_form_tools import OPENAI_TOOLS, execute_tool
 from backend.app.services.unsplash_service import UnsplashService
-from backend.app.services.form_generation_rules import HONEST_FORM_RULES
+from backend.app.services.form_generation_rules import (
+    HONEST_FORM_RULES,
+    SECTION_TITLE_RULES,
+)
 from backend.config import settings
 
 # ---------------------------------------------------------------------------
@@ -64,6 +67,7 @@ interface InnerField {
 // Top-level field = one slide/page of the form
 interface SlideField {
     title: string;
+    sectionTitle?: string;  // optional short name of this page's section (see below)
     description?: string;
     type: 'group' | 'short_text' | 'long_text' | 'multiple_choice' | 'dropdown' |
           'yes_no' | 'rating' | 'linear_rating' | 'number' | 'email' |
@@ -104,6 +108,7 @@ interface Form {
 8. Output must be syntactically valid JSON matching the Form schema exactly.
 """
 SYSTEM_PROMPT += HONEST_FORM_RULES
+SYSTEM_PROMPT += SECTION_TITLE_RULES
 
 
 class OpenAIFormProvider(AIFormProvider):

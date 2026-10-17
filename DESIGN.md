@@ -351,7 +351,10 @@ White sheet, one accent, no shadows, nothing decorative.
   that heading in place on the bar. The page's properties panel has the same
   "Section title" field (with the fallback as its placeholder), in every
   style. Other styles do not show it: they have no section bar, and a page
-  heading would add a level they never had.
+  heading would add a level they never had. The AI assistant (chat, review
+  fixes) and the API/MCP `update_form` set or clear it with the
+  `set_section_title` operation, and a generated multi-page form may come
+  with short, plain section titles; neither is ever required.
 - **Question numbers.** Questions are numbered n.1, n.2… among the questions
   the respondent can see right now (a question hidden by logic takes no
   number, so the sequence never has gaps). Text blocks, images and videos
