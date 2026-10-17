@@ -6,10 +6,11 @@ The ``execute_tool`` coroutine maps tool names to their implementations.
 """
 
 import json
+import re
 from typing import Any, Dict
 
 from backend.app.constants.layouts import get_layouts_for_ai
-from backend.app.constants.themes import get_themes_for_ai
+from backend.app.constants.themes import THEME_STYLES, get_themes_for_ai, theme_dict
 from backend.app.services.unsplash_service import UnsplashService
 
 # ---------------------------------------------------------------------------
@@ -52,9 +53,10 @@ TOOL_DEFINITIONS = [
         "name": "search_images",
         "description": (
             "Searches Unsplash for royalty-free images matching the given query. "
-            "Call this tool ONCE for the welcome page and then ONCE PER SLIDE using "
-            "a query that combines the chosen theme name with the slide topic, e.g. "
-            "'purple minimal personal information' or 'blue corporate team feedback'. "
+            "Call this tool ONCE for the welcome page and then ONCE PER SLIDE with "
+            "a query about the form's subject or the slide's topic only, e.g. "
+            "'community centre activities' or 'team feedback office'. Never put "
+            "the theme name, the style or colour words in the query. "
             "If results are returned, take the first photo's 'url' and include it as "
             "'image_url' on that slide field and set the slide layout to "
             "TWO_COLUMN_IMAGE_LEFT or TWO_COLUMN_IMAGE_RIGHT. "
@@ -66,9 +68,9 @@ TOOL_DEFINITIONS = [
                 "query": {
                     "type": "string",
                     "description": (
-                        "Keyword query combining the chosen theme and the slide topic, "
-                        "e.g. 'purple minimal healthcare patients' or "
-                        "'blue corporate office team survey'."
+                        "Keywords for the form's subject or the slide topic only, "
+                        "e.g. 'healthcare patients' or 'office team survey'. "
+                        "No theme, style or colour words."
                     ),
                 },
                 "orientation": {
@@ -126,6 +128,40 @@ def _gemini_tools():
 
 
 # ---------------------------------------------------------------------------
+# Image query
+# ---------------------------------------------------------------------------
+
+# Words that name how a form looks rather than what it is about: the preset
+# names, the styles, and the words "theme" and "style" themselves.
+_LOOK_WORDS = frozenset(
+    {name.lower() for name in theme_dict}
+    | {style.lower() for style in THEME_STYLES}
+    | {"theme", "themed", "style", "styled"}
+)
+
+
+def image_query(query: str) -> str:
+    """The subject part of an image search query.
+
+    The photo should show what the form is about, never what it looks like,
+    so a theme or style name the model put at either end of the query
+    ("Leaflet community centre", "community centre purple theme") is dropped.
+    Words in the middle stay: there they are part of the topic ("Red Cross
+    volunteers"). Returns "" when nothing but look words was given.
+    """
+    words = re.findall(r"[\w'&-]+", query or "")
+
+    def is_look(word: str) -> bool:
+        return word.lower().strip("'-&") in _LOOK_WORDS
+
+    while words and is_look(words[0]):
+        words.pop(0)
+    while words and is_look(words[-1]):
+        words.pop()
+    return " ".join(words)
+
+
+# ---------------------------------------------------------------------------
 # Tool executor
 # ---------------------------------------------------------------------------
 
@@ -144,7 +180,10 @@ async def execute_tool(
         return get_layouts_for_ai()
 
     if tool_name == "search_images":
-        query = tool_args.get("query", "")
+        query = image_query(str(tool_args.get("query", "")))
+        if not query:
+            # Only look words were given: no subject to show, so no photo.
+            return []
         orientation = tool_args.get("orientation", "landscape")
         photos = await unsplash_service.search_photos(
             query=query, per_page=5, orientation=orientation

@@ -26,12 +26,13 @@ describes a multi-page form. Follow the schema and rules below exactly.
 ## Workflow (follow in order)
 1. Call `get_available_themes` ONCE → use `Leaflet` (the default for new forms) unless the request asks for other colours or a particular mood, then pick the theme that fits → set `theme_name`.
 2. Call `get_available_layouts` ONCE → learn available layouts.
-3. Call `search_images` for the WELCOME PAGE using a query like
-   "{theme_name} {form_topic}" (e.g. "purple minimal healthcare" or "blue corporate survey").
+3. Call `search_images` for the WELCOME PAGE with a query about the form's subject only,
+   built from its title, description and first questions (e.g. "community centre activities"
+   or "hospital patient care"). Never put the theme name, the style or colour words in it.
    If photos are returned use the best URL as `welcome_image_url`.
 4. For EACH top-level field/group (= one slide), call `search_images` separately with a
-   query combining the chosen theme and the slide's topic, e.g.
-   "purple personal information form" or "blue team feedback office".
+   query about that slide's topic only, e.g. "personal information paperwork" or
+   "team feedback office" (again no theme, style or colour words).
    - If a photo is returned: set `image_url` on that field to the best photo URL and set
      `layout` to `TWO_COLUMN_IMAGE_LEFT` (odd slides) or `TWO_COLUMN_IMAGE_RIGHT` (even slides)
      to alternate sides and create visual variety.
