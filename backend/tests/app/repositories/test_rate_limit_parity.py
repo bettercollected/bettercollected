@@ -31,6 +31,17 @@ async def test_hits_count_up_per_counter(sessions):
         assert await repo.hit(b, _soon()) == 1
 
 
+async def test_hits_add_an_amount_and_zero_reads(sessions):
+    # the AI daily token budget adds a call's tokens, and reads with 0
+    mongo, postgres = RateLimitRepository(), PostgresRateLimitRepository(sessions)
+    counter, fresh = "f" * 24, "9" * 24
+    for repo in (mongo, postgres):
+        assert await repo.hit(counter, _soon(), 250) == 250
+        assert await repo.hit(counter, _soon(), 0) == 250
+        assert await repo.hit(counter, _soon()) == 251
+        assert await repo.hit(fresh, _soon(), 0) == 0
+
+
 async def test_concurrent_hits_are_all_counted(sessions):
     mongo, postgres = RateLimitRepository(), PostgresRateLimitRepository(sessions)
     counter = "c" * 24

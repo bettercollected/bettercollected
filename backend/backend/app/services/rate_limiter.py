@@ -42,10 +42,16 @@ class FixedWindowRateLimiter:
         return hmac.new(self._key, message, hashlib.sha256).hexdigest()[:24]
 
     async def hit(
-        self, scope: str, client: str, limit: int, window_seconds: int
+        self,
+        scope: str,
+        client: str,
+        limit: int,
+        window_seconds: int,
+        amount: int = 1,
     ) -> Verdict:
         """Count one request of ``client`` in ``scope``; allowed while the
-        window's count is at most ``limit``."""
+        window's count is at most ``limit``. ``amount`` adds more than one
+        (tokens of a budget), or 0 to read the count without adding."""
         window_seconds = max(1, int(window_seconds))
         now = self._clock()
         window = int(now // window_seconds)
@@ -53,6 +59,7 @@ class FixedWindowRateLimiter:
         count = await self._repo.hit(
             self.counter_id(scope, client, window),
             dt.datetime.fromtimestamp(ends + window_seconds, dt.timezone.utc),
+            max(0, int(amount)),
         )
         return Verdict(
             allowed=count <= limit,

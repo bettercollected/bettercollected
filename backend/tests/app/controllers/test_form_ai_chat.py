@@ -303,13 +303,23 @@ class TestFormAIChat:
         before = (
             await container.form_repo().get_form_document_by_id(workspace_form.form_id)
         ).model_dump()
-        fake_provider.replies = ["I refuse to speak JSON today."]
+        # unusable twice: the reply and its one corrective retry
+        fake_provider.replies = [
+            "I refuse to speak JSON today.",
+            json.dumps({"reply": "ok", "ops": [{"op": "not_an_op"}]}),
+        ]
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
             cookies=test_user_cookies,
             json={"message": "do something"},
         )
         assert response.status_code == 502
+        assert response.json()["code"] == "ai_unusable_reply"
+        assert len(fake_provider.calls) == 2
+        # the retry shows the model its reply and what was wrong with it
+        retry = fake_provider.calls[1]["messages"]
+        assert retry[-2] == {"role": "assistant", "content": "I refuse to speak JSON today."}
+        assert "could not be used" in retry[-1]["content"]
         after = (
             await container.form_repo().get_form_document_by_id(workspace_form.form_id)
         ).model_dump()

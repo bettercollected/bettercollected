@@ -18,7 +18,7 @@ from fastapi import BackgroundTasks
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
@@ -37,12 +37,13 @@ from backend.app.services.ai.ops import (
     parse_ops,
 )
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.structured import chat_json
 from backend.app.services.form_writes import persist_form
 from backend.app.services.ai.prompt_builder import (
     build_chat_system_prompt,
-    extract_json_object,
     project_form,
 )
+from backend.config import settings
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
 
@@ -70,6 +71,39 @@ class FormAIChatResponse(_CamelModel):
     # Form tab's metadata lives on the workspace-form association, not the
     # form body, so the client updates it from here.
     settings: Optional[dict] = None
+
+
+class _ChatTurnReply(BaseModel):
+    """The model's reply to one chat turn: words for the creator and the
+    typed operations, validated here so a reply with an invalid operation
+    is retried once like any other unusable reply."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    reply: Optional[str] = None
+    ops: List[dict] = []
+    _parsed_ops: list = PrivateAttr(default_factory=list)
+
+    @model_validator(mode="after")
+    def _typed_ops(self):
+        try:
+            self._parsed_ops = parse_ops(self.ops or [])
+        except Exception as error:  # noqa: BLE001 — reported back to the model
+            errors = getattr(error, "errors", None)
+            if callable(errors):
+                details = "; ".join(
+                    ".".join(str(p) for p in e.get("loc", ())) + ": " + e.get("msg", "")
+                    for e in errors(include_input=False, include_url=False)[:10]
+                )
+            else:
+                details = type(error).__name__
+            raise ValueError(f"invalid operations: {details}") from None
+        return self
+
+
+UNUSABLE_CHAT_REPLY = (
+    "The AI returned an unusable reply — nothing was changed. Please try again."
+)
 
 
 def _clear_or_set(value: Optional[str]) -> Optional[str]:
@@ -217,7 +251,9 @@ class FormAIChatService:
 
         # The workspace's AI opt-in (#715), before anything is loaded into a
         # prompt: 403 ai_not_enabled when it is off.
-        provider = await self._provider_resolver(workspace_id, request.provider)
+        provider = await self._provider_resolver(
+            workspace_id, request.provider, user_id=user.id
+        )
 
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
@@ -234,18 +270,18 @@ class FormAIChatService:
         ]
         messages = history + [{"role": "user", "content": request.message}]
 
-        raw_reply = await provider.chat(system, messages)
-
-        try:
-            parsed = extract_json_object(raw_reply)
-            ops = parse_ops(parsed.get("ops") or [])
-            reply = str(parsed.get("reply") or "Done.")
-        except Exception:
-            # The model broke the contract — surface honestly, change nothing.
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_GATEWAY,
-                content="The AI returned an unusable reply — nothing was changed. Please try again.",
-            )
+        # JSON of the turn's shape, retried once; a reply that still breaks
+        # the contract is a 502 and changes nothing.
+        turn = await chat_json(
+            provider,
+            system,
+            messages,
+            _ChatTurnReply,
+            max_output_tokens=settings.ai.MAX_OUTPUT_TOKENS_CHAT,
+            unusable_message=UNUSABLE_CHAT_REPLY,
+        )
+        ops = turn._parsed_ops
+        reply = str(turn.reply or "Done.")
 
         new_form, results, updated_settings = await persist_ops_to_form(
             form_document, form, ops

@@ -599,6 +599,19 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- AI features are bounded: form generation's tool loop stops after
+  `AI_MAX_TOOL_ITERATIONS` round trips (default 10) or `AI_MAX_TOOL_CALLS`
+  tool calls (30) with a clear error; every call has an output token cap per
+  call type and request/overall timeouts (504 `ai_timeout`); model JSON is
+  validated (OpenAI strict structured output for generation, JSON mode for
+  chat, review, insights and memory) and retried once before a clean 502. The
+  AI endpoints (generate, chat edit, review, applying a review fix, insights,
+  document import with AI, MCP `create_form_with_ai`) are rate limited per
+  user (10/min) and per workspace (30/min) with a 429, and each workspace has
+  a daily request and token counter with optional caps (`AI_DAILY_REQUEST_BUDGET`,
+  `AI_DAILY_TOKEN_BUDGET`, off by default). Content people wrote is fenced as
+  data in every prompt and the system prompts say to treat it as untrusted;
+  AI paths log error types and counts only. See backend/AGENTS.md "AI limits".
 - The backend's internal job routes (called by the Temporal worker and the
   actions-executor with the `api-key` header) require a configured key: an
   unset, empty or `random_api_key` value is no longer accepted, the routes
