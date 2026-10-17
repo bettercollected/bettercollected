@@ -22,11 +22,14 @@ from typing import Any, Optional
 
 FONT_SIZE_MIN = 8
 FONT_SIZE_MAX = 96
-_FONT_SIZE = re.compile(r"^(\d{1,3}(?:\.\d{1,2})?)(?:px)?$")
-_HEX = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+# fullmatch with re.ASCII mirrors the webapp rule exactly: no trailing
+# newline, ASCII digits, and plain spaces only inside rgb().
+_FONT_SIZE = re.compile(r"(\d{1,3}(?:\.\d{1,2})?)(?:px)?", re.ASCII)
+_HEX = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", re.ASCII)
 _RGB = re.compile(
-    r"^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*"
-    r"(?:,\s*(\d(?:\.\d{1,3})?|\.\d{1,3})\s*)?\)$"
+    r"rgba?\( *(\d{1,3}) *, *(\d{1,3}) *, *(\d{1,3}) *"
+    r"(?:, *(\d(?:\.\d{1,3})?|\.\d{1,3}) *)?\)",
+    re.ASCII,
 )
 STYLE_ATTRS = ("fontSize", "color")
 
@@ -34,16 +37,16 @@ STYLE_ATTRS = ("fontSize", "color")
 def valid_font_size(value: Any) -> bool:
     if not isinstance(value, str):
         return False
-    match = _FONT_SIZE.match(value)
+    match = _FONT_SIZE.fullmatch(value)
     return bool(match) and FONT_SIZE_MIN <= float(match.group(1)) <= FONT_SIZE_MAX
 
 
 def valid_color(value: Any) -> bool:
     if not isinstance(value, str):
         return False
-    if _HEX.match(value):
+    if _HEX.fullmatch(value):
         return True
-    match = _RGB.match(value)
+    match = _RGB.fullmatch(value)
     if not match:
         return False
     alpha = match.group(4)
