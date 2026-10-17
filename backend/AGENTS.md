@@ -221,10 +221,15 @@ checked per item. Answer rules (min/max length, pattern, min/max value, min/max 
 counted questions with an answer. Types apply to every answer (the value in the slot of the question's
 type, existing option ids), and ids that are not questions of the draft or the published version are
 refused (on an edit, unknown ids are dropped as before and only changed answers are reported). Patterns
-are matched with RE2 (`google-re2`, linear time) on at most 10,000 characters; a pattern over 200
-characters (the cap the builder and the form spec share, `common.form_spec.models.PATTERN_MAX_LENGTH`)
-or one RE2 cannot compile (lookarounds, backreferences) is not enforced, and only the field id
-is logged. Problems answer 422 `{"code": "invalid_answers", "errors": [{"fieldId", "rule", "item"?}]}`,
+are matched with RE2 (`google-re2`, linear time); longer text than 10,000 characters is left to the
+browser. Creator patterns are untrusted, so their cost is bounded: RE2 gets 1 MB per pattern
+(`PATTERN_MAX_MEM`: heavy ones fail fast), programs over 5,000 instructions are not used, one
+response compiles at most 50 uncached patterns and spends at most 0.25 s on patterns, the cache is
+bounded by entries and total program size, and `check_answers` runs in a worker thread. A pattern
+over 200 characters (the cap the builder and the form spec share,
+`common.form_spec.models.PATTERN_MAX_LENGTH`), one RE2 cannot compile (lookarounds,
+backreferences) or one past the budget is not enforced; only field ids are logged. Integers too
+big for a float count as Infinity, as in JavaScript. Problems answer 422 `{"code": "invalid_answers", "errors": [{"fieldId", "rule", "item"?}]}`,
 never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
 v1 and imported forms (fields not on pages) are not validated.
 

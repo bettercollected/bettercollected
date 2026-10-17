@@ -152,7 +152,7 @@ def test_unsupported_patterns_are_not_compiled():
     assert compile_pattern("a" * 200) is not None
 
 
-def test_text_over_the_input_cap_never_matches_a_pattern():
+def test_text_over_the_input_cap_is_left_to_the_browser():
     pages = [
         {
             "id": "p1",
@@ -165,13 +165,14 @@ def test_text_over_the_input_cap_never_matches_a_pattern():
         }
     ]
     assert _problems(pages, {"q1": {"type": "text", "text": "a" * 10_000}}) == []
-    assert _problems(pages, {"q1": {"type": "text", "text": "a" * 10_001}}) == [
+    assert _problems(pages, {"q1": {"type": "text", "text": "b" * 10_000}}) == [
         ("q1", "pattern", None)
     ]
+    # over the cap: not matched here (the browser matches it)
+    assert _problems(pages, {"q1": {"type": "text", "text": "b" * 10_001}}) == []
 
 
 def test_an_unenforced_pattern_logs_the_field_id_only():
-    answer_validation._note_unenforced.cache_clear()
     logged = []
     sink = logger.add(lambda message: logged.append(str(message)), level="DEBUG")
     try:
@@ -607,3 +608,159 @@ async def test_the_endpoint_answers_422_with_codes_and_no_values(client, workspa
     assert refused.json()["code"] == "invalid_answers"
     assert {"fieldId": "name", "rule": "required"} in refused.json()["errors"]
     assert SECRET not in refused.text
+
+
+# ---------------------------------------------------------------------------
+# Pattern cost: compile memory, per-response budget, cache bounds
+# ---------------------------------------------------------------------------
+
+PRESETS = [
+    "^[1-9][0-9]{3} ?[A-Za-z]{2}$",
+    "^[A-Za-z]{2}[0-9]{2}(?: ?[A-Za-z0-9]){11,30}$",
+    "^\\+?[0-9][0-9 ()-]{5,19}$",
+    "^[\\p{L} '-]+$",
+    "^-?\\d+$",
+]
+
+
+def _pattern_pages(patterns):
+    fields = [
+        {"id": f"q{i}", "type": "short_text", "validations": {"regex": pattern}}
+        for i, pattern in enumerate(patterns)
+    ]
+    return [{"id": "p1", "type": "slide", "properties": {"fields": fields}}]
+
+
+def test_presets_compile_quickly_within_the_memory_limit():
+    answer_validation._CACHE.clear()
+    for pattern in PRESETS:
+        start = time.perf_counter()
+        assert compile_pattern(pattern) is not None
+        assert time.perf_counter() - start < 0.05
+
+
+def test_a_heavy_pattern_fails_fast_and_is_not_checked():
+    answer_validation._CACHE.clear()
+    start = time.perf_counter()
+    assert compile_pattern("^\\p{L}{0,300}$") is None
+    assert time.perf_counter() - start < 0.05
+    pages = _pattern_pages(["^\\p{L}{0,300}$"])
+    assert _problems(pages, {"q0": {"type": "text", "text": "123"}}) == []
+
+
+def test_many_distinct_heavy_patterns_validate_quickly():
+    answer_validation._CACHE.clear()
+    patterns = [f"^\\p{{L}}{{0,{300 + i}}}$" for i in range(600)]
+    pages = _pattern_pages(patterns)
+    answers = {f"q{i}": {"type": "text", "text": "abc"} for i in range(600)}
+    start = time.perf_counter()
+    _problems(pages, answers)
+    assert time.perf_counter() - start < 0.5
+
+
+def test_the_compile_budget_is_respected(monkeypatch):
+    answer_validation._CACHE.clear()
+    compiled = []
+    real = answer_validation._compile
+    monkeypatch.setattr(
+        answer_validation,
+        "_compile",
+        lambda pattern: compiled.append(pattern) or real(pattern),
+    )
+    patterns = [f"^[0-9]{{{i}}}$" for i in range(1, 121)]
+    pages = _pattern_pages(patterns)
+    answers = {f"q{i}": {"type": "text", "text": "x"} for i in range(120)}
+    logged, sink = _capture()
+    try:
+        first = _problems(pages, answers)
+    finally:
+        logger.remove(sink)
+    assert len(compiled) == answer_validation.PATTERN_COMPILES_PER_RESPONSE == 50
+    assert len(first) == 50  # the 50 compiled patterns are enforced
+    text = "".join(logged)
+    assert "70 field(s) not checked" in text and "q119" in text
+    # the next response finds those in the cache and compiles 50 more
+    assert len(_problems(pages, answers)) == 100
+    assert len(compiled) == 100
+
+
+def test_the_time_budget_stops_pattern_checks():
+    form = _form(_pattern_pages(["^[0-9]+$"]))
+    field = form.fields[0].properties.fields[0]
+    answer = {"type": "text", "text": "x"}
+    assert answer_validation.answer_rule_problems(field, answer) == ["pattern"]
+    spent = answer_validation.PatternBudget(seconds=0.0)
+    assert answer_validation.answer_rule_problems(field, answer, spent) == []
+    assert spent.unchecked == {"q0"}
+
+
+def test_presets_are_still_enforced():
+    answer_validation._CACHE.clear()
+    pages = _pattern_pages(PRESETS)
+    answers = {f"q{i}": {"type": "text", "text": "!"} for i in range(len(PRESETS))}
+    assert len(_problems(pages, answers)) == len(PRESETS)
+
+
+def test_the_cache_is_bounded_by_entries_and_program_size():
+    cache = answer_validation._PatternCache(entries=3, program=100)
+    for name in "abcd":
+        cache.put(name, name, 10)
+    assert cache.get("a") is None and cache.get("d") == "d"
+    cache.put("big", "big", 95)
+    assert cache.get("big") == "big"
+    assert cache.get("b") is None and cache.get("c") is None
+
+
+def test_a_program_over_the_size_cap_is_not_checked():
+    answer_validation._CACHE.clear()
+    assert compile_pattern("^.{0,1000}$") is None  # program of about 9000
+    assert compile_pattern("^.{0,100}$") is not None
+
+
+# ---------------------------------------------------------------------------
+# Huge numbers behave like JavaScript's Infinity, never a server error
+# ---------------------------------------------------------------------------
+
+
+def test_huge_numbers_are_infinity():
+    huge = 10**400
+    assert answer_validation.to_float(huge) == math.inf
+    assert answer_validation.to_float(-huge) == -math.inf
+    assert js_string(huge) == "Infinity"
+    assert js_number("0x" + "f" * 300) == math.inf
+
+
+def test_a_huge_number_answer_is_a_type_problem_not_an_error():
+    pages = [
+        {
+            "id": "p1",
+            "type": "slide",
+            "properties": {
+                "fields": [
+                    {"id": "n", "type": "number", "validations": {"maxValue": 10}},
+                    {
+                        "id": "q",
+                        "type": "short_text",
+                        "validations": {"required": True},
+                        "properties": {
+                            "logic": {
+                                "action": "SHOW",
+                                "operator": "AND",
+                                "conditions": [
+                                    {
+                                        "fieldId": "n",
+                                        "fieldType": "number",
+                                        "comparison": "GREATER_THAN",
+                                        "value": "5",
+                                    }
+                                ],
+                            }
+                        },
+                    },
+                ]
+            },
+        }
+    ]
+    problems = _problems(pages, {"n": {"type": "number", "number": 10**400}})
+    # Infinity is not a number answer; it is still greater than 5
+    assert problems == sorted([("n", "type", None), ("q", "required", None)], key=str)

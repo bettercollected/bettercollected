@@ -21,9 +21,16 @@ submission and the respondent's edit of it). Shared cases with the webapp:
   format (pattern) on short and long text, lowest/highest value and pattern on
   numbers, number of options on multiple choice with multiple selection.
   Patterns are matched with RE2 (linear time). A pattern RE2 cannot compile
-  (lookarounds, backreferences), or longer than ``PATTERN_MAX_LENGTH``, is not
-  enforced here; only the field id is logged. Text longer than
-  ``PATTERN_INPUT_MAX_LENGTH`` never matches a pattern.
+  (lookarounds, backreferences) within ``PATTERN_MAX_MEM``, one longer than
+  ``PATTERN_MAX_LENGTH`` or with a program over ``PATTERN_MAX_PROGRAM``, and
+  text longer than ``PATTERN_INPUT_MAX_LENGTH`` (the browser checks it), are
+  not checked here; only the field id is logged.
+- **Cost:** a creator's pattern is untrusted. One response compiles at most
+  ``PATTERN_COMPILES_PER_RESPONSE`` patterns not in the cache and spends at
+  most ``PATTERN_SECONDS_PER_RESPONSE`` on patterns; past either, the
+  remaining patterns are not checked (field ids logged). The cache is bounded
+  by entries and by total program size. Callers run ``check_answers`` in a
+  worker thread, off the event loop.
 - **Types,** for every answer whatever its page: the value must sit in the
   slot of the question's type and have its type (a number for a number
   question, the ids of existing options for a choice question). Answers to
@@ -38,7 +45,10 @@ linear in the number of fields and answers.
 import functools
 import math
 import re
-from dataclasses import dataclass
+import threading
+import time
+from collections import OrderedDict
+from dataclasses import dataclass, field as dataclass_field
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Set
@@ -76,8 +86,24 @@ ERROR_MESSAGE = "Some answers are missing or not valid."
 INTEGER_PATTERN = r"^-?\d+$"
 # Patterns longer than PATTERN_MAX_LENGTH (the spec's and the builder's cap,
 # 200) are not enforced on the server.
-# A pattern is never matched against more characters than this.
+# A pattern is never matched against more characters than this (longer
+# text is left to the browser's check).
 PATTERN_INPUT_MAX_LENGTH = 10_000
+# RE2 memory per pattern: heavy patterns (``^\p{L}{0,300}$``) fail to compile
+# within it in a few milliseconds instead of taking 100+ ms; every preset
+# compiles in well under a millisecond.
+PATTERN_MAX_MEM = 1 << 20
+# Matching costs up to (text length x program size) when RE2 falls back from
+# its DFA: a bigger program is not checked here.
+PATTERN_MAX_PROGRAM = 5_000
+# Per response: patterns compiled that were not in the cache, and the time
+# spent compiling and matching patterns.
+PATTERN_COMPILES_PER_RESPONSE = 50
+PATTERN_SECONDS_PER_RESPONSE = 0.25
+# Compiled-pattern cache: at most this many entries, and this much program in
+# total (an unusable pattern counts as 1).
+PATTERN_CACHE_ENTRIES = 2048
+PATTERN_CACHE_PROGRAM = 2_000_000
 JUMP_TARGET_SUBMIT = "__SUBMIT__"
 
 SLIDE = "slide"
@@ -165,6 +191,15 @@ def js_trim(text: str) -> str:
     return text.strip(_JS_WHITESPACE)
 
 
+def to_float(value: Any) -> float:
+    """``float(value)`` for a number, JavaScript style: an integer too big
+    for a float is +/-Infinity (as ``Number`` makes it), never an error."""
+    try:
+        return float(value)
+    except OverflowError:
+        return math.inf if value > 0 else -math.inf
+
+
 def js_number(text: str) -> float:
     """``Number(text)`` for a string: NaN when JavaScript gives NaN."""
     text = js_trim(text)
@@ -176,7 +211,7 @@ def js_number(text: str) -> float:
         if not text[2:].isalnum() or not text[2:].isascii():
             return math.nan
         try:
-            return float(int(text[2:], _JS_RADIX[text[1].lower()]))
+            return to_float(int(text[2:], _JS_RADIX[text[1].lower()]))
         except ValueError:
             return math.nan
     return math.nan
@@ -187,7 +222,7 @@ def js_string(value: Any) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, int):
-        return str(value) if abs(value) < 10**21 else _js_float(float(value))
+        return str(value) if abs(value) < 10**21 else _js_float(to_float(value))
     if isinstance(value, float):
         return _js_float(value)
     return value if isinstance(value, str) else str(value)
@@ -274,41 +309,129 @@ _RE2_OPTIONS = re2.Options()
 # RE2 would print the pattern to stderr when it does not compile.
 _RE2_OPTIONS.log_errors = False
 _RE2_OPTIONS.never_capture = True
+_RE2_OPTIONS.max_mem = PATTERN_MAX_MEM
+
+_UNUSABLE = object()  # cached: the pattern is not checked here
 
 
-@functools.lru_cache(maxsize=512)
-def compile_pattern(pattern: str) -> Optional[Any]:
-    """The pattern compiled for RE2, or None when it is not enforced here
-    (too long, or a construct RE2 does not support)."""
+class _PatternCache:
+    """Thread-safe LRU of compiled patterns, bounded by entries and by the
+    total size of their programs."""
+
+    def __init__(self, entries: int, program: int) -> None:
+        self.entries = entries
+        self.program = program
+        self._items: "OrderedDict[str, tuple]" = OrderedDict()
+        self._size = 0
+        self._lock = threading.Lock()
+
+    def get(self, pattern: str) -> Any:
+        with self._lock:
+            item = self._items.get(pattern)
+            if item is None:
+                return None
+            self._items.move_to_end(pattern)
+            return item[0]
+
+    def put(self, pattern: str, compiled: Any, size: int) -> None:
+        with self._lock:
+            if pattern in self._items:
+                return
+            self._items[pattern] = (compiled, size)
+            self._size += size
+            while self._items and (
+                len(self._items) > self.entries or self._size > self.program
+            ):
+                _, (_, evicted) = self._items.popitem(last=False)
+                self._size -= evicted
+
+    def clear(self) -> None:
+        with self._lock:
+            self._items.clear()
+            self._size = 0
+
+
+_CACHE = _PatternCache(PATTERN_CACHE_ENTRIES, PATTERN_CACHE_PROGRAM)
+
+
+def _compile(pattern: str) -> Any:
+    """Compile for RE2: the compiled pattern and its program size, or
+    ``_UNUSABLE``. Compiled and matched as UTF-8 bytes: RE2 reads them as
+    text all the same, and the wrapper skips mapping byte offsets back to
+    characters."""
     if not pattern or len(pattern) > PATTERN_MAX_LENGTH:
-        return None
+        return _UNUSABLE, 1
     try:
-        # Compiled and matched as UTF-8 bytes: RE2 reads them as text all the
-        # same, and the wrapper skips mapping byte offsets back to characters.
-        return re2.compile(to_re2_syntax(pattern).encode("utf-8"), _RE2_OPTIONS)
+        compiled = re2.compile(to_re2_syntax(pattern).encode("utf-8"), _RE2_OPTIONS)
     except Exception:  # re2.error and its subclasses
-        return None
+        return _UNUSABLE, 1
+    size = compiled.programsize
+    if size > PATTERN_MAX_PROGRAM:
+        return _UNUSABLE, 1
+    return compiled, size
 
 
-@functools.lru_cache(maxsize=1024)
-def _note_unenforced(field_id: str, pattern: str) -> None:
-    """Log once per field and pattern that a pattern is not enforced."""
-    logger.info("Answer pattern of field {} is not enforced on the server.", field_id)
+def compile_pattern(pattern: str) -> Optional[Any]:
+    """The pattern compiled for RE2 (cached), or None when it is not checked
+    here. No per-response budget: see ``PatternBudget``."""
+    cached = _CACHE.get(pattern)
+    if cached is None:
+        compiled, size = _compile(pattern)
+        _CACHE.put(pattern, compiled, size)
+        cached = compiled
+    return None if cached is _UNUSABLE else cached
 
 
-def _pattern_for(field_id: str, pattern: Optional[str]) -> Optional[Any]:
-    if not pattern:
-        return None
-    compiled = compile_pattern(pattern)
-    if compiled is None:
-        _note_unenforced(field_id, pattern)
-    return compiled
+@dataclass
+class PatternBudget:
+    """What one response may spend on patterns. Patterns past the budget,
+    and unusable ones, are not checked; their field ids are collected for
+    one log line."""
 
+    compiles: int = PATTERN_COMPILES_PER_RESPONSE
+    seconds: float = PATTERN_SECONDS_PER_RESPONSE
+    spent: float = 0.0
+    unchecked: Set[str] = dataclass_field(default_factory=set)
 
-def _breaks_pattern(compiled: Any, subject: str) -> bool:
-    if len(subject) > PATTERN_INPUT_MAX_LENGTH:
-        return True
-    return compiled.search(subject.encode("utf-8", "surrogatepass")) is None
+    def pattern(self, field_id: str, pattern: Optional[str]) -> Optional[Any]:
+        if not pattern:
+            return None
+        cached = _CACHE.get(pattern)
+        if cached is None:
+            if self.compiles <= 0 or self.spent >= self.seconds:
+                self.unchecked.add(field_id)
+                return None
+            self.compiles -= 1
+            start = time.perf_counter()
+            compiled, size = _compile(pattern)
+            self.spent += time.perf_counter() - start
+            _CACHE.put(pattern, compiled, size)
+            cached = compiled
+        if cached is _UNUSABLE:
+            self.unchecked.add(field_id)
+            return None
+        return cached
+
+    def breaks(self, field_id: str, compiled: Any, subject: str) -> bool:
+        """Does ``subject`` break the pattern? False when it is not checked
+        (over the input cap: the browser checks it; or over budget)."""
+        if len(subject) > PATTERN_INPUT_MAX_LENGTH:
+            return False
+        if self.spent >= self.seconds:
+            self.unchecked.add(field_id)
+            return False
+        start = time.perf_counter()
+        broken = compiled.search(subject.encode("utf-8", "surrogatepass")) is None
+        self.spent += time.perf_counter() - start
+        return broken
+
+    def log(self) -> None:
+        if self.unchecked:
+            logger.info(
+                "Answer patterns of {} field(s) not checked on the server: {}",
+                len(self.unchecked),
+                ",".join(sorted(self.unchecked)),
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -422,7 +545,8 @@ def _number_value(raw: Any) -> Optional[float]:
     if isinstance(raw, bool):
         return None
     if isinstance(raw, (int, float)):
-        return float(raw) if math.isfinite(raw) else None
+        value = to_float(raw)
+        return value if math.isfinite(value) else None
     if isinstance(raw, str):
         value = js_number(raw)
         return value if math.isfinite(value) else None
@@ -515,9 +639,12 @@ def _choice_problem(
     return None if picked in options else CHOICE
 
 
-def answer_rule_problems(field: Any, answer: Any) -> List[str]:
+def answer_rule_problems(
+    field: Any, answer: Any, budget: Optional[PatternBudget] = None
+) -> List[str]:
     """Twin of the webapp's ``checkAnswerRules``: the rules a given answer
     breaks (none for an empty answer: that is Required's to say)."""
+    budget = budget if budget is not None else PatternBudget()
     if not isinstance(answer, dict):
         return []
     rules = _rules(field)
@@ -535,8 +662,8 @@ def answer_rule_problems(field: Any, answer: Any) -> List[str]:
             problems.append(TOO_SHORT)
         if _is_set(rules.max_length) and length > rules.max_length:
             problems.append(TOO_LONG)
-        compiled = _pattern_for(field_id, rules.regex)
-        if compiled is not None and _breaks_pattern(compiled, js_trim(text)):
+        compiled = budget.pattern(field_id, rules.regex)
+        if compiled is not None and budget.breaks(field_id, compiled, js_trim(text)):
             problems.append(PATTERN)
     elif field_type == "number":
         raw = answer.get("number")
@@ -550,8 +677,8 @@ def answer_rule_problems(field: Any, answer: Any) -> List[str]:
             problems.append(TOO_SMALL)
         if _is_set(rules.max_value) and value > rules.max_value:
             problems.append(TOO_LARGE)
-        compiled = _pattern_for(field_id, rules.regex)
-        if compiled is not None and _breaks_pattern(compiled, typed):
+        compiled = budget.pattern(field_id, rules.regex)
+        if compiled is not None and budget.breaks(field_id, compiled, typed):
             problems.append(NOT_INTEGER if rules.regex == INTEGER_PATTERN else PATTERN)
     elif field_type == MULTIPLE_CHOICE and getattr(
         _props(field), "allow_multiple_selection", None
@@ -606,6 +733,7 @@ def _check_question(
     scope: Dict[str, Any],
     out: List[AnswerProblem],
     key: str,
+    budget: PatternBudget,
     item: Optional[int] = None,
 ) -> None:
     field_id = str(field.id)
@@ -617,11 +745,16 @@ def _check_question(
         if _required(field):
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return
-    for rule in answer_rule_problems(field, answer):
+    for rule in answer_rule_problems(field, answer, budget):
         out.append(AnswerProblem(field_id, rule, item, key))
 
 
-def _check_group(group: Any, answers: Dict[str, Any], out: List[AnswerProblem]) -> None:
+def _check_group(
+    group: Any,
+    answers: Dict[str, Any],
+    out: List[AnswerProblem],
+    budget: PatternBudget,
+) -> None:
     """Required and answer rules per displayed item (limits and structure
     are ``repeating_groups.validate_group_answers``'s)."""
     repeat = _props(group).repeat
@@ -635,7 +768,7 @@ def _check_group(group: Any, answers: Dict[str, Any], out: List[AnswerProblem]) 
             if is_hidden_by_logic(child, scope):
                 continue
             _check_question(
-                child, item.get(str(child.id)), scope, out, str(group.id), index
+                child, item.get(str(child.id)), scope, out, str(group.id), budget, index
             )
 
 
@@ -705,17 +838,24 @@ def validate_answers(
                     matrix_of.setdefault(str(child.id), field)
 
     problems: List[AnswerProblem] = []
+    budget = PatternBudget()
     _check_types(by_id, matrix_of, answers, known_ids, problems)
     for slide in visited_slides(slides, answers):
         for field in _children(slide):
             if not _counts(field) or is_hidden_by_logic(field, answers):
                 continue
             if is_repeating_group(field):
-                _check_group(field, answers, problems)
+                _check_group(field, answers, problems, budget)
             else:
                 _check_question(
-                    field, answers.get(str(field.id)), answers, problems, str(field.id)
+                    field,
+                    answers.get(str(field.id)),
+                    answers,
+                    problems,
+                    str(field.id),
+                    budget,
                 )
+    budget.log()
     if only is not None:
         keys = set(only)
         problems = [problem for problem in problems if problem.key in keys]

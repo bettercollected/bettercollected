@@ -19,6 +19,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from fastapi import UploadFile
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 
 from backend.app.constants.themes import new_form_theme
@@ -919,8 +920,13 @@ class WorkspaceFormService:
         merged.update(response.answers or {})
         # Required, answer rules and types (services/answer_validation.py) on
         # the answers after the edit, reported for what this edit touches.
-        check_answers(
-            form, merged, str(form_id), only=list((response.answers or {}).keys())
+        # CPU-bound (creator patterns): off the event loop.
+        await run_in_threadpool(
+            check_answers,
+            form,
+            merged,
+            str(form_id),
+            only=list((response.answers or {}).keys()),
         )
         _check_date_rules(
             form,
@@ -1027,7 +1033,9 @@ class WorkspaceFormService:
         # Required, answer rules and types (services/answer_validation.py).
         # Answers may use the ids of the draft and the published version:
         # anything else is not a question of this form.
-        check_answers(
+        # CPU-bound (creator patterns): off the event loop.
+        await run_in_threadpool(
+            check_answers,
             latest_version_of_form or form,
             response.answers,
             str(form_id),

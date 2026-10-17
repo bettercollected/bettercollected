@@ -87,6 +87,9 @@ def _is_empty(value: Any) -> bool:
 def _to_number(value: Any) -> float:
     try:
         return float(value)
+    except OverflowError:
+        # an integer too big for a float: JavaScript's Number makes it Infinity
+        return float("inf") if value > 0 else float("-inf")
     except (TypeError, ValueError):
         return float("nan")
 
