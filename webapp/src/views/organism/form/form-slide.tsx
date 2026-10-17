@@ -6,7 +6,6 @@ import { Controller } from 'react-scrollmagic';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { Button } from '@app/shadcn/components/ui/button';
-import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -20,7 +19,11 @@ import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
-import { getInputFieldsById } from '@app/utils/answer-piping';
+import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
+import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
+import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
+import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
@@ -172,6 +175,24 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
     const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id));
 
+    // Leaflet: the page is a numbered section (its position in the form, the
+    // same number "Page x of y" shows) and its questions are numbered among
+    // the ones visible now (utils/leaflet-sections.ts).
+    const leaflet = styleTokens(standardForm?.theme?.style).key === 'leaflet';
+    const pageLayout = formSlide?.properties?.layout;
+    const section = leaflet
+        ? leafletSection(
+              visibleFields.map((field, position) => (position === 0 && field.type === FieldTypes.TEXT ? { ...field, title: resolvePipesInTitle(field.title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues }) as any } : field)),
+              t('LEAFLET.SECTION', { n: index + 1 })
+          )
+        : null;
+    const pageFields = section?.openingTextId ? visibleFields.filter((field) => field.id !== section.openingTextId) : visibleFields;
+    const numbering = leaflet ? { numbers: questionNumbers(pageFields, index + 1), hang: leafletNumbersHang(pageLayout) } : null;
+    const theme = standardForm?.theme;
+    const marginVar = numbering ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbering.numbers, index + 1)}px` } as React.CSSProperties) : undefined;
+    // The header's words in the action colour where it reads as text on the page.
+    const leafletHeaderInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
+
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
     const emitFlow = (fromPage: string, toPage: string) => {
@@ -250,61 +271,83 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     return (
         <Controller>
-            <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
+            <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled topAligned={leaflet}>
                 {/* The bar sits over the scrolling questions: give it the page's
                     ground (translucent + blur, so it also works over gradient or image
                     backgrounds) or questions scroll through the header text. */}
-                <div className="backdrop-blur-sm absolute top-0 right-0 left-0 z-10 mx-auto w-full pt-5 pb-3" style={{ background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent) }}>
+                <div
+                    className={cn('backdrop-blur-sm absolute top-0 right-0 left-0 z-10 mx-auto w-full', leaflet ? 'flex h-14 items-center border-b' : 'pt-5 pb-3')}
+                    style={{ background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent), ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {}) }}
+                >
                     {/* Same gutter and column as the questions below, so Back
                         and the progress line up with the fields' edges. */}
-                    <div className={FORM_GUTTER}>
+                    <div className={cn(FORM_GUTTER, 'w-full')}>
                         <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'flex items-center justify-between gap-3')}>
                             <BackButton
                                 label={t('NAV.BACK')}
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
-                                // -ml-1.5 puts the chevron, not the button's padding, on the column edge.
-                                className="-ml-1.5 w-fit bg-inherit!"
+                                // -ml-1.5 puts the chevron, not the button's padding, on the column edge;
+                                // 44px tall, a full touch target.
+                                className="-ml-1.5 min-h-11 w-fit bg-inherit!"
                                 style={{
                                     background: standardForm?.theme?.accent,
                                     // The theme's ink, not a fixed grey: a fixed neutral fell
                                     // under 4.5:1 on tinted grounds (4.09:1 on Ocean).
-                                    color: standardForm?.theme?.primary
+                                    color: leaflet ? leafletHeaderInk : standardForm?.theme?.primary
                                 }}
                             />
                             {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
-                            <div className="flex items-center gap-3 text-[13px] text-black-700">
+                            <div className="flex items-center gap-3 text-[13px]" style={{ color: leaflet ? leafletHeaderInk : standardForm?.theme?.primary }}>
                                 {(workspace?.title || workspace?.workspaceName) && (
                                     <span className="hidden items-center gap-1.5 rounded-full border border-black-400 bg-white/85 px-2.5 py-0.5 font-medium text-black-800 sm:inline-flex">
                                         <Shield className="h-3.5 w-3.5 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                                         {workspace?.title || workspace?.workspaceName}
                                     </span>
                                 )}
-                                <span className="whitespace-nowrap tabular-nums" lang={language}>
+                                <span className="font-medium whitespace-nowrap tabular-nums" lang={language}>
                                     {t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
+                {/* Leaflet: the numbered section bar and the intro band, full
+                    width, straight under the header (pt-14 clears it). */}
+                {leaflet && section && (
+                    <div className="pt-14" style={marginVar}>
+                        <LeafletSectionBar theme={theme} numeral={index + 1} title={section.shortTitle} fullTitle={section.title} layout={pageLayout} />
+                        {section.intro && (
+                            <LeafletIntroBand theme={theme} layout={pageLayout}>
+                                <FormFieldComponent field={section.intro} slideIndex={formSlide!.index} />
+                            </LeafletIntroBand>
+                        )}
+                    </div>
+                )}
                 {/* The page's questions in the form column (form-column.ts); the
                     layout wrapper centres a short page vertically and lets a long
                     one scroll from the top. pt-12 clears the header bar above.
                     48px between questions (~6× the 8px inside a question). */}
-                <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col gap-12 pt-12 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-12')}>
-                    {visibleFields.map((field: StandardFormFieldDto, position: number) => (
-                        // 12-grid width on desktop: adjacent spans that fit pack
-                        // into one row (two 6s sit side by side); mobile stays a
-                        // flex column, where the span style is inert.
-                        <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, position === visibleFields.length - 1))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
-                            <FormFieldComponent field={field} slideIndex={formSlide!.index} />
-                        </div>
-                    ))}
+                <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6', leaflet ? 'gap-10 pt-7 lg:gap-y-10' : 'gap-12 pt-12 lg:gap-y-12')} style={marginVar}>
+                    <QuestionNumberContext.Provider value={numbering}>
+                        {pageFields.map((field: StandardFormFieldDto, position: number) => (
+                            // 12-grid width on desktop: adjacent spans that fit pack
+                            // into one row (two 6s sit side by side); mobile stays a
+                            // flex column, where the span style is inert.
+                            <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, position === pageFields.length - 1))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
+                                <FormFieldComponent field={field} slideIndex={formSlide!.index} />
+                            </div>
+                        ))}
+                    </QuestionNumberContext.Provider>
                     {/* The button belongs to the last answer: 32px above it,
                         a little closer than the 48px between questions. */}
-                    <div className="-mt-4 flex flex-col items-start gap-4" style={{ gridColumn: 'span 12 / span 12' }}>
+                    <div
+                        // Leaflet: the button lines up with the question text, past the margin column.
+                        className={cn('-mt-4 flex flex-col items-start gap-4', leaflet && 'ml-[var(--leaflet-margin,34px)]', leaflet && numbering?.hang && '@min-[880px]/page:ml-0')}
+                        style={{ gridColumn: 'span 12 / span 12' }}
+                    >
                         {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                             <>
                                 {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
@@ -312,16 +355,19 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     // 15px/1.5, high contrast, green-tinted container — and unchecked by
                                     // default, so sharing identity is a choice the person makes.
                                     <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-[8px] border border-[#BFE0D2] bg-[#F2FAF6] p-4">
-                                        <FieldInput
+                                        {/* A real checkbox, not the text-field component: that one paints a
+                                            solid white background, which hid the tick when checked. */}
+                                        <input
                                             checked={!effectiveAnonymize}
-                                            onChange={(e: any) => {
+                                            onChange={(e) => {
                                                 setFormResponse({
                                                     ...formResponse,
                                                     anonymize: !e.target.checked
                                                 });
                                             }}
                                             type="checkbox"
-                                            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-hidden"
+                                            data-testid="share-email-consent"
+                                            className="border-control mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-[4px] border-2 text-[#0E8A5F] checked:border-[#0E8A5F]"
                                         />
                                         <span className="flex flex-col gap-0.5">
                                             <span className="text-[15px] leading-relaxed font-medium text-black-900">{t('CONSENT.SHARE_EMAIL')}</span>
@@ -338,7 +384,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 color: 'white'
                             }}
                             isLoading={isLoading}
-                            className="rounded-[8px] px-8 py-3 text-base font-semibold"
+                            className={cn('min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
                             onClick={onNext}
                             size="medium"
                         >

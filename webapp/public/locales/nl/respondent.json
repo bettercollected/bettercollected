@@ -48,10 +48,11 @@
         "VERIFY_REQUIRED": "Om dit formulier in te vullen, bevestig je eerst wie je bent.",
         "VERIFY_NOW": "Nu bevestigen",
         "VIEW_LATER": "Wil je je antwoorden later terugzien?",
-        "VERIFY_EMAIL": "Bevestig je e-mailadres",
+        "VERIFY_EMAIL": "Bevestig je e-mailadres.",
         "PRIVATE": "Besloten formulier",
         "PRIVATE_TEXT": "Alleen bepaalde mensen kunnen dit formulier invullen. Bevestig wie je bent om verder te gaan.",
-        "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier."
+        "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier.",
+        "CONTENTS": "In dit formulier"
     },
     "ACCOUNT": {
         "LABEL": "Account",
@@ -60,14 +61,15 @@
         "SWITCH": "Ander account gebruiken"
     },
     "ENDING": {
-        "TITLE": "Bedankt! 🎉",
+        "TITLE": "Bedankt",
         "SUBMITTED": "Je antwoorden zijn verstuurd.",
         "SUBMITTED_ANONYMOUS": "Je antwoorden zijn anoniem verstuurd.",
         "SUBMISSION_NUMBER": "Inzendnummer",
         "ALL_SUBMISSIONS": "Al je inzendingen bekijken",
         "SUBMISSION_NUMBER_HINT": "Met dit nummer kun je je antwoorden bekijken of laten verwijderen.",
         "COPY": "Inzendnummer kopiëren",
-        "COPIED": "Gekopieerd"
+        "COPIED": "Gekopieerd",
+        "NEXT": "Wat er nu gebeurt"
     },
     "FIELD": {
         "REQUIRED": "(verplicht)",
@@ -80,7 +82,8 @@
         "SELECT_OPTION": "Kies een antwoord",
         "PLACEHOLDER_ANSWER": "Antwoord",
         "PLACEHOLDER_EMAIL": "naam@voorbeeld.nl",
-        "RATE": "{{value}} van {{total}} geven"
+        "RATE": "{{value}} van {{total}} geven",
+        "CHOOSE_MANY": "Kies er zoveel als je wilt."
     },
     "DATE": {
         "PICK": "Kies een datum",
@@ -114,5 +117,14 @@
         "MAX_ITEMS_other": "Vul er maximaal {{count}} in.",
         "MIN_ITEMS_one": "Vul er minimaal {{count}} in om verder te gaan.",
         "MIN_ITEMS_other": "Vul er minimaal {{count}} in om verder te gaan."
+    },
+    "LEAFLET": {
+        "SECTION": "Deel {{n}}"
+    },
+    "RETENTION_VALUE": {
+        "DAYS_one": "{{count}} dag na het insturen.",
+        "DAYS_other": "{{count}} dagen na het insturen.",
+        "UNTIL_DATE": "Tot {{date}}.",
+        "UNTIL_DELETED": "Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd."
     }
 }

@@ -1,19 +1,22 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import Choice from '@app/views/atoms/choice';
+import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { cn } from '@app/shadcn/util/lib';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import QuestionWrapper from './question-wrapper';
 
 const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) => {
     const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
     const { t } = useRespondentLanguage();
+    const tokens = styleTokens(theme?.style);
 
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
@@ -27,8 +30,9 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
 
     const otherOption = formResponse?.answers?.[field.id]?.choice?.other || '';
 
-    const handleClick = (item: string) => {
+    const handleClick = (item: string, moveOn = true) => {
         addFieldChoiceAnswer(field.id, item);
+        if (!moveOn) return;
         setTimeout(() => {
             if (standardForm?.fields?.[slideIndex]?.properties?.fields?.length !== field.index + 1) scrollToDivById(standardForm?.fields?.[slideIndex]?.properties?.fields?.[field.index + 1]?.id);
         }, 200);
@@ -36,11 +40,17 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
 
     return (
         <QuestionWrapper field={field}>
-            <div className="w-full space-y-2 overflow-hidden border-0 p-0">
-                {field.properties?.choices?.map((choice, index) => {
-                    const isSelected = getSelectedValue() === choice.id;
-                    return <Choice key={choice.id} isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} />;
-                })}
+            <div className="w-full space-y-2 p-0">
+                {/* A real radio group: one tab stop, arrow keys move between the
+                    options, and each option is announced as a radio button. */}
+                <ChoiceRadioGroup
+                    labelledBy={`q-title-${field.id}`}
+                    theme={theme}
+                    value={getSelectedValue() ?? null}
+                    onChange={(value, { viaArrowKeys }) => handleClick(value, !viaArrowKeys)}
+                    className={cn(tokens.ruledChoices ? '' : 'space-y-2')}
+                    options={(field.properties?.choices ?? []).map((choice, index) => ({ key: choice.id ?? String(index), value: choice.id ?? '', label: choice.value ? choice.value : `Item ${index + 1}` }))}
+                />
                 {field?.properties?.allowOtherChoice && (
                     <FieldInput
                         type="text"
@@ -54,7 +64,8 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                             }
                             addOtherChoiceAnswer(field.id, e.target.value);
                         }}
-                        className={`flex justify-between rounded-md border p-2 px-4 text-base`}
+                        $formTheme={theme}
+                        className="flex min-h-12 justify-between border px-4 py-3 text-base"
                     />
                 )}
             </div>

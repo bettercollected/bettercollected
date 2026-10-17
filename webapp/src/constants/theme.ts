@@ -28,10 +28,12 @@ export const ThemeColor = {
 // How the form is DRESSED, independent of its colours/background. 'classic'
 // is today's look; 'sheet' sets questions like a printed document (serif
 // labels, margin numerals, ruled rows); 'studio' is the bold graphic register
-// (ghost numerals, heavy type, square edges, solid selection). Structural
-// styles (two-pane ledger, conversational receipts) can join this enum once
-// the renderer grows those modes — the model is deliberately open.
-export type ThemeStyle = 'classic' | 'sheet' | 'studio';
+// (ghost numerals, heavy type, square edges, solid selection); 'leaflet' reads
+// like a plain-language information leaflet (numbered section bars, n.m
+// question numbers in a margin column, ruled options, margin-note reasons).
+// Structural styles (two-pane ledger, conversational receipts) can join this
+// enum once the renderer grows those modes — the model is deliberately open.
+export type ThemeStyle = 'classic' | 'sheet' | 'studio' | 'leaflet';
 
 export type ThemePattern = 'dots' | 'grid' | 'stripes';
 
@@ -46,6 +48,8 @@ export interface ThemeBackground {
     pattern?: ThemePattern;
     imageUrl?: string;
 }
+
+export const THEME_STYLES: ReadonlyArray<ThemeStyle> = ['classic', 'sheet', 'studio', 'leaflet'];
 
 export interface FormTheme {
     title: string;
@@ -72,6 +76,17 @@ export const ThemeColors: Array<FormTheme> = [
         secondary: '#7C2D12',
         tertiary: '#78716C',
         accent: '#FAF6F0'
+    },
+    {
+        // White sheet, near-black ink, deep navy for section bars and
+        // buttons, a slate control edge (4.3:1 on white). Picking it also
+        // switches the form to the Leaflet style it was made for.
+        title: 'Leaflet',
+        primary: '#1A1A1A',
+        secondary: '#0B3D91',
+        tertiary: '#6B7A99',
+        accent: '#FFFFFF',
+        style: 'leaflet'
     },
     {
         title: 'Ocean',

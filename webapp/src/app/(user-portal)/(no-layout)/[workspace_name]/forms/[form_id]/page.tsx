@@ -159,7 +159,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         // a phone's browser bars.
         <div className="relative flex h-dvh w-screen flex-col">
             {data?.builderVersion === 'v2' && (
-                <div className="relative min-h-0 flex-1">
+                <div className="relative min-h-0 flex-1" data-fit-area>
                     <Form />
                 </div>
             )}
@@ -175,6 +175,8 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                         // both; a strip with the toggle elsewhere, and on phones,
                         // where the open panel would take half the screen.
                         defaultExpanded={currentSlide === -1 && roomy}
+                        // ...and only when Start stays in view with it open.
+                        protectPrimaryAction
                     />
                 </div>
             )}

@@ -1,39 +1,32 @@
-import { RadioGroup } from '@headlessui/react';
-
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
 import { yesNoChoices } from '@app/utils/yes-no-choices';
+import { ChoiceContent, choiceRowStyle } from '@app/views/atoms/choice';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
-const YesNoField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
+/**
+ * The canvas's Yes/No: the respondent's option rows (atoms/choice.tsx), drawn
+ * unselected and inert, so the canvas previews what respondents get.
+ */
+const YesNoField = ({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { theme } = useFormState();
+    const rowTheme = slide.properties?.theme?.secondary ? { ...theme, ...slide.properties.theme } : theme;
+    const ruled = styleTokens(rowTheme?.style).ruledChoices;
 
     return (
-        <>
-            <RadioGroup className={'flex w-min flex-col gap-2'} value={field.value} onChange={() => {}}>
-                {field &&
-                    yesNoChoices(field).map((choice, index) => {
-                        return (
-                            <RadioGroup.Option value={choice.value} key={index}>
-                                <div
-                                    style={{
-                                        borderColor: slide.properties?.theme?.tertiary || theme?.tertiary,
-                                        // Ink, matching the responder rendering.
-                                        color: slide.properties?.theme?.primary || theme?.primary,
-                                        // Radius from the theme's style — the canvas previews what
-                                        // responders get (hardcoded rounded-xl left the builder with
-                                        // mixed radii next to the token-driven shared inputs).
-                                        borderRadius: styleTokens((slide.properties?.theme || theme)?.style).inputRadius
-                                    }}
-                                    className={`flex w-[100px] justify-between border p-2 px-4`}
-                                >
-                                    {choice.value}
-                                </div>
-                            </RadioGroup.Option>
-                        );
-                    })}
-            </RadioGroup>
-        </>
+        <div className={ruled ? 'flex w-full flex-col' : 'flex w-full max-w-xs flex-col gap-2'} aria-hidden="true">
+            {field &&
+                yesNoChoices(field).map((choice, index) => {
+                    const row = choiceRowStyle(rowTheme, false);
+                    return (
+                        <div key={index} className={row.className} style={row.style}>
+                            <ChoiceContent kind="radio" theme={rowTheme} solid={row.solid}>
+                                {choice.value}
+                            </ChoiceContent>
+                        </div>
+                    );
+                })}
+        </div>
     );
 };
 

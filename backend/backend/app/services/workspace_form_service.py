@@ -56,7 +56,7 @@ from backend.app.services.publish_checks import (
     PUBLISH_CHECKS_VERSION,
     ensure_publishable,
 )
-from backend.app.services.policy_url import checked_policy_url
+from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.retention import checked_retention, submission_expiry
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -81,6 +81,23 @@ def _unprocessable_unless(check, *args):
         return check(*args)
     except ValueError as error:
         raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+
+
+def _check_ending_links(form, drop_unusable: bool, keep_as_is=()) -> None:
+    """Every ending page's button link must be an absolute http(s) URL (422
+    otherwise). A copy (``drop_unusable``) drops an unusable link instead, and
+    so does an edit that sends back a link the form already had
+    (``keep_as_is``): it was stored before this rule and is no change."""
+    for page in getattr(form, "thankyou_page", None) or []:
+        try:
+            link = checked_button_link(page.buttonLink)
+        except ValueError as error:
+            if drop_unusable or page.buttonLink in keep_as_is:
+                page.buttonLink = None
+                continue
+            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+        if link is not None:
+            page.buttonLink = link
 
 
 def _usable_settings(form_settings: StandardFormSettings, drop_unusable: bool):
@@ -510,6 +527,7 @@ class WorkspaceFormService:
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        _check_ending_links(form, drop_unusable=drop_unusable_settings)
         settings = (
             form.settings
             if form.settings
@@ -582,6 +600,7 @@ class WorkspaceFormService:
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        await self._check_ending_links_on_update(form, form_id)
         workspace_form = await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)
         )
@@ -630,6 +649,17 @@ class WorkspaceFormService:
                 else existing_form.cover_image
             )
         return await self.form_service.update_form(form_id=form_id, form=form)
+
+    async def _check_ending_links_on_update(self, form, form_id) -> None:
+        try:
+            _check_ending_links(form, drop_unusable=False)
+        except HTTPException:
+            stored = await self.form_service.get_form_document_by_id(str(form_id))
+            stored_links = {
+                page.buttonLink
+                for page in (getattr(stored, "thankyou_page", None) or [])
+            }
+            _check_ending_links(form, drop_unusable=False, keep_as_is=stored_links)
 
     async def upload_files_to_s3_and_update_url(
         self,

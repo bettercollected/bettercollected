@@ -71,7 +71,7 @@ export default function TrustSettingsEditor() {
         await save(kind === 'forever' ? { responseExpirationType: 'forever' } : { responseExpirationType: kind, responseExpiration: value.trim() });
     };
     // The enforced period, with the creator's explanation next to it.
-    const previewRetention = [describeRetention({ ...(form?.settings as any), responseExpirationType: keepKind, responseExpiration: keepValue }, tRespondent, language), retentionExplanation({ retentionText: retention })].filter(Boolean).join(' ');
+    const previewRetention = [describeRetention({ ...(form?.settings as any), responseExpirationType: keepKind, responseExpiration: keepValue }, tRespondent, language, 'value'), retentionExplanation({ retentionText: retention })].filter(Boolean).join(' ');
 
     const inputClass = 'border-control focus:border-black-400 w-full rounded-lg border p-2 text-xs';
 

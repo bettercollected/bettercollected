@@ -15,6 +15,8 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import { DateRuleContext, getDateRuleError, getDisabledDayMatcher, isoToLocalDate, resolveDateRuleBounds, toIsoDate, todayIso } from '@app/utils/date-rules';
 
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+
 import QuestionWrapper from './question-wrapper';
 import { ThemedCalendar } from './themed-calendar';
 
@@ -92,11 +94,12 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         id={buttonId}
                         type="button"
                         className={cn(
-                            'flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-4 py-3 text-base outline-hidden transition duration-150 hover:border-(--hover-border)! focus-visible:ring-2 lg:text-lg',
+                            'flex min-h-12 w-full cursor-pointer items-center gap-2 border bg-white px-4 py-3 text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg',
                             isBuilder && 'pointer-events-none'
                         )}
                         style={{
                             ['--hover-border' as string]: theme?.primary ?? '#101828',
+                            borderRadius: styleTokens(theme?.style).inputRadius,
                             borderColor: tertiaryColor ?? '#818CA0',
                             // Chosen date is content (ink); empty state a legible neutral.
                             color: date ? theme?.primary : '#667085'

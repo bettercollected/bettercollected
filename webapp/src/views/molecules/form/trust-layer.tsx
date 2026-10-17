@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 
 import { ChevronDown, Shield } from 'lucide-react';
 import { Trans } from 'react-i18next';
@@ -9,8 +9,11 @@ import useRespondentLanguage, { RESPONDENT_LANGUAGES } from '@app/lib/hooks/use-
 import { StandardFormDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
+import { useFormState } from '@app/store/jotai/form';
 import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
+import { measurePrimaryActionFit } from '@app/utils/panel-fit';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, FORM_GUTTER, columnPlacementClass } from '@app/views/organism/layout/form-column';
 
 export interface TrustLayerProps {
@@ -37,6 +40,12 @@ export interface TrustLayerProps {
      */
     defaultExpanded?: boolean;
     /**
+     * Open by default only when the page's primary action (the welcome
+     * page's Start or Verify button, `[data-primary-action]`) stays in view
+     * with the panel open. Until that is measured the panel stays closed.
+     */
+    protectPrimaryAction?: boolean;
+    /**
      * The page's layout, so the strip and panel content sit in the same
      * column as the form above them ("Left aligned" pages keep the column
      * against the left gutter).
@@ -51,20 +60,59 @@ export interface TrustLayerProps {
  * identity is needed, whether AI is used on them, and the respondent's rights.
  * Dutch and English (`respondent` namespace), in the respondent's language.
  */
-export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl, poweredBy, defaultExpanded = false, layout }: TrustLayerProps) {
+const PANEL_CLASS = 'pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]';
+
+export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout }: TrustLayerProps) {
     // The form's column (form-column.ts): one left and right edge from the
     // page header down to this footer.
     const column = cn(FORM_COLUMN, columnPlacementClass(layout));
     const { t, language, setLanguage } = useRespondentLanguage();
-    const [expanded, setExpanded] = useState(defaultExpanded);
+    // The Leaflet style sets the panel's terms like its margin notes
+    // ("How long they are kept:") and marks the chosen language in its navy.
+    const { theme } = useFormState();
+    const leaflet = styleTokens(theme?.style).key === 'leaflet';
+    // Keep closed until measured when the primary action is protected.
+    const [actionFits, setActionFits] = useState(false);
+    const openByDefault = defaultExpanded && (!protectPrimaryAction || actionFits);
+    const [expanded, setExpanded] = useState(openByDefault);
     const touchedRef = useRef(false);
+    const panelRef = useRef<HTMLElement>(null);
+    const measureRef = useRef<HTMLElement>(null);
+    const measuring = defaultExpanded && protectPrimaryAction && !touchedRef.current;
     const toggleRef = useRef<HTMLButtonElement>(null);
     const panelId = useId();
     const toggleId = useId();
 
-    useEffect(() => {
-        if (!touchedRef.current) setExpanded(defaultExpanded);
-    }, [defaultExpanded]);
+    // Before paint, so a panel that may open never shows closed first.
+    useLayoutEffect(() => {
+        if (!touchedRef.current) setExpanded(openByDefault);
+    }, [openByDefault]);
+
+    // Measure after layout, before paint, and again whenever the page's size
+    // changes: does the content up to the primary action still fit above the
+    // open panel?
+    useLayoutEffect(() => {
+        if (!measuring) return;
+        const measure = () => {
+            if (touchedRef.current) return;
+            const fit = measurePrimaryActionFit(document, {
+                panelHeight: measureRef.current?.offsetHeight ?? 0,
+                openPanelHeight: expanded ? (panelRef.current?.offsetHeight ?? 0) : 0
+            });
+            setActionFits(fit);
+        };
+        measure();
+        const area = document.querySelector('[data-fit-area]');
+        const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+        if (observer && area) observer.observe(area);
+        const action = document.querySelector('[data-primary-action]');
+        if (observer && action) observer.observe(action);
+        window.addEventListener('resize', measure);
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener('resize', measure);
+        };
+    }, [measuring, expanded]);
 
     const toggle = () => {
         touchedRef.current = true;
@@ -91,7 +139,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
         // The enforced period always; the creator's explanation next to it.
         detail: (
             <>
-                {describeRetention(settings as StandardFormDto['settings'], t, language)}
+                {describeRetention(settings as StandardFormDto['settings'], t, language, 'value')}
                 {retentionNote && (
                     <>
                         {' '}
@@ -120,6 +168,43 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
             </>
         )
     });
+
+    const panelBody = (
+        <div className={cn(column, 'flex flex-col gap-3')}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[15px] font-semibold text-black-900">{t('PRIVACY.PANEL_LABEL')}</h2>
+                <div role="group" aria-label={t('PRIVACY.LANGUAGE')} className="flex overflow-hidden rounded-md border border-black-300 text-[12px]">
+                    {RESPONDENT_LANGUAGES.map((option) => (
+                        <button
+                            key={option.code}
+                            type="button"
+                            lang={option.code}
+                            aria-pressed={language === option.code}
+                            onClick={() => setLanguage(option.code)}
+                            className={`px-2 py-1 font-medium ${language === option.code ? (leaflet ? 'text-white' : 'bg-black-900 text-white') : 'bg-white text-black-700 hover:bg-black-100'}`}
+                            style={leaflet && language === option.code ? { background: theme?.secondary } : undefined}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <dl className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2" lang={language}>
+                {rows.map((row) => (
+                    <div key={row.key} data-testid={`privacy-${row.key}`}>
+                        <dt className={leaflet ? 'text-[14px] font-semibold text-black-900' : 'text-[12px] font-semibold tracking-wide text-black-600 uppercase'}>{leaflet ? `${row.term}:` : row.term}</dt>
+                        <dd className="text-black-800">{row.detail}</dd>
+                    </div>
+                ))}
+            </dl>
+            {privacyUrl && (
+                <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="w-fit font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700">
+                    {t('PRIVACY.POLICY_LINK')}
+                    {newTab}
+                </a>
+            )}
+        </div>
+    );
 
     return (
         // The strip comes first in the DOM, so after the toggle the keyboard
@@ -174,6 +259,13 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                     )}
                 </div>
             </div>
+            {/* An unseen copy of the panel, measured while the page decides whether
+                it may open by default (see `protectPrimaryAction`). */}
+            {measuring && (
+                <section aria-hidden="true" inert ref={measureRef} className={cn(PANEL_CLASS, FORM_GUTTER)} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+                    {panelBody}
+                </section>
+            )}
             {expanded && (
                 <section
                     id={panelId}
@@ -185,41 +277,10 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
                             toggleRef.current?.focus();
                         }
                     }}
-                    className={cn('pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]', FORM_GUTTER)}
+                    ref={panelRef}
+                    className={cn(PANEL_CLASS, FORM_GUTTER)}
                 >
-                    <div className={cn(column, 'flex flex-col gap-3')}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <h2 className="text-[15px] font-semibold text-black-900">{t('PRIVACY.PANEL_LABEL')}</h2>
-                            <div role="group" aria-label={t('PRIVACY.LANGUAGE')} className="flex overflow-hidden rounded-md border border-black-300 text-[12px]">
-                                {RESPONDENT_LANGUAGES.map((option) => (
-                                    <button
-                                        key={option.code}
-                                        type="button"
-                                        lang={option.code}
-                                        aria-pressed={language === option.code}
-                                        onClick={() => setLanguage(option.code)}
-                                        className={`px-2 py-1 font-medium ${language === option.code ? 'bg-black-900 text-white' : 'bg-white text-black-700 hover:bg-black-100'}`}
-                                    >
-                                        {option.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <dl className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2" lang={language}>
-                            {rows.map((row) => (
-                                <div key={row.key} data-testid={`privacy-${row.key}`}>
-                                    <dt className="text-[12px] font-semibold tracking-wide text-black-600 uppercase">{row.term}</dt>
-                                    <dd className="text-black-800">{row.detail}</dd>
-                                </div>
-                            ))}
-                        </dl>
-                        {privacyUrl && (
-                            <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="w-fit font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700">
-                                {t('PRIVACY.POLICY_LINK')}
-                                {newTab}
-                            </a>
-                        )}
-                    </div>
+                    {panelBody}
                 </section>
             )}
         </div>

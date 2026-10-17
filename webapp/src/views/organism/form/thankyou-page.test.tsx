@@ -31,8 +31,8 @@ describe('ThankyouPage', () => {
         // non-null assertion + [0] here crashed the post-submit screen.
         store.dispatch(setForm({ formId: 'form-no-typ', title: 'No thankyou', thankyouPage: null, fields: [] }));
         renderPage();
-        expect(screen.getByText('Thank You! 🎉')).toBeDefined();
-        expect(screen.getByText(/successfully submitted/)).toBeDefined();
+        expect(screen.getByRole('heading', { level: 1, name: 'Thank you' })).toBeDefined();
+        expect(screen.getByText('Your answers have been sent.')).toBeDefined();
     });
 
     it('renders the custom title, message and button when set', () => {
@@ -48,6 +48,25 @@ describe('ThankyouPage', () => {
         expect(screen.getByText('Cheers!')).toBeDefined();
         expect(screen.getByText('We got it.')).toBeDefined();
         expect(screen.getByText('Visit us')).toBeDefined();
+    });
+
+    it('opens only an http(s) button link and leaves out any other', () => {
+        const page = (buttonLink: string) =>
+            render(
+                <ReduxProvider store={store}>
+                    <Provider>
+                        <ThankyouPage isPreviewMode={false} />
+                    </Provider>
+                </ReduxProvider>
+            );
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        store.dispatch(setForm({ formId: 'form-typ-l', title: 'Links', fields: [], thankyouPage: [{ buttonText: 'Visit us', buttonLink: 'https://example.com/next' }] }));
+        const { unmount } = page('');
+        expect(screen.getByRole('link', { name: 'Visit us' }).getAttribute('href')).toBe('https://example.com/next');
+        unmount();
+        store.dispatch(setForm({ formId: 'form-typ-x', title: 'Links', fields: [], thankyouPage: [{ buttonText: 'Visit us', buttonLink: 'javascript:alert(1)' }] }));
+        page('');
+        expect(screen.queryByText('Visit us')).toBeNull();
     });
 
     it('honours the page layout: "Centered" centres the content, "Left aligned" does not', () => {

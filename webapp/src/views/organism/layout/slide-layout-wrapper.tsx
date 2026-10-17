@@ -15,9 +15,10 @@ interface ISlideLayoutWrapperProps {
     theme?: FormTheme;
     scrollDivId?: string;
     showDesktopLayout?: boolean;
+    topAligned?: boolean;
 }
 
-export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId, showDesktopLayout }: ISlideLayoutWrapperProps) {
+export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId, showDesktopLayout, topAligned }: ISlideLayoutWrapperProps) {
     const { updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
 
     // A slide-level theme (when present) wins over the form theme — resolved
@@ -39,6 +40,7 @@ export default function SlideLayoutWrapper({ slide, children, theme, disabled = 
             style={style}
             theme={effectiveTheme}
             scrollDivId={scrollDivId}
+            topAligned={topAligned}
         >
             {children}
         </LayoutWrapper>

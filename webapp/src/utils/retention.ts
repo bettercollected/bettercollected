@@ -34,19 +34,22 @@ export function retentionDate(value: unknown): string | null {
  * nothing is invented: answers are kept until deleted. The creator's own
  * wording never replaces it (see `retentionExplanation`).
  */
-export function describeRetention(settings: FormSettings | undefined, t: Translate, language: string): string {
+export function describeRetention(settings: FormSettings | undefined, t: Translate, language: string, variant: 'sentence' | 'value' = 'sentence'): string {
+    // 'value' reads after a "How long they are kept:" label (the Leaflet
+    // ending): just the period, without repeating "kept".
+    const k = (key: string) => `${variant === 'value' ? 'RETENTION_VALUE' : 'RETENTION'}.${key}`;
     if (settings?.responseExpirationType === 'days') {
         const days = retentionDays(settings.responseExpiration);
-        if (days) return t('RETENTION.DAYS', { count: days });
+        if (days) return t(k('DAYS'), { count: days });
     }
     if (settings?.responseExpirationType === 'date') {
         const day = retentionDate(settings.responseExpiration);
         if (day) {
             const date = new Intl.DateTimeFormat(language === 'nl' ? 'nl-NL' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`));
-            return t('RETENTION.UNTIL_DATE', { date });
+            return t(k('UNTIL_DATE'), { date });
         }
     }
-    return t('RETENTION.UNTIL_DELETED');
+    return t(k('UNTIL_DELETED'));
 }
 
 /**

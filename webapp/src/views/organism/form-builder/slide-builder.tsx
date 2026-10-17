@@ -2,7 +2,7 @@
 
 import cn from 'classnames';
 
-import { StandardFormFieldDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -24,6 +24,11 @@ function fieldTypeLabel(type?: string) {
     if (known) return known.name;
     return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
 }
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { actionInk, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
+
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
@@ -40,14 +45,72 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     // Plain-language tips use the form's declared language when it has one.
     const form = useAppSelector(selectForm);
     const plainLanguage = { formId: form?.formId, formLanguage: form?.settings?.language };
+    // Leaflet (WYSIWYG with the respondent page): the numbered section bar,
+    // the opening text block on the intro band, n.m numbers in the margin.
+    // The canvas shows every field, so numbering follows the page's order.
+    const leaflet = styleTokens(theme?.style).key === 'leaflet';
+    const section = leaflet ? leafletSection(slideFields ?? [], `Section ${(slide?.index ?? 0) + 1}`) : null;
+    const numbers = leaflet ? questionNumbers(slideFields ?? [], (slide?.index ?? 0) + 1) : {};
+    const numberInk = actionInk(theme);
+    // The page's opening text block is edited where respondents see it: its
+    // heading as the title on the navy section bar, the rest on the intro
+    // band (one editor, dressed per block), instead of a second copy below.
+    const opening = leaflet && slideFields?.[0]?.type === FieldTypes.TEXT ? slideFields[0]! : null;
+    const openingDoc = opening && typeof opening.title === 'object' ? (opening.title as any) : null;
+    const headingOnBar = !!openingDoc && openingDoc.content?.[0]?.type === 'heading';
+    const sectionNumber = (slide?.index ?? 0) + 1;
+    const marginVar = leaflet ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbers, sectionNumber)}px` } as React.CSSProperties) : undefined;
+    const selectOpening = (event: React.SyntheticEvent) => {
+        event.stopPropagation();
+        if (opening) setActiveFieldComponent({ id: opening.id, index: 0 });
+    };
 
     return (
-        <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
+        <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet}>
+            {leaflet && section && (
+                <div style={marginVar}>
+                    <LeafletTopRule theme={theme} />
+                    {!headingOnBar && <LeafletSectionBar theme={theme} numeral={sectionNumber} title={section.shortTitle} fullTitle={section.title} layout={slide.properties?.layout} />}
+                    {opening && (
+                        <div
+                            // Full width like the respondent's bar and band; the
+                            // heading's navy reaches the page edges through a
+                            // filled border image (no box, no shadow), clipped here.
+                            className={cn('-mx-5 overflow-x-clip px-5 sm:-mx-8 sm:px-8', !headingOnBar && 'py-4')}
+                            style={{ background: leafletColours(theme).band, color: theme?.primary }}
+                            data-testid="leaflet-canvas-opening"
+                        >
+                            <div
+                                tabIndex={-1}
+                                onClick={selectOpening}
+                                onFocus={selectOpening}
+                                className={cn(
+                                    FORM_COLUMN,
+                                    columnPlacementClass(slide.properties?.layout),
+                                    'relative cursor-text',
+                                    activeFieldComponent?.id === opening.id && 'outline-2 outline-offset-2 outline-[#123FC9]',
+                                    headingOnBar &&
+                                        "[&_.ProseMirror>*:first-child]:relative [&_.ProseMirror>*:first-child]:py-3.5 [&_.ProseMirror>*:first-child]:pl-[var(--leaflet-margin,34px)] [&_.ProseMirror>*:first-child]:text-[22px]! [&_.ProseMirror>*:first-child]:leading-[1.25]! [&_.ProseMirror>*:first-child]:font-semibold! [&_.ProseMirror>*:first-child]:text-white [&_.ProseMirror>*:first-child]:font-(family-name:--leaflet-serif) [&_.ProseMirror>*:first-child]:[border-image:conic-gradient(var(--leaflet-bar)_0_0)_fill_0//0_100vmax] [&_.ProseMirror>*:first-child]:before:absolute [&_.ProseMirror>*:first-child]:before:left-0 [&_.ProseMirror>*:first-child]:before:top-3.5 [&_.ProseMirror>*:first-child]:before:text-[28px] [&_.ProseMirror>*:first-child]:before:leading-none [&_.ProseMirror>*:first-child]:before:tabular-nums [&_.ProseMirror>*:first-child]:before:content-(--leaflet-numeral) [&_.ProseMirror>*:nth-child(2)]:mt-4! [&_.ProseMirror>*:last-child:not(:first-child)]:mb-4 [&_.ProseMirror]:leading-[1.6]"
+                                )}
+                                style={
+                                    {
+                                        '--leaflet-bar': theme?.secondary,
+                                        '--leaflet-serif': leafletSerif.style.fontFamily,
+                                        '--leaflet-numeral': `"${sectionNumber}"`
+                                    } as React.CSSProperties
+                                }
+                            >
+                                <RichTextEditor field={opening} slide={slide} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
             {/* WYSIWYG: the same form column, 48px question rhythm and
                 vertical placement as the respondent page (form-column.ts);
                 pt-12 matches the space the respondent page keeps for its
                 header bar. */}
-            <div className="w-full pt-12">
+            <div className={cn('w-full', leaflet ? 'pt-7' : 'pt-12')} style={marginVar}>
                 <div
                     className={cn(
                         FORM_COLUMN,
@@ -59,9 +122,11 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                     <AnimatePresence>
                         {Array.isArray(slideFields) && slideFields.length ? (
                             slideFields.map((field, index) => {
+                                if (opening && field.id === opening.id) return null;
                                 // Tips show for the question being edited only, so the canvas stays calm.
                                 const showHints = !disabled && !isScaledDown && activeFieldComponent?.id === field.id;
                                 const titleHintsId = `plain-language-title-${field.id}`;
+                                const number = numbers[field.id];
                                 return (
                                     <motion.div
                                         key={field.id}
@@ -149,9 +214,14 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                         <MoveUpDown slideIndex={slide.index} field={field} />
                                                     </div>
                                                 )}
-                                                <div className={cn('mb-2 w-full')}>
-                                                    <div className="relative flex w-full items-center gap-2">
-                                                        {slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
+                                                <div className={cn('mb-2 w-full', number && '[&>*:not(:first-child)]:pl-[var(--leaflet-margin,34px)]')}>
+                                                    <div className={cn('relative w-full', number ? 'grid grid-cols-[var(--leaflet-margin,34px)_minmax(0,1fr)] items-baseline' : 'flex items-center gap-2')}>
+                                                        {number && (
+                                                            <span aria-hidden="true" className="text-[16px] leading-[1.4] tabular-nums" style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberInk }}>
+                                                                {number}
+                                                            </span>
+                                                        )}
+                                                        {!leaflet && slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
                                                         <RichTextEditor
                                                             field={field}
                                                             slide={slide}
@@ -163,7 +233,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                     {showHints && <PlainLanguageHints id={titleHintsId} value={field.title} {...plainLanguage} />}
                                                     <FieldDescription field={field} disabled={disabled} hints={showHints ? plainLanguage : undefined} />
                                                 </div>
-                                                {renderFieldWrapper(field, slide, disabled)}
+                                                <div className={cn('w-full', number && 'pl-[var(--leaflet-margin,34px)]')}>{renderFieldWrapper(field, slide, disabled)}</div>
                                             </div>
                                         </div>
                                     </motion.div>

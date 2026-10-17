@@ -87,7 +87,7 @@ describe('respondent text follows the respondent language', () => {
         threePages();
         const { unmount } = wrap(<WelcomePage isPreviewMode />);
         expect(await screen.findByRole('button', { name: 'Beginnen' })).toBeInTheDocument();
-        expect(screen.getByText('Bevestig je e-mailadres')).toBeInTheDocument();
+        expect(screen.getByText('Bevestig je e-mailadres.')).toBeInTheDocument();
         unmount();
 
         threePages('Aan de slag');
@@ -99,7 +99,7 @@ describe('respondent text follows the respondent language', () => {
         withLang('nl');
         store.dispatch(setForm({ formId: 'lang-ending', title: 'Bezoek', thankyouPage: null, fields: [] }));
         wrap(<ThankyouPage isPreviewMode />);
-        expect(await screen.findByText('Bedankt! 🎉')).toBeInTheDocument();
+        expect(await screen.findByText('Bedankt')).toBeInTheDocument();
         expect(screen.getByText('Je antwoorden zijn verstuurd.')).toBeInTheDocument();
     });
 });
