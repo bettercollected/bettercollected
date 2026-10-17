@@ -5,8 +5,12 @@ background (the form's and each page's own theme), the welcome and ending
 images, each page's layout image and each question's image, and the cover
 image. On a save each one is:
 
-- kept when it is first-party (``services/image_urls.py``);
-- rewritten to our Unsplash route when it is an ``images.unsplash.com`` photo;
+- kept when it is first-party (``services/image_urls.py``: our storage, a
+  canonical ``images.unsplash.com`` photo address, which respondents load
+  through our route, or a built-in image);
+- turned back into the canonical Unsplash address when it is an address of
+  our ``/images/unsplash`` route, on whatever host: a form never names one
+  particular API host;
 - kept as is when the stored draft already holds exactly that address, so a
   form saved before these checks keeps working and can still be edited
   (nothing a respondent's browser loads changes because of the save);

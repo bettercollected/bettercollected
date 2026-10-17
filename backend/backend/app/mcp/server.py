@@ -268,7 +268,12 @@ async def update_form(
     "maxLength"?:int,"minValue"?:num,"maxValue"?:num,"minChoices"?:int,"maxChoices"?:int,
     "pattern"?:str,"preset"?:"digits"|"letters"|"alphanumeric"}} (absent = unchanged, null clears;
     lengths/pattern: text questions, values: number, choices: multiple choice with several answers) ·
-    {"op":"set_question_numbering","pageId"?:str,"show":bool} (no pageId: every page).
+    {"op":"set_question_numbering","pageId"?:str,"show":bool} (no pageId: every page) ·
+    {"op":"set_theme_preset","name":str,"style"?:"classic"|"sheet"|"studio"|"leaflet"} (the
+    look: a theme preset by name, any case: Leaflet (the default for new forms), Default, Blue,
+    Green, Red, Black, Orange, Purple; no style = the preset's own (Leaflet) or the current one) ·
+    {"op":"update_theme","theme":{"title":str,"primary":str,"secondary":str,"tertiary":str,
+    "accent":str,"style"?:str,"background"?:{...}}} (exact colours of your own).
     References: add_page, add_field, add_group and duplicate_page (and the fields inside
     add_page/add_group) take "ref":"<name>"; later ops in the same call may use "$ref:<name>"
     wherever a page or field id is expected (pageId, fieldId, groupId, afterFieldId, toPageId,

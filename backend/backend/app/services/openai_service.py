@@ -367,8 +367,12 @@ class OpenAIService:
         if isinstance(why_we_ask, str) and why_we_ask.strip():
             properties["why_we_ask"] = why_we_ask.strip()[:WHY_WE_ASK_MAX_LENGTH]
         if type is not None and type == StandardFormFieldType.YES_NO:
+            # Stored the way the builder and the chat ops store them: "Yes" and
+            # "No" are fixed values (answers and logic map them to true and
+            # false) without a label, so the respondent form shows them in
+            # the respondent's language rather than in English.
             properties["choices"] = [
-                {"id": str(uuid.uuid4()), "label": "Yes", "value": "Yes"},
-                {"id": str(uuid.uuid4()), "label": "No", "value": "No"},
+                {"id": str(uuid.uuid4()), "value": "Yes"},
+                {"id": str(uuid.uuid4()), "value": "No"},
             ]
         return properties

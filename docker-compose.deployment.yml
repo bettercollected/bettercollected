@@ -166,12 +166,6 @@ services:
     # image: bettercollected/backend:nightly
     environment:
       AUTH_BASE_URL: http://auth:8000/api/v1
-      # Public address of this API as browsers reach it (same value as the
-      # webapp's API_ENDPOINT_HOST): Unsplash photos are served from it. Left
-      # empty, the stack still starts: Unsplash addresses are then kept as
-      # they are (respondents load them from Unsplash) and the backend logs a
-      # warning at startup.
-      API_PUBLIC_URL: ${API_PUBLIC_URL:-}
       AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
       # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
       # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
