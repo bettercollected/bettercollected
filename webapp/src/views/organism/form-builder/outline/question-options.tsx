@@ -3,8 +3,9 @@ import { useRef } from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { ArrowDown, ArrowUp, Ellipsis, FileInput } from 'lucide-react';
 
+import { jsonEqual } from '@app/lib/form-ops/model';
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@app/shadcn/components/ui/dropdown-menu';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useDocValue } from '@app/store/jotai/entity-hooks';
 import { outlinePageName } from '@app/utils/form-outline';
 
 import { outlineMenuItemClass, outlineMenuTriggerClass } from '../slide-options';
@@ -20,6 +21,8 @@ export default function QuestionOptions({
     title,
     pageIndex,
     fieldIndex,
+    pageCount,
+    pageFieldCount,
     visible,
     onMoved
 }: {
@@ -27,17 +30,20 @@ export default function QuestionOptions({
     title: string;
     pageIndex: number;
     fieldIndex: number;
+    /** How many pages the form has. */
+    pageCount: number;
+    /** How many questions the question's page has. */
+    pageFieldCount: number;
     visible: boolean;
     onMoved: (outcome: MoveOutcome) => void;
 }) {
-    const { formFields } = useFormFieldsAtom();
     const { moveQuestion, moveQuestionUp, moveQuestionDown } = useOutlineMoves();
     const moved = useRef(false);
     const run = (move: () => MoveOutcome) => {
         moved.current = true;
         onMoved(move());
     };
-    const isLastOnPage = fieldIndex >= (formFields[pageIndex]?.properties?.fields?.length ?? 0) - 1;
+    const isLastOnPage = fieldIndex >= pageFieldCount - 1;
 
     return (
         <DropdownMenuPrimitive.Root>
@@ -57,11 +63,11 @@ export default function QuestionOptions({
                     <ArrowUp className="h-4 w-4" aria-hidden="true" />
                     Move up
                 </DropdownMenuItem>
-                <DropdownMenuItem className={outlineMenuItemClass} disabled={pageIndex >= formFields.length - 1 && isLastOnPage} onSelect={() => run(() => moveQuestionDown(fieldId))}>
+                <DropdownMenuItem className={outlineMenuItemClass} disabled={pageIndex >= pageCount - 1 && isLastOnPage} onSelect={() => run(() => moveQuestionDown(fieldId))}>
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
                     Move down
                 </DropdownMenuItem>
-                {formFields.length > 1 && (
+                {pageCount > 1 && (
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger className={outlineMenuItemClass}>
                             <FileInput className="h-4 w-4" aria-hidden="true" />
@@ -69,19 +75,29 @@ export default function QuestionOptions({
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                             <DropdownMenuSubContent className="max-h-[320px] w-[220px] overflow-y-auto">
-                                {formFields.map((slide, index) =>
-                                    index === pageIndex ? null : (
-                                        <DropdownMenuItem key={slide.id} className={outlineMenuItemClass} onSelect={() => run(() => moveQuestion(fieldId, index, slide.properties?.fields?.length ?? 0))}>
-                                            <span className="text-black-600 w-5 shrink-0 text-xs tabular-nums">{index + 1}</span>
-                                            <span className="truncate">{outlinePageName(slide, index)}</span>
-                                        </DropdownMenuItem>
-                                    )
-                                )}
+                                <MoveToPageItems pageIndex={pageIndex} onPick={(index, count) => run(() => moveQuestion(fieldId, index, count))} />
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
                 )}
             </DropdownMenuContent>
         </DropdownMenuPrimitive.Root>
+    );
+}
+
+/** The other pages, while the "Move to page" submenu is open: a question goes to the end of the one picked. */
+function MoveToPageItems({ pageIndex, onPick }: { pageIndex: number; onPick: (index: number, count: number) => void }) {
+    const pages = useDocValue((doc) => (doc.fields ?? []).map((slide, index) => ({ id: slide.id, name: outlinePageName(slide, index), count: slide.properties?.fields?.length ?? 0 })), [], jsonEqual);
+    return (
+        <>
+            {pages.map((page, index) =>
+                index === pageIndex ? null : (
+                    <DropdownMenuItem key={page.id} className={outlineMenuItemClass} onSelect={() => onPick(index, page.count)}>
+                        <span className="text-black-600 w-5 shrink-0 text-xs tabular-nums">{index + 1}</span>
+                        <span className="truncate">{page.name}</span>
+                    </DropdownMenuItem>
+                )
+            )}
+        </>
     );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { getGroupChildren, getRepeatSettings, REPEAT_COLUMNS_EXPORT_MAX, REPEAT_MAX_ITEMS_LIMIT } from '@app/utils/repeating-groups';
 import { fieldText, selectClass } from './condition-editor-shared';
 
@@ -13,7 +13,7 @@ import { fieldText, selectClass } from './condition-editor-shared';
  * answer) and how exports lay the items out.
  */
 export default function RepeatingGroupSettings({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) {
-    const { updateGroupRepeat } = useFormFieldsAtom();
+    const { updateGroupRepeat } = useBuilderActions();
     const settings = getRepeatSettings(field);
     const stored = field.properties?.repeat ?? {};
     const [minText, setMinText] = useState(String(settings.minItems));

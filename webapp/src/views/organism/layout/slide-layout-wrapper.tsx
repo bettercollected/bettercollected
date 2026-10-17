@@ -4,7 +4,7 @@ import React from 'react';
 
 import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 
 import LayoutWrapper from './layout-wrapper';
@@ -22,7 +22,7 @@ interface ISlideLayoutWrapperProps {
 }
 
 export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId, showDesktopLayout, topAligned, logo }: ISlideLayoutWrapperProps) {
-    const { updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
+    const { updateSlideImage, updateSlideLayout } = useBuilderActions();
 
     // A slide-level theme (when present) wins over the form theme — resolved
     // once here so both the outer style and the LayoutWrapper ground agree.

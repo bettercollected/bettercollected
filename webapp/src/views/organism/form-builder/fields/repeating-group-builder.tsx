@@ -5,9 +5,11 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { formFieldsList } from '@app/constants/form-fields';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldConditionalLogic, LogicalOperator } from '@app/models/types/form-builder-shared';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { jsonEqual } from '@app/lib/form-ops/model';
+import { useBuilderFieldsValue } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { getGroupChildren, getRepeatSettings, newGroupChild, REPEAT_CHILD_FIELD_TYPES } from '@app/utils/repeating-groups';
-import { buildSourceFields, ConditionRow, fieldText, isConditionSource, newConditionFor, SourceField } from '@app/views/molecules/form-builder/condition-editor-shared';
+import { buildSourceFields, ConditionRow, fieldText, isConditionSource, newConditionFor, sameSourceFields, SourceField } from '@app/views/molecules/form-builder/condition-editor-shared';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import { getDateRuleSources } from '@app/utils/date-rules';
 import { asksForIdentity, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
@@ -16,7 +18,7 @@ const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type =
 const CHOICE_TYPES: string[] = [FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN];
 const PLACEHOLDER_TYPES: string[] = [FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.EMAIL, FieldTypes.NUMBER, FieldTypes.LINK, FieldTypes.PHONE_NUMBER];
 
-const inputClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-control bg-white px-2 py-1.5 text-sm outline-hidden';
+const inputClass ='text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-control bg-white px-2 py-1.5 text-sm outline-hidden';
 const iconButton = 'text-black-600 hover:bg-black-100 rounded p-1 disabled:opacity-30';
 
 /**
@@ -26,8 +28,23 @@ const iconButton = 'text-black-600 hover:bg-black-100 rounded p-1 disabled:opaci
  * Limits and labels live in the settings panel (RepeatingGroupSettings).
  */
 export default function RepeatingGroupBuilder({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled?: boolean }) {
-    const { formFields, updateGroupChildren } = useFormFieldsAtom();
+    const { updateGroupChildren } = useBuilderActions();
     const children = getGroupChildren(field);
+    const slideIndex = slide.index;
+    const fieldIndex = field.index;
+    // Rules inside an item may use the item's earlier questions (same item)
+    // and any question answered before the group. Derived from the form, so
+    // this group re-renders only when those questions change.
+    const outerSources = useBuilderFieldsValue(
+        (formFields) => buildSourceFields(formFields || [], (_s, sIdx, f) => (sIdx < slideIndex || (sIdx === slideIndex && f.index < fieldIndex)) && isConditionSource(f)),
+        [slideIndex, fieldIndex],
+        sameSourceFields
+    );
+    const dateChildIds = children
+        .filter((child) => child.type === FieldTypes.DATE)
+        .map((child) => child.id)
+        .join(',');
+    const dateSources = useBuilderFieldsValue((formFields) => Object.fromEntries(dateChildIds.split(',').filter(Boolean).map((id) => [id, getDateRuleSources(formFields || [], id)])), [dateChildIds], jsonEqual);
     const { itemLabel, minItems, maxItems } = getRepeatSettings(field);
 
     const commit = (next: StandardFormFieldDto[]) => updateGroupChildren(slide.index, field.id, next);
@@ -40,9 +57,6 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
         commit(next);
     };
 
-    // Rules inside an item may use the item's earlier questions (same item)
-    // and any question answered before the group.
-    const outerSources = buildSourceFields(formFields || [], (_s, sIdx, f) => (sIdx < slide.index || (sIdx === slide.index && f.index < field.index)) && isConditionSource(f));
     const sourcesFor = (index: number): SourceField[] => [
         ...children
             .slice(0, index)
@@ -194,7 +208,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                         {child.type === FieldTypes.DATE && (
                             <DateFieldSettings
                                 field={child}
-                                sources={getDateRuleSources(formFields || [], child.id)}
+                                sources={dateSources[child.id] ?? []}
                                 onChange={(patch) => patchProps(child, patch)}
                                 sourceHint={`Rules can compare with an earlier date question of the same ${itemLabel.toLowerCase()}.`}
                             />

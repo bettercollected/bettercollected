@@ -1,20 +1,28 @@
 'use client';
 
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Announcements, closestCenter, DndContext, DragEndEvent, DragOverlay, DragStartEvent, KeyboardSensor, MeasuringStrategy, Modifier, PointerSensor, UniqueIdentifier, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Atom, atom, useAtomValue, useSetAtom } from 'jotai';
+import { selectAtom } from 'jotai/utils';
 import { AlertTriangle, ChevronRight, GripVertical, Lock, Plus, Search } from 'lucide-react';
 
 import { useEndingActions } from '@app/lib/hooks/use-ending-actions';
+import { jsonEqual } from '@app/lib/form-ops/model';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
-import { ActiveFormBuilderComponent, useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
+import { ActiveFormBuilderComponent, activeFieldAtom, activeSlideAtom, useActiveFieldComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import { useAIProposalHighlights } from '@app/store/jotai/ai-proposal';
-import { useFormState } from '@app/store/jotai/form';
+import { useDocValue, useField, usePageFieldIds } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
+import { formStateAtom, useFormState } from '@app/store/jotai/form';
+import { onDocumentReset } from '@app/store/jotai/form-document';
+import { pageAtom, pageIdsAtom } from '@app/store/jotai/form-document-selectors';
+import { defaultEndingIndex, ENDING_NAME_MAX_LENGTH, endingLabel, isEndingReachable, withEndingIds } from '@app/utils/endings';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
-import { defaultEndingIndex, ENDING_NAME_MAX_LENGTH, endingLabel, isEndingReachable } from '@app/utils/endings';
 import { isPageKey, keyId, locateField, outlinePageName, pageKey, pageStatus, PageStatus, questionDropTarget, questionKey, questionMatches, resolveOutlineDrop } from '@app/utils/form-outline';
 import { asksForIdentity } from '@app/utils/publish-checks';
 import { fieldText } from '@app/views/molecules/form-builder/condition-editor-shared';
@@ -186,20 +194,241 @@ function EndingNameInput({ initial, placeholder, onDone }: { initial: string; pl
     );
 }
 
-interface ShownPage {
-    slide: StandardFormFieldDto;
-    index: number;
-    name: string;
-    expanded: boolean;
-    questions: Array<{ field: StandardFormFieldDto; index: number; title: string }>;
+
+/** The endings as the outline shows them (ids given; a form without any shows the default one). */
+const outlineEndingsAtom = atom((get) => {
+    const thankyouPage = get(formStateAtom).thankyouPage;
+    return withEndingIds(thankyouPage?.length ? thankyouPage : [{ layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }]);
+});
+
+/** What a page's outline row shows that depends on its questions. */
+interface OutlinePageView {
+    count: number;
+    sectionTitle: string;
+    status: PageStatus;
 }
 
-function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<StandardFormFieldDto>; activeSlideComponent: ActiveFormBuilderComponent | null }) {
-    const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
-    const { setActiveSlideComponent } = useActiveSlideComponent();
+const pageViewAtoms = new Map<string, Atom<OutlinePageView | null>>();
+onDocumentReset(() => pageViewAtoms.clear());
+
+/** A page's row view, recomputed only when that page (or the page list, or the endings) changes. */
+function outlinePageViewAtom(id: string): Atom<OutlinePageView | null> {
+    let cached = pageViewAtoms.get(id);
+    if (!cached) {
+        const view = atom((get): OutlinePageView | null => {
+            const page = get(pageAtom(id));
+            if (!page) return null;
+            return { count: page.properties?.fields?.length ?? 0, sectionTitle: page.properties?.sectionTitle ?? '', status: pageStatus(page, new Set(get(pageIdsAtom)), get(outlineEndingsAtom)) };
+        });
+        cached = selectAtom(view, (value) => value, jsonEqual);
+        pageViewAtoms.set(id, cached);
+    }
+    return cached;
+}
+
+/** A page and the questions shown under it (all, or those matching the filter). */
+interface OutlineEntry {
+    id: string;
+    questionIds: string[];
+}
+
+type SelectPage = (pageId: string, index: number) => void;
+type SelectQuestion = (pageId: string, pageIndex: number, fieldId: string, fieldIndex: number) => void;
+type MenuMoved = (key: string, outcome: MoveOutcome) => void;
+
+/**
+ * A question's row in the outline. It subscribes to that question only, so
+ * typing in a question re-renders its row and no other.
+ */
+const OutlineQuestionRow = memo(function OutlineQuestionRow({
+    fieldId,
+    pageId,
+    pageIndex,
+    fieldIndex,
+    pageCount,
+    pageFieldCount,
+    selected,
+    filtering,
+    aiMark,
+    onSelectQuestion,
+    onMenuMoved
+}: {
+    fieldId: string;
+    pageId: string;
+    pageIndex: number;
+    fieldIndex: number;
+    pageCount: number;
+    pageFieldCount: number;
+    selected: boolean;
+    filtering: boolean;
+    aiMark?: string;
+    onSelectQuestion: SelectQuestion;
+    onMenuMoved: MenuMoved;
+}) {
+    const field = useField(fieldId);
+    if (!field) return null;
+    const qKey = questionKey(fieldId);
+    const title = fieldText(field);
+    const missingWhy = !field.internal && asksForIdentity(field) && !field.properties?.whyWeAsk?.trim();
+    return (
+        <li>
+            <SortableRow id={qKey} label={`question ${title}`} disabled={filtering} selected={selected}>
+                {(handle) => (
+                    <>
+                        {handle}
+                        <button type="button" data-outline-key={qKey} className={cn(selectButtonClass, 'flex-row items-center gap-1')} aria-current={selected ? 'true' : undefined} onClick={() => onSelectQuestion(pageId, pageIndex, fieldId, fieldIndex)}>
+                            <span className="text-black-800 min-w-0 flex-1 truncate text-sm">{title}</span>
+                            {aiMark && (
+                                <span title={aiMark === 'added' ? 'The AI proposes adding this question' : 'The AI proposes changing this question'} className="shrink-0 rounded bg-[#FDF3E7] px-1 text-[10px] font-semibold leading-4 text-[#8A4A08]">
+                                    <span aria-hidden="true">AI</span>
+                                    <span className="sr-only">, {aiMark === 'added' ? 'added' : 'changed'} by an AI proposal</span>
+                                </span>
+                            )}
+                            {missingWhy && (
+                                <span title='Asks for personal details without a "Why we ask this" line' className="text-brand-olive shrink-0">
+                                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                                    <span className="sr-only">, missing why we ask</span>
+                                </span>
+                            )}
+                            {fieldHasLogic(field) && (
+                                <span title="Shown or hidden by a logic rule" className="text-brand-500 shrink-0">
+                                    <LogicOutlinedIcon className="h-3 w-3" aria-hidden="true" />
+                                    <span className="sr-only">, has logic</span>
+                                </span>
+                            )}
+                            {field.internal && (
+                                <span title="Internal: respondents never see it" className="text-black-600 shrink-0">
+                                    <Lock className="h-3 w-3" aria-hidden="true" />
+                                    <span className="sr-only">, internal</span>
+                                </span>
+                            )}
+                        </button>
+                        <QuestionOptions fieldId={fieldId} title={title} pageIndex={pageIndex} fieldIndex={fieldIndex} pageCount={pageCount} pageFieldCount={pageFieldCount} visible={selected} onMoved={(outcome) => onMenuMoved(qKey, outcome)} />
+                    </>
+                )}
+            </SortableRow>
+        </li>
+    );
+});
+
+/**
+ * A page in the outline: its row (name, question count, status chips) and
+ * the rows of its shown questions. It re-renders when the page's row view
+ * changes, not when one of its questions is typed in.
+ */
+const OutlinePage = memo(function OutlinePage({
+    pageId,
+    index,
+    questionIds,
+    expanded,
+    draggingPage,
+    filtering,
+    selected,
+    selectedFieldId,
+    pageCount,
+    aiChanges,
+    aiFields,
+    onSelectPage,
+    onSelectQuestion,
+    onToggle,
+    onMenuMoved
+}: {
+    pageId: string;
+    index: number;
+    /** The questions shown (all, or those matching the filter). */
+    questionIds: string[];
+    expanded: boolean;
+    draggingPage: boolean;
+    filtering: boolean;
+    selected: boolean;
+    /** The selected question when it is on this page. */
+    selectedFieldId: string | null;
+    pageCount: number;
+    aiChanges: number;
+    aiFields: Record<string, string | undefined>;
+    onSelectPage: SelectPage;
+    onSelectQuestion: SelectQuestion;
+    onToggle: (pageId: string) => void;
+    onMenuMoved: MenuMoved;
+}) {
+    const view = useAtomValue(outlinePageViewAtom(pageId));
+    const allIds = usePageFieldIds(pageId);
+    if (!view) return null;
+    const name = outlinePageName({ id: pageId, properties: { sectionTitle: view.sectionTitle } } as StandardFormFieldDto, index);
+    const key = pageKey(pageId);
+    const count = view.count;
+    const listId = `outline-questions-${pageId}`;
+    const showQuestions = expanded && !draggingPage && questionIds.length > 0;
+    return (
+        <li id={pageId}>
+            <SortableRow id={key} label={name} disabled={filtering} selected={selected}>
+                {(handle) => (
+                    <>
+                        {handle}
+                        {count > 0 && !filtering ? (
+                            <button
+                                type="button"
+                                aria-expanded={expanded}
+                                aria-controls={expanded ? listId : undefined}
+                                aria-label={`Questions on ${name}`}
+                                onClick={() => onToggle(pageId)}
+                                className="text-black-600 hover:text-black-900 flex h-6 w-5 shrink-0 items-center justify-center rounded-sm"
+                            >
+                                <ChevronRight className={cn('h-4 w-4 transition-transform', expanded && 'rotate-90')} aria-hidden="true" />
+                            </button>
+                        ) : (
+                            <span className="w-5 shrink-0" aria-hidden="true" />
+                        )}
+                        <button type="button" data-outline-key={key} className={selectButtonClass} aria-current={selected ? 'true' : undefined} onClick={() => onSelectPage(pageId, index)}>
+                            <span className="text-black-900 line-clamp-2 text-sm font-medium">{name}</span>
+                            <span className="text-black-600 text-xs">
+                                {view.sectionTitle.trim() ? `Page ${index + 1} · ` : ''}
+                                {count} question{count === 1 ? '' : 's'}
+                            </span>
+                            <PageChips status={view.status} aiChanges={aiChanges} />
+                        </button>
+                        <SlideOptions slideIndex={index} pageName={name} visible={selected} onMoved={(outcome) => onMenuMoved(key, outcome)} />
+                    </>
+                )}
+            </SortableRow>
+            {showQuestions && (
+                <ul id={listId} aria-label={`Questions on ${name}`} className="flex flex-col gap-0.5 pl-4">
+                    {questionIds.map((fieldId) => (
+                        <OutlineQuestionRow
+                            key={fieldId}
+                            fieldId={fieldId}
+                            pageId={pageId}
+                            pageIndex={index}
+                            fieldIndex={allIds.indexOf(fieldId)}
+                            pageCount={pageCount}
+                            pageFieldCount={count}
+                            selected={selectedFieldId === fieldId}
+                            filtering={filtering}
+                            aiMark={aiFields[fieldId]}
+                            onSelectQuestion={onSelectQuestion}
+                            onMenuMoved={onMenuMoved}
+                        />
+                    ))}
+                </ul>
+            )}
+        </li>
+    );
+});
+
+/**
+ * The outline shell: it follows the order of pages and questions (and,
+ * while filtering, which questions match), the selection and the endings;
+ * pages and questions render their own rows.
+ */
+function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveFormBuilderComponent | null }) {
+    const { activeFieldComponent } = useActiveFieldComponent();
+    const setActiveFieldComponent = useSetAtom(activeFieldAtom);
+    const setActiveSlideComponent = useSetAtom(activeSlideAtom);
     const { activeThankYouPageComponent, setActiveThankYouPageComponent } = useActiveThankYouPageComponent();
     const { formState } = useFormState();
     const { movePageTo, moveQuestion } = useOutlineMoves();
+    // Drag announcements and drops read the pages when they happen.
+    const { getFormFields } = useBuilderActions();
     const proposed = useAIProposalHighlights();
 
     const [query, setQuery] = useState('');
@@ -208,31 +437,31 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
     const [message, setMessage] = useState('');
     const [focusKey, setFocusKey] = useState<string | null>(null);
 
-    const slides = useMemo(() => (Array.isArray(formFields) ? formFields : []), [formFields]);
     const filtering = query.trim().length > 0;
     const draggingPage = !!dragging && isPageKey(dragging);
-    const slideIds = useMemo(() => new Set(slides.map((slide) => slide.id)), [slides]);
 
-    const pages: ShownPage[] = useMemo(
-        () =>
-            slides
-                .map((slide, index) => ({
-                    slide,
-                    index,
-                    name: outlinePageName(slide, index),
-                    expanded: filtering || !collapsed.has(slide.id),
-                    questions: (slide.properties?.fields ?? []).map((field, fieldIndex) => ({ field, index: fieldIndex, title: fieldText(field) })).filter(({ field }) => questionMatches(field, query))
-                }))
-                .filter((page) => !filtering || page.questions.length > 0),
-        [slides, collapsed, filtering, query]
+    // The pages and the questions shown under them: a new value only when
+    // the order (or, while filtering, the matches) changes.
+    const entries: OutlineEntry[] = useDocValue(
+        (doc) => (Array.isArray(doc.fields) ? doc.fields : []).map((slide) => ({ id: slide.id, questionIds: (slide.properties?.fields ?? []).filter((field) => questionMatches(field, query)).map((field) => field.id) })),
+        [query],
+        jsonEqual
     );
-    const matchCount = pages.reduce((sum, page) => sum + page.questions.length, 0);
+    const pages = useMemo(
+        () =>
+            entries
+                .map((entry, index) => ({ ...entry, index, expanded: filtering || !collapsed.has(entry.id) }))
+                .filter((page) => !filtering || page.questionIds.length > 0),
+        [entries, collapsed, filtering]
+    );
+    const matchCount = pages.reduce((sum, page) => sum + page.questionIds.length, 0);
 
     // One flat sortable list: each page followed by its shown questions.
     // While a page is dragged its questions fold away, so pages move as blocks.
-    const flatKeys = useMemo(() => pages.flatMap((page) => [pageKey(page.slide.id), ...(page.expanded && !draggingPage ? page.questions.map((q) => questionKey(q.field.id)) : [])]), [pages, draggingPage]);
+    const flatKeys = useMemo(() => pages.flatMap((page) => [pageKey(page.id), ...(page.expanded && !draggingPage ? page.questionIds.map((id) => questionKey(id)) : [])]), [pages, draggingPage]);
 
     const nameOf = (key: UniqueIdentifier): string => {
+        const slides = getFormFields();
         const id = keyId(String(key));
         if (isPageKey(String(key))) {
             const index = slides.findIndex((slide) => slide.id === id);
@@ -247,6 +476,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
         if (over === undefined) return null;
         const drop = resolveOutlineDrop(flatKeys, String(active), String(over));
         if (!drop) return null;
+        const slides = getFormFields();
         if (drop.kind === 'page') return `position ${drop.to + 1} of ${slides.length}`;
         const target = questionDropTarget(slides, drop.fieldId, drop.toPageId, drop.afterFieldId);
         if (!target) return null;
@@ -278,18 +508,18 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
             movePageTo(drop.from, drop.to);
             return;
         }
-        const target = questionDropTarget(slides, drop.fieldId, drop.toPageId, drop.afterFieldId);
+        const target = questionDropTarget(getFormFields(), drop.fieldId, drop.toPageId, drop.afterFieldId);
         if (target) moveQuestion(drop.fieldId, target.toPageIndex, target.toIndex);
     };
 
     // A menu move: say where the item went and keep focus on it.
-    const onMenuMoved = (key: string) => (outcome: MoveOutcome) => {
+    const onMenuMoved = useCallback((key: string, outcome: MoveOutcome) => {
         if (!outcome) return;
         setMessage(outcome.message);
         // A question moved into a folded page: unfold it, so focus can follow.
         setCollapsed((prev) => (prev.has(outcome.pageId) ? new Set([...prev].filter((id) => id !== outcome.pageId)) : prev));
         setFocusKey(key);
-    };
+    }, []);
     useEffect(() => {
         if (!focusKey) return;
         // After the menu has closed and let go of focus.
@@ -306,29 +536,48 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
         if (key) document.querySelector(`[data-outline-key="${cssEscape(key)}"]`)?.scrollIntoView?.({ block: 'nearest' });
     }, [activeFieldComponent?.id, activeSlideComponent]);
 
-    const selectPage = (slide: StandardFormFieldDto, index: number) => {
-        setActiveSlideComponent({ id: slide.id, index });
-        setActiveFieldComponent(null);
-    };
+    const selectPage = useCallback(
+        (pageId: string, index: number) => {
+            setActiveSlideComponent({ id: pageId, index });
+            setActiveFieldComponent(null);
+        },
+        [setActiveSlideComponent, setActiveFieldComponent]
+    );
     // As clicking the question on the canvas does: its page, then the question.
-    const selectQuestion = (slide: StandardFormFieldDto, index: number, field: StandardFormFieldDto, fieldIndex: number) => {
-        setActiveSlideComponent({ id: slide.id, index });
-        setActiveFieldComponent({ id: field.id, index: fieldIndex });
-        window.setTimeout(() => document.getElementById(`scroll-field-${field.id}`)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }), 50);
-    };
-    const toggle = (pageId: string) =>
-        setCollapsed((prev) => {
-            const next = new Set(prev);
-            if (next.has(pageId)) next.delete(pageId);
-            else next.add(pageId);
-            return next;
-        });
+    const selectQuestion = useCallback(
+        (pageId: string, index: number, fieldId: string, fieldIndex: number) => {
+            setActiveSlideComponent({ id: pageId, index });
+            setActiveFieldComponent({ id: fieldId, index: fieldIndex });
+            window.setTimeout(() => document.getElementById(`scroll-field-${fieldId}`)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }), 50);
+        },
+        [setActiveSlideComponent, setActiveFieldComponent]
+    );
+    const toggle = useCallback(
+        (pageId: string) =>
+            setCollapsed((prev) => {
+                const next = new Set(prev);
+                if (next.has(pageId)) next.delete(pageId);
+                else next.add(pageId);
+                return next;
+            }),
+        []
+    );
 
     const { endings, canAdd, addEnding, duplicateEnding, renameEnding, makeDefault, deleteEnding } = useEndingActions();
+    // Which endings a jump reaches: follows the jumps on every page, changes rarely.
+    const reachable = useDocValue(
+        (doc) => {
+            const list = withEndingIds(doc.thankyouPage?.length ? doc.thankyouPage : [{ layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }]);
+            return list.map((_, index) => isEndingReachable(doc.fields ?? [], list, index));
+        },
+        [],
+        jsonEqual
+    );
     const defaultIndex = defaultEndingIndex(endings);
     const [renaming, setRenaming] = useState<string | null>(null);
     const activeEnding = activeThankYouPageComponent?.index ?? 0;
     const isActiveSlide = (id: string) => activeSlideComponent?.id === id;
+    const pageCount = entries.length;
 
     return (
         <aside id="slides-preview" aria-label="Form outline" className="h-body-content border-r-black-300 flex w-[256px] shrink-0 flex-col overflow-hidden border-r bg-white">
@@ -378,96 +627,26 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                 >
                     <SortableContext items={flatKeys} strategy={verticalListSortingStrategy}>
                         <ul aria-label="Pages" className="flex flex-col gap-0.5 py-1">
-                            {pages.map((page) => {
-                                const { slide, index, name } = page;
-                                const key = pageKey(slide.id);
-                                const selected = isActiveSlide(slide.id) && !activeFieldComponent?.id;
-                                const count = slide.properties?.fields?.length ?? 0;
-                                const listId = `outline-questions-${slide.id}`;
-                                const showQuestions = page.expanded && !draggingPage && page.questions.length > 0;
-                                return (
-                                    <li key={slide.id} id={slide.id}>
-                                        <SortableRow id={key} label={name} disabled={filtering} selected={selected}>
-                                            {(handle) => (
-                                                <>
-                                                    {handle}
-                                                    {count > 0 && !filtering ? (
-                                                        <button
-                                                            type="button"
-                                                            aria-expanded={page.expanded}
-                                                            aria-controls={page.expanded ? listId : undefined}
-                                                            aria-label={`Questions on ${name}`}
-                                                            onClick={() => toggle(slide.id)}
-                                                            className="text-black-600 hover:text-black-900 flex h-6 w-5 shrink-0 items-center justify-center rounded-sm"
-                                                        >
-                                                            <ChevronRight className={cn('h-4 w-4 transition-transform', page.expanded && 'rotate-90')} aria-hidden="true" />
-                                                        </button>
-                                                    ) : (
-                                                        <span className="w-5 shrink-0" aria-hidden="true" />
-                                                    )}
-                                                    <button type="button" data-outline-key={key} className={selectButtonClass} aria-current={selected ? 'true' : undefined} onClick={() => selectPage(slide, index)}>
-                                                        <span className="text-black-900 line-clamp-2 text-sm font-medium">{name}</span>
-                                                        <span className="text-black-600 text-xs">
-                                                            {slide.properties?.sectionTitle?.trim() ? `Page ${index + 1} · ` : ''}
-                                                            {count} question{count === 1 ? '' : 's'}
-                                                        </span>
-                                                        <PageChips status={pageStatus(slide, slideIds, endings)} aiChanges={proposed.pages[slide.id] ?? 0} />
-                                                    </button>
-                                                    <SlideOptions slideIndex={index} pageName={name} visible={selected} onMoved={onMenuMoved(key)} />
-                                                </>
-                                            )}
-                                        </SortableRow>
-                                        {showQuestions && (
-                                            <ul id={listId} aria-label={`Questions on ${name}`} className="flex flex-col gap-0.5 pl-4">
-                                                {page.questions.map(({ field, index: fieldIndex, title }) => {
-                                                    const qKey = questionKey(field.id);
-                                                    const qSelected = activeFieldComponent?.id === field.id;
-                                                    const missingWhy = !field.internal && asksForIdentity(field) && !field.properties?.whyWeAsk?.trim();
-                                                    return (
-                                                        <li key={field.id}>
-                                                            <SortableRow id={qKey} label={`question ${title}`} disabled={filtering} selected={qSelected}>
-                                                                {(handle) => (
-                                                                    <>
-                                                                        {handle}
-                                                                        <button type="button" data-outline-key={qKey} className={cn(selectButtonClass, 'flex-row items-center gap-1')} aria-current={qSelected ? 'true' : undefined} onClick={() => selectQuestion(slide, index, field, fieldIndex)}>
-                                                                            <span className="text-black-800 min-w-0 flex-1 truncate text-sm">{title}</span>
-                                                                            {proposed.fields[field.id] && (
-                                                                                <span title={proposed.fields[field.id] === 'added' ? 'The AI proposes adding this question' : 'The AI proposes changing this question'} className="shrink-0 rounded bg-[#FDF3E7] px-1 text-[10px] font-semibold leading-4 text-[#8A4A08]">
-                                                                                    <span aria-hidden="true">AI</span>
-                                                                                    <span className="sr-only">, {proposed.fields[field.id] === 'added' ? 'added' : 'changed'} by an AI proposal</span>
-                                                                                </span>
-                                                                            )}
-                                                                            {missingWhy && (
-                                                                                <span title='Asks for personal details without a "Why we ask this" line' className="text-brand-olive shrink-0">
-                                                                                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-                                                                                    <span className="sr-only">, missing why we ask</span>
-                                                                                </span>
-                                                                            )}
-                                                                            {fieldHasLogic(field) && (
-                                                                                <span title="Shown or hidden by a logic rule" className="text-brand-500 shrink-0">
-                                                                                    <LogicOutlinedIcon className="h-3 w-3" aria-hidden="true" />
-                                                                                    <span className="sr-only">, has logic</span>
-                                                                                </span>
-                                                                            )}
-                                                                            {field.internal && (
-                                                                                <span title="Internal: respondents never see it" className="text-black-600 shrink-0">
-                                                                                    <Lock className="h-3 w-3" aria-hidden="true" />
-                                                                                    <span className="sr-only">, internal</span>
-                                                                                </span>
-                                                                            )}
-                                                                        </button>
-                                                                        <QuestionOptions fieldId={field.id} title={title} pageIndex={index} fieldIndex={fieldIndex} visible={qSelected} onMoved={onMenuMoved(qKey)} />
-                                                                    </>
-                                                                )}
-                                                            </SortableRow>
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        )}
-                                    </li>
-                                );
-                            })}
+                            {pages.map((page) => (
+                                <OutlinePage
+                                    key={page.id}
+                                    pageId={page.id}
+                                    index={page.index}
+                                    questionIds={page.questionIds}
+                                    expanded={page.expanded}
+                                    draggingPage={draggingPage}
+                                    filtering={filtering}
+                                    selected={isActiveSlide(page.id) && !activeFieldComponent?.id}
+                                    selectedFieldId={activeFieldComponent?.id && page.questionIds.includes(activeFieldComponent.id) ? activeFieldComponent.id : null}
+                                    pageCount={pageCount}
+                                    aiChanges={proposed.pages[page.id] ?? 0}
+                                    aiFields={proposed.fields}
+                                    onSelectPage={selectPage}
+                                    onSelectQuestion={selectQuestion}
+                                    onToggle={toggle}
+                                    onMenuMoved={onMenuMoved}
+                                />
+                            ))}
                         </ul>
                     </SortableContext>
                     <DragOverlay modifiers={[verticalOnly]} dropAnimation={null}>
@@ -499,7 +678,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                 const label = endingLabel(ending, index, endings.length);
                                 const selected = isActiveSlide('thank-you-page') && activeEnding === index;
                                 const isDefault = index === defaultIndex;
-                                const reached = isEndingReachable(slides, endings, index);
+                                const reached = reachable[index] ?? true;
                                 const selectEnding = () => {
                                     setActiveThankYouPageComponent({ id: `ending-${index}`, index });
                                     setActiveSlideComponent({ id: 'thank-you-page', index: -20 });

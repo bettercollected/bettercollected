@@ -2,11 +2,13 @@ import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { activeFieldAtom } from '@app/store/jotai/active-builder-component';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
+import { useAtomValue } from 'jotai';
 import { Check, Circle, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -25,7 +27,8 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     const borderColor = theme?.secondary;
     const bgColor = theme?.tertiary;
 
-    const { updateRowTitle, updateColumnTitle, activeField, deleteColumn, deleteRow } = useFormFieldsAtom();
+    const { updateRowTitle, updateColumnTitle, deleteColumn, deleteRow } = useBuilderActions();
+    const activeField = useAtomValue(activeFieldAtom);
 
     return (
         <div className="flex w-full flex-col overflow-x-auto pb-2">

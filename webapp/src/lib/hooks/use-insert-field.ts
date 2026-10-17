@@ -7,7 +7,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { InsertTarget } from '@app/store/jotai/insert-target';
 import { useNavbarState } from '@app/store/jotai/navbar';
 
@@ -36,7 +36,8 @@ export function useInsertField() {
     const { toast } = useToast();
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
-    const { formFields, addField, addFieldAt, addSlide, getNewField } = useFormFieldsAtom();
+    // The pages are read when a field is inserted, not subscribed to.
+    const { getFormFields, addField, addFieldAt, addSlide, getNewField } = useBuilderActions();
     const { navbarState, setNavbarState } = useNavbarState();
 
     const insert = (item: Pick<InsertCatalogItem, 'type' | 'name'>, placement: InsertPlacement = 'page', target?: InsertTarget | null): StandardFormFieldDto | null => {
@@ -44,6 +45,7 @@ export function useInsertField() {
             toast({ description: 'Add a page to add fields' });
             return null;
         }
+        const formFields = getFormFields();
         const fieldId = v4();
         const field = { ...getNewField({ ...item, icon: null }, fieldId, 0) } as StandardFormFieldDto;
         const selectedIndex = !activeSlideComponent || activeSlideComponent.index < 0 ? formFields.length - 1 : activeSlideComponent.index;

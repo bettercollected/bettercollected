@@ -6,7 +6,7 @@ import { Play } from 'lucide-react';
 
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFieldActions } from '@app/store/jotai/entity-hooks';
 import QuestionWrapper from '@app/views/molecules/responder-form-fields/question-wrapper';
 
 export type VideoProvider = 'YouTube' | 'Vimeo';
@@ -136,7 +136,7 @@ export function VideoPlayer({ field }: { field: StandardFormFieldDto }) {
 
 /** Builder: paste the video's link; the canvas shows the respondent's click-to-play frame. */
 function VideoFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) {
-    const { updateFieldAttachment } = useFormFieldsAtom();
+    const { updateFieldAttachment } = useFieldActions();
     const inputId = useId();
     const errorId = useId();
     const href: string = field?.attachment?.href ?? '';
@@ -146,7 +146,7 @@ function VideoFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide
     const commit = () => {
         const next = draft.trim();
         if (next === href || (next && !isSupportedVideoUrl(next))) return;
-        updateFieldAttachment(slide.index, field.index, { ...(field.attachment ?? {}), type: 'video', href: next });
+        updateFieldAttachment(field.id, { ...(field.attachment ?? {}), type: 'video', href: next });
     };
 
     return (

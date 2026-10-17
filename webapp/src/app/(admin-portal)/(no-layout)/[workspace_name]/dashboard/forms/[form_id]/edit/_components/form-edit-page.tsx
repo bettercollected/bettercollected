@@ -12,7 +12,8 @@ import { useSetAtom } from 'jotai';
 
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
-import useFormFieldsAtom, { initialFieldsState } from '@app/store/jotai/field-selectors';
+import { usePageIds } from '@app/store/jotai/entity-hooks';
+import { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
 import { resetFromServerAtom } from '@app/store/jotai/form-document';
 import { useNavbarState } from '@app/store/jotai/navbar';
@@ -34,7 +35,8 @@ import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormEditPage(props: { params: Promise<{ form_id: string }> }) {
     const params = use(props.params);
-    const { formFields } = useFormFieldsAtom();
+    // The page ids only: typing in a question does not re-render the page.
+    const pageIds = usePageIds();
     const { formState } = useFormState();
     const resetFromServer = useSetAtom(resetFromServerAtom);
     const { setHydratedFormId } = useBuilderHydration();
@@ -164,7 +166,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
             <Navbar />
             <AutoSaveForm formId={formId} />
             <div className="max-h-body-content  flex w-full flex-row items-center">
-                <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
+                <LeftDrawer activeSlideComponent={activeSlideComponent} />
                 {/* Neutral workspace mat behind the canvas, so the slide being edited
                     reads as the artefact and separates from the tool's chrome. */}
                 {/* self-stretch matters: the row is items-center, and without it
@@ -202,7 +204,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                         <AIProposalPreviewCanvas activeSlideId={activeSlideComponent?.id} />
                                     ) : (
                                         <>
-                                            {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && formFields[activeSlideComponent.index] && <SlideBuilder slide={formFields[activeSlideComponent.index]} />}
+                                            {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && pageIds[activeSlideComponent.index] && <SlideBuilder pageId={pageIds[activeSlideComponent.index]} />}
                                             {!activeSlideComponent?.id && <div>Add a slide to start</div>}
                                             {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 

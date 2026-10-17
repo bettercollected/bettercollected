@@ -9,7 +9,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useField } from '@app/store/jotai/entity-hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { PropertiesTab, usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
@@ -45,7 +45,8 @@ export default function PropertiesDrawer({}: {}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
     const { propertiesTab, setPropertiesTab } = usePropertiesTab();
-    const { activeField } = useFormFieldsAtom();
+    // The selected question only: typing in another one leaves the inspector alone.
+    const activeField = useField(activeFieldComponent?.id);
     const standardForm = useAppSelector(selectForm);
     const { formState } = useFormState();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();

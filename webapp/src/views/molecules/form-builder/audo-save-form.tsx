@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { useStore } from 'jotai';
+
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
-import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
+import { builderHydratedFormIdAtom, useBuilderHydration } from '@app/store/jotai/builder-hydration';
+import { IFormState, formStateAtom } from '@app/store/jotai/form';
+import { builderFieldsAtom } from '@app/store/jotai/form-document';
 import { usePatchV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FlushResult, SaveOutcome, SaveQueue } from '@app/utils/autosave-queue';
@@ -56,9 +59,31 @@ export async function flushAutosave(timeoutMs = 20000): Promise<FlushResult | 't
     }
 }
 
+/** What autosave reads: the form-level state and the builder's pages. */
+interface SavedParts {
+    formState: IFormState;
+    fields: StandardFormFieldDto[];
+}
+
+const currentParts = (store: ReturnType<typeof useStore>): SavedParts => ({ formState: store.get(formStateAtom), fields: store.get(builderFieldsAtom) });
+const sameParts = (a: SavedParts, b: SavedParts) => a.formState === b.formState && a.fields === b.fields;
+
+/** What autosave sends: the form-level state with the builder's pages. */
+function savedFormOf(formState: IFormState, fields: StandardFormFieldDto[]) {
+    return {
+        ...formState,
+        welcomePage: {
+            ...formState.welcomePage,
+            title: formState.title
+        },
+        fields
+    };
+}
+
 export default function AutoSaveForm({ formId }: { formId: string }) {
-    const { formFields } = useFormFieldsAtom();
-    const { formState } = useFormState();
+    // Autosave follows the form through store subscriptions, not renders:
+    // typing does not re-render it.
+    const store = useStore();
     const workspace = useAppSelector(selectWorkspace);
     const { hydratedFormId } = useBuilderHydration();
     const hydrated = hydratedFormId === formId;
@@ -68,18 +93,6 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
     const [patchV2Form] = usePatchV2FormMutation();
     const { setAutosaveStatus } = useAutosaveStatus();
     const [conflict, setConflict] = useState(false);
-
-    const combinedFormState = useMemo(
-        () => ({
-            ...formState,
-            welcomePage: {
-                ...formState.welcomePage,
-                title: formState.title
-            },
-            fields: formFields
-        }),
-        [formFields, formState]
-    );
 
     // What the save request needs, kept current for the queue's sender.
     const contextRef = useRef({ workspaceId: workspace?.id as string | undefined, settings: form?.settings, patchV2Form, dispatch });
@@ -111,7 +124,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             )
     );
 
-    const latestRef = useRef(combinedFormState);
+    const latestRef = useRef(savedFormOf(store.get(formStateAtom), store.get(builderFieldsAtom)));
     const baselineTakenRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const allowLeaveRef = useRef(false);
@@ -123,9 +136,21 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         queue.enqueue(JSON.stringify(latestRef.current));
     };
 
-    useEffect(() => {
+    /** Does the builder hold this form now (loaded into it, and not let go of yet)? */
+    const holdsThisForm = () => store.get(builderHydratedFormIdAtom) === formId;
+
+    // The form as it is now: the first state once hydrated is what the
+    // server has; each later change is saved AUTOSAVE_DEBOUNCE_MS after the
+    // last one. Once that first state is taken, only states of this form,
+    // while the builder holds it, count: the editor page resets the builder
+    // when it closes (before this component's own cleanup flushes), and that
+    // empty form must never be what is saved.
+    const takeState = (parts: SavedParts) => {
+        if (baselineTakenRef.current && !holdsThisForm()) return;
+        const combinedFormState = savedFormOf(parts.formState, parts.fields);
         latestRef.current = combinedFormState;
-        if (!hydrated) return;
+        // Hydrated as of the latest render: the render that hydrated takes the baseline.
+        if (!hydratedRef.current) return;
         // The first state after loading is what the server has.
         if (!baselineTakenRef.current) {
             baselineTakenRef.current = true;
@@ -134,7 +159,39 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         }
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(enqueueLatest, AUTOSAVE_DEBOUNCE_MS);
-    }, [combinedFormState, hydrated]);
+    };
+    const takeStateRef = useRef(takeState);
+    const hydratedRef = useRef(hydrated);
+    useLayoutEffect(() => {
+        takeStateRef.current = takeState;
+        hydratedRef.current = hydrated;
+    });
+    // What this render saw: hydrating takes it, as the render that hydrated showed it.
+    const rendered: SavedParts = currentParts(store);
+
+    useEffect(() => {
+        takeState(rendered);
+        // Changed since that render (by another mount effect): that is an edit.
+        const now = currentParts(store);
+        if (baselineTakenRef.current && !sameParts(now, rendered)) takeState(now);
+    }, [hydrated]);
+
+    useEffect(() => {
+        // Each change of the pages or the form-level state, without re-rendering.
+        let last = currentParts(store);
+        const changed = () => {
+            // The builder no longer holds this form (the editor is closing and reset it): not an edit.
+            if (baselineTakenRef.current && store.get(builderHydratedFormIdAtom) !== formId) return;
+            const now = currentParts(store);
+            if (sameParts(now, last)) return;
+            last = now;
+            // Before hydrating (and taking the server's state) a change only updates what is latest.
+            if (!baselineTakenRef.current) latestRef.current = savedFormOf(now.formState, now.fields);
+            else takeStateRef.current(now);
+        };
+        const unsubscribe = [store.sub(builderFieldsAtom, changed), store.sub(formStateAtom, changed)];
+        return () => unsubscribe.forEach((stop) => stop());
+    }, [store, formId]);
 
     // An edit made while the workspace was still loading saves once it is.
     useEffect(() => {
@@ -169,7 +226,9 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             window.removeEventListener('beforeunload', onBeforeUnload);
             window.removeEventListener('online', onOnline);
             if (activeAutosave?.formId === formId) activeAutosave = null;
-            // Leaving the editor inside the app: save what the debounce held.
+            // Leaving the editor inside the app: save what the debounce held,
+            // the latest state of this form taken while the builder held it
+            // (see takeState), never the reset that closing the editor makes.
             if (timerRef.current) enqueueLatest();
         };
     }, [formId]);

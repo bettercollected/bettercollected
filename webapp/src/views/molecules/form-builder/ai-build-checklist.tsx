@@ -51,16 +51,21 @@ function targetsOf(where: string[], slides: any[]): Target[] {
 export default function AIBuildChecklist({ formId }: { formId: string }) {
     // mounted in the browser only (the editor waits for the form first)
     const [report, setReport] = useState<BuildReport | null>(() => readBuildReport(formId));
-    const { formFields } = useFormFieldsAtom();
-    const { setActiveSlideComponent } = useActiveSlideComponent();
-    const { setActiveFieldComponent } = useActiveFieldComponent();
-
     if (!report) return null;
-    const slides = Array.isArray(formFields) ? formFields : [];
     const dismiss = () => {
         clearBuildReport(formId);
         setReport(null);
     };
+    return <Checklist report={report} onDismiss={dismiss} />;
+}
+
+/** The checklist while it shows: its "Go to" links follow the form. */
+function Checklist({ report, onDismiss: dismiss }: { report: BuildReport; onDismiss: () => void }) {
+    const { formFields } = useFormFieldsAtom();
+    const { setActiveSlideComponent } = useActiveSlideComponent();
+    const { setActiveFieldComponent } = useActiveFieldComponent();
+
+    const slides = Array.isArray(formFields) ? formFields : [];
     const go = (target: Target) => {
         setActiveSlideComponent(target.slide);
         setActiveFieldComponent(target.field ?? null);

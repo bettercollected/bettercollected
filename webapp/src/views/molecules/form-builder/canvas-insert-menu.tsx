@@ -3,11 +3,12 @@
 import { useRef } from 'react';
 
 import * as PopoverPrimitive from '@radix-ui/react-popover';
+import { useSetAtom } from 'jotai';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useInsertTarget } from '@app/store/jotai/insert-target';
+import { InsertTarget, insertTargetAtom, useInsertTarget } from '@app/store/jotai/insert-target';
 import InsertFieldComponent from '@app/views/molecules/dialogs/insert-field-modal';
 
 /**
@@ -16,12 +17,18 @@ import InsertFieldComponent from '@app/views/molecules/dialogs/insert-field-moda
  * while the insert target is on this page.
  */
 export default function CanvasInsertMenu({ slide }: { slide: StandardFormFieldDto }) {
-    const { insertTarget, setInsertTarget } = useInsertTarget();
+    const { insertTarget } = useInsertTarget();
+    const open = !!insertTarget && insertTarget.slideId === slide?.id;
+    if (!open) return null;
+    return <OpenCanvasInsertMenu target={insertTarget} />;
+}
+
+/** The menu while it is open: only then does it follow the form. */
+function OpenCanvasInsertMenu({ target: insertTarget }: { target: InsertTarget }) {
+    const setInsertTarget = useSetAtom(insertTargetAtom);
     const { formFields } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const inserted = useRef(false);
-    const open = !!insertTarget && insertTarget.slideId === slide?.id;
-    if (!open) return null;
 
     const anchorId = insertTarget.anchorId;
     const returnFocusId = insertTarget.returnFocusId;

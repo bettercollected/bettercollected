@@ -18,7 +18,8 @@ import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { usePage } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { defaultEndingIndex, ENDING_NAME_MAX_LENGTH } from '@app/utils/endings';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
@@ -39,8 +40,10 @@ const inputClass = 'border-control focus:border-brand-500 rounded border p-2 tex
  * their own description and button settings instead.
  */
 export default function PagePropertiesTab({}: {}) {
-    const { formFields, activeSlide, updateSlideLayout, updateSlideImage, setFormFields, updateSlideSectionTitle } = useFormFieldsAtom();
+    const { getFormFields, updateSlideLayout, updateSlideImage, setFormFields, updateSlideSectionTitle } = useBuilderActions();
     const { activeSlideComponent } = useActiveSlideComponent();
+    // The selected page only (its questions are listed below).
+    const activeSlide = usePage(activeSlideComponent?.id);
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const {
@@ -66,7 +69,7 @@ export default function PagePropertiesTab({}: {}) {
     const endingActions = useEndingActions();
     const { renameEnding, makeDefault } = endingActions;
 
-    const slide = activeSlideComponent && (activeSlideComponent.index >= 0 ? formFields[activeSlideComponent.index] : activeSlideComponent.index === -10 ? formState.welcomePage : formState.thankyouPage?.[endingIndex]);
+    const slide = activeSlideComponent && (activeSlideComponent.index >= 0 ? activeSlide : activeSlideComponent.index === -10 ? formState.welcomePage : formState.thankyouPage?.[endingIndex]);
 
     function updatePagesLayout() {
         if (
@@ -136,12 +139,13 @@ export default function PagePropertiesTab({}: {}) {
             setFormState({ ...formState, thankyouPage: formState.thankyouPage.map((page, index) => (index === endingIndex ? { ...page, ...noImage } : page)) });
         } else {
             const pageIndex = activeSlideComponent?.index || 0;
+            const formFields = getFormFields();
             if (!formFields[pageIndex]) return;
             setFormFields(formFields.map((page, index) => (index === pageIndex ? { ...page, imageUrl: '', properties: { ...page.properties, layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND } } : page)));
         }
     };
 
-    const questionPage = !isWelcome && !isEnding && (activeSlideComponent?.index ?? -1) >= 0 ? formFields[activeSlideComponent!.index] : undefined;
+    const questionPage = !isWelcome && !isEnding && (activeSlideComponent?.index ?? -1) >= 0 ? activeSlide : undefined;
     const sectionFallback = questionPage ? leafletSection(questionPage.properties?.fields ?? [], `Section ${activeSlideComponent!.index + 1}`).shortTitle : '';
     const pageQuestions = questionPage?.properties?.fields ?? [];
 

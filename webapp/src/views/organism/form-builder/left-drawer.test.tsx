@@ -40,7 +40,7 @@ function Editor() {
         builder.initFormFields(pages());
         setFormState((prev) => ({ ...prev, thankyouPage: [{ title: 'Thanks!' }, { title: 'Sorry, not eligible' }] }));
     }, []);
-    return <LeftDrawer formFields={builder.formFields} activeSlideComponent={slide.activeSlideComponent} />;
+    return <LeftDrawer activeSlideComponent={slide.activeSlideComponent} />;
 }
 
 // An open AI proposal that changes "Your name" on page 1 and adds a page.

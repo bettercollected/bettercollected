@@ -3,8 +3,8 @@
 import { useSetAtom, useStore } from 'jotai';
 
 import { ToastAction } from '@app/shadcn/components/ui/toast';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import useFormFieldsAtom, { undoIfLatestAtom } from '@app/store/jotai/field-selectors';
+import { toast } from '@app/shadcn/components/ui/use-toast';
+import { undoIfLatestAtom, useBuilderActions } from '@app/store/jotai/field-selectors';
 import { HistoryStep, docHistoryAtom, latestStep } from '@app/store/jotai/form-document';
 
 /** How long the "… deleted · Undo" toast stays. */
@@ -15,9 +15,9 @@ export const DELETE_UNDO_MS = 8000;
  * once, then offer "Undo" in a toast (Undo in the toolbar works too).
  */
 export function useUndoableDelete() {
-    const { toast } = useToast();
     const undoIfLatest = useSetAtom(undoIfLatestAtom);
-    const { formFields, deleteField, deleteSlide } = useFormFieldsAtom();
+    // Acts on the form as it is when a delete runs; never subscribes to it.
+    const { getFormFields, deleteField, deleteSlide } = useBuilderActions();
     const store = useStore();
 
     /** Run a delete and return the undo step it made (null when none). */
@@ -51,7 +51,7 @@ export function useUndoableDelete() {
     };
 
     const deletePage = (slideIndex: number) => {
-        const questions = formFields?.[slideIndex]?.properties?.fields?.length ?? 0;
+        const questions = getFormFields()?.[slideIndex]?.properties?.fields?.length ?? 0;
         const message = questions > 0 ? `Page deleted, with ${questions} question${questions === 1 ? '' : 's'}` : 'Page deleted';
         offerUndo(message, stepOf(() => deleteSlide(slideIndex)));
     };

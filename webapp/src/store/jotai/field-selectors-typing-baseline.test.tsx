@@ -2,22 +2,25 @@ import React from 'react';
 
 import { act, render } from '@testing-library/react';
 import { JSONContent } from '@tiptap/react';
-import { Provider } from 'jotai';
+import { Provider, createStore } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import form200 from '@app/test/fixtures/form-200.json';
 import { RenderCounter, RenderCounts, createRenderCounts } from '@app/test/render-counter';
 
+import { FieldActions, useField, useFieldActions } from './entity-hooks';
 import useFormFieldsAtom from './field-selectors';
+import { formDocAtom, resetFromServerAtom } from './form-document';
 
 /**
- * Baseline of typing in a question title on a large form (20 pages x 10
- * questions, test/fixtures/form-200.json) through the current setters:
- * time per update, how many subscribers re-render, and whether the whole
- * form is serialised or cloned on each keystroke. It records today's
- * numbers (printed with the test output); the asserts only check that the
- * measurement itself works.
+ * Typing in a question title on a large form (20 pages x 10 questions,
+ * test/fixtures/form-200.json): time per update, how many subscribers
+ * re-render, and whether the whole form is serialised or cloned on each
+ * keystroke (printed with the test output). Through the older setters,
+ * whose subscribers read the whole form, every question re-renders; through
+ * the narrow hooks only the question typed in does (asserted). The whole
+ * builder is measured in views/organism/form-builder/builder-typing-renders.test.tsx.
  */
 
 const UPDATES = 40;
@@ -97,5 +100,69 @@ describe('typing baseline on form-200 (current field-selectors setters)', () => 
 
         expect(api().formFields[2].properties!.fields![4].title).toEqual(title(text));
         expect(counts.total()).toBeGreaterThan(0);
+    });
+});
+
+// A canvas question on the narrow hooks: subscribes to its own question only.
+function NarrowQuestion({ id }: { id: string }) {
+    const field = useField(id);
+    return <span>{typeof field?.title === 'string' ? field.title : field?.id}</span>;
+}
+
+function NarrowEditor({ onActions }: { onActions: (actions: FieldActions) => void }) {
+    onActions(useFieldActions());
+    return null;
+}
+
+describe('typing on form-200 through the narrow hooks (useField, useFieldActions)', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('re-renders only the question typed in', () => {
+        const counts = createRenderCounts();
+        const store = createStore();
+        let actions: FieldActions | undefined;
+        const all = questions(slides());
+        render(
+            <Provider store={store}>
+                <NarrowEditor onActions={(a) => (actions = a)} />
+                {all.map((q) => (
+                    <RenderCounter key={q.id} id={q.id} counts={counts}>
+                        <NarrowQuestion id={q.id} />
+                    </RenderCounter>
+                ))}
+            </Provider>
+        );
+        act(() => void store.set(resetFromServerAtom, structuredClone(form200) as any));
+
+        const stringify = vi.spyOn(JSON, 'stringify');
+        const clone = typeof globalThis.structuredClone === 'function' ? vi.spyOn(globalThis, 'structuredClone') : undefined;
+        counts.reset();
+
+        const times: number[] = [];
+        let text = 'Section 3';
+        for (let i = 0; i < UPDATES; i++) {
+            text += 'x';
+            const start = performance.now();
+            act(() => void actions!.updateTitle('p03-q05', title(text)));
+            times.push(performance.now() - start);
+        }
+
+        const sorted = [...times].sort((a, b) => a - b);
+        const narrow = {
+            updates: UPDATES,
+            msPerUpdateMedian: Number(sorted[Math.floor(sorted.length / 2)].toFixed(2)),
+            msPerUpdateP95: Number(sorted[Math.floor(sorted.length * 0.95) - 1].toFixed(2)),
+            subscribersRenderedPerUpdate: counts.total() / UPDATES,
+            distinctSubscribersRendered: counts.rendered().length,
+            wholeFormJsonStringifyPerUpdate: stringify.mock.calls.filter(([value]) => isWholeForm(value)).length / UPDATES,
+            wholeFormStructuredClonePerUpdate: clone ? clone.mock.calls.filter(([value]) => isWholeForm(value)).length / UPDATES : 0
+        };
+        console.info('[typing-narrow]', JSON.stringify(narrow));
+
+        expect(store.get(formDocAtom).fields![2].properties!.fields![4].title).toEqual(title(text));
+        expect(counts.rendered()).toEqual(['p03-q05']);
+        expect(narrow.subscribersRenderedPerUpdate).toBe(1);
+        expect(narrow.wholeFormJsonStringifyPerUpdate).toBe(0);
+        expect(narrow.wholeFormStructuredClonePerUpdate).toBe(0);
     });
 });
