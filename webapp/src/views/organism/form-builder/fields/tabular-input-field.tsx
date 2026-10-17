@@ -116,12 +116,14 @@ export default function TabularInputField({
                   style={sharedHeaderStyle}
                 >
                   {disabled && activeField?.id === field.id && localColTitles.length > minCols && (
-                    <div
-                      className="absolute left-1 top-1 rounded-full bg-white p-1 opacity-50 h-5 w-5 cursor-pointer hover:opacity-100 z-10 flex items-center justify-center transition-opacity"
+                    <button
+                      type="button"
+                      aria-label={`Remove column ${idx + 1}`}
+                      className="absolute left-1 top-1 rounded-full bg-white p-1 opacity-50 h-5 w-5 cursor-pointer hover:opacity-100 focus-visible:opacity-100 z-10 flex items-center justify-center transition-opacity"
                       onClick={() => onDeleteColumn?.(idx)}
                     >
-                      <Close className="h-3 w-3" />
-                    </div>
+                      <Close className="h-3 w-3" aria-hidden="true" />
+                    </button>
                   )}
                   {disabled ? (
                     <Input
@@ -148,12 +150,14 @@ export default function TabularInputField({
                   style={sharedHeaderStyle}
                 >
                   {disabled && activeField?.id === field.id && tableData.length > minRows && (
-                    <div
-                      className="absolute left-1 top-1 rounded-full bg-white p-1 opacity-50 h-5 w-5 cursor-pointer hover:opacity-100 z-10 flex items-center justify-center transition-opacity"
+                    <button
+                      type="button"
+                      aria-label={`Remove row ${rowIdx + 1}`}
+                      className="absolute left-1 top-1 rounded-full bg-white p-1 opacity-50 h-5 w-5 cursor-pointer hover:opacity-100 focus-visible:opacity-100 z-10 flex items-center justify-center transition-opacity"
                       onClick={() => onDeleteRow?.(rowIdx)}
                     >
-                      <Close className="h-3 w-3" />
-                    </div>
+                      <Close className="h-3 w-3" aria-hidden="true" />
+                    </button>
                   )}
                   {disabled ? (
                     <Input

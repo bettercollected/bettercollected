@@ -112,6 +112,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     # A page's own section title (common StandardFieldProperty.section_title).
     section_title: Optional[str] = Field(None, max_length=SECTION_TITLE_MAX_LENGTH)
+    # A page's "number the questions" switch (webapp showQuestionNumbers).
+    show_question_numbers: Optional[bool] = None
 
 
 class StandardFormFieldCamelModel(CamelModel):

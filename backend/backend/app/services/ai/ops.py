@@ -18,8 +18,15 @@ Contract:
 """
 
 import uuid
+from contextvars import ContextVar
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
+from common.form_spec.models import (
+    MAX_FIELDS,
+    MAX_PAGES,
+    checked_pattern,
+    count_fields,
+)
 from common.models.standard_form import (
     DATE_RULES_MAX,
     DateRule,
@@ -43,6 +50,7 @@ from common.models.standard_form import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.constants.themes import THEME_STYLES, themes as THEME_PRESETS
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
 from backend.app.services.policy_url import checked_policy_url
@@ -87,6 +95,32 @@ class _CamelModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
+# Client references: an op that creates a page, field or group may name it
+# with ``ref``; later ops of the same batch use ``"$ref:<name>"`` wherever a
+# page or field id is expected (REF_ID_KEYS), logic conditions and page
+# jumps included. Resolved while the batch is applied (see _resolve_refs).
+REF_PREFIX = "$ref:"
+REF_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
+REF_ID_KEYS = frozenset(
+    {
+        "page_id",
+        "field_id",
+        "group_id",
+        "after_field_id",
+        "to_page_id",
+        "to_group_id",
+        "child_field_id",
+        "target",
+    }
+)
+_RefName = Annotated[Optional[str], Field(None, pattern=REF_PATTERN)]
+
+# Most questions one add_page / add_group may create (checked when parsing;
+# the form's own size limits, MAX_PAGES / MAX_FIELDS, when applying).
+MAX_NEW_PAGE_FIELDS = 200
+MAX_NEW_GROUP_FIELDS = 100
+
+
 class NewFieldSpec(_CamelModel):
     """What the AI supplies to create a field."""
 
@@ -109,6 +143,8 @@ class NewFieldSpec(_CamelModel):
     # "Why we ask this", shown under the question; publishing needs one on
     # email, phone and ID-number questions (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
+    # Client reference for the new field (see REF_PREFIX).
+    ref: _RefName = None
 
 
 class DateRuleSpec(_CamelModel):
@@ -161,6 +197,7 @@ class AddFieldOp(_CamelModel):
     # Placement: after a specific sibling, at an index, or appended (default).
     after_field_id: Optional[str] = None
     index: Optional[int] = None
+    ref: _RefName = None
 
 
 class UpdateFieldOp(_CamelModel):
@@ -183,9 +220,12 @@ class AddGroupOp(_CamelModel):
     max_items: int = 3
     item_title: Optional[str] = None
     export_layout: Optional[Literal["columns", "rows"]] = None
-    fields: List[NewFieldSpec] = Field(default_factory=list)
+    fields: List[NewFieldSpec] = Field(
+        default_factory=list, max_length=MAX_NEW_GROUP_FIELDS
+    )
     after_field_id: Optional[str] = None
     index: Optional[int] = None
+    ref: _RefName = None
 
 
 class RemoveFieldOp(_CamelModel):
@@ -194,19 +234,71 @@ class RemoveFieldOp(_CamelModel):
 
 
 class MoveFieldOp(_CamelModel):
+    """Move a question within its page, to another page (``to_page_id``)
+    or into a repeating group (``to_group_id``), at ``index`` (default: the
+    end)."""
+
     op: Literal["move_field"] = "move_field"
     field_id: str
     to_page_id: Optional[str] = None  # default: same page (or group)
     # Move into a repeating group (asked once per item). A child moved with
     # ``to_page_id`` leaves its group.
     to_group_id: Optional[str] = None
-    index: int
+    index: Optional[int] = None
 
 
 class AddPageOp(_CamelModel):
     op: Literal["add_page"] = "add_page"
     index: Optional[int] = None  # default: append
-    fields: Optional[List[NewFieldSpec]] = None
+    fields: Optional[List[NewFieldSpec]] = Field(None, max_length=MAX_NEW_PAGE_FIELDS)
+    ref: _RefName = None
+
+
+class MovePageOp(_CamelModel):
+    """Move a question page to ``index`` (0-based among the question
+    pages; past the end = last)."""
+
+    op: Literal["move_page"] = "move_page"
+    page_id: str
+    index: int
+
+
+VALIDATION_PRESETS = {
+    "digits": "^[0-9]+$",
+    "letters": "^[A-Za-z\u00C0-\u024F' -]+$",
+    "alphanumeric": "^[A-Za-z0-9]+$",
+}
+# PATTERN_MAX_LENGTH and the pattern rule itself: common.form_spec.models
+
+
+class FieldValidationPatch(_CamelModel):
+    """Answer constraints of a question. Absent = unchanged, null = cleared.
+    ``preset`` picks a named pattern (VALIDATION_PRESETS); ``pattern`` is
+    a regular expression of your own."""
+
+    required: Optional[bool] = None
+    min_length: Optional[int] = None
+    max_length: Optional[int] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    min_choices: Optional[int] = None
+    max_choices: Optional[int] = None
+    pattern: Optional[str] = None
+    preset: Optional[Literal["digits", "letters", "alphanumeric"]] = None
+
+
+class SetFieldValidationOp(_CamelModel):
+    op: Literal["set_field_validation"] = "set_field_validation"
+    field_id: str
+    validation: FieldValidationPatch
+
+
+class SetQuestionNumberingOp(_CamelModel):
+    """Number the questions of one page (``page_id``) or of every page."""
+
+    op: Literal["set_question_numbering"] = "set_question_numbering"
+    page_id: Optional[str] = None
+    show: bool
 
 
 class RemovePageOp(_CamelModel):
@@ -286,6 +378,7 @@ class DuplicatePageOp(_CamelModel):
     op: Literal["duplicate_page"] = "duplicate_page"
     page_id: str
     index: Optional[int] = None  # default: right after the original
+    ref: _RefName = None
 
 
 class FormSettingsPatch(_CamelModel):
@@ -313,6 +406,19 @@ class UpdateFormSettingsOp(_CamelModel):
 class UpdateThemeOp(_CamelModel):
     op: Literal["update_theme"] = "update_theme"
     theme: Theme
+
+
+class SetThemePresetOp(_CamelModel):
+    """Dress the form in one of the theme presets (constants/themes.py), by
+    name (any case), as the builder's theme picker does: the preset's
+    colours, no background, and its own style if it has one (Leaflet), else
+    the form's current style. ``style`` sets the style instead
+    (constants/themes.py THEME_STYLES). Both are checked when the op is
+    applied, so an unknown name fails alone instead of the whole turn."""
+
+    op: Literal["set_theme_preset"] = "set_theme_preset"
+    name: str = Field(max_length=60)
+    style: Optional[str] = Field(default=None, max_length=30)
 
 
 class SetSectionTitleOp(_CamelModel):
@@ -347,7 +453,11 @@ FormOp = Annotated[
         SetPageJumpsOp,
         DuplicatePageOp,
         UpdateThemeOp,
+        SetThemePresetOp,
         SetSectionTitleOp,
+        MovePageOp,
+        SetFieldValidationOp,
+        SetQuestionNumberingOp,
     ],
     Field(discriminator="op"),
 ]
@@ -364,6 +474,8 @@ class OpResult(_CamelModel):
     op: str
     ok: bool
     message: str
+    # The id of the page, field or group the op created, if any.
+    created_id: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -646,7 +758,9 @@ def _apply_add_field(form: StandardForm, op: AddFieldOp) -> str:
         _check_child_type(op.field.type, op.field.internal)
         children = _children(group)
         insert_at = _insert_position(children, op.after_field_id, op.index, f"group '{op.group_id}'")
-        children.insert(insert_at, _build_field(op.field, insert_at))
+        child = _build_field(op.field, insert_at)
+        children.insert(insert_at, child)
+        _note_created(child.id)
         return f"Added '{op.field.title}' ({op.field.type.value}) to the group '{_title_text(group)}'"
     if op.page_id is None:
         raise OpError("add_field needs a pageId (or a groupId to add into a repeating group).")
@@ -660,6 +774,7 @@ def _apply_add_field(form: StandardForm, op: AddFieldOp) -> str:
 
     field = _build_field(op.field, insert_at)
     fields.insert(insert_at, field)
+    _note_created(field.id)
     return f"Added '{op.field.title}' ({op.field.type.value}) to page {page.index + 1 if page.index is not None else '?'}"
 
 
@@ -715,6 +830,7 @@ def _apply_add_group(form: StandardForm, op: AddGroupOp) -> str:
         validations=StandardFieldValidations(),
     )
     fields.insert(insert_at, group)
+    _note_created(group.id, [child.id for child in children])
     return (
         f"Added the repeating group '{op.title}' ({repeat.effective_min}-{repeat.effective_max} "
         f"x {op.item_label}, {len(children)} question(s)) as '{group.id}'"
@@ -824,7 +940,7 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
         where = None
 
     container.pop(position)
-    insert_at = max(0, min(op.index, len(target)))
+    insert_at = len(target) if op.index is None else max(0, min(op.index, len(target)))
     target.insert(insert_at, field)
     # In or out of a repeating group: rules across the boundary don't apply.
     note = _dropped_rules_note(form)
@@ -849,6 +965,7 @@ def _apply_add_page(form: StandardForm, op: AddPageOp) -> str:
     else:
         anchor = pages[max(0, op.index)]
         form.fields.insert(form.fields.index(anchor), page)
+    _note_created(page.id, [field.id for field in new_fields])
     return f"Added a page with {len(new_fields)} field(s)"
 
 
@@ -904,6 +1021,37 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
         except ValueError as error:
             raise OpError(str(error))
     return "Updated form settings: " + ", ".join(changed)
+
+
+_SETTINGS_TEXT_KEYS = ("purpose", "retention_text", "privacy_policy_url")
+_SETTINGS_SWITCH_KEYS = (
+    "require_verified_identity",
+    "allow_editing_response",
+    "show_submission_number",
+)
+
+
+def apply_settings_ops(settings: Any, ops, results: List["OpResult"]) -> bool:
+    """Put the applied update_form_settings ops on ``settings`` (the
+    workspace-form association's), in place: text is trimmed and '' clears
+    it, switches are set as given. Returns whether any op applied. The one
+    place these semantics live: the save (persist_ops_to_form) and the dry
+    run both use it."""
+    patches = [
+        op.patch
+        for op, result in zip(ops, results)
+        if result.ok and isinstance(op, UpdateFormSettingsOp)
+    ]
+    for patch in patches:
+        for key in _SETTINGS_TEXT_KEYS:
+            value = getattr(patch, key)
+            if value is not None:
+                setattr(settings, key, value.strip() or None)
+        for key in _SETTINGS_SWITCH_KEYS:
+            value = getattr(patch, key)
+            if value is not None:
+                setattr(settings, key, value)
+    return bool(patches)
 
 
 
@@ -1072,6 +1220,7 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     insert_at = op.index if op.index is not None else original_position + 1
     insert_at = max(0, min(insert_at, len(pages)))
     pages.insert(insert_at, clone)
+    _note_created(clone.id)
     field_count = len((clone.properties.fields if clone.properties else None) or [])
     return f"Duplicated page '{op.page_id}' ({field_count} fields) as '{clone.id}'"
 
@@ -1088,6 +1237,32 @@ def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
             raise OpError(f"Background image refused: {error}")
     form.theme = theme
     return f"Applied theme '{op.theme.title}'"
+
+
+_PRESETS_BY_NAME = {name.lower(): theme for name, theme in THEME_PRESETS.items()}
+
+
+def _apply_set_theme_preset(form: StandardForm, op: SetThemePresetOp) -> str:
+    preset = _PRESETS_BY_NAME.get(op.name.strip().lower())
+    if preset is None:
+        raise OpError(
+            f"There is no theme preset named '{op.name}'. "
+            f"Pick one of: {', '.join(THEME_PRESETS)}."
+        )
+    theme = preset.model_copy(deep=True)
+    if op.style is not None:
+        style = op.style.strip().lower()
+        if style not in THEME_STYLES:
+            raise OpError(
+                f"There is no style named '{op.style}'. "
+                f"Pick one of: {', '.join(THEME_STYLES)}."
+            )
+        theme.style = style
+    elif theme.style is None and form.theme is not None:
+        theme.style = form.theme.style
+    form.theme = theme
+    style = f" in the {theme.style} style" if theme.style else ""
+    return f"Applied the '{theme.title}' theme{style}"
 
 
 # Ids a model may use for the pages that are not question pages.
@@ -1153,6 +1328,140 @@ def _apply_set_section_title(form: StandardForm, op: SetSectionTitleOp) -> str:
     return f"Section title of page {number}: '{title}'"
 
 
+def _apply_move_page(form: StandardForm, op: MovePageOp) -> str:
+    page = _find_page(form, op.page_id)
+    if op.index < 0:
+        raise OpError("A page's new position (index) must be 0 or more.")
+    old = _pages(form).index(page)
+    form.fields.remove(page)
+    rest = _pages(form)
+    target = min(op.index, len(rest))
+    if target >= len(rest):
+        form.fields.append(page)
+    else:
+        form.fields.insert(form.fields.index(rest[target]), page)
+    if target == old:
+        return f"Page {old + 1} stays at position {old + 1}"
+    return f"Moved page {old + 1} to position {target + 1}"
+
+
+# Which questions each kind of answer rule applies to.
+_LENGTH_TYPES = {StandardFormFieldType.SHORT_TEXT, StandardFormFieldType.LONG_TEXT}
+_PATTERN_TYPES = {StandardFormFieldType.SHORT_TEXT}
+_VALUE_TYPES = {StandardFormFieldType.NUMBER}
+
+
+def _rule_applies(field: StandardFormField, types, rule: str, kinds: str) -> None:
+    if field.type not in types:
+        kind = field.type.value if field.type else "unknown"
+        raise OpError(
+            f"{rule} only apply to {kinds} questions; '{_title_text(field)}' is a "
+            f"{kind} question."
+        )
+
+
+def _checked_pattern(pattern: str) -> str:
+    # The spec's rule (compile only; see checked_pattern on matching).
+    try:
+        return checked_pattern(pattern)
+    except ValueError as error:
+        raise OpError(str(error))
+
+
+def _apply_set_field_validation(form: StandardForm, op: SetFieldValidationOp) -> str:
+    _, _, _, field, _ = _locate_field(form, op.field_id)
+    patch = op.validation
+    given = patch.model_fields_set
+    if not given:
+        raise OpError(
+            "Nothing to change — give at least one of: required, minLength, maxLength, "
+            "minValue, maxValue, minChoices, maxChoices, pattern, preset."
+        )
+    if patch.pattern is not None and patch.preset is not None:
+        raise OpError("Give either a pattern or a preset, not both.")
+    # Work on a copy: a refused rule leaves the question as it was.
+    rules = (field.validations or StandardFieldValidations()).model_copy()
+    changed: List[str] = []
+
+    if "required" in given:
+        rules.required = patch.required
+        changed.append("required" if patch.required else "optional")
+    for key, label in (("min_length", "minimum length"), ("max_length", "maximum length")):
+        if key in given:
+            _rule_applies(field, _LENGTH_TYPES, "Text lengths", "short or long text")
+            value = getattr(patch, key)
+            if value is not None and value < 0:
+                raise OpError(f"The {label} cannot be negative.")
+            setattr(rules, key, value)
+            changed.append(label)
+    for key, label in (("min_value", "minimum"), ("max_value", "maximum")):
+        if key in given:
+            _rule_applies(field, _VALUE_TYPES, "Minimum and maximum values", "number")
+            setattr(rules, key, getattr(patch, key))
+            changed.append(label)
+    for key, label in (("min_choices", "minimum choices"), ("max_choices", "maximum choices")):
+        if key in given:
+            value = getattr(patch, key)
+            if field.type != StandardFormFieldType.MULTIPLE_CHOICE or not (
+                field.properties and field.properties.allow_multiple_selection
+            ):
+                raise OpError(
+                    "A number of choices only applies to a multiple choice question "
+                    f"that allows several answers; '{_title_text(field)}' does not."
+                )
+            if value is not None:
+                available = len((field.properties.choices if field.properties else None) or [])
+                if value < (1 if key == "max_choices" else 0):
+                    raise OpError(f"The {label} must be a positive number.")
+                if value > available:
+                    raise OpError(
+                        f"'{_title_text(field)}' has {available} choice(s), so the {label} "
+                        f"cannot be {value}."
+                    )
+            setattr(rules, key, value)
+            changed.append(label)
+    if "pattern" in given or "preset" in given:
+        _rule_applies(field, _PATTERN_TYPES, "Patterns", "short text")
+        if patch.preset is not None:
+            rules.regex = VALIDATION_PRESETS[patch.preset]
+            changed.append(f"pattern ({patch.preset})")
+        elif patch.pattern is not None:
+            rules.regex = _checked_pattern(patch.pattern)
+            changed.append("pattern")
+        else:
+            rules.regex = None
+            changed.append("no pattern")
+
+    for low, high, what in (
+        ("min_length", "max_length", "minimum length"),
+        ("min_value", "max_value", "minimum"),
+        ("min_choices", "max_choices", "minimum number of choices"),
+    ):
+        lo, hi = getattr(rules, low), getattr(rules, high)
+        if lo is not None and hi is not None and lo > hi:
+            raise OpError(f"The {what} ({lo:g}) cannot be more than the maximum ({hi:g}).")
+    field.validations = rules
+    return f"Updated the answer rules of '{_title_text(field)}' ({', '.join(changed)})"
+
+
+def _apply_set_question_numbering(form: StandardForm, op: SetQuestionNumberingOp) -> str:
+    pages = _pages(form)
+    if op.page_id is not None:
+        page = _find_page(form, op.page_id)
+        targets = [page]
+        where = f"page {pages.index(page) + 1}"
+    else:
+        if not pages:
+            raise OpError("The form has no question pages to number.")
+        targets = pages
+        where = "every page"
+    for page in targets:
+        if page.properties is None:
+            page.properties = StandardFieldProperty(fields=[])
+        page.properties.show_question_numbers = op.show
+    return f"Turned question numbers {'on' if op.show else 'off'} for {where}"
+
+
 _HANDLERS = {
     "add_field": _apply_add_field,
     "add_group": _apply_add_group,
@@ -1167,28 +1476,240 @@ _HANDLERS = {
     "set_page_jumps": _apply_set_page_jumps,
     "duplicate_page": _apply_duplicate_page,
     "update_theme": _apply_update_theme,
+    "set_theme_preset": _apply_set_theme_preset,
     "set_section_title": _apply_set_section_title,
+    "move_page": _apply_move_page,
+    "set_field_validation": _apply_set_field_validation,
+    "set_question_numbering": _apply_set_question_numbering,
 }
+OP_NAMES = frozenset(_HANDLERS)
+
+# Most ops one MCP update_form call or one dry run may carry.
+MAX_OPS_PER_BATCH = 200
 
 
-def apply_form_ops(form: StandardForm, ops: List[FormOp]) -> Tuple[StandardForm, List[OpResult]]:
+def too_many_ops(count: int) -> Optional[str]:
+    """The plain refusal for a batch over MAX_OPS_PER_BATCH, or None."""
+    if count <= MAX_OPS_PER_BATCH:
+        return None
+    return (
+        f"At most {MAX_OPS_PER_BATCH} operations can be sent at once (this batch "
+        f"has {count}); split them into several batches."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Client references (``ref`` / ``"$ref:<name>"``)
+# ---------------------------------------------------------------------------
+
+# What the running handler created: (its id, ids of the fields it created
+# with it, in the order of the op's ``fields``).
+_CREATED: ContextVar[Optional[Tuple[str, Tuple[str, ...]]]] = ContextVar(
+    "form_ops_created", default=None
+)
+
+
+def _note_created(created_id: str, nested=()) -> None:
+    _CREATED.set((created_id, tuple(nested)))
+
+
+def _refs_defined(op) -> List[Tuple[str, Optional[int]]]:
+    """``(name, position)`` of each ref an op defines: the op's own
+    (position None) and those of the fields it creates with it."""
+    defined: List[Tuple[str, Optional[int]]] = []
+    if isinstance(op, AddFieldOp):
+        if op.ref and op.field.ref and op.ref != op.field.ref:
+            raise OpError("add_field has two different refs: give one, on the op or on its field.")
+        name = op.ref or op.field.ref
+        if name:
+            defined.append((name, None))
+        return defined
+    if getattr(op, "ref", None):
+        defined.append((op.ref, None))
+    if isinstance(op, (AddPageOp, AddGroupOp)):
+        defined.extend((spec.ref, i) for i, spec in enumerate(op.fields or []) if spec.ref)
+    return defined
+
+
+def _ref_target(name: str, refs: Dict[str, Tuple[int, Optional[str]]]) -> str:
+    entry = refs.get(name)
+    if entry is None:
+        raise OpError(
+            f"Unknown reference '{REF_PREFIX}{name}': no earlier operation in this batch "
+            f"defines the ref '{name}' (refs are set with \"ref\" on add_page, add_field, "
+            "add_group or duplicate_page, or on a field inside add_page or add_group)."
+        )
+    index, created = entry
+    if created is None:
+        raise OpError(
+            f"'{REF_PREFIX}{name}' names what operation #{index} would have created, "
+            "but that operation failed."
+        )
+    return created
+
+
+def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
+    """``op`` with every ``"$ref:<name>"`` under an id key (REF_ID_KEYS)
+    replaced by the id that name was given to. Other values are left as
+    they are."""
+    found = False
+
+    def walk(value, key=None):
+        nonlocal found
+        if isinstance(value, dict):
+            return {k: walk(v, k) for k, v in value.items()}
+        if isinstance(value, list):
+            return [walk(v) for v in value]
+        if key in REF_ID_KEYS and isinstance(value, str) and value.startswith(REF_PREFIX):
+            found = True
+            return _ref_target(value[len(REF_PREFIX):], refs)
+        return value
+
+    resolved = walk(op.model_dump(exclude_unset=True))
+    if not found:
+        return op
+    try:
+        return type(op).model_validate(resolved)
+    except ValueError as error:
+        raise OpError(_validation_message(error))
+
+
+class _SizeLimitReached(OpError):
+    """An op would take the form past MAX_PAGES / MAX_FIELDS: it fails and
+    the rest of the batch is not applied (later ops can only add more)."""
+
+
+SIZE_LIMIT_SKIPPED = (
+    "Not applied: an earlier operation reached the form's size limit."
+)
+
+
+def _form_size(form: StandardForm) -> Tuple[int, int]:
+    """(question pages, fields on them, group questions included)."""
+    pages = _pages(form)
+    return len(pages), sum(
+        count_fields(page.properties.fields if page.properties else None)
+        for page in pages
+    )
+
+
+def _growth(form: StandardForm, op) -> Tuple[int, int]:
+    """Pages and fields an op adds, known before it runs — so an op that
+    would be too big is refused before anything is copied."""
+    if isinstance(op, AddPageOp):
+        return 1, len(op.fields or [])
+    if isinstance(op, AddFieldOp):
+        return 0, 1
+    if isinstance(op, AddGroupOp):
+        return 0, 1 + len(op.fields)
+    if isinstance(op, DuplicatePageOp):
+        page = _find_page(form, op.page_id)
+        return 1, count_fields(page.properties.fields if page.properties else None)
+    return 0, 0
+
+
+def _size_problem(pages: int, fields: int, before: Tuple[int, int]) -> Optional[str]:
+    """Why ``(pages, fields)`` is too big, unless it did not grow (a form
+    already over a limit can still be edited and shrunk)."""
+    if pages > MAX_PAGES and pages > before[0]:
+        return f"A form can have at most {MAX_PAGES} pages; this would make {pages}."
+    if fields > MAX_FIELDS and fields > before[1]:
+        return (
+            f"A form can have at most {MAX_FIELDS} fields in all; this would make "
+            f"{fields}."
+        )
+    return None
+
+
+def apply_form_ops(
+    form: StandardForm, ops: List[FormOp], *, atomic: bool = False
+) -> Tuple[StandardForm, List[OpResult]]:
     """Apply operations to a deep copy of ``form``; the original is untouched.
 
-    Per-op failures are recorded and skipped (the chat turn survives a bad
-    op); the returned form is renumbered and re-validated as a whole.
+    Partial (default): per-op failures are recorded and skipped (the chat
+    turn survives a bad op). Atomic: all or nothing — when any op fails,
+    the returned form is an unchanged copy of ``form``; every op is still
+    tried so that all errors come back, each with its op index.
+    The returned form is renumbered and re-validated as a whole.
+
+    Size: an op that would take the form past MAX_PAGES or MAX_FIELDS
+    fails before it runs, and the rest of the batch is not applied.
     """
     working = form.model_copy(deep=True)
     results: List[OpResult] = []
+    size = _form_size(working)
+    stopped = False
+    # ref name -> (index of the op that defines it, the created id or None
+    # when that op failed)
+    refs: Dict[str, Tuple[int, Optional[str]]] = {}
 
     for i, op in enumerate(ops):
+        if stopped:
+            results.append(
+                OpResult(index=i, op=op.op, ok=False, message=SIZE_LIMIT_SKIPPED)
+            )
+            continue
         handler = _HANDLERS.get(op.op)
+        token = _CREATED.set(None)
+        defined: List[Tuple[str, Optional[int]]] = []
         try:
             if handler is None:
                 raise OpError(f"Unknown operation '{op.op}'.")
+            defined = _refs_defined(op)
+            names = [name for name, _ in defined]
+            for name in names:
+                if names.count(name) > 1:
+                    raise OpError(f"The ref '{name}' is defined twice in this operation.")
+                if name in refs:
+                    raise OpError(
+                        f"The ref '{name}' is already defined by operation #{refs[name][0]}; "
+                        "each ref names one new item."
+                    )
+            op = _resolve_refs(op, refs)
+            add_pages, add_fields = _growth(working, op)
+            if add_pages or add_fields:
+                problem = _size_problem(
+                    size[0] + add_pages, size[1] + add_fields, size
+                )
+                if problem:
+                    raise _SizeLimitReached(problem)
             message = handler(working, op)
-            results.append(OpResult(index=i, op=op.op, ok=True, message=message))
+            after = _form_size(working)
+            problem = _size_problem(*after, size)
+            if problem:
+                # Not foreseen by _growth: the change is already made, so
+                # nothing of this batch may be applied.
+                raise _SizeLimitReached(problem)
+            size = after
+            created = _CREATED.get()
+            for name, position in defined:
+                if created is None:
+                    continue
+                refs[name] = (i, created[0] if position is None else created[1][position])
+            results.append(
+                OpResult(
+                    index=i, op=op.op, ok=True, message=message,
+                    created_id=created[0] if created else None,
+                )
+            )
         except OpError as e:
+            # Later uses of this op's refs then say that it failed.
+            for name, _ in defined:
+                refs.setdefault(name, (i, None))
             results.append(OpResult(index=i, op=op.op, ok=False, message=str(e)))
+            if isinstance(e, _SizeLimitReached):
+                stopped = True
+                if _form_size(working) != size:
+                    # changed past the limit: drop the whole batch
+                    return form.model_copy(deep=True), results + [
+                        OpResult(index=j, op=o.op, ok=False, message=SIZE_LIMIT_SKIPPED)
+                        for j, o in enumerate(ops[i + 1 :], start=i + 1)
+                    ]
+        finally:
+            _CREATED.reset(token)
+
+    if atomic and not all(r.ok for r in results):
+        return form.model_copy(deep=True), results
 
     _renumber(working)
     # Nothing may leave with a date rule the save path would refuse.
@@ -1197,6 +1718,14 @@ def apply_form_ops(form: StandardForm, ops: List[FormOp]) -> Tuple[StandardForm,
     # never leave this function.
     validated = StandardForm.model_validate(working.model_dump())
     return validated, results
+
+
+def applied(results: List[OpResult], atomic: bool) -> bool:
+    """Did a batch change the form? Partial: when any op applied. Atomic:
+    only when every op did."""
+    if atomic:
+        return bool(results) and all(r.ok for r in results)
+    return any(r.ok for r in results)
 
 
 def parse_ops(payload: List[Dict[str, Any]]) -> List[FormOp]:

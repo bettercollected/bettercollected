@@ -1,25 +1,28 @@
 """Image addresses a form may hold: the single allow-list.
 
-Respondent pages load a form's images from the stored URL (theme
-backgrounds, page layout images, the welcome and ending images, field
-images), so a form only ever points at us, never at a host that would see
-respondents' visits. First-party addresses are:
+Respondent pages load a form's images (theme backgrounds, page layout
+images, the welcome and ending images, field images) only from us, never
+from a host that would see respondents' visits. The addresses a form may
+store are:
 
 - our own storage: ``AWS_PUBLIC_URL`` (or ``AWS_ENDPOINT_URL`` when no
   public URL is set, and the endpoint itself for objects stored before a
   public URL was configured), in our bucket, under the public folders the
   uploads and the built-in images use (``public/``, ``media_library/``,
   ``images/``);
-- Unsplash photos served through our server:
-  ``<API_PUBLIC_URL>/images/unsplash/<photo>`` (``services/unsplash_route.py``);
+- Unsplash photos, by their canonical address
+  ``https://images.unsplash.com/<photo>`` (the picker's and the AI image
+  search's results). Respondents never load that address: the webapp loads
+  it through our ``/images/unsplash`` route at render time
+  (``services/unsplash_route.py``). Storing Unsplash's address, not the
+  route's, keeps a form free of any one API host;
 - the builder's two built-in placeholder images (``BUILTIN_IMAGE_URLS``).
 
-An ``https://images.unsplash.com`` address (the picker's and the AI image
-search's results) is accepted on input only to be rewritten to our Unsplash
-route: ``first_party_image_url`` returns the address to store. Everything
-else is refused here, in one place. Addresses copied in from elsewhere go
-through ``POST /workspaces/{id}/images/import`` (``services/image_service.py``)
-and come back as storage addresses.
+An address of our route on any host (``<anything>/images/unsplash/<photo>``)
+is never stored: ``first_party_image_url`` turns it back into the canonical
+Unsplash address. Everything else is refused here, in one place. Addresses
+copied in from elsewhere go through ``POST /workspaces/{id}/images/import``
+(``services/image_service.py``) and come back as storage addresses.
 """
 
 import re
@@ -109,8 +112,8 @@ def _parts(url) -> Optional[object]:
 
 
 def is_first_party_image_url(url: Optional[str]) -> bool:
-    """Whether ``url`` may be stored as is: our storage, our Unsplash route
-    or a built-in image."""
+    """Whether ``url`` may be stored as is: our storage, a canonical Unsplash
+    photo address (served through our route) or a built-in image."""
     parts = _parts(url)
     if parts is None:
         return False
@@ -118,23 +121,23 @@ def is_first_party_image_url(url: Optional[str]) -> bool:
     return (
         url in BUILTIN_IMAGE_URLS
         or _is_storage_url(parts)
-        or unsplash_route.is_route_url(url)
+        or unsplash_route.unsplash_photo(url) is not None
     )
 
 
 def first_party_image_url(url: Optional[str]) -> Optional[str]:
     """The address to store for ``url``: itself (trimmed) when first-party,
-    our route's address for an Unsplash photo, else None."""
+    the canonical Unsplash address for an address of our route, else None."""
     if is_first_party_image_url(url):
         return url.strip()
     if _parts(url) is None:
         return None
-    return unsplash_route.to_route_url(url.strip())
+    return unsplash_route.to_canonical_url(url.strip())
 
 
 def is_allowed_image_url(url: Optional[str]) -> bool:
-    """Whether ``url`` is accepted on input (first-party, or an Unsplash
-    photo that will be rewritten)."""
+    """Whether ``url`` is accepted on input (first-party, or an address of
+    our route that is stored as its canonical Unsplash address)."""
     return first_party_image_url(url) is not None
 
 

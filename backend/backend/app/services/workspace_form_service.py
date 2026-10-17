@@ -1221,7 +1221,7 @@ class WorkspaceFormService:
         duplicated_form.description = form.description
         duplicated_form.button_text = form.button_text
         # A copy is a new form: first-party images only, as for a template copy
-        # (Unsplash rewritten, others dropped); the source's grandfathered
+        # (Unsplash photos kept by their canonical address, others dropped); the source's grandfathered
         # addresses do not carry over (services/form_images.py).
         check_form_images(duplicated_form, None, drop=True)
         if is_template:

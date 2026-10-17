@@ -547,6 +547,9 @@ class StandardFieldProperty(BaseModel):
     # sent" on a save (an older client keeps the stored title); an empty
     # string clears it.
     section_title: Optional[str] = Field(None, max_length=SECTION_TITLE_MAX_LENGTH)
+    # A page's "number the questions" switch (webapp showQuestionNumbers);
+    # without it here a save dropped the setting.
+    show_question_numbers: Optional[bool] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

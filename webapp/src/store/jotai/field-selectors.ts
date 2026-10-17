@@ -6,7 +6,7 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { FieldConditionalLogic, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { reorder } from '@app/utils/array-utils';
@@ -393,6 +393,27 @@ export default function useFormFieldsAtom() {
             ...validation
         };
         setFormFields([...formFields]);
+    };
+
+    // Answer rules (validations beyond Required): merge `patch` into the
+    // field's validations; undefined, null, NaN or '' removes a rule. Typing
+    // into the same rule is one undo step.
+    const updateFieldValidations = (fieldIndex: number, slideIndex: number, patch: Partial<IFormFieldValidation>) => {
+        const target = formFields?.[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!target) return;
+        const next: Record<string, unknown> = { ...(target.validations || {}) };
+        Object.entries(patch).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '' || (typeof value === 'number' && !Number.isFinite(value))) delete next[key];
+            else next[key] = value;
+        });
+        target.validations = next as IFormFieldValidation;
+        setFormFields([...formFields], `validations:${target.id}:${Object.keys(patch).sort().join(',')}`);
+    };
+
+    // Question numbering for the whole form: the flag lives on every
+    // question page (StandardFieldProperty.showQuestionNumbers).
+    const setShowQuestionNumbersOnAllPages = (show: boolean) => {
+        setFormFields(formFields.map((slide) => (slide.type && slide.type !== FieldTypes.SLIDE ? slide : { ...slide, properties: { ...(slide.properties || {}), showQuestionNumbers: show } })));
     };
 
     const updateShowQuestionNumbers = (slideIndex: number, show: boolean) => {
@@ -912,9 +933,38 @@ export default function useFormFieldsAtom() {
         return { next, prunedReferences };
     };
 
+    // Insert a field at a position on a page (the canvas "+" and "/" menu).
+    // With `replaceFieldId` the new field takes that field's place instead
+    // (an empty text block someone typed "/" in), in one undo step.
+    const addFieldAt = (slideField: StandardFormFieldDto, slideIndex: number, fieldIndex: number, replaceFieldId?: string) => {
+        const slide = formFields[slideIndex];
+        if (!slide) return;
+        const fields = [...(slide.properties?.fields ?? [])];
+        const replaceAt = replaceFieldId ? fields.findIndex((field) => field.id === replaceFieldId) : -1;
+        if (replaceAt >= 0) fields.splice(replaceAt, 1, slideField);
+        else fields.splice(Math.min(Math.max(fieldIndex, 0), fields.length), 0, slideField);
+        slide.properties = { ...(slide.properties || {}), fields: fields.map((field, index) => ({ ...field, index })) };
+        if (replaceAt >= 0) {
+            pruneOrphanedConditions(formFields);
+            pruneOrphanedPipes(formFields);
+            pruneOrphanedDateRules(formFields);
+        }
+        setFormFields([...formFields]);
+    };
+
+    // The picture or video an image/video content block shows.
+    const updateFieldAttachment = (slideIndex: number, fieldIndex: number, attachment: StandardFormFieldDto['attachment']) => {
+        const field = formFields?.[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!field) return;
+        formFields[slideIndex]!.properties!.fields![fieldIndex] = { ...field, attachment };
+        setFormFields([...formFields], `attachment:${field.id}`);
+    };
+
     return {
         movePage,
         moveFieldToPage,
+        addFieldAt,
+        updateFieldAttachment,
         formFields,
         setFormFields,
         initFormFields,
@@ -934,6 +984,7 @@ export default function useFormFieldsAtom() {
         updateFieldRequired,
         updateFieldInternal,
         updateFieldValidation,
+        updateFieldValidations,
         updateFieldProperty,
         updateFieldConditionalLogic,
         updateGroupChildren,
@@ -944,6 +995,7 @@ export default function useFormFieldsAtom() {
         clearSlidePositions,
         duplicateSlide,
         updateShowQuestionNumbers,
+        setShowQuestionNumbersOnAllPages,
         updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,
         updateSlideLayout,

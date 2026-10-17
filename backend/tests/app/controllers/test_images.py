@@ -89,7 +89,6 @@ class FakeBucket:
 def setup(monkeypatch):
     monkeypatch.setattr(settings.aws_settings, "PUBLIC_URL", STORAGE)
     monkeypatch.setattr(settings.aws_settings, "BUCKET", BUCKET)
-    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", PUBLIC_API)
     service = container.image_service()
     service._known.clear()
     fetch, sandbox, bucket = FakeFetch(), FakeSandbox(), FakeBucket()
@@ -355,9 +354,15 @@ async def test_an_address_is_copied_into_our_storage(
 @pytest.mark.parametrize(
     "pasted,expected",
     [
+        # Unsplash's address is stored as is (pages load it through our route)
         (
             "https://images.unsplash.com/photo-1?ixid=a&w=1080",
+            "https://images.unsplash.com/photo-1?ixid=a&w=1080",
+        ),
+        # an address of our route is stored as the canonical Unsplash one
+        (
             f"{PUBLIC_API}/images/unsplash/photo-1?w=1080",
+            "https://images.unsplash.com/photo-1?w=1080",
         ),
         (f"{STORAGE}/{BUCKET}/public/x.png", f"{STORAGE}/{BUCKET}/public/x.png"),
     ],

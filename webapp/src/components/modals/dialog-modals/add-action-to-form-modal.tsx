@@ -171,7 +171,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                 )}
 
                 {/* Add Integration Button */}
-                <Button data-umami-event={`Add ${action?.title} Integration`} data-umami-event-email={user.email} variant="primary" size="medium" onClick={onAddIntegration} className="mt-4">
+                <Button data-umami-event={`Add ${action?.title} Integration`} variant="primary" size="medium" onClick={onAddIntegration} className="mt-4">
                     Add Integration
                 </Button>
             </div>

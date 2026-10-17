@@ -2,17 +2,16 @@
 
 import { useRouter } from 'next/navigation';
 
-import { AnimatePresence, motion } from 'framer-motion';
-import { v4 } from 'uuid';
 
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
-import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { useInsertField } from '@app/lib/hooks/use-insert-field';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { autosaveStatusLabel, isAutosaveProblem, useAutosaveStatus } from '@app/store/jotai/autosave-status';
@@ -34,6 +33,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
 import BackButton from '../molecules/form-builder/back-button';
+import KeyboardShortcuts from '../molecules/form-builder/keyboard-shortcuts';
 
 // Code-split: React Flow only loads when the Flow view is opened.
 const FlowView = dynamic(() => import('./form-builder/flow-view'), { ssr: false });
@@ -42,7 +42,7 @@ import PublishButton from '../molecules/form-builder/publish-button';
 import Form from './form/form';
 
 const Navbar = () => {
-    const { formFields, addField, undo, redo, canUndo, canRedo } = useFormFieldsAtom();
+    const { formFields, undo, redo, canUndo, canRedo } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
     const { toast } = useToast();
@@ -67,32 +67,14 @@ const Navbar = () => {
 
     const authState = useAppSelector(selectAuth);
 
+    const { insert } = useInsertField();
     const handleAddText = () => {
-        if (activeSlideComponent === null) {
-            toast({ title: 'Add a slide to add questions', variant: 'default' });
+        if (!isContentPage) {
+            toast({ title: 'Select a page to add a text block', variant: 'default' });
             return;
         }
-        if (activeSlideComponent?.index < 0) {
-            toast({ title: 'Select a slide to add questions', variant: 'default' });
-            return;
-        }
-
-        const fieldId = v4();
-        addField(
-            {
-                id: fieldId,
-                index: formFields[activeSlideComponent!.index]?.properties?.fields?.length ? formFields[activeSlideComponent!.index]?.properties?.fields?.length! : 0,
-                type: FieldTypes.TEXT
-            },
-            activeSlideComponent?.index || 0
-        );
-        window.setTimeout(function () {
-            const element = document.getElementById(`scroll-field-${fieldId}`);
-            element?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'end'
-            });
-        }, 0);
+        // At the end of this page, selected, with the cursor in it.
+        insert({ type: FieldTypes.TEXT, name: 'Text block' }, 'page');
     };
 
     const { resetResponderState } = useResponderState();
@@ -182,61 +164,47 @@ const Navbar = () => {
                 />
             </div>
             <div className={'flex min-w-fit flex-1 items-center justify-center gap-1'}>
-                <DropdownMenu
-                    open={insertDropdownOpen && isContentPage}
-                    onOpenChange={(open) => {
-                        setInsertDropdownOpen(open);
-                    }}
-                >
-                    <DropdownMenu.Trigger>
-                        <div
-                            title={isContentPage ? 'Insert a field' : 'Select a page to insert fields'}
+                <Popover open={insertDropdownOpen && isContentPage} onOpenChange={(open) => setInsertDropdownOpen(open)}>
+                    <PopoverTrigger asChild>
+                        <button
+                            type="button"
+                            title={isContentPage ? 'Insert a field (Ctrl/Cmd+K)' : 'Select a page to insert fields'}
                             aria-disabled={!isContentPage}
+                            aria-haspopup="dialog"
+                            aria-keyshortcuts="Control+K Meta+K"
+                            onClick={(event) => {
+                                // Stays focusable while disabled, so the reason is discoverable.
+                                if (!isContentPage) event.preventDefault();
+                            }}
                             className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
                         >
-                            <PlusOutlined />
+                            <PlusOutlined aria-hidden="true" />
                             <span>Insert</span>
-                        </div>
-                    </DropdownMenu.Trigger>
-                    <AnimatePresence key="insert-dropdown" initial={false} mode="wait">
-                        {insertDropdownOpen && isContentPage && (
-                            <DropdownMenuContent key="insert-dropdown" className=" w-[410px] border-none p-0">
-                                <motion.div
-                                    key="insert-dropdown"
-                                    {...({
-                                        className: 'shadow-large border border-black-300',
-                                        initial: { opacity: 0, height: '350px', overflow: 'hidden' },
-                                        animate: { opacity: 1, height: '554px' },
-                                        exit: { opacity: 0, height: '350px', overflow: 'hidden' },
-                                        transition: { duration: 0.2 }
-                                    } as any)}
-                                >
-                                    <InsertFieldComponent
-                                        formFields={formFields}
-                                        activeSlideComponent={activeSlideComponent}
-                                        closeDropdown={() => {
-                                            setInsertDropdownOpen(false);
-                                        }}
-                                    />
-                                </motion.div>
-                            </DropdownMenuContent>
-                        )}
-                    </AnimatePresence>
-                </DropdownMenu>
+                        </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="center" className="w-auto overflow-hidden p-0" aria-label="Insert a field">
+                        <InsertFieldComponent
+                            formFields={formFields}
+                            activeSlideComponent={activeSlideComponent}
+                            closeDropdown={() => {
+                                setInsertDropdownOpen(false);
+                            }}
+                        />
+                    </PopoverContent>
+                </Popover>
                 <button
                     data-umami-event={'Add Heading Button'}
-                    data-umami-event-email={authState.email}
-                    disabled={!isContentPage}
-                    onClick={isContentPage ? handleAddText : undefined}
+                    type="button"
+                    aria-disabled={!isContentPage}
+                    onClick={handleAddText}
                     title={isContentPage ? 'Add a display-text block to this page' : 'Select a page to add a text block'}
                     className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
                 >
-                    <TextOutlinedIcon />
+                    <TextOutlinedIcon aria-hidden="true" />
                     <span>Text block</span>
                 </button>
                 <button
                     data-umami-event={'Open Flow View'}
-                    data-umami-event-email={authState.email}
                     onClick={() => setFlowViewOpen(true)}
                     title="Open the flow view to edit page branching"
                     className="text-black-700 hover:bg-black-100 hover:text-black-900 flex cursor-pointer flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium"
@@ -263,10 +231,11 @@ const Navbar = () => {
                     <button aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo} onClick={redo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
                         <Redo2 className="h-4 w-4" />
                     </button>
+                    <KeyboardShortcuts />
                 </div>
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`} data-umami-event-email={authState.email}>
+                        <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`}>
                             Preview
                         </Button>
                     </SheetTrigger>

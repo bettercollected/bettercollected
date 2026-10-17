@@ -650,6 +650,22 @@ CASES = [
         ok=200,
         ai_replies=(REVIEW_REPLY,),
     ),
+    # --- form spec (stores nothing)
+    Case(
+        "spec.validate",
+        "POST",
+        W + "/forms/validate",
+        P.FORM_EDIT,
+        lambda c: {"json": {"specVersion": "1", "pages": []}},
+        ok=200,
+    ),
+    Case(
+        "spec.dry_run",
+        "POST",
+        F + "/ops/dry-run",
+        P.FORM_EDIT,
+        lambda c: {"json": {"ops": []}},
+    ),
     Case("ai.insights.get", "GET", F + "/ai/insights", P.RESPONSE_READ, ok=200),
     Case(
         "ai.insights.generate",

@@ -12,7 +12,6 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
-import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -45,7 +44,6 @@ export default function StartWithAi() {
     const workspace = useAppSelector(selectWorkspace);
     const [createV2Form, { isLoading }] = useCreateV2FormMutation();
     const [isGenerationStarted, setIsGenerationStarted] = useState(false);
-    const authState = useAppSelector(selectAuth);
     // Workspace AI opt-in (#715)
     const { settings: aiSettings, enabled: aiEnabled, providerName } = useWorkspaceAI();
 
@@ -132,7 +130,7 @@ export default function StartWithAi() {
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <Button data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
+                    <Button data-umami-event={'Creating Form with AI'} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
                         <div className="z-10 flex items-center gap-2">
                             <AIIcon />
                             Generate

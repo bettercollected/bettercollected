@@ -79,10 +79,10 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
                 <QRGenerator form={currentForm} />
                 <span className="p4-new w-[266px] text-center">Scan this QR code to get access to the form or </span>
                 <div className={'flex gap-2 '}>
-                    <Button variant={'v2Button'} onClick={onDownload} data-umami-event="Download QR button" data-umami-event-email={auth.email}>
+                    <Button variant={'v2Button'} onClick={onDownload} data-umami-event="Download QR button">
                         Download
                     </Button>
-                    <Button variant={'v2Button'} onClick={handleCopyImageToClipboard} data-umami-event="Copy QR button" data-umami-event-email={auth.email}>
+                    <Button variant={'v2Button'} onClick={handleCopyImageToClipboard} data-umami-event="Copy QR button">
                         Copy
                     </Button>
                 </div>

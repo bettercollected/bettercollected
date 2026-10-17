@@ -10,7 +10,8 @@ repository:
 - **Live (opt-in, never in CI):** the prompts in ``prompts.json`` against the
   configured provider. Runs only with ``--live`` AND ``AI_EVAL_ALLOW_LIVE=1``;
   it sends the synthetic prompts (nothing else) to the provider and costs
-  tokens.
+  tokens. ``--prompts`` must name a file inside ``tests/fixtures/ai_evals/``.
+  Never run --live on a production host.
 
 The live run goes through the same AI limits as the app
 (``services/ai/usage.AIUsageGuard``, counted in memory for one run): the
@@ -54,7 +55,9 @@ class EvalError(Exception):
 
 def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="ai_eval", description="Score AI form generation and chat edits."
+        prog="ai_eval",
+        description="Score AI form generation and chat edits.",
+        epilog="Never run --live on a production host.",
     )
     parser.add_argument(
         "--out", required=True, help="directory for report.json and report.md (outside the repo)"
@@ -62,9 +65,16 @@ def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
     parser.add_argument(
         "--live",
         action="store_true",
-        help=f"call the configured provider (also needs {ALLOW_LIVE_ENV}=1)",
+        help=(
+            f"call the configured provider (also needs {ALLOW_LIVE_ENV}=1); "
+            "never run --live on a production host"
+        ),
     )
-    parser.add_argument("--prompts", default=str(DEFAULT_PROMPTS), help="live prompts file")
+    parser.add_argument(
+        "--prompts",
+        default=str(DEFAULT_PROMPTS),
+        help="live prompts file, inside tests/fixtures/ai_evals/",
+    )
     parser.add_argument(
         "--provider",
         choices=("openai", "google", "compatible"),
@@ -92,6 +102,21 @@ def output_dir(path: str) -> Path:
     return out
 
 
+def prompts_path(path: str) -> Path:
+    """The real path of a prompts file inside FIXTURES; anything else (also
+    through a symlink or ``..``) is refused."""
+    fixtures = FIXTURES.resolve()
+    try:
+        resolved = Path(path).expanduser().resolve(strict=True)
+    except (OSError, RuntimeError):
+        raise EvalError(
+            "--prompts must name an existing file in tests/fixtures/ai_evals/."
+        ) from None
+    if fixtures not in resolved.parents or not resolved.is_file():
+        raise EvalError("--prompts must name a file in tests/fixtures/ai_evals/.")
+    return resolved
+
+
 def _select(cases: List[Dict[str, Any]], args: argparse.Namespace) -> List[Dict[str, Any]]:
     if args.only:
         known = {c["name"] for c in cases}
@@ -113,7 +138,7 @@ def load_fixtures() -> List[Dict[str, Any]]:
 
 
 def load_prompts(path: Path) -> List[Dict[str, Any]]:
-    prompts = json.loads(path.read_text(encoding="utf-8"))["prompts"]
+    prompts = json.loads(prompts_path(str(path)).read_text(encoding="utf-8"))["prompts"]
     names = set()
     fixtures = {f["name"]: f for f in load_fixtures()}
     for entry in prompts:
@@ -387,6 +412,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         args = parse_args(argv)
         out = output_dir(args.out)
+        prompts = prompts_path(args.prompts)
         if args.live and os.environ.get(ALLOW_LIVE_ENV) != "1":
             raise EvalError(
                 f"--live calls a real AI provider and costs tokens: set {ALLOW_LIVE_ENV}=1 as well."
@@ -405,7 +431,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             os.environ.setdefault("UNSPLASH_ACCESS_KEY", "")
         started_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
         if args.live:
-            cases = _select(load_prompts(Path(args.prompts)), args)
+            cases = _select(load_prompts(prompts), args)
             report = asyncio.run(run_live(cases, args))
         else:
             cases = _select(load_fixtures(), args)

@@ -4,6 +4,7 @@ import parse from 'html-react-parser';
 import { AlertCircle } from 'lucide-react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
@@ -12,14 +13,13 @@ import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
-import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-
+import { answerRuleMessage, checkAnswerRules, isAnswerRuleProblem } from '@app/utils/answer-rules';
 import { isAnswerableField } from '@app/utils/leaflet-sections';
+import { legacyTitleText } from '@app/utils/legacy-title';
+import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
-import { getPlaceholderValueForTitle } from '../rich-text-editor';
-import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
-import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 import { QuestionNumberContext } from './question-number-context';
 
@@ -31,8 +31,16 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     const standardForm = useAppSelector(selectForm);
 
     const { invalidFields } = formResponse;
+    const { t, language } = useRespondentLanguage();
+    // Answer rules (length, format, range, number of options): flagged on
+    // Continue, then re-checked against the answer as it is now, so the
+    // message goes away as soon as the answer is fixed.
+    const flagged = invalidFields?.[field.id] ?? [];
+    const flaggedOnlyRules = flagged.length > 0 && flagged.every(isAnswerRuleProblem);
+    const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id]) : [];
+    const ruleMessage = ruleProblems.length ? answerRuleMessage(field, ruleProblems[0], t) : undefined;
     // A caller may own the error (e.g. a repeating group's item-count message).
-    const hasError = errorMessage !== undefined ? !!errorMessage : !!(invalidFields && invalidFields[field.id] && invalidFields[field.id].length);
+    const hasError = errorMessage !== undefined ? !!errorMessage : flaggedOnlyRules ? !!ruleMessage : flagged.length > 0;
 
     // A field that collects an answer is either required or optional — never
     // ambiguous. We mark required fields (asterisk) AND label optional ones, so
@@ -51,11 +59,13 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // Plain-string titles (groups, AI/MCP-created fields) go through the TipTap
     // path as text nodes — never as raw HTML — so neither the title nor a piped
     // answer or URL prefill can inject markup. Bold keeps the string path's look.
-    const title = typeof field?.title === 'string' && field.title ? stringTitleToDoc(field.title, [{ type: 'bold' }]) : field?.title;
+    // An untitled field shows no title: never the builder's placeholder hint.
+    const legacy = field ? legacyTitleText(field) : undefined;
+    const stringTitle = typeof field?.title === 'string' && field.title ? field.title : legacy;
+    const title = stringTitle ? stringTitleToDoc(stringTitle, [{ type: 'bold' }]) : field?.title;
     const resolvedTitle = resolvePipesInTitle(title, pipeContext);
     const resolvedDescription = resolvePipesInText(field?.description, pipeContext);
     // "Why we ask this": the creator's reason for an identifying question.
-    const { t, language } = useRespondentLanguage();
     const whyWeAsk = field?.properties?.whyWeAsk?.trim();
     // Leaflet: the question's n.m number, set in the margin column.
     const numbering = useContext(QuestionNumberContext);
@@ -94,7 +104,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                     {/* Labels: weight and contrast carry the hierarchy, not size
                         (ratified 2026-07-08 against the form-redesign mocks). */}
                     <div id={`q-title-${field.id}`} className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
-                        {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
+                        {parse(getHtmlFromJson(resolvedTitle) ?? '')}
                         {isAnswerable && isRequired && (
                             <>
                                 <span aria-hidden="true" style={{ color: requiredMarkColour(theme) }}>
@@ -105,10 +115,10 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                             </>
                         )}
                     </div>
-                    {isAnswerable && !isRequired && <span className="text-black-700 text-[13px] font-normal">{t('FIELD.OPTIONAL')}</span>}
+                    {isAnswerable && !isRequired && <span className="text-[13px] font-normal text-black-700">{t('FIELD.OPTIONAL')}</span>}
                 </div>
                 {resolvedDescription && (
-                    <div id={`q-desc-${field.id}`} className="text-black-700 mt-1.5 max-w-[62ch] text-[15px] leading-relaxed">
+                    <div id={`q-desc-${field.id}`} className="mt-1.5 max-w-[62ch] text-[15px] leading-relaxed text-black-700">
                         {resolvedDescription}
                     </div>
                 )}
@@ -118,7 +128,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                     // it belongs to the form's palette, not the app's blue.
                     <p
                         id={`q-why-${field.id}`}
-                        className={cn('mt-2 max-w-[62ch] text-[14px]', leaflet ? 'border-l-[3px] pl-2.5 leading-normal' : 'text-black-700 border-l-2 pl-3 leading-relaxed')}
+                        className={cn('mt-2 max-w-[62ch] text-[14px]', leaflet ? 'border-l-[3px] pl-2.5 leading-normal' : 'border-l-2 pl-3 leading-relaxed text-black-700')}
                         style={leaflet ? { borderColor: theme?.secondary, color: softInk(theme) } : { borderColor: theme?.tertiary ?? '#818CA0' }}
                     >
                         <span className="font-semibold" style={{ color: theme?.primary }} lang={language}>
@@ -137,7 +147,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
             {hasError && (
                 <div id={errorId} role="alert" className="mt-2 flex items-start gap-2 text-[15px] leading-snug font-medium" style={{ color: theme?.primary }}>
                     <AlertCircle className="mt-px h-[18px] w-[18px] shrink-0 text-[#C43D3D]" strokeWidth={2} aria-hidden="true" />
-                    <span>{errorMessage || t('FIELD.ANSWER_REQUIRED')}</span>
+                    <span>{errorMessage || ruleMessage || t('FIELD.ANSWER_REQUIRED')}</span>
                 </div>
             )}
         </>
@@ -153,7 +163,8 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 tokens.divider && 'border-b pb-7',
                 // The field's edge (inputs, the date and dropdown triggers, the
                 // option controls) in signal red while its error shows.
-                hasError && '[&_input:not([type=checkbox])]:border-(--invalid-edge)! [&_textarea]:border-(--invalid-edge)! [&_[aria-haspopup]]:border-(--invalid-edge)! [&_[aria-expanded]]:border-(--invalid-edge)! [&_[data-choice-indicator]]:border-(--invalid-edge)!'
+                hasError &&
+                    '[&_[aria-expanded]]:border-(--invalid-edge)! [&_[aria-haspopup]]:border-(--invalid-edge)! [&_[data-choice-indicator]]:border-(--invalid-edge)! [&_input:not([type=checkbox])]:border-(--invalid-edge)! [&_textarea]:border-(--invalid-edge)!'
             )}
             style={{
                 ...(tokens.divider ? { borderColor: (theme?.tertiary ?? '#818CA0') + '40' } : {}),
@@ -181,7 +192,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                         aria-hidden="true"
                         data-testid="question-number"
                         className={cn('text-[16px] leading-[1.4] tabular-nums', numbering?.hang && '@min-[880px]/page:absolute @min-[880px]/page:top-0 @min-[880px]/page:-left-16 @min-[880px]/page:w-12 @min-[880px]/page:text-right')}
-                        style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberColour }}
+                        style={numbering?.plain ? { fontWeight: 600, color: theme?.primary } : { fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numberColour }}
                     >
                         {number}
                     </span>

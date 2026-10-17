@@ -7,6 +7,7 @@ import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dt
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
 import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
+import { compilePattern } from '@app/utils/answer-rules';
 import { hasAnswerValue } from '@app/utils/repeating-groups';
 
 /**
@@ -79,6 +80,8 @@ export const statusProps = (status: string, t: any) => {
         dotCName
     };
 };
+const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
 export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: AnswerDto) => {
     const errors: FormValidationError[] = [];
 
@@ -93,29 +96,32 @@ export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: Ans
         } else {
             if ((type === FormBuilderTagNames.INPUT_SHORT_TEXT || type === FormBuilderTagNames.INPUT_LONG_TEXT) && text) {
                 const textLength = text.length;
-                if (validations?.minLength && textLength < validations.minLength) {
+                if (isNumber(validations?.minLength) && textLength < validations.minLength) {
                     errors.push(FormValidationError.INSUFFICIENT_LENGTH);
                 }
-                if (validations?.maxLength && textLength > validations.maxLength) {
+                if (isNumber(validations?.maxLength) && textLength > validations.maxLength) {
                     errors.push(FormValidationError.EXCEEDS_MAX_LENGTH);
                 }
-                if (validations?.regex && text.match(validations.regex)) {
+                // An answer that does NOT match the pattern breaks the rule
+                // (this used to be inverted: matching answers were flagged).
+                const pattern = compilePattern(validations?.regex);
+                if (pattern && !pattern.test(text)) {
                     errors.push(FormValidationError.REGEX_PATTERN);
                 }
             } else if (type === FormBuilderTagNames.INPUT_NUMBER && number !== undefined) {
-                if (validations?.minValue && number < validations.minValue) {
+                if (isNumber(validations?.minValue) && number < validations.minValue) {
                     errors.push(FormValidationError.INSUFFICIENT_VALUE);
                 }
-                if (validations?.maxValue && number > validations.maxValue) {
+                if (isNumber(validations?.maxValue) && number > validations.maxValue) {
                     errors.push(FormValidationError.EXCEEDS_MAX_VALUE);
                 }
             } else if ((type === FormBuilderTagNames.INPUT_CHECKBOXES || type === FormBuilderTagNames.INPUT_MULTISELECT) && choices) {
                 const choicesLength = choices.values?.length || 0;
-                if (validations?.minChoices && choicesLength < validations.minChoices) {
+                if (isNumber(validations?.minChoices) && choicesLength < validations.minChoices) {
                     errors.push(FormValidationError.INSUFFICIENT_CHOICES);
                 }
-                if (validations?.maxChoices && choicesLength > validations.maxChoices) {
-                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                if (isNumber(validations?.maxChoices) && choicesLength > validations.maxChoices) {
+                    errors.push(FormValidationError.EXCEEDS_MAX_CHOICES);
                 }
             }
         }

@@ -71,6 +71,14 @@
         "COPIED": "Copied",
         "NEXT": "What happens next"
     },
+    "VIDEO": {
+        "PLAY": "Play video: {{title}}",
+        "PLAY_UNTITLED": "Play video",
+        "NOTICE": "Plays from {{provider}}. Playing it shares your IP address with {{provider}}.",
+        "PLAYER": "Video player: {{title}}",
+        "UNSUPPORTED": "This video can only be watched on its own site.",
+        "OPEN": "Open the video in a new tab"
+    },
     "FIELD": {
         "REQUIRED": "(required)",
         "OPTIONAL": "Optional",
@@ -84,6 +92,24 @@
         "PLACEHOLDER_EMAIL": "name@gmail.com",
         "RATE": "Rate {{value}} of {{total}}",
         "CHOOSE_MANY": "Choose as many as you like."
+    },
+    "RULE": {
+        "TOO_SHORT_one": "Use at least {{count}} character.",
+        "TOO_SHORT_other": "Use at least {{count}} characters.",
+        "TOO_LONG_one": "Use at most {{count}} character.",
+        "TOO_LONG_other": "Use at most {{count}} characters.",
+        "PATTERN": "This answer is not in the expected format. Please check it.",
+        "FORMAT_POSTCODE_NL": "Enter a Dutch postcode, for example {{example}}.",
+        "FORMAT_IBAN": "Enter an IBAN, for example {{example}}.",
+        "FORMAT_PHONE": "Enter a phone number, for example {{example}}.",
+        "FORMAT_LETTERS": "Use letters only.",
+        "TOO_SMALL": "Enter a number of {{min}} or more.",
+        "TOO_LARGE": "Enter a number of {{max}} or less.",
+        "NOT_INTEGER": "Enter a whole number, without decimals.",
+        "TOO_FEW_CHOICES_one": "Choose at least {{count}} option.",
+        "TOO_FEW_CHOICES_other": "Choose at least {{count}} options.",
+        "TOO_MANY_CHOICES_one": "Choose at most {{count}} option.",
+        "TOO_MANY_CHOICES_other": "Choose at most {{count}} options."
     },
     "DATE": {
         "PICK": "Pick a date",

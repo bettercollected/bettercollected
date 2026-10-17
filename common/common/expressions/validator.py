@@ -16,6 +16,9 @@ MAX_DEPTH = 32
 MAX_NODES = 500
 MAX_STRING_LENGTH = 1000
 MAX_VAR_LENGTH = 200
+# Caps on variable values (evaluator input); over-cap values become None.
+MAX_INPUT_STRING_LENGTH = 10000
+MAX_INPUT_LIST_ITEMS = 1000
 _INF = float("inf")
 
 # Allowed argument counts: (min, max); max ``inf`` = variadic.

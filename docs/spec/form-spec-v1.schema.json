@@ -1,0 +1,1810 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bettercollected/bettercollected/develop/docs/spec/form-spec-v1.schema.json",
+  "$defs": {
+    "Attachment": {
+      "additionalProperties": false,
+      "description": "An image or video shown with a question or a choice.",
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "image",
+                "video"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type"
+        },
+        "href": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Href"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "embedProvider": {
+          "anyOf": [
+            {
+              "enum": [
+                "youtube",
+                "vimeo",
+                "no_embed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Embedprovider"
+        }
+      },
+      "title": "Attachment",
+      "type": "object"
+    },
+    "Choice": {
+      "additionalProperties": false,
+      "description": "One option of a choice question. Logic conditions compare with\n``value``.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Attachment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Choice",
+      "type": "object"
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "description": "One condition of a visibility rule or a page jump: the answer of\n``fieldId`` compared with ``value`` (a choice's value, \"Yes\"/\"No\" for a\nyes/no question). On a repeating group, ``groupMode`` COUNT compares\nthe number of items; ANY / ALL test ``childFieldId`` in the items.",
+      "properties": {
+        "fieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fieldid"
+        },
+        "fieldType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type of the source question (filled in by the editor).",
+          "title": "Fieldtype"
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "IS_EMPTY",
+                "IS_NOT_EMPTY",
+                "IS_EQUAL",
+                "IS_NOT_EQUAL",
+                "CONTAINS",
+                "DOES_NOT_CONTAIN",
+                "LESS_THAN",
+                "LESS_THAN_EQUAL",
+                "GREATER_THAN",
+                "GREATER_THAN_EQUAL",
+                "STARTS_WITH",
+                "ENDS_WITH"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comparison"
+        },
+        "value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "groupMode": {
+          "anyOf": [
+            {
+              "enum": [
+                "COUNT",
+                "ANY",
+                "ALL"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Groupmode"
+        },
+        "childFieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Childfieldid"
+        },
+        "childFieldType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Childfieldtype"
+        }
+      },
+      "title": "Condition",
+      "type": "object"
+    },
+    "DateRule": {
+      "additionalProperties": false,
+      "description": "The chosen date must be ``comparison`` a fixed ``date`` (YYYY-MM-DD),\ntoday, or the answer of another date question (``fieldId``).",
+      "properties": {
+        "comparison": {
+          "enum": [
+            "before",
+            "after",
+            "on_or_before",
+            "on_or_after"
+          ],
+          "title": "Comparison",
+          "type": "string"
+        },
+        "target": {
+          "enum": [
+            "date",
+            "today",
+            "field"
+          ],
+          "title": "Target",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "fieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fieldid"
+        }
+      },
+      "required": [
+        "comparison",
+        "target"
+      ],
+      "title": "DateRule",
+      "type": "object"
+    },
+    "Ending": {
+      "additionalProperties": false,
+      "description": "A page shown after submitting.",
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        },
+        "buttonText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttontext"
+        },
+        "buttonLink": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An http(s) URL.",
+          "title": "Buttonlink"
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Layout"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        }
+      },
+      "title": "Ending",
+      "type": "object"
+    },
+    "FormField": {
+      "additionalProperties": false,
+      "description": "A question or content block on a page (or inside a group).",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "date",
+                "short_text",
+                "long_text",
+                "multiple_choice",
+                "rating",
+                "dropdown",
+                "matrix",
+                "tabular_input",
+                "file_upload",
+                "group",
+                "email",
+                "text",
+                "yes_no",
+                "url",
+                "linear_rating",
+                "phone_number",
+                "number",
+                "VIDEO_CONTENT",
+                "IMAGE_CONTENT"
+              ],
+              "type": "string"
+            },
+            {
+              "deprecated": true,
+              "description": "Legacy types the builder no longer offers: still accepted so that stored forms can be read; do not use them for new questions.",
+              "enum": [
+                "opinion_scale",
+                "ranking",
+                "payment",
+                "statement",
+                "page_break",
+                "calculated",
+                "hidden",
+                "conditional",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "p",
+                "strong",
+                "divider",
+                "markdown",
+                "input_short_text",
+                "input_long_text",
+                "input_markdown",
+                "input_multiple_choice",
+                "input_multiselect",
+                "input_checkboxes",
+                "input_email",
+                "input_number",
+                "input_phone_number",
+                "input_link",
+                "input_date",
+                "input_time",
+                "input_date_range",
+                "input_time_range",
+                "input_datetime_range",
+                "input_dropdown",
+                "input_rating",
+                "input_linear_scale",
+                "input_template_button",
+                "input_file_upload",
+                "input_ranking",
+                "input_matrix",
+                "date_input",
+                "email_input",
+                "number_input",
+                "short_text_input",
+                "long_text_input",
+                "multiple_choice_input",
+                "ranking_input",
+                "rating_input",
+                "drop_down_input",
+                "media_input",
+                "matrix_row_input"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "A question or content block type.",
+          "title": "FieldType"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Plain text, or a rich-text document (which may pipe answers and hidden fields).",
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Attachment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "internal": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For office use only: never shown to respondents, filled in by staff on each submission.",
+          "title": "Internal"
+        },
+        "validations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Validations"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Choice"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choices"
+        },
+        "allowMultipleSelection": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allowmultipleselection"
+        },
+        "allowOtherChoice": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allowotherchoice"
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Steps"
+        },
+        "startFrom": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startfrom"
+        },
+        "ratingShape": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ratingshape"
+        },
+        "hideMarks": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidemarks"
+        },
+        "labels": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Labels"
+        },
+        "dateFormat": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dateformat"
+        },
+        "rowTitles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rowtitles"
+        },
+        "columnTitles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columntitles"
+        },
+        "tabularValue": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tabularvalue"
+        },
+        "colSpan": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Width on a 12-column grid (12 = full row).",
+          "title": "Colspan"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Short label shown with a date picker.",
+          "title": "Label"
+        },
+        "dateRules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DateRule"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Daterules"
+        },
+        "whyWeAsk": {
+          "anyOf": [
+            {
+              "maxLength": 280,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Whyweask"
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Logic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Repeat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FormField"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The questions of a group.",
+          "title": "Fields"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "FormField",
+      "type": "object"
+    },
+    "Layout": {
+      "description": "How a page, the welcome page or an ending is laid out.",
+      "enum": [
+        "TWO_COLUMN_IMAGE_LEFT",
+        "TWO_COLUMN_IMAGE_RIGHT",
+        "SINGLE_COLUMN_IMAGE_BACKGROUND",
+        "SINGLE_COLUMN_NO_BACKGROUND",
+        "SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN"
+      ],
+      "title": "Layout",
+      "type": "string"
+    },
+    "Logic": {
+      "additionalProperties": false,
+      "description": "Show or hide this question when its conditions match (operator:\nAND = all, OR = any; AND when absent).",
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "enum": [
+                "SHOW",
+                "HIDE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action"
+        },
+        "operator": {
+          "anyOf": [
+            {
+              "enum": [
+                "AND",
+                "OR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Condition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        }
+      },
+      "title": "Logic",
+      "type": "object"
+    },
+    "Logo": {
+      "additionalProperties": false,
+      "description": "The organisation logo at the top of every respondent page.",
+      "properties": {
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set by uploading a logo; ignored when a document is written.",
+          "readOnly": true,
+          "title": "Url"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "left",
+                "center"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        },
+        "alt": {
+          "anyOf": [
+            {
+              "maxLength": 150,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alt"
+        },
+        "useWorkspaceLogo": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Useworkspacelogo"
+        }
+      },
+      "title": "Logo",
+      "type": "object"
+    },
+    "Page": {
+      "additionalProperties": false,
+      "description": "A page of questions, in the order respondents see them.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "sectionTitle": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sectiontitle"
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Layout"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "showQuestionNumbers": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showquestionnumbers"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Position"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "jumps": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PageJump"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jumps"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/FormField"
+          },
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Page",
+      "type": "object"
+    },
+    "PageJump": {
+      "additionalProperties": false,
+      "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page.",
+      "properties": {
+        "operator": {
+          "anyOf": [
+            {
+              "enum": [
+                "AND",
+                "OR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Condition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        }
+      },
+      "title": "PageJump",
+      "type": "object"
+    },
+    "Position": {
+      "additionalProperties": false,
+      "description": "Where a page sits on the flow view's canvas (cosmetic).",
+      "properties": {
+        "x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X"
+        },
+        "y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y"
+        }
+      },
+      "title": "Position",
+      "type": "object"
+    },
+    "Repeat": {
+      "additionalProperties": false,
+      "description": "Makes a group repeatable: its questions are answered once per item.",
+      "properties": {
+        "minItems": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minitems"
+        },
+        "maxItems": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxitems"
+        },
+        "itemLabel": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Itemlabel"
+        },
+        "itemTitle": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Itemtitle"
+        },
+        "exportLayout": {
+          "anyOf": [
+            {
+              "enum": [
+                "columns",
+                "rows"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exportlayout"
+        }
+      },
+      "title": "Repeat",
+      "type": "object"
+    },
+    "Retention": {
+      "additionalProperties": false,
+      "description": "How long answers are kept: a number of days, until a date\n(YYYY-MM-DD), or forever.",
+      "properties": {
+        "type": {
+          "enum": [
+            "days",
+            "date",
+            "forever"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Retention",
+      "type": "object"
+    },
+    "Theme": {
+      "additionalProperties": false,
+      "description": "Colours and style of the form (or of one page, as an override).",
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "primary": {
+          "title": "Primary",
+          "type": "string"
+        },
+        "secondary": {
+          "title": "Secondary",
+          "type": "string"
+        },
+        "tertiary": {
+          "title": "Tertiary",
+          "type": "string"
+        },
+        "accent": {
+          "title": "Accent",
+          "type": "string"
+        },
+        "background": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThemeBackground"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "e.g. classic, sheet, studio, leaflet",
+          "title": "Style"
+        }
+      },
+      "required": [
+        "title",
+        "primary",
+        "secondary",
+        "tertiary",
+        "accent"
+      ],
+      "title": "Theme",
+      "type": "object"
+    },
+    "ThemeBackground": {
+      "additionalProperties": false,
+      "description": "Optional decoration of the page ground.",
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type"
+        },
+        "gradientFrom": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gradientfrom"
+        },
+        "gradientTo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gradientto"
+        },
+        "gradientAngle": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gradientangle"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pattern"
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only images from our own storage or Unsplash are shown.",
+          "title": "Imageurl"
+        }
+      },
+      "title": "ThemeBackground",
+      "type": "object"
+    },
+    "Trust": {
+      "additionalProperties": false,
+      "description": "What respondents are told about their data, and how answers are\nhandled.",
+      "properties": {
+        "purpose": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purpose"
+        },
+        "retentionText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retentiontext"
+        },
+        "privacyPolicyUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An http(s) URL.",
+          "title": "Privacypolicyurl"
+        },
+        "retention": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Retention"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "requireVerifiedIdentity": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requireverifiedidentity"
+        },
+        "allowEditingResponse": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alloweditingresponse"
+        },
+        "showSubmissionNumber": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showsubmissionnumber"
+        }
+      },
+      "title": "Trust",
+      "type": "object"
+    },
+    "Validations": {
+      "additionalProperties": false,
+      "description": "Answer constraints. Lengths apply to text answers, values to numbers,\nchoices to multiple-selection questions.",
+      "properties": {
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "minLength": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minlength"
+        },
+        "maxLength": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxlength"
+        },
+        "minValue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minvalue"
+        },
+        "maxValue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxvalue"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A regular expression the text answer must match.",
+          "title": "Pattern"
+        },
+        "minChoices": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minchoices"
+        },
+        "maxChoices": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxchoices"
+        }
+      },
+      "title": "Validations",
+      "type": "object"
+    },
+    "WelcomePage": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Layout"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        },
+        "buttonText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttontext"
+        }
+      },
+      "title": "WelcomePage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A form, as its creator controls it.",
+  "properties": {
+    "specVersion": {
+      "const": "1",
+      "title": "Specversion",
+      "type": "string"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Title"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "welcomePage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WelcomePage"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pages": {
+      "description": "At most 200 pages, with at most 2000 fields in all (group questions included).",
+      "items": {
+        "$ref": "#/$defs/Page"
+      },
+      "maxItems": 200,
+      "title": "Pages",
+      "type": "array"
+    },
+    "endings": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/Ending"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Endings"
+    },
+    "theme": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Theme"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "hiddenFields": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "URL parameter names captured with each response (names only, never values).",
+      "title": "Hiddenfields"
+    },
+    "logo": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Logo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "trust": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Trust"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "specVersion"
+  ],
+  "title": "BetterCollected form spec v1",
+  "type": "object"
+}
