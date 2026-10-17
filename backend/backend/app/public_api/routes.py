@@ -10,6 +10,7 @@ from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.public_api.auth import ApiCaller, api_key
@@ -299,7 +300,8 @@ async def validate_form(
     caller: ApiCaller = Depends(api_key("forms:read", "api:validate_form")),
 ):
     raw = parse_json_document(await read_document_bytes(request))
-    return JSONResponse(check_spec_document(raw))
+    # CPU-bound on a large document: off the event loop
+    return JSONResponse(await run_in_threadpool(check_spec_document, raw))
 
 
 @router.get(
@@ -511,7 +513,7 @@ async def dry_run_ops(
     payload = _ops_request(parse_json_document(await read_document_bytes(request)))
     service = _c().form_spec_service()
     form, settings = await service.load(caller.workspace_id, form_id)
-    preview = service.preview(form, settings, payload.ops, payload.atomic)
+    preview = await service.preview_async(form, settings, payload.ops, payload.atomic)
     return JSONResponse(preview.model_dump(mode="json", by_alias=True))
 
 

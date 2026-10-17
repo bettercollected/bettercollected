@@ -341,6 +341,15 @@ class MaxLength(RootModel[int]):
     root: int = Field(None, ge=0, title="Maxlength")
 
 
+class Pattern(RootModel[str]):
+    root: str = Field(
+        None,
+        description="A regular expression the text answer must match.",
+        max_length=200,
+        title="Pattern",
+    )
+
+
 class MinChoices(RootModel[int]):
     root: int = Field(None, ge=0, title="Minchoices")
 
@@ -364,7 +373,7 @@ class Validations(BaseModel):
     max_length: MaxLength | None = Field(None, alias="maxLength", title="Maxlength")
     min_value: float | None = Field(None, alias="minValue", title="Minvalue")
     max_value: float | None = Field(None, alias="maxValue", title="Maxvalue")
-    pattern: str | None = Field(
+    pattern: Pattern | None = Field(
         None,
         description="A regular expression the text answer must match.",
         title="Pattern",

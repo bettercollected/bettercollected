@@ -34,6 +34,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.ai.chat import _persist_settings_ops, persist_ops_to_form
@@ -135,10 +136,10 @@ def _invalid_spec(errors: List[Dict[str, str]]) -> HTTPException:
     )
 
 
-def _checked_spec(raw: Any) -> FormSpec:
+async def _checked_spec(raw: Any) -> FormSpec:
     """The spec of a document that passes every check, else 422 with all
-    its errors."""
-    result = check_spec_document(raw)
+    its errors. CPU-bound on a large document: off the event loop."""
+    result = await run_in_threadpool(check_spec_document, raw)
     if not result["valid"]:
         raise _invalid_spec(result["errors"])
     return FormSpec.model_validate(raw)
@@ -269,7 +270,7 @@ class FormSpecWriter:
         """Create a draft from a whole document: (form id, spec, ETag).
         All or nothing: the document is checked in full before anything is
         stored."""
-        spec = _checked_spec(raw)
+        spec = await _checked_spec(raw)
         try:
             form = spec_to_form(spec)
         except SpecConversionError as error:
@@ -300,7 +301,7 @@ class FormSpecWriter:
         document, existing, settings = await self._load(workspace_id, form_id)
         current = form_etag(document.updated_at, self._spec.spec_of(existing, settings))
         self._check_if_match(if_match, current)
-        spec = _checked_spec(raw)
+        spec = await _checked_spec(raw)
         form = _replacement(existing, settings, spec)
         try:
             await self._workspace_forms.update_form(
@@ -343,7 +344,7 @@ class FormSpecWriter:
         ``{valid, errors, warnings, form, diff}``. Stores nothing."""
         _, existing, settings = await self._load(workspace_id, form_id)
         before = self._spec.spec_of(existing, settings)
-        result = check_spec_document(raw)
+        result = await run_in_threadpool(check_spec_document, raw)
         out = {
             "valid": result["valid"],
             "errors": result["errors"],
