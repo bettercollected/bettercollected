@@ -26,8 +26,10 @@ import { atom } from 'jotai';
 import { applied, applyOps, compactOps, entityDiff } from '@app/lib/form-ops';
 import type { FormOp } from '@app/lib/form-ops';
 import { immer } from '@app/lib/form-ops/apply';
-import { clone, jsonEqual } from '@app/lib/form-ops/model';
+import { formImageUrls } from '@app/lib/form-ops/images';
+import { clone, isSlide, jsonEqual } from '@app/lib/form-ops/model';
 import { StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
+import { isStorageImageUrl, rememberStorageImageUrls } from '@app/utils/storage-image-urls';
 
 import { initialFieldsState, initialFormState } from './form-defaults';
 
@@ -78,6 +80,13 @@ export interface HistoryStep {
     at: number;
     /** The pages the builder handed over for this step (compatibility path; see undoIfLatestAtom). */
     builderFields?: StandardFormFieldDto[];
+    /**
+     * The documents before and after the step (shared structure, so cheap):
+     * when its ops cannot be applied any more, undo and redo put these back
+     * exactly instead of getting stuck.
+     */
+    before: FormDocument;
+    after: FormDocument;
 }
 
 export interface DocHistory {
@@ -169,7 +178,7 @@ export function applyDocOps(doc: FormDocument, ops: DocOp[], withInverse = true)
         const batch = ops.slice(i, j) as FormOp[];
         let result;
         try {
-            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse });
+            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse, isStorageImageUrl });
         } catch {
             return { ok: false, doc, inverse: [] };
         }
@@ -204,6 +213,21 @@ export function compactDocOps(ops: DocOp[]): DocOp[] {
     return out;
 }
 
+/**
+ * Local ops that turn `from` into `to` exactly (pages and form-level keys
+ * by reference): the fallback when an inverse or a redo cannot be applied.
+ */
+export function exactRestore(from: FormDocument, to: FormDocument): LocalOp[] {
+    const ops: LocalOp[] = [];
+    if (from.fields !== to.fields) ops.push({ op: SET_FIELDS, fields: to.fields });
+    const a = from as unknown as Record<string, unknown>;
+    const b = to as unknown as Record<string, unknown>;
+    const values: Record<string, unknown> = {};
+    for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) if (key !== 'fields' && a[key] !== b[key]) values[key] = b[key];
+    if (Object.keys(values).length) ops.push({ op: SET_FORM_KEYS, values });
+    return ops;
+}
+
 // ---------------------------------------------------------------------------
 // Planning a change from a target document (the compatibility path)
 // ---------------------------------------------------------------------------
@@ -220,6 +244,16 @@ function chain(first: PlannedChange, second: PlannedChange): PlannedChange {
     return { doc: second.doc, forward: [...first.forward, ...second.forward], inverse: [...second.inverse, ...first.inverse] };
 }
 
+const hasNonPages = (fields: StandardFormFieldDto[] | undefined) => !!fields?.some((entry) => !isSlide(entry));
+
+/** Same non-page entries, at the same positions. */
+function sameNonPages(a: StandardFormFieldDto[] | undefined, b: StandardFormFieldDto[] | undefined): boolean {
+    const list = (fields: StandardFormFieldDto[] | undefined) => (fields ?? []).flatMap((entry, position) => (isSlide(entry) ? [] : [[position, entry] as const]));
+    const x = list(a);
+    const y = list(b);
+    return x.length === y.length && x.every(([position, entry], i) => position === y[i][0] && jsonEqual(entry, y[i][1]));
+}
+
 /** The ops that give `doc` these pages: entity ops where possible, else one local replace. */
 export function planFields(doc: FormDocument, fields: StandardFormFieldDto[]): PlannedChange {
     if (fields === doc.fields) return noChange(doc);
@@ -229,10 +263,17 @@ export function planFields(doc: FormDocument, fields: StandardFormFieldDto[]): P
     } catch {
         ops = null;
     }
-    if (ops && !ops.length) return noChange(doc);
+    // The engine plans pages only: top-level entries that are not pages
+    // (older forms) must come out exactly as handed over, else the whole
+    // list is replaced.
+    const extras = hasNonPages(doc.fields) || hasNonPages(fields);
+    if (ops && !ops.length && !extras) return noChange(doc);
     if (ops) {
-        const result = applyDocOps(doc, ops);
-        if (result.ok) return { doc: result.doc, forward: ops, inverse: result.inverse };
+        const result = ops.length ? applyDocOps(doc, ops) : { ok: true, doc, inverse: [] };
+        if (result.ok && (!extras || sameNonPages(result.doc.fields, fields))) {
+            if (result.doc === doc) return noChange(doc);
+            return { doc: result.doc, forward: ops, inverse: result.inverse };
+        }
     }
     const forward: DocOp[] = [{ op: SET_FIELDS, fields: clone(fields) ?? [] }];
     const result = applyDocOps(doc, forward);
@@ -324,7 +365,7 @@ function recordStep(history: DocHistory, step: HistoryStep): DocHistory {
     let steps: HistoryStep[];
     if (merge) {
         // The merged step: the first step's inverse, the last one's ops.
-        const merged: HistoryStep = { ...last, forward: compactDocOps([...last.forward, ...step.forward]), inverse: compactDocOps([...step.inverse, ...last.inverse]), at: step.at, builderFields: step.builderFields };
+        const merged: HistoryStep = { ...last, forward: compactDocOps([...last.forward, ...step.forward]), inverse: compactDocOps([...step.inverse, ...last.inverse]), at: step.at, builderFields: step.builderFields, after: step.after };
         steps = [...history.steps.slice(0, history.cursor - 1), merged];
     } else {
         steps = [...history.steps.slice(0, history.cursor), step];
@@ -345,12 +386,24 @@ function putDocument(get: (a: any) => any, set: Setter, next: FormDocument, buil
     if (next !== prev) set(formDocAtom, next);
 }
 
-function commitPlanned(get: (a: any) => any, set: Setter, change: PlannedChange, meta: { label?: string; coalesceKey?: string; undoable?: boolean }, builderFields?: StandardFormFieldDto[]): boolean {
+export interface CommitMeta {
+    label?: string;
+    /** Typing under the same key within UNDO_COALESCE_MS is one step. */
+    coalesceKey?: string;
+    /** False: the change makes no undo step (loading, mount-time defaults). */
+    undoable?: boolean;
+}
+
+function commitPlanned(get: (a: any) => any, set: Setter, change: PlannedChange, meta: CommitMeta, builderFields?: StandardFormFieldDto[]): boolean {
     const prev: FormDocument = get(formDocAtom);
     putDocument(get, set, change.doc, builderFields);
     if (change.doc === prev) return false;
     if (meta.undoable !== false) {
-        set(docHistoryAtom, recordStep(get(docHistoryAtom), { forward: change.forward, inverse: change.inverse, label: meta.label, coalesceKey: meta.coalesceKey, at: Date.now(), builderFields }));
+        // An inverse the engine would refuse (an uploaded image no longer on
+        // the form, say) is recorded as an exact restore instead: undo must
+        // never silently do nothing.
+        const inverse = applyDocOps(change.doc, change.inverse, false).ok ? change.inverse : exactRestore(change.doc, prev);
+        set(docHistoryAtom, recordStep(get(docHistoryAtom), { forward: change.forward, inverse, label: meta.label, coalesceKey: meta.coalesceKey, at: Date.now(), builderFields, before: prev, after: change.doc }));
     }
     return true;
 }
@@ -378,8 +431,10 @@ function move(get: (a: any) => any, set: Setter, direction: 'undo' | 'redo'): bo
     const history: DocHistory = get(docHistoryAtom);
     const step = direction === 'undo' ? history.steps[history.cursor - 1] : history.steps[history.cursor];
     if (!step) return false;
-    const result = applyDocOps(get(formDocAtom), direction === 'undo' ? step.inverse : step.forward, false);
-    if (!result.ok) return false;
+    const current: FormDocument = get(formDocAtom);
+    let result = applyDocOps(current, direction === 'undo' ? step.inverse : step.forward, false);
+    // Ops that no longer apply: put the recorded document back exactly.
+    if (!result.ok) result = applyDocOps(current, exactRestore(current, direction === 'undo' ? step.before : step.after), false);
     putDocument(get, set, result.doc);
     set(docHistoryAtom, { steps: history.steps, cursor: history.cursor + (direction === 'undo' ? -1 : 1), open: false });
     return true;
@@ -395,6 +450,7 @@ export const redoAtom = atom(null, (get, set) => move(get, set as Setter, 'redo'
  */
 export const applyRemoteAtom = atom(null, (get, set, serverForm: Partial<FormDocument>, options: { undoable?: boolean; label?: string } = {}) => {
     const doc = get(formDocAtom);
+    rememberStorageImageUrls(formImageUrls(serverForm as FormDocument));
     let change = Array.isArray(serverForm?.fields) ? planFields(doc, serverForm.fields) : noChange(doc);
     const values: Partial<Record<FormStateKey, unknown>> = {};
     for (const key of FORM_STATE_KEYS) {
@@ -408,6 +464,8 @@ export const applyRemoteAtom = atom(null, (get, set, serverForm: Partial<FormDoc
 /** Load a form: the document becomes a copy of it, and undo history starts over. */
 export const resetFromServerAtom = atom(null, (get, set, form: Partial<FormDocument>) => {
     const doc = { ...clone(form), fields: clone(form?.fields ?? []) } as FormDocument;
+    // What the server sent is first-party.
+    rememberStorageImageUrls(formImageUrls(doc));
     set(formDocAtom, doc);
     set(builderFieldsAtom, builderCopy(doc.fields));
     set(docHistoryAtom, emptyHistory());
@@ -431,6 +489,7 @@ export const commitBuilderFieldsAtom = atom(null, (get, set, fields: StandardFor
 export const initBuilderFieldsAtom = atom(null, (get, set, fields: StandardFormFieldDto[]) => {
     const prev = get(formDocAtom);
     const doc = { ...prev, fields: clone(fields) ?? [] };
+    rememberStorageImageUrls(formImageUrls(doc));
     set(formDocAtom, doc);
     set(builderFieldsAtom, fields);
     rememberCopies(prev, doc, fields ?? []);
@@ -438,10 +497,10 @@ export const initBuilderFieldsAtom = atom(null, (get, set, fields: StandardFormF
     resetListeners.forEach((listener) => listener());
 });
 
-/** Form-level values written by the form state, as one undo step. */
-export const commitFormKeysAtom = atom(null, (get, set, values: Partial<Record<FormStateKey, unknown>>, coalesceKey?: string) => {
+/** Form-level values written by the form state: one undo step (unless `undoable` is false). */
+export const commitFormKeysAtom = atom(null, (get, set, values: Partial<Record<FormStateKey, unknown>>, meta: CommitMeta = {}) => {
     const doc = get(formDocAtom);
-    return commitPlanned(get, set as Setter, planFormKeys(doc, values), { coalesceKey });
+    return commitPlanned(get, set as Setter, planFormKeys(doc, values), meta);
 });
 
 /**
