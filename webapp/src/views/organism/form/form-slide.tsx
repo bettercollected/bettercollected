@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
@@ -218,6 +220,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // The header's words in the action colour where it reads as text on the page.
     const leafletHeaderInk = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
+    // Where "Next" goes with the answers so far: a jump that submits makes
+    // this page the last one, whatever its place in the form.
+    const isLastPage = (standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index;
+    const endsHere = currentSlide === index && resolveJump(formSlide, formResponse.answers || {})?.target === JUMP_TARGET_SUBMIT;
+    const submitsHere = isLastPage || endsHere;
+    // A failed submission, shown by the button until the next attempt.
+    const [submitError, setSubmitError] = useState(false);
+
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
     const emitFlow = (fromPage: string, toPage: string) => {
@@ -240,7 +250,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     });
                 })
                 .catch((e) => {
-                    if (!showServerAnswerErrors(e?.response)) toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
+                    if (!showServerAnswerErrors(e?.response)) {
+                        toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
+                        setSubmitError(true);
+                    }
                 });
     };
 
@@ -268,6 +281,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     };
 
     const onNext = () => {
+        setSubmitError(false);
         // Only validate fields the responder can actually see.
         const visibleSlide = { ...formSlide, properties: { ...formSlide?.properties, fields: (formSlide?.properties?.fields || []).filter((f: StandardFormFieldDto) => !hiddenFieldIds.has(f.id)) } };
         const invalidations = {
@@ -368,7 +382,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     </span>
                                 )}
                                 <span className="font-medium whitespace-nowrap tabular-nums" lang={language}>
-                                    {t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
+                                    {endsHere && !isLastPage ? t('NAV.LAST_PAGE') : t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
                                 </span>
                             </div>
                         </div>
@@ -408,7 +422,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         className={cn('-mt-4 flex flex-col items-start gap-4', leaflet && 'ml-[var(--leaflet-margin,34px)]', leaflet && numbering?.hang && '@min-[880px]/page:ml-0')}
                         style={{ gridColumn: 'span 12 / span 12' }}
                     >
-                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
+                        {submitsHere && (
                             <>
                                 {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
                                     // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
@@ -448,8 +462,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             onClick={onNext}
                             size="medium"
                         >
-                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? t('NAV.SUBMIT') : t('NAV.CONTINUE')}
+                            {submitsHere ? t('NAV.SUBMIT') : t('NAV.CONTINUE')}
                         </Button>
+                        {/* Stays until the next attempt; the toast alone is gone in a moment. */}
+                        {submitError && (
+                            <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>
+                                {t('NAV.SUBMIT_ERROR')}
+                            </p>
+                        )}
                     </div>
                 </div>
             </SlideLayoutWrapper>

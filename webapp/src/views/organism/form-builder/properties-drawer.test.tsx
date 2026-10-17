@@ -13,7 +13,7 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { store } from '@app/store/store';
 
-import PropertiesDrawer from './properties-drawer';
+import PropertiesDrawer, { pageCrumbLabel } from './properties-drawer';
 
 vi.mock('next/navigation', () => ({
     usePathname: () => '/acme/dashboard/forms/f1/edit',
@@ -231,5 +231,15 @@ describe('question panel: answer rules', () => {
         expect(screen.getByRole('switch', { name: 'Required' })).toHaveAttribute('aria-checked', 'true');
         expect(screen.getByRole('group', { name: 'Width' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Full width' })).toHaveAttribute('aria-pressed', 'true');
+    });
+});
+
+describe('pageCrumbLabel', () => {
+    it('names an ending by its name, else its title', () => {
+        const ending = { id: 'thank-you-page', index: -20 };
+        expect(pageCrumbLabel(ending, { name: ' Eligible ', title: 'Welcome aboard' })).toBe('Eligible');
+        expect(pageCrumbLabel(ending, { title: 'Welcome aboard' })).toBe('Welcome aboard');
+        expect(pageCrumbLabel(ending, {})).toBe('Ending');
+        expect(pageCrumbLabel({ id: 'p1', index: 1 })).toBe('Page 2');
     });
 });

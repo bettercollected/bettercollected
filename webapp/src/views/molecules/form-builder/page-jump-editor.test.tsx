@@ -55,7 +55,8 @@ describe('PageJumpEditor and endings', () => {
             within(submitGroup)
                 .getAllByRole('option')
                 .map((o) => o.textContent)
-        ).toEqual(['Submit → default ending (Thanks)', 'Submit → Thanks', 'Submit → Not eligible']);
+            // short labels; the default ending is offered once, as plain submit
+        ).toEqual(['Submit · Thanks (default)', 'Submit · Not eligible']);
         expect((select as HTMLSelectElement).value).toBe(JUMP_TARGET_SUBMIT);
     });
 
@@ -74,7 +75,9 @@ describe('PageJumpEditor and endings', () => {
     it('flags a jump to an ending that was deleted', async () => {
         await renderEditor([rule({ endingId: 'gone' })], ENDINGS);
         expect(screen.getByRole('option', { name: '⚠ Deleted ending — pick a target' })).toBeInTheDocument();
-        expect(screen.getByText('This rule shows an ending that was deleted. Pick a new destination.')).toBeInTheDocument();
+        const select = screen.getByRole('combobox', { name: 'Destination of rule 1' });
+        expect(select).toHaveAttribute('aria-invalid', 'true');
+        expect(select).toHaveAccessibleDescription('This rule shows an ending that was deleted. Pick a new destination.');
     });
 
     it('with one ending, offers only "submit"', async () => {
@@ -84,6 +87,14 @@ describe('PageJumpEditor and endings', () => {
             within(group)
                 .getAllByRole('option')
                 .map((o) => o.textContent)
-        ).toEqual(['Submit → default ending (Thank you)']);
+        ).toEqual(['Submit']);
+    });
+
+    it('a jump that names the default ending itself keeps that choice visible', async () => {
+        await renderEditor([rule({ endingId: 'thanks' })], ENDINGS);
+        const select = screen.getByRole('combobox', { name: 'Destination of rule 1' }) as HTMLSelectElement;
+        expect(select.value).toBe('__ENDING__:thanks');
+        expect(screen.getByRole('option', { name: 'Submit · Thanks' })).toBeInTheDocument();
+        expect(select).not.toHaveAttribute('aria-invalid');
     });
 });

@@ -34,6 +34,7 @@
     "NAV": {
         "BACK": "Back",
         "PAGE_OF": "Page {{current}} of {{total}}",
+        "LAST_PAGE": "Last page",
         "CONTINUE": "Continue",
         "SUBMIT": "Submit response",
         "SUBMIT_ERROR": "Your response could not be sent. Please try again.",
