@@ -6,9 +6,9 @@ import RatingField from '@app/views/molecules/responder-form-fields/rating-field
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { firstPartyImageProps } from '@app/utils/first-party-image';
 import DeleteIcon from '@Components/icons/delete';
 import { SwitchIcon } from '@Components/icons/switch-icon';
+import { firstPartyImageProps } from '@app/utils/first-party-image';
 import Image from 'next/image';
 import DropDownField from './drop-down-field';
 import FileUpload from './file-upload-field';
@@ -34,15 +34,18 @@ export const RenderImage = ({ field, isBuilder = false }: { field: StandardFormF
     };
     return field?.imageUrl ? (
         <div className={`relative my-4 max-h-[168px] w-full ${isBuilder ? 'group' : ''}`}>
-            <div className={cn('absolute hidden h-full w-full items-start justify-start gap-4 p-2 group-hover:flex')}>
-                <div className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
-                    <DeleteIcon width={16} height={16} />
+            {/* Builder only: shown on hover, and while a button has keyboard focus. */}
+            {isBuilder && (
+                <div className={cn('absolute z-10 flex h-full w-full items-start justify-start gap-4 p-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
+                    <button type="button" aria-label="Remove image" title="Remove image" className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                        <DeleteIcon width={16} height={16} aria-hidden="true" />
+                    </button>
+                    <button type="button" aria-label="Change image" title="Change image" className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                        <SwitchIcon width={16} height={16} aria-hidden="true" />
+                    </button>
                 </div>
-                <div className=" shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
-                    <SwitchIcon width={16} height={16} />
-                </div>
-            </div>
-            <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" {...firstPartyImageProps(field.imageUrl)} alt={field.id + ' image'} height={0} width={0} priority />
+            )}
+            <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" {...firstPartyImageProps(field.imageUrl)} alt="" height={0} width={0} priority />
         </div>
     ) : (
         <></>
@@ -83,9 +86,9 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.IMAGE_CONTENT:
-            return <ImageField isBuilder field={field} />;
+            return <ImageField isBuilder field={field} slide={slide} />;
         case FieldTypes.VIDEO_CONTENT:
-            return <VideoField isBuilder field={field} />;
+            return <VideoField isBuilder field={field} slide={slide} />;
         case FieldTypes.MATRIX:
             return <MatrixFieldBuilderWrapper field={field} />;
         case FieldTypes.TABULAR_INPUT:

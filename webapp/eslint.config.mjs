@@ -13,6 +13,9 @@ const a11yWarnings = Object.fromEntries(
 // minimatch 10 pinned in package.json "resolutions" no longer has: the rule
 // crashes the whole lint run. Off until the plugin supports minimatch 10.
 a11yWarnings["jsx-a11y/label-has-associated-control"] = "off";
+// Its deprecated predecessor stands in, accepting either way of tying a label
+// to its control (htmlFor + id, or nesting) instead of demanding both.
+a11yWarnings["jsx-a11y/label-has-for"] = ["warn", { required: { some: ["nesting", "id"] } }];
 
 export default defineConfig([
     globalIgnores([
