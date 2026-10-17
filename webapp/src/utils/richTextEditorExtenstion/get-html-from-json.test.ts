@@ -77,3 +77,51 @@ describe('text block headings', () => {
         expect(html).toContain('<p>Details below.</p>');
     });
 });
+
+describe('titles the editor schema cannot render', () => {
+    it('falls back to the plain text for an unknown node', () => {
+        const title = {
+            type: 'doc',
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        { type: 'text', text: 'Your <name> ' },
+                        { type: 'mention', attrs: { id: 'x' } },
+                        { type: 'answerPipe', attrs: { kind: 'field', pipeKey: 'q1', label: 'Name' } }
+                    ]
+                }
+            ]
+        };
+        expect(getHtmlFromJson(title as any)).toBe('<p>Your &lt;name&gt; Name</p>');
+    });
+
+    it('falls back for an unknown mark', () => {
+        const title = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hi', marks: [{ type: 'highlight' }] }] }] };
+        expect(getHtmlFromJson(title as any)).toBe('<p>Hi</p>');
+    });
+
+    it('renders every node and mark the backend accepts in a title (TITLE_NODES, TITLE_MARKS in ops.py)', () => {
+        const text = (t: string, marks?: any[]) => ({ type: 'text', text: t, ...(marks ? { marks } : {}) });
+        const para = (...content: any[]) => ({ type: 'paragraph', content });
+        const title = {
+            type: 'doc',
+            content: [
+                { type: 'heading', attrs: { level: 2 }, content: [text('Head')] },
+                para(text('b', [{ type: 'bold' }, { type: 'italic' }, { type: 'underline' }, { type: 'strike' }, { type: 'code' }]), { type: 'hardBreak' }, text('big', [{ type: 'textStyle', attrs: { fontSize: '24px', color: '#ff0000' } }]), {
+                    type: 'answerPipe',
+                    attrs: { kind: 'field', pipeKey: 'q1', label: 'Pet', fallback: '' }
+                }),
+                { type: 'bulletList', content: [{ type: 'listItem', content: [para(text('one'))] }] },
+                { type: 'orderedList', attrs: { start: 1, type: null }, content: [{ type: 'listItem', content: [para(text('two'))] }] },
+                { type: 'blockquote', content: [para(text('q'))] },
+                { type: 'codeBlock', attrs: { language: null }, content: [text('x')] },
+                { type: 'horizontalRule' }
+            ]
+        };
+        const html = getHtmlFromJson(title as any) ?? '';
+        expect(html).toContain('<h2>Head</h2>');
+        expect(html).toContain('<hr>');
+        expect(html).toContain('font-size: 24px');
+    });
+});
