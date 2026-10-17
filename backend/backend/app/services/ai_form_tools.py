@@ -13,6 +13,7 @@ from backend.app.constants.themes import (
     NEW_FORM_THEME,
     THEME_STYLES,
     get_themes_for_ai,
+    theme_dict,
 )
 from backend.app.services.unsplash_service import UnsplashService
 
@@ -141,19 +142,9 @@ def _gemini_tools():
 # Image query
 # ---------------------------------------------------------------------------
 
-# A style name never names a topic, nor do the words "theme" and "style".
-_STYLE_WORDS = frozenset(style.lower() for style in THEME_STYLES)
+# The prompts already ask for subject-only queries; this is a safety net, so
+# it only removes what is plainly a look marker and never a topic word.
 _THEME_WORDS = frozenset({"theme", "themed", "style", "styled"})
-# A theme named after a plain colour ("Red") may be part of the topic
-# ("Red Cross blood donation"), so it only goes when it is marked as the
-# theme ("Red theme community day").
-_COLOUR_WORDS = frozenset(
-    {
-        "black", "white", "grey", "gray", "silver", "red", "orange", "yellow",
-        "gold", "green", "blue", "navy", "teal", "cyan", "purple", "violet",
-        "pink", "brown", "beige",
-    }
-)
 _PUNCTUATION = "\"'.,;:!?()[]{}"
 
 
@@ -161,25 +152,26 @@ def _norm(word: str) -> str:
     return word.lower().strip(_PUNCTUATION)
 
 
-def _strip_look_words(words: list[str], chosen: list[str], colour: bool) -> list[str]:
-    """Drop the look words at the start of ``words`` (see ``image_query``)."""
-    after_theme_word = False
+def _strip_look_words(
+    words: list[str], names: list[list[str]], bare_leaflet: bool
+) -> list[str]:
+    """Drop the look markers at the start of ``words`` (see ``image_query``)."""
     while words:
-        first = _norm(words[0])
-        if first in _STYLE_WORDS or first in _THEME_WORDS:
-            after_theme_word = first in _THEME_WORDS
-            words = words[1:]
-            continue
-        n = len(chosen)
-        if n and [_norm(w) for w in words[:n]] == chosen:
-            marked = after_theme_word or (
-                len(words) > n and _norm(words[n]) in _THEME_WORDS
-            )
-            if not colour or marked:
-                after_theme_word = False
-                words = words[n:]
+        normed = [_norm(w) for w in words]
+        for name in names:
+            n = len(name)
+            # "<name> theme ..." or "theme <name> ..."
+            if normed[:n] == name and len(words) > n and normed[n] in _THEME_WORDS:
+                words = words[n + 1 :]
+                break
+            if normed[0] in _THEME_WORDS and normed[1 : n + 1] == name:
+                words = words[n + 1 :]
+                break
+        else:
+            if bare_leaflet and normed[0] == "leaflet":
+                words = words[1:]
                 continue
-        break
+            break
     return words
 
 
@@ -187,19 +179,29 @@ def image_query(query: str, theme_name: str | None = None) -> str:
     """The subject part of an image search query.
 
     The photo should show what the form is about, never what it looks like.
-    Only a run of look words at either end of the query is dropped: the four
-    style names, the words theme/style, and the name of the theme this form
-    is using (``theme_name``). A theme named after a plain colour goes only
-    next to "theme"/"style" ("Red theme community day" -> "community day";
-    "Red Cross blood donation" stays). Other presets' names and anything in
-    the middle are never touched, so a topic never loses a word. Returns ""
-    when nothing but look words was given.
+    At either end of the query, a theme or style name (the name of the theme
+    this form uses, or classic/sheet/studio/leaflet) is dropped only together
+    with "theme"/"themed"/"style"/"styled" next to it: "Forest theme trail
+    survey" -> "trail survey", while "Forest trail survey" and "Red Cross
+    blood donation" stay whole. One exception: a bare "leaflet" at either end
+    goes when the form's style is Leaflet (the new-form default). Nothing in
+    the middle is touched. Returns "" when nothing but look markers was given.
     """
+    theme_name = theme_name or NEW_FORM_THEME
+    chosen = [_norm(t) for t in theme_name.split() if _norm(t)]
+    names = [[style] for style in THEME_STYLES]
+    if chosen and chosen not in names:
+        names.append(chosen)
+    preset = next(
+        (v for k, v in theme_dict.items() if k.lower() == theme_name.strip().lower()),
+        {},
+    )
+    leaflet_style = preset.get("style") == "leaflet"
+
     words = (query or "").split()
-    chosen = [_norm(t) for t in (theme_name or "").split() if _norm(t)]
-    colour = bool(chosen) and all(t in _COLOUR_WORDS for t in chosen)
-    words = _strip_look_words(words, chosen, colour)
-    words = _strip_look_words(words[::-1], chosen[::-1], colour)[::-1]
+    words = _strip_look_words(words, names, leaflet_style)
+    reversed_names = [name[::-1] for name in names]
+    words = _strip_look_words(words[::-1], reversed_names, leaflet_style)[::-1]
     return " ".join(words)
 
 

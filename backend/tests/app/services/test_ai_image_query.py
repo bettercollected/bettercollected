@@ -2,9 +2,10 @@
 
 New forms start with the Leaflet theme, so a query built from the theme name
 would search Unsplash for "Leaflet ...". The prompts ask for subject-only
-queries, and the tool executor drops the form's own theme name, the style
-names and the words theme/style when the model still puts them at either end
-of the query. A topic never loses a word ("Red Cross blood donation").
+queries. As a safety net the tool executor drops, at either end of the query,
+the form's theme name or a style name only together with "theme"/"style"
+next to it, and a bare "leaflet" when the form's style is Leaflet. A topic
+never loses a word ("Red Cross blood donation", "Forest trail survey").
 """
 
 import json
@@ -66,16 +67,23 @@ class FakeCompletions:
             "community centre activities",
         ),
         ("Ocean theme beach clean-up", "Ocean", "beach clean-up"),
+        ("Forest trail survey", "Forest", "Forest trail survey"),
+        ("Forest theme trail survey", "Forest", "trail survey"),
         ("Red theme community day", "Red", "community day"),
         ("community day red theme", "Red", "community day"),
         ("community day, red", "Red", "community day, red"),
+        ("Default customer feedback", "Default", "Default customer feedback"),
         # Other presets' names are never stripped: they may be the topic.
-        ("Green energy survey", "Leaflet", "Green energy survey"),
+        ("Green theme energy survey", "Leaflet", "Green theme energy survey"),
         ("purple minimal healthcare", "Leaflet", "purple minimal healthcare"),
-        # Style names and theme/style words go whatever the theme.
+        # A style name goes only next to theme/style ...
         ("studio style school trip", "Blue", "school trip"),
-        ("Default customer feedback", "Default", "customer feedback"),
-        # Look words in the middle are part of the topic.
+        ("studio portraits", "Blue", "studio portraits"),
+        # ... except a bare "leaflet" when the form's style is Leaflet.
+        ("community leaflet design", "Blue", "community leaflet design"),
+        ("leaflet design community", "Blue", "leaflet design community"),
+        ("leaflet design community", "Leaflet", "design community"),
+        # Nothing in the middle is touched.
         ("printed leaflet distribution", "Leaflet", "printed leaflet distribution"),
         ("Leaflet theme", "Leaflet", ""),
         ("", "Leaflet", ""),
@@ -97,10 +105,12 @@ async def test_the_chosen_theme_marked_as_theme_is_kept_out(name):
 
 
 @pytest.mark.parametrize("style", THEME_STYLES)
-async def test_style_names_are_kept_out(style):
+async def test_style_names_marked_as_style_are_kept_out(style):
     unsplash = FakeUnsplash()
     await execute_tool(
-        "search_images", {"query": f"school trip consent {style}"}, unsplash
+        "search_images",
+        {"query": f"school trip consent {style} style", "theme_name": "Blue"},
+        unsplash,
     )
     assert unsplash.queries == ["school trip consent"]
 
