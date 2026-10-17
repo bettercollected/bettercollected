@@ -5,9 +5,9 @@ import { useSetAtom, useStore } from 'jotai';
 import { DELETE_UNDO_MS } from '@app/lib/hooks/use-undoable-delete';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { toast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom, { undoIfLatestAtom } from '@app/store/jotai/field-selectors';
+import { undoIfLatestAtom, useBuilderActions } from '@app/store/jotai/field-selectors';
 import { formStateAtom, useFormState } from '@app/store/jotai/form';
 import { commitTogetherAtom, docHistoryAtom, latestStep } from '@app/store/jotai/form-document';
 import { ENDING_NAME_MAX_LENGTH, Ending, MAX_ENDINGS, defaultEndingIndex, endingLabel, jumpsFallBackToDefault, newEndingId, withEndingIds } from '@app/utils/endings';
@@ -21,9 +21,9 @@ import { ENDING_NAME_MAX_LENGTH, Ending, MAX_ENDINGS, defaultEndingIndex, ending
  * step, endings and jumps together.
  */
 export function useEndingActions() {
-    const { toast } = useToast();
     const { formState, setFormState } = useFormState();
-    const { formFields } = useFormFieldsAtom();
+    // The pages are read when an ending is deleted, not subscribed to.
+    const { getFormFields } = useBuilderActions();
     const commitTogether = useSetAtom(commitTogetherAtom);
     const undoIfLatest = useSetAtom(undoIfLatestAtom);
     const { setActiveThankYouPageComponent } = useActiveThankYouPageComponent();
@@ -80,7 +80,7 @@ export function useEndingActions() {
         const removed = endings[index];
         if (!removed) return;
         const label = endingLabel(removed, index, endings.length);
-        const fallback = removed.id ? jumpsFallBackToDefault(formFields ?? [], removed.id) : null;
+        const fallback = removed.id ? jumpsFallBackToDefault(getFormFields() ?? [], removed.id) : null;
         // Endings stored before they had ids get them first (not an edit), so
         // that undoing the delete brings back the ids the jumps name.
         if ((store.get(formStateAtom).thankyouPage ?? []).some((ending) => !ending?.id)) setFormState((prev) => ({ ...prev, thankyouPage: currentEndings(prev.thankyouPage) }), { undoable: false });

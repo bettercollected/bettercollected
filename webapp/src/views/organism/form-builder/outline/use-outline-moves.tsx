@@ -4,9 +4,9 @@ import { useSetAtom, useStore } from 'jotai';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { toast } from '@app/shadcn/components/ui/use-toast';
 import { followActiveFieldAtom } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom, { undoIfLatestAtom } from '@app/store/jotai/field-selectors';
+import { undoIfLatestAtom, useBuilderActions } from '@app/store/jotai/field-selectors';
 import { HistoryStep, docHistoryAtom, latestStep } from '@app/store/jotai/form-document';
 import { locateField, outlinePageName } from '@app/utils/form-outline';
 
@@ -26,8 +26,8 @@ export type MoveOutcome = { message: string; pageId: string } | null;
  * too).
  */
 export function useOutlineMoves() {
-    const { formFields, movePage, moveFieldToPage } = useFormFieldsAtom();
-    const { toast } = useToast();
+    // Moves read the form when they run; the outline does not re-render for them.
+    const { getFormFields, movePage, moveFieldToPage } = useBuilderActions();
     const undoIfLatest = useSetAtom(undoIfLatestAtom);
     const followActiveField = useSetAtom(followActiveFieldAtom);
     const store = useStore();
@@ -84,6 +84,7 @@ export function useOutlineMoves() {
 
     /** One step up; from the top of a page, to the end of the page above. */
     const moveQuestionUp = (fieldId: string): MoveOutcome => {
+        const formFields = getFormFields();
         const at = locateField(formFields, fieldId);
         if (!at) return null;
         if (at.fieldIndex > 0) return moveQuestion(fieldId, at.pageIndex, at.fieldIndex - 1);
@@ -93,6 +94,7 @@ export function useOutlineMoves() {
 
     /** One step down; from the end of a page, to the top of the page below. */
     const moveQuestionDown = (fieldId: string): MoveOutcome => {
+        const formFields = getFormFields();
         const at = locateField(formFields, fieldId);
         if (!at) return null;
         const count = formFields[at.pageIndex].properties?.fields?.length ?? 0;

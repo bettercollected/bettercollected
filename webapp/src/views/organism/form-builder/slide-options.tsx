@@ -6,7 +6,8 @@ import { ArrowDown, ArrowUp, Copy, Ellipsis, Trash2 } from 'lucide-react';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@app/shadcn/components/ui/dropdown-menu';
 import { cn } from '@app/shadcn/util/lib';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { usePageIds } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 
 import { MoveOutcome, useOutlineMoves } from './outline/use-outline-moves';
 
@@ -25,7 +26,8 @@ export const outlineMenuItemClass = 'text-black-800 gap-2 px-3 py-2 text-sm';
  * delete toast offers Undo, with its questions and the logic that used them).
  */
 export default function SlideOptions({ slideIndex, pageName, visible, onMoved }: { slideIndex: number; pageName: string; visible: boolean; onMoved: (outcome: MoveOutcome) => void }) {
-    const { formFields, duplicateSlide } = useFormFieldsAtom();
+    const { duplicateSlide } = useBuilderActions();
+    const pageCount = usePageIds().length;
     const { deletePage } = useUndoableDelete();
     const { movePageTo } = useOutlineMoves();
     // A move hands focus to the moved row instead of back to this trigger.
@@ -53,7 +55,7 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
                     <ArrowUp className="h-4 w-4" aria-hidden="true" />
                     Move up
                 </DropdownMenuItem>
-                <DropdownMenuItem className={outlineMenuItemClass} disabled={slideIndex >= formFields.length - 1} onSelect={() => move(slideIndex + 1)}>
+                <DropdownMenuItem className={outlineMenuItemClass} disabled={slideIndex >= pageCount - 1} onSelect={() => move(slideIndex + 1)}>
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
                     Move down
                 </DropdownMenuItem>
