@@ -43,6 +43,7 @@ from backend.app.services.actions_service import ActionService
 from backend.app.services.ai.notice_token import stamp_response as stamp_ai_notice
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
+from backend.app.services.form_images import check_form_images
 from backend.app.services.form_logo import (
     CheckedLogo,
     logo_extension_of,
@@ -562,6 +563,9 @@ class WorkspaceFormService:
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
+        # first-party images only (services/form_images.py); a copy drops
+        # the others instead of refusing
+        check_form_images(form, None, drop=drop_unusable_settings)
         settings = (
             form.settings
             if form.settings
@@ -647,6 +651,10 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
+        existing_form = await self.form_service.get_form_document_by_id(str(form_id))
+        # first-party images only; an address the draft already holds is kept
+        # (services/form_images.py). Checked before anything is written.
+        check_form_images(form, existing_form)
         if form.settings:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
@@ -663,7 +671,6 @@ class WorkspaceFormService:
             _apply_retention_update(workspace_form.settings, form.settings)
             await self.workspace_form_repository.save(workspace_form)
 
-        existing_form = await self.form_service.get_form_document_by_id(str(form_id))
         keep_section_titles(form, existing_form)
 
         # The logo changes only through an upload (here or the logo endpoint)
