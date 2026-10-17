@@ -13,6 +13,11 @@ hash of its method, path and body) for 24 hours:
 Final answers are kept, errors included (a 412 stays a 412). A server
 failure (5xx), a conflict (409) or a rate limit (429) is not: the key is
 released so a retry runs the request.
+
+What is kept is a small summary, never a whole form: the status, the form's
+id and the per-operation results (``compact_summary``, at most
+``MAX_STORED_BYTES``). A replay rebuilds the response from it with the form
+as it is now (its current ETag); an error or a publish result is kept as is.
 """
 
 import datetime as dt
@@ -20,7 +25,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 
@@ -37,11 +42,59 @@ MAX_KEY_LENGTH = 255
 RETRYABLE_STATUSES = {HTTPStatus.CONFLICT, HTTPStatus.TOO_MANY_REQUESTS}
 
 
+# Largest summary kept per key; longer result or error lists are cut.
+MAX_STORED_BYTES = 16 * 1024
+MAX_STORED_MESSAGE = 300
+
+
 @dataclass(frozen=True)
 class StoredResponse:
     status_code: int
+    # the summary (JSON text) to rebuild the response from
     body: str
     etag: Optional[str]
+
+
+def _size(value: Any) -> int:
+    return len(json.dumps(value, separators=(",", ":")).encode())
+
+
+def _short(item: Any) -> Any:
+    if isinstance(item, dict) and isinstance(item.get("message"), str):
+        return {**item, "message": item["message"][:MAX_STORED_MESSAGE]}
+    return item
+
+
+def compact_summary(summary: Dict[str, Any]) -> Dict[str, Any]:
+    """``summary`` within MAX_STORED_BYTES: messages shortened, then the
+    ``results`` / ``errors`` lists (of a summary or of its error body) cut,
+    marked ``truncated``; failing that, only its code and message."""
+    summary = json.loads(json.dumps(summary, default=str))
+    holders = [summary]
+    if isinstance(summary.get("body"), dict):
+        holders.append(summary["body"])
+    for holder in holders:
+        for key in ("results", "errors"):
+            if isinstance(holder.get(key), list):
+                holder[key] = [_short(item) for item in holder[key]]
+    for holder in holders:
+        for key in ("results", "errors"):
+            items: List[Any] = holder.get(key) if isinstance(holder, dict) else None
+            while (
+                isinstance(items, list) and items and _size(summary) > MAX_STORED_BYTES
+            ):
+                del items[len(items) // 2 :]
+                holder["truncated"] = True
+    if _size(summary) <= MAX_STORED_BYTES:
+        return summary
+    body = summary.get("body") if isinstance(summary.get("body"), dict) else {}
+    return {
+        "kind": "body",
+        "body": {
+            "code": str(body.get("code") or "error")[:100],
+            "message": str(body.get("message") or "")[:MAX_STORED_MESSAGE],
+        },
+    }
 
 
 def request_hash(method: str, path: str, body: bytes) -> str:
@@ -133,13 +186,16 @@ class IdempotencyService:
         key_id: str,
         idempotency_key: str,
         status_code: int,
-        body: str,
+        summary: Dict[str, Any],
         etag: Optional[str] = None,
     ) -> None:
+        """Keep the summary of a final answer (compacted); release the key
+        for one a retry should run again."""
         record_id = _record_id(key_id, idempotency_key)
         if status_code >= 500 or status_code in RETRYABLE_STATUSES:
             await self._repo.release(record_id)
         else:
+            body = json.dumps(compact_summary(summary), separators=(",", ":"))
             await self._repo.complete(record_id, status_code, body, etag)
 
     async def abandon(self, key_id: str, idempotency_key: str) -> None:

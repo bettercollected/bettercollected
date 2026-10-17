@@ -39,9 +39,11 @@ from backend.app.services.form_spec.service import (
     read_document_bytes,
 )
 from backend.app.services.form_spec.writes import parse_if_match
-from backend.app.services.idempotency import request_hash
+from backend.app.services.idempotency import StoredResponse, request_hash
 
 router = APIRouter()
+# deepest page a list goes to (with 100 per page: a million items)
+MAX_PAGE = 10_000
 
 FORMS = "Forms"
 OPERATIONS = "Form operations"
@@ -157,35 +159,81 @@ async def _require_form(caller: ApiCaller, form_id: str) -> None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
 
 
+def _summary(kind: str, response: JSONResponse) -> Dict[str, Any]:
+    """What is kept to replay ``response``: never a whole form."""
+    body = json.loads(bytes(response.body))
+    if kind == "created":
+        return {"kind": "created", "formId": body["formId"]}
+    if kind == "ops":
+        return {
+            "kind": "ops",
+            "applied": body["applied"],
+            "atomic": body["atomic"],
+            "results": body["results"],
+        }
+    return {"kind": "body", "body": body}
+
+
+async def _replay(
+    request: Request, caller: ApiCaller, stored: StoredResponse
+) -> Response:
+    """The response a retry gets: rebuilt from the summary, with the form
+    as it is now and its current ETag."""
+    summary = json.loads(stored.body)
+    headers = {"Idempotent-Replayed": "true"}
+    kind = summary.get("kind")
+    if kind in ("created", "ops"):
+        form_id = summary.get("formId") or request.path_params.get("form_id")
+        document, etag = (
+            await _c().form_spec_writer().read(caller.workspace_id, form_id)
+        )
+        headers["ETag"] = etag
+        if kind == "created":
+            headers["Location"] = _location(request, form_id)
+            content = {"formId": form_id, "form": document}
+        else:
+            content = {
+                key: summary[key]
+                for key in ("applied", "atomic", "results", "truncated")
+                if key in summary
+            }
+            content["form"] = document
+        return JSONResponse(content, stored.status_code, headers)
+    if stored.etag:
+        headers["ETag"] = stored.etag
+    return JSONResponse(summary.get("body"), stored.status_code, headers)
+
+
+def _location(request: Request, form_id: str) -> str:
+    return f"{request.scope.get('root_path', '')}/forms/{form_id}"
+
+
 async def _idempotent(
     request: Request,
     caller: ApiCaller,
     idempotency_key: Optional[str],
     body: bytes,
+    kind: str,
     run: Callable[[], Awaitable[JSONResponse]],
 ) -> Response:
-    """Run ``run`` once per Idempotency-Key (services/idempotency.py)."""
+    """Run ``run`` once per Idempotency-Key (services/idempotency.py);
+    ``kind`` says what to keep for a replay (created, ops or body)."""
     if idempotency_key is None:
         return await run()
     service = _c().idempotency_service()
     fingerprint = request_hash(request.method, request.url.path, body)
     stored = await service.begin(caller.key_id, idempotency_key, fingerprint)
     if stored is not None:
-        headers = {"Idempotent-Replayed": "true"}
-        if stored.etag:
-            headers["ETag"] = stored.etag
-        return Response(
-            content=stored.body,
-            status_code=stored.status_code,
-            media_type="application/json",
-            headers=headers,
-        )
+        return await _replay(request, caller, stored)
     try:
         response = await run()
     except HTTPException as error:
         payload = error_payload(error.status_code, error.content)
         await service.finish(
-            caller.key_id, idempotency_key, error.status_code, json.dumps(payload)
+            caller.key_id,
+            idempotency_key,
+            error.status_code,
+            {"kind": "body", "body": payload},
         )
         raise
     except BaseException:
@@ -195,7 +243,7 @@ async def _idempotent(
         caller.key_id,
         idempotency_key,
         response.status_code,
-        bytes(response.body).decode(),
+        _summary(kind, response),
         response.headers.get("etag"),
     )
     return response
@@ -213,7 +261,7 @@ async def _idempotent(
     responses=_errors(401, 403, 429),
 )
 async def list_forms(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=MAX_PAGE),
     size: int = Query(50, ge=1, le=100),
     caller: ApiCaller = Depends(api_key("forms:read", "api:list_forms")),
 ):
@@ -278,10 +326,10 @@ async def create_form(
             {"formId": form_id, "form": document},
             etag,
             status=201,
-            Location=f"{request.scope.get('root_path', '')}/forms/{form_id}",
+            Location=_location(request, form_id),
         )
 
-    return await _idempotent(request, caller, idempotency_key, body, run)
+    return await _idempotent(request, caller, idempotency_key, body, "created", run)
 
 
 @router.post(
@@ -429,7 +477,7 @@ async def publish_form(
         )
         return JSONResponse(result)
 
-    return await _idempotent(request, caller, idempotency_key, body, run)
+    return await _idempotent(request, caller, idempotency_key, body, "body", run)
 
 
 # -- operations ----------------------------------------------------------------
@@ -490,7 +538,7 @@ async def apply_ops(
         )
         return _with_etag(result, etag)
 
-    return await _idempotent(request, caller, idempotency_key, body, run)
+    return await _idempotent(request, caller, idempotency_key, body, "ops", run)
 
 
 @router.post(
@@ -533,7 +581,7 @@ async def dry_run_ops(
 )
 async def list_responses(
     form_id: str,
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=MAX_PAGE),
     size: int = Query(20, ge=1, le=MAX_PAGE_SIZE),
     caller: ApiCaller = Depends(api_key("responses:read", "api:list_responses")),
 ):

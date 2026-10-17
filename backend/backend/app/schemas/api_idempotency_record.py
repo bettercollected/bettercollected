@@ -12,7 +12,8 @@ IDEMPOTENCY_DONE = "done"
 class ApiIdempotencyRecordDocument(MongoDocument):
     """One ``Idempotency-Key`` an API key sent to the public API
     (services/idempotency.py): the request it was first used for and, once
-    that finished, its response, replayed to a retry with the same key.
+    that finished, a summary of its response, from which a retry with the
+    same key is answered.
 
     The id is derived from the API key's id and the client's key, so a key
     is claimed by inserting it. Kept until ``expires_at`` (24 hours)."""
@@ -22,7 +23,8 @@ class ApiIdempotencyRecordDocument(MongoDocument):
     request_hash: str
     state: str = IDEMPOTENCY_PENDING
     status_code: Optional[int] = None
-    # the response body as JSON text, stored and replayed as it was sent
+    # a small summary of the response (JSON text, capped): the form id and
+    # per-op results, or an error or publish body; never a whole form
     body: Optional[str] = None
     etag: Optional[str] = None
     expires_at: dt.datetime
