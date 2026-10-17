@@ -54,11 +54,13 @@ export const pageIdsAtom = selectAtom(formDocAtom, (doc) => (doc.fields ?? []).m
 const fieldAtoms = new Map<string, Atom<StandardFormFieldDto | undefined>>();
 const pageAtoms = new Map<string, Atom<StandardFormFieldDto | undefined>>();
 const fieldIdsAtoms = new Map<string, Atom<string[]>>();
+const pageShellAtoms = new Map<string, Atom<StandardFormFieldDto | undefined>>();
 
 onDocumentReset(() => {
     fieldAtoms.clear();
     pageAtoms.clear();
     fieldIdsAtoms.clear();
+    pageShellAtoms.clear();
 });
 
 /** A question (or a repeating group's question) by id; undefined when the form has none. */
@@ -96,6 +98,45 @@ export function fieldIdsOfPageAtom(id: string): Atom<string[]> {
     if (!cached) {
         cached = selectAtom(pageAtom(id), (page) => childrenOf(page).map((field) => field.id), sameIds);
         fieldIdsAtoms.set(id, cached);
+    }
+    return cached;
+}
+
+/** A page without its questions (`properties.fields` left out). */
+function shellOf(page: StandardFormFieldDto | undefined): StandardFormFieldDto | undefined {
+    if (!page) return undefined;
+    if (!page.properties) return { ...page };
+    const { fields: _fields, ...properties } = page.properties;
+    return { ...page, properties };
+}
+
+/** Same keys with the same values (by reference), `skip` left out. */
+function shallowSame(a: Record<string, unknown> | undefined, b: Record<string, unknown> | undefined, skip: string): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    const keys = (value: Record<string, unknown>) => Object.keys(value).filter((key) => key !== skip);
+    const ka = keys(a);
+    return ka.length === keys(b).length && ka.every((key) => key in b && a[key] === b[key]);
+}
+
+const sameShell = (a: StandardFormFieldDto | undefined, b: StandardFormFieldDto | undefined) =>
+    a === b ||
+    (!!a &&
+        !!b &&
+        shallowSame(a as unknown as Record<string, unknown>, b as unknown as Record<string, unknown>, 'properties') &&
+        shallowSame(a.properties as Record<string, unknown> | undefined, b.properties as Record<string, unknown> | undefined, 'fields'));
+
+/**
+ * A page's own settings (layout, theme, section title, jumps, ...) without
+ * its questions: the same object while only its questions change, so a
+ * component that shows the page around its questions does not re-render
+ * when one of them is edited.
+ */
+export function pageShellAtom(id: string): Atom<StandardFormFieldDto | undefined> {
+    let cached = pageShellAtoms.get(id);
+    if (!cached) {
+        cached = selectAtom(pageAtom(id), shellOf, sameShell);
+        pageShellAtoms.set(id, cached);
     }
     return cached;
 }
