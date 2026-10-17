@@ -1,9 +1,9 @@
 """Thin async wrapper around the Unsplash REST API."""
 
-import traceback
 from typing import Optional
 
 import httpx
+from loguru import logger
 
 from backend.config import settings
 
@@ -38,11 +38,6 @@ class UnsplashService:
 
         Returns an empty list if the key is missing or the request fails.
         """
-        masked = (
-            self._access_key[:4] + "..." + self._access_key[-4:]
-            if len(self._access_key) > 8
-            else "<short>"
-        )
         params = {
             "query": query,
             "per_page": per_page,
@@ -74,13 +69,14 @@ class UnsplashService:
                     for p in results
                 ]
         except httpx.HTTPStatusError as exc:
-            print(
-                f"[UnsplashService] HTTP error {exc.response.status_code}: {exc.response.text}"
+            # status only: the query comes from an AI prompt
+            logger.warning(
+                "Unsplash search failed (HTTP {})", exc.response.status_code
             )
             return []
-        except Exception as exc:
-            print(f"[UnsplashService] Unexpected error during search: {exc}")
-            traceback.print_exc()
+        except Exception as exc:  # noqa: BLE001
+            # the error's type only: its message can carry the request URL
+            logger.warning("Unsplash search failed ({})", type(exc).__name__)
             return []
 
     async def get_first_photo_url(

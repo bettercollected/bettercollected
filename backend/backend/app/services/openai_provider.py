@@ -5,12 +5,26 @@ from typing import Any, Dict, Optional
 
 from openai import AsyncOpenAI
 
+from backend.app.services.ai.errors import ai_step_limit, ai_unusable
+from backend.app.services.ai.structured import (
+    InvalidReply,
+    correction_message,
+    generated_form_schema,
+    parse_generated_form,
+)
+from backend.app.services.ai.untrusted import UNTRUSTED_CONTENT_RULES
+from backend.app.services.ai.usage import record_tokens
 from backend.app.services.ai_form_provider import (
     PAGE_MAX_TOKENS,
     PAGE_TIMEOUT_S,
     AIFormProvider,
+    call_provider,
 )
-from backend.app.services.ai_form_tools import OPENAI_TOOLS, execute_tool
+from backend.app.services.ai_form_tools import (
+    OPENAI_TOOLS,
+    execute_tool,
+    parse_tool_args,
+)
 from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.form_generation_rules import (
     HONEST_FORM_RULES,
@@ -109,9 +123,73 @@ interface Form {
 """
 SYSTEM_PROMPT += HONEST_FORM_RULES
 SYSTEM_PROMPT += SECTION_TITLE_RULES
+SYSTEM_PROMPT += UNTRUSTED_CONTENT_RULES
+
+# The final answer as OpenAI structured output (strict JSON schema); tool
+# calls stay possible alongside it.
+FORM_RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "generated_form",
+        "schema": generated_form_schema(),
+        "strict": True,
+    },
+}
 
 
-class OpenAIFormProvider(AIFormProvider):
+def usage_tokens(response: Any) -> Optional[int]:
+    """Tokens an OpenAI-style response reports (prompt and output), if any."""
+    usage = getattr(response, "usage", None)
+    total = getattr(usage, "total_tokens", None)
+    return total if isinstance(total, int) else None
+
+
+class OpenAIClientCalls:
+    """Bounded chat-completion calls shared by the OpenAI and the
+    OpenAI-compatible providers: a timeout on each request, the whole call
+    (client retries included) within AI_CALL_TIMEOUT_SECONDS, tokens counted."""
+
+    _model: Optional[str] = None
+
+    @staticmethod
+    def _client_options() -> Dict[str, Any]:
+        return {
+            "timeout": settings.ai.REQUEST_TIMEOUT_SECONDS,
+            "max_retries": max(0, settings.ai.CLIENT_MAX_RETRIES),
+        }
+
+    async def _complete(
+        self,
+        request_timeout: Optional[float] = None,
+        call_timeout: Optional[float] = None,
+        **kwargs,
+    ):
+        kwargs.setdefault("model", self._model)
+        kwargs["timeout"] = request_timeout or settings.ai.REQUEST_TIMEOUT_SECONDS
+        response = await call_provider(
+            lambda: self.client.chat.completions.create(**kwargs),
+            call_timeout or settings.ai.CALL_TIMEOUT_SECONDS,
+        )
+        await record_tokens(usage_tokens(response))
+        return response
+
+    async def _form_reply(self, messages: list, **kwargs) -> Dict[str, Any]:
+        """A tool-free generation whose reply must be a form: one corrective
+        retry, then ``ai_unusable``."""
+        for _ in range(2):
+            response = await self._complete(messages=messages, **kwargs)
+            content = response.choices[0].message.content or ""
+            try:
+                return parse_generated_form(content)
+            except InvalidReply as invalid:
+                messages = messages + [
+                    {"role": "assistant", "content": content},
+                    {"role": "user", "content": correction_message(invalid.problems)},
+                ]
+        raise ai_unusable()
+
+
+class OpenAIFormProvider(OpenAIClientCalls, AIFormProvider):
     """Generates forms using OpenAI chat completions with function calling."""
 
     def __init__(self, unsplash_service: UnsplashService) -> None:
@@ -127,33 +205,47 @@ class OpenAIFormProvider(AIFormProvider):
         # so building the client eagerly in __init__ would crash startup for
         # anyone not using AI form generation. Defer it to first use.
         if self._client is None:
-            self._client = AsyncOpenAI(api_key=settings.open_ai.API_KEY)
+            self._client = AsyncOpenAI(
+                api_key=settings.open_ai.API_KEY, **self._client_options()
+            )
         return self._client
 
     async def generate_form(self, prompt: str) -> Dict[str, Any]:
-        messages = [
+        return await call_provider(
+            lambda: self._generate(prompt), settings.ai.GENERATION_TIMEOUT_SECONDS
+        )
+
+    async def _generate(self, prompt: str) -> Dict[str, Any]:
+        """The tool loop: the model calls tools until it answers with the
+        form. At most AI_MAX_TOOL_ITERATIONS round trips (the answer and its
+        one corrective retry included) and AI_MAX_TOOL_CALLS tool calls."""
+        config = settings.ai
+        messages: list = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ]
-
-        # Agentic tool-call loop — runs until the model emits a plain message.
-        while True:
-            response = await self.client.chat.completions.create(
-                model=self._model,
+        tool_calls = 0
+        retried = False
+        for _ in range(max(1, config.MAX_TOOL_ITERATIONS)):
+            response = await self._complete(
                 messages=messages,
                 tools=OPENAI_TOOLS,
                 tool_choice="auto",
+                response_format=FORM_RESPONSE_FORMAT,
+                max_completion_tokens=config.MAX_OUTPUT_TOKENS_GENERATE,
             )
-            choice = response.choices[0]
-
-            # Model wants to call one or more tools
-            if choice.finish_reason == "tool_calls" and choice.message.tool_calls:
-                messages.append(choice.message)  # assistant turn with tool_calls
-
-                for tc in choice.message.tool_calls:
-                    tool_args = json.loads(tc.function.arguments or "{}")
+            message = response.choices[0].message
+            calls = list(getattr(message, "tool_calls", None) or [])
+            if calls:
+                tool_calls += len(calls)
+                if tool_calls > config.MAX_TOOL_CALLS:
+                    raise ai_step_limit()
+                messages.append(message)  # assistant turn with tool_calls
+                for tc in calls:
                     result = await execute_tool(
-                        tc.function.name, tool_args, self._unsplash
+                        tc.function.name,
+                        parse_tool_args(tc.function.arguments),
+                        self._unsplash,
                     )
                     messages.append(
                         {
@@ -162,24 +254,36 @@ class OpenAIFormProvider(AIFormProvider):
                             "content": json.dumps(result),
                         }
                     )
-                # Continue the loop so the model can keep calling tools or respond
                 continue
 
-            # Model returned its final textual answer
-            content = choice.message.content or ""
-            # Strip optional markdown code fences
-            content = content.strip()
-            if content.startswith("```"):
-                content = content.split("```")[1]
-                if content.startswith("json"):
-                    content = content[4:]
-            return json.loads(content)
+            content = message.content or ""
+            try:
+                return parse_generated_form(content)
+            except InvalidReply as invalid:
+                if retried:
+                    raise ai_unusable() from None
+                retried = True
+                messages.append({"role": "assistant", "content": content})
+                messages.append(
+                    {"role": "user", "content": correction_message(invalid.problems)}
+                )
+        raise ai_step_limit()
 
-    async def chat(self, system: str, messages: list) -> str:
+    async def chat(
+        self,
+        system: str,
+        messages: list,
+        *,
+        max_output_tokens: Optional[int] = None,
+        json_mode: bool = False,
+    ) -> str:
         """Plain multi-turn chat (no tools) — used by AI form editing."""
-        response = await self.client.chat.completions.create(
-            model=self._model,
+        extra = {"response_format": {"type": "json_object"}} if json_mode else {}
+        response = await self._complete(
             messages=[{"role": "system", "content": system}, *messages],
+            max_completion_tokens=max_output_tokens
+            or settings.ai.MAX_OUTPUT_TOKENS_CHAT,
+            **extra,
         )
         return response.choices[0].message.content or ""
 
@@ -204,7 +308,9 @@ class OpenAIFormProvider(AIFormProvider):
                     },
                 }
             )
-        response = await self.client.chat.completions.create(
+        response = await self._complete(
+            request_timeout=PAGE_TIMEOUT_S,
+            call_timeout=PAGE_TIMEOUT_S * (1 + max(0, settings.ai.CLIENT_MAX_RETRIES)),
             model=settings.pdf_import.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system},
@@ -216,7 +322,6 @@ class OpenAIFormProvider(AIFormProvider):
                 "json_schema": {"name": "form_page", "schema": schema, "strict": True},
             },
             max_completion_tokens=PAGE_MAX_TOKENS,
-            timeout=PAGE_TIMEOUT_S,
         )
         return _json_answer(response.choices[0].message.content or "{}")
 

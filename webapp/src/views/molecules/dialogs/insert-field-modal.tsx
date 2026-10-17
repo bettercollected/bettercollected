@@ -26,7 +26,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
         if (!slide?.properties?.fields?.length) return false;
         return slide?.properties?.fields?.some((field) => field.type && V2InputFields.includes(field.type));
     }
-    const slideIndex = activeSlideComponent.index < 0 ? formFields.length - 1 : activeSlideComponent.index;
+    const slideIndex = !activeSlideComponent || activeSlideComponent.index < 0 ? formFields.length - 1 : activeSlideComponent.index;
     const slide = formFields[slideIndex];
 
     const [currentPage, setCurrentPage] = useState(navbarState.multiplePages);
@@ -45,7 +45,10 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
             toast({ description: 'Add a slide to add fields' });
             return;
         }
+        // Where the new question lands: first on a new page, last on this one.
+        let newFieldIndex: number;
         if (!currentPage || formFields.length === 0) {
+            newFieldIndex = 0;
             const newSlideIndex = activeSlideComponent.index < 0 ? formFields.length : activeSlideComponent.index + 1;
             addSlide(
                 {
@@ -71,6 +74,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                 });
             }, 500);
         } else {
+            newFieldIndex = slide?.properties?.fields?.length ?? 0;
             addField(getNewField(field, fieldId, slideIndex), slideIndex);
             setActiveSlideComponent({
                 id: slideId,
@@ -84,10 +88,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                 });
             }, 0);
         }
-        setActiveFieldComponent({
-            id: fieldId,
-            index: (formFields[slideIndex]?.properties?.fields?.length ?? 1) - 1
-        });
+        setActiveFieldComponent({ id: fieldId, index: newFieldIndex });
     };
     return (
         <div id="fields-option" className="h-[552px] w-[410px] bg-white">

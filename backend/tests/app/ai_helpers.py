@@ -20,8 +20,9 @@ class FakeProvider:
         self.replies = []
         self.calls = []
 
-    async def chat(self, system: str, messages: list) -> str:
-        self.calls.append({"system": system, "messages": messages})
+    async def chat(self, system: str, messages: list, **options) -> str:
+        # options: max_output_tokens, json_mode (what the call asked for)
+        self.calls.append({"system": system, "messages": messages, **options})
         return self.replies.pop(0)
 
     async def generate_form(self, prompt: str) -> dict:

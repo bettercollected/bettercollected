@@ -219,7 +219,10 @@ class TestFormAIReview:
             workspace_form.form_id
         )
         await _make_v2(form_doc)
-        fake_review_provider.replies = ["I looked at the form and it seems fine to me!"]
+        fake_review_provider.replies = [
+            "I looked at the form and it seems fine to me!",
+            json.dumps({"summary": "", "findings": []}),
+        ]
 
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/review",
@@ -227,6 +230,7 @@ class TestFormAIReview:
             json={},
         )
         assert response.status_code == 502
+        assert len(fake_review_provider.calls) == 2
 
     async def test_broken_fix_ops_drop_the_fix_but_keep_the_finding(
         self,

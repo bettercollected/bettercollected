@@ -235,4 +235,18 @@ async def execute_tool(
         )
         return photos
 
-    raise ValueError(f"Unknown tool: {tool_name}")
+    # only the tools above ever run; anything else the model names is refused
+    # back to it instead of failing the request
+    return {"error": "Unknown tool. Use only the tools you were given."}
+
+
+def parse_tool_args(raw: Any) -> Dict[str, Any]:
+    """A tool call's arguments as a dict; {} when the model sent something
+    else (malformed JSON included)."""
+    if isinstance(raw, dict):
+        return raw
+    try:
+        value = json.loads(raw or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}

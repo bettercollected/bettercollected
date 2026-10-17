@@ -51,6 +51,7 @@ from backend.app.services.form_logo import (
     logo_key,
     read_logo_upload,
 )
+from backend.app.services.form_concurrency import ensure_not_changed_since
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.date_rules import today_range, validate_date_rule_answers
@@ -637,7 +638,11 @@ class WorkspaceFormService:
         user: User,
         logo: UploadFile = None,
         cover_image: UploadFile = None,
+        expected_updated_at: Optional[dt.datetime] = None,
     ):
+        """``expected_updated_at``: the draft's ``updated_at`` as the caller
+        last saw it; when the stored draft is newer the save is refused with
+        409 (form_concurrency.py). None skips the check."""
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
@@ -652,8 +657,12 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
+        # Before anything is written, settings included.
+        ensure_not_changed_since(
+            existing_form.updated_at if existing_form else None, expected_updated_at
+        )
         # first-party images only; an address the draft already holds is kept
-        # (services/form_images.py). Checked before anything is written.
+        # (services/form_images.py).
         check_form_images(form, existing_form)
         if form.settings:
             if form.settings.response_data_owner_field is not None:

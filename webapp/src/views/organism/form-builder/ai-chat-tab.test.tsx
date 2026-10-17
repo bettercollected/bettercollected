@@ -53,6 +53,7 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     };
 });
 
+import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import { initialFieldsAtom } from '@app/store/jotai/field-selectors';
 import { formStateAtom, IFormState } from '@app/store/jotai/form';
 import { store } from '@app/store/store';
@@ -96,6 +97,13 @@ function FieldsProbe() {
     const [formState] = useAtom(formStateAtom);
     probe.fields = fields;
     probe.formState = formState;
+    return null;
+}
+
+// What the editor page does once the loaded form is in the builder state.
+function MarkHydrated({ formId }: { formId: string }) {
+    const { setHydratedFormId } = useBuilderHydration();
+    React.useEffect(() => setHydratedFormId(formId), [formId]);
     return null;
 }
 
@@ -434,29 +442,27 @@ describe('AIChatTab', () => {
     });
 
     it('REGRESSION: the next autosave writes the AI theme, not the old one back', async () => {
-        chatEditMock.mockResolvedValue(themeTurn());
+        // The server stored the AI's edit: its reply carries the new version.
+        const AI_VERSION = '2026-10-17T09:00:05.000+00:00';
+        chatEditMock.mockResolvedValue(success({ ...themeTurn().data, form: { ...THEMED_FORM, updatedAt: AI_VERSION } }));
         patchFormMock.mockReset().mockResolvedValue({ data: { ...THEMED_FORM, formId: 'form-autosave-1' } });
         store.dispatch(setWorkspace({ id: 'ws-1' }));
         const { setForm } = await import('@app/store/forms/slice');
-        store.dispatch(setForm({ formId: 'form-autosave-1', title: 'Draft', theme: { ...OCEAN_THEME, title: 'Default', background: undefined } }));
-        const realNow = Date.now;
+        store.dispatch(setForm({ formId: 'form-autosave-1', title: 'Draft', updatedAt: '2026-10-17T09:00:00.000+00:00', theme: { ...OCEAN_THEME, title: 'Default', background: undefined } }));
         render(
             <ReduxProvider store={store}>
                 <Provider>
                     <AIChatTab memoryPollDelaysMs={[0]} />
                     <AutoSaveForm formId="form-autosave-1" />
+                    <MarkHydrated formId="form-autosave-1" />
                     <FieldsProbe />
                 </Provider>
             </ReduxProvider>
         );
-        // Past autosave's hydration window, so the next change is an edit.
-        const spy = vi.spyOn(Date, 'now').mockImplementation(() => realNow() + 10_000);
-        try {
-            await sendMessage('use the ocean theme');
-            await waitFor(() => expect(patchFormMock).toHaveBeenCalled(), { timeout: 4000 });
-        } finally {
-            spy.mockRestore();
-        }
+        await sendMessage('use the ocean theme');
+        await waitFor(() => expect(patchFormMock).toHaveBeenCalled(), { timeout: 4000 });
+        // Built on the AI's version: its own AI edit is no conflict.
+        expect(patchFormMock.mock.calls.at(-1)[0].body.get('expected_updated_at')).toBe(AI_VERSION);
         const saved = JSON.parse(patchFormMock.mock.calls.at(-1)[0].body.get('form_body'));
         expect(saved.theme).toEqual(OCEAN_THEME);
         expect(saved.title).toBe('Customer check-in');

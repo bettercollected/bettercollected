@@ -384,6 +384,55 @@ documents) goes to an AI provider until the workspace has opted in. Code:
   check still runs) and `enable_ai(workspace)`. A new AI path needs a test that it
   answers 403 `ai_not_enabled` with zero provider calls while AI is off.
 
+## AI limits
+
+What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
+
+- **Calls** (`services/ai_form_provider.call_provider`): each provider request
+  has `AI_REQUEST_TIMEOUT_SECONDS` (60) and the whole call, client retries
+  (`AI_CLIENT_MAX_RETRIES`, 1) included, `AI_CALL_TIMEOUT_SECONDS` (120); a
+  timeout is 504 `ai_timeout`, any other provider failure 502 `ai_unavailable`.
+  Output tokens per call type: `AI_MAX_OUTPUT_TOKENS_GENERATE` (16000), `_CHAT`
+  (8000), `_REVIEW` (8000), `_INSIGHTS` (4000), `_MEMORY` (1000); document
+  import pages keep `PAGE_MAX_TOKENS`/`PAGE_TIMEOUT_S`.
+- **Form generation's tool loop** stops at `AI_MAX_TOOL_ITERATIONS` model round
+  trips (10, the final answer and its retry included) or `AI_MAX_TOOL_CALLS`
+  tool calls (30) with 502 `ai_step_limit`, and the whole generation at
+  `AI_GENERATION_TIMEOUT_SECONDS` (240). Unknown tools and malformed arguments
+  go back to the model as a tool error; only the three tools ever run.
+- **Structured replies** (`services/ai/structured.py`): every reply is
+  validated with Pydantic (`GeneratedForm`, and a model per chat/review/
+  insights/memory reply); an unusable one gets one retry with the problems
+  (locations and messages, never values), then 502 `ai_unusable_reply`.
+  OpenAI generation uses strict structured output (`generated_form_schema()`,
+  strict-mode rules as in the import schema); chat calls ask for JSON mode
+  (OpenAI `json_object`, Gemini `application/json`, the compatible endpoint
+  unless `AI_COMPAT_JSON_MODE=false`). Gemini cannot combine tools with JSON
+  output, so its generation relies on validation and the retry. A provider's
+  `chat()` takes `max_output_tokens` and `json_mode`; use `chat_json(...)` for
+  a reply that must be JSON.
+- **Rate limits and budget** (`services/ai/usage.AIUsageGuard`, on the shared
+  `FixedWindowRateLimiter`): `provider_for_workspace(..., user_id=...)` admits
+  one AI request after the opt-in check: `AI_RATE_LIMIT_PER_USER` (10) and
+  `AI_RATE_LIMIT_PER_WORKSPACE` (30) per `AI_RATE_LIMIT_WINDOW_SECONDS` (60),
+  then the workspace's daily (UTC) counters: requests always counted, capped
+  by `AI_DAILY_REQUEST_BUDGET`, and tokens where the provider reports usage
+  (`record_tokens`, bound to the workspace by `bind_usage`), capped by
+  `AI_DAILY_TOKEN_BUDGET`; both caps 0 = none. Over a limit: 429
+  `{"code": "ai_rate_limited" | "ai_daily_limit", "message"}` with
+  `Retry-After`. A document upload with `ai_consent` is admitted at upload
+  (`admit_import`, only while AI is on) and its job resolves the provider with
+  `admit=False`; applying a review fix calls no provider and has its own
+  `AI_RATE_LIMIT_FIX_PER_USER` (60). 0 turns a limit off.
+- **Untrusted content** (`services/ai/untrusted.py`): form contents, the AI
+  profile, preference memory, respondents' answers and the chat exchange go
+  into prompts only through `fence(tag, text)` (which defuses the tags inside
+  the text), and every system prompt carries `UNTRUSTED_CONTENT_RULES`.
+  Model output is never executed: ops are validated by the ops engine, image
+  and policy links are checked (`image_urls.py`, `policy_url.py`).
+- **Logging:** AI paths log error types, counts and ids only, never a prompt,
+  a reply, a tool query or an exception message.
+
 ## PDF form import (in progress)
 
 `POST /workspaces/{id}/form-imports` (multipart `file`) turns an uploaded PDF or

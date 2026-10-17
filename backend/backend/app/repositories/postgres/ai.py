@@ -124,7 +124,9 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
     row = RateLimitCounterRow
     document = RateLimitCounterDocument
 
-    async def hit(self, counter_id: str, expires_at: dt.datetime) -> int:
+    async def hit(
+        self, counter_id: str, expires_at: dt.datetime, amount: int = 1
+    ) -> int:
         now = dt.datetime.now(dt.timezone.utc)
         names = self._column_names()
         locked = (
@@ -136,7 +138,9 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
             doc = (await session.execute(locked)).scalar_one_or_none()
             if doc is None:
                 first = RateLimitCounterDocument(
-                    id=PydanticObjectId(counter_id), hits=1, expires_at=expires_at
+                    id=PydanticObjectId(counter_id),
+                    hits=amount,
+                    expires_at=expires_at,
                 )
                 values = row_values(first)
                 inserted = await session.execute(
@@ -155,10 +159,10 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
                 created = False
             if not created:
                 counter = from_row_doc(RateLimitCounterDocument, doc)
-                counter.hits += 1
+                counter.hits += amount
                 counter.updated_at = now
                 await session.execute(self._upsert_statement(row_values(counter)))
                 return counter.hits
         # no TTL index here: expired counters go whenever a new one starts
         await self.delete_where(RateLimitCounterRow.expires_at <= now)
-        return 1
+        return amount

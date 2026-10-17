@@ -3,6 +3,7 @@ from http import HTTPStatus
 from typing import Dict, Any, List, Optional
 
 from beanie import PydanticObjectId
+from loguru import logger
 from common.models.standard_form import (
     StandardForm,
     SECTION_TITLE_MAX_LENGTH,
@@ -18,6 +19,7 @@ from common.models.user import User
 from backend.app.services.ai.consent import AIConsentService, ai_not_enabled
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.usage import AIUsageGuard, bind_usage
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
 from backend.config import settings
 from backend.app.services.ai.prompt_builder import compose_generation_prompt
@@ -56,10 +58,12 @@ class OpenAIService:
         workspace_form_service: WorkspaceFormService,
         authorization_service=None,
         ai_consent_service: Optional[AIConsentService] = None,
+        ai_usage_guard: Optional[AIUsageGuard] = None,
     ):
         self.workspace_service: WorkspaceService = workspace_service
         self.authorization_service = authorization_service
         self.ai_consent_service = ai_consent_service
+        self.ai_usage_guard = ai_usage_guard
         self.workspace_form_service: WorkspaceFormService = workspace_form_service
         self._unsplash = UnsplashService()
         self._providers: Dict[AIProvider, AIFormProvider] = {
@@ -87,11 +91,22 @@ class OpenAIService:
         return impl
 
     async def provider_for_workspace(
-        self, workspace_id: PydanticObjectId, requested: Optional[str] = None
+        self,
+        workspace_id: PydanticObjectId,
+        requested: Optional[str] = None,
+        *,
+        user_id: Optional[Any] = None,
+        admit: bool = True,
     ) -> AIFormProvider:
         """The one way to get an AI provider (#715): 403 ``ai_not_enabled``
         unless the workspace opted in, and always the provider it consented
-        to. A client-chosen provider other than that one is ignored."""
+        to. A client-chosen provider other than that one is ignored.
+
+        Then the AI limits (backend/AGENTS.md "AI limits"): with ``admit``
+        this is one AI request of ``user_id`` (429 over the rate limits or
+        the daily budget), and the provider calls that follow count their
+        tokens against the workspace. An import job passes ``admit=False``:
+        its upload was admitted (``admit_import``)."""
         consented = await self.ai_consent_service.require_enabled(workspace_id)
         # ``requested`` is honoured only when it is the consented provider,
         # which is the one returned below either way.
@@ -104,7 +119,22 @@ class OpenAIService:
                 "The AI provider this workspace consented to is not available. "
                 "A workspace admin needs to turn AI on again."
             )
-        return self._get_provider(provider)
+        impl = self._get_provider(provider)
+        if self.ai_usage_guard is not None:
+            if admit:
+                await self.ai_usage_guard.admit(workspace_id, user_id)
+            bind_usage(self.ai_usage_guard, workspace_id)
+        return impl
+
+    async def admit_import(self, workspace_id: PydanticObjectId, user: User) -> None:
+        """A document upload that asks for AI structuring is one AI request
+        of its uploader, admitted at upload (the import runs later, as a
+        job). Nothing is counted while the workspace has AI off: the import
+        then never uses it."""
+        if self.ai_usage_guard is None or self.ai_consent_service is None:
+            return
+        if await self.ai_consent_service.consented_provider(workspace_id):
+            await self.ai_usage_guard.admit(workspace_id, user.id)
 
     async def create_form_with_ai(
         self,
@@ -118,7 +148,7 @@ class OpenAIService:
             user, Permission.FORM_CREATE, workspace_id
         )
         provider = await self.provider_for_workspace(
-            workspace_id, create_form_ai.provider
+            workspace_id, create_form_ai.provider, user_id=user.id
         )
 
         try:
@@ -150,7 +180,8 @@ class OpenAIService:
         except HTTPException:
             raise
         except Exception as e:
-            print(e)
+            # the error's type only: its message can quote the prompt or reply
+            logger.warning("AI form generation failed ({})", type(e).__name__)
             raise HTTPException(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 content="Could not create form using AI",

@@ -129,6 +129,7 @@ from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.insights import FormAIInsightsService
 from backend.app.services.ai.review import FormAIReviewService
+from backend.app.services.ai.usage import AIUsageGuard
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
@@ -583,6 +584,10 @@ class AppContainer(containers.DeclarativeContainer):
         flow_event_repo=flow_event_repo,
         rate_limiter=rate_limiter,
     )
+    # rate limits and the daily budget of the AI endpoints
+    ai_usage_guard: AIUsageGuard = providers.Singleton(
+        AIUsageGuard, limiter=rate_limiter
+    )
 
     # Every workspace-scoped access decision (services call authorize()).
     authorization_service: AuthorizationService = providers.Singleton(
@@ -750,9 +755,10 @@ class AppContainer(containers.DeclarativeContainer):
         # workspace id -> the consented AI provider, through the same opt-in
         # check as every other AI path (openai_service is defined further
         # down this container, so it is looked up per run)
+        # (the upload was admitted to the AI limits: the job only counts tokens)
         provider_resolver=providers.Object(
             lambda workspace_id: container.openai_service().provider_for_workspace(
-                workspace_id
+                workspace_id, admit=False
             )
         ),
         form_repo=form_repo,
@@ -767,6 +773,12 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         settings=settings.pdf_import,
         flags=flags,
+        # an upload asking for AI structuring counts as one AI request
+        ai_admission=providers.Object(
+            lambda workspace_id, user: container.openai_service().admit_import(
+                workspace_id, user
+            )
+        ),
     )
 
     custom_domain_service: CustomDomainService = providers.Singleton(
@@ -836,6 +848,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_service=workspace_form_service,
         authorization_service=authorization_service,
         ai_consent_service=ai_consent_service,
+        ai_usage_guard=ai_usage_guard,
     )
 
     form_ai_chat_service: FormAIChatService = providers.Singleton(
@@ -856,6 +869,7 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
+        ai_usage_guard=ai_usage_guard,
         provider_resolver=providers.Callable(
             lambda svc: svc.provider_for_workspace, openai_service
         ),

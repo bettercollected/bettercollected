@@ -138,7 +138,13 @@ async def test_leaflet_ai_form_image_queries_follow_the_topic():
         "title": "Community centre visit",
         "theme_name": "Leaflet",
         "welcome_image_url": "https://images.example/1.jpg",
-        "fields": [],
+        "fields": [
+            {
+                "title": "Your visit",
+                "type": "short_text",
+                "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+            }
+        ],
     }
     provider._client = SimpleNamespace(
         chat=SimpleNamespace(
