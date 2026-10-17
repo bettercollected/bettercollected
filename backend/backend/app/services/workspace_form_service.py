@@ -45,6 +45,7 @@ from backend.app.services.ai.notice_token import stamp_response as stamp_ai_noti
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_images import check_form_images
+from backend.app.services.rich_text import sanitise_form_titles
 from backend.app.services.form_logo import (
     CheckedLogo,
     logo_extension_of,
@@ -181,6 +182,16 @@ def _apply_retention_update(stored, incoming: StandardFormSettings) -> None:
     kind, value = _unprocessable_unless(checked_retention, kind, value, dt.date.today())
     stored.response_expiration_type = kind
     stored.response_expiration = value
+
+
+def _sanitise_titles(form) -> None:
+    """Drop font sizes and colours of rich-text titles that are not ones the
+    title editor writes (services/rich_text.py): they would end up in a
+    style attribute on respondent pages. Dropped rather than refused, so a
+    form stored before the check still saves. Only the count is logged."""
+    dropped = sanitise_form_titles(form)
+    if dropped:
+        logger.info(f"Dropped {dropped} unusable title style value(s) on save")
 
 
 def keep_section_titles(form, stored) -> None:
@@ -581,6 +592,7 @@ class WorkspaceFormService:
         # first-party images only (services/form_images.py); a copy drops
         # the others instead of refusing
         check_form_images(form, None, drop=drop_unusable_settings)
+        _sanitise_titles(form)
         settings = (
             form.settings
             if form.settings
@@ -682,6 +694,7 @@ class WorkspaceFormService:
         # first-party images only; an address the draft already holds is kept
         # (services/form_images.py).
         check_form_images(form, existing_form)
+        _sanitise_titles(form)
         # Settings are checked and applied here but stored after the form:
         # the form's conditional write is what can still refuse the save.
         settings_changed = bool(form.settings)
@@ -1246,6 +1259,7 @@ class WorkspaceFormService:
         # (Unsplash photos kept by their canonical address, others dropped); the source's grandfathered
         # addresses do not carry over (services/form_images.py).
         check_form_images(duplicated_form, None, drop=True)
+        _sanitise_titles(duplicated_form)
         if is_template:
             duplicated_form.workspace_id = workspace_id
             duplicated_form.created_by = user.id

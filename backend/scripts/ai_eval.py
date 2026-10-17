@@ -205,8 +205,8 @@ def replay_case(case: Dict[str, Any]) -> Dict[str, Any]:
             form, results = eval_pipeline.chat_reply_to_form(case["base_form"], case["reply"])
             raw = None
         else:
-            raw, form = eval_pipeline.generation_reply_to_form(case["reply"])
-            results = []
+            _, form = eval_pipeline.outline_reply_to_form(case["reply"])
+            raw, results = None, []
     except InvalidReply:
         return _result(case, "unusable_reply", started)
     return _scored(case, form, raw, results, started)
@@ -227,14 +227,13 @@ def _provider(name: Optional[str]):
     from backend.app.services.google_ai_provider import GoogleAIFormProvider
     from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
     from backend.app.services.openai_provider import OpenAIFormProvider
-    from backend.app.services.unsplash_service import UnsplashService
     from backend.config import settings
 
     name = name or settings.ai.DEFAULT_PROVIDER or "openai"
     if name == "openai":
-        return name, settings.open_ai.MODAL, OpenAIFormProvider(UnsplashService())
+        return name, settings.open_ai.MODAL, OpenAIFormProvider()
     if name == "google":
-        return name, settings.google_ai.MODEL, GoogleAIFormProvider(UnsplashService())
+        return name, settings.google_ai.MODEL, GoogleAIFormProvider()
     if name == "compatible":
         if not settings.ai.COMPAT_BASE_URL:
             raise EvalError("AI_COMPAT_BASE_URL is not set.")
@@ -298,11 +297,14 @@ async def live_case(case: Dict[str, Any], provider, guard) -> Dict[str, Any]:
             form, results = apply_form_ops(base, turn._parsed_ops)
             raw = None
         else:
-            raw = await provider.generate_form(
-                compose_generation_prompt(case["prompt"], None, None)
+            # the product's generation: outline first, then the ops build
+            from backend.app.services.ai.outline_service import request_outline
+
+            outline = await request_outline(
+                provider, compose_generation_prompt(case["prompt"], None, None)
             )
-            form = eval_pipeline.form_from_generation(raw)
-            results = []
+            form = eval_pipeline.form_from_outline(outline)
+            raw, results = None, []
     except AIError as error:
         return _result(case, error.code, started, tokens=await tokens())
     except Exception as error:  # noqa: BLE001 — reported by type, never by message

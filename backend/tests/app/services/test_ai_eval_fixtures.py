@@ -1,9 +1,10 @@
 """Golden AI replies through the real pipeline and the quality checks.
 
 Each file in tests/fixtures/ai_evals/ (except prompts.json) is a recorded or
-synthetic model reply with the findings it must produce. A generation reply
-goes through ``parse_generated_form`` and the form converter, a chat reply
-through the chat turn's reply model and the ops engine; then
+synthetic model reply with the findings it must produce. An outline reply
+goes through ``parse_outline``, the outline compiler and the ops engine
+(the product's generation), a chat reply through the chat turn's reply
+model and the ops engine; then
 ``check_form_quality`` scores the form. No provider is called.
 
 When a prompt or the checker changes on purpose, update the expected
@@ -32,15 +33,18 @@ def _run(case: dict):
             case["base_form"], case["reply"]
         )
         return eval_pipeline.score(form, case), results
-    raw, form = eval_pipeline.generation_reply_to_form(case["reply"])
-    return eval_pipeline.score(form, case, raw=raw), []
+    _, form = eval_pipeline.outline_reply_to_form(case["reply"])
+    return eval_pipeline.score(form, case), []
 
 
 def test_ai_eval_fixture_set_covers_both_languages_and_both_paths():
     cases = [_load(p) for p in CASE_FILES]
     assert len(cases) >= 20
     assert {c["language"] for c in cases} >= {"en", "nl"}
-    assert {c["kind"] for c in cases} == {"generate", "chat"}
+    assert {c["kind"] for c in cases} == {"chat", "outline"}
+    outlines = [c for c in cases if c["kind"] == "outline"]
+    assert {c["language"] for c in outlines} >= {"en", "nl"}
+    assert any(not c["expected_findings"] for c in outlines), "no good outlines"
     assert any(not c["expected_findings"] for c in cases), "no good cases"
     assert sum(bool(c["expected_findings"]) for c in cases) >= 10, "few bad cases"
     for case, path in zip(cases, CASE_FILES):
@@ -90,7 +94,7 @@ def _titles(value):
     """Every title in a reply or form."""
     if isinstance(value, dict):
         for key, item in value.items():
-            if key == "title" and isinstance(item, str):
+            if key in ("title", "label") and isinstance(item, str):
                 yield item
             else:
                 yield from _titles(item)

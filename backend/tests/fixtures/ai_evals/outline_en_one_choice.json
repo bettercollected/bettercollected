@@ -1,0 +1,45 @@
+{
+  "name": "outline_en_one_choice",
+  "kind": "outline",
+  "description": "A multiple-choice question with a single option.",
+  "language": "en",
+  "expected_findings": [],
+  "expect_invalid": true,
+  "reply": {
+    "title": "Lunch order",
+    "description": "Order your lunch for the team day.",
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Which sandwich would you like?",
+            "type": "multiple_choice",
+            "required": false,
+            "choices": [
+              "Cheese"
+            ]
+          },
+          {
+            "key": "q2",
+            "label": "Do you have any allergies?",
+            "type": "long_text",
+            "required": false
+          },
+          {
+            "key": "q3",
+            "label": "Would you like a drink with it?",
+            "type": "yes_no",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

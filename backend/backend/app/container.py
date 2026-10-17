@@ -134,6 +134,7 @@ from backend.app.services.ai.insights import FormAIInsightsService
 from backend.app.services.ai.review import FormAIReviewService
 from backend.app.services.ai.usage import AIUsageGuard
 from backend.app.services.openai_service import OpenAIService
+from backend.app.services.ai.outline_service import FormOutlineService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
@@ -183,6 +184,7 @@ from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
 from backend.app.services.form_actions_service import FormActionsService
+from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.app.services.idempotency import IdempotencyService
@@ -870,6 +872,15 @@ class AppContainer(containers.DeclarativeContainer):
         ai_usage_guard=ai_usage_guard,
     )
 
+    form_outline_service: FormOutlineService = providers.Singleton(
+        FormOutlineService,
+        openai_service=openai_service,
+        workspace_form_service=workspace_form_service,
+        authorization_service=authorization_service,
+        ai_consent_service=ai_consent_service,
+        ai_usage_guard=ai_usage_guard,
+    )
+
     form_ai_chat_service: FormAIChatService = providers.Singleton(
         FormAIChatService,
         authorization_service=authorization_service,
@@ -1219,6 +1230,15 @@ class AppContainer(containers.DeclarativeContainer):
     )
     idempotency_service: IdempotencyService = providers.Singleton(
         IdempotencyService, idempotency_repo=idempotency_repo
+    )
+    # The builder's op-batch save (session auth, If-Match, Idempotency-Key).
+    editor_ops_service: EditorOpsService = providers.Singleton(
+        EditorOpsService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        idempotency_service=idempotency_service,
+        rate_limiter=rate_limiter,
     )
 
 

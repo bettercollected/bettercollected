@@ -9,7 +9,7 @@ from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, Trigger
 from common.models.user import User
-from fastapi import Depends, UploadFile, Form, BackgroundTasks
+from fastapi import Depends, UploadFile, Form, BackgroundTasks, Query, Response
 from fastapi_pagination import Page
 from loguru import logger
 from pydantic import ValidationError
@@ -27,6 +27,12 @@ from backend.app.services.ai.insights import (
     FormAIInsightsResponse,
     FormAIInsightsSettingsDto,
     FormAIInsightsSettingsRequest,
+)
+from backend.app.services.ai.outline_service import (
+    BuildFromOutlineRequest,
+    BuildFromOutlineResponse,
+    FormOutlineRequest,
+    FormOutlineResponse,
 )
 from backend.app.services.ai.review import (
     ApplyReviewFixRequest,
@@ -291,6 +297,33 @@ class WorkspaceFormsRouter(Routable):
             workspace_id=workspace_id, form_id=form_id, request=request, user=user
         )
 
+    @post("/ai/outline")
+    async def outline_form_with_ai(
+        self,
+        workspace_id: PydanticObjectId,
+        request: FormOutlineRequest,
+        user=Depends(get_logged_user),
+    ) -> FormOutlineResponse:
+        """Step 1 of AI form creation: the model's outline of the form
+        (pages, questions, rules) for the person to review. Stores nothing."""
+        outline = await container.form_outline_service().outline(
+            workspace_id=workspace_id, request=request, user=user
+        )
+        return FormOutlineResponse(outline=outline.dump())
+
+    @post("/ai/build")
+    async def build_form_from_outline(
+        self,
+        workspace_id: PydanticObjectId,
+        request: BuildFromOutlineRequest,
+        user=Depends(get_logged_user),
+    ) -> BuildFromOutlineResponse:
+        """Step 2: build a (possibly edited) outline into a new draft form
+        through the ops engine, with the quality findings."""
+        return await container.form_outline_service().build_response(
+            workspace_id=workspace_id, request=request, user=user
+        )
+
     @post("/ai")
     async def create_form_with_ai(
         self,
@@ -327,14 +360,26 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: str,
+        response: Response,
         published: bool = False,
         user: User = Depends(get_user_if_logged_in),
         draft: bool = False,
+        with_etag: bool = Query(False, alias="withEtag"),
     ):
         if not user and not published:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED
             )
+        # The builder's read (``?withEtag=1``): the draft's version for
+        # If-Match on op-batch saves, read before the form so it is never
+        # newer than it. Other reads skip the extra reads and hash.
+        etag = (
+            None
+            if published or not with_etag
+            else await container.editor_ops_service().etag_for_editor(
+                user, workspace_id, form_id
+            )
+        )
         form = await self._form_service.get_form_by_id(
             workspace_id=workspace_id,
             form_id=form_id,
@@ -351,6 +396,9 @@ class WorkspaceFormsRouter(Routable):
                     form["aiNoticeToken"] = token
                 else:
                     form.ai_notice_token = token
+        if etag is not None and isinstance(form, FormDtoCamelModel):
+            form.etag = etag
+            response.headers["ETag"] = etag
         return form
 
     @patch(

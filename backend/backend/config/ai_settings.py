@@ -14,8 +14,8 @@ class AISettings(BaseSettings):
     and no prompt ever leaves your infrastructure.
 
     The rest bounds what one AI request may cost (backend/AGENTS.md "AI
-    limits"): model round trips, tool calls, output tokens, time, requests
-    per user and workspace, and an optional daily budget per workspace.
+    limits"): output tokens, time, requests per user and workspace, and an
+    optional daily budget per workspace.
     """
 
     DEFAULT_PROVIDER: Optional[str] = "openai"
@@ -28,16 +28,14 @@ class AISettings(BaseSettings):
     # turn off for a server that refuses it. Replies are validated either way.
     COMPAT_JSON_MODE: bool = True
 
-    # Form generation's tool loop: model round trips (tool calls and the final
-    # answer, its one corrective retry included) and tool calls in total.
-    MAX_TOOL_ITERATIONS: int = 10
-    MAX_TOOL_CALLS: int = 30
-
     # Time: one HTTP request to the provider, one whole AI call (its client
-    # retries included), and one whole form generation (the tool loop).
+    # retries included), one outline (its corrective retry included), and all
+    # the gap-filling calls of one build together (it then builds with what
+    # was filled).
     REQUEST_TIMEOUT_SECONDS: float = 60
     CALL_TIMEOUT_SECONDS: float = 120
     GENERATION_TIMEOUT_SECONDS: float = 240
+    GAP_FILL_DEADLINE_SECONDS: float = 120
     # the provider client's own retries of a failed request
     CLIENT_MAX_RETRIES: int = 1
 

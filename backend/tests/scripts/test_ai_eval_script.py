@@ -59,10 +59,10 @@ def test_ai_eval_replay_writes_both_reports(tmp_path):
 
 def test_ai_eval_replay_selects_cases(tmp_path):
     assert ai_eval.main(
-        ["--out", str(tmp_path), "--only", "gen_en_good_feedback", "--only", "gen_nl_short_form"]
+        ["--out", str(tmp_path), "--only", "outline_en_good_feedback", "--only", "outline_nl_short_form"]
     ) == 0
     names = [r["name"] for r in json.loads((tmp_path / "report.json").read_text())["results"]]
-    assert names == ["gen_en_good_feedback", "gen_nl_short_form"]
+    assert names == ["outline_en_good_feedback", "outline_nl_short_form"]
     assert ai_eval.main(["--out", str(tmp_path), "--only", "nope"]) == 2
 
 
@@ -169,17 +169,21 @@ class _FakeProvider:
 
     def __init__(self):
         fixtures = {f["name"]: f for f in ai_eval.load_fixtures()}
-        self.form = fixtures["gen_en_good_feedback"]["reply"]
+        # generation is outline-first: the outline call asks for its schema
+        self.outline = json.dumps(fixtures["outline_en_good_feedback"]["reply"])
         self.turn = json.dumps(fixtures["chat_en_make_it_short"]["reply"])
         self.calls = 0
 
-    async def generate_form(self, prompt):
-        self.calls += 1
+    async def outline_reply(self):
         await record_tokens(1000)
-        return self.form
+        return self.outline
 
-    async def chat(self, system, messages, *, max_output_tokens=None, json_mode=False):
+    async def chat(
+        self, system, messages, *, max_output_tokens=None, json_mode=False, json_schema=None
+    ):
         self.calls += 1
+        if json_schema is not None:
+            return await self.outline_reply()
         await record_tokens(400)
         return self.turn
 
@@ -250,11 +254,11 @@ async def test_ai_eval_live_loop_token_budget_and_ignoring_limits(fake_provider)
 async def test_ai_eval_live_loop_reports_provider_errors_by_code(fake_provider):
     from backend.app.services.ai.errors import ai_timeout
 
-    async def times_out(prompt):
+    async def times_out():
         await record_tokens(10)
         raise ai_timeout()
 
-    fake_provider.generate_form = times_out
+    fake_provider.outline_reply = times_out
     report = await ai_eval.run_live(_cases("en_nps"), _args(live=True))
     (result,) = report["results"]
     assert result["status"] == "ai_timeout"

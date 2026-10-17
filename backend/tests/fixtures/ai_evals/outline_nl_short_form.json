@@ -1,0 +1,49 @@
+{
+  "name": "outline_nl_short_form",
+  "kind": "outline",
+  "description": "'Maak het kort': een pagina met drie vragen.",
+  "language": "nl",
+  "max_questions": 3,
+  "expected_findings": [],
+  "reply": {
+    "title": "Inschrijven voor de nieuwsbrief",
+    "description": "Ontvang een keer per maand nieuws uit de wijk.",
+    "language": "nl",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Wat is je e-mailadres?",
+            "type": "email",
+            "required": true,
+            "whyWeAsk": "We gebruiken het alleen om je de nieuwsbrief te sturen."
+          },
+          {
+            "key": "q2",
+            "label": "Welke onderwerpen vind je interessant?",
+            "type": "multiple_choice",
+            "required": false,
+            "choices": [
+              "Activiteiten",
+              "Nieuws",
+              "Vrijwilligerswerk"
+            ],
+            "allowMultiple": true
+          },
+          {
+            "key": "q3",
+            "label": "Wil je ook uitnodigingen voor bijeenkomsten?",
+            "type": "yes_no",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

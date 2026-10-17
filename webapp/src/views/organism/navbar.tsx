@@ -27,6 +27,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { PlusOutlined } from '@Components/icons/plus-outlined';
 import { TextOutlinedIcon } from '@Components/icons/text-outlined';
+import { hasBuildReport } from '@app/utils/ai-build-report';
 import { slideHasLogic } from '@app/utils/conditional-logic';
 import { PlayIcon, Redo2, Undo2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -94,6 +95,8 @@ const Navbar = () => {
         // reset from another route) before this editor re-initializes it.
         if (!Array.isArray(formFields) || !formFields.some((slide) => slideHasLogic(slide))) return;
         if (localStorage.getItem(`bc-default-view-${formId}`)) return;
+        // A form just built from an AI outline opens on its checklist first.
+        if (hasBuildReport(formId)) return;
         flowAutoOpened.current = true;
         setFlowViewOpen(true);
     }, [standardForm?.formId, formFields]);

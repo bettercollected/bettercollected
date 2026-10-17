@@ -1,0 +1,106 @@
+{
+  "name": "outline_nl_requested_as_en",
+  "kind": "outline",
+  "description": "A Dutch outline for a request that asked for English.",
+  "language": "en",
+  "expected_findings": [
+    "wrong_language"
+  ],
+  "reply": {
+    "title": "Aanmelden voor de taalcursus",
+    "description": "Meld je aan voor de taalcursus van het buurthuis.",
+    "language": "nl",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "sectionTitle": "Je gegevens",
+        "questions": [
+          {
+            "key": "naam",
+            "label": "Wat is je naam?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "mail",
+            "label": "Wat is je e-mailadres?",
+            "type": "email",
+            "required": true,
+            "whyWeAsk": "We sturen je hiermee de bevestiging en het rooster."
+          },
+          {
+            "key": "tel",
+            "label": "Wat is je telefoonnummer?",
+            "type": "phone_number",
+            "whyWeAsk": "Zo kunnen we je bellen als een les niet doorgaat."
+          }
+        ]
+      },
+      {
+        "key": "p2",
+        "sectionTitle": "Je cursus",
+        "questions": [
+          {
+            "key": "niveau",
+            "label": "Welk niveau heb je nu?",
+            "type": "dropdown",
+            "choices": [
+              "Beginner",
+              "Gevorderd",
+              "Ver gevorderd"
+            ]
+          },
+          {
+            "key": "dagen",
+            "label": "Op welke dagen kun je het beste?",
+            "type": "multiple_choice",
+            "choices": [
+              "Maandag",
+              "Woensdag",
+              "Zaterdag"
+            ],
+            "allowMultiple": true
+          },
+          {
+            "key": "eerder",
+            "label": "Heb je eerder een cursus bij ons gevolgd?",
+            "type": "yes_no"
+          },
+          {
+            "key": "welke",
+            "label": "Welke cursus was dat?",
+            "type": "short_text"
+          }
+        ]
+      },
+      {
+        "key": "p3",
+        "sectionTitle": "Tot slot",
+        "questions": [
+          {
+            "key": "leren",
+            "label": "Wat wil je graag leren?",
+            "type": "long_text"
+          }
+        ]
+      }
+    ],
+    "logic": [
+      {
+        "target": "welke",
+        "action": "show",
+        "match": "all",
+        "conditions": [
+          {
+            "question": "eerder",
+            "comparison": "equals",
+            "value": "Yes"
+          }
+        ]
+      }
+    ],
+    "jumps": [],
+    "omitted": []
+  }
+}

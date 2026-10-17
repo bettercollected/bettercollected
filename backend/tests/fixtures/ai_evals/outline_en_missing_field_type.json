@@ -1,0 +1,46 @@
+{
+  "name": "outline_en_missing_field_type",
+  "kind": "outline",
+  "description": "The request asked for an email address; the model used a plain text question.",
+  "language": "en",
+  "expected_types": [
+    "email"
+  ],
+  "expected_findings": [
+    "missing_field_type"
+  ],
+  "reply": {
+    "title": "Tool library membership",
+    "description": "Become a member of the tool library.",
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "What is your name?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "q2",
+            "label": "What is your email address?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "q3",
+            "label": "Which tools would you like to borrow first?",
+            "type": "long_text",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}
