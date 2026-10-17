@@ -10,6 +10,7 @@ import { Copy, Lock as LockIcon, Trash } from 'lucide-react';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { formFieldsList } from '@app/constants/form-fields';
 import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
+import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -40,7 +41,8 @@ function fieldTypeLabel(type?: string) {
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
-    const { deleteField, duplicateField, updateSlideSectionTitle } = useFormFieldsAtom();
+    const { duplicateField, updateSlideSectionTitle } = useFormFieldsAtom();
+    const { deleteQuestion } = useUndoableDelete();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();
@@ -222,7 +224,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                             className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF]"
                                                             onClick={(event) => {
                                                                 event.stopPropagation();
-                                                                deleteField(slide.index, index);
+                                                                deleteQuestion(slide.index, index);
                                                             }}
                                                         >
                                                             <Trash width={16} height={16} />

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -14,6 +14,7 @@ import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jot
 import { usePublishV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { PublishProblem, getPublishProblems, problemsFromPublishError, splitPublishProblems } from '@app/utils/publish-checks';
+import { flushAutosave } from '@app/views/molecules/form-builder/audo-save-form';
 
 /** Where a question sits in the builder: its page, and the page-level field holding it. */
 function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string) {
@@ -29,8 +30,8 @@ function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string
 
 /**
  * `fields`: the builder's live pages. Checks run on them, and publishing
- * waits (briefly) for the autosave to store them, so what is checked is what
- * the server checks and publishes.
+ * first stores them (flushAutosave), so what is checked is what the server
+ * checks and publishes.
  */
 const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?: Array<StandardFormFieldDto> }) => {
     const { toast } = useToast();
@@ -45,28 +46,23 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const [problems, setProblems] = useState<PublishProblem[]>([]);
     const [waiting, setWaiting] = useState(false);
-    const savedFieldsRef = useRef(standardForm?.fields);
-    useEffect(() => {
-        savedFieldsRef.current = standardForm?.fields;
-    }, [standardForm?.fields]);
     const checksVersion = standardForm?.settings?.publishChecksVersion;
     const { blocking, recommended } = splitPublishProblems(problems, checksVersion);
-    const blocks = (found: PublishProblem[]) => splitPublishProblems(found, checksVersion).blocking.length > 0;
-
-    // The server checks the saved draft: give the autosave (debounced) a
-    // moment to store the fix the creator just made.
-    const waitForSave = async () => {
-        for (let i = 0; i < 20 && blocks(getPublishProblems(savedFieldsRef.current)); i++) {
-            await new Promise((resolve) => setTimeout(resolve, 250));
-        }
-    };
 
     const publish = async () => {
         setProblems([]);
-        if (fields?.length) {
-            setWaiting(true);
-            await waitForSave();
-            setWaiting(false);
+        // The server publishes the saved draft: save every pending edit now
+        // and wait for it, so an older draft is never published.
+        setWaiting(true);
+        const saved = await flushAutosave();
+        setWaiting(false);
+        if (saved === 'conflict') {
+            toast({ description: 'This form was changed somewhere else. Reload the latest version before publishing.', variant: 'destructive' });
+            return;
+        }
+        if (saved !== 'saved') {
+            toast({ description: "Your latest changes aren't saved yet, so the form was not published. Check your connection and try again.", variant: 'destructive' });
+            return;
         }
         const response: any = await publishV2Form({
             workspaceId: workspace.id,

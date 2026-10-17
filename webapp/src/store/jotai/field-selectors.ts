@@ -45,7 +45,32 @@ export const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState
 // the mutations in this file edit `formFields` in place, so shared references
 // would corrupt older entries.
 const HISTORY_LIMIT = 50;
-const fieldsHistoryAtom = atom<{ snapshots: StandardFormFieldDto[][]; index: number }>({ snapshots: [], index: -1 });
+// Typing is one undo step, not one per keystroke: consecutive edits of the
+// same text (same field, same property) within this window merge.
+export const UNDO_COALESCE_MS = 1000;
+interface FieldsHistory {
+    snapshots: StandardFormFieldDto[][];
+    index: number;
+    /** What the latest step edited, and when (for merging typing). */
+    lastKey?: string;
+    lastAt?: number;
+}
+const fieldsHistoryAtom = atom<FieldsHistory>({ snapshots: [], index: -1 });
+
+/**
+ * Undo one step, but only while the latest step is still `after` (the state a
+ * delete produced, serialized right then: the builder edits its objects in
+ * place). An undo toast must not undo some later edit instead. True when it
+ * undid.
+ */
+export const undoIfLatestAtom = atom(null, (get, set, after: string) => {
+    const history = get(fieldsHistoryAtom);
+    if (history.index <= 0 || history.index !== history.snapshots.length - 1) return false;
+    if (JSON.stringify(history.snapshots[history.index]) !== after) return false;
+    set(initialFieldsAtom, deepClone(history.snapshots[history.index - 1]));
+    set(fieldsHistoryAtom, { snapshots: history.snapshots, index: history.index - 1 });
+    return true;
+});
 const deepClone = <T>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
 
 export default function useFormFieldsAtom() {
@@ -56,15 +81,20 @@ export default function useFormFieldsAtom() {
     // becomes an undo step. Undo/redo bypass it (they must not create steps).
     // Identical consecutive states are deduped — mount-time re-commits and
     // debounced no-op writes must not consume undo steps.
-    const setFormFields = (next: StandardFormFieldDto[]) => {
+    // `coalesceKey` names the text being typed (e.g. `description:<fieldId>`):
+    // the latest step absorbs an edit of the same text within UNDO_COALESCE_MS
+    // of the previous one. The loaded state (step 0) never absorbs anything.
+    const setFormFields = (next: StandardFormFieldDto[], coalesceKey?: string) => {
         setFormFieldsRaw(next);
         setHistory((h) => {
             const current = h.index >= 0 ? h.snapshots[h.index] : undefined;
             if (current && JSON.stringify(current) === JSON.stringify(next)) return h;
-            const snapshots = h.snapshots.slice(0, h.index + 1);
+            const now = Date.now();
+            const merge = !!coalesceKey && coalesceKey === h.lastKey && h.lastAt !== undefined && now - h.lastAt < UNDO_COALESCE_MS && h.index > 0 && h.index === h.snapshots.length - 1;
+            const snapshots = h.snapshots.slice(0, merge ? h.index : h.index + 1);
             snapshots.push(deepClone(next));
             while (snapshots.length > HISTORY_LIMIT) snapshots.shift();
-            return { snapshots, index: snapshots.length - 1 };
+            return { snapshots, index: snapshots.length - 1, lastKey: coalesceKey, lastAt: now };
         });
     };
 
@@ -226,7 +256,10 @@ export default function useFormFieldsAtom() {
                 index: -10
             });
         }
-        setFormFields([...updatedFormFields]);
+        const next = [...updatedFormFields];
+        setFormFields(next);
+        // The state after the delete: what the undo toast restores from.
+        return next;
     };
 
     const getActiveSlide = () => {
@@ -256,7 +289,7 @@ export default function useFormFieldsAtom() {
             title: titleText
         };
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `title:${slide.properties!.fields![fieldIndex].id}`);
     };
 
     const addMedia = (slideIndex: number, imageUrl: string) => {
@@ -275,7 +308,7 @@ export default function useFormFieldsAtom() {
         const slide = formFields[slideIndex];
         slide.properties!.fields![fieldIndex].description = description;
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `description:${slide.properties!.fields![fieldIndex].id}`);
     };
 
     const updateFieldColSpan = (fieldIndex: number, slideIndex: number, colSpan: number) => {
@@ -293,7 +326,7 @@ export default function useFormFieldsAtom() {
         slide.properties!.fields![fieldIndex]['properties'] = { ...(slide.properties!.fields![fieldIndex].properties || { fields: [] }) };
         slide.properties!.fields![fieldIndex]!.properties!.placeholder = placeholderText;
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `placeholder:${slide.properties!.fields![fieldIndex].id}`);
     };
 
     const updateChoiceFieldValue = (fieldIndex: number, slideIndex: number, choiceId: string, choiceValue: string) => {
@@ -308,7 +341,7 @@ export default function useFormFieldsAtom() {
             } else return choice;
         });
         const updatedSlides = [...formFields];
-        setFormFields(updatedSlides);
+        setFormFields(updatedSlides, `choice:${slide.properties!.fields![fieldIndex].id}:${choiceId}`);
     };
 
     const addChoiceField = (fieldIndex: number, slideIndex: number) => {
@@ -377,7 +410,7 @@ export default function useFormFieldsAtom() {
             ...(formFields[slideIndex]!.properties || {}),
             sectionTitle: sectionTitle.slice(0, SECTION_TITLE_MAX)
         };
-        setFormFields([...formFields]);
+        setFormFields([...formFields], `sectionTitle:${formFields[slideIndex]!.id}`);
     };
 
     const updateSlideTheme = (color: { title: string; primary: string; secondary: string; tertiary: string; accent: string }) => {
@@ -512,10 +545,13 @@ export default function useFormFieldsAtom() {
         pruneOrphanedConditions(formFields);
         pruneOrphanedPipes(formFields);
         pruneOrphanedDateRules(formFields);
-        setFormFields([...formFields]);
+        const next = [...formFields];
+        setFormFields(next);
         setTimeout(() => {
             setActiveFieldComponent(null);
         }, 0);
+        // The state after the delete: what the undo toast restores from.
+        return next;
     };
 
     const deleteActiveSlide = () => {

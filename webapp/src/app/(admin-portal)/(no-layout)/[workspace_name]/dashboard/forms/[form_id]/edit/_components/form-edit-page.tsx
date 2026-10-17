@@ -8,6 +8,7 @@ import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import useFormFieldsAtom, { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
@@ -28,6 +29,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const params = use(props.params);
     const { formFields, setFormFields, initFormFields } = useFormFieldsAtom();
     const { setFormState, formState, } = useFormState();
+    const { setHydratedFormId } = useBuilderHydration();
 
     const { activeSlideComponent } = useActiveSlideComponent();
 
@@ -95,6 +97,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
 
     useEffect(() => {
         return () => {
+            setHydratedFormId(null);
             setFormState({ ...initialFormState });
             // initialFieldsState is an ARRAY — `{ ...array }` turns it into an
             // object and poisons the atom for the next editor mount (anything
@@ -140,6 +143,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage
             });
+            // Same batch as the state above: autosave takes this state as
+            // what the server has, and saves only changes made after it.
+            setHydratedFormId(standardForm.formId);
         }
     }, [standardForm.formId]);
 

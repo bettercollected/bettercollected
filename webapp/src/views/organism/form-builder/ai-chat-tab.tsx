@@ -14,6 +14,7 @@ import { useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useReviewFo
 import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery, useUpdateAIMemorySettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { deepCopy } from '@app/utils/object-utils';
+import { adoptAutosaveVersion } from '@app/views/molecules/form-builder/audo-save-form';
 
 interface TurnResult {
     ok: boolean;
@@ -184,6 +185,8 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         setFormFields(deepCopy(form.fields ?? []));
         setFormState((prev) => formStateFromServerForm(prev, form));
         dispatch(setForm({ ...standardForm, ...deepCopy(form), settings: standardForm?.settings }));
+        // The server stored this edit: the next autosave builds on it.
+        adoptAutosaveVersion(form.updatedAt);
         // Settings (purpose/retention/… — the Form tab) live on the
         // workspace-form association; the backend returns them separately.
         if (settings) dispatch(setFormSettings(settings));

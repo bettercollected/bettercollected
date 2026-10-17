@@ -403,6 +403,9 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     # -- plain reads and writes ------------------------------------------------
     async def save_form(self, form: FormDocument):
+        # As MongoDocument.save does: every save moves updated_at, which the
+        # builder's conflict check (form_concurrency.py) relies on.
+        form.updated_at = datetime.now(timezone.utc)
         return await self.upsert(form)
 
     async def save_form_version(
@@ -450,6 +453,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         form_document.settings = (
             form.settings if form.settings else form_document.settings
         )
+        form_document.updated_at = datetime.now(timezone.utc)
         return await self.upsert(form_document)
 
     async def set_form_logo(self, form_id: str, logo: Optional[str]):
