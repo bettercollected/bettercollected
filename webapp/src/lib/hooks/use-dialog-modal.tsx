@@ -84,6 +84,8 @@ const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
     }
 };
 
+export const START_WITH_AI_DIALOG_CLASS = 'flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden';
+
 const getClassName = (view?: DIALOG_MODALS) => {
     switch (view) {
         case 'FORM_PUBLISHED':
@@ -93,6 +95,9 @@ const getClassName = (view?: DIALOG_MODALS) => {
             return 'md:min-w-fit!';
         case 'UNSPLASH_IMAGE_PICKER':
             return 'md:min-w-[550px] md:max-w-[550px] md:max-h-screen md:h-[520px] rounded-lg!';
+        case 'START_WITH_AI':
+            // fits the screen; the dialog's own parts decide what scrolls
+            return START_WITH_AI_DIALOG_CLASS;
         default:
             return <></>;
     }
