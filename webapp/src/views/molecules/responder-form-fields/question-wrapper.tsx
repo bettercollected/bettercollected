@@ -59,7 +59,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
 
     // Answer piping: swap pipe tokens for the responder's earlier answers (or
     // captured hidden-field values) before the title/description hit the DOM.
-    const pipeContext = { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues };
+    const pipeContext = { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues, language };
     // Plain-string titles (groups, AI/MCP-created fields) go through the TipTap
     // path as text nodes — never as raw HTML — so neither the title nor a piped
     // answer or URL prefill can inject markup. Bold keeps the string path's look.

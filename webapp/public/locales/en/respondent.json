@@ -82,6 +82,9 @@
     },
     "FIELD": {
         "REQUIRED": "(required)",
+        "CALCULATED_EMPTY": "Not calculated yet",
+        "CALCULATED_TRUE": "Yes",
+        "CALCULATED_FALSE": "No",
         "OPTIONAL": "Optional",
         "ANSWER_REQUIRED": "Please answer this question to continue.",
         "YES": "Yes",

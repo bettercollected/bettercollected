@@ -67,6 +67,14 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FormBuilderTagNames.INPUT_FILE_UPLOAD:
         case FieldTypes.FILE_UPLOAD:
             return answer?.file_metadata?.name;
+        case FieldTypes.CALCULATED: {
+            // The value the server computed and stored, unformatted (exports
+            // keep numbers as numbers).
+            const value = answer?.number ?? answer?.boolean ?? answer?.text;
+            if (value === undefined || value === null) return '';
+            if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+            return value;
+        }
         case FieldTypes.GROUP: {
             // Repeating group: a one-cell summary ("Applicant × 2"); the
             // per-item answers are shown by the submission view and exports.

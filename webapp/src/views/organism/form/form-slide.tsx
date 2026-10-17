@@ -3,6 +3,7 @@
 import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
+import { useCalculatedFields } from '@app/lib/hooks/use-calculated-fields';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
@@ -21,6 +22,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
+import { isCalculatedField } from '@app/utils/calculated-fields';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
@@ -34,6 +36,7 @@ import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
+import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
@@ -105,6 +108,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             );
         case FieldTypes.TABULAR_INPUT:
             return <TabularInputResponderField field={field} />;
+        case FieldTypes.CALCULATED:
+            return <CalculatedField field={field} />;
         case FieldTypes.GROUP:
             if (isRepeatingGroup(field)) return <RepeatingGroupField field={field} renderChild={(child) => <FormFieldComponent field={child} slideIndex={slideIndex} />} />;
             return <QuestionWrapper field={field} />;
@@ -124,6 +129,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
+    // Calculated fields follow the answers live (logic, jumps and piping read them).
+    useCalculatedFields(standardForm?.fields);
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
@@ -179,7 +186,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // Fields hidden by conditional logic given the answers so far. Recomputed each
     // render, so the form reacts live as the responder answers earlier questions.
     const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
-    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id));
+    // Calculations kept from respondents ("internal results") are computed, never shown.
+    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id) && !(isCalculatedField(field) && field.properties?.hiddenFromRespondents));
 
     // Leaflet: the page is a numbered section (its position in the form, the
     // same number "Page x of y" shows) and its questions are numbered among
