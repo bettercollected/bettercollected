@@ -359,9 +359,15 @@ export function onDocumentReset(listener: () => void) {
     return () => resetListeners.delete(listener);
 }
 
+/** The step a new one with this key, made at `at`, would merge into (typing), if any. */
+function mergeTarget(history: DocHistory, coalesceKey: string | undefined, at: number): HistoryStep | null {
+    const last = history.steps[history.cursor - 1];
+    return !!coalesceKey && history.open && !!last && history.cursor === history.steps.length && last.coalesceKey === coalesceKey && at - last.at < UNDO_COALESCE_MS ? last : null;
+}
+
 function recordStep(history: DocHistory, step: HistoryStep): DocHistory {
     const last = history.steps[history.cursor - 1];
-    const merge = !!step.coalesceKey && history.open && !!last && history.cursor === history.steps.length && last.coalesceKey === step.coalesceKey && step.at - last.at < UNDO_COALESCE_MS;
+    const merge = mergeTarget(history, step.coalesceKey, step.at) !== null;
     let steps: HistoryStep[];
     if (merge) {
         // The merged step: the first step's inverse, the last one's ops.
@@ -386,6 +392,8 @@ function putDocument(get: (a: any) => any, set: Setter, next: FormDocument, buil
     if (next !== prev) set(formDocAtom, next);
 }
 
+const sameOps = (a: DocOp[], b: DocOp[]) => a.length === b.length && a.every((op, i) => op === b[i]);
+
 export interface CommitMeta {
     label?: string;
     /** Typing under the same key within UNDO_COALESCE_MS is one step. */
@@ -402,8 +410,14 @@ function commitPlanned(get: (a: any) => any, set: Setter, change: PlannedChange,
         // An inverse the engine would refuse (an uploaded image no longer on
         // the form, say) is recorded as an exact restore instead: undo must
         // never silently do nothing.
-        const inverse = applyDocOps(change.doc, change.inverse, false).ok ? change.inverse : exactRestore(change.doc, prev);
-        set(docHistoryAtom, recordStep(get(docHistoryAtom), { forward: change.forward, inverse, label: meta.label, coalesceKey: meta.coalesceKey, at: Date.now(), builderFields, before: prev, after: change.doc }));
+        // Typing that merges into the latest step and whose inverse that
+        // step's own inverse covers needs no check: only the step's is kept.
+        const history: DocHistory = get(docHistoryAtom);
+        const at = Date.now();
+        const target = mergeTarget(history, meta.coalesceKey, at);
+        const covered = !!target && sameOps(compactDocOps([...change.inverse, ...target.inverse]), target.inverse);
+        const inverse = covered || applyDocOps(change.doc, change.inverse, false).ok ? change.inverse : exactRestore(change.doc, prev);
+        set(docHistoryAtom, recordStep(history, { forward: change.forward, inverse, label: meta.label, coalesceKey: meta.coalesceKey, at, builderFields, before: prev, after: change.doc }));
     }
     return true;
 }
