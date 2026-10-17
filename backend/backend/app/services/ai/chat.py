@@ -20,6 +20,7 @@ from common.models.standard_form import StandardForm
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic.alias_generators import to_camel
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
@@ -180,7 +181,10 @@ async def persist_ops_to_form(
     only after the form was.
     Returns (new_form, results, updated_settings_or_none).
     """
-    new_form, results = apply_form_ops(form, ops, atomic=atomic)
+    # CPU-bound on a large form: off the event loop
+    new_form, results = await run_in_threadpool(
+        apply_form_ops, form, ops, atomic=atomic
+    )
     if atomic and not all(r.ok for r in results):
         return new_form, results, None
     if any(r.ok for r in results):
@@ -310,8 +314,9 @@ class FormAIChatService:
             # The proposal's id names its session: give a new one its id now.
             if session.id is None:
                 session.id = PydanticObjectId()
-            proposal, results = build_proposal(
-                form, association.settings, ops, reply, session.id
+            # a dry run per op, spec and diff: off the event loop
+            proposal, results = await run_in_threadpool(
+                build_proposal, form, association.settings, ops, reply, session.id
             )
         else:
             new_form, results, updated_settings = await persist_ops_to_form(

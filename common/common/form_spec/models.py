@@ -13,6 +13,7 @@ keys are refused, so a typo is reported instead of silently dropped.
 """
 
 import enum
+import re
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from common.models.standard_form import (
@@ -24,7 +25,7 @@ from common.models.standard_form import (
     LayoutType,
     StandardFormFieldType,
 )
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 SPEC_VERSION = "1"
@@ -36,6 +37,47 @@ JUMP_TARGET_SUBMIT = "__SUBMIT__"
 # Size limits of one document (far above any real form).
 MAX_PAGES = 200
 MAX_FIELDS = 2000  # questions and content blocks, group questions included
+# Longest answer pattern (regular expression) a question may have.
+PATTERN_MAX_LENGTH = 200
+
+
+def checked_pattern(pattern: str) -> str:
+    """An answer pattern as it may be stored: trimmed, at most
+    PATTERN_MAX_LENGTH characters, a regular expression that compiles.
+    Raises ValueError with a plain message. The one rule for the spec and
+    the set_field_validation op.
+
+    Only compiled here, never matched. If answers are ever checked against
+    patterns on the server, match with re2 (linear time) or with a timeout
+    and a capped input length: a creator's pattern is untrusted and Python's
+    re can backtrack for a very long time."""
+    pattern = pattern.strip()
+    if not pattern:
+        raise ValueError("The pattern is empty: give a regular expression, or none.")
+    if len(pattern) > PATTERN_MAX_LENGTH:
+        raise ValueError(f"A pattern can be at most {PATTERN_MAX_LENGTH} characters.")
+    try:
+        re.compile(pattern)
+    except re.error as error:
+        raise ValueError(f"'{pattern}' is not a valid pattern ({error}).")
+    return pattern
+
+
+def count_fields(fields) -> int:
+    """Fields of a list, nested ones (group questions) included. Works on
+    spec fields and stored fields alike."""
+    total = 0
+    pending = list(fields or [])
+    while pending:
+        field = pending.pop()
+        total += 1
+        children = getattr(field, "fields", None)
+        if children is None:
+            properties = getattr(field, "properties", None)
+            children = getattr(properties, "fields", None) if properties else None
+        pending.extend(children or [])
+    return total
+
 
 # Every question type a page may hold: all stored types except the page
 # itself. Built from the stored enum, so a new type shows up as a change of
@@ -250,10 +292,21 @@ class Validations(_Spec):
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     pattern: Optional[str] = Field(
-        None, description="A regular expression the text answer must match."
+        None,
+        max_length=PATTERN_MAX_LENGTH,
+        description="A regular expression the text answer must match.",
     )
     min_choices: Optional[int] = Field(None, ge=0)
     max_choices: Optional[int] = Field(None, ge=0)
+
+    @field_validator("pattern")
+    @classmethod
+    def _check_pattern(cls, value):
+        # "" is no pattern; anything else follows the op's rule (checked,
+        # kept as written)
+        if value and value.strip():
+            checked_pattern(value)
+        return value
 
 
 class Position(_Spec):
@@ -405,9 +458,7 @@ class FormSpec(_Spec):
 
     @model_validator(mode="after")
     def _check_field_count(self):
-        count = sum(
-            1 + len(field.fields or []) for page in self.pages for field in page.fields
-        )
+        count = sum(count_fields(page.fields) for page in self.pages)
         if count > MAX_FIELDS:
             raise ValueError(
                 f"A form can have at most {MAX_FIELDS} fields in all; this one "

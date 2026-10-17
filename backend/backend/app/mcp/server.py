@@ -18,6 +18,7 @@ from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from mcp.server.fastmcp import FastMCP
+from starlette.concurrency import run_in_threadpool
 from mcp.server.transport_security import TransportSecuritySettings
 
 from backend.app.exceptions import HTTPException
@@ -368,7 +369,7 @@ async def validate_form(spec: Dict[str, Any]) -> str:
     if len(json.dumps(spec)) > MAX_DOCUMENT_BYTES:
         await _audit("validate_form", False, "document too large")
         raise ValueError(DOCUMENT_TOO_LARGE)
-    result = check_spec_document(spec)
+    result = await run_in_threadpool(check_spec_document, spec)
     await _audit("validate_form", result["valid"], f"{len(result['errors'])} errors")
     return json.dumps(result)
 
@@ -388,7 +389,7 @@ async def dry_run_ops(
     service = _c().form_spec_service()
     form, settings = await service.load(key.workspace_id, form_id)
     try:
-        preview = service.preview(form, settings, ops, atomic)
+        preview = await service.preview_async(form, settings, ops, atomic)
     except HTTPException as e:
         await _audit("dry_run_ops", False, form_id)
         raise ValueError(_error_text(e)) from e

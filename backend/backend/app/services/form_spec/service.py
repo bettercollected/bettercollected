@@ -15,6 +15,7 @@ from common.models.standard_form import StandardForm
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, ValidationError
 from pydantic.alias_generators import to_camel
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
@@ -137,7 +138,9 @@ class FormSpecService:
         """Authorise, then read the body (at most MAX_DOCUMENT_BYTES) and
         check it: a non-member never gets the body read."""
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
-        return check_spec_document(await read_json_document(request))
+        document = await read_json_document(request)
+        # CPU-bound (up to 1 MB of JSON): off the event loop
+        return await run_in_threadpool(check_spec_document, document)
 
     async def load(self, workspace_id: PydanticObjectId, form_id: str):
         """(StandardForm, association settings) of a form of this workspace,
@@ -172,7 +175,18 @@ class FormSpecService:
     ) -> DryRunResponse:
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         form, settings = await self.load(workspace_id, form_id)
-        return self.preview(form, settings, request.ops, request.atomic)
+        return await self.preview_async(form, settings, request.ops, request.atomic)
+
+    async def preview_async(
+        self,
+        form: StandardForm,
+        settings: Any,
+        raw_ops: List[Dict[str, Any]],
+        atomic: bool,
+    ) -> DryRunResponse:
+        """``preview`` off the event loop: applying a batch, converting and
+        diffing a large form is CPU-bound."""
+        return await run_in_threadpool(self.preview, form, settings, raw_ops, atomic)
 
     def preview(
         self,

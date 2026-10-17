@@ -39,6 +39,7 @@ from common.models.standard_form import StandardForm
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
@@ -441,8 +442,11 @@ class FormAIProposalService:
         # A trial on the stored form first: a stale proposal is refused
         # before it is claimed, and stays open.
         form_document = await self._load_form(workspace_id, form_id)
-        _, trial = apply_form_ops(
-            StandardForm(**form_document.model_dump()), chosen_ops, atomic=True
+        _, trial = await run_in_threadpool(
+            apply_form_ops,
+            StandardForm(**form_document.model_dump()),
+            chosen_ops,
+            atomic=True,
         )
         if not all(r.ok for r in trial):
             raise _stale(failures(trial))

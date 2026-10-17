@@ -323,6 +323,49 @@ class TestProposals:
         assert sorted([first.status_code, second.status_code]) == [200, 409]
         assert _all_titles(await _stored(form_id)).count("Work email") == 1
 
+    async def test_the_size_limits_hold_when_proposing_and_accepting(
+        self,
+        monkeypatch,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        test_user_cookies,
+        fake_provider,
+    ):
+        from backend.app.services.ai import ops as ops_module
+
+        form_id = workspace_form.form_id
+        await _make_v2(await _stored(form_id))
+        monkeypatch.setattr(ops_module, "MAX_PAGES", 2)
+        proposal = (
+            await _propose(
+                client,
+                workspace,
+                form_id,
+                test_user_cookies,
+                fake_provider,
+                [{"op": "add_page"}, {"op": "add_page"}, RENAME],
+            )
+        )["proposal"]
+        assert [r["ok"] for r in proposal["results"]] == [True, False, False]
+        assert "at most 2 pages" in proposal["results"][1]["message"]
+        assert [s["index"] for s in proposal["steps"]] == [0]
+
+        # meanwhile the form reached the limit: accepting cannot pass it
+        stored = await _stored(form_id)
+        stored.fields = stored.fields + [
+            stored.fields[0].model_copy(update={"id": "page-2", "index": 1})
+        ]
+        stored.fields[1].properties = stored.fields[1].properties.model_copy(
+            update={"fields": []}
+        )
+        await container.form_repo().save_form(stored)
+        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert response.status_code == 409
+        assert response.json()["code"] == "proposal_stale"
+        assert "at most 2 pages" in response.json()["errors"][0]["message"]
+        assert len((await _stored(form_id)).fields) == 2
+
     async def test_an_expired_proposal_is_gone(
         self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
     ):

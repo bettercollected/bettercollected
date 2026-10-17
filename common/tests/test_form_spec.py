@@ -27,6 +27,8 @@ from common.form_spec.models import (
     LEGACY_FIELD_TYPES,
     MAX_FIELDS,
     MAX_PAGES,
+    checked_pattern,
+    count_fields,
 )
 from common.form_spec.schema import SCHEMA_PATH, main, render_schema
 from common.models.standard_form import (
@@ -344,3 +346,53 @@ def test_varied_fixture_is_valid_input():
         .properties.fields[3]
         .properties.repeat
     )
+
+
+def _with_pattern(pattern):
+    return {
+        "specVersion": "1",
+        "pages": [
+            {
+                "id": "p",
+                "fields": [
+                    {
+                        "id": "q",
+                        "type": "short_text",
+                        "validations": {"pattern": pattern},
+                    }
+                ],
+            }
+        ],
+    }
+
+
+def test_patterns_follow_the_ops_rule():
+    assert FormSpec.model_validate(_with_pattern("^[0-9]{4}$"))
+    assert FormSpec.model_validate(_with_pattern(""))  # no pattern
+    for bad, words in (("(unclosed", "not a valid pattern"), ("a" * 201, "200")):
+        with pytest.raises(ValidationError) as error:
+            FormSpec.model_validate(_with_pattern(bad))
+        problem = validation_errors(error.value)[0]
+        assert problem["path"] == "/pages/0/fields/0/validations/pattern"
+        assert words in problem["message"]
+    with pytest.raises(ValueError):
+        checked_pattern("   ")
+
+
+def test_the_field_count_is_recursive():
+    def nested(depth):
+        field = {"id": f"leaf{depth}", "type": "short_text"}
+        for level in range(depth):
+            field = {"id": f"g{depth}-{level}", "type": "group", "fields": [field]}
+        return field
+
+    page = {"id": "p", "fields": [nested(3)]}
+    spec = FormSpec.model_validate({"specVersion": "1", "pages": [page]})
+    assert count_fields(spec.pages[0].fields) == 4
+    # 500 four-deep chains are 2000 fields: fine; one more is over
+    pages = [{"id": f"p{i}", "fields": [nested(3)] * 100} for i in range(5)]
+    FormSpec.model_validate({"specVersion": "1", "pages": pages})
+    pages[0]["fields"] = pages[0]["fields"] + [nested(0)]
+    with pytest.raises(ValidationError) as error:
+        FormSpec.model_validate({"specVersion": "1", "pages": pages})
+    assert "this one has 2001" in str(error.value)

@@ -594,3 +594,118 @@ class TestLimits:
             url, json={"ops": [op] * 200}, cookies=test_user_cookies
         )
         assert response.status_code == 200, response.text
+
+
+class TestGrowthAndImages:
+    async def test_a_dry_run_that_grows_past_the_limit_fails_fast(
+        self, client: AsyncClient, workspace, v2_form, test_user_cookies, monkeypatch
+    ):
+        from backend.app.services.ai import ops as ops_module
+
+        monkeypatch.setattr(ops_module, "MAX_FIELDS", 5)
+        before = (
+            await container.form_repo().get_form_document_by_id(v2_form.form_id)
+        ).model_dump()
+        response = await client.post(
+            _url(workspace, v2_form.form_id),
+            json={"ops": [{"op": "duplicate_page", "pageId": "page-1"}] * 200},
+            cookies=test_user_cookies,
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        # 2 + 2 fields fit, the next copy is refused, the rest skipped
+        assert [r["ok"] for r in body["results"][:3]] == [True, False, False]
+        assert "at most 5 fields" in body["results"][1]["message"]
+        assert len(body["form"]["pages"]) == 3
+        after = await container.form_repo().get_form_document_by_id(v2_form.form_id)
+        assert after.model_dump() == before
+
+    @pytest.mark.parametrize(
+        "mutate, path",
+        [
+            (
+                lambda d: d.update(
+                    welcomePage={"imageUrl": "https://evil.example/a.png"}
+                ),
+                "/welcomePage/imageUrl",
+            ),
+            (
+                lambda d: d["pages"][0].update(imageUrl="https://evil.example/a.png"),
+                "/pages/0/imageUrl",
+            ),
+            (
+                lambda d: d["pages"][0]["fields"][0].update(
+                    imageUrl="https://evil.example/a.png"
+                ),
+                "/pages/0/fields/0/imageUrl",
+            ),
+            (
+                lambda d: d["pages"][0]["fields"][1]["choices"][0].update(
+                    attachment={"type": "image", "href": "https://evil.example/a.png"}
+                ),
+                "/pages/0/fields/1/choices/0/attachment/href",
+            ),
+            (
+                lambda d: d["pages"][1]["fields"][0].update(
+                    attachment={"type": "image", "href": "https://evil.example/a.png"}
+                ),
+                "/pages/1/fields/0/attachment/href",
+            ),
+            (
+                lambda d: d["endings"][0].update(imageUrl="https://evil.example/a.png"),
+                "/endings/0/imageUrl",
+            ),
+            (
+                lambda d: d.update(
+                    theme={
+                        "title": "t",
+                        "primary": "#000",
+                        "secondary": "#000",
+                        "tertiary": "#000",
+                        "accent": "#000",
+                        "background": {"imageUrl": "https://evil.example/a.png"},
+                    }
+                ),
+                "/theme/background/imageUrl",
+            ),
+        ],
+    )
+    async def test_every_image_address_is_checked(
+        self, client: AsyncClient, workspace, test_user_cookies, mutate, path
+    ):
+        document = copy.deepcopy(VALID)
+        mutate(document)
+        body = (
+            await client.post(_url(workspace), json=document, cookies=test_user_cookies)
+        ).json()
+        assert body["valid"] is False
+        assert [e["path"] for e in body["errors"]] == [path], body["errors"]
+        assert "Images must come from" in body["errors"][0]["message"]
+
+    async def test_unsplash_images_pass(
+        self, client: AsyncClient, workspace, test_user_cookies
+    ):
+        document = copy.deepcopy(VALID)
+        document["welcomePage"] = {"imageUrl": "https://images.unsplash.com/photo-1"}
+        document["pages"][0]["imageUrl"] = "https://images.unsplash.com/photo-2"
+        body = (
+            await client.post(_url(workspace), json=document, cookies=test_user_cookies)
+        ).json()
+        assert body["valid"] is True, body["errors"]
+
+    @pytest.mark.parametrize(
+        "pattern, words",
+        [("(unclosed", "is not a valid pattern"), ("a" * 201, "at most 200")],
+    )
+    async def test_validate_refuses_a_pattern_the_op_refuses(
+        self, client: AsyncClient, workspace, test_user_cookies, pattern, words
+    ):
+        document = copy.deepcopy(VALID)
+        document["pages"][0]["fields"][0]["validations"] = {"pattern": pattern}
+        body = (
+            await client.post(_url(workspace), json=document, cookies=test_user_cookies)
+        ).json()
+        assert body["valid"] is False
+        error = body["errors"][0]
+        assert error["path"] == "/pages/0/fields/0/validations/pattern"
+        assert words in error["message"]
