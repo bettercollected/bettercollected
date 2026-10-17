@@ -106,7 +106,7 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                         }
                         onChange({ regex: FORMAT_PRESETS.find((p) => p.id === value)?.pattern });
                     }}
-                    className="h-8 w-full rounded border border-control bg-white px-2 text-xs focus:border-brand-500"
+                    className="h-8 w-full rounded border border-control bg-white px-2 py-0 text-xs focus:border-brand-500"
                 >
                     <option value="">Any text</option>
                     {FORMAT_PRESETS.map((p) => (

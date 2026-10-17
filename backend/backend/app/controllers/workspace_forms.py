@@ -502,6 +502,8 @@ class WorkspaceFormsRouter(Routable):
         file_ids: list[str] = Form(None),
         response: str = Form(None),
         ai_notice_token: Optional[str] = Form(None),
+        # the respondent's local date (YYYY-MM-DD) their calculations used
+        today: Optional[str] = Form(None),
         user: User = Depends(get_user_if_logged_in),
     ):
         form_files = None
@@ -526,6 +528,7 @@ class WorkspaceFormsRouter(Routable):
             form_files=form_files,
             user=user,
             ai_notice_token=ai_notice_token,
+            client_today=today,
         )
         # The stored response carries the form's retention (applied by the
         # service), not only what the client sent.

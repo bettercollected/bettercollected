@@ -1,4 +1,5 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { calculatedAnswerValue } from '@app/utils/calculated-fields';
 import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import { getGroupChildren, getGroupItems, getRepeatSettings, isRepeatingGroup } from '@app/utils/repeating-groups';
@@ -74,6 +75,12 @@ export function buildResponsesExport(form: StandardFormDto, responses: StandardF
     const rows = responses.map((response) => {
         const row: ExportCell[] = [response?.dataOwnerIdentifier || '- -'];
         fields.forEach((field) => {
+            if (field.type === FieldTypes.CALCULATED) {
+                // the stored value as is: numbers stay numbers in a spreadsheet
+                const value = calculatedAnswerValue(response.answers?.[field.id]);
+                row.push(cell(typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value));
+                return;
+            }
             if (!isRepeatingGroup(field)) {
                 row.push(cell(getAnswerForField(response, field)));
                 return;

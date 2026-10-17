@@ -19,6 +19,7 @@ from common.form_spec.models import JUMP_TARGET_SUBMIT, LEGACY_FIELD_TYPES
 from common.models.standard_form import date_rule_problems
 from pydantic import ValidationError
 
+from backend.app.services.calculated_fields import calculated_field_problems
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.publish_checks import publish_problems
@@ -293,6 +294,18 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
     return warnings
 
 
+def _check_calculations(form: Any, index: "_Index") -> List[Dict[str, str]]:
+    """Calculated fields, as a save checks them: the path points into the
+    field's expression (``/pages/0/fields/2/expression/+/1/var``)."""
+    problems = []
+    for problem in calculated_field_problems(form):
+        entry = index.questions.get(problem.field_id)
+        base = entry[0] if entry else ""
+        path = f"{base}/expression{problem.path}" if problem.path else base
+        problems.append(_problem(path, problem.message))
+    return problems
+
+
 def check_spec_document(raw: Any) -> Dict[str, Any]:
     """Check a spec document; see the module docstring for the result."""
     result: Dict[str, Any] = {
@@ -321,6 +334,7 @@ def check_spec_document(raw: Any) -> Dict[str, Any]:
     errors += [_problem("", message) for message in date_rule_problems(form.fields)]
     errors += _check_links_and_images(spec, index)
     errors += _check_hidden_fields(spec)
+    errors += _check_calculations(form, index)
     result["errors"] = errors
     result["valid"] = not errors
     result["warnings"] = _warnings(spec, form, index)

@@ -59,7 +59,7 @@ export function checkedDateRules(specs: DateRuleSpec[]): DateRuleSpec[] {
     });
 }
 
-function findCycle(edges: Map<string, string[]>): string[] | null {
+export function findCycle(edges: Map<string, string[]>): string[] | null {
     const state = new Map<string, number>();
     for (const root of edges.keys()) {
         if (state.has(root)) continue;

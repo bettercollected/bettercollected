@@ -56,9 +56,17 @@ from backend.app.services.form_logo import (
 from backend.app.services.form_concurrency import ensure_not_changed_since
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
-from backend.app.services.answer_validation import answer_ids, check_answers
+from backend.app.services.answer_validation import answer_ids
 from backend.app.services.date_rules import today_range, validate_date_rule_answers
 from backend.app.services.form_service import FormService
+from backend.app.services.calculated_fields import (
+    calculate_and_check,
+    calculated_fields,
+    drop_draft_calculations,
+    ensure_valid_calculations,
+    respondent_today,
+    today_iso,
+)
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
     ensure_no_internal_logic,
@@ -576,6 +584,7 @@ class WorkspaceFormService:
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        ensure_valid_calculations(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
         # the others instead of refusing
@@ -666,6 +675,7 @@ class WorkspaceFormService:
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        ensure_valid_calculations(form)
         await self._check_ending_links_on_update(form, form_id)
         workspace_form = await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)
@@ -923,24 +933,40 @@ class WorkspaceFormService:
         # Date rules against the answers as they will be after the edit, but
         # only for what this edit touches; "today" is the submission day.
         merged = {}
+        stored_hidden_fields = None
         if existing.answers:
-            merged.update(
-                self.form_response_service.decrypt_form_response(
-                    workspace_id=workspace_id, response=existing.model_copy(deep=True)
-                ).answers
-                or {}
+            decrypted = self.form_response_service.decrypt_form_response(
+                workspace_id=workspace_id, response=existing.model_copy(deep=True)
             )
+            merged.update(decrypted.answers or {})
+            stored_hidden_fields = decrypted.hidden_fields
         merged.update(response.answers or {})
+        # Calculated fields: the server's values from the answers after the
+        # edit (services/calculated_fields.py), never the client's; an empty
+        # result overwrites a stored value. "today" is the submission day.
+        calc_ids = [str(field.id) for field in calculated_fields(form) if field.id]
         # Required, answer rules and types (services/answer_validation.py) on
         # the answers after the edit, reported for what this edit touches.
-        # CPU-bound (creator patterns): off the event loop.
-        await run_in_threadpool(
-            check_answers,
+        # CPU-bound (creator patterns, formulas): off the event loop.
+        merged = await run_in_threadpool(
+            calculate_and_check,
             form,
             merged,
             str(form_id),
-            only=list((response.answers or {}).keys()),
+            hidden_values=(
+                stored_hidden_fields if isinstance(stored_hidden_fields, dict) else None
+            ),
+            today=today_iso(
+                existing.created_at.date() if existing.created_at else None
+            ),
+            keep_empty=True,
+            only=list((response.answers or {}).keys()) + calc_ids,
         )
+        if calc_ids:
+            response.answers = dict(response.answers or {})
+            for field_id in calc_ids:
+                if field_id in merged:
+                    response.answers[field_id] = merged[field_id]
         _check_date_rules(
             form,
             merged,
@@ -983,6 +1009,7 @@ class WorkspaceFormService:
         user: User,
         form_files: list[FormFileResponse] = None,
         ai_notice_token: Optional[str] = None,
+        client_today: Optional[str] = None,
     ):
         # Internal fields are filled in by staff afterwards — values a
         # respondent submission carries for them are dropped, never stored.
@@ -1043,18 +1070,38 @@ class WorkspaceFormService:
         response.answers = _checked_group_answers(
             latest_version_of_form or form, response.answers
         )
+        # Calculated fields are the server's to compute: what the client sent
+        # for them is replaced, before logic, jumps and Required use them
+        # (services/calculated_fields.py). "today" is the respondent's when
+        # it is a plausible one (within a day of the UTC date), as their
+        # browser computed with it; else the server's.
+        today = respondent_today(client_today)
+        filled = latest_version_of_form or form
+        response.answers = drop_draft_calculations(
+            response.answers, form, latest_version_of_form
+        )
         # Required, answer rules and types (services/answer_validation.py).
         # Answers may use the ids of the draft and the published version:
         # anything else is not a question of this form.
-        # CPU-bound (creator patterns): off the event loop.
-        await run_in_threadpool(
-            check_answers,
-            latest_version_of_form or form,
+        # CPU-bound (creator patterns, formulas): off the event loop.
+        response.answers = await run_in_threadpool(
+            calculate_and_check,
+            filled,
             response.answers,
             str(form_id),
+            hidden_values=(
+                response.hidden_fields
+                if isinstance(response.hidden_fields, dict)
+                else None
+            ),
+            today=today,
             known_ids=answer_ids(form, latest_version_of_form),
         )
-        _check_date_rules(latest_version_of_form or form, response.answers)
+        _check_date_rules(
+            filled,
+            response.answers,
+            today=(today, today) if client_today == today else None,
+        )
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.
         if form_files:

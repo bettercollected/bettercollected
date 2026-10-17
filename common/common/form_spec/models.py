@@ -17,6 +17,7 @@ import re
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from common.models.standard_form import (
+    CALCULATION_MAX_DECIMALS,
     DATE_RULES_MAX,
     LOGO_ALT_MAX_LENGTH,
     REPEAT_MAX_ITEMS_LIMIT,
@@ -115,6 +116,7 @@ CURRENT_FIELD_TYPES = frozenset(
         "matrix",
         "tabular_input",
         "group",
+        "calculated",
         "text",
         "IMAGE_CONTENT",
         "VIDEO_CONTENT",
@@ -309,6 +311,21 @@ class Validations(_Spec):
         return value
 
 
+class CalculationFormat(_Spec):
+    """How a calculated field shows its value (display only; the stored
+    value is the computed one)."""
+
+    style: Optional[Literal["number", "currency", "percent", "text"]] = Field(
+        None,
+        description="number (default), currency, percent (0.25 shows as 25%) "
+        "or text.",
+    )
+    decimals: Optional[int] = Field(None, ge=0, le=CALCULATION_MAX_DECIMALS)
+    currency: Optional[str] = Field(
+        None, pattern=r"^[A-Z]{3}$", description="ISO 4217 code; EUR by default."
+    )
+
+
 class Position(_Spec):
     """Where a page sits on the flow view's canvas (cosmetic)."""
 
@@ -358,6 +375,24 @@ class FormField(_Spec):
     date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     logic: Optional[Logic] = None
+    expression: Optional[Any] = Field(
+        None,
+        description="A calculated field's formula as an expressions-v1 syntax "
+        'tree (docs/spec/expressions-v1.md), e.g. {"+": [{"var": "<field id>"}, '
+        "1]}. Variables are question ids, '<group id>.<question id>' for a "
+        "repeating group's question, and hidden-field names.",
+    )
+    format: Optional[CalculationFormat] = None
+    hidden_from_respondents: Optional[bool] = Field(
+        None,
+        description="A calculated field that is computed and stored but never "
+        "shown to respondents.",
+    )
+    unanswered_as_zero: Optional[bool] = Field(
+        None,
+        description="A calculated field: unanswered questions it uses count as 0 "
+        "(default: on, unless the format is text).",
+    )
     repeat: Optional[Repeat] = None
     fields: Optional[List["FormField"]] = Field(
         None, description="The questions of a group."

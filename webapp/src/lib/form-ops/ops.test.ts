@@ -52,7 +52,7 @@ describe('add_field', () => {
         expect(one({ op: 'add_field', field: { title: 'x', type: 'email' } }).result.message).toBe('add_field needs a pageId (or a groupId to add into a repeating group).');
         expect(one({ op: 'add_field', pageId: 'nope', field: { title: 'x', type: 'email' } }).result.message).toBe("Page 'nope' was not found — it may have been removed.");
         expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'matrix' } }).result.message).toBe(
-            "Field type 'matrix' cannot be created by AI ops (allowed: date, dropdown, email, file_upload, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, text, url, yes_no)."
+            "Field type 'matrix' cannot be created by AI ops (allowed: calculated, date, dropdown, email, file_upload, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, text, url, yes_no)."
         );
         expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'dropdown', choices: ['one'] } }).result.message).toBe("'dropdown' needs at least 2 choices.");
         expect(one({ op: 'add_field', pageId: 'p1', afterFieldId: 'age', field: { title: 'x', type: 'email' } }).result.message).toBe("Field 'age' is not in page 'p1'.");

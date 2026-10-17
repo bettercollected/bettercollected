@@ -213,6 +213,13 @@ function modelProblems(field: any, loc: string): string[] {
         const problem = repeatProblems(properties.repeat);
         if (problem) errors.push(`${at('properties.repeat')}: ${problem.startsWith('Input') || problem.startsWith('String') ? problem : `Value error, ${problem}`}`);
     }
+    // a calculated field's format (common CalculationFormat)
+    const format = properties.format;
+    if (format && typeof format === 'object') {
+        if (format.style != null && !['number', 'currency', 'percent', 'text'].includes(format.style)) errors.push(`${at('properties.format.style')}: Input should be 'number', 'currency', 'percent' or 'text'`);
+        if (format.decimals != null && (format.decimals < 0 || format.decimals > 6)) errors.push(`${at('properties.format.decimals')}: Input should be ${format.decimals < 0 ? 'greater than or equal to 0' : 'less than or equal to 6'}`);
+        if (format.currency != null && !/^[A-Z]{3}$/.test(String(format.currency))) errors.push(`${at('properties.format.currency')}: String should match pattern '^[A-Z]{3}$'`);
+    }
     (properties.dateRules ?? []).forEach((rule: any, i: number) => {
         if (rule?.target === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(rule.date ?? ''))) errors.push(`${at(`properties.dateRules.${i}`)}: Value error, A date rule needs a date written as YYYY-MM-DD.`);
         if (rule?.target === 'field' && (typeof rule.fieldId !== 'string' || !rule.fieldId.trim())) errors.push(`${at(`properties.dateRules.${i}`)}: Value error, A date rule on another question needs its id.`);

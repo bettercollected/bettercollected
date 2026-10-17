@@ -79,6 +79,61 @@
       "title": "Attachment",
       "type": "object"
     },
+    "CalculationFormat": {
+      "additionalProperties": false,
+      "description": "How a calculated field shows its value (display only; the stored\nvalue is the computed one).",
+      "properties": {
+        "style": {
+          "anyOf": [
+            {
+              "enum": [
+                "number",
+                "currency",
+                "percent",
+                "text"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "number (default), currency, percent (0.25 shows as 25%) or text.",
+          "title": "Style"
+        },
+        "decimals": {
+          "anyOf": [
+            {
+              "maximum": 6,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decimals"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{3}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ISO 4217 code; EUR by default.",
+          "title": "Currency"
+        }
+      },
+      "title": "CalculationFormat",
+      "type": "object"
+    },
     "Choice": {
       "additionalProperties": false,
       "description": "One option of a choice question. Logic conditions compare with\n``value``.",
@@ -403,6 +458,7 @@
                 "file_upload",
                 "group",
                 "email",
+                "calculated",
                 "text",
                 "yes_no",
                 "url",
@@ -423,7 +479,6 @@
                 "payment",
                 "statement",
                 "page_break",
-                "calculated",
                 "hidden",
                 "conditional",
                 "h1",
@@ -805,6 +860,54 @@
             }
           ],
           "default": null
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A calculated field's formula as an expressions-v1 syntax tree (docs/spec/expressions-v1.md), e.g. {\"+\": [{\"var\": \"<field id>\"}, 1]}. Variables are question ids, '<group id>.<question id>' for a repeating group's question, and hidden-field names.",
+          "title": "Expression"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalculationFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hiddenFromRespondents": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A calculated field that is computed and stored but never shown to respondents.",
+          "title": "Hiddenfromrespondents"
+        },
+        "unansweredAsZero": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A calculated field: unanswered questions it uses count as 0 (default: on, unless the format is text).",
+          "title": "Unansweredaszero"
         },
         "repeat": {
           "anyOf": [

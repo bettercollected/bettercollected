@@ -65,12 +65,40 @@ function cap(text: string): string {
     return Array.from(text).slice(0, MAX_STRING_LENGTH).join('');
 }
 
+/**
+ * Coercions of one evaluation, computed once: a text's number, and a list's
+ * numbers and joined text (lists come from variables, normalised once per
+ * evaluation, so a list is the same object at every reference). Without it
+ * a list variable read by many nodes would be parsed again at each one.
+ * Python twin: evaluator.py `_Memo`.
+ */
+interface Memo {
+    numbers: Map<string, Dec | null>;
+    listNumbers: Map<Scalar[], Dec[] | null>;
+    listTexts: Map<Scalar[], string>;
+}
+
+let memo: Memo | null = null;
+
+/** Counts of the work memoisation saves (tests check the mechanism, not wall time). */
+export const evaluatorStats = { textNumberParses: 0 };
+
+function parseTextNumber(text: string): Dec | null {
+    evaluatorStats.textNumberParses++;
+    return Dec.parse(asciiTrim(text)) ?? null;
+}
+
 /** Number coercion: numbers, and texts that are plain decimal numbers. */
 function toNum(value: Value): Dec | null {
     if (value instanceof Dec) return value;
     if (typeof value === 'string') {
-        const parsed = Dec.parse(asciiTrim(value));
-        return parsed ?? null;
+        if (!memo) return parseTextNumber(value);
+        let parsed = memo.numbers.get(value);
+        if (parsed === undefined) {
+            parsed = parseTextNumber(value);
+            memo.numbers.set(value, parsed);
+        }
+        return parsed;
     }
     return null;
 }
@@ -82,11 +110,16 @@ function isNumeric(value: Value): boolean {
 /** Text coercion (concat and display). */
 function toText(value: Value): string {
     if (value === null) return '';
-    if (Array.isArray(value))
-        return value
+    if (Array.isArray(value)) {
+        const cached = memo?.listTexts.get(value);
+        if (cached !== undefined) return cached;
+        const text = value
             .map((item) => toText(item))
-            .filter((text) => text !== '')
+            .filter((part) => part !== '')
             .join(', ');
+        memo?.listTexts.set(value, text);
+        return text;
+    }
     if (value instanceof Dec) return value.toString();
     if (typeof value === 'boolean') return value ? 'true' : 'false';
     return value;
@@ -142,12 +175,30 @@ function aggregateItems(values: Value[]): Scalar[] {
     return items;
 }
 
-function aggregateNumbers(values: Value[]): Dec[] | null {
+function numbersOf(items: Scalar[]): Dec[] | null {
     const numbers: Dec[] = [];
-    for (const item of aggregateItems(values)) {
+    for (const item of items) {
+        if (item === null || item === '') continue;
         const n = toNum(item);
         if (n === null) return null;
         numbers.push(n);
+    }
+    return numbers;
+}
+
+/** The numbers of a list's answered items (null: one is not a number), once per list and evaluation. */
+function listNumbers(list: Scalar[]): Dec[] | null {
+    if (!memo) return numbersOf(list);
+    if (!memo.listNumbers.has(list)) memo.listNumbers.set(list, numbersOf(list));
+    return memo.listNumbers.get(list)!;
+}
+
+function aggregateNumbers(values: Value[]): Dec[] | null {
+    const numbers: Dec[] = [];
+    for (const value of values) {
+        const part = Array.isArray(value) ? listNumbers(value) : numbersOf([value]);
+        if (part === null) return null;
+        numbers.push(...part);
     }
     return numbers;
 }
@@ -335,7 +386,13 @@ export function evaluateExpression(ast: unknown, variables: Record<string, unkno
         }
         return OPS[op](argsOf(node), ev, context);
     };
-    return toOutput(ev(ast as ExprNode));
+    const outer = memo;
+    memo = { numbers: new Map(), listNumbers: new Map(), listTexts: new Map() };
+    try {
+        return toOutput(ev(ast as ExprNode));
+    } finally {
+        memo = outer;
+    }
 }
 
 /** Display text of a result: plain decimals, "true"/"false", "" for null, lists joined with ", ". */

@@ -1544,6 +1544,58 @@
         "title": "Attachment",
         "description": "An image or video shown with a question or a choice."
       },
+      "CalculationFormat": {
+        "properties": {
+          "style": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "number",
+                  "currency",
+                  "percent",
+                  "text"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style",
+            "description": "number (default), currency, percent (0.25 shows as 25%) or text."
+          },
+          "decimals": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 6.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decimals"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency",
+            "description": "ISO 4217 code; EUR by default."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CalculationFormat",
+        "description": "How a calculated field shows its value (display only; the stored\nvalue is the computed one)."
+      },
       "Choice": {
         "properties": {
           "id": {
@@ -1971,6 +2023,7 @@
               "file_upload",
               "group",
               "email",
+              "calculated",
               "text",
               "yes_no",
               "url",
@@ -1989,7 +2042,6 @@
               "payment",
               "statement",
               "page_break",
-              "calculated",
               "hidden",
               "conditional",
               "h1",
@@ -2065,6 +2117,7 @@
                   "file_upload",
                   "group",
                   "email",
+                  "calculated",
                   "text",
                   "yes_no",
                   "url",
@@ -2083,7 +2136,6 @@
                   "payment",
                   "statement",
                   "page_break",
-                  "calculated",
                   "hidden",
                   "conditional",
                   "h1",
@@ -2441,6 +2493,50 @@
                 "type": "null"
               }
             ]
+          },
+          "expression": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expression",
+            "description": "A calculated field's formula as an expressions-v1 syntax tree (docs/spec/expressions-v1.md), e.g. {\"+\": [{\"var\": \"<field id>\"}, 1]}. Variables are question ids, '<group id>.<question id>' for a repeating group's question, and hidden-field names."
+          },
+          "format": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalculationFormat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hiddenFromRespondents": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hiddenfromrespondents",
+            "description": "A calculated field that is computed and stored but never shown to respondents."
+          },
+          "unansweredAsZero": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unansweredaszero",
+            "description": "A calculated field: unanswered questions it uses count as 0 (default: on, unless the format is text)."
           },
           "repeat": {
             "anyOf": [

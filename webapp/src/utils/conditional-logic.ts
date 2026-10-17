@@ -1,3 +1,4 @@
+import { formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
@@ -42,6 +43,13 @@ export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | st
         case FieldTypes.DROP_DOWN:
             // multi-select stores `choices.values`, single stores `choice.value`
             return answer.choices?.values ?? answer.choice?.value;
+        case FieldTypes.CALCULATED: {
+            // The computed value (utils/calculated-fields.ts) as the plain
+            // text the expressions spec prints: 12.5, "true", a text. The
+            // server reads its own value the same way.
+            const value = answer.number ?? answer.boolean ?? answer.text;
+            return value === undefined || value === null || value === '' ? undefined : formatExpressionValue(value);
+        }
         default:
             return answer.text ?? answer.value;
     }

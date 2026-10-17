@@ -487,6 +487,24 @@ class DateRule(BaseModel):
         return self
 
 
+# Display formats of a calculated field (``properties.format``).
+CALCULATION_FORMAT_STYLES = ("number", "currency", "percent", "text")
+CALCULATION_MAX_DECIMALS = 6
+
+
+class CalculationFormat(BaseModel):
+    """How a calculated field shows its value: a number with ``decimals``
+    places, an amount of ``currency`` (ISO 4217 code, EUR by default), a
+    percentage (0.25 shows as 25%) or plain text. Display only: the stored
+    value is the computed one, unrounded."""
+
+    style: Optional[Literal["number", "currency", "percent", "text"]] = None
+    decimals: Optional[int] = Field(None, ge=0, le=CALCULATION_MAX_DECIMALS)
+    currency: Optional[str] = Field(None, pattern=r"^[A-Z]{3}$")
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+
 def is_iso_date(value: Any) -> bool:
     """Is ``value`` a calendar date written exactly as ``YYYY-MM-DD``?"""
     if not isinstance(value, str) or not _ISO_DATE.fullmatch(value):
@@ -550,6 +568,17 @@ class StandardFieldProperty(BaseModel):
     # A page's "number the questions" switch (webapp showQuestionNumbers);
     # without it here a save dropped the setting.
     show_question_numbers: Optional[bool] = None
+    # A ``calculated`` field: its expression (an expressions-v1 AST, see
+    # docs/spec/expressions-v1.md; None = no formula yet), how its value is
+    # shown, and whether respondents see it at all (an "internal result":
+    # computed and stored, never displayed). Checked on every form save
+    # (backend services/calculated_fields.py), never trusted from clients.
+    expression: Optional[Any] = None
+    format: Optional[CalculationFormat] = None
+    hidden_from_respondents: Optional[bool] = None
+    # Unanswered questions (and empty calculations) a calculated field
+    # reads count as 0. None = the default: on, unless the format is text.
+    unanswered_as_zero: Optional[bool] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

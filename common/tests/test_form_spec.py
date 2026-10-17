@@ -297,6 +297,10 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "why_we_ask",
         "section_title",
         "show_question_numbers",
+        "expression",
+        "format",
+        "hidden_from_respondents",
+        "unanswered_as_zero",
     }
     assert (
         set(StandardFieldProperty.model_fields)
