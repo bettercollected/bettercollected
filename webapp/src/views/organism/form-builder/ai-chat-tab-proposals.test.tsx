@@ -111,7 +111,10 @@ describe('AI proposals in the AI tab', () => {
     beforeEach(() => {
         sessionStorage.clear();
         calls.length = 0;
-        chatEditMock.mockReset().mockResolvedValue(proposeTurn());
+        chatEditMock.mockReset().mockImplementation(async () => {
+            calls.push('chat');
+            return proposeTurn();
+        });
         rejectMock.mockReset().mockResolvedValue({ data: { status: 'rejected' } });
         flushMock.mockReset().mockImplementation(async () => {
             calls.push('flush');
@@ -151,7 +154,7 @@ describe('AI proposals in the AI tab', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
 
         await screen.findByText(/Applied 5 of 5 changes/);
-        expect(calls).toEqual(['flush', 'accept']);
+        expect(calls).toEqual(['flush', 'chat', 'flush', 'accept']);
         expect(acceptMock.mock.calls[0][0]).toEqual({ workspaceId: 'ws-1', formId: 'form-1', proposalId: PROPOSAL.id, opIndexes: undefined });
         expect(probe.fields).toHaveLength(2);
         expect(probe.fields[1].id).toBe('page-2');
@@ -182,15 +185,16 @@ describe('AI proposals in the AI tab', () => {
         await screen.findByText('Discarded. Nothing was changed.');
         expect(rejectMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', formId: 'form-1', proposalId: PROPOSAL.id });
         expect(acceptMock).not.toHaveBeenCalled();
-        expect(flushMock).not.toHaveBeenCalled();
+        // only the save before asking
+        expect(flushMock).toHaveBeenCalledTimes(1);
         expect(probe.fields).toEqual(BEFORE_FORM.fields);
         expect(probe.open).toBeNull();
     });
 
     it('does not accept while local edits cannot be saved', async () => {
-        flushMock.mockResolvedValue('conflict');
         renderPanel();
         await ask();
+        flushMock.mockResolvedValue('conflict');
         fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
 
         expect((await screen.findByRole('alert')).textContent).toMatch(/changed somewhere else/);
@@ -210,9 +214,43 @@ describe('AI proposals in the AI tab', () => {
 
         expect((await screen.findByRole('alert')).textContent).toBe('The form changed since this was proposed.');
         expect(screen.getByText("Field 'f1' was not found.")).toBeDefined();
-        expect(screen.getByText(/Not applied: the form changed/)).toBeDefined();
+        expect(screen.getByText(/Not applied: this form changed since the suggestion/)).toBeDefined();
         expect(probe.fields).toEqual(BEFORE_FORM.fields);
         expect(probe.open).toBeNull();
+    });
+
+    it('a proposal for an older version of the form offers to ask again', async () => {
+        acceptMock.mockResolvedValue({ error: { status: 409, data: { code: 'proposal_stale', message: 'This form changed since the suggestion. Ask again.', errors: [] } } });
+        renderPanel();
+        await ask();
+        fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
+
+        await screen.findByText('Not applied: this form changed since the suggestion. Ask again.');
+        // said once, not also as an alert
+        expect(screen.queryByRole('alert')).toBeNull();
+        expect(probe.fields).toEqual(BEFORE_FORM.fields);
+
+        calls.length = 0;
+        fireEvent.click(screen.getByRole('button', { name: 'Ask again' }));
+        await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(2));
+        // the same prompt, after saving pending edits
+        expect(chatEditMock.mock.calls[1][0].body.message).toBe('tidy up the form');
+        expect(calls).toEqual(['flush', 'chat']);
+    });
+
+    it('saves pending edits before asking, and asks nothing when they cannot be saved', async () => {
+        flushMock.mockResolvedValue('error');
+        renderPanel();
+        fireEvent.change(screen.getByPlaceholderText('Describe a change to this form…'), { target: { value: 'tidy up the form' } });
+        fireEvent.click(screen.getByLabelText('Send'));
+
+        await screen.findByText(/Your latest edits aren't saved yet, so nothing was sent/);
+        expect(chatEditMock).not.toHaveBeenCalled();
+        // one click retries the message
+        flushMock.mockResolvedValue('saved');
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        await screen.findByTestId('ai-proposal');
+        expect(chatEditMock.mock.calls[0][0].body.message).toBe('tidy up the form');
     });
 
     it('a newer proposal sets the open one aside', async () => {

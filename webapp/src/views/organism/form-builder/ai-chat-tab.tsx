@@ -55,6 +55,8 @@ interface ChatTurn {
     proposalError?: string;
     proposalOpErrors?: ProposalOpError[];
     appliedCount?: number;
+    // The message the proposal answered, for "Ask again".
+    prompt?: string;
 }
 
 const PROPOSAL_ERRORS: Record<string, ProposalStatus> = {
@@ -295,7 +297,9 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         const closedAs = PROPOSAL_ERRORS[body.code];
         const message = typeof body.message === 'string' ? body.message : 'The changes could not be applied — nothing was changed. Please try again.';
         if (closedAs) closeOpenProposal();
-        patchTurn(turnIndex, { proposalStatus: closedAs ?? 'pending', proposalError: message, proposalOpErrors: Array.isArray(body.errors) ? body.errors : undefined });
+        // A stale proposal's own line says what happened and offers Ask again.
+        const formChanged = closedAs === 'stale' && !(Array.isArray(body.errors) && body.errors.length);
+        patchTurn(turnIndex, { proposalStatus: closedAs ?? 'pending', proposalError: formChanged ? undefined : message, proposalOpErrors: Array.isArray(body.errors) ? body.errors : undefined });
     };
 
     // Discard: nothing to undo, the form was never changed.
@@ -337,6 +341,18 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         scrollToEnd();
         const memoryIdsBeforeTurn = new Set(entriesRef.current.map((entry) => entry.id));
 
+        // The proposal is made from the stored form and can only be accepted
+        // on that version: save pending edits first, or every proposal would
+        // be stale the moment the autosave caught up.
+        const saved = await flushAutosave();
+        if (saved !== 'saved') {
+            const detail =
+                saved === 'conflict' ? 'This form was changed somewhere else. Reload the latest version, then ask again.' : "Your latest edits aren't saved yet, so nothing was sent. Check your connection and try again.";
+            setTurns((t) => [...t, { role: 'assistant', content: detail, error: true, retryMessage: message }]);
+            scrollToEnd();
+            return;
+        }
+
         const response: any = await chatEdit({
             workspaceId: workspace.id,
             formId: standardForm.formId,
@@ -354,7 +370,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             });
             setTurns((t) => [
                 ...t.map((turn): ChatTurn => (turn.proposal && turn.proposalStatus === 'pending' ? { ...turn, proposalStatus: 'superseded' } : turn)),
-                { role: 'assistant', content: reply, results, proposal, groups, proposalStatus: 'pending', selected: acceptableOps(proposal) }
+                { role: 'assistant', content: reply, results, proposal, groups, proposalStatus: 'pending', selected: acceptableOps(proposal), prompt: message }
             ]);
             setOpenProposal({ proposal, groups });
             setPreview({ on: false });
@@ -581,6 +597,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                             onDiscard={() => discardTurnProposal(i)}
                                             onTogglePreview={() => setPreview({ on: !preview.on, pageId: preview.pageId })}
                                             onShowPage={(pageId) => setPreview({ on: true, pageId })}
+                                            onAskAgain={turn.prompt && !isLoading ? () => send(turn.prompt) : undefined}
                                         />
                                     )}
                                     {!turn.proposal && !!turn.results?.length && (

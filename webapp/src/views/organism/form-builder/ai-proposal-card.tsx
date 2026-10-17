@@ -29,12 +29,14 @@ interface Props {
     onDiscard: () => void;
     onTogglePreview: () => void;
     onShowPage?: (pageId: string) => void;
+    /** Send the message this proposal answered again (stale or expired). */
+    onAskAgain?: () => void;
 }
 
 const CLOSED_TEXT: Partial<Record<ProposalStatus, string>> = {
     discarded: 'Discarded. Nothing was changed.',
     superseded: 'Replaced by a newer proposal. Nothing was changed.',
-    stale: 'Not applied: the form changed since this was proposed. Ask again to get a new proposal.',
+    stale: 'Not applied: this form changed since the suggestion. Ask again.',
     closed: 'This proposal was already handled elsewhere. Nothing was changed here.',
     expired: 'This proposal expired. Ask again to get a new one.'
 };
@@ -44,7 +46,7 @@ const CLOSED_TEXT: Partial<Record<ProposalStatus, string>> = {
  * per change (changes made by the same operation are chosen together), and
  * Accept all / Accept selected / Discard. Nothing is saved until accepted.
  */
-export default function AIProposalCard({ proposal, groups, status, selected, error, opErrors, appliedCount, previewing, autoFocus, onSelect, onAccept, onDiscard, onTogglePreview, onShowPage }: Props) {
+export default function AIProposalCard({ proposal, groups, status, selected, error, opErrors, appliedCount, previewing, autoFocus, onSelect, onAccept, onDiscard, onTogglePreview, onShowPage, onAskAgain }: Props) {
     const headingRef = useRef<HTMLHeadingElement>(null);
     const headingId = `ai-proposal-${proposal.id}`;
     const all = acceptableOps(proposal);
@@ -70,7 +72,16 @@ export default function AIProposalCard({ proposal, groups, status, selected, err
                     Applied {appliedCount ?? all.length} of {all.length} change{all.length === 1 ? '' : 's'}. Undo reverts them.
                 </p>
             )}
-            {!open && CLOSED_TEXT[status] && <p className="mt-1 text-xs text-black-600">{CLOSED_TEXT[status]}</p>}
+            {!open && CLOSED_TEXT[status] && (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <p className="text-xs text-black-600">{CLOSED_TEXT[status]}</p>
+                    {(status === 'stale' || status === 'expired') && onAskAgain && (
+                        <button type="button" onClick={onAskAgain} className="rounded-md border border-black-300 bg-white px-2 py-0.5 text-[11px] font-medium text-black-800 transition-colors hover:bg-black-100">
+                            Ask again
+                        </button>
+                    )}
+                </div>
+            )}
             {groups.map((group) => {
                 const groupHeadingId = `${headingId}-${group.key}`;
                 return (
