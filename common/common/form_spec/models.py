@@ -388,6 +388,11 @@ class FormField(_Spec):
         description="A calculated field that is computed and stored but never "
         "shown to respondents.",
     )
+    unanswered_as_zero: Optional[bool] = Field(
+        None,
+        description="A calculated field: unanswered questions it uses count as 0 "
+        "(default: on, unless the format is text).",
+    )
     repeat: Optional[Repeat] = None
     fields: Optional[List["FormField"]] = Field(
         None, description="The questions of a group."

@@ -576,6 +576,9 @@ class StandardFieldProperty(BaseModel):
     expression: Optional[Any] = None
     format: Optional[CalculationFormat] = None
     hidden_from_respondents: Optional[bool] = None
+    # Unanswered questions (and empty calculations) a calculated field
+    # reads count as 0. None = the default: on, unless the format is text.
+    unanswered_as_zero: Optional[bool] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

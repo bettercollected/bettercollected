@@ -23,6 +23,11 @@ A ``calculated`` field on a page stores an expressions-v1 AST at
   Logic, page jumps and Required checks that use calculated fields then read
   the server's values. Inputs are capped by the evaluator (texts over 10,000
   characters and lists over 1,000 items count as empty).
+- **Unanswered as 0** (``properties.unanswered_as_zero``, default on unless
+  the format is text): a question or calculation the formula reads that has
+  no value (null or "") reads as 0, so one empty optional number doesn't
+  blank a total. Group lists and hidden fields are read as they are. Shared
+  cases with the webapp: ``docs/spec/calculated-fields.cases.json``.
 """
 
 import datetime as dt
@@ -353,6 +358,31 @@ def build_variables(
     return variables
 
 
+def unanswered_as_zero(field: Any) -> bool:
+    """Do unanswered questions this calculation reads count as 0? Its own
+    setting, else on unless it shows text."""
+    properties = _get(field, "properties")
+    setting = _get(properties, "unanswered_as_zero")
+    if setting is not None:
+        return bool(setting)
+    style = _get(_get(properties, "format"), "style")
+    return style != "text"
+
+
+def _question_keys(form: Any) -> Set[str]:
+    """Keys that read one question's answer or one calculation: the ones
+    "unanswered as 0" applies to (never group lists or hidden fields)."""
+    keys: Set[str] = set()
+    for field in page_fields(form):
+        field_id = _get(field, "id")
+        if not field_id or _get(field, "internal"):
+            continue
+        if _type(field) in NOT_VARIABLES or _type(field) == GROUP:
+            continue
+        keys.add(str(field_id))
+    return keys
+
+
 def compute_calculated_values(
     form: Any,
     answers: Any,
@@ -372,13 +402,20 @@ def compute_calculated_values(
     variables = build_variables(form, plain, hidden_values)
     context = {"today": today} if today else {}
     values: Dict[str, Any] = {str(_get(field, "id")): None for field in calcs}
+    question_keys = _question_keys(form)
     for field in evaluation_order(calcs):
         field_id = str(_get(field, "id"))
         ast = _expression(field)
         value = None
         if ast is not None:
+            reading = variables
+            if unanswered_as_zero(field):
+                reading = dict(variables)
+                for key in expression_variables(ast):
+                    if key in question_keys and reading.get(key) in (None, ""):
+                        reading[key] = 0
             try:
-                value = evaluate_expression(ast, variables, context)
+                value = evaluate_expression(ast, reading, context)
             except (ExpressionError, RecursionError):
                 value = None
         variables[field_id] = value

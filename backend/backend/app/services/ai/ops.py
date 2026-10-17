@@ -170,6 +170,7 @@ class NewFieldSpec(_CamelModel):
     expression: Optional[Any] = None
     format: Optional[CalculationFormat] = None
     hidden_from_respondents: Optional[bool] = None
+    unanswered_as_zero: Optional[bool] = None
     # Client reference for the new field (see REF_PREFIX).
     ref: _RefName = None
 
@@ -215,6 +216,7 @@ class FieldPatch(_CamelModel):
     expression: Optional[Any] = None
     format: Optional[CalculationFormat] = None
     hidden_from_respondents: Optional[bool] = None
+    unanswered_as_zero: Optional[bool] = None
 
 
 class AddFieldOp(_CamelModel):
@@ -654,7 +656,9 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
             raise OpError("A label only applies to date questions.")
         properties.label = spec.label
 
-    _set_calculation(spec.type, properties, spec.expression, spec.format, spec.hidden_from_respondents)
+    _set_calculation(
+        spec.type, properties, spec.expression, spec.format, spec.hidden_from_respondents, spec.unanswered_as_zero
+    )
     if spec.type == StandardFormFieldType.CALCULATED and spec.required:
         raise OpError("A calculation is computed, never answered, so it cannot be required.")
 
@@ -680,6 +684,7 @@ def _set_calculation(
     expression: Any,
     format: Optional[CalculationFormat],
     hidden: Optional[bool],
+    as_zero: Optional[bool] = None,
 ) -> List[str]:
     """Set a calculated field's expression, format and visibility (only the
     ones given); refuses them on any other type and a malformed AST (with the
@@ -687,7 +692,12 @@ def _set_calculation(
     op (apply_form_ops). Returns change fragments."""
     given = [
         name
-        for name, value in (("expression", expression), ("format", format), ("hiddenFromRespondents", hidden))
+        for name, value in (
+            ("expression", expression),
+            ("format", format),
+            ("hiddenFromRespondents", hidden),
+            ("unansweredAsZero", as_zero),
+        )
         if value is not None
     ]
     if not given:
@@ -703,7 +713,14 @@ def _set_calculation(
         properties.format = format
     if hidden is not None:
         properties.hidden_from_respondents = True if hidden else None
-    labels = {"expression": "formula", "format": "format", "hiddenFromRespondents": "visibility"}
+    if as_zero is not None:
+        properties.unanswered_as_zero = as_zero
+    labels = {
+        "expression": "formula",
+        "format": "format",
+        "hiddenFromRespondents": "visibility",
+        "unansweredAsZero": "unanswered as 0",
+    }
     return [labels[name] for name in given]
 
 
@@ -782,7 +799,14 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
         field.properties.date_rules = _date_rules(patch.date_rules) or None
         changed.append("date rules")
     changed.extend(
-        _set_calculation(field.type, field.properties, patch.expression, patch.format, patch.hidden_from_respondents)
+        _set_calculation(
+            field.type,
+            field.properties,
+            patch.expression,
+            patch.format,
+            patch.hidden_from_respondents,
+            patch.unanswered_as_zero,
+        )
     )
     if patch.required and field.type == StandardFormFieldType.CALCULATED:
         raise OpError("A calculation is computed, never answered, so it cannot be required.")

@@ -188,7 +188,8 @@ Calculations (totals, scores): a "calculated" field shows a value computed from
 answers, never asked. add_field / update_field take "expression" (a JSON syntax
 tree), "format" ({"style":"number"|"currency"|"percent"|"text","decimals":2,
 "currency":"EUR"}; percent shows 0.25 as 25%) and "hiddenFromRespondents": true
-(a score staff see, respondents don't). A node is a number, a text, true/false/null,
+(a score staff see, respondents don't); unanswered questions count as 0 unless
+"unansweredAsZero": false (text format: off). A node is a number, a text, true/false/null,
 {"var":"<field id>"} (also "<group id>.<question id>" for a repeating group's
 question across its items, a hidden-field name, or "$ref:<name>"), or
 {"<operator>":[args]}: + - * / % min max round(x,digits) floor ceil abs, == != < <= > >=,
@@ -269,6 +270,8 @@ def _project_field(f) -> dict:
             entry["format"] = props.format.model_dump(by_alias=True, exclude_none=True)
         if getattr(props, "hidden_from_respondents", None):
             entry["hiddenFromRespondents"] = True
+        if getattr(props, "unanswered_as_zero", None) is not None:
+            entry["unansweredAsZero"] = props.unanswered_as_zero
         if getattr(props, "logic", None) and props.logic.conditions:
             entry["logic"] = {
                 "action": props.logic.action,

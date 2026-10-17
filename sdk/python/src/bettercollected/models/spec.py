@@ -592,6 +592,12 @@ class FormField(BaseModel):
         description="A calculated field that is computed and stored but never shown to respondents.",
         title="Hiddenfromrespondents",
     )
+    unanswered_as_zero: bool | None = Field(
+        None,
+        alias="unansweredAsZero",
+        description="A calculated field: unanswered questions it uses count as 0 (default: on, unless the format is text).",
+        title="Unansweredaszero",
+    )
     repeat: Repeat | None = None
     fields: list[FormField] | None = Field(
         None, description="The questions of a group.", title="Fields"

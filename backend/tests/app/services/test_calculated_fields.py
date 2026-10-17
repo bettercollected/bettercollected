@@ -2,7 +2,9 @@
 cycles), server recompute on submit and edit, logic on calculated values,
 AI ops and the form spec."""
 
+import json
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from common.form_spec import form_to_spec_dict
@@ -257,7 +259,12 @@ def test_group_lists_hidden_fields_and_today():
 
 
 def test_over_cap_input_counts_as_empty():
-    form = _form([{"id": "t", "type": "long_text"}, _calc("n", {"length": [V("t")]})])
+    form = _form(
+        [
+            {"id": "t", "type": "long_text"},
+            _calc("n", {"length": [V("t")]}, unansweredAsZero=False),
+        ]
+    )
     values = compute_calculated_values(
         form, {"t": {"type": "text", "text": "x" * 10001}}
     )
@@ -281,8 +288,21 @@ def test_client_values_are_replaced_and_empty_results_dropped():
     sent = {"qty": _num(2), "price": _num(5), "subtotal": _num(1_000_000)}
     out = apply_calculated_fields(form, sent)
     assert out["subtotal"]["number"] == 10
+    # unanswered counts as 0 by default
+    out = apply_calculated_fields(form, {"qty": _num(2), "subtotal": _num(9)})
+    assert out["subtotal"]["number"] == 0
+    strict = _form(
+        [
+            QTY,
+            PRICE,
+            {
+                **SUBTOTAL,
+                "properties": {**SUBTOTAL["properties"], "unansweredAsZero": False},
+            },
+        ]
+    )
     assert "subtotal" not in apply_calculated_fields(
-        form, {"qty": _num(2), "subtotal": _num(9)}
+        strict, {"qty": _num(2), "subtotal": _num(9)}
     )
 
 
@@ -405,7 +425,11 @@ async def test_submission_stores_the_server_value(workspace):
 
 
 async def test_an_edit_recomputes_and_ignores_the_client_value(workspace):
-    form = await _published(workspace, [QTY, PRICE, SUBTOTAL])
+    strict = {
+        **SUBTOTAL,
+        "properties": {**SUBTOTAL["properties"], "unansweredAsZero": False},
+    }
+    form = await _published(workspace, [QTY, PRICE, strict])
     repo = container.workspace_form_repo()
     workspace_form = await repo.get_workspace_form_in_workspace(
         workspace_id=workspace.id, query=str(form.form_id)
@@ -579,3 +603,65 @@ def test_the_spec_round_trips_and_checks_calculations():
     ]
     # not a legacy type any more
     assert not any("legacy" in w["message"] for w in result["warnings"])
+
+
+# --- shared cases with the webapp (docs/spec/calculated-fields.cases.json) ---
+
+CASES = json.loads(
+    (
+        Path(__file__).resolve().parents[4]
+        / "docs"
+        / "spec"
+        / "calculated-fields.cases.json"
+    ).read_text()
+)["cases"]
+
+
+@pytest.mark.parametrize("case", CASES, ids=[c["name"] for c in CASES])
+def test_shared_case(case):
+    form = StandardForm.model_validate(
+        {
+            "builder_version": "v2",
+            "hidden_fields": case.get("hiddenFields"),
+            "fields": [
+                {"id": "p", "type": "slide", "properties": {"fields": case["fields"]}}
+            ],
+        }
+    )
+    values = compute_calculated_values(form, case["answers"], case.get("hidden") or {})
+    plain = {
+        key: (float(value) if isinstance(value, Decimal) else value)
+        for key, value in values.items()
+    }
+    assert plain == case["expected"]
+
+
+def test_unanswered_as_zero_defaults():
+    from backend.app.services.calculated_fields import unanswered_as_zero
+
+    form = _form(
+        [
+            _calc("a", 1),
+            _calc("b", 1, format={"style": "text"}),
+            _calc("c", 1, format={"style": "text"}, unansweredAsZero=True),
+            _calc("d", 1, format={"style": "percent"}, unansweredAsZero=False),
+        ]
+    )
+    fields = form.fields[0].properties.fields
+    assert [unanswered_as_zero(f) for f in fields] == [True, False, True, False]
+
+
+def test_ops_set_unanswered_as_zero():
+    form = _form([QTY, PRICE, SUBTOTAL])
+    new, results = _apply(
+        form,
+        [
+            {
+                "op": "update_field",
+                "fieldId": "subtotal",
+                "patch": {"unansweredAsZero": False},
+            }
+        ],
+    )
+    assert results[0].ok and "unanswered as 0" in results[0].message
+    assert new.fields[0].properties.fields[2].properties.unanswered_as_zero is False

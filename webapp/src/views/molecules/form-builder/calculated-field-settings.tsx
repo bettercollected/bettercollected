@@ -13,12 +13,16 @@ import {
     calculationProblems,
     calculationVariables,
     evaluationOrder,
+    expressionVariables,
     formatCalculatedValue,
     formulaText,
     getCalculatedFields,
     localToday,
     parseFormulaText,
-    sampleVariables
+    questionKeys,
+    readingFor,
+    sampleVariables,
+    unansweredAsZero
 } from '@app/utils/calculated-fields';
 import { NumberSetting, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 
@@ -44,23 +48,31 @@ export function suggestionsFor(variables: CalculationVariable[], query: string):
 }
 
 /** The value a formula gives with sample answers (other calculations computed first). */
-export function previewValue(slides: StandardFormFieldDto[], field: StandardFormFieldDto, expression: ExprNode | undefined, variables: CalculationVariable[]): ExprValue {
+export function previewValue(slides: StandardFormFieldDto[], field: StandardFormFieldDto, expression: ExprNode | undefined, variables: CalculationVariable[], emptyKey?: string): ExprValue {
     if (expression === undefined) return null;
     const values: Record<string, unknown> = sampleVariables(variables, slides);
+    if (emptyKey) values[emptyKey] = null;
+    const questions = questionKeys(slides);
     const context = { today: localToday() };
     const others = evaluationOrder(getCalculatedFields(slides).filter((calc) => calc.id !== field.id));
     others.forEach((calc) => {
         try {
-            values[calc.id] = calc.properties?.expression == null ? null : evaluateExpression(calc.properties.expression, values, context);
+            values[calc.id] = calc.properties?.expression == null ? null : evaluateExpression(calc.properties.expression, readingFor(calc, values, questions), context);
         } catch {
             values[calc.id] = null;
         }
     });
     try {
-        return evaluateExpression(expression, values, context);
+        return evaluateExpression(expression, readingFor({ ...field, properties: { ...field.properties, expression } }, values, questions), context);
     } catch {
         return null;
     }
+}
+
+/** The first question (not a calculation) a formula reads: the one the preview leaves unanswered. */
+export function firstQuestionKey(expression: unknown, variables: CalculationVariable[]): CalculationVariable | undefined {
+    const used = new Set(expressionVariables(expression));
+    return variables.find((variable) => variable.kind === 'field' && used.has(variable.key));
 }
 
 /**
@@ -79,7 +91,7 @@ export default function CalculatedFieldSettings({
     field: StandardFormFieldDto;
     slides: StandardFormFieldDto[];
     hiddenNames: string[];
-    onChange: (property: 'expression' | 'format' | 'hiddenFromRespondents', value: unknown) => void;
+    onChange: (property: 'expression' | 'format' | 'hiddenFromRespondents' | 'unansweredAsZero', value: unknown) => void;
 }) {
     const id = useId();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -152,8 +164,15 @@ export default function CalculatedFieldSettings({
     const problems = calculationProblems(slides, hiddenNames).filter((problem) => problem.fieldId === field.id);
     const format: CalculationFormat = field.properties?.format ?? {};
     const style = format.style ?? 'number';
-    const preview = error ? null : previewValue(slides, field, expression, variables);
-    const previewText = preview === null ? '' : typeof preview === 'number' ? formatCalculatedValue(preview, format, 'en') : formatExpressionValue(preview);
+    const show = (value: ExprValue) => (value === null ? '' : typeof value === 'number' ? formatCalculatedValue(value, format, 'en') : formatExpressionValue(value));
+    const previewText = error ? '' : show(previewValue(slides, field, expression, variables));
+    // The same with one answer left out: what "unanswered as 0" changes.
+    const emptied = error ? undefined : firstQuestionKey(expression, variables);
+    const emptiedText = emptied ? show(previewValue(slides, field, expression, variables, emptied.key)) : '';
+    const asZero = unansweredAsZero(field);
+    // While the reference list is open, the formula is unfinished on purpose
+    // ("missing }"): its error waits until a field is picked or typing goes on.
+    const shownError = listOpen ? null : error;
     const setFormat = (patch: Partial<CalculationFormat>) => {
         const next = { ...format, ...patch };
         (Object.keys(next) as Array<keyof CalculationFormat>).forEach((key) => next[key] === undefined && delete next[key]);
@@ -167,64 +186,67 @@ export default function CalculatedFieldSettings({
 
     return (
         <div className="flex w-full flex-col gap-4">
-            <div className="relative flex w-full flex-col gap-1">
+            <div className="flex w-full flex-col gap-1">
                 <label htmlFor={formulaId} className="text-xs font-medium text-black-700">
                     Formula
                 </label>
-                <textarea
-                    ref={textareaRef}
-                    id={formulaId}
-                    value={draft}
-                    rows={3}
-                    spellCheck={false}
-                    placeholder="e.g. round({Price} * {Quantity} * 1.21, 2)"
-                    role="combobox"
-                    aria-autocomplete="list"
-                    aria-expanded={listOpen}
-                    aria-controls={listOpen ? listId : undefined}
-                    aria-activedescendant={listOpen ? `${listId}-${Math.min(active, suggestions.length - 1)}` : undefined}
-                    aria-invalid={!!error || problems.length > 0 || undefined}
-                    aria-describedby={[error || problems.length ? errorId : '', helpId].filter(Boolean).join(' ')}
-                    onChange={(event) => {
-                        setCaret(event.target.selectionStart ?? event.target.value.length);
-                        setDismissed(false);
-                        setActive(0);
-                        apply(event.target.value);
-                    }}
-                    onSelect={(event) => setCaret((event.target as HTMLTextAreaElement).selectionStart ?? 0)}
-                    onKeyDown={onKeyDown}
-                    onBlur={() => window.setTimeout(() => setDismissed(true), 150)}
-                    className={`w-full rounded-lg border p-2 font-mono text-xs ${error || problems.length ? 'border-[#C43D3D]' : 'border-control focus:border-brand-500'}`}
-                />
-                {listOpen && (
-                    <ul id={listId} role="listbox" aria-label="Fields" className="absolute top-full right-0 left-0 z-popover mt-1 max-h-56 overflow-auto rounded border border-black-300 bg-white py-1 shadow-large">
-                        {suggestions.map((variable, index) => (
-                            <li
-                                key={variable.key}
-                                id={`${listId}-${index}`}
-                                role="option"
-                                aria-selected={index === active}
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => choose(variable)}
-                                onKeyDown={(event) => event.key === 'Enter' && choose(variable)}
-                                className={`flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-xs ${index === active ? 'bg-brand-100 text-brand-600' : 'text-black-800'}`}
-                            >
-                                <span className="truncate">{variable.label}</span>
-                                <span className="shrink-0 text-[10px] text-black-600">{variable.kind === 'hidden' ? 'hidden field' : variable.kind === 'calculated' ? 'calculation' : variable.kind === 'group' ? 'each item' : 'answer'}</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-                {(error || problems.length > 0) && (
+                {/* The suggestions hang from the input itself, over the hint below it. */}
+                <div className="relative">
+                    <textarea
+                        ref={textareaRef}
+                        id={formulaId}
+                        value={draft}
+                        rows={3}
+                        spellCheck={false}
+                        placeholder="e.g. round({Price} * {Quantity} * 1.21, 2)"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded={listOpen}
+                        aria-controls={listOpen ? listId : undefined}
+                        aria-activedescendant={listOpen ? `${listId}-${Math.min(active, suggestions.length - 1)}` : undefined}
+                        aria-invalid={!!shownError || problems.length > 0 || undefined}
+                        aria-describedby={[shownError || problems.length ? errorId : '', helpId].filter(Boolean).join(' ')}
+                        onChange={(event) => {
+                            setCaret(event.target.selectionStart ?? event.target.value.length);
+                            setDismissed(false);
+                            setActive(0);
+                            apply(event.target.value);
+                        }}
+                        onSelect={(event) => setCaret((event.target as HTMLTextAreaElement).selectionStart ?? 0)}
+                        onKeyDown={onKeyDown}
+                        onBlur={() => window.setTimeout(() => setDismissed(true), 150)}
+                        className={`w-full rounded-lg border p-2 font-mono text-xs ${shownError || problems.length ? 'border-[#C43D3D]' : 'border-control focus:border-brand-500'}`}
+                    />
+                    {listOpen && (
+                        <ul id={listId} role="listbox" aria-label="Fields" className="absolute top-full right-0 left-0 z-popover mt-1 max-h-56 overflow-auto rounded border border-black-300 bg-white py-1 shadow-large">
+                            {suggestions.map((variable, index) => (
+                                <li
+                                    key={variable.key}
+                                    id={`${listId}-${index}`}
+                                    role="option"
+                                    aria-selected={index === active}
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={() => choose(variable)}
+                                    onKeyDown={(event) => event.key === 'Enter' && choose(variable)}
+                                    className={`flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-xs ${index === active ? 'bg-brand-100 text-brand-600' : 'text-black-800'}`}
+                                >
+                                    <span className="truncate">{variable.label}</span>
+                                    <span className="shrink-0 text-[10px] text-black-600">{variable.kind === 'hidden' ? 'hidden field' : variable.kind === 'calculated' ? 'calculation' : variable.kind === 'group' ? 'each item' : 'answer'}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+                {(shownError || problems.length > 0) && (
                     <p id={errorId} role="alert" className="text-[11px] leading-relaxed text-[#C43D3D]">
-                        {error ? (
+                        {shownError ? (
                             <>
-                                {error.message} <span className="text-black-600">(at character {error.start + 1})</span>
+                                {shownError.message} <span className="text-black-600">(at character {shownError.start + 1})</span>
                                 {draft && (
                                     <code className="mt-1 block font-mono break-all whitespace-pre-wrap text-black-800">
-                                        {draft.slice(0, error.start)}
-                                        <mark className="rounded-sm bg-[#FDE8E8] text-[#C43D3D] underline">{draft.slice(error.start, Math.max(error.end, error.start + 1)) || ' '}</mark>
-                                        {draft.slice(Math.max(error.end, error.start + 1))}
+                                        {draft.slice(0, shownError.start)}
+                                        <mark className="rounded-sm bg-[#FDE8E8] text-[#C43D3D] underline">{draft.slice(shownError.start, Math.max(shownError.end, shownError.start + 1)) || ' '}</mark>
+                                        {draft.slice(Math.max(shownError.end, shownError.start + 1))}
                                     </code>
                                 )}
                             </>
@@ -243,6 +265,11 @@ export default function CalculatedFieldSettings({
                 <span className="text-sm font-semibold text-black-800 tabular-nums" data-testid="calculation-preview">
                     {previewText || '—'}
                 </span>
+                {emptied && (
+                    <span className="text-[11px] text-black-600" data-testid="calculation-preview-empty">
+                        Without an answer to {emptied.label}: <span className="font-semibold text-black-800 tabular-nums">{emptiedText || 'no value'}</span>
+                    </span>
+                )}
             </div>
 
             <div className="flex w-full flex-col gap-1">
@@ -253,7 +280,7 @@ export default function CalculatedFieldSettings({
                     id={`${id}-style`}
                     value={style}
                     onChange={(event) => setFormat({ style: event.target.value as CalculationFormat['style'], currency: event.target.value === 'currency' ? (format.currency ?? DEFAULT_CURRENCY) : undefined })}
-                    className="h-8 rounded border border-control px-2 text-xs"
+                    className="h-8 rounded border border-control px-2 py-0 text-xs"
                 >
                     {CALCULATION_STYLES.map((option) => (
                         <option key={option} value={option}>
@@ -273,6 +300,12 @@ export default function CalculatedFieldSettings({
                     onChange={(value) => setFormat({ decimals: value === undefined ? undefined : Math.min(CALCULATION_MAX_DECIMALS, Math.max(0, Math.round(value))) })}
                 />
             )}
+            <SettingSwitch
+                label="Treat unanswered as 0"
+                checked={asZero}
+                onCheckedChange={(checked) => onChange('unansweredAsZero', checked)}
+                hint={asZero ? 'A question left empty counts as 0, so one empty optional answer does not blank the result.' : 'The result stays empty until every question it uses is answered.'}
+            />
             <SettingSwitch
                 label="Hide from respondents"
                 checked={!!field.properties?.hiddenFromRespondents}

@@ -1,8 +1,11 @@
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
+import { selectResponderForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { calculatedAnswerValue, formatCalculatedValue } from '@app/utils/calculated-fields';
+import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
+import { calculatedAnswerValue, formatCalculatedValue, usesAnyAnswer } from '@app/utils/calculated-fields';
 
 import QuestionWrapper from './question-wrapper';
 
@@ -12,12 +15,21 @@ import QuestionWrapper from './question-wrapper';
  * format in the form's language. The value is a polite live region labelled
  * by the field's title, so a screen reader announces it when it changes.
  * Fields hidden from respondents never get here (form-slide.tsx).
+ *
+ * The value shows once the respondent has given an answer the formula uses
+ * (directly or through other calculations): before that, "Not calculated
+ * yet", rather than a total of 0 or a score of 0%. The value itself is
+ * still computed (and stored by the server) all along.
  */
-export default function CalculatedField({ field }: { field: StandardFormFieldDto }) {
+export default function CalculatedField({ field, slides }: { field: StandardFormFieldDto; slides?: StandardFormFieldDto[] }) {
     const { formResponse } = useFormResponse();
+    const { hiddenValues } = useHiddenFieldValues();
+    const responderForm = useAppSelector(selectResponderForm);
+    const formSlides = slides ?? responderForm?.fields;
     const { theme } = useFormState();
     const { t, language } = useRespondentLanguage();
-    const value = calculatedAnswerValue(formResponse.answers?.[field.id]);
+    const answered = usesAnyAnswer(field, formSlides, formResponse.answers ?? {}, hiddenValues);
+    const value = answered ? calculatedAnswerValue(formResponse.answers?.[field.id]) : null;
     const text = typeof value === 'boolean' ? t(value ? 'FIELD.CALCULATED_TRUE' : 'FIELD.CALCULATED_FALSE') : formatCalculatedValue(value, field.properties?.format, language);
 
     return (

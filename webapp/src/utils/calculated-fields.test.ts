@@ -1,3 +1,6 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
 import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -15,9 +18,13 @@ import {
     localToday,
     parseFormulaText,
     pruneOrphanedCalculationRefs,
+    unansweredAsZero,
+    usesAnyAnswer,
     withCalculatedAnswers
 } from '@app/utils/calculated-fields';
 import { isFieldHiddenByLogic, resolveJumpTargetId } from '@app/utils/conditional-logic';
+import { getAnswerForField } from '@app/utils/form-builder-block-utils';
+import { buildResponsesExport } from '@app/utils/response-export';
 
 const V = (key: string) => ({ var: key });
 
@@ -50,9 +57,13 @@ describe('live recompute', () => {
         // an answer changes: the values follow, and an empty result is removed
         const changed = withCalculatedAnswers(slides, { ...next, qty: num(3) });
         expect(changed.subtotal.number).toBe(15);
+        // unanswered counts as 0 by default
         const cleared = withCalculatedAnswers(slides, { ...next, qty: undefined });
-        expect(cleared.subtotal).toBeUndefined();
-        expect(cleared.total).toBeUndefined();
+        expect(cleared.subtotal).toEqual({ type: 'number', number: 0 });
+        // switched off, the result goes empty and its answer is removed
+        const strict = [page('p', [QTY, PRICE, calc('subtotal', 'Subtotal', { '*': [V('qty'), V('price')] }, { unansweredAsZero: false })])];
+        const strictNext = withCalculatedAnswers(strict, answers);
+        expect(withCalculatedAnswers(strict, { ...strictNext, qty: undefined }).subtotal).toBeUndefined();
     });
 
     it('reads group lists, hidden fields and today', () => {
@@ -69,6 +80,51 @@ describe('live recompute', () => {
 
     it('gives the local date', () => {
         expect(localToday(new Date(2026, 0, 5))).toBe('2026-01-05');
+    });
+});
+
+// Shared with the server (backend tests/app/services/test_calculated_fields.py).
+const SHARED = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/calculated-fields.cases.json'), 'utf8')).cases as Array<{
+    name: string;
+    fields: StandardFormFieldDto[];
+    answers: Record<string, any>;
+    hidden?: Record<string, string>;
+    expected: Record<string, unknown>;
+}>;
+
+describe('shared cases', () => {
+    it.each(SHARED.map((c) => [c.name, c]))('%s', (_name, c) => {
+        expect(computeCalculatedValues([page('p', c.fields)], c.answers, c.hidden ?? {})).toEqual(c.expected);
+    });
+});
+
+describe('unanswered as 0', () => {
+    it('defaults on, off for text, and follows the setting', () => {
+        expect(unansweredAsZero(calc('a', 'A', 1))).toBe(true);
+        expect(unansweredAsZero(calc('a', 'A', 1, { format: { style: 'percent' } }))).toBe(true);
+        expect(unansweredAsZero(calc('a', 'A', 1, { format: { style: 'text' } }))).toBe(false);
+        expect(unansweredAsZero(calc('a', 'A', 1, { format: { style: 'currency' }, unansweredAsZero: false }))).toBe(false);
+    });
+
+    it('shows a value only once an answer it uses is given', () => {
+        const score = calc('score', 'Score', { '+': [V('half'), 1] });
+        const half = calc('half', 'Half', { '/': [V('qty'), 2] });
+        const slides = [page('p', [QTY, half, score, calc('constant', 'C', 3), calc('src', 'Src', { concat: [V('utm')] })])];
+        expect(usesAnyAnswer(score, slides, {})).toBe(false);
+        expect(usesAnyAnswer(score, slides, { qty: num(4) })).toBe(true);
+        expect(usesAnyAnswer(slides[0].properties!.fields![3], slides, {})).toBe(true);
+        expect(usesAnyAnswer(slides[0].properties!.fields![4], slides, {}, { utm: 'mail' })).toBe(true);
+    });
+});
+
+describe('responses and exports', () => {
+    const form = { formId: 'f', title: 'T', builderVersion: 'v2', fields: [page('p', [QTY, TOTAL])] } as any;
+    const response = { responseId: 'r', provider: 'self', createdAt: '', updatedAt: '', answers: { qty: num(2), total: { type: 'number', number: 1234.5 } } } as any;
+
+    it('the table formats the stored value, the export keeps the number', () => {
+        expect(getAnswerForField(response, TOTAL)).toBe('€1,234.50');
+        const { main } = buildResponsesExport(form, [response]);
+        expect(main.rows[0][main.headers.indexOf('Total')]).toBe(1234.5);
     });
 });
 

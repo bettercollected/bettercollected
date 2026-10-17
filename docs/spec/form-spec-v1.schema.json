@@ -896,6 +896,19 @@
           "description": "A calculated field that is computed and stored but never shown to respondents.",
           "title": "Hiddenfromrespondents"
         },
+        "unansweredAsZero": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A calculated field: unanswered questions it uses count as 0 (default: on, unless the format is text).",
+          "title": "Unansweredaszero"
+        },
         "repeat": {
           "anyOf": [
             {

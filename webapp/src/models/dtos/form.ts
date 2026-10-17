@@ -62,6 +62,8 @@ export interface StandardFormFieldProperties {
     format?: { style?: 'number' | 'currency' | 'percent' | 'text'; decimals?: number; currency?: string };
     /** A calculated field respondents never see (computed and stored only). */
     hiddenFromRespondents?: boolean;
+    /** A calculated field: unanswered questions it reads count as 0 (default: on unless the format is text). */
+    unansweredAsZero?: boolean;
 }
 
 export interface StandardFormFieldDto {

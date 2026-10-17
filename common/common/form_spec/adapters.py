@@ -194,6 +194,7 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                     p.format.model_dump(by_alias=True) if p.format is not None else None
                 ),
                 "hiddenFromRespondents": p.hidden_from_respondents,
+                "unansweredAsZero": p.unanswered_as_zero,
             }
         )
         # A group's questions; other types keep no (empty) children list.
@@ -406,6 +407,7 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
         "expression": copy.deepcopy(field.expression),
         "format": field.format.model_dump() if field.format is not None else None,
         "hidden_from_respondents": field.hidden_from_respondents,
+        "unanswered_as_zero": field.unanswered_as_zero,
         "fields": [
             _field_from_spec(child, i) for i, child in enumerate(field.fields or [])
         ],

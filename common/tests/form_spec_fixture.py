@@ -426,6 +426,7 @@ def varied_form_data() -> dict:
                                     "sum": [{"var": "f-household.g-name"}, 1]
                                 },
                                 "hiddenFromRespondents": True,
+                                "unansweredAsZero": False,
                             },
                         },
                     ]

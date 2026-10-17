@@ -33,7 +33,7 @@ function Respondent() {
             <button onClick={() => addFieldNumberAnswer('qty', 3)}>three</button>
             <button onClick={() => addFieldNumberAnswer('qty', 4)}>four</button>
             <button onClick={() => removeAnswer('qty')}>clear</button>
-            <CalculatedField field={TOTAL} />
+            <CalculatedField field={TOTAL} slides={SLIDES} />
         </>
     );
 }

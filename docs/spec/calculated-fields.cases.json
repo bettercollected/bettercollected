@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "description": "Shared cases for calculated fields (backend services/calculated_fields.py, webapp utils/calculated-fields.ts). Each case is one page of fields, the answers (by field id), captured hidden-field values and the expected value of every calculated field (null = no value). Values are numbers, texts or booleans.",
+  "cases": [
+    {
+      "name": "an unanswered number counts as 0 by default",
+      "fields": [
+        {"id": "qty", "type": "number"},
+        {"id": "extra", "type": "number"},
+        {"id": "total", "type": "calculated", "properties": {"expression": {"+": [{"var": "qty"}, {"var": "extra"}]}, "format": {"style": "currency"}}}
+      ],
+      "answers": {"qty": {"type": "number", "number": 3}},
+      "expected": {"total": 3}
+    },
+    {
+      "name": "switched off, an unanswered number leaves the total empty",
+      "fields": [
+        {"id": "qty", "type": "number"},
+        {"id": "extra", "type": "number"},
+        {"id": "total", "type": "calculated", "properties": {"expression": {"+": [{"var": "qty"}, {"var": "extra"}]}, "unansweredAsZero": false}}
+      ],
+      "answers": {"qty": {"type": "number", "number": 3}},
+      "expected": {"total": null}
+    },
+    {
+      "name": "the text format defaults to off",
+      "fields": [
+        {"id": "qty", "type": "number"},
+        {"id": "label", "type": "calculated", "properties": {"expression": {"+": [{"var": "qty"}, 1]}, "format": {"style": "text"}}}
+      ],
+      "answers": {},
+      "expected": {"label": null}
+    },
+    {
+      "name": "the text format can switch it on",
+      "fields": [
+        {"id": "qty", "type": "number"},
+        {"id": "label", "type": "calculated", "properties": {"expression": {"+": [{"var": "qty"}, 1]}, "format": {"style": "text"}, "unansweredAsZero": true}}
+      ],
+      "answers": {},
+      "expected": {"label": 1}
+    },
+    {
+      "name": "an empty text answer counts as 0 too",
+      "fields": [
+        {"id": "code", "type": "short_text"},
+        {"id": "double", "type": "calculated", "properties": {"expression": {"*": [{"var": "code"}, 2]}}}
+      ],
+      "answers": {"code": {"type": "text", "text": ""}},
+      "expected": {"double": 0}
+    },
+    {
+      "name": "a quiz score before any answer is 0",
+      "fields": [
+        {"id": "q1", "type": "yes_no"},
+        {"id": "q2", "type": "yes_no"},
+        {"id": "score", "type": "calculated", "properties": {"expression": {"+": [{"if": [{"==": [{"var": "q1"}, "Yes"]}, 1, 0]}, {"if": [{"==": [{"var": "q2"}, "Yes"]}, 1, 0]}]}, "format": {"style": "percent"}}}
+      ],
+      "answers": {},
+      "expected": {"score": 0}
+    },
+    {
+      "name": "a calculation without a value counts as 0 for the next one",
+      "fields": [
+        {"id": "qty", "type": "number"},
+        {"id": "a", "type": "calculated", "properties": {"expression": {"*": [{"var": "qty"}, 2]}, "unansweredAsZero": false}},
+        {"id": "b", "type": "calculated", "properties": {"expression": {"+": [{"var": "a"}, 1]}}}
+      ],
+      "answers": {},
+      "expected": {"a": null, "b": 1}
+    },
+    {
+      "name": "group lists keep their unanswered items out of averages",
+      "fields": [
+        {"id": "items", "type": "group", "properties": {"repeat": {"minItems": 0, "maxItems": 5}, "fields": [{"id": "amount", "type": "number"}]}},
+        {"id": "average", "type": "calculated", "properties": {"expression": {"avg": [{"var": "items.amount"}]}}}
+      ],
+      "answers": {"items": {"type": "group", "items": [{"amount": {"type": "number", "number": 4}}, {}]}},
+      "expected": {"average": 4}
+    },
+    {
+      "name": "hidden fields are read as they are",
+      "fields": [
+        {"id": "greeting", "type": "calculated", "properties": {"expression": {"concat": ["src:", {"var": "utm"}]}}}
+      ],
+      "hiddenFields": ["utm"],
+      "answers": {},
+      "expected": {"greeting": "src:"}
+    },
+    {
+      "name": "answered values are untouched",
+      "fields": [
+        {"id": "qty", "type": "number"},
+        {"id": "price", "type": "number"},
+        {"id": "total", "type": "calculated", "properties": {"expression": {"*": [{"var": "qty"}, {"var": "price"}]}}}
+      ],
+      "answers": {"qty": {"type": "number", "number": 2}, "price": {"type": "number", "number": 2.5}},
+      "expected": {"total": 5}
+    }
+  ]
+}

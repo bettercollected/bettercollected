@@ -300,6 +300,10 @@ export interface FormField {
    * A calculated field that is computed and stored but never shown to respondents.
    */
   hiddenFromRespondents?: boolean | null;
+  /**
+   * A calculated field: unanswered questions it uses count as 0 (default: on, unless the format is text).
+   */
+  unansweredAsZero?: boolean | null;
   repeat?: Repeat | null;
   /**
    * The questions of a group.

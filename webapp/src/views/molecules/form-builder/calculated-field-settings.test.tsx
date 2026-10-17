@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import AnswerRulesSettings from '@app/views/molecules/form-builder/answer-rules-settings';
 import CalculatedFieldSettings, { openReference, suggestionsFor } from '@app/views/molecules/form-builder/calculated-field-settings';
 
 const field = (id: string, type: string, title: string, properties: any = {}): StandardFormFieldDto => ({ id, index: 0, type, title, properties: { fields: [], ...properties } });
@@ -67,6 +68,36 @@ describe('the formula input', () => {
         expect(screen.queryByRole('listbox')).toBeNull();
     });
 
+    it('keeps the unfinished-reference error back while suggestions are open', () => {
+        render(<Harness />);
+        const input = screen.getByLabelText('Formula') as HTMLTextAreaElement;
+        fireEvent.change(input, { target: { value: '2 * {Pr', selectionStart: 7 } });
+        expect(screen.getByRole('listbox')).toBeTruthy();
+        expect(screen.queryByRole('alert')).toBeNull();
+        expect(input.getAttribute('aria-invalid')).toBeNull();
+        // the list hangs from the input, not from the whole block with the preview
+        expect(screen.getByRole('listbox').parentElement).toBe(input.parentElement);
+        fireEvent.keyDown(input, { key: 'Escape' });
+        expect(screen.getByRole('alert').textContent).toBeTruthy();
+    });
+
+    it('previews one unanswered question, counted as 0 or not', () => {
+        const changes: Array<[string, unknown]> = [];
+        render(<Harness expression={{ '+': [{ var: 'qty' }, { var: 'price' }] }} onChange={(p, v) => changes.push([p, v])} />);
+        expect(screen.getByTestId('calculation-preview').textContent).toBe('20');
+        expect(screen.getByTestId('calculation-preview-empty').textContent).toBe('Without an answer to Quantity: 10');
+        const toggle = screen.getByLabelText('Treat unanswered as 0');
+        expect(toggle.getAttribute('aria-checked')).toBe('true');
+        fireEvent.click(toggle);
+        expect(changes.at(-1)).toEqual(['unansweredAsZero', false]);
+        expect(screen.getByTestId('calculation-preview-empty').textContent).toBe('Without an answer to Quantity: no value');
+    });
+
+    it('gives the selects room for their text (no global select padding)', () => {
+        render(<Harness expression={{ var: 'qty' }} />);
+        expect(screen.getByLabelText('Show as').className).toContain('py-0');
+    });
+
     it('sets the format and the visibility', () => {
         const changes: Array<[string, unknown]> = [];
         render(<Harness expression={{ var: 'qty' }} onChange={(p, v) => changes.push([p, v])} />);
@@ -75,6 +106,13 @@ describe('the formula input', () => {
         expect(screen.getByTestId('calculation-preview').textContent).toBe('€10.00');
         fireEvent.click(screen.getByLabelText('Hide from respondents'));
         expect(changes.at(-1)).toEqual(['hiddenFromRespondents', true]);
+    });
+});
+
+describe('the short-text Format select', () => {
+    it('has room for its text too', () => {
+        render(<AnswerRulesSettings field={field('name', FieldTypes.SHORT_TEXT, 'Name')} onChange={() => {}} />);
+        expect(screen.getByLabelText('Format').className).toContain('py-0');
     });
 });
 

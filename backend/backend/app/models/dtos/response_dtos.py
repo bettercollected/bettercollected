@@ -119,6 +119,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     expression: Optional[Any] = None
     format: Optional[CalculationFormat] = None
     hidden_from_respondents: Optional[bool] = None
+    unanswered_as_zero: Optional[bool] = None
 
 
 class StandardFormFieldCamelModel(CamelModel):

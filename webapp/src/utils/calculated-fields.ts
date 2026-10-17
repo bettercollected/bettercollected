@@ -51,6 +51,9 @@ const NOT_VARIABLE_TYPES = new Set<string>([
 
 export const isCalculatedField = (field: StandardFormFieldDto | undefined | null): boolean => field?.type === FieldTypes.CALCULATED;
 
+/** Does a respondent see this field? Not a calculation kept from them ("internal result"). */
+export const isShownToRespondents = (field: StandardFormFieldDto | undefined | null): boolean => !(isCalculatedField(field) && field?.properties?.hiddenFromRespondents);
+
 const isRepeatingGroupField = (field: StandardFormFieldDto): boolean => field?.type === FieldTypes.GROUP && !!field.properties?.repeat;
 
 /** The fields on the pages of a page-based form. */
@@ -276,19 +279,88 @@ export function buildVariables(slides: StandardFormFieldDto[] | undefined | null
     return variables;
 }
 
+/**
+ * "Unanswered as 0": does an unanswered question (or an empty calculation)
+ * this calculation reads count as 0? Its own setting, else on unless it
+ * shows text. Group lists and hidden fields are always read as they are.
+ * Shared cases with the server: docs/spec/calculated-fields.cases.json.
+ */
+export function unansweredAsZero(field: StandardFormFieldDto | undefined | null): boolean {
+    const setting = field?.properties?.unansweredAsZero;
+    if (setting !== undefined && setting !== null) return !!setting;
+    return (field?.properties?.format?.style ?? 'number') !== 'text';
+}
+
+/** The variables a calculation reads: with "unanswered as 0", its empty question and calculation values become 0. */
+export function readingFor(field: StandardFormFieldDto, variables: Record<string, unknown>, questions: Set<string>): Record<string, unknown> {
+    if (!unansweredAsZero(field)) return variables;
+    const reading = { ...variables };
+    expressionVariables(field.properties?.expression).forEach((key) => {
+        if (questions.has(key) && (reading[key] === undefined || reading[key] === null || reading[key] === '')) reading[key] = 0;
+    });
+    return reading;
+}
+
+/** Keys that read one question's answer or one calculation (what "unanswered as 0" applies to). */
+export function questionKeys(slides: StandardFormFieldDto[] | undefined | null): Set<string> {
+    const keys = new Set<string>();
+    pageFields(slides).forEach((field) => {
+        if (!field?.id || field.internal || NOT_VARIABLE_TYPES.has(field.type) || field.type === FieldTypes.GROUP) return;
+        keys.add(field.id);
+    });
+    return keys;
+}
+
+/**
+ * Has the respondent given any answer this calculation uses (directly or
+ * through other calculations)? Until then the respondent page shows "Not
+ * calculated yet" instead of, say, a 0% score. A formula that uses no
+ * answers is always shown.
+ */
+export function usesAnyAnswer(field: StandardFormFieldDto, slides: StandardFormFieldDto[] | undefined | null, answers: Record<string, any>, hiddenValues: Record<string, string> = {}): boolean {
+    const byId = new Map(pageFields(slides).map((f) => [f.id, f]));
+    const seen = new Set<string>();
+    const sources: string[] = [];
+    const walk = (calc: StandardFormFieldDto) => {
+        expressionVariables(calc.properties?.expression).forEach((key) => {
+            if (seen.has(key)) return;
+            seen.add(key);
+            const source = byId.get(key);
+            if (source && isCalculatedField(source)) walk(source);
+            else sources.push(key);
+        });
+    };
+    walk(field);
+    if (!sources.length) return true;
+    const filled = (value: unknown) => value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0);
+    return sources.some((key) => {
+        const dot = key.indexOf('.');
+        if (dot > 0) {
+            const groupId = key.slice(0, dot);
+            const child = byId.get(groupId)?.properties?.fields?.find((f) => f.id === key.slice(dot + 1));
+            return !!child && getGroupAnswerItems(answers?.[groupId]).some((item) => filled(getComparableAnswerValue(item?.[child.id], child.type)));
+        }
+        const source = byId.get(key);
+        if (source) return filled(getComparableAnswerValue(answers?.[key], source.type));
+        return filled(hiddenValues?.[key]);
+    });
+}
+
 /** Every calculated field's value (null when it has none), in dependency order. */
 export function computeCalculatedValues(slides: StandardFormFieldDto[] | undefined | null, answers: Record<string, any>, hiddenValues: Record<string, string> = {}, today?: string, hiddenNames?: string[]): Record<string, ExprValue> {
     const calcs = getCalculatedFields(slides).filter((field) => field.id && !field.internal);
     if (!calcs.length) return {};
     const variables = buildVariables(slides, answers, hiddenValues, hiddenNames);
+    const questions = questionKeys(slides);
     const values: Record<string, ExprValue> = {};
     calcs.forEach((field) => (values[field.id] = null));
     evaluationOrder(calcs).forEach((field) => {
         const expression = field.properties?.expression;
         let value: ExprValue = null;
         if (expression !== undefined && expression !== null) {
+            const reading = readingFor(field, variables, questions);
             try {
-                value = evaluateExpression(expression, variables, { today: today ?? null });
+                value = evaluateExpression(expression, reading, { today: today ?? null });
             } catch {
                 value = null;
             }
