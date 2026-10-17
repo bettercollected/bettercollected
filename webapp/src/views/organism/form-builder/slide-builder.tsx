@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Copy, Lock as LockIcon, Trash } from 'lucide-react';
+import { Copy, Lock as LockIcon, Plus, Trash } from 'lucide-react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { formFieldsList } from '@app/constants/form-fields';
+import { insertCatalogItem } from '@app/constants/insert-field-catalog';
 import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -17,9 +18,12 @@ import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { useInsertTarget } from '@app/store/jotai/insert-target';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { leafletMarginWidth, leafletSection, pageSectionTitle, questionNumbers } from '@app/utils/leaflet-sections';
+import { ownTitleText } from '@app/utils/publish-checks';
+import CanvasInsertMenu from '@app/views/molecules/form-builder/canvas-insert-menu';
 import MoveUpDown from '@app/views/molecules/form-builder/move-up-down';
 import PlainLanguageHints from '@app/views/molecules/form-builder/plain-language-hints';
 import SectionTitleInput from '@app/views/molecules/form-builder/section-title-input';
@@ -32,11 +36,46 @@ import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 import FieldDescription from './fields/field-description';
 import renderFieldWrapper from './fields/render-field';
 
-// Human-readable name for the selected field's type, e.g. "Multiple Choice".
+// Human-readable name for the selected field's type, e.g. "Multiple choice".
 function fieldTypeLabel(type?: string) {
-    const known = formFieldsList.find((f) => f.type === type);
+    const known = insertCatalogItem(type) ?? formFieldsList.find((f) => f.type === type);
     if (known) return known.name;
     return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
+}
+
+/** What a screen reader announces for a field on the canvas: its type and title. */
+export function canvasFieldName(field: StandardFormFieldDto) {
+    const title = ownTitleText(field);
+    if (field.type === FieldTypes.TEXT) return title ? `Text block: ${title}` : 'Empty text block';
+    const type = fieldTypeLabel(field.type);
+    return title ? `${type}: ${title}` : `${type}: untitled`;
+}
+
+/**
+ * A "+" in the gap above a field (or below the last one): adds a field at
+ * that position. Shows on hover of the gap and on keyboard focus.
+ */
+function InsertSlot({ slide, index, edge }: { slide: StandardFormFieldDto; index: number; edge: 'before' | 'after' }) {
+    const { setInsertTarget } = useInsertTarget();
+    const id = edge === 'after' ? `canvas-end-${slide.id}` : `insert-slot-${slide.id}-${index}`;
+    return (
+        <div className={cn('group/slot absolute inset-x-0 z-[5] flex h-6 items-center justify-center', edge === 'before' ? '-top-9' : '-bottom-9')}>
+            <span aria-hidden="true" className="absolute inset-x-0 top-1/2 h-px bg-[#123FC9] opacity-0 transition-opacity group-hover/slot:opacity-40" />
+            <button
+                type="button"
+                id={id}
+                aria-label={edge === 'after' ? 'Add a field at the end of the page' : `Add a field before question ${index + 1}`}
+                title="Add a field here"
+                className="relative flex h-6 w-6 items-center justify-center rounded-full border border-[#123FC9] bg-white text-[#123FC9] opacity-0 transition-opacity group-hover/slot:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    setInsertTarget({ slideId: slide.id, slideIndex: slide.index, fieldIndex: index, anchorId: id, returnFocusId: id });
+                }}
+            >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+        </div>
+    );
 }
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
@@ -47,7 +86,10 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();
     const logo = useBuilderFormLogo();
-    const { navbarState, setNavbarState } = useNavbarState();
+    const { navbarState } = useNavbarState();
+    const { setInsertTarget } = useInsertTarget();
+    // The page being edited (not a preview): insert slots, shortcuts, focus.
+    const editable = !disabled && !isScaledDown;
     // Plain-language tips use the form's declared language when it has one.
     const form = useAppSelector(selectForm);
     const plainLanguage = { formId: form?.formId, formLanguage: form?.settings?.language };
@@ -98,7 +140,11 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                             style={{ background: leafletColours(theme).band, color: theme?.primary }}
                             data-testid="leaflet-canvas-opening"
                         >
+                            {/* Selected by focus like any field; the click keeps the mat from clearing it. */}
+                            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
                             <div
+                                role="group"
+                                aria-label={canvasFieldName(opening)}
                                 tabIndex={-1}
                                 onClick={selectOpening}
                                 onFocus={selectOpening}
@@ -128,7 +174,12 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                 vertical placement as the respondent page (form-column.ts);
                 pt-12 matches the space the respondent page keeps for its
                 header bar. */}
-            <div className={cn('w-full', leaflet ? 'pt-7' : 'pt-12')} style={marginVar}>
+            <div
+                className={cn('w-full outline-hidden', leaflet ? 'pt-7' : 'pt-12')}
+                style={marginVar}
+                // Keyboard shortcuts act while focus is on the canvas (use-builder-shortcuts).
+                {...(editable ? { 'data-builder-canvas': true, tabIndex: -1 } : {})}
+            >
                 <div
                     className={cn(
                         FORM_COLUMN,
@@ -165,10 +216,23 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                             className: cn('relative flex w-full min-w-0 flex-row items-center', fieldSpacingClass(field, index === slideFields.length - 1))
                                         } as any)}
                                     >
+                                        {editable && <InsertSlot slide={slide} index={index} edge="before" />}
+                                        {editable && index === slideFields.length - 1 && <InsertSlot slide={slide} index={index + 1} edge="after" />}
+                                        {/* Selecting goes by focus, for keyboard and pointer alike; the
+                                            click handler only keeps the canvas mat from clearing it. */}
+                                        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
                                         <div
                                             key={index}
-                                            tabIndex={0}
-                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#123FC9]', 'w-full cursor-pointer p-1')}
+                                            role="group"
+                                            aria-label={canvasFieldName(field)}
+                                            // Tab reaches each question, so the keyboard can select it.
+                                            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                                            tabIndex={editable ? 0 : -1}
+                                            data-canvas-field={editable ? field.id : undefined}
+                                            className={cn(
+                                                'w-full cursor-pointer rounded-lg p-1 outline-hidden focus-visible:ring-2 focus-visible:ring-[#123FC9] focus-visible:ring-offset-2',
+                                                activeFieldComponent?.id === field.id && 'ring-2 ring-[#123FC9]'
+                                            )}
                                             onFocus={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
@@ -201,7 +265,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                         className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-brand-100 px-1.5 py-[2px] text-[10px] font-semibold text-brand-500"
                                                         title="This field is shown/hidden by a logic rule"
                                                     >
-                                                        <LogicOutlinedIcon className="h-3 w-3" />
+                                                        <LogicOutlinedIcon className="h-3 w-3" aria-hidden="true" />
                                                         Logic
                                                     </div>
                                                 )}
@@ -209,30 +273,34 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                     // Selection toolbar: what this field is, then what you can do
                                                     // with it. Delete is last and quiet-red — a destructive action
                                                     // shouldn't be the selection's only (or loudest) affordance.
-                                                    <div className="absolute -top-12 right-0 z-10 flex items-center overflow-hidden rounded border border-black-300 bg-white shadow-large">
+                                                    <div role="toolbar" aria-label="Question actions" className="absolute -top-12 right-0 z-20 flex items-center overflow-hidden rounded border border-black-300 bg-white shadow-large">
                                                         <span className="px-2.5 text-[11px] font-semibold tracking-wide text-black-600 uppercase">{fieldTypeLabel(field.type)}</span>
                                                         <span className="h-5 w-px bg-black-400" aria-hidden="true" />
                                                         <button
                                                             type="button"
-                                                            title="Duplicate question"
-                                                            className="p-2 text-black-700 hover:bg-black-100"
+                                                            aria-label="Duplicate question"
+                                                            aria-keyshortcuts="Control+D Meta+D"
+                                                            title="Duplicate question (Ctrl/Cmd+D)"
+                                                            className="p-2 text-black-700 hover:bg-black-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]"
                                                             onClick={(event) => {
                                                                 event.stopPropagation();
                                                                 duplicateField(slide.index, index);
                                                             }}
                                                         >
-                                                            <Copy width={16} height={16} />
+                                                            <Copy width={16} height={16} aria-hidden="true" />
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            title="Delete question"
-                                                            className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF]"
+                                                            aria-label="Delete question"
+                                                            aria-keyshortcuts="Delete"
+                                                            title="Delete question (Delete)"
+                                                            className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]"
                                                             onClick={(event) => {
                                                                 event.stopPropagation();
                                                                 deleteQuestion(slide.index, index);
                                                             }}
                                                         >
-                                                            <Trash width={16} height={16} />
+                                                            <Trash width={16} height={16} aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 )}
@@ -272,15 +340,19 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                             <div className="flex h-full w-full items-center justify-center @min-[448px]/page:col-span-12">
                                 <button
                                     type="button"
+                                    id={`canvas-end-${slide.id}`}
+                                    aria-keyshortcuts="/"
                                     className="flex flex-col items-center gap-2 rounded border border-dashed border-black-400 bg-white/60 px-10 py-8 text-sm font-medium text-black-700 transition-colors hover:border-black-600 hover:text-black-900"
                                     onClick={(event) => {
                                         event.stopPropagation();
-                                        setNavbarState({ ...navbarState, insertMenuOpen: true });
+                                        setInsertTarget({ slideId: slide.id, slideIndex: slide.index, fieldIndex: 0, anchorId: `canvas-end-${slide.id}`, returnFocusId: `canvas-end-${slide.id}` });
                                     }}
                                 >
-                                    <span className="text-2xl leading-none">＋</span>
+                                    <span className="text-2xl leading-none" aria-hidden="true">
+                                        ＋
+                                    </span>
                                     Add a question
-                                    <span className="text-xs font-normal text-black-600">Pick a field type from the Insert menu</span>
+                                    <span className="text-xs font-normal text-black-600">Pick a field type, or press / on the page</span>
                                 </button>
                             </div>
                         ) : (
@@ -289,6 +361,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                     </AnimatePresence>
                 </div>
             </div>
+            {editable && <CanvasInsertMenu slide={slide} />}
         </SlideLayoutWrapper>
     );
 };

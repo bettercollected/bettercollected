@@ -912,9 +912,38 @@ export default function useFormFieldsAtom() {
         return { next, prunedReferences };
     };
 
+    // Insert a field at a position on a page (the canvas "+" and "/" menu).
+    // With `replaceFieldId` the new field takes that field's place instead
+    // (an empty text block someone typed "/" in), in one undo step.
+    const addFieldAt = (slideField: StandardFormFieldDto, slideIndex: number, fieldIndex: number, replaceFieldId?: string) => {
+        const slide = formFields[slideIndex];
+        if (!slide) return;
+        const fields = [...(slide.properties?.fields ?? [])];
+        const replaceAt = replaceFieldId ? fields.findIndex((field) => field.id === replaceFieldId) : -1;
+        if (replaceAt >= 0) fields.splice(replaceAt, 1, slideField);
+        else fields.splice(Math.min(Math.max(fieldIndex, 0), fields.length), 0, slideField);
+        slide.properties = { ...(slide.properties || {}), fields: fields.map((field, index) => ({ ...field, index })) };
+        if (replaceAt >= 0) {
+            pruneOrphanedConditions(formFields);
+            pruneOrphanedPipes(formFields);
+            pruneOrphanedDateRules(formFields);
+        }
+        setFormFields([...formFields]);
+    };
+
+    // The picture or video an image/video content block shows.
+    const updateFieldAttachment = (slideIndex: number, fieldIndex: number, attachment: StandardFormFieldDto['attachment']) => {
+        const field = formFields?.[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!field) return;
+        formFields[slideIndex]!.properties!.fields![fieldIndex] = { ...field, attachment };
+        setFormFields([...formFields], `attachment:${field.id}`);
+    };
+
     return {
         movePage,
         moveFieldToPage,
+        addFieldAt,
+        updateFieldAttachment,
         formFields,
         setFormFields,
         initFormFields,
