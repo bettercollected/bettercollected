@@ -278,9 +278,21 @@ class OpenAIFormProvider(OpenAIClientCalls, AIFormProvider):
         *,
         max_output_tokens: Optional[int] = None,
         json_mode: bool = False,
+        json_schema: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Plain multi-turn chat (no tools) — used by AI form editing."""
-        extra = {"response_format": {"type": "json_object"}} if json_mode else {}
+        """Plain multi-turn chat (no tools) — used by AI form editing.
+        ``json_schema`` ({"name", "schema"}, strict-mode rules) asks for
+        structured output; otherwise ``json_mode`` asks for a JSON object."""
+        extra: Dict[str, Any] = {}
+        if json_schema is not None:
+            extra = {
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {**json_schema, "strict": True},
+                }
+            }
+        elif json_mode:
+            extra = {"response_format": {"type": "json_object"}}
         response = await self._complete(
             messages=[{"role": "system", "content": system}, *messages],
             max_completion_tokens=max_output_tokens

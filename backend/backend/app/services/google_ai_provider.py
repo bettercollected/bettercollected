@@ -254,8 +254,12 @@ class GoogleAIFormProvider(AIFormProvider):
         *,
         max_output_tokens: Optional[int] = None,
         json_mode: bool = False,
+        json_schema: Optional[dict] = None,
     ) -> str:
-        """Plain multi-turn chat (no tools) — used by AI form editing."""
+        """Plain multi-turn chat (no tools) — used by AI form editing.
+        ``json_schema`` is not passed on (Gemini's schema dialect differs
+        from strict JSON schema): JSON mode, and the caller validates."""
+        json_mode = json_mode or json_schema is not None
         generation_config: Dict[str, Any] = {
             "max_output_tokens": max_output_tokens or settings.ai.MAX_OUTPUT_TOKENS_CHAT
         }

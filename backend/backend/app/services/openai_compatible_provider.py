@@ -121,7 +121,11 @@ class OpenAICompatibleFormProvider(OpenAIClientCalls, AIFormProvider):
         *,
         max_output_tokens: Optional[int] = None,
         json_mode: bool = False,
+        json_schema: Optional[dict] = None,
     ) -> str:
+        # ``json_schema``: compatible servers differ in what they accept, so
+        # only JSON mode is asked for and the reply is validated by the caller.
+        json_mode = json_mode or json_schema is not None
         response = await self._complete(
             messages=[{"role": "system", "content": system}, *messages],
             max_tokens=max_output_tokens or settings.ai.MAX_OUTPUT_TOKENS_CHAT,

@@ -74,6 +74,7 @@ class AIFormProvider(abc.ABC):
         *,
         max_output_tokens: Optional[int] = None,
         json_mode: bool = False,
+        json_schema: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Multi-turn chat completion (used by AI form editing).
 
@@ -83,6 +84,9 @@ class AIFormProvider(abc.ABC):
                 ending with the latest user message.
             max_output_tokens: Output token cap (default AI_MAX_OUTPUT_TOKENS_CHAT).
             json_mode: Ask for a JSON object where the provider supports it.
+            json_schema: {"name", "schema"}: a strict JSON schema the reply
+                must follow, where the provider supports structured output
+                (others fall back to JSON mode; callers validate either way).
 
         Returns:
             The assistant's raw text reply.

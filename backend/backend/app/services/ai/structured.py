@@ -7,7 +7,7 @@ with ``ai_unusable`` instead of reaching the form. Providers that support it
 are also asked for JSON mode or a strict JSON schema, so the retry is rare.
 """
 
-from typing import Any, Dict, List, Literal, Optional, Type, TypeVar
+from typing import Any, Callable, Dict, List, Literal, Optional, Type, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -91,6 +91,40 @@ def drop_nulls(value: Any) -> Any:
     return value
 
 
+async def chat_structured(
+    provider,
+    system: str,
+    messages: List[Dict[str, Any]],
+    parse: Callable[[str], T],
+    *,
+    max_output_tokens: int,
+    unusable_message: Optional[str] = None,
+    json_schema: Optional[Dict[str, Any]] = None,
+) -> T:
+    """One chat call whose reply ``parse`` accepts (it raises InvalidReply
+    otherwise), retried once with the problems; ``ai_unusable`` when the
+    retry is not accepted either. ``json_schema`` ({"name", "schema"}, a
+    strict schema) is passed to providers that support structured output;
+    the others are asked for JSON mode and rely on ``parse``."""
+    options: Dict[str, Any] = {"max_output_tokens": max_output_tokens, "json_mode": True}
+    if json_schema is not None:
+        options["json_schema"] = json_schema
+    raw = await provider.chat(system, messages, **options)
+    try:
+        return parse(raw)
+    except InvalidReply as invalid:
+        problems = invalid.problems
+    retry = list(messages) + [
+        {"role": "assistant", "content": raw or ""},
+        {"role": "user", "content": correction_message(problems)},
+    ]
+    raw = await provider.chat(system, retry, **options)
+    try:
+        return parse(raw)
+    except InvalidReply:
+        raise ai_unusable(unusable_message) from None
+
+
 async def chat_json(
     provider,
     system: str,
@@ -102,24 +136,14 @@ async def chat_json(
 ) -> T:
     """One chat call whose reply must be JSON fitting ``model``, retried
     once with the problems; ``ai_unusable`` when the retry does not fit."""
-    raw = await provider.chat(
-        system, messages, max_output_tokens=max_output_tokens, json_mode=True
+    return await chat_structured(
+        provider,
+        system,
+        messages,
+        lambda raw: parse_reply(raw, model),
+        max_output_tokens=max_output_tokens,
+        unusable_message=unusable_message,
     )
-    try:
-        return parse_reply(raw, model)
-    except InvalidReply as invalid:
-        problems = invalid.problems
-    retry = list(messages) + [
-        {"role": "assistant", "content": raw or ""},
-        {"role": "user", "content": correction_message(problems)},
-    ]
-    raw = await provider.chat(
-        system, retry, max_output_tokens=max_output_tokens, json_mode=True
-    )
-    try:
-        return parse_reply(raw, model)
-    except InvalidReply:
-        raise ai_unusable(unusable_message) from None
 
 
 # ---------------------------------------------------------------------------
