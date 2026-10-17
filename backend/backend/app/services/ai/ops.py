@@ -2678,13 +2678,13 @@ def ref_dependencies(ops: List[FormOp]) -> List[Set[int]]:
 def _calculation_problems(form: StandardForm) -> Optional[List[Any]]:
     """The form's calculation problems, or None when it has no calculated
     field (nothing to keep valid)."""
-    if not any(
-        field.type == StandardFormFieldType.CALCULATED
-        for page in _pages(form)
-        for field in (page.properties.fields if page.properties else None) or []
-    ):
-        return None
-    return calculated_field_problems(form)
+    pending = list(form.fields or [])
+    while pending:
+        field = pending.pop()
+        if field.type == StandardFormFieldType.CALCULATED:
+            return calculated_field_problems(form)
+        pending.extend((field.properties.fields if field.properties else None) or [])
+    return None
 
 
 def _carries_calculation(op) -> bool:

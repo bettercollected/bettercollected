@@ -42,7 +42,7 @@ from common.expressions import (
     format_expression_value,
     validate_expression,
 )
-from common.models.standard_form import _find_cycle
+from common.models.standard_form import _find_cycle, is_iso_date
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.repeating_groups import (
@@ -51,6 +51,8 @@ from backend.app.services.repeating_groups import (
 )
 
 CALCULATED = "calculated"
+# Most calculated fields one form may have (every save path refuses more).
+MAX_CALCULATED_FIELDS = 50
 SLIDE = "slide"
 GROUP = "group"
 MATRIX = "matrix"
@@ -192,11 +194,53 @@ def expression_variables(ast: Any) -> List[str]:
     return found
 
 
+def _misplaced_calculations(form: Any) -> List[Any]:
+    """Calculated fields of a page-based form that are not directly on a
+    page (inside a group, or at the top next to the pages). Only page-level
+    calculations are computed. Forms without any page (imports) keep
+    whatever their provider gave them: nothing there is computed."""
+    top = list(_get(form, "fields") or [])
+    if not any(_type(field) == SLIDE for field in top):
+        return []
+    on_pages = {
+        id(field)
+        for slide in top
+        if _type(slide) == SLIDE
+        for field in _children(slide)
+    }
+    misplaced: List[Any] = []
+    pending = list(_get(form, "fields") or [])
+    while pending:
+        field = pending.pop()
+        if is_calculated(field) and id(field) not in on_pages:
+            misplaced.append(field)
+        pending.extend(_children(field))
+    return misplaced
+
+
 def calculated_field_problems(form: Any) -> List[CalculationProblem]:
     """Problems with the calculated fields of a form (see the module doc)."""
+    problems: List[CalculationProblem] = [
+        CalculationProblem(
+            str(_get(field, "id") or ""),
+            "",
+            f"'{_title(field)}' must be on a page: calculations cannot be placed "
+            "inside a group or in a form without pages.",
+        )
+        for field in _misplaced_calculations(form)
+    ]
     calcs = calculated_fields(form)
     if not calcs:
-        return []
+        return problems
+    if len(calcs) > MAX_CALCULATED_FIELDS:
+        problems.append(
+            CalculationProblem(
+                "",
+                "",
+                f"A form can have at most {MAX_CALCULATED_FIELDS} calculated fields; "
+                f"this one has {len(calcs)}.",
+            )
+        )
     known = variable_keys(form)
     internal_ids = {
         str(_get(field, "id"))
@@ -205,10 +249,18 @@ def calculated_field_problems(form: Any) -> List[CalculationProblem]:
     }
     calc_ids = {str(_get(field, "id")) for field in calcs if _get(field, "id")}
     by_id = {str(_get(field, "id")): field for field in calcs}
-    problems: List[CalculationProblem] = []
     edges: Dict[str, List[str]] = {}
     for field in calcs:
         field_id = str(_get(field, "id") or "")
+        if _get(_get(field, "validations"), "required"):
+            problems.append(
+                CalculationProblem(
+                    field_id,
+                    "",
+                    f"'{_title(field)}' is a calculation: it is computed, never "
+                    "answered, so it cannot be required.",
+                )
+            )
         if _get(field, "internal"):
             problems.append(
                 CalculationProblem(
@@ -462,8 +514,10 @@ def apply_calculated_fields(
     stored, and nothing is stored for an empty result (``keep_empty``: an
     empty answer instead, so that an edit overwrites a stored value)."""
     calcs = calculated_fields(form)
-    if not calcs or answers is None:
+    if not calcs:
         return answers
+    # no answers at all still gives every calculation its value (a sum of
+    # nothing is 0), so logic on it is enforced
     out = dict(answers) if isinstance(answers, dict) else {}
     for field in calcs:
         out.pop(str(_get(field, "id")), None)
@@ -474,3 +528,74 @@ def apply_calculated_fields(
         if has_calculated_value(answer) or keep_empty:
             out[field_id] = answer
     return out
+
+
+def hidden_calculation_ids(form: Any) -> Set[str]:
+    """Ids of the calculations a form keeps from respondents."""
+    return {
+        str(_get(field, "id"))
+        for field in calculated_fields(form)
+        if _get(field, "id")
+        and _get(_get(field, "properties"), "hidden_from_respondents")
+    }
+
+
+def drop_answers(response: Any, ids: Set[str]) -> Any:
+    """Remove the answers to ``ids`` from a (decrypted) response in place:
+    a respondent's copy never carries a calculation kept from them."""
+    answers = _get(response, "answers")
+    if ids and isinstance(answers, dict):
+        for key in ids:
+            answers.pop(key, None)
+    return response
+
+
+def respondent_today(client_today: Any) -> str:
+    """The "today" a submission is computed with: the respondent's own date
+    (their browser computed with it) when it is a ``YYYY-MM-DD`` date within
+    a day of the UTC date (``date_rules.today_range``), else the server's."""
+    from backend.app.services.date_rules import today_range
+
+    if isinstance(client_today, str) and is_iso_date(client_today):
+        low, high = today_range()
+        if low <= client_today <= high:
+            return client_today
+    return today_iso()
+
+
+def drop_draft_calculations(answers: Any, draft: Any, published: Any) -> Any:
+    """Answers without values of calculated fields that exist only in the
+    draft (not in the version respondents fill): nothing computes them."""
+    if not isinstance(answers, dict) or draft is None or published is None:
+        return answers
+    published_ids = {str(_get(field, "id")) for field in calculated_fields(published)}
+    draft_only = {
+        str(_get(field, "id"))
+        for field in calculated_fields(draft)
+        if str(_get(field, "id")) not in published_ids
+    }
+    if not draft_only:
+        return answers
+    return {key: value for key, value in answers.items() if key not in draft_only}
+
+
+def calculate_and_check(
+    form: Any,
+    answers: Any,
+    form_id: str,
+    hidden_values: Optional[Mapping[str, Any]] = None,
+    today: Optional[str] = None,
+    keep_empty: bool = False,
+    known_ids: Optional[Set[str]] = None,
+    only: Optional[Iterable[str]] = None,
+) -> Any:
+    """The server's calculated values, then answer validation with them
+    (Required, rules, types, logic and jumps): one call, run off the event
+    loop by the caller. Returns the answers with the calculated values."""
+    from backend.app.services.answer_validation import check_answers
+
+    answers = apply_calculated_fields(
+        form, answers, hidden_values, today=today, keep_empty=keep_empty
+    )
+    check_answers(form, answers, form_id, known_ids=known_ids, only=only)
+    return answers
