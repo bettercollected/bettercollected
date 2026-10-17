@@ -34,7 +34,7 @@ more than the person who created it may do at the time of the call.
 - Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as
   `If-Match` (428 without, 412 when stale), operations accept it.
 - Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.
-- Rate limit per API key: 429 with `Retry-After`.
+- Rate limits per API key and per workspace: 429 with `Retry-After`.
 """
 
 
@@ -104,7 +104,9 @@ def build_public_api() -> FastAPI:
         version=PUBLIC_API_VERSION,
         description=DESCRIPTION,
         openapi_url="/openapi.json",
-        docs_url="/docs",
+        # No interactive docs: they would load their scripts from a CDN. The
+        # document is served here and committed in docs/api.
+        docs_url=None,
         redoc_url=None,
         servers=[{"url": "/api/v1" + PUBLIC_API_PATH}],
         separate_input_output_schemas=False,

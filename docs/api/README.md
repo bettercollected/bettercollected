@@ -7,7 +7,8 @@ services.
 
 - Base URL: `https://<your instance>/api/v1/public/v1`
 - OpenAPI document: [`public-v1.openapi.json`](public-v1.openapi.json), also
-  served at `/api/v1/public/v1/openapi.json` (interactive docs at `/docs`)
+  served at `/api/v1/public/v1/openapi.json`. The API serves no interactive
+  docs page; open the document in the OpenAPI viewer of your choice
 - SDKs: [`sdk/typescript`](../../sdk/typescript) and
   [`sdk/python`](../../sdk/python) (with the `bettercollected` command line
   tool)
@@ -92,15 +93,18 @@ returned as `internalAnswers`.
 `POST /forms`, `POST .../ops` and `POST .../publish` accept an
 `Idempotency-Key` header (1 to 255 printable characters). Within 24 hours,
 the same key with the same request (method, path and body) returns the first
-response with `Idempotent-Replayed: true` and runs nothing again; the same
+response with `Idempotent-Replayed: true` and runs nothing again (a created or
+edited form is returned as it is now, with its current `ETag`); the same
 key with a different request is refused with 422 `idempotency_key_reused`.
 Keys are per API key.
 
 ## Limits
 
-- Requests per API key: 120 a minute by default
-  (`API_PUBLIC_API_REQUESTS_PER_WINDOW`, `API_PUBLIC_API_WINDOW_SECONDS`);
-  beyond that 429 with `Retry-After`.
+- Requests per API key: 120 a minute by default, and 600 a minute for all of
+  a workspace's keys together (`API_PUBLIC_API_REQUESTS_PER_WINDOW`,
+  `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW`,
+  `API_PUBLIC_API_WINDOW_SECONDS`); beyond that 429 with `Retry-After`.
+- Lists: `size` at most 100, `page` at most 10000.
 - Request bodies: at most 1 MB (413). A document has at most 200 pages and
   2000 fields.
 

@@ -20,6 +20,7 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
+from backend.app.services import idempotency
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.config import settings
 from tests.app.controllers.data import formResponse, testUser, testUser1, testUser2
@@ -256,6 +257,15 @@ class TestForms:
             assert listed.json()["total"] == 3
             seen += [f["formId"] for f in listed.json()["items"]]
         assert sorted(seen) == sorted(ids)
+
+    async def test_pages_and_sizes_are_capped(self, client: AsyncClient, workspace):
+        token = await _token(workspace.id)
+        for params in ({"page": 10_001}, {"size": 101}, {"page": 0}):
+            _is_error(
+                await client.get(f"{BASE}/forms", params=params, headers=_auth(token)),
+                422,
+                "invalid_request",
+            )
 
     async def test_an_invalid_document_creates_nothing(
         self, client: AsyncClient, workspace
@@ -641,11 +651,46 @@ class TestIdempotency:
         assert second.headers["Idempotent-Replayed"] == "true"
         assert second.json() == first.json()
         assert second.headers["ETag"] == first.headers["ETag"]
+        assert second.headers["Location"] == first.headers["Location"]
         assert await _form_count(workspace.id) == 1
+
+        # only a summary is kept, never the form
+        [api_key] = await container.workspace_api_key_repo().list_by_workspace(
+            workspace.id
+        )
+        record = await container.idempotency_repo().find(
+            idempotency._record_id(str(api_key.id), "create-1")
+        )
+        assert json.loads(record.body) == {
+            "kind": "created",
+            "formId": first.json()["formId"],
+        }
 
         # another key is another request
         await _create(client, token, **{"Idempotency-Key": "create-2"})
         assert await _form_count(workspace.id) == 2
+
+    async def test_a_replayed_edit_shows_the_form_as_it_is_now(
+        self, client: AsyncClient, workspace
+    ):
+        token = await _token(workspace.id)
+        form_id = (await _create(client, token)).json()["formId"]
+        url = f"{BASE}/forms/{form_id}/ops"
+        ops = {"ops": [{"op": "update_form_info", "title": "First"}]}
+        headers = _auth(token, **{"Idempotency-Key": "edit-1"})
+        first = await client.post(url, json=ops, headers=headers)
+        assert first.status_code == 200, first.text
+        later = await client.post(
+            url,
+            json={"ops": [{"op": "update_form_info", "title": "Later"}]},
+            headers=_auth(token),
+        )
+        replay = await client.post(url, json=ops, headers=headers)
+        assert replay.status_code == 200
+        assert replay.headers["Idempotent-Replayed"] == "true"
+        assert replay.json()["results"] == first.json()["results"]
+        assert replay.json()["form"]["title"] == "Later"  # not run again
+        assert replay.headers["ETag"] == later.headers["ETag"]
 
     async def test_the_same_key_with_another_body_is_422(
         self, client: AsyncClient, workspace
@@ -738,6 +783,23 @@ class TestRateLimit:
         assert (
             await client.get(f"{BASE}/forms", headers=_auth(other))
         ).status_code == 200
+
+    async def test_a_ceiling_for_all_of_a_workspaces_keys(
+        self, client: AsyncClient, workspace, monkeypatch
+    ):
+        api = settings.api_settings
+        monkeypatch.setattr(api, "PUBLIC_API_REQUESTS_PER_WINDOW", 100)
+        monkeypatch.setattr(api, "PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW", 3)
+        monkeypatch.setattr(api, "PUBLIC_API_WINDOW_SECONDS", 3600)
+        keys = [await _token(workspace.id) for _ in range(4)]
+        for token in keys[:3]:
+            assert (
+                await client.get(f"{BASE}/forms", headers=_auth(token))
+            ).status_code == 200
+        limited = await client.get(f"{BASE}/forms", headers=_auth(keys[3]))
+        body = _is_error(limited, 429, "rate_limited")
+        assert "workspace" in body["message"]
+        assert int(limited.headers["Retry-After"]) > 0
 
     async def test_zero_turns_it_off(self, client: AsyncClient, workspace, monkeypatch):
         monkeypatch.setattr(settings.api_settings, "PUBLIC_API_REQUESTS_PER_WINDOW", 0)
@@ -848,6 +910,11 @@ class TestOpenAPI:
             "run python -m backend.app.public_api.openapi"
         )
 
+    async def test_no_interactive_docs_page(self, client: AsyncClient):
+        # it would load its scripts from a CDN
+        for path in ("/docs", "/redoc"):
+            _is_error(await client.get(BASE + path), 404, "not_found")
+
     async def test_it_is_served_and_self_contained(self, client: AsyncClient):
         served = await client.get(f"{BASE}/openapi.json")
         assert served.status_code == 200
@@ -861,3 +928,39 @@ class TestOpenAPI:
             for operation in path.values():
                 assert operation["tags"] and operation["operationId"]
                 assert operation["security"] == [{"apiKey": []}]
+
+
+# -- idempotency summaries ---------------------------------------------------------
+
+
+class TestCompactSummary:
+    def test_a_small_summary_is_kept_as_is(self):
+        summary = {"kind": "created", "formId": "abc"}
+        assert idempotency.compact_summary(summary) == summary
+
+    def test_long_lists_and_messages_are_cut_to_the_cap(self):
+        results = [
+            {"index": i, "op": "add_field", "ok": False, "message": "x" * 2000}
+            for i in range(200)
+        ]
+        kept = idempotency.compact_summary(
+            {"kind": "ops", "applied": False, "atomic": True, "results": results}
+        )
+        size = len(json.dumps(kept, separators=(",", ":")).encode())
+        assert size <= idempotency.MAX_STORED_BYTES
+        assert kept["truncated"] is True
+        assert 0 < len(kept["results"]) < 200
+        assert len(kept["results"][0]["message"]) == idempotency.MAX_STORED_MESSAGE
+
+    def test_an_error_body_keeps_its_code_and_message(self):
+        body = {
+            "code": "invalid_spec",
+            "message": "The document is not a valid form spec.",
+            "errors": [
+                {"path": f"/pages/{i}", "message": "y" * 500} for i in range(500)
+            ],
+        }
+        kept = idempotency.compact_summary({"kind": "body", "body": body})
+        assert kept["body"]["code"] == "invalid_spec"
+        assert kept["body"]["truncated"] is True
+        assert len(json.dumps(kept).encode()) <= idempotency.MAX_STORED_BYTES

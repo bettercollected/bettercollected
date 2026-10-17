@@ -25,6 +25,7 @@ from backend.config import settings
 # where the wrapper in app.py finds what to audit: (key, operation)
 AUDIT_STATE = "public_api_audit"
 RATE_LIMIT_SCOPE = "public-api"
+WORKSPACE_RATE_LIMIT_SCOPE = "public-api-workspace"
 
 bearer = HTTPBearer(
     auto_error=False,
@@ -55,30 +56,42 @@ def _c():
     return container
 
 
-async def _rate_limit(key: WorkspaceAPIKeyDocument) -> None:
-    limit = settings.api_settings.PUBLIC_API_REQUESTS_PER_WINDOW
+async def _hit(scope: str, client: str, limit: int, who: str) -> None:
     if limit <= 0:
         return
     verdict = (
         await _c()
         .rate_limiter()
-        .hit(
-            RATE_LIMIT_SCOPE,
-            str(key.id),
-            limit,
-            settings.api_settings.PUBLIC_API_WINDOW_SECONDS,
-        )
+        .hit(scope, client, limit, settings.api_settings.PUBLIC_API_WINDOW_SECONDS)
     )
     if not verdict.allowed:
         raise HTTPException(
             status_code=HTTPStatus.TOO_MANY_REQUESTS,
             content={
                 "code": "rate_limited",
-                "message": "Too many requests with this API key. Retry after "
+                "message": f"Too many requests {who}. Retry after "
                 f"{verdict.retry_after} seconds.",
             },
             headers={"Retry-After": str(verdict.retry_after)},
         )
+
+
+async def _rate_limit(key: WorkspaceAPIKeyDocument) -> None:
+    """Per API key, and a ceiling for all the workspace's keys together
+    (more keys never buy more requests). 0 turns either off."""
+    api = settings.api_settings
+    await _hit(
+        RATE_LIMIT_SCOPE,
+        str(key.id),
+        api.PUBLIC_API_REQUESTS_PER_WINDOW,
+        "with this API key",
+    )
+    await _hit(
+        WORKSPACE_RATE_LIMIT_SCOPE,
+        str(key.workspace_id),
+        api.PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW,
+        "from this workspace's API keys",
+    )
 
 
 def api_key(scope: str, operation: str):

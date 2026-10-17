@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "BetterCollected public API",
-    "description": "Create, read, change and publish forms as **form spec v1** documents, and read\ntheir responses. Authenticate with a workspace API key:\n`Authorization: Bearer bc_...`. A key works in its own workspace only, with\nits scopes (`forms:read`, `forms:write`, `responses:read`), and never does\nmore than the person who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limit per API key: 429 with `Retry-After`.\n",
+    "description": "Create, read, change and publish forms as **form spec v1** documents, and read\ntheir responses. Authenticate with a workspace API key:\n`Authorization: Bearer bc_...`. A key works in its own workspace only, with\nits scopes (`forms:read`, `forms:write`, `responses:read`), and never does\nmore than the person who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limits per API key and per workspace: 429 with `Retry-After`.\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -30,6 +30,7 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "maximum": 10000,
               "minimum": 1,
               "default": 1,
               "title": "Page"
@@ -1289,6 +1290,7 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "maximum": 10000,
               "minimum": 1,
               "default": 1,
               "title": "Page"
