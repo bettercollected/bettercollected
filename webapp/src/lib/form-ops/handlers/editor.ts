@@ -23,6 +23,7 @@ import {
     ensureCanBeInternal,
     findGroup,
     findPage,
+    hasOwn,
     isRepeatingGroup,
     isSlide,
     locateField,
@@ -95,7 +96,7 @@ function attrsProblem(what: string, attrs: unknown, allowed: Record<string, Attr
     if (attrs === undefined || attrs === null) return null;
     if (typeof attrs !== 'object' || Array.isArray(attrs)) return `The attributes of a '${what}' must be an object.`;
     for (const [key, value] of Object.entries(attrs)) {
-        if (!(key in allowed)) return `A '${what}' cannot have the attribute '${key}'.`;
+        if (!hasOwn(allowed, key)) return `A '${what}' cannot have the attribute '${key}'.`;
         if (!attrMatches(value, allowed[key])) return `The attribute '${key}' of a '${what}' has the wrong type.`;
     }
     return null;
@@ -109,7 +110,7 @@ function richTextProblem(title: Record<string, any>): string | null {
         const node = pending.pop();
         if (!node || typeof node !== 'object' || Array.isArray(node)) return 'A rich-text title may only hold nodes (objects).';
         const kind = node.type;
-        if (typeof kind !== 'string' || !(kind in TITLE_NODES)) return `A rich-text title cannot hold a '${kind ?? 'None'}' node.`;
+        if (typeof kind !== 'string' || !hasOwn(TITLE_NODES, kind)) return `A rich-text title cannot hold a '${kind ?? 'None'}' node.`;
         const unknown = Object.keys(node)
             .filter((key) => !NODE_KEYS.has(key))
             .sort();
@@ -127,7 +128,7 @@ function richTextProblem(title: Record<string, any>): string | null {
             if (!Array.isArray(marks)) return 'Marks must be a list.';
             for (const mark of marks) {
                 const name = mark && typeof mark === 'object' && !Array.isArray(mark) ? mark.type : undefined;
-                if (typeof name !== 'string' || !(name in TITLE_MARKS)) return `A rich-text title cannot use a '${name ?? 'None'}' mark.`;
+                if (typeof name !== 'string' || !hasOwn(TITLE_MARKS, name)) return `A rich-text title cannot use a '${name ?? 'None'}' mark.`;
                 if (Object.keys(mark).some((key) => key !== 'type' && key !== 'attrs')) return `A '${name}' mark can only have attributes.`;
                 const markProblem = attrsProblem(name, mark.attrs, TITLE_MARKS[name]);
                 if (markProblem) return markProblem;
@@ -403,7 +404,7 @@ export const insertPage: Handler<InsertPageOp> = (ctx, op) => {
 const PAGE_PATCH_LABELS: Record<string, string> = { layout: 'layout', imageUrl: 'image', theme: 'theme', position: 'position', showQuestionNumbers: 'question numbers', sectionTitle: 'section title' };
 
 function checkPatchKeys(patch: Record<string, any>, allowed: Record<string, unknown>): void {
-    for (const key of Object.keys(patch)) if (!(key in allowed)) throw new OpError(`patch.${key}: Extra inputs are not permitted`);
+    for (const key of Object.keys(patch)) if (!hasOwn(allowed, key)) throw new OpError(`patch.${key}: Extra inputs are not permitted`);
 }
 
 export const updatePage: Handler<UpdatePageOp> = (ctx, op) => {
