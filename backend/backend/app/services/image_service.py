@@ -3,8 +3,10 @@
 Two ways in, one way out (our bucket):
 
 ``serve_unsplash`` (``GET /images/unsplash/{photo}``, public)
-    The address a form holds for an Unsplash photo
-    (``services/unsplash_route.py``). The first request for a photo and size
+    How respondent pages load a form's Unsplash photo: the form stores the
+    canonical ``images.unsplash.com`` address and the webapp loads it through
+    this route on its own API host (``services/unsplash_route.py``). The
+    first request for a photo and size
     fetches it from ``https://images.unsplash.com`` (fixed host, no redirects
     followed, ``services/image_fetch.py``), has the document sandbox
     re-encode it without metadata, and stores the result in our bucket under
@@ -318,7 +320,7 @@ class ImageService:
         self, workspace_id: PydanticObjectId, url: str, user: User
     ) -> str:
         """Our address for the image at ``url``: as is when it is already
-        first-party, our Unsplash route for an Unsplash photo, else a copy in
+        first-party (an Unsplash photo by its canonical address), else a copy in
         our bucket. Raises 422 with a plain-language message the editor
         shows, 429 or 503."""
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)

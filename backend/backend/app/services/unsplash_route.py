@@ -1,9 +1,15 @@
 """Unsplash photos served through our own server.
 
-Respondents never contact ``images.unsplash.com``: a form holds
-``<API_PUBLIC_URL>/images/unsplash/<photo path>?<sizing>`` instead, and that
-route (``services/image_service.py``) fetches the photo from Unsplash once,
-re-encodes it in the document sandbox and serves it from our bucket.
+Respondents never contact ``images.unsplash.com``. A form stores the photo's
+canonical Unsplash address (``https://images.unsplash.com/<photo>``, as the
+picker and the AI image search give it), which names no host of ours, so it
+stays right on every instance and behind every domain. The webapp loads it
+through its own API at render time (``<API host>/images/unsplash/<photo>``,
+webapp ``src/utils/first-party-image.ts``); that route
+(``services/image_service.py``) fetches the photo from Unsplash once,
+re-encodes it in the document sandbox and serves it from our bucket. An
+address of the route that reaches a save is turned back into the canonical
+one (``to_canonical_url``).
 
 This module only deals with addresses, so the allow-list
 (``services/image_urls.py``), the route and the save-time checks agree:
@@ -20,14 +26,9 @@ bounded number of variants per photo.
 """
 
 import hashlib
-import ipaddress
 import re
 from typing import Dict, Iterable, Mapping, Optional, Tuple
 from urllib.parse import urlencode, urlsplit, parse_qsl
-
-from loguru import logger
-
-from backend.config import settings
 
 UNSPLASH_IMAGE_HOST = "images.unsplash.com"
 UNSPLASH_ORIGIN = f"https://{UNSPLASH_IMAGE_HOST}"
@@ -182,68 +183,10 @@ def upstream_url(path: str, params: Mapping[str, str]) -> str:
     return f"{UNSPLASH_ORIGIN}/{path}" + (f"?{query}" if query else "")
 
 
-_LOOPBACK_NAMES = {"localhost", "localhost.localdomain", "ip6-localhost"}
-
-
-def _is_local_host(host: str) -> bool:
-    host = (host or "").lower().rstrip(".")
-    if host in _LOOPBACK_NAMES or host.endswith(".localhost"):
-        return True
-    try:
-        address = ipaddress.ip_address(host)
-    except ValueError:
-        return False
-    return address.is_loopback or address.is_unspecified
-
-
-def _local_instance() -> bool:
-    """Development or tests: the API itself runs on this machine
-    (``API_HOST`` names localhost, as the cookie settings read it) or the
-    environment says test."""
-    api = settings.api_settings
-    return "localhost" in (api.HOST or "") or (api.ENVIRONMENT or "").lower() == "test"
-
-
-def route_configured() -> bool:
-    """Whether we may store our Unsplash route's address on forms: only with
-    an ``API_PUBLIC_URL`` that browsers can reach. Unset, or a loopback
-    address outside development, fails closed: Unsplash addresses are then
-    stored as they came (respondent pages still load them through the route,
-    since the webapp knows its API host) instead of an address that would
-    break the image for good."""
-    parts = urlsplit((settings.api_settings.PUBLIC_URL or "").strip())
-    if parts.scheme not in ("http", "https") or not parts.hostname:
-        return False
-    if _is_local_host(parts.hostname) and not _local_instance():
-        return False
-    return True
-
-
-def log_if_route_unconfigured() -> None:
-    """One warning at startup when Unsplash addresses won't be rewritten."""
-    if not route_configured():
-        logger.warning(
-            "API_PUBLIC_URL is unset or a local address: Unsplash images on "
-            "forms are kept as Unsplash addresses, not rewritten to this API's "
-            "/images/unsplash route. Set it to the API's public address."
-        )
-
-
-def route_base() -> str:
-    """``<API_PUBLIC_URL>/images/unsplash/``"""
-    base = (settings.api_settings.PUBLIC_URL or "").strip().rstrip("/")
-    return f"{base}{ROUTE_PATH}"
-
-
-def route_url(path: str, params: Optional[Mapping[str, str]] = None) -> str:
-    query = urlencode(sorted((params or {}).items()))
-    return route_base() + path + (f"?{query}" if query else "")
-
-
 def unsplash_photo(url: str) -> Optional[Tuple[str, Dict[str, str]]]:
     """``(photo path, cleaned parameters)`` of an ``images.unsplash.com``
-    address, or None for anything else. Unknown or bad parameters are
-    dropped: the result is only ever turned into one of our addresses."""
+    photo address, or None for anything else. Unknown or bad parameters are
+    dropped."""
     try:
         parts = urlsplit(url.strip())
         if parts.username is not None or parts.password is not None:
@@ -261,47 +204,39 @@ def unsplash_photo(url: str) -> Optional[Tuple[str, Dict[str, str]]]:
     return path, params
 
 
-def to_route_url(url: str) -> Optional[str]:
-    """Our address for an Unsplash photo address, or None when ``url`` is not
-    one."""
-    photo = unsplash_photo(url)
+def canonical_url(path: str, params: Optional[Mapping[str, str]] = None) -> str:
+    """The stored form of an Unsplash photo: Unsplash's own address, the
+    photo path and the allow-listed sizing parameters."""
+    return upstream_url(path, params or {})
+
+
+def routed_photo(url: str) -> Optional[Tuple[str, Dict[str, str]]]:
+    """``(photo path, cleaned parameters)`` of an address of our route, on
+    any host (``<anything>/images/unsplash/<photo>``), or None. Such an
+    address is never stored: it is turned back into the canonical one, so a
+    form never names one particular API host."""
+    try:
+        parts = urlsplit(url.strip())
+        if parts.username is not None or parts.password is not None:
+            return None
+        parts.port
+    except (ValueError, AttributeError):
+        return None
+    if parts.scheme.lower() not in ("http", "https") or not parts.netloc:
+        return None
+    if parts.fragment or ROUTE_PATH not in parts.path:
+        return None
+    path = parts.path.rsplit(ROUTE_PATH, 1)[1]
+    if not is_photo_path(path):
+        return None
+    params = clean_params(parse_qsl(parts.query, keep_blank_values=True), strict=False)
+    return path, params
+
+
+def to_canonical_url(url: str) -> Optional[str]:
+    """The canonical Unsplash address for an address of our route, or None
+    when ``url`` is not one."""
+    photo = routed_photo(url)
     if photo is None:
         return None
-    if not route_configured():
-        # fail closed: keep the Unsplash address (see route_configured)
-        return url.strip()
-    return route_url(*photo)
-
-
-def is_route_url(url: str) -> bool:
-    """Whether ``url`` is one of our Unsplash addresses: our API's public
-    address, a photo path, and only valid allow-listed parameters."""
-    if not route_configured():
-        return False
-    base = urlsplit(route_base())
-    if not base.scheme or not base.netloc:
-        return False
-    try:
-        parts = urlsplit(url)
-        if parts.username is not None or parts.password is not None:
-            return False
-        parts.port
-    except ValueError:
-        return False
-    if (
-        parts.scheme.lower() != base.scheme.lower()
-        or parts.netloc.lower() != base.netloc.lower()
-        or parts.fragment
-        or not parts.path.startswith(base.path)
-    ):
-        return False
-    if not is_photo_path(parts.path[len(base.path) :]):
-        return False
-    pairs = parse_qsl(parts.query, keep_blank_values=True, strict_parsing=False)
-    if any(key not in PARAMS for key, _ in pairs):
-        return False
-    try:
-        clean_params(pairs)
-    except BadImageParams:
-        return False
-    return True
+    return canonical_url(*photo)

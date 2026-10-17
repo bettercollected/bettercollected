@@ -23,14 +23,16 @@ PUBLIC_API = "https://forms.example.org/api/v1"
 OURS = f"{STORAGE}/{BUCKET}/public/media/ws/1.jpg"
 TRACKER = "https://tracker.example.com/pixel.jpg"
 UNSPLASH = "https://images.unsplash.com/photo-1?ixid=abc&w=1080"
+# our route's address for that photo, as a client might send it back
 ROUTED = f"{PUBLIC_API}/images/unsplash/photo-1?w=1080"
+LOCAL_ROUTED = "http://localhost:8000/api/v1/images/unsplash/photo-1?w=1080"
+CANONICAL = "https://images.unsplash.com/photo-1?w=1080"
 
 
 @pytest.fixture(autouse=True)
 def storage(monkeypatch):
     monkeypatch.setattr(settings.aws_settings, "PUBLIC_URL", STORAGE)
     monkeypatch.setattr(settings.aws_settings, "BUCKET", BUCKET)
-    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", PUBLIC_API)
 
 
 def form_url(workspace, form) -> str:
@@ -109,7 +111,7 @@ async def test_a_third_party_image_is_refused_on_save(
     )
 
 
-async def test_our_images_are_kept_and_unsplash_photos_rewritten(
+async def test_our_images_and_unsplash_photos_are_stored_without_any_api_host(
     client: AsyncClient,
     workspace: Coroutine[Any, Any, WorkspaceDocument],
     workspace_form: Coroutine[Any, Any, FormDocument],
@@ -121,16 +123,24 @@ async def test_our_images_are_kept_and_unsplash_photos_rewritten(
         workspace_form,
         test_user_cookies,
         with_images(
-            welcome=OURS, page=UNSPLASH, field=ROUTED, ending="", background=UNSPLASH
+            welcome=OURS,
+            page=UNSPLASH,
+            field=ROUTED,
+            ending=LOCAL_ROUTED,
+            background=UNSPLASH,
         ),
     )
     assert response.status_code == 200, response.text
     form = await stored(workspace_form)
     assert form.welcome_page.imageUrl == OURS
-    assert form.fields[0].image_url == ROUTED
-    assert form.fields[0].properties.fields[0].image_url == ROUTED
-    assert form.theme.background.imageUrl == ROUTED
-    assert "images.unsplash.com" not in json.dumps(form.model_dump(mode="json"))
+    # Unsplash's address kept as it came; route addresses (any host) turned
+    # back into the canonical one
+    assert form.fields[0].image_url == UNSPLASH
+    assert form.fields[0].properties.fields[0].image_url == CANONICAL
+    assert form.thankyou_page[0].imageUrl == CANONICAL
+    assert form.theme.background.imageUrl == UNSPLASH
+    saved = json.dumps(form.model_dump(mode="json"))
+    assert "/images/unsplash/" not in saved and "localhost" not in saved
 
 
 async def test_an_image_the_form_already_holds_is_kept(
@@ -182,7 +192,14 @@ async def test_a_new_form_with_a_third_party_image_is_refused(
         data={"form_body": json.dumps(with_images(welcome=UNSPLASH))},
     )
     assert response.status_code == 200, response.text
-    assert response.json()["welcomePage"]["imageUrl"] == ROUTED
+    assert response.json()["welcomePage"]["imageUrl"] == UNSPLASH
+    response = await client.post(
+        f"{API}/workspaces/{workspace.id}/forms",
+        cookies=test_user_cookies,
+        data={"form_body": json.dumps(with_images(welcome=LOCAL_ROUTED))},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["welcomePage"]["imageUrl"] == CANONICAL
 
 
 async def test_a_copy_drops_third_party_images_instead(
@@ -190,13 +207,16 @@ async def test_a_copy_drops_third_party_images_instead(
 ):
     form = await container.workspace_form_service().create_form(
         workspace.id,
-        StandardForm(**with_images(welcome=TRACKER, page=OURS, field=UNSPLASH)),
+        StandardForm(
+            **with_images(welcome=TRACKER, page=OURS, field=UNSPLASH, ending=ROUTED)
+        ),
         testUser,
         drop_unusable_settings=True,
     )
     assert form.welcome_page.imageUrl is None
     assert form.fields[0].image_url == OURS
-    assert form.fields[0].properties.fields[0].image_url == ROUTED
+    assert form.fields[0].properties.fields[0].image_url == UNSPLASH
+    assert form.thankyou_page[0].imageUrl == CANONICAL
 
 
 async def test_a_duplicate_carries_no_grandfathered_third_party_image(
@@ -221,43 +241,11 @@ async def test_a_duplicate_carries_no_grandfathered_third_party_image(
     )
     assert copy.welcome_page.imageUrl is None
     assert copy.theme.background.imageUrl is None
-    assert copy.fields[0].image_url == ROUTED
+    # the canonical Unsplash address is kept
+    assert copy.fields[0].image_url == UNSPLASH
     assert copy.fields[0].properties.fields[0].image_url == OURS
     # the source keeps its own
     assert (await stored(workspace_form)).welcome_page.imageUrl == TRACKER
-
-
-@pytest.mark.parametrize("public_url", ["", "http://localhost:8000/api/v1"])
-async def test_without_a_public_api_address_unsplash_images_are_kept_on_save(
-    client: AsyncClient,
-    workspace: Coroutine[Any, Any, WorkspaceDocument],
-    workspace_form: Coroutine[Any, Any, FormDocument],
-    test_user_cookies: dict[str, str],
-    monkeypatch,
-    public_url,
-):
-    # a deployment that forgot API_PUBLIC_URL (or left it local): no local
-    # address is stored for good, and the picker's selections still save
-    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", public_url)
-    monkeypatch.setattr(settings.api_settings, "HOST", "forms.example.org")
-    monkeypatch.setattr(settings.api_settings, "ENVIRONMENT", "local")
-    response = await patch(
-        client,
-        workspace,
-        workspace_form,
-        test_user_cookies,
-        with_images(welcome=UNSPLASH, background=UNSPLASH),
-    )
-    assert response.status_code == 200, response.text
-    form = await stored(workspace_form)
-    assert form.welcome_page.imageUrl == UNSPLASH
-    assert form.theme.background.imageUrl == UNSPLASH
-    assert "localhost" not in json.dumps(form.model_dump(mode="json"))
-    # third-party addresses are still refused
-    refused = await patch(
-        client, workspace, workspace_form, test_user_cookies, with_images(page=TRACKER)
-    )
-    assert refused.status_code == 422
 
 
 # --- saved workspace themes -----------------------------------------------------
@@ -294,7 +282,12 @@ async def test_saved_themes_take_first_party_images_only(
     )
     assert saved.status_code == 200, saved.text
     urls = [t["background"]["imageUrl"] for t in saved.json()["customThemes"]]
-    assert urls == [ROUTED, OURS]
+    assert urls == [UNSPLASH, OURS]
+    routed = await save_themes(
+        client, workspace, test_user_cookies, [theme(LOCAL_ROUTED)]
+    )
+    assert routed.status_code == 200, routed.text
+    assert routed.json()["customThemes"][0]["background"]["imageUrl"] == CANONICAL
 
 
 async def test_a_saved_theme_already_holding_another_image_keeps_it(

@@ -1,11 +1,12 @@
 """Image addresses a form may hold (services/image_urls.py).
 
-Our own storage and our Unsplash route are first-party; an Unsplash photo
-address is accepted only to be rewritten to our route, so respondents'
-browsers never contact Unsplash; anything else is refused."""
+Our own storage, canonical images.unsplash.com photo addresses (which
+respondent pages load through our route) and the built-in images are kept;
+an address of our route, on any host, is stored as the canonical Unsplash
+address, so no save ever writes an API host (localhost included) into a
+form; anything else is refused."""
 
 import pytest
-from loguru import logger
 from common.models.standard_form import (
     StandardFieldProperty,
     StandardForm,
@@ -34,6 +35,7 @@ BUCKET = "forms-bucket"
 UNSPLASH = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?ixid=abc&ixlib=rb-4.0.3"
 API = "https://forms.example.org/api/v1"
 ROUTED = f"{API}/images/unsplash/photo-1500530855697-b586d89ba3ee"
+CANONICAL = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee"
 
 
 @pytest.fixture(autouse=True)
@@ -42,7 +44,6 @@ def storage(monkeypatch):
     monkeypatch.setattr(aws, "PUBLIC_URL", STORAGE)
     monkeypatch.setattr(aws, "ENDPOINT_URL", ENDPOINT)
     monkeypatch.setattr(aws, "BUCKET", BUCKET)
-    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", API + "/")
 
 
 @pytest.mark.parametrize(
@@ -54,45 +55,58 @@ def storage(monkeypatch):
         # objects stored before a CDN address was configured
         f"{ENDPOINT}/{BUCKET}/public/20260101_bg.png",
         f"  {STORAGE}/{BUCKET}/public/x.png  ",
-        ROUTED,
-        f"{ROUTED}?fit=crop&h=400&q=80&w=1080",
-        f"{API}/images/unsplash/premium_photo-1",
+        # Unsplash photos by their canonical address, as the picker and the
+        # AI image search give them: kept as they are
+        UNSPLASH,
+        CANONICAL,
+        "HTTPS://IMAGES.UNSPLASH.COM/photo-1",
+        "https://images.unsplash.com/photo-1?crop=entropy&cs=tinysrgb&fit=max"
+        "&fm=jpg&ixid=M3w&ixlib=rb-4.0.3&q=80&w=1080",
+        "https://images.unsplash.com/premium_photo-1",
         *sorted(BUILTIN_IMAGE_URLS),
     ],
 )
-def test_our_storage_and_our_unsplash_route_are_first_party(url):
+def test_our_storage_canonical_unsplash_and_builtins_are_kept(url):
     assert is_first_party_image_url(url)
     assert is_allowed_image_url(url)
     assert checked_image_url(url) == url.strip()
 
 
 @pytest.mark.parametrize(
-    "url,routed",
+    "url,canonical",
     [
-        (UNSPLASH, ROUTED),
-        ("https://images.unsplash.com/photo-1", f"{API}/images/unsplash/photo-1"),
-        ("HTTPS://IMAGES.UNSPLASH.COM/photo-1", f"{API}/images/unsplash/photo-1"),
-        (f"  {UNSPLASH}  ", ROUTED),
-        # the AI image search's urls.regular: sizing kept, tracking dropped
+        (ROUTED, CANONICAL),
+        (f"  {ROUTED}  ", CANONICAL),
+        # on whatever host: a form never names one API host
         (
-            "https://images.unsplash.com/photo-1?crop=entropy&cs=tinysrgb&fit=max"
-            "&fm=jpg&ixid=M3w&ixlib=rb-4.0.3&q=80&w=1080",
-            f"{API}/images/unsplash/photo-1?crop=entropy&fit=max&fm=jpg&q=80&w=1080",
+            "http://localhost:8000/api/v1/images/unsplash/photo-1?w=1080&q=80",
+            "https://images.unsplash.com/photo-1?q=80&w=1080",
         ),
-        # a bad value is dropped, not forwarded
         (
-            "https://images.unsplash.com/photo-1?w=huge&q=80",
-            f"{API}/images/unsplash/photo-1?q=80",
+            "http://127.0.0.1:8000/api/v1/images/unsplash/photo-1",
+            "https://images.unsplash.com/photo-1",
+        ),
+        (
+            "https://evil.test/images/unsplash/photo-1",
+            "https://images.unsplash.com/photo-1",
+        ),
+        # only allow-listed, valid options survive
+        (
+            f"{API}/images/unsplash/photo-1?crop=entropy&fit=max&url=https://evil.test"
+            "&w=abc",
+            "https://images.unsplash.com/photo-1?crop=entropy&fit=max",
         ),
     ],
 )
-def test_unsplash_photos_are_rewritten_to_our_route(url, routed):
+def test_addresses_of_our_route_are_stored_as_the_canonical_unsplash_one(
+    url, canonical
+):
     assert not is_first_party_image_url(url)
     assert is_allowed_image_url(url)
-    assert first_party_image_url(url) == routed
-    assert checked_image_url(url) == routed
-    assert allowed_image_url_or_none(url) == routed
-    assert is_first_party_image_url(routed)
+    assert first_party_image_url(url) == canonical
+    assert checked_image_url(url) == canonical
+    assert allowed_image_url_or_none(url) == canonical
+    assert is_first_party_image_url(canonical)
 
 
 @pytest.mark.parametrize(
@@ -122,15 +136,14 @@ def test_unsplash_photos_are_rewritten_to_our_route(url, routed):
         "https://images.unsplash.com/" + "a" * 2100,
         "https://images.unsplash.com/../x",
         "https://images.unsplash.com/a/b/c",
-        # our route: only from our API's address, a photo path and known options
-        "https://evil.test/api/v1/images/unsplash/photo-1",
+        "https://images.unsplash.com/photo-1#x",
+        # route-like addresses that name no photo
         f"{API}/images/unsplash/",
         f"{API}/images/unsplash/../../workspaces",
-        f"{API}/images/unsplash/photo-1?url=https://evil.test",
-        f"{API}/images/unsplash/photo-1?w=abc",
-        f"{API}/images/unsplash/photo-1?w=10&w=20",
+        f"{API}/images/unsplash/a/b/c",
         f"{API}/images/unsplash/photo-1#x",
         f"{API}/images/other/photo-1",
+        "ftp://evil.test/images/unsplash/photo-1",
         "https://s3.eu-central-1.wasabisys.com/bettercollected/public/x.png",
     ],
 )
@@ -211,8 +224,8 @@ def test_a_refused_theme_does_not_stop_the_rest_of_the_turn():
 @pytest.mark.parametrize(
     "url,stored",
     [
-        (UNSPLASH, ROUTED),
-        (ROUTED, ROUTED),
+        (UNSPLASH, UNSPLASH),
+        (ROUTED, CANONICAL),
         (
             f"{STORAGE}/{BUCKET}/media_library/20260101_photo.jpg",
             f"{STORAGE}/{BUCKET}/media_library/20260101_photo.jpg",
@@ -265,78 +278,28 @@ def test_ai_created_forms_keep_only_allowed_images():
     refused, kept = form.fields
     assert refused.image_url is None
     assert refused.properties.layout != "TWO_COLUMN_IMAGE_LEFT"
-    # kept, served through our server
-    assert kept.image_url == ROUTED
+    # kept by its canonical address (respondents load it through our route)
+    assert kept.image_url == UNSPLASH
     assert kept.properties.layout == "TWO_COLUMN_IMAGE_RIGHT"
 
 
-# -- without a usable API_PUBLIC_URL: fail closed --------------------------------
+# -- no API host is ever stored ------------------------------------------------
 
 
 @pytest.mark.parametrize(
-    "public_url",
+    "url",
     [
-        "",
-        "   ",
-        "not a url",
-        "http://localhost:8000/api/v1",
-        "http://127.0.0.1:8000/api/v1",
-        "http://[::1]:8000/api/v1",
-        "http://0.0.0.0:8000/api/v1",
-        "http://app.localhost/api/v1",
+        UNSPLASH,
+        ROUTED,
+        "http://localhost:8000/api/v1/images/unsplash/photo-1?w=640",
+        "http://[::1]:8000/images/unsplash/photo-1",
     ],
 )
-def test_without_a_public_api_address_unsplash_addresses_are_kept(
-    monkeypatch, public_url
-):
-    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", public_url)
-    monkeypatch.setattr(settings.api_settings, "HOST", "forms.example.org")
-    monkeypatch.setattr(settings.api_settings, "ENVIRONMENT", "local")
-    assert not unsplash_route.route_configured()
-    # kept as they came: never a local address stored for good, never refused
-    assert checked_image_url(UNSPLASH) == UNSPLASH
-    assert first_party_image_url(f"  {UNSPLASH} ") == UNSPLASH
-    assert allowed_image_url_or_none(UNSPLASH) == UNSPLASH
-    # no route address counts as first-party then
-    assert not is_first_party_image_url(
-        "http://localhost:8000/api/v1/images/unsplash/photo-1"
-    )
-    # everything else is unchanged
-    assert checked_image_url(f"{STORAGE}/{BUCKET}/public/x.png")
-    with pytest.raises(ValueError):
-        checked_image_url("https://tracker.example.com/pixel.png")
-
-
-@pytest.mark.parametrize(
-    "host,environment",
-    [("localhost", "local"), ("localhost:8000", "production"), ("", "test")],
-)
-def test_a_local_public_address_is_used_in_development_and_tests(
-    monkeypatch, host, environment
-):
-    monkeypatch.setattr(
-        settings.api_settings, "PUBLIC_URL", "http://localhost:8000/api/v1"
-    )
-    monkeypatch.setattr(settings.api_settings, "HOST", host)
-    monkeypatch.setattr(settings.api_settings, "ENVIRONMENT", environment)
-    assert unsplash_route.route_configured()
-    assert checked_image_url(UNSPLASH) == (
-        "http://localhost:8000/api/v1/images/unsplash/photo-1500530855697-b586d89ba3ee"
-    )
-
-
-def test_one_warning_at_startup_when_unconfigured(monkeypatch):
-    messages = []
-    sink = logger.add(lambda message: messages.append(str(message)), level="WARNING")
-    try:
-        monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", "")
-        unsplash_route.log_if_route_unconfigured()
-        assert len(messages) == 1 and "API_PUBLIC_URL" in messages[0]
-        monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", API)
-        unsplash_route.log_if_route_unconfigured()
-        assert len(messages) == 1
-    finally:
-        logger.remove(sink)
+def test_a_stored_unsplash_address_never_names_an_api_host(url):
+    stored = checked_image_url(url)
+    assert stored.startswith("https://images.unsplash.com/")
+    assert "/images/unsplash/" not in stored
+    assert "localhost" not in stored and "[::1]" not in stored
 
 
 def test_crop_takes_only_what_our_addresses_carry():
