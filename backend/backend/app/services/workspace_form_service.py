@@ -58,6 +58,12 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.answer_validation import answer_ids, check_answers
 from backend.app.services.date_rules import today_range, validate_date_rule_answers
 from backend.app.services.form_service import FormService
+from backend.app.services.calculated_fields import (
+    apply_calculated_fields,
+    calculated_fields,
+    ensure_valid_calculations,
+    today_iso,
+)
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
     ensure_no_internal_logic,
@@ -565,6 +571,7 @@ class WorkspaceFormService:
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        ensure_valid_calculations(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
         # the others instead of refusing
@@ -654,6 +661,7 @@ class WorkspaceFormService:
         )
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
+        ensure_valid_calculations(form)
         await self._check_ending_links_on_update(form, form_id)
         workspace_form = await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)
@@ -910,14 +918,35 @@ class WorkspaceFormService:
         # Date rules against the answers as they will be after the edit, but
         # only for what this edit touches; "today" is the submission day.
         merged = {}
+        stored_hidden_fields = None
         if existing.answers:
-            merged.update(
-                self.form_response_service.decrypt_form_response(
-                    workspace_id=workspace_id, response=existing.model_copy(deep=True)
-                ).answers
-                or {}
+            decrypted = self.form_response_service.decrypt_form_response(
+                workspace_id=workspace_id, response=existing.model_copy(deep=True)
             )
+            merged.update(decrypted.answers or {})
+            stored_hidden_fields = decrypted.hidden_fields
         merged.update(response.answers or {})
+        # Calculated fields: the server's values from the answers after the
+        # edit (services/calculated_fields.py), never the client's; an empty
+        # result overwrites a stored value. "today" is the submission day.
+        if calculated_fields(form):
+            merged = apply_calculated_fields(
+                form,
+                merged,
+                (
+                    stored_hidden_fields
+                    if isinstance(stored_hidden_fields, dict)
+                    else None
+                ),
+                today=today_iso(
+                    existing.created_at.date() if existing.created_at else None
+                ),
+                keep_empty=True,
+            )
+            response.answers = dict(response.answers or {})
+            for field in calculated_fields(form):
+                if str(field.id) in merged:
+                    response.answers[str(field.id)] = merged[str(field.id)]
         # Required, answer rules and types (services/answer_validation.py) on
         # the answers after the edit, reported for what this edit touches.
         # CPU-bound (creator patterns): off the event loop.
@@ -1029,6 +1058,19 @@ class WorkspaceFormService:
         # Respondents fill the published version; check against what they saw.
         response.answers = _checked_group_answers(
             latest_version_of_form or form, response.answers
+        )
+        # Calculated fields are the server's to compute: what the client sent
+        # for them is replaced, before logic, jumps and Required use them
+        # (services/calculated_fields.py).
+        response.answers = apply_calculated_fields(
+            latest_version_of_form or form,
+            response.answers,
+            (
+                response.hidden_fields
+                if isinstance(response.hidden_fields, dict)
+                else None
+            ),
+            today=today_iso(),
         )
         # Required, answer rules and types (services/answer_validation.py).
         # Answers may use the ids of the draft and the published version:
