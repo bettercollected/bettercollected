@@ -308,7 +308,36 @@ describe('editor ops', () => {
         expect(doc.welcomePage).toEqual({ title: 'Intake', buttonText: 'Begin' });
         expect(doc.hiddenFields).toEqual(['utm_source', 'campaign']);
         expect([doc.logoAlt, doc.logoPosition]).toEqual(['Our logo', 'center']);
-        expect(one({ op: 'set_hidden_fields', names: ['a b'] }).result.message).toMatch(/is not a usable hidden field name/);
+        expect(one({ op: 'set_hidden_fields', names: ['a b'] }).result.ok).toBe(true);
+        expect(one({ op: 'set_hidden_fields', names: ['x'.repeat(201)] }).result.message).toBe('A hidden field name can be at most 200 characters.');
+    });
+});
+
+describe('removal and titles', () => {
+    it('keeps jumps to a removed page and counts only what the op removed', () => {
+        const { doc, result } = one({ op: 'remove_page', pageId: 'p3' });
+        expect(result.message).toBe('Removed a page (1 field(s) with it)');
+        expect(doc.fields[0].properties!.jumps).toEqual(smallForm().fields[0].properties!.jumps);
+    });
+
+    it('takes only titles the title editor can render', () => {
+        const title = (content: any[]) => ({ op: 'update_field', fieldId: 'bio', patch: { title: { type: 'doc', content } } });
+        expect(one(title([{ type: 'paragraph', content: [{ type: 'text', text: 'Hi', marks: [{ type: 'bold' }] }] }])).result.ok).toBe(true);
+        expect(one(title([{ type: 'image', attrs: { src: 'x' } }])).result.message).toBe("A rich-text title cannot hold a 'image' node.");
+        expect(one(title([{ type: 'paragraph', content: [{ type: 'text', text: 'a', marks: [{ type: 'link' }] }] }])).result.message).toBe("A rich-text title cannot use a 'link' mark.");
+        expect(one(title([{ type: 'heading', attrs: { level: 9 } }])).result.message).toBe("A heading's level must be 1 to 6.");
+    });
+
+    it('refuses editor ops and rich-text titles outside the editor', () => {
+        const out = applyOps(
+            smallForm(),
+            [
+                { op: 'set_hidden_fields', names: [] },
+                { op: 'update_field', fieldId: 'bio', patch: { title: { type: 'doc', content: [] } } }
+            ],
+            { editor: false }
+        );
+        expect(out.results.map((r) => r.message)).toEqual(["The operation 'set_hidden_fields' is only available in the form editor; it cannot be used here.", 'A title must be plain text here; rich-text titles come only from the form editor.']);
     });
 });
 

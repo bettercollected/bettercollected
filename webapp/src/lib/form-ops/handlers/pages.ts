@@ -1,7 +1,7 @@
 /** Page ops: add, remove, move, duplicate, jumps, section titles, numbering. */
 import { FieldTypes } from '@app/models/dtos/form';
 
-import { JUMP_TARGET_SUBMIT, MAX_NEW_PAGE_FIELDS, OpError, SECTION_TITLE_MAX_LENGTH, childrenOf, clone, collapseWhitespace, findPage, isRepeatingGroup, locateField, pagesOf, pyLen, titleText } from '../model';
+import { JUMP_TARGET_SUBMIT, MAX_NEW_PAGE_FIELDS, OpError, SECTION_TITLE_MAX_LENGTH, childrenOf, clone, collapseWhitespace, findPage, isRepeatingGroup, locateField, pagesOf, pyLen, subtreeIds, titleText } from '../model';
 import type { AddPageOp, DuplicatePageOp, FormField, MovePageOp, RemovePageOp, SetPageJumpsOp, SetQuestionNumberingOp, SetSectionTitleOp } from '../types';
 import { type Handler, droppedReferencesNote, droppedRulesNote, ensureProperties, insertedAt, removedAt, setKey } from './context';
 import { buildField, validatedConditions } from './fields';
@@ -31,7 +31,7 @@ export const addPage: Handler<AddPageOp> = (ctx, op) => {
 export const removePage: Handler<RemovePageOp> = (ctx, op) => {
     const { page, pos } = findPage(ctx.state, op.pageId);
     ctx.draft.fields = removedAt(ctx.state.fields ?? [], pos) as any;
-    return `Removed a page (${childrenOf(page).length} field(s) with it)${droppedRulesNote()}${droppedReferencesNote()}`;
+    return `Removed a page (${childrenOf(page).length} field(s) with it)${droppedRulesNote()}${droppedReferencesNote(ctx, subtreeIds(page))}`;
 };
 
 export const movePage: Handler<MovePageOp> = (ctx, op) => {

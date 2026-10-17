@@ -17,6 +17,10 @@ export interface OpContext {
     options: ApplyOptions;
     /** Record what the op created: its id and the ids of the questions created with it. */
     noteCreated: (id: string, nested?: string[]) => void;
+    /** Ids of the questions and pages the op removed (set through droppedReferencesNote). */
+    referencesGone?: Set<string>;
+    /** Hidden-field names the op removed (set through droppedHiddenReferencesNote). */
+    hiddenGone?: Set<string>;
 }
 
 export type Handler<T> = (ctx: OpContext, op: T) => string;
@@ -81,7 +85,17 @@ export function droppedRulesNote(): string {
  */
 export const DROPPED_REFERENCES_MARK = '\u0000dropped-references';
 export const DROPPED_HIDDEN_REFERENCES_MARK = '\u0000dropped-hidden-references';
-export const droppedReferencesNote = () => DROPPED_REFERENCES_MARK;
+/** Mark the message: drop what refers to a missing question; count what referred to `gone`. */
+export function droppedReferencesNote(ctx: OpContext, gone: Set<string>): string {
+    ctx.referencesGone = gone;
+    return DROPPED_REFERENCES_MARK;
+}
+
+/** Mark the message: drop pipes of undeclared hidden fields; count those of `gone`. */
+export function droppedHiddenReferencesNote(ctx: OpContext, gone: Set<string>): string {
+    ctx.hiddenGone = gone;
+    return DROPPED_HIDDEN_REFERENCES_MARK;
+}
 
 /** The note for `dropped` date rules dropped by an op. */
 export const droppedRulesText = (dropped: number) => (dropped ? ` (and ${dropped} date rule(s) that used it)` : '');

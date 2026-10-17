@@ -14,7 +14,7 @@ import { Immer } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
 import { dateRuleFixes } from './date-rules';
-import { HANDLERS } from './handlers';
+import { EDITOR_ONLY_OPS, HANDLERS } from './handlers';
 import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_MARK, type OpContext, draftAt, droppedRulesText, setKey } from './handlers/context';
 import { editorGrowth } from './handlers/editor';
 import { buildInverse, touchedEntities } from './inverse';
@@ -104,7 +104,7 @@ export function finishDoc(doc: FormDoc, base?: FormDoc, sweepRules = true): Form
  * dangling date rules and references, see handlers/context.ts) and put the
  * notes in place of the marks.
  */
-function settleMarks(doc: FormDoc, message: string): [FormDoc, string] {
+function settleMarks(doc: FormDoc, message: string, ctx: OpContext | null): [FormDoc, string] {
     let next = doc;
     let text = message;
     if (text.includes(DROPPED_RULES_MARK)) {
@@ -118,7 +118,7 @@ function settleMarks(doc: FormDoc, message: string): [FormDoc, string] {
     }
     const hidden = text.includes(DROPPED_HIDDEN_REFERENCES_MARK);
     if (hidden || text.includes(DROPPED_REFERENCES_MARK)) {
-        const { fixes, removed } = referenceFixes(next, hidden ? new Set(next.hiddenFields ?? []) : undefined);
+        const { fixes, removed } = referenceFixes(next, { gone: ctx?.referencesGone, hiddenNames: hidden ? new Set(next.hiddenFields ?? []) : undefined, hiddenGone: ctx?.hiddenGone });
         if (fixes.length) {
             next = immer.produce(next, (draft) => {
                 for (const fix of fixes) {
@@ -169,6 +169,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
         let defined: Array<[string, number | null]> = [];
         try {
             if (!handler) throw new OpError(`Unknown operation '${name}'.`);
+            if (options.editor === false && EDITOR_ONLY_OPS.has(name)) throw new OpError(`The operation '${name}' is only available in the form editor; it cannot be used here.`);
             defined = refsDefined(raw);
             const names = defined.map(([n]) => n);
             for (const n of names) {
@@ -184,8 +185,10 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             let message = '';
             let failure: OpError | null = null;
             const state = working;
+            let opContext: OpContext | null = null;
             working = immer.produce(state, (draft) => {
                 const ctx: OpContext = { state, draft, newId, options, noteCreated: (id, nested = []) => (created = [id, nested]) };
+                opContext = ctx;
                 try {
                     message = handler(ctx, op);
                 } catch (error) {
@@ -194,7 +197,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
                 }
             });
             if (failure) throw failure;
-            [working, message] = settleMarks(working, message);
+            [working, message] = settleMarks(working, message, opContext);
             if (STRUCTURAL.has(name)) {
                 const after = formSize(working);
                 const problem = sizeProblem(after[0], after[1], size);

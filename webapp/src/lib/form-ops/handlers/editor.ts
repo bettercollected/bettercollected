@@ -27,19 +27,21 @@ import {
     locateField,
     pagesOf,
     pyLen,
+    subtree,
+    subtreeIds,
     titleText,
     withoutNulls
 } from '../model';
 import type { AddChoiceOp, ApplyOptions, FormDoc, FormField, InsertFieldOp, InsertPageOp, MoveChoiceOp, RemoveChoiceOp, ReplaceFieldOp, SetChoiceOp, SetHiddenFieldsOp, UpdateLogoOp, UpdatePageOp, UpdateWelcomePageOp } from '../types';
-import { DROPPED_HIDDEN_REFERENCES_MARK, type Handler, type OpContext, draftField, droppedReferencesNote, ensureProperties, insertedAt, setFields, setKey } from './context';
+import { type Handler, type OpContext, draftField, droppedHiddenReferencesNote, droppedReferencesNote, ensureProperties, insertedAt, setFields, setKey } from './context';
 import { checkedPattern, repeatProblems } from './fields';
 
 /** A rich-text title, serialised: at most this many characters, nested at most this deep. */
 export const TITLE_JSON_MAX_CHARS = 64 * 1024;
 export const TITLE_JSON_MAX_DEPTH = 64;
-export const HIDDEN_FIELDS_MAX = 50;
-export const HIDDEN_FIELD_NAME_MAX_LENGTH = 64;
-const HIDDEN_FIELD_NAME = /^[A-Za-z0-9_-]+$/;
+// Hidden fields: any names a whole-form save accepts, within these limits.
+export const HIDDEN_FIELDS_MAX = 100;
+export const HIDDEN_FIELD_NAME_MAX_LENGTH = 200;
 const LOGO_ALT_MAX_LENGTH = 150;
 const CHOICE_EDIT_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN, FieldTypes.RANKING]);
 const THEME_KEYS = ['title', 'primary', 'secondary', 'tertiary', 'accent'];
@@ -57,24 +59,99 @@ function jsonDepth(value: unknown): number {
     return depth;
 }
 
-/** A rich-text title must stay small (backend `_check_title`). */
+type AttrRule = 'int' | 'int?' | 'str' | 'str?';
+const STR: AttrRule = 'str?';
+/**
+ * What a rich-text title may hold: the node and mark types (with their
+ * attributes) of the builder's title editor (backend TITLE_NODES and
+ * TITLE_MARKS). Respondent pages render titles with that schema.
+ */
+export const TITLE_NODES: Record<string, Record<string, AttrRule>> = {
+    doc: {},
+    paragraph: {},
+    text: {},
+    heading: { level: 'int' },
+    hardBreak: {},
+    blockquote: {},
+    bulletList: {},
+    orderedList: { start: 'int?', type: STR },
+    listItem: {},
+    codeBlock: { language: STR },
+    horizontalRule: {},
+    answerPipe: { kind: 'str', pipeKey: STR, label: STR, fallback: STR }
+};
+export const TITLE_MARKS: Record<string, Record<string, AttrRule>> = { bold: {}, italic: {}, underline: {}, strike: {}, code: {}, textStyle: { fontSize: STR, color: STR } };
+const PIPE_KINDS = new Set(['field', 'hidden', 'group']);
+const NODE_KEYS = new Set(['type', 'attrs', 'content', 'marks', 'text']);
+
+function attrMatches(value: unknown, rule: AttrRule): boolean {
+    if (typeof value === 'boolean') return false;
+    if (value === null) return rule.endsWith('?');
+    return rule.startsWith('int') ? typeof value === 'number' && Number.isInteger(value) : typeof value === 'string';
+}
+
+function attrsProblem(what: string, attrs: unknown, allowed: Record<string, AttrRule>): string | null {
+    if (attrs === undefined || attrs === null) return null;
+    if (typeof attrs !== 'object' || Array.isArray(attrs)) return `The attributes of a '${what}' must be an object.`;
+    for (const [key, value] of Object.entries(attrs)) {
+        if (!(key in allowed)) return `A '${what}' cannot have the attribute '${key}'.`;
+        if (!attrMatches(value, allowed[key])) return `The attribute '${key}' of a '${what}' has the wrong type.`;
+    }
+    return null;
+}
+
+/** Why `title` is not a document the title editor can render, if so (backend `_rich_text_problem`). */
+function richTextProblem(title: Record<string, any>): string | null {
+    if (title.type !== 'doc') return "A rich-text title must be a document (type 'doc').";
+    const pending: any[] = [title];
+    while (pending.length) {
+        const node = pending.pop();
+        if (!node || typeof node !== 'object' || Array.isArray(node)) return 'A rich-text title may only hold nodes (objects).';
+        const kind = node.type;
+        if (typeof kind !== 'string' || !(kind in TITLE_NODES)) return `A rich-text title cannot hold a '${kind ?? 'None'}' node.`;
+        const unknown = Object.keys(node)
+            .filter((key) => !NODE_KEYS.has(key))
+            .sort();
+        if (unknown.length) return `A '${kind}' node cannot have '${unknown[0]}'.`;
+        const problem = attrsProblem(kind, node.attrs, TITLE_NODES[kind]);
+        if (problem) return problem;
+        const level = node.attrs?.level ?? 1;
+        if (kind === 'heading' && !(level >= 1 && level <= 6)) return "A heading's level must be 1 to 6.";
+        if (kind === 'answerPipe' && !PIPE_KINDS.has(node.attrs?.kind ?? 'field')) return "An answer pipe's kind must be field, hidden or group.";
+        if (kind === 'text') {
+            if (typeof node.text !== 'string' || !node.text) return 'A text node needs some text.';
+        } else if ('text' in node) return `A '${kind}' node cannot hold text.`;
+        const marks = node.marks;
+        if (marks !== undefined && marks !== null) {
+            if (!Array.isArray(marks)) return 'Marks must be a list.';
+            for (const mark of marks) {
+                const name = mark && typeof mark === 'object' && !Array.isArray(mark) ? mark.type : undefined;
+                if (typeof name !== 'string' || !(name in TITLE_MARKS)) return `A rich-text title cannot use a '${name ?? 'None'}' mark.`;
+                if (Object.keys(mark).some((key) => key !== 'type' && key !== 'attrs')) return `A '${name}' mark can only have attributes.`;
+                const markProblem = attrsProblem(name, mark.attrs, TITLE_MARKS[name]);
+                if (markProblem) return markProblem;
+            }
+        }
+        const content = node.content;
+        if (content !== undefined && content !== null) {
+            if (!Array.isArray(content) || kind === 'text') return `The content of a '${kind}' node is not valid.`;
+            pending.push(...content);
+        }
+    }
+    return null;
+}
+
+/**
+ * A rich-text title must stay small and hold only what the title editor
+ * holds (backend `_check_title`).
+ */
 export function checkTitle(title: unknown): void {
     if (!title || typeof title !== 'object' || Array.isArray(title)) return;
     if (jsonDepth(title) > TITLE_JSON_MAX_DEPTH) throw new OpError(`A rich-text title can be nested at most ${TITLE_JSON_MAX_DEPTH} levels deep.`);
     const size = pyLen(JSON.stringify(title));
     if (size > TITLE_JSON_MAX_CHARS) throw new OpError(`A rich-text title can be at most ${TITLE_JSON_MAX_CHARS} characters long as JSON (this one has ${size}).`);
-}
-
-/** `field` and every field nested in it, breadth first (backend `_subtree`). */
-function subtree(field: FormField): FormField[] {
-    const found: FormField[] = [];
-    const pending = [field];
-    while (pending.length) {
-        const item = pending.shift()!;
-        found.push(item);
-        pending.push(...childrenOf(item));
-    }
-    return found;
+    const problem = richTextProblem(title as Record<string, any>);
+    if (problem) throw new OpError(problem);
 }
 
 function formIds(doc: FormDoc): Set<string> {
@@ -297,7 +374,9 @@ export const replaceField: Handler<ReplaceFieldOp> = (ctx, op) => {
     const problem = newProblem(ctx.state, withList(ctx.state, location.pagePos, groupPos, list));
     if (problem) throw new OpError(problem);
     setFields(ownerDraft(ctx, location.pagePos, groupPos), list);
-    return `Replaced '${titleText(field)}'${droppedReferencesNote()}`;
+    const kept = subtreeIds(field);
+    const gone = new Set([...subtreeIds(location.field)].filter((id) => !kept.has(id)));
+    return `Replaced '${titleText(field)}'${droppedReferencesNote(ctx, gone)}`;
 };
 
 export const insertPage: Handler<InsertPageOp> = (ctx, op) => {
@@ -370,24 +449,22 @@ export const updateWelcomePage: Handler<UpdateWelcomePageOp> = (ctx, op) => {
 };
 
 /**
- * The hidden fields as a whole; pipes of names no longer listed go. An
- * empty list removes the key (the backend keeps `[]`; both read the same).
+ * The hidden fields as a whole, named as a whole-form save takes them (the
+ * builder's editor only lets a creator type URL-safe names, but an older
+ * form may hold others and stays editable); pipes of names no longer listed
+ * go. An empty list removes the key (the backend keeps `[]`; both read the
+ * same).
  */
 export const setHiddenFields: Handler<SetHiddenFieldsOp> = (ctx, op) => {
     const names = op.names;
     if (!Array.isArray(names) || names.some((n) => typeof n !== 'string')) throw new OpError('names: Input should be a valid list of strings');
     if (names.length > HIDDEN_FIELDS_MAX) throw new OpError(`A form can have at most ${HIDDEN_FIELDS_MAX} hidden fields.`);
-    const seen = new Set<string>();
-    for (const name of names) {
-        if (pyLen(name) > HIDDEN_FIELD_NAME_MAX_LENGTH || !HIDDEN_FIELD_NAME.test(name)) {
-            throw new OpError(`'${[...name].slice(0, HIDDEN_FIELD_NAME_MAX_LENGTH).join('')}' is not a usable hidden field name: use letters, numbers, dashes and underscores (at most ${HIDDEN_FIELD_NAME_MAX_LENGTH}).`);
-        }
-        if (seen.has(name)) throw new OpError(`The hidden field '${name}' is listed twice.`);
-        seen.add(name);
-    }
+    for (const name of names) if (pyLen(name) > HIDDEN_FIELD_NAME_MAX_LENGTH) throw new OpError(`A hidden field name can be at most ${HIDDEN_FIELD_NAME_MAX_LENGTH} characters.`);
+    const kept = new Set(names);
+    const gone = new Set((ctx.state.hiddenFields ?? []).filter((name) => !kept.has(name)));
     if (names.length) ctx.draft.hiddenFields = [...names];
     else delete ctx.draft.hiddenFields;
-    return `Set ${names.length} hidden field(s)${DROPPED_HIDDEN_REFERENCES_MARK}`;
+    return `Set ${names.length} hidden field(s)${droppedHiddenReferencesNote(ctx, gone)}`;
 };
 
 // in the sorted order of the backend's own names (alt, position, use_workspace_logo)

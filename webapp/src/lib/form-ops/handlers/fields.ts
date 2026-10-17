@@ -26,6 +26,7 @@ import {
     pyLen,
     pyStr,
     sortedList,
+    subtreeIds,
     titleText
 } from '../model';
 import type { AddFieldOp, AddGroupOp, FieldPatch, FormDoc, FormField, LogicConditionSpec, MoveFieldOp, NewFieldSpec, RemoveFieldOp, SetFieldLogicOp, SetFieldValidationOp, UpdateFieldOp } from '../types';
@@ -284,6 +285,9 @@ export const updateField: Handler<UpdateFieldOp> = (ctx, op) => {
     const location = locateField(ctx.state, op.fieldId);
     const { parent, field } = location;
     const patch = op.patch ?? {};
+    if (patch.title != null && typeof patch.title === 'object' && ctx.options.editor === false) {
+        throw new OpError('A title must be plain text here; rich-text titles come only from the form editor.');
+    }
     checkTitle(patch.title);
     checkColSpan(patch.colSpan);
     checkMaxLength(patch.label, LABEL_MAX_LENGTH);
@@ -310,7 +314,7 @@ export const updateField: Handler<UpdateFieldOp> = (ctx, op) => {
 export const removeField: Handler<RemoveFieldOp> = (ctx, op) => {
     const location = locateField(ctx.state, op.fieldId);
     setFields(draftOwner(ctx.draft, location), removedAt(location.container, location.position));
-    return `Removed '${titleText(location.field)}'${droppedRulesNote()}${droppedReferencesNote()}`;
+    return `Removed '${titleText(location.field)}'${droppedRulesNote()}${droppedReferencesNote(ctx, subtreeIds(location.field))}`;
 };
 
 export const moveField: Handler<MoveFieldOp> = (ctx, op) => {

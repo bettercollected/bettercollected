@@ -1,10 +1,14 @@
 /**
- * What still refers to a question or page that is gone (backend
+ * What still refers to a question that is not there (backend
  * `_prune_references`, the editor's `pruneOrphanedConditions` and
  * `pruneOrphanedPipes`): logic and jump conditions on a missing or internal
- * question (a rule or jump left without conditions goes too), jumps to a
- * missing page, and answer pipes in titles — with `hiddenNames`, also pipes
- * of hidden fields not among them.
+ * question (a rule or jump left without conditions goes too) and answer
+ * pipes in titles — with `hiddenNames`, also pipes of hidden fields not
+ * among them. Jumps to a missing page stay, so the editor can show them as
+ * broken.
+ *
+ * Only references to `gone` (what the op removed) and `hiddenGone` are
+ * counted; older orphans are removed too but not counted.
  *
  * The builder's helpers write every rule and title back, changed or not;
  * here the sweep reads a plain document and returns only the changes, so
@@ -13,7 +17,7 @@
 import { FieldTypes } from '@app/models/dtos/form';
 import { ANSWER_PIPE_NODE } from '@app/utils/answer-piping';
 
-import { JUMP_TARGET_SUBMIT, childrenOf, isRepeatingGroup, isSlide } from './model';
+import { childrenOf, isRepeatingGroup, isSlide } from './model';
 import type { FormDoc, FormField } from './types';
 
 export interface ReferenceFix {
@@ -23,6 +27,15 @@ export interface ReferenceFix {
     title?: { value: any };
     logic?: { value: any };
     jumps?: { value: any };
+}
+
+export interface ReferenceScope {
+    /** Ids of the questions and pages the op removed. */
+    gone?: Set<string>;
+    /** The declared hidden fields: pipes of other names are removed. */
+    hiddenNames?: Set<string>;
+    /** Hidden-field names the op removed. */
+    hiddenGone?: Set<string>;
 }
 
 function liveQuestions(doc: FormDoc): Map<string, FormField> {
@@ -36,10 +49,11 @@ function liveQuestions(doc: FormDoc): Map<string, FormField> {
     return found;
 }
 
-/** The changes that drop dangling references, and how many references they drop. */
-export function referenceFixes(doc: FormDoc, hiddenNames?: Set<string>): { fixes: ReferenceFix[]; removed: number } {
+/** The changes that drop dangling references, and how many references to what the op removed they drop. */
+export function referenceFixes(doc: FormDoc, scope: ReferenceScope = {}): { fixes: ReferenceFix[]; removed: number } {
     const live = liveQuestions(doc);
-    const pageIds = new Set((doc.fields ?? []).filter(isSlide).map((p) => p.id));
+    const gone = scope.gone ?? new Set<string>();
+    const referredGone = new Set<string>([...gone, ...[...(scope.hiddenGone ?? [])].map((name) => `hidden:${name}`)]);
     let removed = 0;
     const fixes: ReferenceFix[] = [];
 
@@ -48,18 +62,29 @@ export function referenceFixes(doc: FormDoc, hiddenNames?: Set<string>): { fixes
         if (!c.groupMode || c.groupMode === 'COUNT') return true;
         return !!c.childFieldId && live.has(c.childFieldId);
     };
-    const isOrphanPipe = (node: any): boolean => {
-        if (!node || typeof node !== 'object' || node.type !== ANSWER_PIPE_NODE) return false;
+    /** `conditions` without the dead ones; the same array when all are live. */
+    const liveConditions = (conditions: any[]): any[] => {
+        if (conditions.every(isLive)) return conditions;
+        return conditions.filter((c) => {
+            if (isLive(c)) return true;
+            if (gone.has(c?.fieldId) || gone.has(c?.childFieldId)) removed++;
+            return false;
+        });
+    };
+    /** null when `node` is not an orphaned pipe, else what it referred to. */
+    const orphanPipe = (node: any): string[] | null => {
+        if (!node || typeof node !== 'object' || node.type !== ANSWER_PIPE_NODE) return null;
         const attrs = node.attrs ?? {};
         const key = attrs.pipeKey;
-        if (attrs.kind === 'hidden') return hiddenNames !== undefined && !hiddenNames.has(key);
+        if (attrs.kind === 'hidden') return scope.hiddenNames !== undefined && !scope.hiddenNames.has(key) ? [`hidden:${key}`] : null;
         if (attrs.kind === 'group') {
             const parts = String(key ?? '').split(':');
             const group = live.get(parts[0]);
             const childId = parts.length > 2 ? parts[2] : null;
-            return !group || group.type !== FieldTypes.GROUP || (!!childId && !childrenOf(group).some((c) => c.id === childId));
+            if (!group || group.type !== FieldTypes.GROUP || (!!childId && !childrenOf(group).some((c) => c.id === childId))) return childId === null ? [parts[0]] : [parts[0], childId];
+            return null;
         }
-        return !live.has(key);
+        return live.has(key) ? null : [key];
     };
     /** The node without orphan pipes: the same object when nothing changes. */
     const prunePipes = (node: any): any => {
@@ -67,8 +92,9 @@ export function referenceFixes(doc: FormDoc, hiddenNames?: Set<string>): { fixes
         let changed = false;
         const kept: any[] = [];
         for (const child of node.content) {
-            if (isOrphanPipe(child)) {
-                removed++;
+            const refs = orphanPipe(child);
+            if (refs) {
+                if (refs.some((ref) => referredGone.has(ref))) removed++;
                 changed = true;
                 continue;
             }
@@ -87,13 +113,9 @@ export function referenceFixes(doc: FormDoc, hiddenNames?: Set<string>): { fixes
         const logic = field.properties?.logic;
         if (logic != null) {
             const all = logic.conditions ?? [];
-            const conditions = all.filter(isLive);
-            if (conditions.length !== all.length) {
-                removed += all.length - conditions.length;
-                fix.logic = { value: conditions.length ? { ...logic, conditions } : undefined };
-            } else if (!conditions.length) {
-                fix.logic = { value: undefined };
-            }
+            const conditions = liveConditions(all);
+            if (!conditions.length) fix.logic = { value: undefined };
+            else if (conditions !== all) fix.logic = { value: { ...logic, conditions } };
         }
         if (fix.title || fix.logic) fixes.push(fix);
     };
@@ -106,18 +128,9 @@ export function referenceFixes(doc: FormDoc, hiddenNames?: Set<string>): { fixes
             const kept: any[] = [];
             for (const jump of jumps) {
                 const all = jump.conditions ?? [];
-                const conditions = all.filter(isLive);
-                removed += all.length - conditions.length;
-                if (!conditions.length) {
-                    changed = true;
-                    continue;
-                }
-                if (jump.target !== JUMP_TARGET_SUBMIT && !pageIds.has(jump.target)) {
-                    removed++;
-                    changed = true;
-                    continue;
-                }
-                if (conditions.length !== all.length) {
+                const conditions = liveConditions(all);
+                if (!conditions.length) changed = true;
+                else if (conditions !== all) {
                     changed = true;
                     kept.push({ ...jump, conditions });
                 } else kept.push(jump);

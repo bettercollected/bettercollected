@@ -172,6 +172,20 @@ export function findGroup(doc: FormDoc, groupId: string): FieldLocation {
     return location;
 }
 
+/** `field` and every field nested in it, breadth first (backend `_subtree`). */
+export function subtree(field: FormField): FormField[] {
+    const found: FormField[] = [];
+    const pending = [field];
+    while (pending.length) {
+        const item = pending.shift()!;
+        found.push(item);
+        pending.push(...childrenOf(item));
+    }
+    return found;
+}
+
+export const subtreeIds = (field: FormField) => new Set(subtree(field).map((f) => f.id));
+
 /** Fields of a list, nested ones (group questions) included (common `count_fields`). */
 export function countFields(fields: FormField[] | undefined | null): number {
     let total = 0;

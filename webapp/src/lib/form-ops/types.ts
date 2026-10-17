@@ -421,6 +421,13 @@ export interface ApplyOptions {
      * the form already holds are accepted (see images.ts).
      */
     isStorageImageUrl?: (url: string) => boolean;
+    /**
+     * The batch comes from the form editor (default). False applies the
+     * rules for everyone else (AI, API): editor ops are refused and titles
+     * must be plain text. The backend refuses those when it parses a batch,
+     * here each such op fails on its own.
+     */
+    editor?: boolean;
     /** Skip building the inverse ops (for previews that never undo). */
     skipInverse?: boolean;
 }
