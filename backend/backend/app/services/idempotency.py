@@ -97,9 +97,10 @@ def compact_summary(summary: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def request_hash(method: str, path: str, body: bytes) -> str:
+def request_hash(method: str, path: str, body: bytes, *extra: str) -> str:
     """The fingerprint of a request: JSON bodies compared by value (key
-    order and whitespace do not matter), anything else byte for byte."""
+    order and whitespace do not matter), anything else byte for byte;
+    ``extra``: more of the request that makes it another one (a header)."""
     try:
         canonical = json.dumps(
             json.loads(body), sort_keys=True, separators=(",", ":")
@@ -107,7 +108,12 @@ def request_hash(method: str, path: str, body: bytes) -> str:
     except ValueError:
         canonical = body
     digest = hashlib.sha256()
-    for part in (method.upper().encode(), path.encode(), canonical):
+    for part in (
+        method.upper().encode(),
+        path.encode(),
+        canonical,
+        *(e.encode() for e in extra),
+    ):
         digest.update(part)
         digest.update(b"\0")
     return digest.hexdigest()

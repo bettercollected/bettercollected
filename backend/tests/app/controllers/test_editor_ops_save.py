@@ -19,6 +19,7 @@ from backend.app.services.form_spec import editor_ops
 from backend.app.services.ai.ops import parse_ops
 from backend.app.services.form_spec.editor_ops import (
     EDITOR_OP_NAMES,
+    EditorOpsService,
     idempotency_scope,
 )
 from backend.config import settings
@@ -36,8 +37,10 @@ def _ops_url(workspace, form_id) -> str:
     return f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/ops"
 
 
-def _form_url(workspace, form_id) -> str:
-    return f"/api/v1/workspaces/{workspace.id}/forms/{form_id}"
+def _form_url(workspace, form_id, with_etag=True) -> str:
+    """The editor's read; the builder asks for the ETag."""
+    url = f"/api/v1/workspaces/{workspace.id}/forms/{form_id}"
+    return url + "?withEtag=1" if with_etag else url
 
 
 def _headers(etag=None, key=None) -> dict:
@@ -115,10 +118,27 @@ class TestEditorGet:
         assert response.status_code == 200, response.text
         assert response.headers["ETag"] == response.json()["etag"]
 
-    async def test_no_etag_while_off_for_viewers_or_respondents(
+    async def test_no_etag_while_off_unasked_for_viewers_or_respondents(
         self, client: AsyncClient, workspace, v2_form, test_user_cookies,
         monkeypatch,
     ):
+        # only the builder asks for it; other reads skip the extra work
+        calls = []
+        original = EditorOpsService._load
+
+        async def counting_load(self, *args):
+            calls.append(args)
+            return await original(self, *args)
+
+        monkeypatch.setattr(EditorOpsService, "_load", counting_load)
+        unasked = await client.get(
+            _form_url(workspace, v2_form.form_id, with_etag=False),
+            cookies=test_user_cookies,
+        )
+        assert unasked.status_code == 200, unasked.text
+        assert "ETag" not in unasked.headers and unasked.json()["etag"] is None
+        assert calls == []
+
         viewer = await _member(workspace, WorkspaceRoles.VIEWER)
         response = await client.get(
             _form_url(workspace, v2_form.form_id), cookies=_cookies(viewer)
@@ -130,7 +150,7 @@ class TestEditorGet:
             workspace.id, v2_form.form_id, testUser
         )
         published = await client.get(
-            _form_url(workspace, v2_form.form_id) + "?published=true"
+            _form_url(workspace, v2_form.form_id) + "&published=true"
         )
         assert published.status_code == 200, published.text
         assert "ETag" not in published.headers
@@ -457,26 +477,71 @@ class TestIdempotency:
         stored = await container.form_repo().get_form_document_by_id(v2_form.form_id)
         assert stored.title == "Renamed"
 
-    async def test_errors_replay_and_keys_are_per_user(
+    async def test_a_412_releases_the_key_for_the_rebased_batch(
         self, client: AsyncClient, workspace, v2_form, test_user_cookies
     ):
         url = _ops_url(workspace, v2_form.form_id)
         stale = await client.post(
             url,
             json=RENAME,
-            headers=_headers('"0-stale"', "e1"),
+            headers=_headers('"0-stale"', "r1"),
             cookies=test_user_cookies,
         )
         assert stale.status_code == 412
+        # nothing kept: the same request runs again (and is stale again)
         again = await client.post(
             url,
             json=RENAME,
-            headers=_headers('"0-stale"', "e1"),
+            headers=_headers('"0-stale"', "r1"),
             cookies=test_user_cookies,
         )
         assert again.status_code == 412
+        assert "Idempotent-Replayed" not in again.headers
+        record = await container.idempotency_repo().find(
+            idempotency._record_id(
+                idempotency_scope(testUser, v2_form.form_id), "r1"
+            )
+        )
+        assert record is None
+
+        # after a refetch, the same batch with the same key goes through
+        etag = await _etag(client, workspace, v2_form.form_id, test_user_cookies)
+        saved = await client.post(
+            url, json=RENAME, headers=_headers(etag, "r1"), cookies=test_user_cookies
+        )
+        assert saved.status_code == 200, saved.text
+        assert "Idempotent-Replayed" not in saved.headers
+
+        # a retry of that request replays; another If-Match is another request
+        replay = await client.post(
+            url, json=RENAME, headers=_headers(etag, "r1"), cookies=test_user_cookies
+        )
+        assert replay.headers["Idempotent-Replayed"] == "true"
+        other = await client.post(
+            url,
+            json=RENAME,
+            headers=_headers(saved.headers["ETag"], "r1"),
+            cookies=test_user_cookies,
+        )
+        assert other.status_code == 422, other.text
+        assert other.json()["code"] == "idempotency_key_reused"
+
+    async def test_final_errors_replay_and_keys_are_per_user(
+        self, client: AsyncClient, workspace, v2_form, test_user_cookies
+    ):
+        url = _ops_url(workspace, v2_form.form_id)
+        etag = await _etag(client, workspace, v2_form.form_id, test_user_cookies)
+        failing = {"ops": [{"op": "remove_field", "fieldId": "ghost"}]}
+        failed = await client.post(
+            url, json=failing, headers=_headers(etag, "e1"), cookies=test_user_cookies
+        )
+        assert failed.status_code == 422
+        again = await client.post(
+            url, json=failing, headers=_headers(etag, "e1"), cookies=test_user_cookies
+        )
+        assert again.status_code == 422
         assert again.headers["Idempotent-Replayed"] == "true"
-        assert again.json() == stale.json()
+        assert again.json() == failed.json()
 
         # another editor's same key is their own
         editor = await _member(workspace, WorkspaceRoles.EDITOR)
@@ -486,3 +551,52 @@ class TestIdempotency:
         )
         assert mine.status_code == 200, mine.text
         assert "Idempotent-Replayed" not in mine.headers
+
+
+class TestRateLimit:
+    async def test_429_with_retry_after_per_user(
+        self, client: AsyncClient, workspace, v2_form, monkeypatch
+    ):
+        monkeypatch.setattr(settings.api_settings, "EDITOR_OPS_PER_WINDOW", 2)
+        monkeypatch.setattr(settings.api_settings, "EDITOR_OPS_WINDOW_SECONDS", 3600)
+        url = _ops_url(workspace, v2_form.form_id)
+        busy = await _member(workspace, WorkspaceRoles.EDITOR)
+        etag = await _etag(client, workspace, v2_form.form_id, _cookies(busy))
+        for key in ("a", "b"):
+            response = await client.post(
+                url,
+                json={"ops": [{"op": "update_form_info", "title": key}]},
+                headers=_headers(etag, key),
+                cookies=_cookies(busy),
+            )
+            assert response.status_code == 200, response.text
+            etag = response.headers["ETag"]
+        limited = await client.post(
+            url, json=RENAME, headers=_headers(etag, "c"), cookies=_cookies(busy)
+        )
+        assert limited.status_code == 429, limited.text
+        assert limited.json()["code"] == "rate_limited"
+        assert 0 < int(limited.headers["Retry-After"]) <= 3600
+        stored = await container.form_repo().get_form_document_by_id(v2_form.form_id)
+        assert stored.title == "b"
+
+        # someone else's saves are counted on their own
+        other = await _member(workspace, WorkspaceRoles.ADMIN)
+        response = await client.post(
+            url, json=RENAME, headers=_headers(etag, "c"), cookies=_cookies(other)
+        )
+        assert response.status_code == 200, response.text
+
+    async def test_zero_turns_it_off(
+        self, client: AsyncClient, workspace, v2_form, test_user_cookies, monkeypatch
+    ):
+        monkeypatch.setattr(settings.api_settings, "EDITOR_OPS_PER_WINDOW", 0)
+        url = _ops_url(workspace, v2_form.form_id)
+        for index in range(3):
+            response = await client.post(
+                url,
+                json=RENAME,
+                headers=_headers('"0-stale"', f"z{index}"),
+                cookies=test_user_cookies,
+            )
+            assert response.status_code == 412

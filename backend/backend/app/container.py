@@ -1228,6 +1228,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         idempotency_service=idempotency_service,
+        rate_limiter=rate_limiter,
     )
 
 
