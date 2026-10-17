@@ -158,15 +158,19 @@ async def _persist_settings_ops(
 
 
 async def persist_ops_to_form(
-    form_document: FormDocument, form: StandardForm, ops
+    form_document: FormDocument, form: StandardForm, ops, atomic: bool = False
 ) -> tuple:
     """Apply ops and persist when anything applied.
 
     The ONE write path for AI form mutation — the chat turn, review fixes and
     MCP's update_form all go through here; never two ways to mutate a form.
+    ``atomic``: all or nothing — when any op fails, nothing (form or
+    settings) is written.
     Returns (new_form, results, updated_settings_or_none).
     """
-    new_form, results = apply_form_ops(form, ops)
+    new_form, results = apply_form_ops(form, ops, atomic=atomic)
+    if atomic and not all(r.ok for r in results):
+        return new_form, results, None
     if any(r.ok for r in results):
         await persist_form(_c().form_repo(), form_document, new_form)
     settings = await _persist_settings_ops(form_document.form_id, ops, results)
