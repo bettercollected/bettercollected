@@ -50,6 +50,7 @@ from common.models.standard_form import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.constants.themes import THEME_STYLES, themes as THEME_PRESETS
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
 from backend.app.services.policy_url import checked_policy_url
@@ -407,6 +408,19 @@ class UpdateThemeOp(_CamelModel):
     theme: Theme
 
 
+class SetThemePresetOp(_CamelModel):
+    """Dress the form in one of the theme presets (constants/themes.py), by
+    name (any case), as the builder's theme picker does: the preset's
+    colours, no background, and its own style if it has one (Leaflet), else
+    the form's current style. ``style`` sets the style instead
+    (constants/themes.py THEME_STYLES). Both are checked when the op is
+    applied, so an unknown name fails alone instead of the whole turn."""
+
+    op: Literal["set_theme_preset"] = "set_theme_preset"
+    name: str = Field(max_length=60)
+    style: Optional[str] = Field(default=None, max_length=30)
+
+
 class SetSectionTitleOp(_CamelModel):
     """Name a question page's section (``properties.sectionTitle``): what
     the Leaflet section bar and the welcome page's contents list show for
@@ -439,6 +453,7 @@ FormOp = Annotated[
         SetPageJumpsOp,
         DuplicatePageOp,
         UpdateThemeOp,
+        SetThemePresetOp,
         SetSectionTitleOp,
         MovePageOp,
         SetFieldValidationOp,
@@ -1224,6 +1239,32 @@ def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
     return f"Applied theme '{op.theme.title}'"
 
 
+_PRESETS_BY_NAME = {name.lower(): theme for name, theme in THEME_PRESETS.items()}
+
+
+def _apply_set_theme_preset(form: StandardForm, op: SetThemePresetOp) -> str:
+    preset = _PRESETS_BY_NAME.get(op.name.strip().lower())
+    if preset is None:
+        raise OpError(
+            f"There is no theme preset named '{op.name}'. "
+            f"Pick one of: {', '.join(THEME_PRESETS)}."
+        )
+    theme = preset.model_copy(deep=True)
+    if op.style is not None:
+        style = op.style.strip().lower()
+        if style not in THEME_STYLES:
+            raise OpError(
+                f"There is no style named '{op.style}'. "
+                f"Pick one of: {', '.join(THEME_STYLES)}."
+            )
+        theme.style = style
+    elif theme.style is None and form.theme is not None:
+        theme.style = form.theme.style
+    form.theme = theme
+    style = f" in the {theme.style} style" if theme.style else ""
+    return f"Applied the '{theme.title}' theme{style}"
+
+
 # Ids a model may use for the pages that are not question pages.
 _WELCOME_PAGE_IDS = {"welcome", "welcome_page", "welcomepage", "start", "intro"}
 _ENDING_PAGE_IDS = {
@@ -1435,6 +1476,7 @@ _HANDLERS = {
     "set_page_jumps": _apply_set_page_jumps,
     "duplicate_page": _apply_duplicate_page,
     "update_theme": _apply_update_theme,
+    "set_theme_preset": _apply_set_theme_preset,
     "set_section_title": _apply_set_section_title,
     "move_page": _apply_move_page,
     "set_field_validation": _apply_set_field_validation,
