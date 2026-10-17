@@ -612,6 +612,38 @@ class TestOps:
             "invalid_request",
         )
 
+    async def test_editor_ops_are_refused_per_op(self, client: AsyncClient, workspace):
+        token = await _token(workspace.id)
+        created = await _create(client, token)
+        form_id, etag = created.json()["formId"], created.headers["ETag"]
+        ops = [
+            {"op": "update_form_info", "title": "Not stored"},
+            {
+                "op": "insert_field",
+                "pageId": "page-1",
+                "index": 0,
+                "field": {"id": "x", "type": "short_text"},
+            },
+            {"op": "set_hidden_fields", "names": ["utm_source"]},
+        ]
+        for path, code in (("ops", "invalid_ops"), ("ops/dry-run", "unprocessable")):
+            body = _is_error(
+                await client.post(
+                    f"{BASE}/forms/{form_id}/{path}",
+                    json={"ops": ops, "atomic": False},
+                    headers=_auth(token),
+                ),
+                422,
+                code,
+            )
+            assert [e["path"] for e in body["errors"]] == ["/ops/1", "/ops/2"]
+            assert all(
+                "only available in the form editor" in e["message"]
+                for e in body["errors"]
+            )
+        got = await client.get(f"{BASE}/forms/{form_id}", headers=_auth(token))
+        assert got.headers["ETag"] == etag
+
     async def test_dry_run_stores_nothing(self, client: AsyncClient, workspace):
         token = await _token(workspace.id)
         created = await _create(client, token)
