@@ -66,7 +66,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             updatePageImage
         });
     };
-    const DisplayImageWithControls = ({ imageUrl }: { imageUrl: string }) => {
+    const renderImageWithControls = (imageUrl: string) => {
         return (
             <>
                 <Image
@@ -183,7 +183,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                         {...(disabled ? { tabIndex: -1, 'aria-disabled': true } : {})}
                     >
                         {imageUrl ? (
-                            <DisplayImageWithControls imageUrl={imageUrl} />
+                            renderImageWithControls(imageUrl)
                         ) : (
                             !disabled && (
                                 <div className={cn('flex h-full items-center justify-center text-lg font-semibold')}>
@@ -212,7 +212,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 >
                     {/* No need to show controls for single column without background layout */}
                     {imageUrl ? (
-                        <DisplayImageWithControls imageUrl={imageUrl} />
+                        renderImageWithControls(imageUrl)
                     ) : (
                         !disabled && (
                             <div className={cn('flex h-full items-center justify-center text-lg font-semibold', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute top-[-52%] left-0' : '')}>
