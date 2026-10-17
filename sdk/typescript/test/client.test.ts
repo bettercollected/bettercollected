@@ -142,6 +142,22 @@ describe("BetterCollected", () => {
     });
   });
 
+  it("drops trailing slashes from the base URL", async () => {
+    handler = (_, res) => reply(res, 200, { items: [], page: 1, size: 50, total: 0 });
+    await new BetterCollected({ apiKey: "bc_test", baseUrl: baseUrl + "///" }).listForms();
+    assert.equal(seen[0]?.url, "/api/v1/public/v1/forms");
+  });
+
+  it("warns when the key would travel over plain http to another host", (t) => {
+    const warn = t.mock.method(console, "warn", () => {});
+    new BetterCollected({ apiKey: "bc_test", baseUrl: "http://127.0.0.1:8000" });
+    new BetterCollected({ apiKey: "bc_test", baseUrl: "http://localhost" });
+    new BetterCollected({ apiKey: "bc_test", baseUrl: "https://forms.example.org" });
+    assert.equal(warn.mock.callCount(), 0);
+    new BetterCollected({ apiKey: "bc_test", baseUrl: "http://forms.example.org" });
+    assert.equal(warn.mock.callCount(), 1);
+  });
+
   it("needs an API key", () => {
     assert.throws(() => new BetterCollected({ apiKey: "", baseUrl }));
   });

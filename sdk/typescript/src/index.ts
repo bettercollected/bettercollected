@@ -57,6 +57,20 @@ export class BetterCollectedError extends Error {
 
 export const API_PATH = "/api/v1/public/v1";
 
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+/** Whether a base URL would send the key unencrypted to another machine. */
+export function sendsKeyInClear(baseUrl: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    return false;
+  }
+  const host = url.hostname.toLowerCase();
+  return url.protocol === "http:" && !LOCAL_HOSTS.has(host) && !host.endsWith(".localhost");
+}
+
 interface RequestOptions {
   body?: unknown;
   query?: Record<string, number | undefined>;
@@ -71,7 +85,14 @@ export class BetterCollected {
   constructor(options: ClientOptions) {
     if (!options.apiKey) throw new Error("apiKey is required");
     this.#apiKey = options.apiKey;
-    this.#base = options.baseUrl.replace(/\/+$/, "") + API_PATH;
+    let base = options.baseUrl;
+    while (base.endsWith("/")) base = base.slice(0, -1);
+    if (sendsKeyInClear(base)) {
+      console.warn(
+        "BetterCollected: the base URL uses http://; the API key is sent unencrypted. Use https://.",
+      );
+    }
+    this.#base = base + API_PATH;
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
