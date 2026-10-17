@@ -16,6 +16,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from common.expressions.decimal_num import CEIL, FLOOR, ZERO, Dec
 from common.expressions.validator import (
+    MAX_INPUT_LIST_ITEMS,
+    MAX_INPUT_STRING_LENGTH,
     MAX_STRING_LENGTH,
     ExpressionError,
     validate_expression,
@@ -29,13 +31,20 @@ _ASCII_SPACE = " \t\n\r"
 
 
 def _scalar_from_input(value: Any) -> Scalar:
-    if value is None or isinstance(value, (bool, str)):
+    if value is None or isinstance(value, bool):
         return value
+    if isinstance(value, str):
+        return value if len(value) <= MAX_INPUT_STRING_LENGTH else None
     return Dec.from_python(value)
 
 
 def _from_input(value: Any) -> Value:
+    """Normalise a variable value. Over-cap input becomes ``None``: a text
+    over MAX_INPUT_STRING_LENGTH code points, a list over MAX_INPUT_LIST_ITEMS
+    items, and anything nested deeper than one list level."""
     if isinstance(value, (list, tuple)):
+        if len(value) > MAX_INPUT_LIST_ITEMS:
+            return None
         return [
             None if isinstance(item, (list, tuple)) else _scalar_from_input(item)
             for item in value
@@ -355,6 +364,8 @@ def evaluate_expression(
         raise ExpressionError(problems[0])
     variables = variables or {}
     context = context or {}
+    # Each variable is normalised once per evaluation, however often it is referenced.
+    normalised: Dict[str, Value] = {}
 
     def ev(node: Any) -> Value:
         if node is None or isinstance(node, (bool, str)):
@@ -363,7 +374,11 @@ def evaluate_expression(
             return Dec.from_python(node)
         op, value = next(iter(node.items()))
         if op == "var":
-            return _from_input(variables[value]) if value in variables else None
+            if value not in variables:
+                return None
+            if value not in normalised:
+                normalised[value] = _from_input(variables[value])
+            return normalised[value]
         return _OPS[op](value, ev, context)
 
     return _to_output(ev(ast))

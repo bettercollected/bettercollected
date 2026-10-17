@@ -1,4 +1,4 @@
-import { ExprNode, ExpressionError, MAX_STRING_LENGTH, argsOf, codePointLength, isOpNode, opOf } from '@app/lib/expressions/ast';
+import { ExprNode, ExpressionError, MAX_INPUT_LIST_ITEMS, MAX_INPUT_STRING_LENGTH, MAX_STRING_LENGTH, argsOf, codePointLength, isOpNode, opOf } from '@app/lib/expressions/ast';
 import { Dec } from '@app/lib/expressions/decimal';
 import { validateExpression } from '@app/lib/expressions/validator';
 
@@ -27,14 +27,23 @@ const ISO_DATE = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
 
 function scalarFromInput(input: unknown): Scalar {
     if (input === null || input === undefined) return null;
-    if (typeof input === 'boolean' || typeof input === 'string') return input;
+    if (typeof input === 'boolean') return input;
+    if (typeof input === 'string') return input.length <= MAX_INPUT_STRING_LENGTH || codePointLength(input) <= MAX_INPUT_STRING_LENGTH ? input : null;
     if (typeof input === 'number') return Dec.fromNumber(input);
     if (typeof input === 'bigint') return Dec.parse(input.toString()) ?? null;
     return null;
 }
 
+/**
+ * Normalises a variable value. Over-cap input becomes null: a text over
+ * MAX_INPUT_STRING_LENGTH code points, a list over MAX_INPUT_LIST_ITEMS items,
+ * and anything nested deeper than one list level.
+ */
 function fromInput(input: unknown): Value {
-    if (Array.isArray(input)) return input.map((item) => (Array.isArray(item) ? null : scalarFromInput(item)));
+    if (Array.isArray(input)) {
+        if (input.length > MAX_INPUT_LIST_ITEMS) return null;
+        return input.map((item) => (Array.isArray(item) ? null : scalarFromInput(item)));
+    }
     return scalarFromInput(input);
 }
 
@@ -299,6 +308,8 @@ function toOutput(value: Value): ExprValue {
 export function evaluateExpression(ast: unknown, variables: Record<string, unknown> = {}, context: EvalContext = {}): ExprValue {
     const problems = validateExpression(ast);
     if (problems.length) throw new ExpressionError(problems[0]);
+    // Each variable is normalised once per evaluation, however often it is referenced.
+    const normalised = new Map<string, Value>();
     const ev: Evaluate = (node) => {
         if (node === null || typeof node === 'boolean' || typeof node === 'string') return node;
         if (typeof node === 'number') return Dec.fromNumber(node);
@@ -306,7 +317,9 @@ export function evaluateExpression(ast: unknown, variables: Record<string, unkno
         const op = opOf(node);
         if (op === 'var') {
             const key = node.var as string;
-            return Object.prototype.hasOwnProperty.call(variables, key) ? fromInput(variables[key]) : null;
+            if (!Object.prototype.hasOwnProperty.call(variables, key)) return null;
+            if (!normalised.has(key)) normalised.set(key, fromInput(variables[key]));
+            return normalised.get(key) as Value;
         }
         return OPS[op](argsOf(node), ev, context);
     };

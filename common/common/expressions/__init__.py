@@ -11,6 +11,8 @@ from common.expressions.evaluator import (
 )
 from common.expressions.validator import (
     MAX_DEPTH,
+    MAX_INPUT_LIST_ITEMS,
+    MAX_INPUT_STRING_LENGTH,
     MAX_NODES,
     MAX_STRING_LENGTH,
     OPERATORS,
@@ -22,6 +24,8 @@ from common.expressions.validator import (
 
 __all__ = [
     "MAX_DEPTH",
+    "MAX_INPUT_LIST_ITEMS",
+    "MAX_INPUT_STRING_LENGTH",
     "MAX_NODES",
     "MAX_STRING_LENGTH",
     "OPERATORS",
