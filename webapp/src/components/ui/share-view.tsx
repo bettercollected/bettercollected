@@ -4,7 +4,7 @@ import { ReactNode, useState } from 'react';
 
 import cn from 'classnames';
 import { Check, Copy, ExternalLink } from 'lucide-react';
-import { FacebookShareButton, LinkedinShareButton, TwitterShareButton } from 'react-share';
+import { FacebookShareButton, LinkedinShareButton, XShareButton } from 'react-share';
 
 import { Facebook } from '@app/components/icons/brands/facebook';
 import { Linkedin } from '@app/components/icons/brands/linkedin';
@@ -23,9 +23,10 @@ interface Props {
     className?: string;
 }
 
-const SocialButton = ({ children, label }: { children: ReactNode; label: string }) => (
+// The share button carries the accessible name; this is only its visual face.
+const SocialButton = ({ children }: { children: ReactNode }) => (
     <span
-        aria-label={label}
+        aria-hidden="true"
         className="border-black-300 text-black-700 hover:border-brand-300 hover:bg-brand-100 flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-colors"
     >
         {children}
@@ -71,18 +72,18 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
             <div className="flex flex-col gap-2.5">
                 <span className="text-black-600 text-xs font-medium uppercase tracking-wide">Or share on</span>
                 <div className="flex items-center gap-3">
-                    <TwitterShareButton url={url}>
-                        <SocialButton label="Share on X">
+                    <XShareButton url={url} aria-label="Share on X">
+                        <SocialButton>
                             <Twitter className="h-[18px] w-[18px]" />
                         </SocialButton>
-                    </TwitterShareButton>
-                    <FacebookShareButton url={url}>
-                        <SocialButton label="Share on Facebook">
+                    </XShareButton>
+                    <FacebookShareButton url={url} aria-label="Share on Facebook">
+                        <SocialButton>
                             <Facebook className="h-[18px] w-[18px]" />
                         </SocialButton>
                     </FacebookShareButton>
-                    <LinkedinShareButton url={url}>
-                        <SocialButton label="Share on LinkedIn">
+                    <LinkedinShareButton url={url} aria-label="Share on LinkedIn">
+                        <SocialButton>
                             <Linkedin className="h-[18px] w-[18px]" />
                         </SocialButton>
                     </LinkedinShareButton>

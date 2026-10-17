@@ -183,6 +183,7 @@ from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
 from backend.app.services.form_actions_service import FormActionsService
+from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.app.services.idempotency import IdempotencyService
@@ -1219,6 +1220,15 @@ class AppContainer(containers.DeclarativeContainer):
     )
     idempotency_service: IdempotencyService = providers.Singleton(
         IdempotencyService, idempotency_repo=idempotency_repo
+    )
+    # The builder's op-batch save (session auth, If-Match, Idempotency-Key).
+    editor_ops_service: EditorOpsService = providers.Singleton(
+        EditorOpsService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        idempotency_service=idempotency_service,
+        rate_limiter=rate_limiter,
     )
 
 
