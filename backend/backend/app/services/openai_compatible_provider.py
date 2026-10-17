@@ -25,6 +25,7 @@ from backend.app.services.ai_form_provider import (
 )
 from backend.app.services.form_generation_rules import (
     HONEST_FORM_RULES,
+    LANGUAGE_RULES,
     SECTION_TITLE_RULES,
 )
 from backend.app.services.openai_provider import OpenAIClientCalls
@@ -72,6 +73,7 @@ interface Form {
 4. Realistic, human-friendly content. Valid JSON only.
 """
 GENERATION_SYSTEM_PROMPT += HONEST_FORM_RULES
+GENERATION_SYSTEM_PROMPT += LANGUAGE_RULES
 GENERATION_SYSTEM_PROMPT += SECTION_TITLE_RULES
 GENERATION_SYSTEM_PROMPT += UNTRUSTED_CONTENT_RULES
 
