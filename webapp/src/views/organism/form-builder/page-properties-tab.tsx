@@ -66,13 +66,13 @@ export default function PagePropertiesTab({}: {}) {
     const endingActions = useEndingActions();
     const { renameEnding, makeDefault } = endingActions;
 
-    const slide = activeSlideComponent && (activeSlideComponent.index >= 0 ? formFields[activeSlideComponent.index] : activeSlideComponent.index === -10 ? formState.welcomePage : formState.thankyouPage![endingIndex]);
+    const slide = activeSlideComponent && (activeSlideComponent.index >= 0 ? formFields[activeSlideComponent.index] : activeSlideComponent.index === -10 ? formState.welcomePage : formState.thankyouPage?.[endingIndex]);
 
     function updatePagesLayout() {
         if (
             (activeSlide?.properties?.layout && NO_IMAGE_LAYOUTS.includes(activeSlide?.properties?.layout)) ||
             (activeSlideComponent &&
-                ((formState.welcomePage?.layout && NO_IMAGE_LAYOUTS.includes(formState.welcomePage?.layout)) || NO_IMAGE_LAYOUTS.includes(formState.thankyouPage![endingIndex]?.layout ?? FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN)))
+                ((formState.welcomePage?.layout && NO_IMAGE_LAYOUTS.includes(formState.welcomePage?.layout)) || NO_IMAGE_LAYOUTS.includes(formState.thankyouPage?.[endingIndex]?.layout ?? FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN)))
         ) {
             if (activeSlideComponent?.index === -10) {
                 updateWelcomePageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
