@@ -1,6 +1,6 @@
-"""The document sandbox's ``logo`` mode (pdf_import/logo_image.py): which
-uploads it takes, that it re-encodes them without their metadata, and that it
-runs over the isolated transport only."""
+"""The document sandbox's ``logo`` and ``image`` modes
+(pdf_import/logo_image.py): which files they take, that they re-encode them
+without their metadata, and that they run over the isolated transport only."""
 
 import asyncio
 import base64
@@ -17,8 +17,12 @@ from PIL import Image, ImageCms, PngImagePlugin
 
 from backend.app.services.pdf_import import sandbox
 from backend.app.services.pdf_import.analysis import DocumentRefused
-from backend.app.services.pdf_import.logo_image import reencode_logo
-from backend.app.services.pdf_import.sandbox import SandboxUnavailable, run_logo
+from backend.app.services.pdf_import.logo_image import reencode_image, reencode_logo
+from backend.app.services.pdf_import.sandbox import (
+    SandboxUnavailable,
+    run_image,
+    run_logo,
+)
 
 LIMITS = dict(
     max_pages=1,
@@ -195,3 +199,50 @@ async def test_over_the_socket_the_logo_is_reencoded_and_refusals_cross(socket_p
         *(run_logo(image_bytes(), socket_path=socket_path, **LIMITS) for _ in range(3))
     )
     assert all(r["format"] == "png" for r in results)
+
+
+# --- the image mode: fetched pictures (Unsplash, a pasted address) --------------
+
+
+def test_the_image_mode_takes_photos_larger_than_a_logo():
+    result = reencode_image(image_bytes("JPEG", size=(4000, 2000)))
+    _, image = decoded(result)
+    assert result["format"] == "jpeg" and image.size == (4000, 2000)
+    # and small ones
+    assert reencode_image(image_bytes("PNG", size=(1, 1)))["width"] == 1
+
+
+@pytest.mark.parametrize("fmt", ["JPEG", "WEBP", "PNG"])
+def test_the_image_mode_drops_metadata_too(fmt):
+    data, image = decoded(reencode_image(image_bytes(fmt, exif=gps_exif())))
+    assert not image.getexif()
+    assert b"PhoneMaker" not in data
+
+
+def test_the_image_mode_refuses_too_many_pixels_and_other_types():
+    with pytest.raises(DocumentRefused) as refused:
+        reencode_image(image_bytes("PNG", size=(400, 400), mode="1"), max_pixels=10_000)
+    assert refused.value.code == "bad_size"
+    with pytest.raises(DocumentRefused) as refused:
+        reencode_image(image_bytes("PNG", size=(8001, 2), mode="1"))
+    assert refused.value.code == "bad_size"
+    with pytest.raises(DocumentRefused) as refused:
+        reencode_image(image_bytes("GIF"))
+    assert refused.value.code == "unsupported_type"
+
+
+async def test_the_image_mode_never_runs_in_a_local_child():
+    with pytest.raises(SandboxUnavailable):
+        await run_image(image_bytes(), **LIMITS)
+
+
+@pytest.mark.xdist_group("logo_sandbox")
+async def test_over_the_socket_an_image_is_reencoded(socket_path):
+    result = await run_image(
+        image_bytes("JPEG", size=(3200, 1800), exif=gps_exif()),
+        socket_path=socket_path,
+        **{**LIMITS, "max_pixels": 40_000_000, "memory_mb": 1024},
+    )
+    _, image = decoded(result)
+    assert result["format"] == "jpeg" and image.size == (3200, 1800)
+    assert not image.getexif()

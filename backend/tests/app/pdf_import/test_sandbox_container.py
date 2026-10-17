@@ -30,6 +30,7 @@ from PIL import Image
 from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.sandbox import (
     run_analysis,
+    run_image,
     run_layout,
     run_logo,
     run_render,
@@ -172,6 +173,13 @@ async def test_every_mode_works_under_the_profile(container):
         Image.new("RGB", (120, 48), (11, 61, 145)).save(buffer, format=fmt)
         logo = await run_logo(buffer.getvalue(), **kw)
         assert logo["format"] == kind and (logo["width"], logo["height"]) == (120, 48)
+    # the image mode (Unsplash photos, pasted addresses): a larger photo
+    buffer = io.BytesIO()
+    Image.new("RGB", (2400, 1600), (11, 61, 145)).save(buffer, format="JPEG")
+    photo = await run_image(
+        buffer.getvalue(), **{**kw, "max_pixels": 40_000_000, "memory_mb": 1024}
+    )
+    assert photo["format"] == "jpeg" and (photo["width"], photo["height"]) == (2400, 1600)
 
 
 PROBE = r"""
