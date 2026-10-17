@@ -29,6 +29,7 @@ import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import { firstPageWithError, historyBackTo, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
@@ -163,7 +164,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             body: formData
         });
         if (!response.data) {
-            throw new Error(response?.error);
+            const failure: Error & { response?: unknown } = new Error('The response was not accepted.');
+            failure.response = response?.error;
+            throw failure;
         }
         // Reflect what was actually submitted, so the thank-you page reports
         // the anonymity state truthfully.
@@ -224,8 +227,31 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     });
                 })
                 .catch((e) => {
-                    toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
+                    if (!showServerAnswerErrors(e?.response)) toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
                 });
+    };
+
+    // The server refused some answers (422 invalid_answers): put its problems
+    // on the questions and go back to the first page that has one.
+    const showServerAnswerErrors = (error: unknown): boolean => {
+        const errors = serverAnswerErrors(error);
+        if (!errors) return false;
+        const slides = standardForm?.fields ?? [];
+        const invalid = serverInvalidations(slides, errors);
+        setInvalidFields(invalid);
+        toast({ description: t('NAV.SUBMIT_INVALID'), variant: 'destructive' });
+        const page = firstPageWithError(slides, errors);
+        if (page >= 0 && page !== currentSlide) {
+            setResponderState({ ...responderState, currentSlide: page, currentField: 0, prevActiveField: -1, prevActiveSlide: currentSlide, history: historyBackTo(responderState.history, currentSlide, page) });
+        }
+        const firstKey = Object.keys(invalid)[0];
+        // after the page change has rendered; as onNext does
+        if (firstKey)
+            setTimeout(() => {
+                if (parseScopedFieldId(firstKey)) document.getElementById(firstKey)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+                else scrollToDivById(firstKey);
+            }, 600);
+        return true;
     };
 
     const onNext = () => {
