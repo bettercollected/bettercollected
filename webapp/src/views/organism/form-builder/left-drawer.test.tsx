@@ -297,6 +297,15 @@ describe('builder outline', () => {
         expect(seen.builder.formFields[0].properties.jumps.map((j: any) => j.endingId)).toEqual(['ending-2', undefined]);
     });
 
+    it('stops at 20 endings', async () => {
+        renderOutline();
+        await tick();
+        act(() => seen.endingState.setFormState((prev: any) => ({ ...prev, thankyouPage: Array.from({ length: 20 }, (_, i) => ({ id: `e${i}` })) })));
+        expect(screen.getByRole('button', { name: 'Add ending' })).toBeDisabled();
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Ending 1' }), { key: 'Enter' });
+        expect(await screen.findByRole('menuitem', { name: 'Duplicate' })).toHaveAttribute('aria-disabled', 'true');
+    });
+
     it('keeps at least one ending', async () => {
         renderOutline();
         await tick();

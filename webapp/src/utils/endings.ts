@@ -27,6 +27,9 @@ export interface Ending {
 /** Longest internal name of an ending (the backend's ENDING_NAME_MAX_LENGTH). */
 export const ENDING_NAME_MAX_LENGTH = 60;
 
+/** Most endings a form may have (the backend's MAX_ENDINGS). */
+export const MAX_ENDINGS = 20;
+
 /**
  * Every ending with an id: ones stored before endings had ids get
  * `ending-<n>` from their position (1-based; the next free number when that

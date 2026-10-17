@@ -10,7 +10,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom, { initialFieldsAtom } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { ENDING_NAME_MAX_LENGTH, Ending, defaultEndingIndex, endingLabel, jumpEndingId, jumpsFallBackToDefault, newEndingId, withEndingIds } from '@app/utils/endings';
+import { ENDING_NAME_MAX_LENGTH, Ending, MAX_ENDINGS, defaultEndingIndex, endingLabel, jumpEndingId, jumpsFallBackToDefault, newEndingId, withEndingIds } from '@app/utils/endings';
 
 /**
  * The builder's ending actions (outline menu, properties panel): add,
@@ -39,8 +39,11 @@ export function useEndingActions() {
         setFormState((prev) => ({ ...prev, thankyouPage: update(withEndingIds(prev.thankyouPage?.length ? prev.thankyouPage : [{ layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }])) }));
     };
 
+    const canAdd = endings.length < MAX_ENDINGS;
+
     const addEnding = () => {
         const index = endings.length;
+        if (!canAdd) return -1;
         setEndings((current) => [...current, { id: newEndingId(), layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND }]);
         select(index);
         return index;
@@ -48,7 +51,7 @@ export function useEndingActions() {
 
     const duplicateEnding = (index: number) => {
         const source = endings[index];
-        if (!source) return;
+        if (!source || !canAdd) return;
         const name = source.name?.trim() ? `${source.name.trim()} (copy)`.slice(0, ENDING_NAME_MAX_LENGTH) : undefined;
         setEndings((current) => {
             const copy: Ending = { ...JSON.parse(JSON.stringify(current[index] ?? source)), id: newEndingId(), name, isDefault: undefined };
@@ -123,5 +126,5 @@ export function useEndingActions() {
         select(Math.min(index, endings.length - 1));
     };
 
-    return { endings, addEnding, duplicateEnding, renameEnding, makeDefault, deleteEnding };
+    return { endings, canAdd, addEnding, duplicateEnding, renameEnding, makeDefault, deleteEnding };
 }

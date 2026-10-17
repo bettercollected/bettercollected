@@ -19,6 +19,7 @@ export default function EndingOptions({
     visible,
     isDefault,
     canDelete,
+    canDuplicate = true,
     onRename,
     onDuplicate,
     onMakeDefault,
@@ -28,6 +29,7 @@ export default function EndingOptions({
     visible: boolean;
     isDefault: boolean;
     canDelete: boolean;
+    canDuplicate?: boolean;
     onRename: () => void;
     onDuplicate: () => void;
     onMakeDefault: () => void;
@@ -59,7 +61,7 @@ export default function EndingOptions({
                     <PencilLine className="h-4 w-4" aria-hidden="true" />
                     Rename
                 </DropdownMenuItem>
-                <DropdownMenuItem className={outlineMenuItemClass} onSelect={onDuplicate}>
+                <DropdownMenuItem className={outlineMenuItemClass} disabled={!canDuplicate} onSelect={onDuplicate}>
                     <Copy className="h-4 w-4" aria-hidden="true" />
                     Duplicate
                 </DropdownMenuItem>

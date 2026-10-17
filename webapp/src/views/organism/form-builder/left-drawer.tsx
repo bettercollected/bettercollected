@@ -319,7 +319,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
             return next;
         });
 
-    const { endings, addEnding, duplicateEnding, renameEnding, makeDefault, deleteEnding } = useEndingActions();
+    const { endings, canAdd, addEnding, duplicateEnding, renameEnding, makeDefault, deleteEnding } = useEndingActions();
     const defaultIndex = defaultEndingIndex(endings);
     const [renaming, setRenaming] = useState<string | null>(null);
     const activeEnding = activeThankYouPageComponent?.index ?? 0;
@@ -476,12 +476,14 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                             <h3 className="text-black-600 text-xs font-medium">{endings.length > 1 ? 'Endings' : 'Ending'}</h3>
                             <button
                                 type="button"
+                                disabled={!canAdd}
+                                title={canAdd ? undefined : 'A form can have at most 20 endings'}
                                 onClick={() => {
                                     const index = addEnding();
                                     setActiveFieldComponent(null);
                                     setMessage(`Ending ${index + 1} added.`);
                                 }}
-                                className="text-brand-500 hover:text-brand-600 hover:bg-black-200 flex h-6 items-center gap-0.5 rounded-sm px-1 text-xs font-medium"
+                                className="text-brand-500 hover:text-brand-600 hover:bg-black-200 flex h-6 items-center gap-0.5 rounded-sm px-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                                 Add ending
@@ -540,6 +542,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                 visible={selected}
                                                 isDefault={isDefault}
                                                 canDelete={endings.length > 1}
+                                                canDuplicate={canAdd}
                                                 onRename={() => setRenaming(ending.id ?? null)}
                                                 onDuplicate={() => {
                                                     duplicateEnding(index);
