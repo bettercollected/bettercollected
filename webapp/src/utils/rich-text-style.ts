@@ -15,7 +15,8 @@ export const FONT_SIZE_MIN = 8;
 export const FONT_SIZE_MAX = 96;
 const FONT_SIZE = /^(\d{1,3}(?:\.\d{1,2})?)(?:px)?$/;
 const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
-const RGB = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(\d(?:\.\d{1,3})?|\.\d{1,3})\s*)?\)$/;
+// Plain spaces only, so the backend (re.ASCII, fullmatch) accepts exactly the same values.
+const RGB = /^rgba?\( *(\d{1,3}) *, *(\d{1,3}) *, *(\d{1,3}) *(?:, *(\d(?:\.\d{1,3})?|\.\d{1,3}) *)?\)$/;
 const STYLE_ATTRS = ['fontSize', 'color'] as const;
 
 export function isValidFontSize(value: unknown): boolean {

@@ -73,6 +73,10 @@ def test_colours_the_editor_writes(value):
         "#fff;x:y",
         "url(x)",
         "var(--c)",
+        "#fff\n",
+        "rgb(1,\t2,3)",
+        "rgb(1,\u00a02,3)",
+        "rgb(\u0661,2,3)",
         0,
     ],
 )
@@ -152,3 +156,8 @@ async def test_a_whole_form_save_drops_unusable_style_values(
     stored = await container.form_repo().get_form_document_by_id(workspace_form.form_id)
     title = stored.fields[0].properties.fields[0].title
     assert title == _title(fontSize="24px")
+
+
+@pytest.mark.parametrize("value", ["12px\n", "12\n", "\u0661\u0662px"])
+def test_font_sizes_match_the_webapp_rule_exactly(value):
+    assert not valid_font_size(value)

@@ -8,7 +8,10 @@ describe('rich-text style values', () => {
     it.each(['12', '15', '16', '24', '32', '16px', '8px', '96', '13.5px'])('keeps the font size %s', (value) => expect(isValidFontSize(value)).toBe(true));
     it.each(['', '7px', '97px', '1em', '16 px', '16px;color:red', 'calc(1px)', '-12px', 16, null])('refuses the font size %s', (value) => expect(isValidFontSize(value)).toBe(false));
     it.each(['#fff', '#A0b1C2', 'rgb(255, 0, 0)', 'rgb(0,0,0)', 'rgba(0, 0, 0, 0.5)', 'rgba(1,2,3,1)', 'rgba(1,2,3,.25)'])('keeps the colour %s', (value) => expect(isValidColor(value)).toBe(true));
-    it.each(['red', '#ff00', '#gggggg', 'rgb(256, 0, 0)', 'rgba(0,0,0,2)', 'rgb(1,2)', '#fff;x:y', 'url(x)', 'var(--c)', 0])('refuses the colour %s', (value) => expect(isValidColor(value)).toBe(false));
+    it.each(['red', '#ff00', '#gggggg', 'rgb(256, 0, 0)', 'rgba(0,0,0,2)', 'rgb(1,2)', '#fff;x:y', 'url(x)', 'var(--c)', '#fff\n', 'rgb(1,\t2,3)', 'rgb(1,\u00a02,3)', 'rgb(\u0661,2,3)', 0])('refuses the colour %s', (value) =>
+        expect(isValidColor(value)).toBe(false)
+    );
+    it.each(['12px\n', '12\n', '\u0661\u0662px'])('refuses the font size %j like the backend', (value) => expect(isValidFontSize(value)).toBe(false));
     it('takes null as no value', () => {
         expect(styleValueProblem('fontSize', null)).toBeNull();
         expect(styleValueProblem('color', null)).toBeNull();
