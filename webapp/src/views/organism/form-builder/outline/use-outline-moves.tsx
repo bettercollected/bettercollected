@@ -1,11 +1,12 @@
 'use client';
 
-import { useSetAtom } from 'jotai';
+import { useSetAtom, useStore } from 'jotai';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useFormFieldsAtom, { undoIfLatestAtom } from '@app/store/jotai/field-selectors';
+import { HistoryStep, docHistoryAtom, latestStep } from '@app/store/jotai/form-document';
 import { locateField, outlinePageName } from '@app/utils/form-outline';
 
 /** How long the "rules removed · Undo" toast stays (same as a delete's). */
@@ -27,10 +28,18 @@ export function useOutlineMoves() {
     const { formFields, movePage, moveFieldToPage } = useFormFieldsAtom();
     const { toast } = useToast();
     const undoIfLatest = useSetAtom(undoIfLatestAtom);
+    const store = useStore();
 
-    const offerUndo = (result: MoveResult) => {
+    /** Run a move; also say which undo step it made (null when none). */
+    const withStep = (move: () => MoveResult): [MoveResult, HistoryStep | null] => {
+        const before = latestStep(store.get(docHistoryAtom));
+        const result = move();
+        const after = latestStep(store.get(docHistoryAtom));
+        return [result, after !== before ? after : null];
+    };
+
+    const offerUndo = (result: MoveResult, after: HistoryStep | null) => {
         if (!result?.prunedReferences) return;
-        const after = JSON.stringify(result.next);
         const count = result.prunedReferences;
         toast({
             description: `Moved. ${count} logic rule${count === 1 ? '' : 's'} that would now use a later answer ${count === 1 ? 'was' : 'were'} removed.`,
@@ -57,16 +66,16 @@ export function useOutlineMoves() {
     };
 
     const movePageTo = (from: number, to: number): MoveOutcome => {
-        const result = movePage(from, to);
+        const [result, step] = withStep(() => movePage(from, to));
         if (!result) return null;
-        offerUndo(result);
+        offerUndo(result, step);
         return { message: `Page moved to position ${to + 1} of ${result.next.length}.`, pageId: result.next[to].id };
     };
 
     const moveQuestion = (fieldId: string, toPageIndex: number, toIndex: number): MoveOutcome => {
-        const result = moveFieldToPage(fieldId, toPageIndex, toIndex);
+        const [result, step] = withStep(() => moveFieldToPage(fieldId, toPageIndex, toIndex));
         if (!result) return null;
-        offerUndo(result);
+        offerUndo(result, step);
         return describeQuestion(fieldId, result.next);
     };
 
