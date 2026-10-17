@@ -143,6 +143,20 @@ describe('errors of an unfinished formula', () => {
     });
 });
 
+describe('a hidden calculation piped into respondent text', () => {
+    it('is warned about in the inspector', () => {
+        const calc = field('risk', FieldTypes.CALCULATED, 'Risk', { expression: 1, hiddenFromRespondents: true });
+        const slides = [{ id: 'p', index: 0, type: FieldTypes.SLIDE, properties: { fields: [calc, { ...field('q', FieldTypes.SHORT_TEXT, 'Why?'), description: 'Your risk is {{field:risk}}' }] } }] as StandardFormFieldDto[];
+        render(<CalculatedFieldSettings field={calc} slides={slides} hiddenNames={[]} onChange={() => {}} />);
+        expect(screen.getByTestId('hidden-piped-warning').textContent).toMatch(/piped into Why\?/);
+    });
+
+    it('is not warned about when nothing pipes it', () => {
+        render(<Harness expression={1} />);
+        expect(screen.queryByTestId('hidden-piped-warning')).toBeNull();
+    });
+});
+
 describe('the suggestion list', () => {
     it('opens in flow, about five rows high, so it does not cover the preview', () => {
         render(<Harness />);

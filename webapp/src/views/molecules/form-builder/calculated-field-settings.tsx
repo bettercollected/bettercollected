@@ -19,6 +19,7 @@ import {
     getCalculatedFields,
     localToday,
     parseFormulaText,
+    pipedInto,
     questionKeys,
     readingFor,
     sampleVariables,
@@ -105,11 +106,14 @@ export default function CalculatedFieldSettings({
     field,
     slides,
     hiddenNames,
-    onChange
+    onChange,
+    endings
 }: {
     field: StandardFormFieldDto;
     slides: StandardFormFieldDto[];
     hiddenNames: string[];
+    /** The form's endings, to find a hidden value piped into them. */
+    endings?: Array<{ title?: string; message?: string }>;
     onChange: (property: 'expression' | 'format' | 'hiddenFromRespondents' | 'unansweredAsZero', value: unknown) => void;
 }) {
     const id = useId();
@@ -197,6 +201,7 @@ export default function CalculatedFieldSettings({
     const emptied = error ? undefined : firstQuestionKey(expression, variables, slides);
     const emptiedText = emptied ? show(previewValue(slides, field, expression, variables, emptied.key)) : '';
     const asZero = unansweredAsZero(field);
+    const pipedTo = field.properties?.hiddenFromRespondents ? pipedInto(slides, field.id, endings) : [];
     // While the reference list is open, the formula is unfinished on purpose
     // ("missing }"): its error waits until a field is picked or typing goes on.
     // Other errors show at once; an unfinished one ("Expected \",\" or \")\"")
@@ -345,6 +350,11 @@ export default function CalculatedFieldSettings({
                 onCheckedChange={(checked) => onChange('hiddenFromRespondents', checked || undefined)}
                 hint={field.properties?.hiddenFromRespondents ? 'Computed and stored with each response; respondents never see it. The formula is part of the form page, so it is not a secret.' : 'Respondents see the value update as they answer.'}
             />
+            {field.properties?.hiddenFromRespondents && pipedTo.length > 0 && (
+                <p role="status" className="text-[11px] leading-relaxed text-amber-700" data-testid="hidden-piped-warning">
+                    This value is piped into {pipedTo.join(', ')}, so respondents would see it there. Remove it from that text, or show the calculation.
+                </p>
+            )}
         </div>
     );
 }

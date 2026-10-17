@@ -17,6 +17,7 @@ import {
     getCalculatedFields,
     localToday,
     parseFormulaText,
+    pipedInto,
     pruneOrphanedCalculationRefs,
     unansweredAsZero,
     usesAnyAnswer,
@@ -114,6 +115,34 @@ describe('unanswered as 0', () => {
         expect(usesAnyAnswer(score, slides, { qty: num(4) })).toBe(true);
         expect(usesAnyAnswer(slides[0].properties!.fields![3], slides, {})).toBe(true);
         expect(usesAnyAnswer(slides[0].properties!.fields![4], slides, {}, { utm: 'mail' })).toBe(true);
+    });
+});
+
+describe('a hidden calculation piped into text respondents see', () => {
+    it('is found in titles, descriptions and endings', () => {
+        const pipe = {
+            type: 'doc',
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        { type: 'text', text: 'Score: ' },
+                        { type: 'answerPipe', attrs: { kind: 'field', pipeKey: 'risk' } }
+                    ]
+                }
+            ]
+        };
+        const slides = [
+            page('p', [
+                QTY,
+                calc('risk', 'Risk', 1, { hiddenFromRespondents: true }),
+                field('note', FieldTypes.SHORT_TEXT, pipe as any),
+                { ...field('other', FieldTypes.SHORT_TEXT, 'Other'), description: 'You scored {{field:risk|?}}' },
+                field('fine', FieldTypes.SHORT_TEXT, 'No pipe {{field:riskier}}')
+            ])
+        ];
+        expect(pipedInto(slides, 'risk', [{ message: 'Bye {{ field:risk }}' }])).toEqual(['Score:', 'Other', 'the ending']);
+        expect(pipedInto(slides, 'qty')).toEqual([]);
     });
 });
 

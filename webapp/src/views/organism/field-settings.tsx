@@ -150,7 +150,8 @@ export default function FieldSettings() {
 
             {field.type === FieldTypes.CALCULATED && (
                 <InspectorSection title="Calculation">
-                    <CalculatedFieldSettings field={field} slides={formFields || []} hiddenNames={formState.hiddenFields ?? []} onChange={(property, value) => updateFieldProperty(field.index, slide.index, property, value)} />
+                    <CalculatedFieldSettings field={field} slides={formFields || []} hiddenNames={formState.hiddenFields ?? []}
+                        endings={formState.thankyouPage ?? []} onChange={(property, value) => updateFieldProperty(field.index, slide.index, property, value)} />
                 </InspectorSection>
             )}
 

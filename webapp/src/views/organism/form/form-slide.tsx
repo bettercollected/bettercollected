@@ -22,7 +22,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
-import { isShownToRespondents } from '@app/utils/calculated-fields';
+import { isShownToRespondents, localToday } from '@app/utils/calculated-fields';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
@@ -158,6 +158,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         };
 
         formData.append('response', JSON.stringify(postBody));
+        // The date calculations used (today()); the server takes it when it is plausible.
+        formData.append('today', localToday());
         const aiNoticeToken = aiNoticeTokenToSend(standardForm);
         if (aiNoticeToken) formData.append('ai_notice_token', aiNoticeToken);
         files.forEach((fileObj) => {

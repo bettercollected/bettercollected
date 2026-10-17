@@ -72,12 +72,29 @@ const isCalculated = (field: FormField | undefined | null) => field?.type === Fi
 // reference, so a batch looks into each changed page once.
 const pageHasCalculation = new WeakMap<object, boolean>();
 
+const docHasCalculation = new WeakMap<object, boolean>();
+
 export function hasCalculations(doc: FormDoc): boolean {
+    const known = docHasCalculation.get(doc);
+    if (known !== undefined) return known;
+    const has = scanCalculations(doc);
+    docHasCalculation.set(doc, has);
+    return has;
+}
+
+function scanCalculations(doc: FormDoc): boolean {
     for (const page of (doc.fields ?? []) as FormField[]) {
         if (!page || typeof page !== 'object') continue;
         let has = pageHasCalculation.get(page);
         if (has === undefined) {
-            has = ((page.properties?.fields as FormField[] | undefined) ?? []).some(isCalculated);
+            // anywhere in the page, groups included (a misplaced one is a problem too)
+            const pending = [page];
+            has = false;
+            while (pending.length && !has) {
+                const field = pending.pop()!;
+                if (isCalculated(field)) has = true;
+                else pending.push(...(((field?.properties?.fields as FormField[] | undefined) ?? []) as FormField[]));
+            }
             pageHasCalculation.set(page, has);
         }
         if (has) return true;
@@ -85,8 +102,27 @@ export function hasCalculations(doc: FormDoc): boolean {
     return false;
 }
 
-/** Could an op from `before` to `after` have broken a calculation? (Only when either has one.) */
-export const calculationsTouched = (before: FormDoc, after: FormDoc): boolean => before !== after && (hasCalculations(after) || hasCalculations(before));
+/** Does an op bring a calculated field or an expression? (backend `_carries_calculation`) */
+export function carriesCalculation(op: unknown): boolean {
+    const pending: unknown[] = [op];
+    while (pending.length) {
+        const value = pending.pop();
+        if (Array.isArray(value)) pending.push(...value);
+        else if (value && typeof value === 'object') {
+            const item = value as Record<string, unknown>;
+            if (item.type === FieldTypes.CALCULATED || 'expression' in item) return true;
+            pending.push(...Object.values(item));
+        }
+    }
+    return false;
+}
+
+/**
+ * Could the op have broken a calculation? Only when the form had one, or
+ * the op brings one (backend apply_form_ops: the same condition), so forms
+ * without calculations pay one cached lookup per op.
+ */
+export const calculationsTouched = (before: FormDoc, after: FormDoc, op: unknown): boolean => before !== after && (hasCalculations(before) || carriesCalculation(op));
 
 function variableKeys(doc: FormDoc): Set<string> {
     const keys = new Set<string>((doc.hiddenFields ?? []).map(String));
@@ -132,9 +168,35 @@ function varAt(ast: unknown, pointer: string): string | null {
 }
 
 /** Problems with a form's calculated fields (backend `calculated_field_problems`). */
+/** Most calculated fields one form may have (backend MAX_CALCULATED_FIELDS). */
+export const MAX_CALCULATED_FIELDS = 50;
+
+/** Calculations of a page-based form that are not directly on a page (backend `_misplaced_calculations`). */
+function misplacedCalculations(doc: FormDoc): FormField[] {
+    const top = (doc.fields ?? []) as FormField[];
+    if (!top.some(isSlide)) return [];
+    const onPages = new Set<FormField>();
+    for (const page of top) if (isSlide(page)) for (const field of (page.properties?.fields as FormField[] | undefined) ?? []) onPages.add(field);
+    const misplaced: FormField[] = [];
+    const pending = [...top];
+    while (pending.length) {
+        const field = pending.pop()!;
+        if (!field) continue;
+        if (isCalculated(field) && !onPages.has(field)) misplaced.push(field);
+        pending.push(...(((field.properties?.fields as FormField[] | undefined) ?? []) as FormField[]));
+    }
+    return misplaced;
+}
+
 export function calculationProblems(doc: FormDoc): CalculationProblem[] {
+    const problems: CalculationProblem[] = misplacedCalculations(doc).map((field) => ({
+        fieldId: String(field.id ?? ''),
+        path: '',
+        message: `'${calcTitle(field)}' must be on a page: calculations cannot be placed inside a group or in a form without pages.`
+    }));
     const calcs = pageFields(doc).filter(isCalculated);
-    if (!calcs.length) return [];
+    if (!calcs.length) return problems;
+    if (calcs.length > MAX_CALCULATED_FIELDS) problems.push({ fieldId: '', path: '', message: `A form can have at most ${MAX_CALCULATED_FIELDS} calculated fields; this one has ${calcs.length}.` });
     const known = variableKeys(doc);
     const internal = new Set(
         pageFields(doc)
@@ -143,10 +205,10 @@ export function calculationProblems(doc: FormDoc): CalculationProblem[] {
     );
     const ids = new Set(calcs.filter((f) => f.id).map((f) => String(f.id)));
     const byId = new Map(calcs.map((f) => [String(f.id), f]));
-    const problems: CalculationProblem[] = [];
     const edges = new Map<string, string[]>();
     for (const field of calcs) {
         const id = String(field.id ?? '');
+        if ((field.validations as any)?.required) problems.push({ fieldId: id, path: '', message: `'${calcTitle(field)}' is a calculation: it is computed, never answered, so it cannot be required.` });
         if (field.internal) {
             problems.push({ fieldId: id, path: '', message: `The calculation '${calcTitle(field)}' cannot be an internal field: it is computed from the respondent's answers.` });
             continue;

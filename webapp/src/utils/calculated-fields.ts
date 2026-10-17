@@ -83,6 +83,35 @@ function titleText(title: unknown): string {
     return (node.content ?? []).map(titleText).join(node.type === 'doc' ? ' ' : '');
 }
 
+function pipesField(node: unknown, fieldId: string): boolean {
+    if (!node || typeof node !== 'object') return false;
+    const item = node as { type?: string; attrs?: { kind?: string; pipeKey?: string }; content?: unknown[] };
+    if (item.type === 'answerPipe' && (item.attrs?.kind ?? 'field') === 'field' && item.attrs?.pipeKey === fieldId) return true;
+    return (item.content ?? []).some((child) => pipesField(child, fieldId));
+}
+
+/**
+ * Where respondents would see a field's value through answer piping: the
+ * titles and descriptions of the form's questions, and the endings. Used
+ * to warn when a calculation kept from respondents is piped anyway.
+ */
+export function pipedInto(slides: StandardFormFieldDto[] | undefined | null, fieldId: string, endings: Array<{ title?: string; message?: string }> = []): string[] {
+    const token = new RegExp(`\\{\\{\\s*field\\s*:\\s*${fieldId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(\\||\\}\\})`);
+    const places: string[] = [];
+    const visit = (field: StandardFormFieldDto) => {
+        if (!field || field.internal || field.id === fieldId || !isShownToRespondents(field)) return;
+        const title = field.title as unknown;
+        const inTitle = typeof title === 'string' ? token.test(title) : pipesField(title, fieldId);
+        if (inTitle || (typeof field.description === 'string' && token.test(field.description))) places.push(fieldLabel(field));
+        (field.properties?.fields ?? []).forEach(visit);
+    };
+    pageFields(slides).forEach(visit);
+    endings.forEach((ending, i) => {
+        if ((ending?.title && token.test(ending.title)) || (ending?.message && token.test(ending.message))) places.push(`the ending${endings.length > 1 ? ` ${i + 1}` : ''}`);
+    });
+    return places;
+}
+
 /** A field's own title as plain text ('' when untitled). */
 export const fieldTitleText = (field: StandardFormFieldDto): string => (titleText(field.title) || (typeof field.value === 'string' ? field.value : '')).replace(/\s+/g, ' ').trim();
 

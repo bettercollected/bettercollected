@@ -201,7 +201,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             [working, message] = settleMarks(working, message, opContext);
             // Calculations stay valid after every op (backend apply_form_ops):
             // one left broken refuses the op and undoes it.
-            if (calculationsTouched(state, working)) {
+            if (calculationsTouched(state, working, op)) {
                 const problem = newCalculationProblem(state, working);
                 if (problem) {
                     working = state;
