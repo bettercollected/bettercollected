@@ -11,6 +11,6 @@ export default async function Layout(
     } = props;
 
     return (
-        <MembersLayoutClient children={children} params={params} />
+        <MembersLayoutClient params={params}>{children}</MembersLayoutClient>
     );
 }

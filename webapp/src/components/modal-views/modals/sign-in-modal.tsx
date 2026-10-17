@@ -29,7 +29,7 @@ export function SignInModal(props: MyLoginProps) {
 
     const [email, setEmail] = useState('');
 
-    const TermsAndCondition = () => (
+    const termsAndCondition = (
         <div className="body4">
             {t(signInScreen.signinAgreementDescription)}
             <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
@@ -65,7 +65,7 @@ export function SignInModal(props: MyLoginProps) {
                 <div className="flex flex-col order-1 bg-brand-100! xl:order-2 items-start justify-between py-5 px-8 xl:py-[28px] h-screen xl:h-[687px] w-screen xl:w-[547px]">
                     <Logo isLink={false} />
                     {!email ? <OtpEmailForm setEmail={setEmail} isModal={true} /> : <OtpCodeForm email={email} setEmail={setEmail} isModal={true} />}
-                    <TermsAndCondition />
+                    {termsAndCondition}
                 </div>
             </div>
         </div>
