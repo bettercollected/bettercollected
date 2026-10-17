@@ -3,6 +3,8 @@ import { CSSProperties } from 'react';
 import { FormTheme, ThemeBackground, ThemePattern, ThemeStyle } from '@app/constants/theme';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { cn } from '@app/shadcn/util/lib';
+import { firstPartyImageUrl } from '@app/utils/first-party-image';
+import ImageUrlField from '@app/views/molecules/theme/image-url-field';
 
 // Each editable colour, labelled by what it actually controls on the responder
 // form (not by its internal role name), so the choice is legible to a creator.
@@ -42,7 +44,7 @@ export function themeBackgroundStyle(theme?: Partial<FormTheme>): CSSProperties 
         return { ...base, backgroundImage: `repeating-linear-gradient(45deg, ${ink} 0px, ${ink} 1px, transparent 1px, transparent 12px)` };
     }
     if (bg.type === 'image' && bg.imageUrl) {
-        return { ...base, backgroundImage: `url(${JSON.stringify(bg.imageUrl)})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' };
+        return { ...base, backgroundImage: `url(${JSON.stringify(firstPartyImageUrl(bg.imageUrl))})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' };
     }
     return base;
 }
@@ -440,17 +442,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
             )}
 
             {type === 'image' && bg?.type === 'image' && (
-                <div className="flex flex-col gap-1.5">
-                    <input
-                        type="url"
-                        aria-label="Background image URL"
-                        placeholder="https://…"
-                        value={bg.imageUrl ?? ''}
-                        onChange={(e) => onChange({ ...bg, imageUrl: e.target.value.trim() })}
-                        className="border-black-300 text-black-800 placeholder:text-black-600 focus:border-brand-500 w-full rounded-md border bg-white px-2.5 py-1.5 text-xs outline-hidden"
-                    />
-                    <p className="text-black-600 text-[11px] leading-relaxed">Paste an image address. The background colour shows while it loads.</p>
-                </div>
+                <ImageUrlField value={bg.imageUrl ?? ''} onChange={(imageUrl) => onChange({ ...bg, imageUrl })} />
             )}
         </div>
     );

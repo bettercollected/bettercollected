@@ -7,6 +7,7 @@ import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/views/organism/form-builder/add-slide/add-slice-tabs';
 import PhotoList from './photo-list';
 import SearchBar from './photo-search';
@@ -136,7 +137,8 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                                     onPhotoSelect={async (photo: any) => {
                                         try {
                                             if (photo) {
-                                                updatePageImage(photo.urls.raw);
+                                                // served through our server: respondents never contact Unsplash
+                                                updatePageImage(firstPartyImageUrl(photo.urls.raw));
                                                 setPhotoInLocalStorage(photo);
                                                 triggerUnsplashDownloadEndpoint(photo);
                                                 closeDialogModal();

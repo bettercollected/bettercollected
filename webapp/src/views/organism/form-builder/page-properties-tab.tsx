@@ -23,6 +23,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { SECTION_TITLE_MAX, leafletSection } from '@app/utils/leaflet-sections';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { IsValidString } from '@app/utils/string-utils';
@@ -306,7 +307,7 @@ export default function PagePropertiesTab({}: {}) {
                                 <SwitchIcon width={16} height={16} />
                             </div>
                         </div>
-                        <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" src={slide.imageUrl} alt={' image'} height={0} width={0} priority />
+                        <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" {...firstPartyImageProps(slide.imageUrl)} alt={' image'} height={0} width={0} priority />
                     </div>
                 ) : (
                     <div className="cursor-pointer rounded border border-black-300 p-1 hover:bg-black-300" onClick={handleClickMedia}>

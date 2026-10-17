@@ -6,6 +6,7 @@ import RatingField from '@app/views/molecules/responder-form-fields/rating-field
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { firstPartyImageProps } from '@app/utils/first-party-image';
 import DeleteIcon from '@Components/icons/delete';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import Image from 'next/image';
@@ -41,7 +42,7 @@ export const RenderImage = ({ field, isBuilder = false }: { field: StandardFormF
                     <SwitchIcon width={16} height={16} />
                 </div>
             </div>
-            <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" src={field.imageUrl} alt={field.id + ' image'} height={0} width={0} priority />
+            <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" {...firstPartyImageProps(field.imageUrl)} alt={field.id + ' image'} height={0} width={0} priority />
         </div>
     ) : (
         <></>
