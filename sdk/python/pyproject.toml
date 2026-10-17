@@ -1,0 +1,35 @@
+[project]
+name = "bettercollected"
+version = "0.1.0"
+description = "Typed client and forms-as-code CLI for the BetterCollected public API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "See LICENSE in the repository root" }
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2.11",
+    "pyyaml>=6.0.2",
+]
+
+[project.scripts]
+bettercollected = "bettercollected.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "datamodel-code-generator==0.83.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bettercollected"]
+
+[tool.uv]
+# Only releases at least two weeks old when the lock was made.
+exclude-newer = "2026-10-03T00:00:00Z"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
