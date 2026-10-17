@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { readBuildReport } from '@app/utils/ai-build-report';
 import { FormOutline } from '@app/utils/ai-outline';
 
 import StartWithAi from './start-with-ai-modal';
@@ -13,7 +14,8 @@ import StartWithAi from './start-with-ai-modal';
 const outlineMock = vi.fn();
 const buildMock = vi.fn();
 const replaceMock = vi.fn();
-const toastMock = vi.fn();
+// the workspace's AI setting as the settings query would return it
+const ai = { enabled: true, refetch: vi.fn() };
 
 vi.mock('@app/store/redux/form-api', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -23,13 +25,16 @@ vi.mock('@app/store/redux/form-api', async (importOriginal) => {
         useBuildFormFromOutlineMutation: () => [buildMock, { isLoading: false }]
     };
 });
-vi.mock('@app/components/ai/ai-consent', () => ({
-    useWorkspaceAI: () => ({ settings: { enabled: true }, enabled: true, providerName: 'OpenAI' }),
-    AIOptIn: () => null
-}));
+vi.mock('@app/components/ai/ai-consent', async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return {
+        ...actual,
+        useWorkspaceAI: () => ({ settings: { enabled: ai.enabled }, enabled: ai.enabled, providerName: 'OpenAI', refetch: () => ai.refetch() }),
+        AIOptIn: () => <p>AI is off for this workspace.</p>
+    };
+});
 vi.mock('next-nprogress-bar', () => ({ useRouter: () => ({ replace: replaceMock, push: vi.fn() }) }));
-vi.mock('next/image', () => ({ default: (props: any) => <img alt={props.alt} /> }));
-vi.mock('@app/shadcn/components/ui/use-toast', () => ({ useToast: () => ({ toast: toastMock }) }));
+vi.mock('next/image', () => ({ default: (props: any) => <span role="img" aria-label={props.alt} /> }));
 
 const OUTLINE: FormOutline = {
     title: 'Volunteer sign-up',
@@ -43,9 +48,16 @@ const OUTLINE: FormOutline = {
                 { key: 'email', label: 'What is your email address?', type: 'email', whyWeAsk: 'We send you the rota.' }
             ]
         },
-        { key: 'p2', sectionTitle: 'Helping', questions: [{ key: 'role', label: 'Which task?', type: 'dropdown', choices: ['Stalls', 'Other'] }] }
+        {
+            key: 'p2',
+            sectionTitle: 'Helping',
+            questions: [
+                { key: 'role', label: 'Which task?', type: 'dropdown', choices: ['Stalls', 'Other'] },
+                { key: 'other', label: 'Which other task?', type: 'short_text' }
+            ]
+        }
     ],
-    logic: [],
+    logic: [{ target: 'other', action: 'show', match: 'all', conditions: [{ question: 'role', comparison: 'equals', value: 'Other' }] }],
     jumps: [{ fromPage: 'p1', to: 'end', match: 'all', conditions: [{ question: 'name', comparison: 'is_not_answered' }] }],
     omitted: [{ label: 'Date of birth', reason: 'Not needed.' }]
 };
@@ -72,7 +84,9 @@ describe('Start with AI: outline review', () => {
         outlineMock.mockReset();
         buildMock.mockReset();
         replaceMock.mockReset();
-        toastMock.mockReset();
+        ai.enabled = true;
+        ai.refetch = vi.fn();
+        sessionStorage.clear();
     });
 
     it('asks for an outline, not a form, and shows it for review', async () => {
@@ -85,7 +99,7 @@ describe('Start with AI: outline review', () => {
         expect(screen.getAllByLabelText('Section title').map((input) => (input as HTMLInputElement).value)).toEqual(['About you', 'Helping']);
         expect(screen.getByText(/Why we ask: We send you the rota./)).toBeInTheDocument();
         expect(screen.getByText(/Date of birth: Not needed./)).toBeInTheDocument();
-        expect(screen.getByText(/1 page jump will be added/)).toBeInTheDocument();
+        expect(screen.getByText(/1 show\/hide rule and 1 page jump will be added/)).toBeInTheDocument();
     });
 
     it('edits the outline and builds exactly what the person kept', async () => {
@@ -95,6 +109,7 @@ describe('Start with AI: outline review', () => {
         fireEvent.change(screen.getByLabelText('Type of question 2'), { target: { value: 'phone_number' } });
         fireEvent.click(screen.getByRole('button', { name: 'Move Which task? up' }));
         fireEvent.click(screen.getByRole('button', { name: 'Delete Your full name' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Delete Which other task?' }));
         fireEvent.click(screen.getByRole('button', { name: 'Add a question to page 2' }));
         // the new question gets the focus, and building waits for its text
         const added = screen.getByLabelText('Question 3');
@@ -115,31 +130,67 @@ describe('Start with AI: outline review', () => {
             ],
             [['Any questions for us?', 'short_text', true]]
         ]);
-        // the jump depended on the deleted question
+        // the rule and the jump depended on deleted questions
+        expect(sent.logic).toEqual([]);
         expect(sent.jumps).toEqual([]);
-        expect(toastMock).not.toHaveBeenCalled();
+        // nothing to check: nothing carried to the editor
+        expect(readBuildReport('form-9')).toBeNull();
     });
 
-    it('edits choices of a choice question', async () => {
+    it('carries notes and findings to the editor, codes and ids only', async () => {
         await toReview();
         const choices = screen.getByLabelText(/Choices, one per line/);
         fireEvent.change(choices, { target: { value: 'Stalls\nCooking\nCleaning' } });
-        buildMock.mockResolvedValue({ data: { formId: 'f', title: 't', quality: { score: 95, passed: true, findings: [{ code: 'x', severity: 'warning', message: 'm', where: [] }] }, notes: ['Suggested choices for 1 question(s).'] } });
+        buildMock.mockResolvedValue({
+            data: {
+                formId: 'f-1',
+                title: 't',
+                quality: { score: 80, passed: false, findings: [{ code: 'missing_why_we_ask', severity: 'error', message: 'A question asks for an email', where: ['field-7'] }] },
+                notes: ['Suggested choices for 1 question(s).']
+            }
+        });
         fireEvent.click(screen.getByRole('button', { name: /Build form/ }));
-        await waitFor(() => expect(buildMock).toHaveBeenCalled());
+        await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/acme/dashboard/forms/f-1/edit'));
         expect(buildMock.mock.calls[0][0].body.outline.pages[1].questions[0].choices).toEqual(['Stalls', 'Cooking', 'Cleaning']);
-        // notes and findings are summed up for the person
-        await waitFor(() => expect(toastMock).toHaveBeenCalled());
-        expect(toastMock.mock.calls[0][0].description).toContain('1 thing to check before publishing.');
+        expect(readBuildReport('f-1')).toEqual({
+            notes: ['Suggested choices for 1 question(s).'],
+            findings: [{ code: 'missing_why_we_ask', severity: 'error', where: ['field-7'] }]
+        });
     });
 
-    it('keeps the outline when the build fails, and says why', async () => {
+    it('after ai_not_enabled shows the error inline, refetches the setting and shows AI as off', async () => {
         await toReview();
+        ai.refetch = vi.fn(() => {
+            ai.enabled = false;
+        });
         buildMock.mockResolvedValue({ error: { status: 403, data: { code: 'ai_not_enabled', message: 'AI features are off for this workspace.' } } });
         fireEvent.click(screen.getByRole('button', { name: /Build form/ }));
-        await screen.findByText('Review the outline');
-        expect(toastMock).toHaveBeenCalledWith({ description: 'AI features are off for this workspace.', variant: 'destructive' });
+        expect(await screen.findByRole('alert')).toHaveTextContent('AI features are off for this workspace.');
+        expect(ai.refetch).toHaveBeenCalledTimes(1);
         expect(replaceMock).not.toHaveBeenCalled();
+        expect(screen.getByRole('button', { name: /Build form/ })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Back to prompt' }));
+        expect(screen.getByRole('button', { name: /Draft a new outline/ })).toBeDisabled();
+        expect(screen.getByText('AI is off for this workspace.')).toBeInTheDocument();
+        expect(screen.queryByText(/sends your prompt/)).not.toBeInTheDocument();
+    });
+
+    it.each([
+        [502, 'ai_unusable_reply', 'The AI returned an unusable outline.'],
+        [429, 'ai_rate_limited', 'Too many AI requests. Please wait a minute and try again.']
+    ])('shows a %s outline error inline and stays on the prompt', async (status, code, message) => {
+        outlineMock.mockResolvedValue({ error: { status, data: { code, message } } });
+        renderModal();
+        fireEvent.change(screen.getByLabelText('Describe the form you need'), { target: { value: 'x' } });
+        fireEvent.click(screen.getByRole('button', { name: /Draft outline/ }));
+        expect(await screen.findByRole('alert')).toHaveTextContent(message);
+        expect(screen.getByLabelText('Describe the form you need')).toHaveValue('x');
+        expect(ai.refetch).not.toHaveBeenCalled();
+        // the next attempt clears it
+        outlineMock.mockResolvedValue({ data: { outline: structuredClone(OUTLINE) } });
+        fireEvent.click(screen.getByRole('button', { name: /Draft outline/ }));
+        await screen.findByText('Review the outline');
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
     it('goes back to the prompt and returns to the same outline', async () => {
@@ -150,23 +201,35 @@ describe('Start with AI: outline review', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Back to the outline you were reviewing' }));
         expect(screen.getByLabelText('Question 1')).toHaveValue('Changed');
     });
-
-    it('shows a failed outline request and stays on the prompt', async () => {
-        outlineMock.mockResolvedValue({ error: { status: 502, data: { code: 'ai_unusable_reply', message: 'The AI returned an unusable outline.' } } });
-        renderModal();
-        fireEvent.change(screen.getByLabelText('Describe the form you need'), { target: { value: 'x' } });
-        fireEvent.click(screen.getByRole('button', { name: /Draft outline/ }));
-        await waitFor(() => expect(toastMock).toHaveBeenCalledWith({ description: 'The AI returned an unusable outline.', variant: 'destructive' }));
-        expect(screen.getByLabelText('Describe the form you need')).toHaveValue('x');
-    });
 });
 
 describe('OutlineReview list', () => {
+    beforeEach(() => {
+        ai.enabled = true;
+    });
+
     it('is a list of labelled controls per page', async () => {
         await toReview();
         const pages = screen.getAllByRole('region');
         expect(pages).toHaveLength(2);
         expect(within(pages[0]).getAllByRole('listitem')).toHaveLength(2);
         expect(within(pages[0]).getByRole('button', { name: 'Move What is your name? up' })).toBeDisabled();
+    });
+
+    it('says which rules and jumps a deletion drops, and undoes it', async () => {
+        await toReview();
+        fireEvent.click(screen.getByRole('button', { name: 'Delete Which task?' }));
+        expect(screen.getByText('Question deleted. 1 rule that used this question was dropped.')).toBeInTheDocument();
+        expect(screen.getByText(/1 page jump will be added/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+        expect(screen.getByLabelText('Question 3')).toHaveValue('Which task?');
+        expect(screen.getByText(/1 show\/hide rule and 1 page jump will be added/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Delete What is your name?' }));
+        expect(screen.getByText('Question deleted. 1 jump that used this question was dropped.')).toBeInTheDocument();
+        // the next edit ends the chance to undo
+        fireEvent.change(screen.getByLabelText('Question 1'), { target: { value: 'Email' } });
+        expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
     });
 });

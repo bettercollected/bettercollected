@@ -35,7 +35,7 @@ function ChoicesEditor({ question, onChange }: { question: OutlineQuestion; onCh
     const id = `choices-${question.key}`;
     return (
         <div className="mt-2">
-            <label htmlFor={id} className="text-xs text-black-700">
+            <label htmlFor={id} className="mb-1 block text-xs text-black-700">
                 Choices, one per line{(question.choices ?? []).length < 2 ? ' (left empty, the AI suggests some when you build)' : ''}
             </label>
             <textarea
@@ -52,6 +52,20 @@ function ChoicesEditor({ question, onChange }: { question: OutlineQuestion; onCh
     );
 }
 
+function plural(count: number, word: string): string {
+    return `${count} ${word}${count === 1 ? '' : 's'}`;
+}
+
+/** What a deletion took with it, in words. */
+export function deletionMessage(before: FormOutline, after: FormOutline): string {
+    const rules = before.logic.length - after.logic.length;
+    const jumps = before.jumps.length - after.jumps.length;
+    const parts = [rules ? plural(rules, 'rule') : '', jumps ? plural(jumps, 'jump') : ''].filter(Boolean);
+    if (!parts.length) return 'Question deleted.';
+    const verb = rules + jumps === 1 ? 'was' : 'were';
+    return `Question deleted. ${parts.join(' and ')} that used this question ${verb} dropped.`;
+}
+
 export default function OutlineReview({ outline, onChange }: OutlineReviewProps) {
     // focus the text of a question just added
     const [focusKey, setFocusKey] = useState<string | null>(null);
@@ -63,21 +77,51 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
         }
     }, [focusKey]);
 
+    // a deletion and what it took with it, until undone or the next edit
+    const [undo, setUndo] = useState<{ previous: FormOutline; message: string } | null>(null);
+    const change = (next: FormOutline) => {
+        setUndo(null);
+        onChange(next);
+    };
+    const remove = (key: string) => {
+        const next = deleteQuestion(outline, key);
+        setUndo({ previous: outline, message: deletionMessage(outline, next) });
+        onChange(next);
+    };
+
     // questions are numbered across pages: how many come before each page
     const before = outline.pages.map((_, i) => outline.pages.slice(0, i).reduce((sum, p) => sum + p.questions.length, 0));
     return (
         <div className="flex flex-col gap-4">
+            <div aria-live="polite">
+                {undo && (
+                    <div className="flex items-center justify-between gap-2 rounded-md bg-black-800 px-3 py-2 text-xs text-white">
+                        <span>{undo.message}</span>
+                        <button
+                            type="button"
+                            className="shrink-0 rounded px-1 font-semibold underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            onClick={() => {
+                                const previous = undo.previous;
+                                setUndo(null);
+                                onChange(previous);
+                            }}
+                        >
+                            Undo
+                        </button>
+                    </div>
+                )}
+            </div>
             {outline.pages.map((page, pageIndex) => {
                 const sectionId = `section-${page.key}`;
                 return (
-                    <section key={page.key} aria-labelledby={`${sectionId}-heading`} className="rounded-lg border border-black-300 p-3">
+                    <section key={page.key} aria-labelledby={`${sectionId}-heading`} className="rounded-lg border border-black-300 p-2 sm:p-3">
                         <h3 id={`${sectionId}-heading`} className="mb-2 text-xs font-semibold tracking-wide text-black-600 uppercase">
                             Page {pageIndex + 1}
                         </h3>
                         <label htmlFor={sectionId} className="text-xs text-black-700">
                             Section title
                         </label>
-                        <input id={sectionId} className={inputClass} value={page.sectionTitle ?? ''} maxLength={SECTION_TITLE_MAX} placeholder="E.g. About you" onChange={(event) => onChange(setSectionTitle(outline, page.key, event.target.value))} />
+                        <input id={sectionId} className={inputClass} value={page.sectionTitle ?? ''} maxLength={SECTION_TITLE_MAX} placeholder="E.g. About you" onChange={(event) => change(setSectionTitle(outline, page.key, event.target.value))} />
                         <ol className="mt-3 flex flex-col gap-3">
                             {page.questions.map((question, questionIndex) => {
                                 const number = before[pageIndex] + questionIndex + 1;
@@ -86,9 +130,9 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                                 const requiredId = `required-${question.key}`;
                                 const name = question.label.trim() || `question ${number}`;
                                 return (
-                                    <li key={question.key} className="rounded-md bg-black-100 p-2">
-                                        <div className="flex items-start gap-2">
-                                            <span className="mt-1.5 w-5 shrink-0 text-right text-xs text-black-600" aria-hidden="true">
+                                    <li key={question.key} className="rounded-md bg-black-100 p-1.5 sm:p-2">
+                                        <div className="flex items-start gap-1 sm:gap-2">
+                                            <span className="mt-1.5 w-4 shrink-0 text-right text-xs text-black-600 sm:w-5" aria-hidden="true">
                                                 {number}.
                                             </span>
                                             <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -102,7 +146,7 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                                                     value={question.label}
                                                     maxLength={LABEL_MAX}
                                                     placeholder="Type the question"
-                                                    onChange={(event) => onChange(renameQuestion(outline, question.key, event.target.value))}
+                                                    onChange={(event) => change(renameQuestion(outline, question.key, event.target.value))}
                                                 />
                                                 <div className="flex flex-wrap items-center gap-3">
                                                     <label htmlFor={typeId} className="sr-only">
@@ -110,9 +154,9 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                                                     </label>
                                                     <select
                                                         id={typeId}
-                                                        className="rounded-md border border-black-300 bg-white px-2 py-1 text-xs"
+                                                        className="max-w-full truncate rounded-md border border-black-300 bg-white py-1 pr-8 pl-2 text-xs"
                                                         value={question.type}
-                                                        onChange={(event) => onChange(changeType(outline, question.key, event.target.value as OutlineQuestionType))}
+                                                        onChange={(event) => change(changeType(outline, question.key, event.target.value as OutlineQuestionType))}
                                                     >
                                                         {(Object.keys(QUESTION_TYPE_LABELS) as OutlineQuestionType[]).map((type) => (
                                                             <option key={type} value={type}>
@@ -127,23 +171,23 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                                                                 type="checkbox"
                                                                 aria-label={`Question ${number} is required`}
                                                                 checked={!!question.required}
-                                                                onChange={(event) => onChange(setRequired(outline, question.key, event.target.checked))}
+                                                                onChange={(event) => change(setRequired(outline, question.key, event.target.checked))}
                                                             />
                                                             Required
                                                         </label>
                                                     )}
                                                 </div>
                                                 {question.whyWeAsk && <p className="text-xs text-black-600">Why we ask: {question.whyWeAsk}</p>}
-                                                {CHOICE_TYPES.includes(question.type) && <ChoicesEditor key={`${question.key}-${question.type}`} question={question} onChange={(text) => onChange(setChoices(outline, question.key, text))} />}
+                                                {CHOICE_TYPES.includes(question.type) && <ChoicesEditor key={`${question.key}-${question.type}`} question={question} onChange={(text) => change(setChoices(outline, question.key, text))} />}
                                             </div>
                                             <div className="flex shrink-0 items-center">
-                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} up`} disabled={!canMove(outline, question.key, -1)} onClick={() => onChange(moveQuestion(outline, question.key, -1))}>
+                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} up`} disabled={!canMove(outline, question.key, -1)} onClick={() => change(moveQuestion(outline, question.key, -1))}>
                                                     <ArrowUp size={16} aria-hidden="true" />
                                                 </button>
-                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} down`} disabled={!canMove(outline, question.key, 1)} onClick={() => onChange(moveQuestion(outline, question.key, 1))}>
+                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} down`} disabled={!canMove(outline, question.key, 1)} onClick={() => change(moveQuestion(outline, question.key, 1))}>
                                                     <ArrowDown size={16} aria-hidden="true" />
                                                 </button>
-                                                <button type="button" className={iconButtonClass} aria-label={`Delete ${name}`} onClick={() => onChange(deleteQuestion(outline, question.key))}>
+                                                <button type="button" className={iconButtonClass} aria-label={`Delete ${name}`} onClick={() => remove(question.key)}>
                                                     <Trash2 size={16} aria-hidden="true" />
                                                 </button>
                                             </div>
@@ -157,7 +201,7 @@ export default function OutlineReview({ outline, onChange }: OutlineReviewProps)
                             className="mt-2 flex items-center gap-1 rounded px-1 py-1 text-xs font-medium text-brand-600 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                             onClick={() => {
                                 const added = addQuestion(outline, page.key);
-                                onChange(added.outline);
+                                change(added.outline);
                                 setFocusKey(added.key);
                             }}
                         >

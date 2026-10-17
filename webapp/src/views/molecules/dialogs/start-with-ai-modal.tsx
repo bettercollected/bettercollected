@@ -6,15 +6,15 @@ import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
 import styled from 'styled-components';
 
-import { AIOptIn, useWorkspaceAI } from '@app/components/ai/ai-consent';
+import { AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
 import OutlineReview from '@app/components/ai/outline-review';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
 import { useBuildFormFromOutlineMutation, useOutlineFormWithAIMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { saveBuildReport } from '@app/utils/ai-build-report';
 import { FormOutline, outlineForBuild, outlineProblems, questionCount } from '@app/utils/ai-outline';
 
 const GradiantBorderDiv = styled.div`
@@ -41,17 +41,9 @@ const examples = ["Contact form to gather user’s information. Include fields f
 
 type Step = 'prompt' | 'outlining' | 'review' | 'building';
 
-/** The message of an API error ({code, message} or plain text), if any. */
-function errorMessage(error: any, fallback: string): string {
-    const data = error?.data;
-    if (data && typeof data === 'object' && typeof data.message === 'string') return data.message;
-    if (typeof data === 'string' && data.length < 300) return data;
-    return fallback;
-}
-
 function Waiting({ title, detail }: { title: string; detail: string }) {
     return (
-        <div className="flex flex-col items-center justify-center py-10" role="status" aria-live="polite">
+        <div className="flex flex-col items-center justify-center px-4 py-10 text-center" role="status" aria-live="polite">
             <div>
                 <Image width={60} height={60} style={{ objectFit: 'cover' }} className="rounded-image" src="/gifs/loading.gif" alt="" />
             </div>
@@ -61,8 +53,16 @@ function Waiting({ title, detail }: { title: string; detail: string }) {
     );
 }
 
+function ErrorNotice({ message }: { message: string | null }) {
+    if (!message) return null;
+    return (
+        <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {message}
+        </div>
+    );
+}
+
 export default function StartWithAi() {
-    const { toast } = useToast();
     const [prompt, setPrompt] = React.useState('');
     const [isOpen, setIsOpen] = React.useState(false);
     const workspace = useAppSelector(selectWorkspace);
@@ -70,15 +70,24 @@ export default function StartWithAi() {
     const [buildForm] = useBuildFormFromOutlineMutation();
     const [step, setStep] = useState<Step>('prompt');
     const [outline, setOutline] = useState<FormOutline | null>(null);
+    // shown in the dialog until the next attempt (a toast is gone too soon)
+    const [error, setError] = useState<string | null>(null);
     // Workspace AI opt-in (#715)
-    const { settings: aiSettings, enabled: aiEnabled, providerName } = useWorkspaceAI();
+    const { settings: aiSettings, enabled: aiEnabled, providerName, refetch: refetchAI } = useWorkspaceAI();
 
     const router = useRouter();
+
+    const failed = (responseError: any, fallback: string) => {
+        setError(aiErrorMessage(responseError, fallback));
+        // AI was turned off meanwhile: show it as off (button, notice)
+        if (isAINotEnabledError(responseError)) refetchAI?.();
+    };
 
     // Step 1: the AI drafts an outline; nothing is created yet.
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!aiEnabled || !prompt.trim()) return;
+        setError(null);
         setStep('outlining');
         const response: any = await requestOutline({ workspaceId: workspace.id, body: { prompt: prompt.trim() } });
         if (response.data?.outline) {
@@ -87,25 +96,23 @@ export default function StartWithAi() {
             return;
         }
         setStep('prompt');
-        toast({ description: errorMessage(response.error, 'Could not draft an outline, please try again'), variant: 'destructive' });
+        failed(response.error, 'Could not draft an outline. Please try again.');
     };
 
-    // Step 2: the reviewed outline becomes a draft form.
+    // Step 2: the reviewed outline becomes a draft form. What is left to
+    // check goes with it to the editor, which lists it until dismissed.
     const handleBuild = async () => {
         if (!outline || outlineProblems(outline).length) return;
+        setError(null);
         setStep('building');
         const response: any = await buildForm({ workspaceId: workspace.id, body: { outline: outlineForBuild(outline) } });
         if (response.data?.formId) {
-            const notes: string[] = response.data.notes ?? [];
-            const findings = response.data.quality?.findings?.length ?? 0;
-            if (notes.length || findings) {
-                toast({ description: [...notes, findings ? `${findings} thing${findings === 1 ? '' : 's'} to check before publishing.` : ''].filter(Boolean).join(' ') });
-            }
+            saveBuildReport(response.data.formId, response.data);
             router.replace(`/${workspace?.workspaceName}/dashboard/forms/${response.data.formId}/edit`);
             return;
         }
         setStep('review');
-        toast({ description: errorMessage(response.error, 'Could not build the form, please try again'), variant: 'destructive' });
+        failed(response.error, 'Could not build the form. Please try again.');
     };
 
     if (step === 'outlining') return <Waiting title="Drafting an outline" detail="You can review and change it before anything is created" />;
@@ -116,7 +123,7 @@ export default function StartWithAi() {
         return (
             <div>
                 <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
-                <div className="flex flex-col gap-4 px-10 py-6">
+                <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
                     <div>
                         <div className="tex-black-800 text-normal font-medium">Review the outline</div>
                         <p className="mt-1 text-xs text-black-600">
@@ -124,13 +131,14 @@ export default function StartWithAi() {
                             until you do.
                         </p>
                     </div>
+                    <ErrorNotice message={error} />
                     <div>
                         <label htmlFor="outline-title" className="text-xs text-black-700">
                             Form title
                         </label>
                         <input id="outline-title" className="w-full rounded-md border border-black-300 px-2 py-1.5 text-sm" value={outline.title} maxLength={200} onChange={(event) => setOutline({ ...outline, title: event.target.value })} />
                     </div>
-                    <div className="max-h-[55vh] overflow-y-auto pr-1">
+                    <div className="max-h-[55vh] overflow-y-auto sm:pr-1">
                         <OutlineReview outline={outline} onChange={setOutline} />
                     </div>
                     {problems.length > 0 && (
@@ -141,10 +149,17 @@ export default function StartWithAi() {
                         </ul>
                     )}
                     <div className="flex justify-between gap-4">
-                        <Button type="button" variant="v2Button" onClick={() => setStep('prompt')}>
+                        <Button
+                            type="button"
+                            variant="v2Button"
+                            onClick={() => {
+                                setError(null);
+                                setStep('prompt');
+                            }}
+                        >
                             Back to prompt
                         </Button>
-                        <Button data-umami-event={'Building Form from AI outline'} type="button" onClick={handleBuild} disabled={problems.length > 0}>
+                        <Button data-umami-event={'Building Form from AI outline'} type="button" onClick={handleBuild} disabled={problems.length > 0 || !aiEnabled}>
                             <div className="z-10 flex items-center gap-2">
                                 <AIIcon aria-hidden="true" />
                                 Build form
@@ -159,8 +174,9 @@ export default function StartWithAi() {
     return (
         <form onSubmit={handleSubmit}>
             <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
-            <div className="flex flex-col gap-4 px-10 py-6">
+            <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
                 <div className="tex-black-800 text-normal font-medium">Create a new form with AI</div>
+                <ErrorNotice message={error} />
                 {aiSettings && !aiEnabled && <AIOptIn feature="Start with AI" sends="your prompt, the workspace AI profile and your AI memory" />}
                 <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">
                     <div className="rounded-lg bg-white">

@@ -14,6 +14,7 @@ import useFormFieldsAtom, { initialFieldsState } from '@app/store/jotai/field-se
 import { initialFormState, useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { deepCopy } from '@app/utils/object-utils';
+import AIBuildChecklist from '@app/views/molecules/form-builder/ai-build-checklist';
 import AutoSaveForm from '@app/views/molecules/form-builder/audo-save-form';
 import { BuilderTrustStrip, TrustStripNudge } from '@app/views/molecules/form-builder/builder-trust-strip';
 import { AIProposalPreviewBar, AIProposalPreviewCanvas, useProposalPreviewOn } from '@app/views/organism/form-builder/ai-proposal-preview';
@@ -209,6 +210,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     </div>
                     <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
                         <AIProposalPreviewBar activeSlideId={activeSlideComponent?.id} />
+                    </div>
+                    <div className="absolute left-4 top-3 z-20" onClick={(e) => e.stopPropagation()}>
+                        <AIBuildChecklist formId={formId} />
                     </div>
                     <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
                         <TrustStripNudge />
