@@ -424,6 +424,18 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   (`admit_import`, only while AI is on) and its job resolves the provider with
   `admit=False`; applying a review fix calls no provider and has its own
   `AI_RATE_LIMIT_FIX_PER_USER` (60). 0 turns a limit off.
+- **Proposals** (`services/ai/proposals.py`): the editor's chat turns use
+  `mode: "propose"`: the ops are dry-run, nothing but the chat turn is
+  stored, and `POST …/ai/proposals/{id}/accept` (optional `opIndexes`)
+  applies them atomically to the form as stored then, through
+  `persist_ops_to_form` with the conditional write (409 `proposal_stale`
+  with per-op errors when they no longer apply, 422 `proposal_dependency`
+  for a chosen op whose ref comes from one left out); `…/reject` only marks
+  it. A proposal lives on its chat turn (`messages[].proposal`, both
+  stores), can be accepted for `AI_PROPOSAL_TTL_SECONDS` (3600), and a
+  one-time claim in the rate-limit counters (`FixedWindowRateLimiter.claim`)
+  makes it apply once. Accepting uses the review-fix allowance. `apply`
+  stays the API default (MCP, older clients).
 - **Untrusted content** (`services/ai/untrusted.py`): form contents, the AI
   profile, preference memory, respondents' answers and the chat exchange go
   into prompts only through `fence(tag, text)` (which defuses the tags inside
