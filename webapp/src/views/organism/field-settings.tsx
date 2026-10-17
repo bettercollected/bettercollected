@@ -49,6 +49,18 @@ export default function FieldSettings() {
         } else return '';
     }
 
+    // The selection can point past the page's questions (e.g. right after a
+    // delete): every setting below writes to activeField, so show none.
+    if (!activeField || !activeSlide) {
+        return (
+            <div className="flex flex-col gap-4 px-4 py-6">
+                <button type="button" onClick={() => setActiveFieldComponent(null)} className="text-black-600 hover:text-black-900 -mb-1 flex w-fit items-center gap-1 text-xs font-medium">
+                    ‹ Back to page
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col gap-4 px-4 py-6">
             {/* The drawer replaces the Page/Design tabs while a field is
