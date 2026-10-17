@@ -55,6 +55,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Tabular Input Field';
         case FieldTypes.GROUP:
             return 'Repeating group';
+        case FieldTypes.CALCULATED:
+            return 'Calculation';
         default:
             return 'No Field Selected';
     }

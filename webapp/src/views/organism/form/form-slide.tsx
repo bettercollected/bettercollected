@@ -22,7 +22,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
-import { isCalculatedField } from '@app/utils/calculated-fields';
+import { isShownToRespondents } from '@app/utils/calculated-fields';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
@@ -187,7 +187,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // render, so the form reacts live as the responder answers earlier questions.
     const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
     // Calculations kept from respondents ("internal results") are computed, never shown.
-    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id) && !(isCalculatedField(field) && field.properties?.hiddenFromRespondents));
+    const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id) && isShownToRespondents(field));
 
     // Leaflet: the page is a numbered section (its position in the form, the
     // same number "Page x of y" shows) and its questions are numbered among

@@ -94,3 +94,29 @@ describe('FormSlidePreview renders every kitchen-sink slide without crashing', (
         expect(container.firstChild).not.toBeNull();
     });
 });
+
+describe('FormSlidePreview and calculations', () => {
+    it('shows a calculation but not one hidden from respondents, as the live form does', () => {
+        const slide: StandardFormFieldDto = {
+            id: 'slide-calc',
+            index: 0,
+            type: FieldTypes.SLIDE,
+            properties: {
+                fields: [
+                    f(FieldTypes.CALCULATED, 0, { id: 'shown', title: 'Your total', properties: { fields: [], expression: { '+': [1, 2] } } }),
+                    f(FieldTypes.CALCULATED, 1, { id: 'kept', title: 'Risk score', properties: { fields: [], expression: { '+': [1, 2] }, hiddenFromRespondents: true } })
+                ]
+            }
+        };
+        const { container } = render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <FormSlidePreview slide={slide} />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(container.querySelector('#calculated-shown')).not.toBeNull();
+        expect(container.querySelector('#calculated-kept')).toBeNull();
+        expect(container.textContent).not.toContain('Risk score');
+    });
+});

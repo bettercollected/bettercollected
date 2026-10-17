@@ -19,13 +19,13 @@ export default function CalculatedFieldBuilder({ field }: { field: StandardFormF
     return (
         <div className="flex flex-col gap-1.5">
             <div className="flex items-start gap-2 rounded-lg border border-dashed border-black-400 bg-black-100 px-3 py-2">
-                <Calculator className="mt-0.5 h-4 w-4 shrink-0 text-black-600" strokeWidth={1.75} aria-hidden="true" />
+                <Calculator className="mt-0.5 h-5 w-5 shrink-0 text-black-600" strokeWidth={1.75} aria-hidden="true" />
                 {formula ? (
-                    <code className="font-mono text-xs break-all whitespace-pre-wrap text-black-800" aria-label={`Formula: ${formula}`}>
+                    <code className="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap text-black-800" aria-label={`Formula: ${formula}`}>
                         = {formula}
                     </code>
                 ) : (
-                    <span className="text-xs text-black-600">No formula yet. Write one in the inspector.</span>
+                    <span className="text-sm text-black-600">No formula yet. Write one in the inspector.</span>
                 )}
             </div>
             {field.properties?.hiddenFromRespondents && (

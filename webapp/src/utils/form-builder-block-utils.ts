@@ -1,6 +1,7 @@
 
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
+import { calculatedAnswerValue, formatCalculatedValue } from '@app/utils/calculated-fields';
 import { getFieldsFromV2Form } from './form-utils';
 import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
 import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
@@ -68,12 +69,13 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FieldTypes.FILE_UPLOAD:
             return answer?.file_metadata?.name;
         case FieldTypes.CALCULATED: {
-            // The value the server computed and stored, unformatted (exports
-            // keep numbers as numbers).
-            const value = answer?.number ?? answer?.boolean ?? answer?.text;
-            if (value === undefined || value === null) return '';
+            // The value the server computed and stored, shown with the
+            // field's format (currency, percent, decimals). Exports use
+            // calculatedExportValue: the raw number.
+            const value = calculatedAnswerValue(answer);
+            if (value === null) return '';
             if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-            return value;
+            return formatCalculatedValue(value, field.properties?.format, 'en');
         }
         case FieldTypes.GROUP: {
             // Repeating group: a one-cell summary ("Applicant × 2"); the
