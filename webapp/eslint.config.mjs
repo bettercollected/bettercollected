@@ -1,37 +1,36 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import next from "eslint-config-next";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
+import prettier from "eslint-config-prettier";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-    baseDirectory: __dirname,
-    recommendedConfig: js.configs.recommended,
-    allConfig: js.configs.all
-});
+export default defineConfig([
+    globalIgnores([
+        "**/.github",
+        "**/.next",
+        "**/.next-dev",
+        "**/.vercel",
+        "**/.husky",
+        "**/.vscode",
+        "**/node_modules",
+        "**/build",
+        "**/public",
+        "**/storybook-static",
+        "**/coverage",
+        "next-env.d.ts",
+    ]),
+    {
+        extends: [...next, prettier],
 
-export default defineConfig([globalIgnores([
-    "**/.github",
-    "**/.next",
-    "**/.next-dev",
-    "**/.vercel",
-    "**/.husky",
-    "**/.vscode",
-    "**/node_modules",
-    "**/build",
-    "**/public",
-    "**/.eslintrc.json",
-    "**/package.json",
-    "**/package-lock.json",
-    "**/tsconfig.json",
-    "**/yarn.lock",
-]), {
-    extends: [...next, ...compat.extends("prettier")],
-
-    rules: {
-        "react-hooks/exhaustive-deps": "off",
+        rules: {
+            "react-hooks/exhaustive-deps": "off",
+            // React Compiler diagnostics from eslint-plugin-react-hooks 7. The app does not use the
+            // React Compiler, and existing code has many hits; keep them visible as warnings until
+            // they are worked down. rules-of-hooks stays an error.
+            "react-hooks/immutability": "warn",
+            "react-hooks/set-state-in-effect": "warn",
+            "react-hooks/refs": "warn",
+            "react-hooks/globals": "warn",
+            "react-hooks/purity": "warn",
+            "react-hooks/preserve-manual-memoization": "warn",
+        },
     },
-}]);
+]);
