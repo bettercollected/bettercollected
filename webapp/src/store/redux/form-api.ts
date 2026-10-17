@@ -1,6 +1,14 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
+import { FormOutline } from '@app/utils/ai-outline';
+
+export interface BuildFromOutlineResponse {
+    formId: string;
+    title: string;
+    quality: { score: number; passed: boolean; findings: { code: string; severity: string; message: string; where: string[] }[] };
+    notes: string[];
+}
 
 export const formsApi = createApi({
     reducerPath: 'formsApi',
@@ -88,9 +96,24 @@ export const formsApi = createApi({
                 body: request.body
             })
         }),
-        createFormWithAI: builder.mutation<any,any>({
+        createFormWithAI: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/ai`,
+                method: 'POST',
+                body: request.body
+            })
+        }),
+        // Outline-first AI creation: the outline to review, then the build.
+        outlineFormWithAI: builder.mutation<{ outline: FormOutline }, { workspaceId: string; body: { prompt: string; documentText?: string } }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/ai/outline`,
+                method: 'POST',
+                body: request.body
+            })
+        }),
+        buildFormFromOutline: builder.mutation<BuildFromOutlineResponse, { workspaceId: string; body: { outline: FormOutline; fillGaps?: boolean } }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/ai/build`,
                 method: 'POST',
                 body: request.body
             })
@@ -145,4 +168,26 @@ export const formsApi = createApi({
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, useUploadFormLogoMutation, useRemoveFormLogoMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useAcceptAIProposalMutation, useRejectAIProposalMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation, useUpdateAIInsightsSettingsMutation } = formsApi;
+export const {
+    useCreateV2FormMutation,
+    usePatchV2FormMutation,
+    useUploadFormLogoMutation,
+    useRemoveFormLogoMutation,
+    usePublishV2FormMutation,
+    useGetFormResponseQuery,
+    useSubmitResponseMutation,
+    useSendFlowEventMutation,
+    useGetFlowAnalyticsQuery,
+    useLazyLogOutQuery,
+    useCreateFormWithAIMutation,
+    useOutlineFormWithAIMutation,
+    useBuildFormFromOutlineMutation,
+    useChatEditFormWithAIMutation,
+    useReviewFormWithAIMutation,
+    useApplyAIReviewFixMutation,
+    useAcceptAIProposalMutation,
+    useRejectAIProposalMutation,
+    useGetAIInsightsQuery,
+    useGenerateAIInsightsMutation,
+    useUpdateAIInsightsSettingsMutation
+} = formsApi;

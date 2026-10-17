@@ -433,22 +433,23 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   Output tokens per call type: `AI_MAX_OUTPUT_TOKENS_GENERATE` (16000), `_CHAT`
   (8000), `_REVIEW` (8000), `_INSIGHTS` (4000), `_MEMORY` (1000); document
   import pages keep `PAGE_MAX_TOKENS`/`PAGE_TIMEOUT_S`.
-- **Form generation's tool loop** stops at `AI_MAX_TOOL_ITERATIONS` model round
-  trips (10, the final answer and its retry included) or `AI_MAX_TOOL_CALLS`
-  tool calls (30) with 502 `ai_step_limit`, and the whole generation at
-  `AI_GENERATION_TIMEOUT_SECONDS` (240). Unknown tools and malformed arguments
-  go back to the model as a tool error; only the three tools ever run.
+- **Form generation** (outline first, below): the outline call and its
+  retry stop at `AI_GENERATION_TIMEOUT_SECONDS` (240); a build's gap-filling
+  calls (up to 5 pages, each with its retry) share one deadline,
+  `AI_GAP_FILL_DEADLINE_SECONDS` (120), after which the build goes on with
+  what was filled and says so in its notes.
 - **Structured replies** (`services/ai/structured.py`): every reply is
-  validated with Pydantic (`GeneratedForm`, and a model per chat/review/
+  validated with Pydantic (`FormOutline`, and a model per chat/review/
   insights/memory reply); an unusable one gets one retry with the problems
   (locations and messages, never values), then 502 `ai_unusable_reply`.
-  OpenAI generation uses strict structured output (`generated_form_schema()`,
-  strict-mode rules as in the import schema); chat calls ask for JSON mode
-  (OpenAI `json_object`, Gemini `application/json`, the compatible endpoint
-  unless `AI_COMPAT_JSON_MODE=false`). Gemini cannot combine tools with JSON
-  output, so its generation relies on validation and the retry. A provider's
-  `chat()` takes `max_output_tokens` and `json_mode`; use `chat_json(...)` for
-  a reply that must be JSON.
+  The outline and gap-filling calls pass a strict JSON schema
+  (`json_schema`, strict-mode rules as in the import schema), which OpenAI
+  uses as structured output; other calls ask for JSON mode (OpenAI
+  `json_object`, Gemini `application/json`, the compatible endpoint unless
+  `AI_COMPAT_JSON_MODE=false`; Gemini and the compatible endpoint get JSON
+  mode for a schema too). A provider's `chat()` takes `max_output_tokens`,
+  `json_mode` and `json_schema`; use `chat_json(...)` or
+  `chat_structured(...)` for a reply that must be JSON.
 - **Rate limits and budget** (`services/ai/usage.AIUsageGuard`, on the shared
   `FixedWindowRateLimiter`): `provider_for_workspace(..., user_id=...)` admits
   one AI request after the opt-in check: `AI_RATE_LIMIT_PER_USER` (10) and
@@ -489,6 +490,27 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   and policy links are checked (`image_urls.py`, `policy_url.py`).
 - **Logging:** AI paths log error types, counts and ids only, never a prompt,
   a reply, a tool query or an exception message.
+- **Outline-first generation** (`services/ai/outline.py`,
+  `outline_compile.py`, `outline_service.py`): every AI-built form is
+  planned as an outline (title, language, pages with section titles,
+  question intents with `whyWeAsk` on identity questions, show/hide and
+  jump intents, `omitted` questions) and then compiled into one atomic
+  ops batch with refs on a blank Leaflet form, saved once.
+  `POST …/forms/ai/outline` (`{prompt, documentText?}`, the document is
+  fenced) returns the outline only; `POST …/forms/ai/build`
+  (`{outline, fillGaps?}`) builds an outline the person may have edited and
+  returns `{formId, title, quality, notes}`; `POST …/forms/ai` runs both in
+  one request and still returns the saved form. A model outline gets one
+  corrective retry for shape and for `outline_problems` (choices, reasons,
+  rules on later answers, backward jumps); an edited one is authoritative:
+  rules that no longer fit are dropped with a note, and the model is only
+  asked (one structured call per page, at most 5) to fill missing choices
+  and reasons, never to change what the person wrote (`fillGaps: false`
+  sends nothing; identity questions on later pages left without a reason
+  are named in the notes). A build without a
+  provider call still needs the opt-in and uses the fix allowance. MCP:
+  `create_form_outline`, `build_form_from_outline` (`forms:write`). The
+  compliance review is not run on build (it is a model call of its own).
 - **Quality evals:** `services/ai/quality.check_form_quality` scores a
   generated or edited form (why-we-ask, questions per page, section titles,
   EN/NL language, duplicates, required fields, choices, image hosts, logic
