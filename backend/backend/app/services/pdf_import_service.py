@@ -51,8 +51,12 @@ class PdfImportService:
         authorization_service,
         settings,
         flags=None,
+        ai_admission=None,
     ):
         self._repo = repo
+        # async (workspace id, user) -> None: the AI rate limits and daily
+        # budget for an upload that asks for AI structuring (429 when over)
+        self._ai_admission = ai_admission
         self._store = store
         self._pipeline = pipeline
         self._workspace_forms = workspace_form_service
@@ -90,6 +94,8 @@ class PdfImportService:
         # a cheap early look, so a refused upload creates nothing; the real
         # check is the atomic insert below
         await self._check_limits(workspace_id)
+        if ai_consent is True and self._ai_admission is not None:
+            await self._ai_admission(workspace_id, user)
 
         form = await self._workspace_forms.create_form(
             workspace_id=workspace_id,

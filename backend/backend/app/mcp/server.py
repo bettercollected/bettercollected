@@ -22,7 +22,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
-from backend.app.models.dtos.request_dtos import CreateFormWithAI
+from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH, CreateFormWithAI
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.repositories.response_scope import (
     find_response_in_workspace,
@@ -230,14 +230,21 @@ async def create_form_with_ai(prompt: str) -> str:
     key = await _key("forms:write")
     from backend.app.container import container
 
+    if not (prompt or "").strip() or len(prompt) > AI_PROMPT_MAX_LENGTH:
+        await _audit("create_form_with_ai", False, "prompt length")
+        raise ValueError(
+            f"The prompt must be between 1 and {AI_PROMPT_MAX_LENGTH} characters."
+        )
     try:
+        # the same AI limits as the builder (429 ai_rate_limited /
+        # ai_daily_limit), counted for the key's creator and workspace
         form = await container.openai_service().create_form_with_ai(
             workspace_id=key.workspace_id,
             create_form_ai=CreateFormWithAI(prompt=prompt),
             user=_acting_user(key),
         )
     except HTTPException as e:
-        # e.g. 403 ai_not_enabled: tell the client why, in words
+        # e.g. 403 ai_not_enabled or 429: tell the client why, in words
         content = e.content
         message = content.get("message") if isinstance(content, dict) else content
         await _audit("create_form_with_ai", False, str(message or ""))

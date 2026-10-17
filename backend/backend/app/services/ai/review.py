@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
@@ -28,11 +28,14 @@ from backend.app.services.ai.ops import OpResult, parse_ops
 from backend.app.services.ai.profile import AIProfileService, render_prompt_block
 from backend.app.services.ai.prompt_builder import (
     OPS_GUIDE,
-    extract_json_object,
     project_form,
 )
+from backend.app.services.ai.structured import chat_json
+from backend.app.services.ai.untrusted import UNTRUSTED_CONTENT_RULES, fence
+from backend.app.services.ai.usage import AIUsageGuard
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
+from backend.config import settings
 
 # Baseline checks that apply to every form, before any org-specific rules.
 # Kept in the prompt (not code) deliberately: the checks reason about intent
@@ -56,6 +59,27 @@ Respond with a single JSON object and nothing else:
                "fieldId": "<id of the affected field, or null if it concerns the whole form>",
                "fix": {"description": "<what the fix does, one sentence>", "ops": [<operations>]} or null}]}
 Order findings most severe first. Include a fix ONLY when typed operations can actually correct the finding; advice-only findings get "fix": null."""
+
+
+UNUSABLE_REVIEW = "The AI returned an unusable review — please try again."
+
+
+class _ReviewReply(BaseModel):
+    """The review as the model returns it; each finding is coerced on its
+    own afterwards (``_coerce_finding``)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    summary: str
+    findings: List[Any]
+
+    @field_validator("summary")
+    @classmethod
+    def _summary_given(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("the summary is empty")
+        return value
 
 
 class _CamelModel(BaseModel):
@@ -105,9 +129,8 @@ def build_review_system_prompt(form_snapshot: str, profile) -> str:
         "You are the compliance reviewer inside BetterCollected, a privacy-first form builder. "
         "Review the form below and report problems a privacy-conscious organization would want fixed before publishing.",
         BASELINE_CHECKS,
-        "## Current form snapshot\n<form_snapshot>\n"
-        + form_snapshot
-        + "\n</form_snapshot>",
+        UNTRUSTED_CONTENT_RULES.strip(),
+        "## Current form snapshot\n" + fence("form_snapshot", form_snapshot),
     ]
     block = render_prompt_block(profile)
     if block:
@@ -158,9 +181,11 @@ class FormAIReviewService:
         provider_resolver: Callable,
         workspace_form_repo: WorkspaceFormRepository,
         form_repo: FormRepository,
+        ai_usage_guard: Optional[AIUsageGuard] = None,
     ):
         self._authorization = authorization_service
         self._provider_resolver = provider_resolver
+        self._ai_usage_guard = ai_usage_guard
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
 
@@ -193,7 +218,9 @@ class FormAIReviewService:
     ) -> FormAIReviewResponse:
         form_document, association = await self._load_form(workspace_id, form_id, user)
         # The workspace's AI opt-in (#715) before the profile is loaded.
-        provider = await self._provider_resolver(workspace_id, request.provider)
+        provider = await self._provider_resolver(
+            workspace_id, request.provider, user_id=user.id
+        )
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
         # The snapshot includes trust settings — a review that can't see the
@@ -202,21 +229,15 @@ class FormAIReviewService:
             project_form(form, settings=association.settings), profile
         )
 
-        raw_reply = await provider.chat(
-            system, [{"role": "user", "content": "Review this form now."}]
+        parsed = await chat_json(
+            provider,
+            system,
+            [{"role": "user", "content": "Review this form now."}],
+            _ReviewReply,
+            max_output_tokens=settings.ai.MAX_OUTPUT_TOKENS_REVIEW,
+            unusable_message=UNUSABLE_REVIEW,
         )
-
-        try:
-            parsed = extract_json_object(raw_reply)
-            summary = str(parsed.get("summary") or "").strip()
-            raw_findings = parsed.get("findings")
-            if not summary or not isinstance(raw_findings, list):
-                raise ValueError("missing summary/findings")
-        except Exception:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_GATEWAY,
-                content="The AI returned an unusable review — please try again.",
-            )
+        summary, raw_findings = parsed.summary, parsed.findings
 
         findings = [f for f in (_coerce_finding(r) for r in raw_findings) if f]
         severity_rank = {"high": 0, "medium": 1, "info": 2}
@@ -231,6 +252,8 @@ class FormAIReviewService:
         user: User,
     ) -> ApplyReviewFixResponse:
         form_document, _ = await self._load_form(workspace_id, form_id, user)
+        if self._ai_usage_guard is not None:
+            await self._ai_usage_guard.admit_fix(workspace_id, user.id)
         try:
             ops = parse_ops(request.ops)
         except Exception:

@@ -22,8 +22,10 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
-from backend.app.services.ai.prompt_builder import extract_json_object
+from backend.app.services.ai.structured import chat_json
+from backend.app.services.ai.untrusted import UNTRUSTED_CONTENT_RULES, fence
 from backend.app.models.enum.permission import Permission
+from backend.config import settings
 
 MAX_ENTRIES = 50
 MAX_ENTRY_CHARS = 300
@@ -43,8 +45,18 @@ NEVER include:
 Existing memory (do not repeat anything equivalent):
 {existing}
 
-Reply with ONLY a JSON object: {{"memories": ["...", "..."]}} — empty list if
-nothing qualifies. Each memory is one short sentence."""
+The exchange arrives inside <exchange>. Reply with ONLY a JSON object:
+{{"memories": ["...", "..."]}} — empty list if nothing qualifies. Each memory
+is one short sentence."""
+EXTRACTION_SYSTEM_PROMPT += "\n" + UNTRUSTED_CONTENT_RULES.replace("{", "{{").replace(
+    "}", "}}"
+)
+
+
+class _ExtractionReply(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    memories: List[Any] = []
 
 
 class _CamelModel(BaseModel):
@@ -176,22 +188,30 @@ class AIMemoryService:
                 return
             existing = await self.get_entries_for_prompt(workspace_id, user_id)
             system = EXTRACTION_SYSTEM_PROMPT.format(
-                existing="\n".join(f"- {t}" for t in existing) or "(empty)"
+                existing=fence(
+                    "existing_memory",
+                    "\n".join(f"- {t}" for t in existing) or "(empty)",
+                )
             )
-            raw = await provider.chat(
+            parsed = await chat_json(
+                provider,
                 system,
                 [
                     {
                         "role": "user",
-                        "content": f"Creator said: {user_message}\nAssistant did: {assistant_reply}",
+                        "content": fence(
+                            "exchange",
+                            f"Creator said: {user_message}\n"
+                            f"Assistant did: {assistant_reply}",
+                        ),
                     }
                 ],
+                _ExtractionReply,
+                max_output_tokens=settings.ai.MAX_OUTPUT_TOKENS_MEMORY,
             )
-            parsed = extract_json_object(raw)
-            memories = [
-                m for m in (parsed.get("memories") or []) if isinstance(m, str)
-            ][:2]
+            memories = [m for m in parsed.memories if isinstance(m, str)][:2]
             if memories:
                 await self._append(workspace_id, user_id, memories, source="extracted")
         except Exception as e:  # noqa: BLE001 — memory must never break a turn
-            loguru.logger.warning("AI memory extraction skipped: {}", e)
+            # the error's type only: its message can quote the exchange
+            loguru.logger.warning("AI memory extraction skipped ({})", type(e).__name__)

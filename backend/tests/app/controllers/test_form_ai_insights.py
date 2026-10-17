@@ -248,7 +248,10 @@ class TestFormAIInsights:
         fake_insights_provider: FakeProvider,
     ):
         await _seed_form_and_responses(workspace.id, workspace_form.form_id)
-        fake_insights_provider.replies = ["The responses look nice overall!"]
+        fake_insights_provider.replies = [
+            "The responses look nice overall!",
+            "Still no JSON.",
+        ]
 
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/insights",
