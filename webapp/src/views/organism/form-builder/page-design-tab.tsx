@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import FormLogoSettings from '@app/views/molecules/form-builder/form-logo-settings';
 import { ContrastNotes, Swatch, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
 
 const CUSTOM_TITLE = 'Custom';
@@ -159,6 +160,10 @@ export default function PageDesignTab() {
                         </Link>
                         .
                     </p>
+
+                    <div className="border-t-black-300 border-t pt-4">
+                        <FormLogoSettings />
+                    </div>
                 </div>
             </ScrollArea>
         </div>

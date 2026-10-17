@@ -124,7 +124,10 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     title: standardForm.title,
                     thankyouPage: copiedThankyouPage,
                     welcomePage: copiedWelcomePage,
-                    hiddenFields: standardForm.hiddenFields
+                    hiddenFields: standardForm.hiddenFields,
+                    logoPosition: standardForm.logoPosition,
+                    logoAlt: standardForm.logoAlt,
+                    useWorkspaceLogo: standardForm.useWorkspaceLogo
                 };
                 setFormState(form);
             }

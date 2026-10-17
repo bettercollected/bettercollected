@@ -198,6 +198,10 @@ export interface StandardFormDto {
     modifiedTime?: string | Date;
     coverImage?: string;
     logo?: string;
+    /** Organisation logo settings (utils/form-logo.ts). */
+    logoPosition?: 'left' | 'center' | 'auto';
+    logoAlt?: string;
+    useWorkspaceLogo?: boolean;
     createdAt?: string;
     updatedAt?: string;
     actions?: any;

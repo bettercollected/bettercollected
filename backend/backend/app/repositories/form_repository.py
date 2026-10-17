@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
@@ -441,11 +441,24 @@ class FormRepository:
         form_document.welcome_page = form.welcome_page
         form_document.thankyou_page = form.thankyou_page
         form_document.theme = form.theme
+        # The logo settings: None means "not sent" (an older client); keep them.
+        for name in ("logo_position", "logo_alt", "use_workspace_logo"):
+            if getattr(form, name, None) is not None:
+                setattr(form_document, name, getattr(form, name))
         form_document.consent = form.consent if form.consent else form_document.consent
         form_document.settings = (
             form.settings if form.settings else form_document.settings
         )
         return await form_document.save()
+
+    @write_op
+    async def set_form_logo(self, form_id: str, logo: Optional[str]):
+        """Set (or, with None, clear) the draft's logo URL, nothing else, so a
+        builder autosave running at the same time keeps its own changes."""
+        await FormDocument.find_one({"form_id": str(form_id)}).update(
+            {"$set": {"logo": logo}}
+        )
+        return await FormDocument.find_one({"form_id": str(form_id)})
 
     async def get_form_document_by_id(self, form_id: str):
         return await FormDocument.find_one({"form_id": form_id})

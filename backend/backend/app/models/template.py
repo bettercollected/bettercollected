@@ -2,13 +2,15 @@ from typing import Optional, List
 
 from beanie import PydanticObjectId
 from common.models.standard_form import (
+    LOGO_ALT_MAX_LENGTH,
+    LogoPosition,
     StandardFormField,
     Theme,
     WelcomePageField,
     ThankYouPageField,
 )
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
 from backend.app.models.enum.template import TemplateCategory
@@ -30,6 +32,9 @@ class StandardFormTemplate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     logo: Optional[str] = None
+    logo_position: Optional[LogoPosition] = None
+    logo_alt: Optional[str] = Field(None, max_length=LOGO_ALT_MAX_LENGTH)
+    use_workspace_logo: Optional[bool] = None
     cover_image: Optional[str] = None
     category: Optional[TemplateCategory] = None
     button_text: Optional[str] = None

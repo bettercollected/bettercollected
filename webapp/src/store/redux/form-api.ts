@@ -27,6 +27,20 @@ export const formsApi = createApi({
                 body: request.body
             })
         }),
+        // The organisation logo (utils/form-logo.ts): PNG, JPEG or WebP, at most 1 MB.
+        uploadFormLogo: builder.mutation<any, { workspaceId: string; formId: string; file: File }>({
+            query: ({ workspaceId, formId, file }) => {
+                const body = new FormData();
+                body.append('file', file);
+                return { url: `/workspaces/${workspaceId}/forms/${formId}/logo`, method: 'PUT', body };
+            }
+        }),
+        removeFormLogo: builder.mutation<any, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/logo`,
+                method: 'DELETE'
+            })
+        }),
         publishV2Form: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/publish`,
@@ -118,4 +132,4 @@ export const formsApi = createApi({
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation, useUpdateAIInsightsSettingsMutation } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, useUploadFormLogoMutation, useRemoveFormLogoMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation, useUpdateAIInsightsSettingsMutation } = formsApi;

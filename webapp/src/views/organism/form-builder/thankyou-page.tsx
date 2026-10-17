@@ -1,19 +1,21 @@
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import { useFormState } from '@app/store/jotai/form';
-
 import { IsValidString } from '@app/utils/string-utils';
-import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
-import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
-import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
+
+import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
+import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
 
 const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
     const { formState, theme, setThankYouPageTitle, setThankYouPageDescription } = useFormState();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
+    const logo = useBuilderFormLogo();
     const layout = formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.layout;
     if (styleTokens(theme?.style).key === 'leaflet') {
         // WYSIWYG with the respondent's leaflet ending: the title on the bar,
@@ -23,7 +25,8 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
         return (
             <GreetingLayoutWrapper disabled={disabled} greetingIndex={-20} theme={theme}>
                 <div className="w-full">
-                    <LeafletTopRule theme={theme} />
+                    {/* As on the live page: with a logo strip the top row goes. */}
+                    {!logo && <LeafletTopRule theme={theme} />}
                     <div className="-mx-5 px-5 py-6 sm:-mx-8 sm:px-8 sm:py-8" style={{ background: theme?.secondary }}>
                         <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                             <AutosizeTextarea
@@ -71,7 +74,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                         placeholder="Thank you"
                         aria-label="Ending title"
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
-                        className="w-full border-0 bg-transparent px-0 py-0 text-[40px] font-bold leading-[48px] [text-align:inherit]"
+                        className="w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
                         value={formState.thankyouPage![activeThankYouPageComponent?.index || 0]?.title ?? ''}
                         onChange={(event: any) => setThankYouPageTitle(activeThankYouPageComponent?.index || 0, event.target.value)}
                     />
@@ -80,7 +83,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                             placeholder="Your answers have been sent."
                             value={formState.thankyouPage![activeThankYouPageComponent?.index || 0].message}
                             aria-label="Ending message"
-                            className="ring-none text-black-700 mt-4 w-full border-0 bg-transparent px-0 text-base outline-hidden [text-align:inherit]"
+                            className="ring-none mt-4 w-full border-0 bg-transparent px-0 [text-align:inherit] text-base text-black-700 outline-hidden"
                             onChange={(e: any) => setThankYouPageDescription(activeThankYouPageComponent?.index || 0, e.target.value)}
                         />
                     ) : (

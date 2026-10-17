@@ -2,6 +2,8 @@ import datetime as dt
 from typing import Optional, List, Dict
 
 from common.models.standard_form import (
+    LOGO_ALT_MAX_LENGTH,
+    LogoPosition,
     ParameterValue,
     Trigger,
     ActionState,
@@ -26,6 +28,9 @@ class FormDtoCamelModel(CamelModel):
     form_id: Optional[str] = None
     imported_form_id: Optional[str] = None
     logo: Optional[str] = None
+    logo_position: Optional[LogoPosition] = None
+    logo_alt: Optional[str] = Field(None, max_length=LOGO_ALT_MAX_LENGTH)
+    use_workspace_logo: Optional[bool] = None
     cover_image: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None

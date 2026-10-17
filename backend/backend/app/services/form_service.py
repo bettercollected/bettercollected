@@ -488,6 +488,9 @@ class FormService:
             and form.fields == latest_version.fields
             and form.hidden_fields == latest_version.hidden_fields
             and form.logo == latest_version.logo
+            and form.logo_position == latest_version.logo_position
+            and form.logo_alt == latest_version.logo_alt
+            and form.use_workspace_logo == latest_version.use_workspace_logo
             and form.cover_image == latest_version.cover_image
             and form.button_text == latest_version.button_text
             and form.state == latest_version.state

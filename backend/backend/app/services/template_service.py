@@ -14,6 +14,7 @@ from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.repositories.template import FormTemplateRepository
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.form_logo import logo_key, read_logo_upload
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.authorization_service import AuthorizationService
@@ -121,11 +122,10 @@ class FormTemplateService:
         )
         template_body.id = PydanticObjectId()
         if logo:
-            logo_url = await self._aws_service.upload_file_to_s3(
-                file=logo.file,
-                key=f"{template_body.id}_logo{os.path.splitext(logo.filename)[1]}",
-            )
-            template_body.logo = logo_url
+            template_body.logo = await self._store_logo(logo)
+        elif not self._aws_service.public_key_of(template_body.logo):
+            # Only a logo in our own storage (services/form_logo.py).
+            template_body.logo = None
         if cover_image:
             cover_image_url = await self._aws_service.upload_file_to_s3(
                 file=cover_image.file,
@@ -134,6 +134,14 @@ class FormTemplateService:
             template_body.cover_image = cover_image_url
         return await self.form_template_repo.create_new_template(
             workspace_id=workspace_id, template_body=template_body, user=user
+        )
+
+    async def _store_logo(self, logo: UploadFile) -> str:
+        checked = await read_logo_upload(logo)
+        return self._aws_service.put_public_object(
+            body=checked.data,
+            key=logo_key("templates", checked.extension),
+            content_type=checked.content_type,
         )
 
     async def update_template(
@@ -155,16 +163,15 @@ class FormTemplateService:
                 HTTPStatus.FORBIDDEN, "You are not allowed to update this template."
             )
         if logo:
-            logo_url = await self._aws_service.upload_file_to_s3(
-                file=logo.file,
-                key=str(template_id) + f"_logo{os.path.splitext(logo.filename)[1]}",
-                previous_image=template.logo,
-            )
-            template_body.logo = logo_url
-        else:
-            template_body.logo = (
-                template_body.logo if template_body.logo is not None else template.logo
-            )
+            # The previous file stays: forms and imported copies made from this
+            # template may still show it.
+            template_body.logo = await self._store_logo(logo)
+        elif template_body.logo == "":
+            template_body.logo = None
+        elif template_body.logo is None or not self._aws_service.public_key_of(
+            template_body.logo
+        ):
+            template_body.logo = template.logo
         if cover_image:
             cover_image_url = await self._aws_service.upload_file_to_s3(
                 file=cover_image.file,

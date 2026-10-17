@@ -31,6 +31,10 @@ export interface IFormState {
      * available to answer piping in question text.
      */
     hiddenFields?: string[];
+    /** Organisation logo settings; the file itself is uploaded on its own (utils/form-logo.ts). */
+    logoPosition?: 'left' | 'center' | 'auto';
+    logoAlt?: string;
+    useWorkspaceLogo?: boolean;
 }
 
 export interface IThemeState {
@@ -126,6 +130,10 @@ export function useFormState() {
         setFormState((prev) => ({ ...prev, hiddenFields }));
     };
 
+    const setLogoSettings = (settings: Pick<IFormState, 'logoPosition' | 'logoAlt' | 'useWorkspaceLogo'>) => {
+        setFormState((prev) => ({ ...prev, ...settings }));
+    };
+
     const updateWelcomePageImage = (imageUrl: string) => {
         setFormState((prev) => ({
             ...prev,
@@ -160,6 +168,7 @@ export function useFormState() {
         setFormTitle,
         updateFormTheme,
         setHiddenFields,
+        setLogoSettings,
         theme: formState.theme,
         updateWelcomePageImage,
         updateThankYouPageImage,

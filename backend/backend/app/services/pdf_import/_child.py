@@ -50,6 +50,11 @@ def main(argv) -> int:
                 from pdf_import.layout import extract_layout
 
                 result = extract_layout(data, skip_pages=skip)
+            elif mode == "logo":
+                # an organisation logo: checked, decoded and re-encoded here
+                from pdf_import.logo_image import reencode_logo
+
+                result = reencode_logo(data)
             elif mode == "render":
                 # for rendering, the page list names the pages TO render; the
                 # longest side in pixels travels in the max_pixels slot's place

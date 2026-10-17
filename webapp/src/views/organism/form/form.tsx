@@ -1,12 +1,16 @@
+import { usePathname } from 'next/navigation';
+
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
+import { useResponderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
-import { useResponderState } from '@app/store/jotai/responder-form-state';
-
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 
 import LayoutWrapper from '../layout/layout-wrapper';
 import FormSlide from './form-slide';
@@ -45,6 +49,13 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const standardForm = useAppSelector(selectResponderForm);
     // Leaflet pages start with a full-width bar at the top edge.
     const topAligned = styleTokens(standardForm?.theme?.style).key === 'leaflet';
+    // The organisation logo strip on every page (DESIGN.md §9), larger on the cover.
+    const logo = useResponderFormLogo();
+    // With a logo strip, the account control moves into its row on the welcome
+    // and ending pages, and the pages drop the row that held it.
+    const workspace = useAppSelector(selectWorkspace);
+    const pathname = usePathname();
+    const responderSignInUrl = isPreviewMode ? '' : `/login?type=responder&workspace_id=${workspace?.id}&redirect_to=${pathname}`;
 
     const getProgressValue = () => {
         const totalSlides = (standardForm?.fields?.length || 0) + 2;
@@ -69,10 +80,10 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     return (
         // overflow-hidden clips the ±100% fly-in/out — without it the document
         // grows sideways mid-transition and a horizontal scrollbar flashes.
-        <div className={cn(isPreviewMode ? 'h-full w-full  ' : 'h-screen w-screen', 'relative h-full w-full overflow-hidden')}>
+        <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen', 'relative h-full w-full overflow-hidden')}>
             {currentSlide !== -1 && (
                 // Decorative: "Page x of y" in the header says the same in words.
-                <div className="absolute left-0 right-0 top-0 z-80!" aria-hidden="true">
+                <div className="absolute top-0 right-0 left-0 z-80!" aria-hidden="true">
                     <Progress indicatorColor={standardForm.theme?.secondary} value={getProgressValue()} className="h-1 rounded-none" style={{ background: standardForm.theme?.tertiary ? `${standardForm.theme.tertiary}33` : undefined }} />
                 </div>
             )}
@@ -91,14 +102,33 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                 >
                     <div className="relative h-full w-full">
                         {currentSlide === -1 && (
-                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl} topAligned={topAligned}>
-                                <WelcomePage isPreviewMode={isPreviewMode} />
+                            <LayoutWrapper
+                                showDesktopLayout={showDesktopLayout}
+                                theme={standardForm.theme}
+                                disabled
+                                layout={standardForm.welcomePage?.layout}
+                                imageUrl={standardForm?.welcomePage?.imageUrl}
+                                topAligned={topAligned}
+                                logo={logo}
+                                logoSize="cover"
+                                logoAction={logo ? <UserAvatarDropDown inline responderSignInUrl={responderSignInUrl} /> : undefined}
+                            >
+                                <WelcomePage isPreviewMode={isPreviewMode} accountInStrip={!!logo} />
                             </LayoutWrapper>
                         )}
-                        {currentSlide >= 0 && <FormSlide showDesktopLayout={showDesktopLayout} index={currentSlide} isPreviewMode={isPreviewMode} />}
+                        {currentSlide >= 0 && <FormSlide showDesktopLayout={showDesktopLayout} index={currentSlide} isPreviewMode={isPreviewMode} logo={logo} />}
                         {currentSlide === -2 && (
-                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm?.thankyouPage?.[0]?.layout} imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl} topAligned={topAligned}>
-                                <ThankyouPage isPreviewMode={isPreviewMode} />
+                            <LayoutWrapper
+                                showDesktopLayout={showDesktopLayout}
+                                theme={standardForm.theme}
+                                disabled
+                                layout={standardForm?.thankyouPage?.[0]?.layout}
+                                imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}
+                                topAligned={topAligned}
+                                logo={logo}
+                                logoAction={logo ? <UserAvatarDropDown inline disabled /> : undefined}
+                            >
+                                <ThankyouPage isPreviewMode={isPreviewMode} accountInStrip={!!logo} />
                             </LayoutWrapper>
                         )}
                     </div>

@@ -358,12 +358,71 @@ White sheet, one accent, no shadows, nothing decorative.
   and on the ending.
 - **Buttons.** Navy (`secondary`), 4px corners, left-aligned with the
   question text.
-- **Never an official look.** A navy bar, serif numerals and ruled sections
-  sit close to government house styles, so Leaflet must never suggest a form
-  comes from a public body: keep its own hue (`#0B3D91`), never add a vertical
-  ribbon, emblem, crest or seal motif, and keep "Powered by bettercollected"
-  visible on every Leaflet page (it goes only when the creator turns branding
-  off, as in every style).
+- **No borrowed look.** Leaflet's navy bar, serif numerals and ruled
+  sections are its own and claim no one else's identity: keep its own hue
+  (`#0B3D91`), never add a vertical ribbon, emblem, crest or seal motif, and
+  keep "Powered by bettercollected" visible on every Leaflet page (it goes
+  only when the creator turns branding off, as in every style). The rule is
+  about what *we* add: an organisation's own uploaded logo is shown as it
+  was provided (see "Organisation logo" below).
+
+### Organisation logo
+
+A creator can show their organisation's logo at the top of every page of a
+form, in every style (`views/molecules/form/form-logo-strip.tsx`; rules in
+`utils/form-logo.ts` and the backend's `services/form_logo.py`).
+
+- **The strip.** A calm band at the very top of every page — welcome,
+  question pages, ending — above the page header. Classic, Sheet and Studio:
+  the theme's page colour (`accent`) with a 1px rule under it (the
+  `tertiary` mixed 40% into the page, like the Leaflet rule). Leaflet: a
+  white band with no rule of its own, above the 56px top row of question
+  pages (Back and the page count), whose rule closes the masthead, and the
+  section bar. On the welcome and ending pages the account control moves
+  into the strip's row, on the column's right edge and centred on the logo,
+  so the row that held it goes (in Leaflet the section bar follows the strip
+  directly); without a logo nothing changes. The strip's height is fixed
+  (64px, 72px from `sm`; on the welcome page 80px, 96px from `sm`), so
+  nothing moves when the image arrives. The strip holds the logo and nothing
+  else: no bar, ribbon or motif of ours.
+- **Size.** At most 40px tall on phones and 48px from `sm` on question and
+  ending pages, 56px and 64px on the welcome page; at most 200px wide (260px
+  from `sm`; 240px and 320px on the welcome page). Proportions kept
+  (`object-fit: contain`), never drawn larger than the file itself.
+- **Position.** Automatic by default: the logo follows the welcome page,
+  centred on every page when the welcome page is centred, else on the left
+  (a Leaflet welcome page reads from one left edge, so left). The creator's
+  explicit Left (the form column's left edge) or Centre (centred on the
+  column) always wins. Centred, the logo keeps the account control's width free on both
+  sides, so it stays centred and never runs under the control; a wide logo
+  shrinks within its room). It follows the page's column: left-aligned pages,
+  and the content half of the image layouts.
+- **Alt text.** The creator's alt text, else the workspace's name. A logo
+  that spells the organisation's name still names it once: the alt text is
+  the image's words, not decoration.
+- **Workspace logo.** With "Use workspace logo when the form has none"
+  (off by default), a form without a logo of its own shows the workspace's
+  profile image.
+- **Files.** PNG, JPEG or WebP only, recognised by their first bytes; at
+  most 1 MB and 16–3000px on each side; never SVG. The API never decodes an
+  upload: the isolated document sandbox decodes it, checks its size and
+  re-encodes it (PNG stays PNG, JPEG and WebP at quality 90) without its
+  metadata (EXIF and GPS, XMP, colour profiles, text), and only that
+  re-encoding is stored, with its real content type. Without the sandbox
+  the upload is refused, never decoded elsewhere. Stored
+  in our own storage and served from there, so a respondent page makes no
+  third-party request for it; a logo URL sent in a form body is ignored. A
+  copy of a form, or a form made from a template, gets its own copy of the
+  file. Replacing or removing the logo changes the draft; the file the live
+  form shows is deleted once a publish no longer uses it, and a deleted
+  form's logo files go with it.
+- **Start stays in view.** The strip counts against the room the welcome
+  page has, so the privacy panel still opens by default only when Start
+  stays in view with it open (`utils/panel-fit.ts`).
+- **Builder.** Design tab, "Organisation logo": upload with a preview,
+  Replace and Remove, Automatic (follows the welcome page), Left or Centre,
+  alt text, and the workspace-logo
+  switch. The canvas shows the strip as respondents will see it.
 
 ## 10. Brand
 

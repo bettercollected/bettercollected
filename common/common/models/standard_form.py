@@ -884,13 +884,29 @@ class ThankYouPageField(BaseModel):
     imageUrl: Optional[str] = None
 
 
+# "auto" (and unset) follow the welcome page: centred there, centred on every
+# page; left otherwise. "left"/"center" are the creator's explicit choice.
+LogoPosition = Literal["auto", "left", "center"]
+LOGO_ALT_MAX_LENGTH = 150
+
+
 class StandardForm(BaseModel):
     builder_version: Optional[str] = None
     form_id: Optional[str] = None
     imported_form_id: Optional[str] = None
     type: Optional[str] = None
     title: Optional[str] = None
+    # The organisation logo shown at the top of every respondent page: a
+    # public URL in our own storage, set only through the logo upload (never
+    # taken from a form body as is; see the backend's form_logo service).
     logo: Optional[str] = None
+    # Where the logo sits on the form column (default: follows the welcome
+    # page's alignment), its alt text
+    # (default: the workspace title), and whether a form without its own logo
+    # shows the workspace's profile image instead (default off).
+    logo_position: Optional[LogoPosition] = None
+    logo_alt: Optional[str] = Field(None, max_length=LOGO_ALT_MAX_LENGTH)
+    use_workspace_logo: Optional[bool] = None
     cover_image: Optional[str] = None
     description: Optional[str] = None
     button_text: Optional[str] = None
@@ -915,6 +931,7 @@ class StandardForm(BaseModel):
     thankyou_page: Optional[List[ThankYouPageField]] = None
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
+
 
 class StandardFormResponseAnswer(BaseModel):
     field: Optional[StandardAnswerField] = None
@@ -1022,4 +1039,3 @@ class StandardFormResponse(BaseModel):
     # responses carrying it.
     ai_notice_shown_at: Optional[dt.datetime] = None
     ai_notice_provider_name: Optional[str] = None
-

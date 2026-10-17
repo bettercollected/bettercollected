@@ -401,7 +401,10 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   the image `bettercollected/backend:sandbox-test`, skipped otherwise). Backend and jobs worker
   reach it over `PDF_IMPORT_SANDBOX_SOCKET` with `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX=true`.
   `server.py` and `runner.py` must never import the backend package. Native modes
-  (`render`) never run in a local child. An unreachable or unresponsive sandbox
+  (`render`, and `logo`: the organisation logo upload, decoded and re-encoded
+  without metadata by `pdf_import/logo_image.py`, see `services/form_logo.py`;
+  the API never decodes an image itself and answers 503 without the sandbox)
+  never run in a local child. An unreachable or unresponsive sandbox
   raises `SandboxUnavailable` (not the document's fault): the import stays queued
   while retries remain, and is failed with a "try again later" message on the
   last one (`ImportPipeline.give_up`), so it never holds the workspace's import
