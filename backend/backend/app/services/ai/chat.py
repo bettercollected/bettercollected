@@ -20,6 +20,7 @@ from common.models.standard_form import StandardForm
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic.alias_generators import to_camel
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
@@ -34,6 +35,7 @@ from backend.app.services.ai.ops import (
     OpResult,
     UpdateFormSettingsOp,
     apply_form_ops,
+    apply_settings_ops,
     parse_ops,
 )
 from backend.app.services.ai.profile import AIProfileService
@@ -106,11 +108,6 @@ UNUSABLE_CHAT_REPLY = (
 )
 
 
-def _clear_or_set(value: Optional[str]) -> Optional[str]:
-    """Trust-layer text semantics (mirrors patch_settings): '' clears."""
-    return value or None
-
-
 def _c():
     # Resolved at call time: the container imports this module.
     from backend.app.container import container
@@ -125,32 +122,16 @@ async def _persist_settings_ops(
 
     Returns the camelised updated settings, or None when no settings op
     applied."""
-    patches = [
-        op.patch
+    if not any(
+        result.ok and isinstance(op, UpdateFormSettingsOp)
         for op, result in zip(ops, results)
-        if result.ok and isinstance(op, UpdateFormSettingsOp)
-    ]
-    if not patches:
+    ):
         return None
     workspace_form = await _c().workspace_form_repo().find_first_by_form_id(form_id)
     if not workspace_form:
         return None
     settings = workspace_form.settings
-    for patch in patches:
-        if patch.purpose is not None:
-            settings.purpose = _clear_or_set(patch.purpose.strip())
-        if patch.retention_text is not None:
-            settings.retention_text = _clear_or_set(patch.retention_text.strip())
-        if patch.privacy_policy_url is not None:
-            settings.privacy_policy_url = _clear_or_set(
-                patch.privacy_policy_url.strip()
-            )
-        if patch.require_verified_identity is not None:
-            settings.require_verified_identity = patch.require_verified_identity
-        if patch.allow_editing_response is not None:
-            settings.allow_editing_response = patch.allow_editing_response
-        if patch.show_submission_number is not None:
-            settings.show_submission_number = patch.show_submission_number
+    apply_settings_ops(settings, ops, results)
     await _c().workspace_form_repo().save(workspace_form)
     return WorkspaceFormSettingsCamelModal(**settings.model_dump()).model_dump(
         mode="json", by_alias=True
@@ -158,15 +139,22 @@ async def _persist_settings_ops(
 
 
 async def persist_ops_to_form(
-    form_document: FormDocument, form: StandardForm, ops
+    form_document: FormDocument, form: StandardForm, ops, atomic: bool = False
 ) -> tuple:
     """Apply ops and persist when anything applied.
 
     The ONE write path for AI form mutation — the chat turn, review fixes and
     MCP's update_form all go through here; never two ways to mutate a form.
+    ``atomic``: all or nothing — when any op fails, nothing (form or
+    settings) is written.
     Returns (new_form, results, updated_settings_or_none).
     """
-    new_form, results = apply_form_ops(form, ops)
+    # CPU-bound on a large form: off the event loop
+    new_form, results = await run_in_threadpool(
+        apply_form_ops, form, ops, atomic=atomic
+    )
+    if atomic and not all(r.ok for r in results):
+        return new_form, results, None
     if any(r.ok for r in results):
         await persist_form(_c().form_repo(), form_document, new_form)
     settings = await _persist_settings_ops(form_document.form_id, ops, results)
