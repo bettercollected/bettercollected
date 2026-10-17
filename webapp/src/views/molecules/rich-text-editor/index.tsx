@@ -86,6 +86,16 @@ function buildPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[
     ];
 }
 
+/**
+ * Whether the editor must take the stored title: it differs from what the
+ * editor shows. A string (legacy) title has no JSON form to compare; it is
+ * synced only when it changed, which the caller checks.
+ */
+export function titleNeedsSync(stored: JSONContent | string | undefined | null, shown: JSONContent): boolean {
+    if (!stored || typeof stored === 'string') return true;
+    return JSON.stringify(stored) !== JSON.stringify(shown);
+}
+
 function usePreviousState(value: any) {
     const ref = useRef(value);
     useEffect(() => {
@@ -140,7 +150,14 @@ export function RichTextEditor({
       `;
     };
 
-    const [jsonVal, setJSONVal] = useState<JSONContent | null>(null);
+    // `generation` tells a typed value apart from text replaced from outside
+    // since: a pending write of replaced text must not be saved back.
+    const [jsonVal, setJSONVal] = useState<{ json: JSONContent; generation: number } | null>(null);
+    const generationRef = useRef(0);
+    const editorRef = useRef<Editor | null>(null);
+    // The stored title as this editor last wrote or showed it.
+    const storedTitle = JSON.stringify(field.title ?? null);
+    const lastSyncedTitleRef = useRef(storedTitle);
 
     const [isBold, setIsBold] = useState(true);
     const previousState = usePreviousState(isBold);
@@ -148,10 +165,23 @@ export function RichTextEditor({
     const [debouncedInputValue] = useDebounceValue(jsonVal, 300);
 
     useEffect(() => {
-        if (debouncedInputValue) {
-            updateTitle(field.index, slide.index, debouncedInputValue);
+        if (debouncedInputValue && debouncedInputValue.generation === generationRef.current) {
+            lastSyncedTitleRef.current = JSON.stringify(debouncedInputValue.json);
+            updateTitle(field.index, slide.index, debouncedInputValue.json);
         }
     }, [debouncedInputValue]);
+
+    // The editor reads `content` only when it mounts. When the stored title
+    // changes from outside (undo, redo, an AI edit), show it, without
+    // emitting an update, so stale text is never written back.
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor || editor.isDestroyed || storedTitle === lastSyncedTitleRef.current) return;
+        lastSyncedTitleRef.current = storedTitle;
+        if (!titleNeedsSync(field.title, editor.getJSON())) return;
+        generationRef.current += 1;
+        editor.commands.setContent(field.title && typeof field.title !== 'string' ? field.title : getContentForEditor(), { emitUpdate: false });
+    }, [storedTitle]);
 
     return (
         <div
@@ -183,8 +213,14 @@ export function RichTextEditor({
                         ...(describedById ? { 'aria-describedby': describedById } : {})
                     }
                 }}
+                onCreate={({ editor }) => {
+                    editorRef.current = editor;
+                }}
+                onDestroy={() => {
+                    editorRef.current = null;
+                }}
                 onUpdate={({ editor }) => {
-                    setJSONVal(editor.getJSON());
+                    setJSONVal({ json: editor.getJSON(), generation: generationRef.current });
                     setIsBold(editor?.isActive('bold'));
                     if (editor.getText() === '') {
                         previousState ? editor?.chain().focus().setBold().run() : editor?.chain().focus().unsetBold().run();
