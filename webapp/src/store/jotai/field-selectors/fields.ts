@@ -59,6 +59,8 @@ export function fieldMutators(ctx: BuilderContext) {
 
     const updateFieldPlaceholder = (fieldIndex: number, slideIndex: number, placeholderText: string) => {
         const existingSlide = formFields[slideIndex];
+        // The same text again (an input reporting its value on mount) is no edit.
+        if ((existingSlide?.properties?.fields?.[fieldIndex]?.properties?.placeholder ?? '') === (placeholderText ?? '')) return;
         const slide = { ...existingSlide };
         slide.properties!.fields![fieldIndex]['properties'] = { ...(slide.properties!.fields![fieldIndex].properties || { fields: [] }) };
         slide.properties!.fields![fieldIndex]!.properties!.placeholder = placeholderText;

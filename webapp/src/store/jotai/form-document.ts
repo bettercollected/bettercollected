@@ -201,7 +201,23 @@ function folds(earlier: DocOp, later: DocOp): boolean {
         if (earlier.op === SET_FIELDS) return true;
         return Object.keys((earlier as SetFormKeysOp).values).every((key) => key in (later as SetFormKeysOp).values);
     }
+    if (earlier.op !== later.op) return false;
+    // Whole-value ops the engine's compaction leaves alone: the later one wins.
+    if (earlier.op === 'set_endings') return true;
+    if (earlier.op === 'update_form_info') return (['title', 'description'] as const).every((key) => !(key in earlier) || key in later);
     return compactOps([earlier, later]).length === 1;
+}
+
+/** Does every op of `ops` have an op in `by` that overrides it? Then `by` alone has the effect of both. */
+const coveredBy = (ops: DocOp[], by: DocOp[]) => ops.every((op) => by.some((other) => folds(op, other)));
+
+/**
+ * The ops of two merged typing steps (`first` applied, then `then`): `then`
+ * alone when it overrides all of `first` (so a run of keystrokes keeps one
+ * keystroke's ops), else both, compacted.
+ */
+function mergeOps(first: DocOp[], then: DocOp[]): DocOp[] {
+    return coveredBy(first, then) ? then : compactDocOps([...first, ...then]);
 }
 
 /** `ops` without the ops that a following op overrides (see lib/form-ops/compact.ts). */
@@ -375,7 +391,7 @@ function recordStep(history: DocHistory, step: HistoryStep): DocHistory {
     let steps: HistoryStep[];
     if (merge) {
         // The merged step: the first step's inverse, the last one's ops.
-        const merged: HistoryStep = { ...last, forward: compactDocOps([...last.forward, ...step.forward]), inverse: compactDocOps([...step.inverse, ...last.inverse]), at: step.at, builderFields: step.builderFields, after: step.after };
+        const merged: HistoryStep = { ...last, forward: mergeOps(last.forward, step.forward), inverse: mergeOps(step.inverse, last.inverse), at: step.at, builderFields: step.builderFields, after: step.after };
         steps = [...history.steps.slice(0, history.cursor - 1), merged];
     } else {
         steps = [...history.steps.slice(0, history.cursor), step];
@@ -395,8 +411,6 @@ function putDocument(get: (a: any) => any, set: Setter, next: FormDocument, buil
     }
     if (next !== prev) set(formDocAtom, next);
 }
-
-const sameOps = (a: DocOp[], b: DocOp[]) => a.length === b.length && a.every((op, i) => op === b[i]);
 
 export interface CommitMeta {
     label?: string;
@@ -419,7 +433,7 @@ function commitPlanned(get: (a: any) => any, set: Setter, change: PlannedChange,
         const history: DocHistory = get(docHistoryAtom);
         const at = Date.now();
         const target = mergeTarget(history, meta.coalesceKey, at);
-        const covered = !!target && sameOps(compactDocOps([...change.inverse, ...target.inverse]), target.inverse);
+        const covered = !!target && coveredBy(change.inverse, target.inverse);
         const inverse = covered || applyDocOps(change.doc, change.inverse, false).ok ? change.inverse : exactRestore(change.doc, prev);
         set(docHistoryAtom, recordStep(history, { forward: change.forward, inverse, label: meta.label, coalesceKey: meta.coalesceKey, at, builderFields, before: prev, after: change.doc }));
     }
@@ -498,9 +512,9 @@ export const resetFromServerAtom = atom(null, (get, set, form: Partial<FormDocum
  * The builder handed over its pages (`setFormFields`): what changed becomes
  * one undo step of ops; the handed-over array stays the builder's copy.
  */
-export const commitBuilderFieldsAtom = atom(null, (get, set, fields: StandardFormFieldDto[], coalesceKey?: string) => {
+export const commitBuilderFieldsAtom = atom(null, (get, set, fields: StandardFormFieldDto[], meta?: string | CommitMeta) => {
     const doc = get(formDocAtom);
-    return commitPlanned(get, set as Setter, planFields(doc, fields), { coalesceKey }, fields);
+    return commitPlanned(get, set as Setter, planFields(doc, fields), typeof meta === 'string' ? { coalesceKey: meta } : (meta ?? {}), fields);
 });
 
 /** Seed the pages and start undo history over (the form-level parts stay). */
@@ -513,6 +527,34 @@ export const initBuilderFieldsAtom = atom(null, (get, set, fields: StandardFormF
     rememberCopies(prev, doc, fields ?? []);
     set(docHistoryAtom, emptyHistory());
     resetListeners.forEach((listener) => listener());
+});
+
+export interface CommitTogetherArgs extends CommitMeta {
+    /** New pages (the builder's copy, handed over as by setFormFields). */
+    fields?: StandardFormFieldDto[];
+    /** New form-level values (as the form state writes them). */
+    formValues?: Partial<Record<FormStateKey, unknown>>;
+    /** Which part is applied first (e.g. jumps let go of an ending before it is removed). */
+    fieldsFirst?: boolean;
+}
+
+/**
+ * One action that changes pages and form-level parts together (deleting an
+ * ending and falling its jumps back to the default, say): one undo step.
+ */
+export const commitTogetherAtom = atom(null, (get, set, { fields, formValues, fieldsFirst = true, ...meta }: CommitTogetherArgs) => {
+    const doc = get(formDocAtom);
+    const pages = (from: FormDocument) => (fields ? planFields(from, fields) : noChange(from));
+    const form = (from: FormDocument) => (formValues ? planFormKeys(from, formValues) : noChange(from));
+    let change: PlannedChange;
+    if (fieldsFirst) {
+        const first = pages(doc);
+        change = chain(first, form(first.doc));
+    } else {
+        const first = form(doc);
+        change = chain(first, pages(first.doc));
+    }
+    return commitPlanned(get, set as Setter, change, meta, fields);
 });
 
 /** Form-level values written by the form state: one undo step (unless `undoable` is false). */

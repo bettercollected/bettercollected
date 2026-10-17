@@ -15,7 +15,8 @@ export function logicMutators(ctx: BuilderContext) {
             ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
             logic
         };
-        setFormFields([...formFields]);
+        // Typing a condition's value is one undo step.
+        setFormFields([...formFields], `logic:${formFields![slideIndex]!.properties!.fields![fieldIndex].id}`);
     };
 
     // Page-jump / branching rules for a slide. Persists via slide `properties.jumps`.
@@ -24,7 +25,8 @@ export function logicMutators(ctx: BuilderContext) {
             ...(formFields![slideIndex]!.properties || {}),
             jumps
         };
-        setFormFields([...formFields]);
+        // Typing a jump's value is one undo step.
+        setFormFields([...formFields], `jumps:${formFields![slideIndex]!.id}`);
     };
 
     return { updateFieldConditionalLogic, updateSlideJumps };

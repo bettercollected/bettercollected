@@ -3,8 +3,8 @@
 import { useAtomValue, useSetAtom } from 'jotai';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { ActiveFormBuilderComponent, followActiveFieldAtom, useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
-import { builderFieldsAtom, canRedoAtom, canUndoAtom, commitBuilderFieldsAtom, initBuilderFieldsAtom, redoAtom, undoAtom } from '@app/store/jotai/form-document';
+import { ActiveFormBuilderComponent, followSelectionAtom, useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { CommitMeta, builderFieldsAtom, canRedoAtom, canUndoAtom, commitBuilderFieldsAtom, initBuilderFieldsAtom, redoAtom, undoAtom } from '@app/store/jotai/form-document';
 import { locateField } from '@app/utils/form-outline';
 
 import { choiceMutators } from './choices';
@@ -31,9 +31,10 @@ export interface BuilderContext {
      * Hand over the edited pages: the change becomes one undo step.
      * `coalesceKey` names the text being typed (e.g. `description:<fieldId>`):
      * the latest step absorbs an edit of the same text within
-     * UNDO_COALESCE_MS of the previous one.
+     * UNDO_COALESCE_MS of the previous one. `{ undoable: false }`: no step
+     * (a default written on mount).
      */
-    setFormFields: (next: StandardFormFieldDto[], coalesceKey?: string) => void;
+    setFormFields: (next: StandardFormFieldDto[], meta?: string | CommitMeta) => void;
     activeSlideComponent: ActiveFormBuilderComponent | null;
     setActiveSlideComponent: (value: ActiveFormBuilderComponent | null) => void;
     activeFieldComponent: ActiveFormBuilderComponent | null;
@@ -52,13 +53,13 @@ export default function useFormFieldsAtom() {
     const canRedo = useAtomValue(canRedoAtom);
     const undoStep = useSetAtom(undoAtom);
     const redoStep = useSetAtom(redoAtom);
-    const followActiveField = useSetAtom(followActiveFieldAtom);
+    const followSelection = useSetAtom(followSelectionAtom);
 
     // Every mutation funnels through this setter, so each change becomes an
     // undo step (as ops on the form document). Undo/redo bypass it.
     // Unchanged states make no step.
-    const setFormFields = (next: StandardFormFieldDto[], coalesceKey?: string) => {
-        commitFields(next, coalesceKey);
+    const setFormFields = (next: StandardFormFieldDto[], meta?: string | CommitMeta) => {
+        commitFields(next, meta);
     };
 
     // Seed the builder with loaded fields and start undo history from there —
@@ -69,11 +70,11 @@ export default function useFormFieldsAtom() {
     };
 
     const undo = () => {
-        if (undoStep()) followActiveField();
+        if (undoStep()) followSelection();
     };
 
     const redo = () => {
-        if (redoStep()) followActiveField();
+        if (redoStep()) followSelection();
     };
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();

@@ -87,3 +87,24 @@ export function useActiveThankYouPageComponent() {
     const [activeThankYouPageComponent, setActiveThankYouPageComponent] = useAtom(activeThankYouPage);
     return { activeThankYouPageComponent, setActiveThankYouPageComponent };
 }
+
+/** The ending shown when the selected one is gone: the default (marked, else the first). */
+function defaultEnding(endings: Array<{ isDefault?: boolean }>): number {
+    const marked = endings.findIndex((ending) => ending?.isDefault);
+    return marked >= 0 ? marked : 0;
+}
+
+/**
+ * After undo or redo: the selection follows the document. The selected page
+ * follows the selected question, and when the selected ending is gone (an
+ * undone "Add ending") the default ending is selected instead.
+ */
+export const followSelectionAtom = atom(null, (get, set) => {
+    set(followActiveFieldAtom);
+    const endings = get(formDocAtom).thankyouPage ?? [];
+    const ending = get(activeThankYouPage);
+    if (ending && !endings[ending.index]) {
+        const index = defaultEnding(endings);
+        set(activeThankYouPage, { id: `ending-${index}`, index });
+    }
+});
