@@ -7,6 +7,12 @@ that may veto the user's request; everything user-authored is fenced as data.
 
 from typing import Optional
 
+from backend.app.constants.themes import (
+    NEW_FORM_THEME,
+    THEME_STYLES,
+    theme_descriptions,
+    theme_dict,
+)
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.services.ai.profile import render_prompt_block
 from backend.app.services.ai.structured import extract_json_object  # noqa: F401
@@ -47,6 +53,33 @@ def compose_generation_prompt(
 # ---------------------------------------------------------------------------
 # Chat editing (plan §2.2)
 # ---------------------------------------------------------------------------
+
+STYLE_DESCRIPTIONS = {
+    "classic": "the plain, standard look",
+    "sheet": "set like a printed document: serif labels, numbers in the margin, ruled rows",
+    "studio": "bold and graphic: large numbers, heavy type, square edges",
+    "leaflet": "a plain-language information leaflet: numbered section bars and questions",
+}
+
+
+def _looks_guide() -> str:
+    """The theme presets and styles set_theme_preset accepts, from the same
+    lists the op checks against (constants/themes.py)."""
+    presets = "\n".join(
+        f'- "{name}": {theme_descriptions.get(name, "").split(". ")[0].rstrip(".")}.'
+        for name in theme_dict
+    )
+    styles = "\n".join(f'- "{s}": {STYLE_DESCRIPTIONS.get(s, s)}.' for s in THEME_STYLES)
+    return (
+        "## Looks\n"
+        f"New forms use the {NEW_FORM_THEME} preset; keep it unless the user asks for another\n"
+        "look, and then follow their request. Theme presets (set_theme_preset \"name\"):\n"
+        f"{presets}\n"
+        "Styles (set_theme_preset \"style\"):\n"
+        f"{styles}\n"
+        'For "plainer" or "simpler", use the Default preset with the "classic" style.'
+    )
+
 
 OPS_GUIDE = """## How to edit the form
 You edit the form ONLY by returning operations. Reply with a single JSON
@@ -122,6 +155,16 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   data is collected, "retentionText" how long it is kept — e.g. "kept for 90
   days". An empty string clears a text value. Visibility/distribution settings
   are not editable here.)
+- {"op":"set_theme_preset","name":"<preset name>","style":"classic"|"sheet"|"studio"|"leaflet"?}
+  (the form's look: one of the theme presets listed under "Looks" below, by name. Use it
+  whenever the user asks for other colours, a mood or a different look ("a plainer look",
+  "make it green", "more playful"); pick the preset whose description fits best. It
+  replaces the colours and removes any background. "style" sets how the form is dressed;
+  left out, a preset keeps its own style (Leaflet) or the form's current one.)
+- {"op":"update_theme","theme":{"title":"...","primary":"#RRGGBB","secondary":"#RRGGBB","tertiary":"#RRGGBB","accent":"#RRGGBB","style":"?","background":{...}?}}
+  (only when the user gives exact colours of their own; otherwise use set_theme_preset.
+  primary = text, secondary = buttons and section bars, tertiary = borders, accent = page
+  ground; keep text readable on the ground. Never invent a background image URL.)
 
 References to things you create in the same reply: add_page, add_field, add_group and
 duplicate_page (and each field inside add_page / add_group "fields") may carry
@@ -158,7 +201,9 @@ Rules:
 - Every question asking for an email, phone number or ID number needs "whyWeAsk":
   one short plain sentence telling the respondent why it is needed (the form
   cannot be published without it). No urgency or guilt in any copy.
-- If the request is unclear or nothing needs to change, return "ops": [] and ask in "reply"."""
+- If the request is unclear or nothing needs to change, return "ops": [] and ask in "reply".
+
+""" + _looks_guide()
 
 
 def _project_condition(c) -> dict:
@@ -223,7 +268,8 @@ def project_form(form, settings=None) -> str:
     """Compact JSON snapshot of a form for the chat context window.
 
     Ids, types, titles and the properties the ops can touch — never TipTap
-    blobs, theme values or response data. Small enough to resend every turn.
+    blobs, theme colours or response data (of the theme only its preset name
+    and style). Small enough to resend every turn.
     ``settings`` (the workspace-form association's settings) contributes the
     trust metadata so the model can see and edit purpose/retention.
     """
@@ -254,6 +300,10 @@ def project_form(form, settings=None) -> str:
             ]
         pages.append(page_entry)
     snapshot = {"title": form.title, "description": form.description, "pages": pages}
+    theme = getattr(form, "theme", None)
+    if theme is not None:
+        # Which look the form has (preset name and style), never its colours.
+        snapshot["theme"] = {"name": theme.title, "style": theme.style or "classic"}
     if settings is not None:
         snapshot["settings"] = {
             "purpose": getattr(settings, "purpose", None),
