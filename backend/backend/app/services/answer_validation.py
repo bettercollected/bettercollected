@@ -44,6 +44,7 @@ from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Set
 
 import re2
+from common.form_spec.models import PATTERN_MAX_LENGTH
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -73,8 +74,8 @@ ERROR_MESSAGE = "Some answers are missing or not valid."
 
 # "Whole numbers only" on a number question (webapp INTEGER_PATTERN).
 INTEGER_PATTERN = r"^-?\d+$"
-# Patterns longer than this are not enforced on the server.
-PATTERN_MAX_LENGTH = 200
+# Patterns longer than PATTERN_MAX_LENGTH (the spec's and the builder's cap,
+# 200) are not enforced on the server.
 # A pattern is never matched against more characters than this.
 PATTERN_INPUT_MAX_LENGTH = 10_000
 JUMP_TARGET_SUBMIT = "__SUBMIT__"

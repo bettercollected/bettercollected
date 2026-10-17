@@ -134,6 +134,17 @@ def test_javascript_escapes_are_rewritten_for_re2():
     assert not compile_pattern("^\\S$").search("\u00a0".encode())
 
 
+def test_the_pattern_cap_is_the_form_spec_cap():
+    from common.form_spec.models import PATTERN_MAX_LENGTH, checked_pattern
+
+    assert answer_validation.PATTERN_MAX_LENGTH == PATTERN_MAX_LENGTH == 200
+    # what the spec accepts is enforced here, what it refuses is not
+    assert compile_pattern(checked_pattern("a" * 200)) is not None
+    with pytest.raises(ValueError):
+        checked_pattern("a" * 201)
+    assert compile_pattern("a" * 201) is None
+
+
 def test_unsupported_patterns_are_not_compiled():
     assert compile_pattern("(?=a)b") is None
     assert compile_pattern("(a)\\1") is None

@@ -222,7 +222,8 @@ counted questions with an answer. Types apply to every answer (the value in the 
 type, existing option ids), and ids that are not questions of the draft or the published version are
 refused (on an edit, unknown ids are dropped as before and only changed answers are reported). Patterns
 are matched with RE2 (`google-re2`, linear time) on at most 10,000 characters; a pattern over 200
-characters or one RE2 cannot compile (lookarounds, backreferences) is not enforced, and only the field id
+characters (the cap the builder and the form spec share, `common.form_spec.models.PATTERN_MAX_LENGTH`)
+or one RE2 cannot compile (lookarounds, backreferences) is not enforced, and only the field id
 is logged. Problems answer 422 `{"code": "invalid_answers", "errors": [{"fieldId", "rule", "item"?}]}`,
 never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
 v1 and imported forms (fields not on pages) are not validated.
