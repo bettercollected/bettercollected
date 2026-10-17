@@ -139,6 +139,19 @@ async def persist_ops_to_form(
     return new_form, results, settings
 
 
+def camel_form_reply(new_form: StandardForm, form_document: FormDocument) -> dict:
+    """The updated draft for the webapp (camelCase), with the stored
+    ``updatedAt``: the builder sends it back with its next save, so its own
+    AI edit never reads as a change made elsewhere (form_concurrency.py)."""
+    reply = StandardFormCamelModel(**new_form.model_dump()).model_dump(
+        mode="json", by_alias=True
+    )
+    updated_at = getattr(form_document, "updated_at", None)
+    if updated_at is not None:
+        reply["updatedAt"] = updated_at.isoformat()
+    return reply
+
+
 class FormAIChatService:
     def __init__(
         self,
@@ -273,8 +286,6 @@ class FormAIChatService:
             reply=reply,
             results=results,
             # Camelised — the webapp's form DTOs are camelCase.
-            form=StandardFormCamelModel(**new_form.model_dump()).model_dump(
-                mode="json", by_alias=True
-            ),
+            form=camel_form_reply(new_form, form_document),
             settings=updated_settings,
         )

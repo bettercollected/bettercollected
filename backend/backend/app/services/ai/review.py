@@ -19,11 +19,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.standard_form import FormDocument
-from backend.app.services.ai.chat import persist_ops_to_form
+from backend.app.services.ai.chat import camel_form_reply, persist_ops_to_form
 from backend.app.services.ai.ops import OpResult, parse_ops
 from backend.app.services.ai.profile import AIProfileService, render_prompt_block
 from backend.app.services.ai.prompt_builder import (
@@ -243,8 +242,6 @@ class FormAIReviewService:
         )
         return ApplyReviewFixResponse(
             results=results,
-            form=StandardFormCamelModel(**new_form.model_dump()).model_dump(
-                mode="json", by_alias=True
-            ),
+            form=camel_form_reply(new_form, form_document),
             settings=updated_settings,
         )
