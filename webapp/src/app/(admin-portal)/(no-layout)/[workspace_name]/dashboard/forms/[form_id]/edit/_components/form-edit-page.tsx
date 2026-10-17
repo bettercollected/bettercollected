@@ -39,7 +39,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const resetFromServer = useSetAtom(resetFromServerAtom);
     const { setHydratedFormId } = useBuilderHydration();
 
-    const { activeSlideComponent } = useActiveSlideComponent();
+    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     // The AI tab's Preview: the canvas shows the proposal, read-only.
     const previewingProposal = useProposalPreviewOn();
 
@@ -143,6 +143,12 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 };
             }
             resetFromServer({ ...form, fields: deepCopy(standardForm?.fields || []) });
+            // A selection left from another form must not point into this one.
+            const pages: Array<{ id: string }> = standardForm?.fields || [];
+            if (activeSlideComponent && activeSlideComponent.index >= 0 && !pages.some((page) => page.id === activeSlideComponent.id)) {
+                setActiveSlideComponent(pages[0] ? { id: pages[0].id, index: 0 } : { id: 'welcome-page', index: -10 });
+            }
+            setActiveFieldComponent(null);
             setNavbarState({
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage
@@ -196,7 +202,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                         <AIProposalPreviewCanvas activeSlideId={activeSlideComponent?.id} />
                                     ) : (
                                         <>
-                                            {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
+                                            {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && formFields[activeSlideComponent.index] && <SlideBuilder slide={formFields[activeSlideComponent.index]} />}
                                             {!activeSlideComponent?.id && <div>Add a slide to start</div>}
                                             {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
