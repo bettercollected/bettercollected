@@ -75,6 +75,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed
 
+- **Webapp fonts come from npm, not Google, at build time.** Instrument Sans,
+  JetBrains Mono, Public Sans and Source Serif 4 load through
+  `next/font/local` from the `@fontsource` packages instead of
+  `next/font/google`, so `next build` no longer downloads fonts and no longer
+  fails when fonts.googleapis.com can't be reached. Same families, weights,
+  latin subset, CSS variables and `display: swap`; no visual change.
 - **The webapp adopts the Sireto design system** (see `DESIGN.md`): one blue
   ramp around Sireto blue `#123FC9` with a `#1649E2` primary button face, one
   neutral ramp (the duplicate `new-*` colours, the old `#0764EB` / `#2456CC`
