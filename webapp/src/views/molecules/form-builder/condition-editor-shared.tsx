@@ -77,6 +77,9 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
         case FieldTypes.RATING:
         case FieldTypes.LINEAR_RATING:
             return NUMBER_COMPARISONS;
+        case FieldTypes.CALCULATED:
+            // a number, a yes/no or a text: every comparison applies
+            return [...new Set([...NUMBER_COMPARISONS, ...TEXT_COMPARISONS])];
         case FieldTypes.DATE:
             return DATE_COMPARISONS;
         case FieldTypes.MULTIPLE_CHOICE:
@@ -240,5 +243,5 @@ export function newConditionFor(sources: SourceField[]): LogicCondition {
 
 /** Condition sources: answerable questions plus repeating groups (conditioned on as a whole). */
 export function isConditionSource(field: StandardFormFieldDto): boolean {
-    return V2InputFields.includes(field.type) || isRepeatingGroup(field);
+    return V2InputFields.includes(field.type) || isRepeatingGroup(field) || field.type === FieldTypes.CALCULATED;
 }

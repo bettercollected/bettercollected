@@ -90,7 +90,8 @@ export function initialTitleContent(field: Pick<StandardFormFieldDto, 'title' | 
  */
 function buildPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[], field: StandardFormFieldDto, slide: StandardFormFieldDto): PipeSuggestionItem[] {
     const sources = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => {
-        if (!V2InputFields.includes(sourceField.type)) return false;
+        // calculated values pipe too, formatted as the field shows them
+        if (!V2InputFields.includes(sourceField.type) && sourceField.type !== FieldTypes.CALCULATED) return false;
         if (sourceField.id === field.id) return false;
         if (slideIndex < slide.index) return true;
         return slideIndex === slide.index && sourceField.index < field.index;

@@ -6,6 +6,7 @@ import { formFieldsList } from '@app/constants/form-fields';
 import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
 import { answerRuleKind } from '@app/utils/answer-rules';
 import { getDateRuleSources } from '@app/utils/date-rules';
 import { canBeInternal } from '@app/utils/internal-fields';
@@ -13,6 +14,7 @@ import { WHY_WE_ASK_MAX_LENGTH, asksForIdentity } from '@app/utils/publish-check
 import { isRepeatingGroup } from '@app/utils/repeating-groups';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import AnswerRulesSettings from '@app/views/molecules/form-builder/answer-rules-settings';
+import CalculatedFieldSettings from '@app/views/molecules/form-builder/calculated-field-settings';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
 import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
@@ -46,6 +48,7 @@ const NO_OWN_RULE = '[&>div]:border-t-0 [&>div]:pt-0';
 export default function FieldSettings() {
     const { formFields, updateFieldRequired, updateFieldInternal, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField, updateFieldValidations } =
         useFormFieldsAtom();
+    const { formState } = useFormState();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
@@ -83,7 +86,7 @@ export default function FieldSettings() {
     const isRating = field.type === FieldTypes.LINEAR_RATING || field.type === FieldTypes.RATING;
     // Content with nothing to answer can't be required (a dead end at
     // publish); the switch stays while it is on, so it can be turned off.
-    const showRequired = field.type !== FieldTypes.TEXT && !isRepeatingGroup(field) && (!DISPLAY_ONLY_FIELD_TYPES.includes(field.type) || !!field.validations?.required);
+    const showRequired = field.type !== FieldTypes.TEXT && field.type !== FieldTypes.CALCULATED && !isRepeatingGroup(field) && (!DISPLAY_ONLY_FIELD_TYPES.includes(field.type) || !!field.validations?.required);
     const ruleKind = answerRuleKind(field);
     const showWhyWeAsk = !field.internal && (asksForIdentity(field) || !!field.properties?.whyWeAsk);
     const colSpan = Math.min(12, Math.max(1, field.properties?.colSpan ?? 12));
@@ -144,6 +147,12 @@ export default function FieldSettings() {
                     </div>
                 )}
             </InspectorSection>
+
+            {field.type === FieldTypes.CALCULATED && (
+                <InspectorSection title="Calculation">
+                    <CalculatedFieldSettings field={field} slides={formFields || []} hiddenNames={formState.hiddenFields ?? []} onChange={(property, value) => updateFieldProperty(field.index, slide.index, property, value)} />
+                </InspectorSection>
+            )}
 
             {(ruleKind || field.type === FieldTypes.DATE) && (
                 <InspectorSection title="Answer rules">

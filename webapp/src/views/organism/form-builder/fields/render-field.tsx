@@ -10,6 +10,7 @@ import DeleteIcon from '@Components/icons/delete';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import Image from 'next/image';
+import CalculatedFieldBuilder from './calculated-field-builder';
 import DropDownField from './drop-down-field';
 import FileUpload from './file-upload-field';
 import ImageField from './image-field';
@@ -93,6 +94,8 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
             return <MatrixFieldBuilderWrapper field={field} />;
         case FieldTypes.TABULAR_INPUT:
             return <TabularInputFieldBuilderWrapper field={field} />;
+        case FieldTypes.CALCULATED:
+            return <CalculatedFieldBuilder field={field} />;
         case FieldTypes.GROUP:
             return isRepeatingGroup(field) ? <RepeatingGroupBuilder field={field} slide={slide} disabled={disabled} /> : null;
         default:
