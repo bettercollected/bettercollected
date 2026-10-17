@@ -291,7 +291,77 @@ async def test_submit_and_edit_evaluate_off_the_event_loop(workspace, monkeypatc
         StandardFormResponseCamelModel(answers={"qty": _num(2)}),
         testUser,
     )
-    assert "calculate_and_check" in calls
+    assert "_calculated_checked_ending" in calls
+
+
+# --- an ending chosen by a calculation ------------------------------------------
+
+
+def _ending_form():
+    jump = {
+        "operator": "AND",
+        "conditions": [
+            {
+                "fieldId": "total",
+                "fieldType": "calculated",
+                "comparison": "GREATER_THAN_EQUAL",
+                "value": 100,
+            }
+        ],
+        "target": "__SUBMIT__",
+        "endingId": "large",
+    }
+    return StandardForm.model_validate(
+        {
+            "builder_version": "v2",
+            "fields": [
+                {
+                    "id": "p0",
+                    "type": "slide",
+                    "index": 0,
+                    "properties": {
+                        "fields": [QTY, _calc("total", {"*": [V("qty"), 25]}, "Total")],
+                        "jumps": [jump],
+                    },
+                },
+                {"id": "p1", "type": "slide", "index": 1, "properties": {"fields": []}},
+            ],
+            "thankyou_page": [
+                {"id": "thanks", "title": "Thank you"},
+                {"id": "large", "name": "Large order", "title": "Large order"},
+            ],
+        }
+    )
+
+
+def test_the_reached_ending_uses_the_server_value():
+    from backend.app.services.answer_validation import reached_ending_id
+
+    form = _ending_form()
+    large = apply_calculated_fields(form, {"qty": _num(4)})
+    assert reached_ending_id(form, large) == "large"
+    # the client claims a large total for a small order: replaced
+    small = apply_calculated_fields(form, {"qty": _num(1), "total": _num(1000)})
+    assert reached_ending_id(form, small) == "thanks"
+
+
+async def test_a_submission_records_the_ending_its_calculation_chose(workspace):
+    service = container.workspace_form_service()
+    form = await service.create_form(workspace.id, _ending_form(), testUser)
+    await service.publish_form(workspace.id, form.form_id, testUser)
+
+    async def ending(answers):
+        response = await service.submit_response(
+            workspace.id,
+            form.form_id,
+            StandardFormResponseCamelModel(answers=answers),
+            testUser,
+        )
+        stored = await container.form_response_repo().get_response(response.response_id)
+        return stored.ending_id
+
+    assert await ending({"qty": _num(4)}) == "large"
+    assert await ending({"qty": _num(1), "total": _num(1000)}) == "thanks"
 
 
 # --- calculations kept from respondents -----------------------------------------

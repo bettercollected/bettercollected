@@ -23,7 +23,8 @@ import {
     usesAnyAnswer,
     withCalculatedAnswers
 } from '@app/utils/calculated-fields';
-import { isFieldHiddenByLogic, resolveJumpTargetId } from '@app/utils/conditional-logic';
+import { isFieldHiddenByLogic, resolveJump, resolveJumpTargetId } from '@app/utils/conditional-logic';
+import { endingToShow } from '@app/utils/endings';
 import { getAnswerForField } from '@app/utils/form-builder-block-utils';
 import { buildResponsesExport } from '@app/utils/response-export';
 
@@ -115,6 +116,23 @@ describe('unanswered as 0', () => {
         expect(usesAnyAnswer(score, slides, { qty: num(4) })).toBe(true);
         expect(usesAnyAnswer(slides[0].properties!.fields![3], slides, {})).toBe(true);
         expect(usesAnyAnswer(slides[0].properties!.fields![4], slides, {}, { utm: 'mail' })).toBe(true);
+    });
+});
+
+describe('an ending chosen by a calculation', () => {
+    it('follows the live value on the respondent page', () => {
+        const total = calc('total', 'Total', { '*': [V('qty'), 25] });
+        const jump = { operator: 'AND', conditions: [{ fieldId: 'total', fieldType: FieldTypes.CALCULATED, comparison: Comparison.GREATER_THAN_EQUAL, value: 100 }], target: '__SUBMIT__', endingId: 'large' };
+        const slides = [page('p0', [QTY, total], { jumps: [jump] }), page('p1', [])];
+        const endings = [
+            { id: 'thanks', title: 'Thank you' },
+            { id: 'large', name: 'Large order', title: 'Large order' }
+        ];
+        const reached = (answers: Record<string, any>) => endingToShow(endings, resolveJump(slides[0], withCalculatedAnswers(slides, answers))?.endingId || undefined)?.id;
+        expect(reached({ qty: num(4) })).toBe('large');
+        expect(reached({ qty: num(3) })).toBe('thanks');
+        // a stale value in the answers is recomputed before the jump is decided
+        expect(reached({ qty: num(1), total: num(1000) })).toBe('thanks');
     });
 });
 
