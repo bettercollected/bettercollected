@@ -1,9 +1,13 @@
-"""Check and re-encode an uploaded organisation logo (the sandbox's ``logo`` mode).
+"""Check and re-encode an untrusted image (the sandbox's ``logo`` and ``image`` modes).
 
-Native decoders (libpng, libjpeg, libwebp) parse the upload here, so this only
+``logo``: an uploaded organisation logo. ``image``: a picture fetched from
+elsewhere (an Unsplash photo served through our server, an image address a
+person pasted in the editor) before it is stored in our bucket.
+
+Native decoders (libpng, libjpeg, libwebp) parse the file here, so this only
 ever runs in the isolated document sandbox (#703), never in the API process or
 a local child. The API stores only what this returns: a fresh encoding of the
-pixels, without the upload's metadata (EXIF, including GPS, XMP, ICC, text
+pixels, without the file's metadata (EXIF, including GPS, XMP, ICC, text
 chunks).
 
 Import-safe for the sandbox child: no imports from the backend package, and
@@ -28,6 +32,11 @@ LOGO_FORMATS = {
 SIZE_MESSAGE = (
     f"The logo must be between {LOGO_MIN_SIDE} and {LOGO_MAX_SIDE} pixels on each side."
 )
+
+# ``image`` mode: photos, so larger; the pixel count is the real bound (memory)
+IMAGE_MAX_SIDE = 8000
+IMAGE_MAX_PIXELS = 40_000_000
+IMAGE_SIZE_MESSAGE = "The image is too large."
 
 
 def sniff_logo_format(data: bytes):
@@ -82,9 +91,48 @@ def _pixels_only(image):
 def reencode_logo(data: bytes) -> dict:
     """``{format, content_type, width, height, data}`` (``data`` base64) or
     raises DocumentRefused: ``unsupported_type``, ``bad_size``, ``unreadable``."""
+    return _reencode(
+        data,
+        min_side=LOGO_MIN_SIDE,
+        max_side=LOGO_MAX_SIDE,
+        max_pixels=LOGO_MAX_SIDE * LOGO_MAX_SIDE,
+        size_message=SIZE_MESSAGE,
+        unsupported_message="The logo must be a PNG, JPEG or WebP image.",
+        unreadable_message="The logo image could not be read.",
+        quality=90,
+    )
+
+
+def reencode_image(data: bytes, max_pixels: int = IMAGE_MAX_PIXELS) -> dict:
+    """The same as ``reencode_logo`` for a fetched picture: any size up to
+    ``IMAGE_MAX_SIDE`` on a side and ``max_pixels`` (at most
+    ``IMAGE_MAX_PIXELS``) in all."""
+    return _reencode(
+        data,
+        min_side=1,
+        max_side=IMAGE_MAX_SIDE,
+        max_pixels=max(1, min(int(max_pixels), IMAGE_MAX_PIXELS)),
+        size_message=IMAGE_SIZE_MESSAGE,
+        unsupported_message="The image must be a PNG, JPEG or WebP file.",
+        unreadable_message="The image could not be read.",
+        quality=85,
+    )
+
+
+def _reencode(
+    data: bytes,
+    *,
+    min_side: int,
+    max_side: int,
+    max_pixels: int,
+    size_message: str,
+    unsupported_message: str,
+    unreadable_message: str,
+    quality: int,
+) -> dict:
     kind = sniff_logo_format(data)
     if kind is None:
-        _refuse("unsupported_type", "The logo must be a PNG, JPEG or WebP image.")
+        _refuse("unsupported_type", unsupported_message)
     pil_name, content_type = LOGO_FORMATS[kind]
 
     import warnings
@@ -92,29 +140,30 @@ def reencode_logo(data: bytes) -> dict:
     from PIL import Image, ImageOps
 
     # This process only: a sandbox child handles one file.
-    Image.MAX_IMAGE_PIXELS = LOGO_MAX_SIDE * LOGO_MAX_SIDE
+    Image.MAX_IMAGE_PIXELS = max_pixels
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
             with Image.open(io.BytesIO(data)) as opened:
                 if opened.format != pil_name:
-                    _refuse("unreadable", "The logo image could not be read.")
+                    _refuse("unreadable", unreadable_message)
                 width, height = opened.size
                 if (
-                    max(width, height) > LOGO_MAX_SIDE
-                    or min(width, height) < LOGO_MIN_SIDE
+                    max(width, height) > max_side
+                    or min(width, height) < min_side
+                    or width * height > max_pixels
                 ):
-                    _refuse("bad_size", SIZE_MESSAGE)
+                    _refuse("bad_size", size_message)
                 opened.load()
                 # A phone photo's rotation lives in EXIF, which is not kept.
                 image = ImageOps.exif_transpose(opened)
                 image = _pixels_only(_to_srgb(image))
     except (Image.DecompressionBombError, Image.DecompressionBombWarning):
-        _refuse("bad_size", SIZE_MESSAGE)
+        _refuse("bad_size", size_message)
     except Exception as error:  # noqa: BLE001
         if type(error).__name__ == "DocumentRefused":
             raise
-        _refuse("unreadable", "The logo image could not be read.")
+        _refuse("unreadable", unreadable_message)
 
     out = io.BytesIO()
     has_alpha = "A" in image.getbands() or (
@@ -129,10 +178,10 @@ def reencode_logo(data: bytes) -> dict:
         # No pnginfo, icc_profile or exif: only the pixels are written.
         image.save(out, format="PNG", **params)
     elif kind == "jpeg":
-        image.convert("RGB").save(out, format="JPEG", quality=90, optimize=True)
+        image.convert("RGB").save(out, format="JPEG", quality=quality, optimize=True)
     else:
         image = image.convert("RGBA" if has_alpha else "RGB")
-        image.save(out, format="WEBP", quality=90, method=4)
+        image.save(out, format="WEBP", quality=quality, method=4)
     width, height = image.size
     return {
         "format": kind,
