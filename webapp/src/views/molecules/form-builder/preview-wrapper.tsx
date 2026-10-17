@@ -33,7 +33,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const workspace = useAppSelector(selectWorkspace);
     const isMobile = useIsMobile();
     const { openModal } = useModal();
-    const { currentSlide } = useResponderState();
+    const { currentSlide, endingId } = useResponderState();
 
     useEffect(() => {
         setIFrameLoaded(false);
@@ -101,7 +101,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                             on the live page. Hiding it here would make the
                             drawer's "responders will see" promise a lie. */}
                         <div className="relative z-40 shrink-0">
-                            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layoutOfPage(standardForm, currentSlide)} />
+                            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layoutOfPage(standardForm, currentSlide, endingId)} />
                         </div>
                     </div>
                 ) : (

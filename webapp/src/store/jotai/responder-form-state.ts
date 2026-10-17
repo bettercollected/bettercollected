@@ -9,6 +9,11 @@ export interface ResponderFormState {
     currentField: number;
     prevActiveSlide: number;
     responderId?: string;
+    /**
+     * The ending the deciding page jump named (utils/endings.ts); unset: the
+     * default ending. Set when the form is submitted.
+     */
+    endingId?: string;
     // Slides actually visited, in order — lets Back retrace jumps instead of
     // assuming a linear -1. Pushed on every forward move, popped on Back.
     history: number[];
@@ -80,10 +85,11 @@ export const useResponderState = () => {
         }, 500);
     };
 
-    const setCurrentSlideToThankyouPage = () => {
+    const setCurrentSlideToThankyouPage = (endingId?: string) => {
         setResponderState({
             ...responderState,
-            currentSlide: -2
+            currentSlide: -2,
+            endingId
         });
     };
 
@@ -123,6 +129,7 @@ export const useResponderState = () => {
         prevActiveField: responderState.prevActiveField,
         prevActiveSlide: responderState.prevActiveSlide,
         responderId: responderState.responderId,
+        endingId: responderState.endingId,
         resetResponderState,
         nextSlide,
         goToSlide,
