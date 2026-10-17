@@ -560,6 +560,26 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.12.tgz#afefe785949f16ac4cdd1e695935a321572dd56a"
   integrity sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==
 
+"@fontsource-variable/public-sans@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/public-sans/-/public-sans-5.3.0.tgz#620e7ae83f43fe11a1a2130418c0ced882d72276"
+  integrity sha512-AVfkmAt50BMXWpOO21FAntiJFKGX6xTc2dSL8dxtDteONe9IuRXJWGbs0EbG955vAMCq23ENeuopuW87cGWDSQ==
+
+"@fontsource/instrument-sans@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource/instrument-sans/-/instrument-sans-5.3.0.tgz#a5a003f8120cb52b26c5ba13d661e69d3ff6672c"
+  integrity sha512-QwXc4hb/px3XvSPS2CPAOgey8nyrQFxgxrmXQQ+pN+P51hKdAcchxpg8rSbjANFfPu6VKXhDqkVDucXMZ9CM5g==
+
+"@fontsource/jetbrains-mono@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource/jetbrains-mono/-/jetbrains-mono-5.3.0.tgz#87bfd849f24b536ed72e89b56ae0d42223697f74"
+  integrity sha512-fqDfB5I9f1p1TV486aUgB9t8zP84P0O1FtQR5Ol9vjwPy+S+EIGlVYm1cvj2W5shcZMTg2nZFdVMoH5wFu8a1A==
+
+"@fontsource/source-serif-4@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource/source-serif-4/-/source-serif-4-5.3.0.tgz#8824a4a31369c0070455b17aac9d3d07f1498deb"
+  integrity sha512-yQz8xmIgMzks8zQbpuca3UYtjxK798XCyQAGdDXmzBgvV7sdoK6d0YvE9F9kiYxORCEMRBgGZDZsSYcXj5KvwA==
+
 "@fyelci/react-google-drive-picker@^1.2.5":
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/@fyelci/react-google-drive-picker/-/react-google-drive-picker-1.2.5.tgz#e167ddcba069585033513e3527fa2c463127a5ce"
