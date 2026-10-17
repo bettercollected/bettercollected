@@ -173,4 +173,8 @@ should pass every case.
   in sorted order. Compare after replacing them the same way.
 - Removing a question or a page also removes what referred to it: logic and
   jump conditions on it (a rule or jump left with no conditions goes too),
-  jumps to a removed page, answer pipes in titles and date rules.
+  answer pipes in titles and date rules. Jumps to a removed page stay, so the
+  builder can show them as broken.
+- A rich-text title holds only the node and mark types of the builder's
+  title editor (`TITLE_NODES` and `TITLE_MARKS` in `ops.py`). Only the form
+  builder may send one; elsewhere titles are plain text.
