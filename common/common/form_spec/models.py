@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from common.models.standard_form import (
     DATE_RULES_MAX,
+    ENDING_NAME_MAX_LENGTH,
     LOGO_ALT_MAX_LENGTH,
     REPEAT_MAX_ITEMS_LIMIT,
     SECTION_TITLE_MAX_LENGTH,
@@ -255,11 +256,17 @@ class Logic(_Spec):
 class PageJump(_Spec):
     """After this page, go to ``target`` (a page id, or "__SUBMIT__" to
     end the form) when the conditions match. The first matching jump wins;
-    no match goes to the next page."""
+    no match goes to the next page. With "__SUBMIT__", ``endingId`` names
+    the ending shown after submitting (default: the form's default
+    ending)."""
 
     operator: Optional[Literal["AND", "OR"]] = None
     conditions: Optional[List[Condition]] = None
     target: Optional[str] = None
+    ending_id: Optional[str] = Field(
+        None,
+        description='The id of an ending of this form; only with target "__SUBMIT__".',
+    )
 
 
 class DateRule(_Spec):
@@ -387,8 +394,24 @@ class WelcomePage(_Spec):
 
 
 class Ending(_Spec):
-    """A page shown after submitting."""
+    """A page shown after submitting. A page jump may choose one by its
+    ``id``; a plain submit shows the default ending (the one with
+    ``isDefault``, else the first)."""
 
+    id: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=64,
+        description="Stable id that page jumps name. Given when left out.",
+    )
+    name: Optional[str] = Field(
+        None,
+        max_length=ENDING_NAME_MAX_LENGTH,
+        description="Short internal name, e.g. Eligible. Respondents never see it.",
+    )
+    is_default: Optional[bool] = Field(
+        None, description="Shown after a plain submit. At most one ending."
+    )
     title: Optional[str] = None
     message: Optional[str] = None
     button_text: Optional[str] = None

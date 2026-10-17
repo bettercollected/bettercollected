@@ -8,7 +8,7 @@ from common.models.standard_form import (
     Trigger,
     ActionState,
     WelcomePageField,
-    ThankYouPageField,
+    EndingPages,
 )
 from common.models.standard_form import Theme
 from fastapi_camelcase import CamelModel
@@ -61,7 +61,7 @@ class FormDtoCamelModel(CamelModel):
 
     theme: Optional[Theme] = None
     welcome_page: Optional[WelcomePageField] = None
-    thankyou_page: Optional[List[ThankYouPageField]] = None
+    thankyou_page: Optional[EndingPages] = None
     unauthorized: Optional[bool] = None
     # Signed proof that this page shows the AI insights notice (#752): only on
     # the published form while the form allows AI insights. The form page

@@ -24,6 +24,7 @@ from backend.app.services.image_urls import is_allowed_image_url
 from backend.app.services.internal_fields import _get, _type_value, is_internal
 from backend.app.services.publish_checks import (
     DISPLAY_ONLY_TYPES,
+    MISSING_ENDING,
     MISSING_WHY_WE_ASK,
     PRESET_ANSWER,
     REQUIRED_UNANSWERABLE,
@@ -270,6 +271,7 @@ def _check_publish_rules(form: Any) -> List[Finding]:
         'without a "why we ask" reason.',
         REQUIRED_UNANSWERABLE: "A required question cannot be answered.",
         PRESET_ANSWER: "A choice question starts with an answer already chosen.",
+        MISSING_ENDING: "A page jump goes to an ending that no longer exists.",
     }
     return [
         Finding(

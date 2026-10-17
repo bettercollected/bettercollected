@@ -7,7 +7,7 @@ from common.models.standard_form import (
     StandardFormField,
     Theme,
     WelcomePageField,
-    ThankYouPageField,
+    EndingPages,
 )
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field
@@ -45,7 +45,7 @@ class StandardFormTemplate(BaseModel):
     preview_image: Optional[str] = None
     theme: Optional[Theme] = None
     welcome_page: Optional[WelcomePageField] = None
-    thankyou_page: Optional[List[ThankYouPageField]] = None
+    thankyou_page: Optional[EndingPages] = None
 
 
 class StandardFormTemplateResponse(StandardFormTemplate):

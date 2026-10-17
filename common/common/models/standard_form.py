@@ -2,11 +2,11 @@ import datetime as dt
 import enum
 import re
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from beanie import PydanticObjectId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 
@@ -349,16 +349,26 @@ class FieldLogic(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
+# Jump target meaning "submit the form" (and show an ending).
+JUMP_TARGET_SUBMIT = "__SUBMIT__"
+
+
 class PageJump(BaseModel):
     """
     v2 page-jump / branching rule stored on a slide at ``properties.jumps``.
     ``target`` is a slide id or the sentinel ``__SUBMIT__``. Plain strings, same
     rationale as :class:`FieldLogic`.
+
+    ``ending_id`` (only with ``__SUBMIT__``): the ending shown after the
+    submission; without it, or when that ending is gone, the form's default
+    ending. Kept beside the target rather than in it, so a reader that does
+    not know endings still sees "submit" and ends the path there.
     """
 
     operator: Optional[str] = None
     conditions: Optional[List[FieldLogicCondition]] = None
     target: Optional[str] = None
+    ending_id: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -884,7 +894,22 @@ class WelcomePageField(BaseModel):
     buttonText: Optional[str] = None
 
 
+ENDING_NAME_MAX_LENGTH = 60
+
+
 class ThankYouPageField(BaseModel):
+    """An ending: a page shown after submitting. A form has one or more; a
+    page jump may choose one (``PageJump.ending_id``), otherwise respondents
+    see the default ending."""
+
+    # Stable id, what page jumps name. Forms stored before endings had ids
+    # get one when read (see ``with_ending_ids``).
+    id: Optional[str] = None
+    # Short internal name for the builder ("Eligible"); respondents never
+    # see it.
+    name: Optional[str] = Field(None, max_length=ENDING_NAME_MAX_LENGTH)
+    # The ending shown after a plain submit; when none is marked, the first.
+    isDefault: Optional[bool] = None
     # Heading shown above the message; the responder falls back to the classic
     # "Thank You!" greeting when unset.
     title: Optional[str] = None
@@ -893,6 +918,64 @@ class ThankYouPageField(BaseModel):
     buttonLink: Optional[str] = None
     layout: Optional[LayoutType] = None
     imageUrl: Optional[str] = None
+
+
+def _ending_value(ending: Any, key: str) -> Any:
+    if isinstance(ending, dict):
+        return ending.get(key)
+    return getattr(ending, key, None)
+
+
+def derived_ending_id(position: int, used: set) -> str:
+    """The id an ending without one gets: ``ending-<n>`` from its position
+    (1-based), the next free number when that one is taken."""
+    number = position + 1
+    while f"ending-{number}" in used:
+        number += 1
+    return f"ending-{number}"
+
+
+def with_ending_ids(endings: Optional[List[Any]]) -> Optional[List[Any]]:
+    """Give every ending without an id a derived one, in place.
+
+    Derived on read, so stored forms need no migration: the same stored
+    list always gets the same ids, and the next save stores them. Endings
+    are dicts or objects with ``id``. The webapp derives them the same way
+    (``utils/endings.ts``)."""
+    if not endings:
+        return endings
+    used = {_ending_value(e, "id") for e in endings if _ending_value(e, "id")}
+    for position, ending in enumerate(endings):
+        if _ending_value(ending, "id"):
+            continue
+        new_id = derived_ending_id(position, used)
+        used.add(new_id)
+        if isinstance(ending, dict):
+            ending["id"] = new_id
+        else:
+            ending.id = new_id
+    return endings
+
+
+def default_ending(endings: Optional[List[Any]]) -> Optional[Any]:
+    """The ending shown after a plain submit: the one marked default, else
+    the first (None without endings)."""
+    if not endings:
+        return None
+    return next((e for e in endings if _ending_value(e, "isDefault")), endings[0])
+
+
+def ending_by_id(endings: Optional[List[Any]], ending_id: Optional[str]) -> Any:
+    """The ending with this id, or None."""
+    if not ending_id:
+        return None
+    return next(
+        (e for e in endings or [] if _ending_value(e, "id") == ending_id), None
+    )
+
+
+# The endings of a form, each with an id once read.
+EndingPages = Annotated[List[ThankYouPageField], AfterValidator(with_ending_ids)]
 
 
 # "auto" (and unset) follow the welcome page: centred there, centred on every
@@ -939,7 +1022,7 @@ class StandardForm(BaseModel):
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field(None)
     theme: Optional[Theme] = None
     welcome_page: Optional[WelcomePageField] = None
-    thankyou_page: Optional[List[ThankYouPageField]] = None
+    thankyou_page: Optional[EndingPages] = None
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
 
@@ -1050,3 +1133,7 @@ class StandardFormResponse(BaseModel):
     # responses carrying it.
     ai_notice_shown_at: Optional[dt.datetime] = None
     ai_notice_provider_name: Optional[str] = None
+    # The ending the respondent reached, replayed by the server from the
+    # answers (never taken from the request). None for responses submitted
+    # before endings could be chosen.
+    ending_id: Optional[str] = None

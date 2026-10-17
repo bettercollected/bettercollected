@@ -55,7 +55,11 @@ from backend.app.services.form_logo import (
 from backend.app.services.form_concurrency import ensure_not_changed_since
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
-from backend.app.services.answer_validation import answer_ids, check_answers
+from backend.app.services.answer_validation import (
+    answer_ids,
+    check_answers,
+    reached_ending_id,
+)
 from backend.app.services.date_rules import today_range, validate_date_rule_answers
 from backend.app.services.form_service import FormService
 from backend.app.services.internal_fields import (
@@ -1042,6 +1046,11 @@ class WorkspaceFormService:
             known_ids=answer_ids(form, latest_version_of_form),
         )
         _check_date_rules(latest_version_of_form or form, response.answers)
+        # Which ending the respondent saw: replayed here from the answers,
+        # never taken from the request.
+        response.ending_id = reached_ending_id(
+            latest_version_of_form or form, response.answers
+        )
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.
         if form_files:

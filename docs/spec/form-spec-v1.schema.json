@@ -301,8 +301,50 @@
     },
     "Ending": {
       "additionalProperties": false,
-      "description": "A page shown after submitting.",
+      "description": "A page shown after submitting. A page jump may choose one by its\n``id``; a plain submit shows the default ending (the one with\n``isDefault``, else the first).",
       "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Stable id that page jumps name. Given when left out.",
+          "title": "Id"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Short internal name, e.g. Eligible. Respondents never see it.",
+          "title": "Name"
+        },
+        "isDefault": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Shown after a plain submit. At most one ending.",
+          "title": "Isdefault"
+        },
         "title": {
           "anyOf": [
             {
@@ -1082,7 +1124,7 @@
     },
     "PageJump": {
       "additionalProperties": false,
-      "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page.",
+      "description": "After this page, go to ``target`` (a page id, or \"__SUBMIT__\" to\nend the form) when the conditions match. The first matching jump wins;\nno match goes to the next page. With \"__SUBMIT__\", ``endingId`` names\nthe ending shown after submitting (default: the form's default\nending).",
       "properties": {
         "operator": {
           "anyOf": [
@@ -1126,6 +1168,19 @@
           ],
           "default": null,
           "title": "Target"
+        },
+        "endingId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The id of an ending of this form; only with target \"__SUBMIT__\".",
+          "title": "Endingid"
         }
       },
       "title": "PageJump",

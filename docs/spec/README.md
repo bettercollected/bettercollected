@@ -20,7 +20,7 @@ A test fails when the committed file is out of date.
 | `title`, `description` | The form's title and description. |
 | `welcomePage` | Title, description, layout, image and button text of the first screen. |
 | `pages` | The question pages in order. Each page has an `id`, an optional `sectionTitle`, `layout`, `imageUrl`, `theme` override, `showQuestionNumbers`, flow-view `position`, `jumps` (branching) and its `fields`. |
-| `endings` | The pages shown after submitting. |
+| `endings` | The pages shown after submitting. Each has an `id` (given when left out), an internal `name`, `isDefault` (at most one; else the first ending is the default), `title`, `message`, `buttonText`, `buttonLink`, `layout` and `imageUrl`. |
 | `theme` | Colours, background and style. |
 | `hiddenFields` | URL parameter names captured with each response (names only). |
 | `logo` | Position, alt text and whether to use the workspace logo. `url` is read-only: a logo is set by uploading it. |
@@ -37,7 +37,10 @@ accepted so that older forms can be read, and validation warns about them.
 
 Ids are chosen by the writer and must be unique within the form. Logic
 conditions and page jumps refer to them; a jump's `target` is a page id or
-`"__SUBMIT__"`.
+`"__SUBMIT__"`. A jump to `"__SUBMIT__"` may add `endingId` to show that
+ending after submitting instead of the default one. Endings stored before
+they had ids are given `ending-<n>` (their position, from 1) when read, so
+the same form always shows the same ids.
 
 ## What is not in the document
 
