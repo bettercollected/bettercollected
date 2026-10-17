@@ -1,6 +1,7 @@
 import { Close } from '@app/components/icons/close';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFieldActions } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { ArrowDown } from '@Components/icons/arrow-down';
@@ -12,7 +13,8 @@ import { ChoiceIndicator, choiceRowStyle } from '@app/views/atoms/choice';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
-    const { updateChoiceFieldValue, addChoiceField, removeChoiceField } = useFormFieldsAtom();
+    const { updateChoiceFieldValue } = useFieldActions();
+    const { addChoiceField, removeChoiceField } = useBuilderActions();
     const { theme } = useFormState();
     const [backspaceCount, setBackspaceCount] = useState(0);
     const rowTheme = slide.properties?.theme?.secondary ? { ...theme, ...slide.properties.theme } : theme;
@@ -53,7 +55,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                 onFocus={() => setBackspaceCount(0)}
                                 value={choice.value}
                                 placeholder={`Item ${index + 1}`}
-                                onChange={(value: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, value)}
+                                onChange={(value: any) => updateChoiceFieldValue(field.id, choice.id, value)}
                                 className={isChoiceList ? 'min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-base' : 'flex justify-between rounded-md border p-2 px-4 text-base'}
                                 style={{ color: isChoiceList ? rowTheme?.primary : rowTheme?.secondary }}
                                 isOptionsInput

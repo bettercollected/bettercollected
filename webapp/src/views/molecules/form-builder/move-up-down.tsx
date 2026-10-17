@@ -2,16 +2,17 @@ import Divider from '@Components/common/divider';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useDocValue } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 
 const BUTTON = 'flex items-center justify-center hover:bg-black-400 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]';
 
 export default function MoveUpDown({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
-    const { moveFieldInASlide, formFields } = useFormFieldsAtom();
+    const { moveFieldInASlide } = useBuilderActions();
     // Count fields on the slide this control belongs to. Reading the global
     // `activeSlide` crashed here: a field can be active while no slide is marked
     // active, leaving `activeSlide` undefined.
-    const numberOfFieldsInCurrentSlide = formFields?.[slideIndex]?.properties?.fields?.length ?? 0;
+    const numberOfFieldsInCurrentSlide = useDocValue((doc) => doc.fields?.[slideIndex]?.properties?.fields?.length ?? 0, [slideIndex]);
 
     if (numberOfFieldsInCurrentSlide <= 1) {
         return null;

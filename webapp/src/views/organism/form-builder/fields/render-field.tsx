@@ -5,7 +5,7 @@ import RatingField from '@app/views/molecules/responder-form-fields/rating-field
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { cn } from '@app/shadcn/util/lib';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import DeleteIcon from '@Components/icons/delete';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
@@ -23,7 +23,7 @@ import VideoField from './video-field';
 import YesNoField from './yes-no-field';
 
 export const RenderImage = ({ field, isBuilder = false }: { field: StandardFormFieldDto; isBuilder?: boolean }) => {
-    const { updateFieldImage } = useFormFieldsAtom();
+    const { updateFieldImage } = useBuilderActions();
     const { openDialogModal } = useDialogModal();
     const handleRemoveImage = () => {
         updateFieldImage('');

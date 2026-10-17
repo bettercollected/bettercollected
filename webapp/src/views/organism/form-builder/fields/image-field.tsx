@@ -7,7 +7,7 @@ import { ImageIcon } from 'lucide-react';
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFieldActions } from '@app/store/jotai/entity-hooks';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import QuestionWrapper from '@app/views/molecules/responder-form-fields/question-wrapper';
 
@@ -18,14 +18,14 @@ export function imageAltText(field: StandardFormFieldDto): string {
 
 /** Builder: pick the picture, describe it, or change it. */
 function ImageFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) {
-    const { updateFieldAttachment } = useFormFieldsAtom();
+    const { updateFieldAttachment } = useFieldActions();
     const { openDialogModal } = useDialogModal();
     const altId = useId();
     const href: string = field?.attachment?.href ?? '';
     const alt = field?.attachment?.properties?.description ?? '';
 
     const save = (next: { href?: string; description?: string }) =>
-        updateFieldAttachment(slide.index, field.index, {
+        updateFieldAttachment(field.id, {
             ...(field.attachment ?? {}),
             type: 'image',
             href: next.href ?? href,

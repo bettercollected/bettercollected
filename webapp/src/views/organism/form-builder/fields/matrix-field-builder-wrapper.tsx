@@ -1,12 +1,16 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useAtomValue } from 'jotai';
+
+import { activeFieldAtom } from '@app/store/jotai/active-builder-component';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import MatrixField from './matrix';
 
 export default function MatrixFieldBuilderWrapper({ field }: { field: StandardFormFieldDto }) {
     const { theme } = useFormState();
-    const { addRow, addColumn, activeField } = useFormFieldsAtom();
+    const { addRow, addColumn } = useBuilderActions();
+    const activeField = useAtomValue(activeFieldAtom);
     return (
         <div className="flex flex-col gap-4">
             <div style={{ color: theme?.secondary }} className={cn(' flex w-full  justify-end ', field.id !== activeField?.id && 'invisible')}>

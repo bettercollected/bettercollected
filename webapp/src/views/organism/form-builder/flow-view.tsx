@@ -810,7 +810,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                             outline: '1px solid #D0D5DD'
                                         }}
                                     >
-                                        <SlideBuilder slide={overlaySlide} />
+                                        <SlideBuilder pageId={overlaySlide.id} />
                                     </div>
                                 </div>
                             </div>

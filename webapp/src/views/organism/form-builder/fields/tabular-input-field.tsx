@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useFormState } from '@app/store/jotai/form';
 import { Input } from '@app/shadcn/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useAtomValue } from 'jotai';
+import { activeFieldAtom } from '@app/store/jotai/active-builder-component';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { cn } from '@app/shadcn/util/lib';
 import { Close } from '@app/components/icons/close';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -33,7 +35,8 @@ export default function TabularInputField({
   onDeleteColumn
 }: TabularInputFieldProps) {
   const { theme } = useFormState();
-  const { activeField, updateTabularRowTitle, updateTabularColumnTitle } = useFormFieldsAtom();
+  const { updateTabularRowTitle, updateTabularColumnTitle } = useBuilderActions();
+  const activeField = useAtomValue(activeFieldAtom);
 
   const minRows = 2;
   const minCols = 2;

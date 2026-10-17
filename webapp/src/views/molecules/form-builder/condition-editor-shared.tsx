@@ -1,5 +1,6 @@
 'use client';
 
+import { jsonEqual } from '@app/lib/form-ops/model';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { Comparison, GroupConditionMode, LogicCondition } from '@app/models/types/form-builder-shared';
 import { getGroupChildren, isRepeatingGroup } from '@app/utils/repeating-groups';
@@ -11,6 +12,9 @@ export interface SourceField {
     field: StandardFormFieldDto;
     label: string;
 }
+
+/** The same sources: labels, and questions with the same content (for derived values that re-render only on change). */
+export const sameSourceFields = (a: SourceField[], b: SourceField[]) => a.length === b.length && a.every((source, i) => source.label === b[i].label && (source.field === b[i].field || jsonEqual(source.field, b[i].field)));
 
 /**
  * Same text the canvas shows for a question (title, else its placeholder), so the

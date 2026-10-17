@@ -1,15 +1,17 @@
 import { useState} from 'react';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useAtomValue } from 'jotai';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import TabularInputField from './tabular-input-field';
-import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { activeFieldAtom, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { FieldTypes } from '@app/models/dtos/form';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 
 export default function TabularInputFieldBuilderWrapper({ field, slide }: { field: StandardFormFieldDto, slide?: number }) {
     const { theme } = useFormState();
-    const { addTabularRow, addTabularColumn, activeField, updateTabularInputValue, deleteTabularRow, deleteTabularColumn } = useFormFieldsAtom();
+    const { addTabularRow, addTabularColumn, updateTabularInputValue, deleteTabularRow, deleteTabularColumn } = useBuilderActions();
+    const activeField = useAtomValue(activeFieldAtom);
     const { activeSlideComponent } = useActiveSlideComponent();
 
     const rowTitles = field?.properties?.rowTitles || [];

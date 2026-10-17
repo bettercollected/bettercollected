@@ -9,7 +9,8 @@ import { useDebounceValue } from 'usehooks-ts';
 
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFieldActions } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useInsertTarget } from '@app/store/jotai/insert-target';
 import { AnswerPipe } from '@app/utils/richTextEditorExtenstion/answer-pipe';
@@ -144,14 +145,17 @@ export function RichTextEditor({
     /** Id of helper text for the title (plain-language tips), for aria-describedby. */
     describedById?: string;
 }) {
-    const { updateTitle, formFields } = useFormFieldsAtom();
+    const { updateTitle } = useFieldActions();
+    // The form is read when the `@` suggestion asks for it, not subscribed
+    // to: the editor re-renders only when its own question changes.
+    const { getFormFields } = useBuilderActions();
     const { formState } = useFormState();
 
     // The `@` suggestion needs the CURRENT builder state on every keystroke,
     // but the extension list must keep a stable identity (a new array would
     // recreate the editor per render). A ref bridges the two.
-    const pipeContextRef = useRef({ formFields, hiddenNames: formState.hiddenFields ?? [], field, slide });
-    pipeContextRef.current = { formFields, hiddenNames: formState.hiddenFields ?? [], field, slide };
+    const pipeContextRef = useRef({ getFormFields, hiddenNames: formState.hiddenFields ?? [], field, slide });
+    pipeContextRef.current = { getFormFields, hiddenNames: formState.hiddenFields ?? [], field, slide };
 
     const editorExtensions = useMemo(
         () => [
@@ -159,8 +163,8 @@ export function RichTextEditor({
             Placeholder.configure({ placeholder: () => titlePlaceholder(pipeContextRef.current.field.type) }),
             AnswerPipeSuggestion.configure({
                 getItems: (query: string) => {
-                    const { formFields: fields, hiddenNames, field: currentField, slide: currentSlide } = pipeContextRef.current;
-                    return filterPipeSuggestionItems(buildPipeItems(fields, hiddenNames, currentField, currentSlide), query);
+                    const { getFormFields: formFields, hiddenNames, field: currentField, slide: currentSlide } = pipeContextRef.current;
+                    return filterPipeSuggestionItems(buildPipeItems(formFields(), hiddenNames, currentField, currentSlide), query);
                 }
             })
         ],
@@ -209,7 +213,7 @@ export function RichTextEditor({
     useEffect(() => {
         if (debouncedInputValue && debouncedInputValue.generation === generationRef.current) {
             lastSyncedTitleRef.current = JSON.stringify(debouncedInputValue.json);
-            updateTitle(field.index, slide.index, debouncedInputValue.json);
+            updateTitle(field.id, debouncedInputValue.json);
         }
     }, [debouncedInputValue]);
 
@@ -304,12 +308,13 @@ const getActiveFontSize = (editor?: Editor) => {
 // inline `@` suggestion (AnswerPipeSuggestion) is the fast path; this button
 // is the discoverable one.
 const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: StandardFormFieldDto; slide: StandardFormFieldDto }) => {
-    const { formFields } = useFormFieldsAtom();
+    // Read when the menu renders (with its editor), not subscribed to.
+    const { getFormFields } = useBuilderActions();
     const { formState } = useFormState();
     const [open, setOpen] = useState(false);
     const menuId = `pipe-menu-${field.id}`;
 
-    const items = buildPipeItems(formFields, formState.hiddenFields ?? [], field, slide);
+    const items = buildPipeItems(getFormFields(), formState.hiddenFields ?? [], field, slide);
     if (items.length === 0) return null;
 
     const insertPipe = (item: PipeSuggestionItem) => {
