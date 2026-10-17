@@ -71,6 +71,14 @@ def form_changed() -> HTTPException:
     )
 
 
+def same_version(a: Optional[dt.datetime], b: Optional[dt.datetime]) -> bool:
+    """Whether two ``updated_at`` values name the same stored version, to
+    the millisecond (what every store keeps). Two missing values match."""
+    if a is None or b is None:
+        return a is None and b is None
+    return _in_ms(a) == _in_ms(b)
+
+
 def ensure_not_changed_since(
     stored: Optional[dt.datetime], expected: Optional[dt.datetime]
 ) -> None:

@@ -17,6 +17,7 @@ from fastapi import BackgroundTasks
 
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
+from common.exceptions import NotFoundError
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic.alias_generators import to_camel
@@ -230,6 +231,20 @@ class FormAIChatService:
         # workspace has not opted in to AI.
         self._provider_resolver = provider_resolver
 
+    async def _keep_proposal_statuses(self, session) -> None:
+        try:
+            stored = await self._session_repo.get_or_404(session.id)
+        except NotFoundError:
+            return
+        records = {
+            m["proposal"].get("id"): m["proposal"]
+            for m in (stored.messages or []) if isinstance(m.get("proposal"), dict)
+        }
+        for message in session.messages or []:
+            record = message.get("proposal")
+            if isinstance(record, dict) and record.get("id") in records:
+                message["proposal"] = records[record["id"]]
+
     async def chat_edit(
         self,
         workspace_id: PydanticObjectId,
@@ -340,6 +355,10 @@ class FormAIChatService:
                 proposal, getattr(form_document, "updated_at", None)
             )
         session.provider = request.provider or session.provider
+        if request.session_id:
+            # Proposals accepted or rejected while the model was answering:
+            # keep their stored status (the turn saves the whole session).
+            await self._keep_proposal_statuses(session)
         session.messages = (session.messages or []) + [
             {"role": "user", "content": request.message, "at": now},
             assistant_turn,

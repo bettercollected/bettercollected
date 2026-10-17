@@ -265,9 +265,11 @@ class TestProposals:
         assert response.status_code == 200
         assert response.json()["acceptedOpIndexes"] == [1]
 
-    async def test_a_stale_proposal_is_refused_with_the_op_errors(
+    async def test_a_proposal_for_an_older_version_is_stale(
         self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
     ):
+        """The reported case: a section title proposed for page 1 must not
+        land on a page inserted in front of it since."""
         form_id = workspace_form.form_id
         await _make_v2(await _stored(form_id))
         proposal = (
@@ -278,33 +280,105 @@ class TestProposals:
                 test_user_cookies,
                 fake_provider,
                 [
+                    {"op": "set_section_title", "pageIndex": 0, "title": "About you"},
                     RENAME,
-                    {"op": "update_field", "fieldId": "field-1", "patch": {"title": "Full name"}},
                 ],
             )
         )["proposal"]
 
-        # meanwhile, the question it changes is removed in the editor
+        # meanwhile another save puts a page in front of page 1
         stored = await _stored(form_id)
-        stored.fields[0].properties.fields = []
+        new_page = stored.fields[0].model_copy(deep=True, update={"id": "page-0"})
+        new_page.properties.fields = []
+        stored.fields = [new_page] + stored.fields
         await container.form_repo().save_form(stored)
         before = (await _stored(form_id)).model_dump()
 
-        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
-        assert response.status_code == 409
-        body = response.json()
-        assert body["code"] == "proposal_stale"
-        assert [e["index"] for e in body["errors"]] == [1]
-        assert "field-1" in body["errors"][0]["message"]
-        # all or nothing: the rename was not applied either
+        for op_indexes in (None, [0], [1]):
+            response = await _accept(
+                client, workspace, form_id, proposal["id"], test_user_cookies, op_indexes
+            )
+            assert response.status_code == 409, op_indexes
+            body = response.json()
+            assert body["code"] == "proposal_stale"
+            assert body["message"] == "This form changed since the suggestion. Ask again."
+        # nothing landed anywhere
         assert (await _stored(form_id)).model_dump() == before
 
-        # a change that still applies can be accepted on its own
+    async def test_the_editor_saving_the_same_content_is_still_a_new_version(
+        self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
+    ):
+        form_id = workspace_form.form_id
+        proposal = (
+            await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        )["proposal"]
+        await container.form_repo().save_form(await _stored(form_id))
+        response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
+        assert response.status_code == 409
+        assert response.json()["code"] == "proposal_stale"
+
+    async def test_a_subset_must_do_what_was_shown(
+        self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
+    ):
+        """Positions move with the ops before: without them a chosen op
+        could change something else than its line said."""
+        form_id = workspace_form.form_id
+        await _make_v2(await _stored(form_id))
+        stored = await _stored(form_id)
+        second = stored.fields[0].model_copy(deep=True, update={"id": "page-2", "index": 1})
+        second.properties.fields = []
+        stored.fields = stored.fields + [second]
+        await container.form_repo().save_form(stored)
+        before = (await _stored(form_id)).model_dump()
+
+        proposal = (
+            await _propose(
+                client,
+                workspace,
+                form_id,
+                test_user_cookies,
+                fake_provider,
+                [
+                    # a page in front: "page index 1" is then the first page
+                    {"op": "add_page", "index": 0},
+                    {"op": "set_section_title", "pageIndex": 1, "title": "About you"},
+                    # "B" right after the new "A", before "Your name"
+                    {
+                        "op": "add_field",
+                        "pageId": "page-1",
+                        "index": 0,
+                        "field": {"title": "A", "type": "short_text"},
+                    },
+                    {
+                        "op": "add_field",
+                        "pageId": "page-1",
+                        "index": 1,
+                        "field": {"title": "B", "type": "short_text"},
+                    },
+                    RENAME,
+                ],
+            )
+        )["proposal"]
+        assert all(r["ok"] for r in proposal["results"])
+
         response = await _accept(
-            client, workspace, form_id, proposal["id"], test_user_cookies, [0]
+            client, workspace, form_id, proposal["id"], test_user_cookies, [1, 3, 4]
+        )
+        assert response.status_code == 422
+        body = response.json()
+        assert body["code"] == "proposal_selection_changes_meaning"
+        assert [e["index"] for e in body["errors"]] == [1, 3]
+        assert "change #2 would not do what was shown" in body["errors"][0]["message"]
+        assert (await _stored(form_id)).model_dump() == before
+
+        # what stands on its own can be accepted alone
+        response = await _accept(
+            client, workspace, form_id, proposal["id"], test_user_cookies, [2, 4]
         )
         assert response.status_code == 200, response.text
-        assert (await _stored(form_id)).title == "Renamed by AI"
+        stored = await _stored(form_id)
+        assert stored.title == "Renamed by AI"
+        assert _all_titles(stored)[:2] == ["A", "Your name"]
 
     async def test_two_accepts_at_once_apply_it_once(
         self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
@@ -351,20 +425,14 @@ class TestProposals:
         assert "at most 2 pages" in proposal["results"][1]["message"]
         assert [s["index"] for s in proposal["steps"]] == [0]
 
-        # meanwhile the form reached the limit: accepting cannot pass it
-        stored = await _stored(form_id)
-        stored.fields = stored.fields + [
-            stored.fields[0].model_copy(update={"id": "page-2", "index": 1})
-        ]
-        stored.fields[1].properties = stored.fields[1].properties.model_copy(
-            update={"fields": []}
-        )
-        await container.form_repo().save_form(stored)
+        # the limit is lower now: accepting cannot pass it
+        monkeypatch.setattr(ops_module, "MAX_PAGES", 1)
+        before = (await _stored(form_id)).model_dump()
         response = await _accept(client, workspace, form_id, proposal["id"], test_user_cookies)
         assert response.status_code == 409
         assert response.json()["code"] == "proposal_stale"
-        assert "at most 2 pages" in response.json()["errors"][0]["message"]
-        assert len((await _stored(form_id)).fields) == 2
+        assert "at most 1 pages" in response.json()["errors"][0]["message"]
+        assert (await _stored(form_id)).model_dump() == before
 
     async def test_an_expired_proposal_is_gone(
         self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
@@ -382,6 +450,21 @@ class TestProposals:
         assert response.status_code == 410
         assert response.json()["code"] == "proposal_expired"
         assert (await _stored(form_id)).title != "Renamed by AI"
+
+    async def test_a_chat_turn_saved_meanwhile_keeps_the_decision(
+        self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
+    ):
+        form_id = workspace_form.form_id
+        body = await _propose(client, workspace, form_id, test_user_cookies, fake_provider, [RENAME])
+        proposal_id = body["proposal"]["id"]
+        # a turn that read the session before the proposal was rejected
+        stale_copy = await _session(proposal_id)
+        assert (await _reject(client, workspace, form_id, proposal_id, test_user_cookies)).status_code == 200
+        # ... and saves it afterwards, as chat_edit does
+        service = container.form_ai_chat_service()
+        await service._keep_proposal_statuses(stale_copy)
+        await container.form_ai_session_repo().save(stale_copy)
+        assert _record(await _session(proposal_id), proposal_id)["status"] == "rejected"
 
     async def test_reject(
         self, client: AsyncClient, workspace, workspace_form, test_user_cookies, fake_provider
