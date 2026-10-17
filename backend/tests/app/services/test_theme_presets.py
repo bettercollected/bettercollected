@@ -10,6 +10,9 @@ from backend.app.constants.themes import (
     NEW_FORM_THEME,
     THEME_STYLES,
     get_themes_for_ai,
+    preset_name,
+    theme_descriptions,
+    theme_dict,
     themes,
 )
 from backend.app.models.workspace import WorkspaceThemeDto
@@ -42,6 +45,57 @@ def test_default_preset_matches_the_webapp_preset():
         "tertiary": default.tertiary,
         "accent": default.accent,
     }
+
+
+def _webapp_presets() -> list[dict]:
+    """The webapp's ThemeColors, read from theme.ts: one dict per preset, in
+    the picker's order."""
+    source = WEBAPP_THEME_TS.read_text()
+    block = re.search(
+        r"export const ThemeColors: Array<FormTheme> = \[(.*?)\n\];", source, re.S
+    ).group(1)
+    return [
+        dict(re.findall(r"(\w+): '([^']*)'", entry))
+        for entry in re.findall(r"\{(.*?)\}", block, re.S)
+    ]
+
+
+def test_every_preset_matches_the_webapp_list():
+    """The webapp's list is the source of truth: same names, same order, same
+    colours and style, so a preset the AI picks shows as that preset in the
+    builder's picker (which matches by title)."""
+    if not WEBAPP_THEME_TS.exists():  # backend checked out on its own
+        return
+    webapp = _webapp_presets()
+    assert len(webapp) >= 10, "theme.ts no longer parses; update _webapp_presets"
+    assert webapp == list(theme_dict.values())
+
+
+def test_every_preset_has_a_description_for_the_ai():
+    assert set(theme_descriptions) == set(theme_dict)
+    assert all(entry["description"] for entry in get_themes_for_ai())
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("Ocean", "Ocean"),
+        ("  ocean ", "Ocean"),
+        ("LEAFLET", "Leaflet"),
+        ("Blue", "Ocean"),
+        ("green", "Forest"),
+        ("Red", "Cherry"),
+        ("black", "Mono"),
+        ("Orange", "Sunset"),
+        ("purple", "Lavender"),
+        ("Neon", None),
+        ("", None),
+        (None, None),
+        (3, None),
+    ],
+)
+def test_preset_name_resolves_current_and_legacy_names(name, expected):
+    assert preset_name(name) == expected
 
 
 def test_ai_theme_list_carries_the_default_colours():

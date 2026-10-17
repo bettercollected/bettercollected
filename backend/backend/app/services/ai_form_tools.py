@@ -13,6 +13,7 @@ from backend.app.constants.themes import (
     NEW_FORM_THEME,
     THEME_STYLES,
     get_themes_for_ai,
+    preset_name,
     theme_dict,
 )
 from backend.app.services.unsplash_service import UnsplashService
@@ -192,10 +193,7 @@ def image_query(query: str, theme_name: str | None = None) -> str:
     names = [[style] for style in THEME_STYLES]
     if chosen and chosen not in names:
         names.append(chosen)
-    preset = next(
-        (v for k, v in theme_dict.items() if k.lower() == theme_name.strip().lower()),
-        {},
-    )
+    preset = theme_dict.get(preset_name(theme_name) or "", {})
     leaflet_style = preset.get("style") == "leaflet"
 
     words = (query or "").split()

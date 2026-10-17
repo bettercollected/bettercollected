@@ -50,7 +50,11 @@ from common.models.standard_form import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.app.constants.themes import THEME_STYLES, themes as THEME_PRESETS
+from backend.app.constants.themes import (
+    THEME_STYLES,
+    preset_name,
+    themes as THEME_PRESETS,
+)
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
 from backend.app.services.policy_url import checked_policy_url
@@ -1239,11 +1243,11 @@ def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
     return f"Applied theme '{op.theme.title}'"
 
 
-_PRESETS_BY_NAME = {name.lower(): theme for name, theme in THEME_PRESETS.items()}
-
-
 def _apply_set_theme_preset(form: StandardForm, op: SetThemePresetOp) -> str:
-    preset = _PRESETS_BY_NAME.get(op.name.strip().lower())
+    # A legacy name (Blue, Green, ...) means the nearest preset (Ocean,
+    # Forest, ...), so the builder's picker shows what the model chose.
+    name = preset_name(op.name)
+    preset = THEME_PRESETS.get(name) if name else None
     if preset is None:
         raise OpError(
             f"There is no theme preset named '{op.name}'. "

@@ -23,7 +23,7 @@ from backend.app.services.ai.usage import AIUsageGuard, bind_usage
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
 from backend.config import settings
 from backend.app.services.ai.prompt_builder import compose_generation_prompt
-from backend.app.constants.themes import new_form_theme, themes
+from backend.app.constants.themes import new_form_theme, preset_name, themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
@@ -195,11 +195,10 @@ class OpenAIService:
         # New forms start with Leaflet; another preset only when the model
         # picked one by name (the prompt asks it to, when the request wants
         # other colours). Anything else falls back to Leaflet.
-        theme_name = openai_form.get("theme_name")
+        # A legacy preset name (Blue, Green, ...) means the nearest preset.
+        theme_name = preset_name(openai_form.get("theme_name"))
         chosen_theme = (
-            themes[theme_name].model_copy(deep=True)
-            if isinstance(theme_name, str) and theme_name in themes
-            else new_form_theme()
+            themes[theme_name].model_copy(deep=True) if theme_name else new_form_theme()
         )
 
         # Only images from our storage or Unsplash (services/image_urls.py):
