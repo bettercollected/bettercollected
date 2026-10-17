@@ -350,7 +350,6 @@ describe('form document: the older mutators (compatibility path)', () => {
         const third = latestStep(store.get(docHistoryAtom));
         expect(store.set(undoIfLatestAtom, third)).toBe(true);
         expect(field(2, 0).id).toBe('p03-q01');
-
     });
 });
 
