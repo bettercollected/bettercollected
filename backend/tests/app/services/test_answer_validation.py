@@ -6,9 +6,11 @@ twins, RE2 patterns, the service paths (submission, respondent edit), the
 import json
 import math
 import time
+import types
 from pathlib import Path
 
 import pytest
+import re2
 from loguru import logger
 
 from backend.app.container import container
@@ -331,7 +333,7 @@ def test_the_switch_defaults_to_enforce():
 # ---------------------------------------------------------------------------
 
 
-def test_a_2000_field_form_with_big_answers_validates_quickly():
+def test_a_2000_field_form_with_big_answers_validates_quickly(monkeypatch):
     pages = []
     answers = {}
     for p in range(100):
@@ -418,13 +420,15 @@ def test_a_2000_field_form_with_big_answers_validates_quickly():
     parsed = _answers(answers)
     known = answer_ids(form)
     validate_answers(form, parsed, known_ids=known)  # warm the pattern cache
-    runs = []
-    for _ in range(3):
-        start = time.perf_counter()
-        problems = validate_answers(form, parsed, known_ids=known)
-        runs.append(time.perf_counter() - start)
+    compiled = _spy_compiles(monkeypatch)
+    start = time.perf_counter()
+    problems = validate_answers(form, parsed, known_ids=known)
+    elapsed = time.perf_counter() - start
     assert problems == []
-    assert min(runs) < 0.1, f"{min(runs) * 1000:.0f} ms"
+    # the form's two patterns come from the cache: nothing is compiled again
+    assert compiled == []
+    # smoke check only, far above the expected time (shared CI runners vary)
+    assert elapsed < 5, f"{elapsed:.1f} s"
 
 
 # ---------------------------------------------------------------------------
@@ -631,35 +635,8 @@ def _pattern_pages(patterns):
     return [{"id": "p1", "type": "slide", "properties": {"fields": fields}}]
 
 
-def test_presets_compile_quickly_within_the_memory_limit():
-    answer_validation._CACHE.clear()
-    for pattern in PRESETS:
-        start = time.perf_counter()
-        assert compile_pattern(pattern) is not None
-        assert time.perf_counter() - start < 0.05
-
-
-def test_a_heavy_pattern_fails_fast_and_is_not_checked():
-    answer_validation._CACHE.clear()
-    start = time.perf_counter()
-    assert compile_pattern("^\\p{L}{0,300}$") is None
-    assert time.perf_counter() - start < 0.05
-    pages = _pattern_pages(["^\\p{L}{0,300}$"])
-    assert _problems(pages, {"q0": {"type": "text", "text": "123"}}) == []
-
-
-def test_many_distinct_heavy_patterns_validate_quickly():
-    answer_validation._CACHE.clear()
-    patterns = [f"^\\p{{L}}{{0,{300 + i}}}$" for i in range(600)]
-    pages = _pattern_pages(patterns)
-    answers = {f"q{i}": {"type": "text", "text": "abc"} for i in range(600)}
-    start = time.perf_counter()
-    _problems(pages, answers)
-    assert time.perf_counter() - start < 0.5
-
-
-def test_the_compile_budget_is_respected(monkeypatch):
-    answer_validation._CACHE.clear()
+def _spy_compiles(monkeypatch):
+    """Record every pattern compiled for RE2 (cache misses only)."""
     compiled = []
     real = answer_validation._compile
     monkeypatch.setattr(
@@ -667,6 +644,94 @@ def test_the_compile_budget_is_respected(monkeypatch):
         "_compile",
         lambda pattern: compiled.append(pattern) or real(pattern),
     )
+    return compiled
+
+
+def _fake_clock(monkeypatch, tick=0.0):
+    """Replace the clock the module reads: each reading moves it ``tick``
+    seconds forward, so every timed compile or match costs exactly ``tick``
+    (0: time stands still and only the compile budget acts)."""
+    now = [0.0]
+
+    def perf_counter():
+        now[0] += tick
+        return now[0]
+
+    monkeypatch.setattr(
+        answer_validation, "time", types.SimpleNamespace(perf_counter=perf_counter)
+    )
+
+
+HEAVY = "^\\p{L}{0,300}$"
+
+
+def test_presets_compile_within_the_memory_and_program_limits():
+    answer_validation._CACHE.clear()
+    for pattern in PRESETS:
+        compiled = compile_pattern(pattern)
+        assert compiled is not None
+        assert compiled.programsize <= answer_validation.PATTERN_MAX_PROGRAM
+
+
+def test_a_heavy_pattern_is_refused_by_the_memory_limit_and_not_checked():
+    source = answer_validation.to_re2_syntax(HEAVY).encode("utf-8")
+    # RE2 compiles it without a memory limit; the module's options refuse it
+    unlimited = re2.Options()
+    unlimited.log_errors = False
+    unlimited.never_capture = True
+    assert re2.compile(source, unlimited).programsize > 0
+    assert answer_validation._RE2_OPTIONS.max_mem == answer_validation.PATTERN_MAX_MEM
+    with pytest.raises(re2.error):
+        re2.compile(source, answer_validation._RE2_OPTIONS)
+    answer_validation._CACHE.clear()
+    assert compile_pattern(HEAVY) is None
+    pages = _pattern_pages([HEAVY])
+    assert _problems(pages, {"q0": {"type": "text", "text": "123"}}) == []
+
+
+def _heavy_patterns(count):
+    return [f"^\\p{{L}}{{0,{300 + i}}}$" for i in range(count)]
+
+
+def test_many_distinct_heavy_patterns_compile_at_most_the_budget(monkeypatch):
+    answer_validation._CACHE.clear()
+    _fake_clock(monkeypatch)
+    compiled = _spy_compiles(monkeypatch)
+    patterns = _heavy_patterns(600)
+    pages = _pattern_pages(patterns)
+    answers = {f"q{i}": {"type": "text", "text": SECRET} for i in range(600)}
+    logged, sink = _capture()
+    try:
+        assert _problems(pages, answers) == []
+    finally:
+        logger.remove(sink)
+    assert len(compiled) == answer_validation.PATTERN_COMPILES_PER_RESPONSE == 50
+    assert compiled == patterns[:50]
+    # every field is unchecked (50 unusable, 550 past the budget); only the
+    # field ids are logged, never a pattern or an answer
+    text = "".join(logged)
+    assert "600 field(s) not checked" in text and "q599" in text
+    assert "p{L}" not in text and SECRET not in text
+
+
+def test_many_distinct_heavy_patterns_smoke(monkeypatch):
+    """Real clock: whichever budget acts first, a response compiles at most
+    the compile budget. The time bound is a generous smoke check only."""
+    answer_validation._CACHE.clear()
+    compiled = _spy_compiles(monkeypatch)
+    pages = _pattern_pages(_heavy_patterns(600))
+    answers = {f"q{i}": {"type": "text", "text": "abc"} for i in range(600)}
+    start = time.perf_counter()
+    assert _problems(pages, answers) == []
+    elapsed = time.perf_counter() - start
+    assert 1 <= len(compiled) <= answer_validation.PATTERN_COMPILES_PER_RESPONSE
+    assert elapsed < 5, f"{elapsed:.1f} s"
+
+
+def test_the_compile_budget_is_respected(monkeypatch):
+    answer_validation._CACHE.clear()
+    _fake_clock(monkeypatch)
+    compiled = _spy_compiles(monkeypatch)
     patterns = [f"^[0-9]{{{i}}}$" for i in range(1, 121)]
     pages = _pattern_pages(patterns)
     answers = {f"q{i}": {"type": "text", "text": "x"} for i in range(120)}
@@ -694,8 +759,33 @@ def test_the_time_budget_stops_pattern_checks():
     assert spent.unchecked == {"q0"}
 
 
-def test_presets_are_still_enforced():
+def test_the_time_budget_skips_the_remaining_patterns(monkeypatch):
+    # each compile and each match costs 0.1 s on the fake clock. Budget
+    # 0.25 s: q0 is compiled and matched (0.2 s), q1 compiled (0.3 s) but
+    # not matched, q2 to q9 neither compiled nor matched
+    assert answer_validation.PATTERN_SECONDS_PER_RESPONSE == 0.25
     answer_validation._CACHE.clear()
+    _fake_clock(monkeypatch, tick=0.1)
+    compiled = _spy_compiles(monkeypatch)
+    patterns = [f"^SECRETPATTERN{i}[0-9]+$" for i in range(10)]
+    pages = _pattern_pages(patterns)
+    answers = {f"q{i}": {"type": "text", "text": SECRET} for i in range(10)}
+    logged, sink = _capture()
+    try:
+        problems = _problems(pages, answers)
+    finally:
+        logger.remove(sink)
+    assert problems == [("q0", "pattern", None)]
+    assert compiled == patterns[:2]
+    text = "".join(logged)
+    assert "9 field(s) not checked" in text
+    assert "q1," in text and "q9" in text
+    assert "SECRETPATTERN" not in text and SECRET not in text
+
+
+def test_presets_are_still_enforced(monkeypatch):
+    answer_validation._CACHE.clear()
+    _fake_clock(monkeypatch)
     pages = _pattern_pages(PRESETS)
     answers = {f"q{i}": {"type": "text", "text": "!"} for i in range(len(PRESETS))}
     assert len(_problems(pages, answers)) == len(PRESETS)

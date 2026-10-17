@@ -18,6 +18,7 @@ from common.expressions import (
     is_valid_expression,
     validate_expression,
 )
+from common.expressions import evaluator
 from common.expressions.decimal_num import Dec
 
 CORPUS = (
@@ -163,13 +164,30 @@ def test_numeric_text_with_long_whitespace_runs():
 
 
 @pytest.mark.parametrize("size", [10000, 1000])
-def test_large_list_referenced_many_times_is_fast(size):
+def test_large_list_referenced_many_times_is_fast(size, monkeypatch):
     """A large list referenced ~500 times: over-cap input is dropped once and
     each variable is normalised once per evaluation."""
+    normalised, items = [], []
+    real_from_input = evaluator._from_input
+    real_scalar = evaluator._scalar_from_input
+    monkeypatch.setattr(
+        evaluator,
+        "_from_input",
+        lambda value: normalised.append(1) or real_from_input(value),
+    )
+    monkeypatch.setattr(
+        evaluator,
+        "_scalar_from_input",
+        lambda value: items.append(1) or real_scalar(value),
+    )
     ast = {"count": [{"var": "xs"} for _ in range(499)]}
     xs = list(range(size))
     started = time.perf_counter()
     result = evaluate_expression(ast, {"xs": xs})
     elapsed = time.perf_counter() - started
     assert result == (Decimal(0) if size > 1000 else Decimal(499 * size))
-    assert elapsed < 0.5
+    # normalised once; an over-cap list is dropped without reading its items
+    assert len(normalised) == 1
+    assert len(items) == (0 if size > 1000 else size)
+    # smoke check only, far above the expected time (shared CI runners vary)
+    assert elapsed < 5
