@@ -20,6 +20,7 @@ import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
+import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
@@ -229,6 +230,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             // (keyed by the item-scoped id the question renders under).
             ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {})
         };
+        // Answer rules (length, format, value range, number of options) on
+        // answers given; a missing one is Required's to report.
+        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {})).forEach(([id, problems]) => {
+            if (!invalidations[id]) invalidations[id] = problems as any;
+        });
         // Date rules (e.g. "after Start date"), on top of a missing answer.
         Object.entries(validateDateRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, getInputFieldsById(standardForm?.fields))).forEach(([id, problems]) => {
             invalidations[id] = [...(invalidations[id] ?? []), ...problems] as any;
