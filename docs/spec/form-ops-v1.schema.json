@@ -1,0 +1,4708 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bettercollected/bettercollected/develop/docs/spec/form-ops-v1.schema.json",
+  "x-editorOnlyOps": [
+    "add_choice",
+    "insert_field",
+    "insert_page",
+    "move_choice",
+    "remove_choice",
+    "replace_field",
+    "set_choice",
+    "set_hidden_fields",
+    "update_logo",
+    "update_page",
+    "update_welcome_page"
+  ],
+  "$defs": {
+    "ActionType": {
+      "enum": [
+        "jump_to_page",
+        "calculate",
+        "require_answer",
+        "show_fields",
+        "hide_fields"
+      ],
+      "title": "ActionType",
+      "type": "string"
+    },
+    "AddChoiceOp": {
+      "description": "Add a choice, its id kept, at ``index`` (default: the end).",
+      "properties": {
+        "op": {
+          "const": "add_choice",
+          "default": "add_choice",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "choice": {
+          "$ref": "#/$defs/EditorChoice"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        }
+      },
+      "required": [
+        "fieldId",
+        "choice"
+      ],
+      "title": "AddChoiceOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "AddFieldOp": {
+      "description": "Add a question to a page, or (with ``group_id``) into a repeating\ngroup, where it is asked once per item.",
+      "properties": {
+        "op": {
+          "const": "add_field",
+          "default": "add_field",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pageid"
+        },
+        "groupId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Groupid"
+        },
+        "field": {
+          "$ref": "#/$defs/NewFieldSpec"
+        },
+        "afterFieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Afterfieldid"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "AddFieldOp",
+      "type": "object"
+    },
+    "AddGroupOp": {
+      "description": "Create a repeating group on a page: child questions respondents fill\nonce per item (\"Applicant 1\", \"Applicant 2\", ...), between ``min_items``\nand ``max_items`` times.",
+      "properties": {
+        "op": {
+          "const": "add_group",
+          "default": "add_group",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "itemLabel": {
+          "default": "Item",
+          "title": "Itemlabel",
+          "type": "string"
+        },
+        "minItems": {
+          "default": 1,
+          "title": "Minitems",
+          "type": "integer"
+        },
+        "maxItems": {
+          "default": 3,
+          "title": "Maxitems",
+          "type": "integer"
+        },
+        "itemTitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Itemtitle"
+        },
+        "exportLayout": {
+          "anyOf": [
+            {
+              "enum": [
+                "columns",
+                "rows"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exportlayout"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/NewFieldSpec"
+          },
+          "maxItems": 100,
+          "title": "Fields",
+          "type": "array"
+        },
+        "afterFieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Afterfieldid"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        }
+      },
+      "required": [
+        "pageId",
+        "title"
+      ],
+      "title": "AddGroupOp",
+      "type": "object"
+    },
+    "AddPageOp": {
+      "properties": {
+        "op": {
+          "const": "add_page",
+          "default": "add_page",
+          "title": "Op",
+          "type": "string"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/NewFieldSpec"
+              },
+              "maxItems": 200,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        }
+      },
+      "title": "AddPageOp",
+      "type": "object"
+    },
+    "Comparison": {
+      "enum": [
+        "contains",
+        "does_not_contain",
+        "is_equal",
+        "is_not_equal",
+        "starts_with",
+        "ends_with",
+        "is_empty",
+        "is_not_empty",
+        "greater_than",
+        "less_than",
+        "greater_than_equal",
+        "less_than_equal"
+      ],
+      "title": "Comparison",
+      "type": "string"
+    },
+    "Condition": {
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConditionalType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Comparison"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "field": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFormField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Condition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "logical_operator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LogicalOperator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "field_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "Condition",
+      "type": "object"
+    },
+    "ConditionCamelModel": {
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConditionalType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Comparison"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "field": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFormField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Condition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "logicalOperator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LogicalOperator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fieldType": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "ConditionCamelModel",
+      "type": "object"
+    },
+    "ConditionalActions": {
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        }
+      },
+      "title": "ConditionalActions",
+      "type": "object"
+    },
+    "ConditionalActionsCamelModel": {
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        }
+      },
+      "title": "ConditionalActionsCamelModel",
+      "type": "object"
+    },
+    "ConditionalType": {
+      "enum": [
+        "single",
+        "nested"
+      ],
+      "title": "ConditionalType",
+      "type": "string"
+    },
+    "DateRule": {
+      "description": "One constraint on the answer of a ``date`` question, stored at\n``properties.date_rules``: the chosen date must be ``comparison``\n(before / after / on or before / on or after) a fixed ``date``\n(``YYYY-MM-DD``), ``today``, or the answer of another date question\n(``field_id``). Dates are compared as calendar dates, never as instants.\n\nA rule on another question applies only when that question is answered\nand not hidden by logic. Inside a repeating group a rule may only use a\nsibling of the same group (it then means \"this item's answer\"); outside\na group it may not use a group's questions. Cross-question checks need\nthe whole form: see :func:`date_rule_problems`. The webapp's twin is\n``webapp/src/utils/date-rules.ts``.",
+      "properties": {
+        "comparison": {
+          "enum": [
+            "before",
+            "after",
+            "on_or_before",
+            "on_or_after"
+          ],
+          "title": "Comparison",
+          "type": "string"
+        },
+        "target": {
+          "enum": [
+            "date",
+            "today",
+            "field"
+          ],
+          "title": "Target",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "fieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fieldid"
+        }
+      },
+      "required": [
+        "comparison",
+        "target"
+      ],
+      "title": "DateRule",
+      "type": "object"
+    },
+    "DateRuleSpec": {
+      "description": "A date question's constraint: its answer must be ``comparison`` a\nfixed ``date`` (YYYY-MM-DD), ``today`` or the answer of another date\nquestion (``fieldId``; inside a repeating group a sibling of the same\ngroup, outside a group never a group's question).",
+      "properties": {
+        "comparison": {
+          "enum": [
+            "before",
+            "after",
+            "on_or_before",
+            "on_or_after"
+          ],
+          "title": "Comparison",
+          "type": "string"
+        },
+        "target": {
+          "enum": [
+            "date",
+            "today",
+            "field"
+          ],
+          "title": "Target",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "fieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fieldid"
+        }
+      },
+      "required": [
+        "comparison",
+        "target"
+      ],
+      "title": "DateRuleSpec",
+      "type": "object"
+    },
+    "DuplicatePageOp": {
+      "description": "Clone a page with all its fields (fresh ids everywhere). In-page logic\nreferences are remapped to the cloned fields.",
+      "properties": {
+        "op": {
+          "const": "duplicate_page",
+          "default": "duplicate_page",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        }
+      },
+      "required": [
+        "pageId"
+      ],
+      "title": "DuplicatePageOp",
+      "type": "object"
+    },
+    "EditorChoice": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldAttachment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "EditorChoice",
+      "type": "object"
+    },
+    "EditorField": {
+      "$ref": "#/$defs/StandardFormFieldCamelModel",
+      "description": "A question or page as the form editor holds it (camelCase), read and checked as a whole-form save reads it."
+    },
+    "EmbedProvider": {
+      "enum": [
+        "youtube",
+        "vimeo",
+        "no_embed"
+      ],
+      "title": "EmbedProvider",
+      "type": "string"
+    },
+    "FieldLogic": {
+      "description": "v2 conditional-visibility rule stored on a field at ``properties.logic``.\nKept as plain strings (action ``SHOW``/``HIDE``, operator ``AND``/``OR``,\ncomparison enum values) so it round-trips the webapp shape verbatim without\nenum-casing coupling. See webapp ``utils/conditional-logic.ts``.",
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action"
+        },
+        "operator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FieldLogicCondition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        }
+      },
+      "title": "FieldLogic",
+      "type": "object"
+    },
+    "FieldLogicCondition": {
+      "description": "A single condition in a v2 field conditional-visibility rule.",
+      "properties": {
+        "fieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fieldid"
+        },
+        "fieldType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fieldtype"
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comparison"
+        },
+        "value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "groupMode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Groupmode"
+        },
+        "childFieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Childfieldid"
+        },
+        "childFieldType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Childfieldtype"
+        }
+      },
+      "title": "FieldLogicCondition",
+      "type": "object"
+    },
+    "FieldLogicSpec": {
+      "properties": {
+        "action": {
+          "enum": [
+            "SHOW",
+            "HIDE"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "operator": {
+          "default": "AND",
+          "enum": [
+            "AND",
+            "OR"
+          ],
+          "title": "Operator",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/LogicConditionSpec"
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "action",
+        "conditions"
+      ],
+      "title": "FieldLogicSpec",
+      "type": "object"
+    },
+    "FieldPatch": {
+      "description": "Partial update of an existing field. Absent = unchanged. The\n``*_items`` / ``item_*`` / ``export_layout`` keys only apply to\nrepeating groups.",
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choices"
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Steps"
+        },
+        "startFrom": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startfrom"
+        },
+        "colSpan": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Colspan"
+        },
+        "internal": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Internal"
+        },
+        "minItems": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minitems"
+        },
+        "maxItems": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxitems"
+        },
+        "itemLabel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Itemlabel"
+        },
+        "itemTitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Itemtitle"
+        },
+        "exportLayout": {
+          "anyOf": [
+            {
+              "enum": [
+                "columns",
+                "rows"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exportlayout"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "dateRules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DateRuleSpec"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Daterules"
+        },
+        "whyWeAsk": {
+          "anyOf": [
+            {
+              "maxLength": 280,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Whyweask"
+        }
+      },
+      "title": "FieldPatch",
+      "type": "object"
+    },
+    "FieldPosition": {
+      "description": "Flow-view canvas coordinates of a page node. Cosmetic only.",
+      "properties": {
+        "x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X"
+        },
+        "y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y"
+        }
+      },
+      "title": "FieldPosition",
+      "type": "object"
+    },
+    "FieldType": {
+      "enum": [
+        "single",
+        "matrix"
+      ],
+      "title": "FieldType",
+      "type": "string"
+    },
+    "FieldValidationPatch": {
+      "description": "Answer constraints of a question. Absent = unchanged, null = cleared.\n``preset`` picks a named pattern (VALIDATION_PRESETS); ``pattern`` is\na regular expression of your own.",
+      "properties": {
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "minLength": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minlength"
+        },
+        "maxLength": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxlength"
+        },
+        "minValue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minvalue"
+        },
+        "maxValue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxvalue"
+        },
+        "minChoices": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minchoices"
+        },
+        "maxChoices": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxchoices"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pattern"
+        },
+        "preset": {
+          "anyOf": [
+            {
+              "enum": [
+                "digits",
+                "letters",
+                "alphanumeric"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preset"
+        }
+      },
+      "title": "FieldValidationPatch",
+      "type": "object"
+    },
+    "FormBuilderTagTypes": {
+      "enum": [
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "p",
+        "strong",
+        "divider",
+        "input_short_text",
+        "input_markdown",
+        "input_long_text",
+        "input_multiple_choice",
+        "input_multiselect",
+        "input_checkboxes",
+        "input_email",
+        "input_number",
+        "input_phone_number",
+        "input_link",
+        "input_date",
+        "input_time",
+        "input_date_range",
+        "input_time_range",
+        "input_datetime_range",
+        "input_dropdown",
+        "input_rating",
+        "input_linear_scale",
+        "input_template_button",
+        "input_file_upload",
+        "input_ranking",
+        "input_matrix"
+      ],
+      "title": "FormBuilderTagTypes",
+      "type": "string"
+    },
+    "FormSettingsPatch": {
+      "description": "AI-editable form settings — the Form tab's metadata.\n\nDeliberately a SUBSET of SettingsPatchDto: trust-layer text and\nresponse-behaviour toggles. Distribution/visibility (hidden, private,\npinned, custom URL, close date) stays human-only — an ambiguous chat\ninstruction must never unpublish or hide a form.",
+      "properties": {
+        "purpose": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purpose"
+        },
+        "retentionText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retentiontext"
+        },
+        "privacyPolicyUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Privacypolicyurl"
+        },
+        "requireVerifiedIdentity": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requireverifiedidentity"
+        },
+        "allowEditingResponse": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alloweditingresponse"
+        },
+        "showSubmissionNumber": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showsubmissionnumber"
+        }
+      },
+      "title": "FormSettingsPatch",
+      "type": "object"
+    },
+    "InsertFieldOp": {
+      "description": "Insert a complete question, its id kept, on a page at ``index`` (or,\nwith ``group_id``, into that repeating group).",
+      "properties": {
+        "op": {
+          "const": "insert_field",
+          "default": "insert_field",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pageid"
+        },
+        "groupId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Groupid"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "field": {
+          "$ref": "#/$defs/EditorField"
+        }
+      },
+      "required": [
+        "index",
+        "field"
+      ],
+      "title": "InsertFieldOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "InsertPageOp": {
+      "description": "Insert a complete page (type ``slide``, its questions included), ids\nkept, at ``index`` among the question pages.",
+      "properties": {
+        "op": {
+          "const": "insert_page",
+          "default": "insert_page",
+          "title": "Op",
+          "type": "string"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "page": {
+          "$ref": "#/$defs/EditorField"
+        }
+      },
+      "required": [
+        "index",
+        "page"
+      ],
+      "title": "InsertPageOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "LayoutType": {
+      "enum": [
+        "TWO_COLUMN_IMAGE_LEFT",
+        "TWO_COLUMN_IMAGE_RIGHT",
+        "SINGLE_COLUMN_IMAGE_BACKGROUND",
+        "SINGLE_COLUMN_NO_BACKGROUND",
+        "SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN"
+      ],
+      "title": "LayoutType",
+      "type": "string"
+    },
+    "LogicConditionSpec": {
+      "description": "One condition of a visibility rule / page jump. Mirrors the builder's\nlogic editor exactly: choice conditions carry the choice LABEL, yes/no\ncarries \"Yes\"/\"No\" (see webapp condition-editor-shared.tsx).",
+      "properties": {
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "comparison": {
+          "enum": [
+            "IS_EMPTY",
+            "IS_NOT_EMPTY",
+            "IS_EQUAL",
+            "IS_NOT_EQUAL",
+            "CONTAINS",
+            "DOES_NOT_CONTAIN",
+            "LESS_THAN",
+            "LESS_THAN_EQUAL",
+            "GREATER_THAN",
+            "GREATER_THAN_EQUAL",
+            "STARTS_WITH",
+            "ENDS_WITH"
+          ],
+          "title": "Comparison",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "groupMode": {
+          "anyOf": [
+            {
+              "enum": [
+                "COUNT",
+                "ANY",
+                "ALL"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Groupmode"
+        },
+        "childFieldId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Childfieldid"
+        }
+      },
+      "required": [
+        "fieldId",
+        "comparison"
+      ],
+      "title": "LogicConditionSpec",
+      "type": "object"
+    },
+    "LogicalOperator": {
+      "enum": [
+        "and",
+        "or"
+      ],
+      "title": "LogicalOperator",
+      "type": "string"
+    },
+    "MoveChoiceOp": {
+      "properties": {
+        "op": {
+          "const": "move_choice",
+          "default": "move_choice",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "choiceId": {
+          "title": "Choiceid",
+          "type": "string"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fieldId",
+        "choiceId",
+        "index"
+      ],
+      "title": "MoveChoiceOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "MoveFieldOp": {
+      "description": "Move a question within its page, to another page (``to_page_id``)\nor into a repeating group (``to_group_id``), at ``index`` (default: the\nend).",
+      "properties": {
+        "op": {
+          "const": "move_field",
+          "default": "move_field",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "toPageId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topageid"
+        },
+        "toGroupId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Togroupid"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        }
+      },
+      "required": [
+        "fieldId"
+      ],
+      "title": "MoveFieldOp",
+      "type": "object"
+    },
+    "MovePageOp": {
+      "description": "Move a question page to ``index`` (0-based among the question\npages; past the end = last).",
+      "properties": {
+        "op": {
+          "const": "move_page",
+          "default": "move_page",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pageId",
+        "index"
+      ],
+      "title": "MovePageOp",
+      "type": "object"
+    },
+    "NewFieldSpec": {
+      "description": "What the AI supplies to create a field.",
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/StandardFormFieldType"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choices"
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Steps"
+        },
+        "startFrom": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startfrom"
+        },
+        "colSpan": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Colspan"
+        },
+        "internal": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Internal"
+        },
+        "allowMultiple": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allowmultiple"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "whyWeAsk": {
+          "anyOf": [
+            {
+              "maxLength": 280,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Whyweask"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        }
+      },
+      "required": [
+        "title",
+        "type"
+      ],
+      "title": "NewFieldSpec",
+      "type": "object"
+    },
+    "PageJump": {
+      "description": "v2 page-jump / branching rule stored on a slide at ``properties.jumps``.\n``target`` is a slide id or the sentinel ``__SUBMIT__``. Plain strings, same\nrationale as :class:`FieldLogic`.",
+      "properties": {
+        "operator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FieldLogicCondition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        }
+      },
+      "title": "PageJump",
+      "type": "object"
+    },
+    "PageJumpSpec": {
+      "properties": {
+        "operator": {
+          "default": "AND",
+          "enum": [
+            "AND",
+            "OR"
+          ],
+          "title": "Operator",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/LogicConditionSpec"
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conditions",
+        "target"
+      ],
+      "title": "PageJumpSpec",
+      "type": "object"
+    },
+    "PagePatch": {
+      "additionalProperties": false,
+      "properties": {
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayoutType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "position": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldPosition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "showQuestionNumbers": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showquestionnumbers"
+        },
+        "sectionTitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sectiontitle"
+        }
+      },
+      "title": "PagePatch",
+      "type": "object"
+    },
+    "RemoveChoiceOp": {
+      "properties": {
+        "op": {
+          "const": "remove_choice",
+          "default": "remove_choice",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "choiceId": {
+          "title": "Choiceid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fieldId",
+        "choiceId"
+      ],
+      "title": "RemoveChoiceOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "RemoveFieldOp": {
+      "properties": {
+        "op": {
+          "const": "remove_field",
+          "default": "remove_field",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fieldId"
+      ],
+      "title": "RemoveFieldOp",
+      "type": "object"
+    },
+    "RemovePageOp": {
+      "properties": {
+        "op": {
+          "const": "remove_page",
+          "default": "remove_page",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pageId"
+      ],
+      "title": "RemovePageOp",
+      "type": "object"
+    },
+    "RepeatSettings": {
+      "description": "Makes a ``group`` field repeatable: respondents fill its child questions\nonce per item (one block per applicant, employer, ...), between\n``min_items`` and ``max_items`` times. ``item_label`` names one item\n(\"Applicant\") and labels the add button; ``item_title`` is an optional\nheader template that may pipe a sibling answer (``{{field:<child id>}}``).\n``export_layout`` overrides the default export shape (columns per item\nwhen ``max_items <= 5``, else a separate table of rows).",
+      "properties": {
+        "minItems": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "title": "Minitems"
+        },
+        "maxItems": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 3,
+          "title": "Maxitems"
+        },
+        "itemLabel": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Itemlabel"
+        },
+        "itemTitle": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Itemtitle"
+        },
+        "exportLayout": {
+          "anyOf": [
+            {
+              "enum": [
+                "columns",
+                "rows"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exportlayout"
+        }
+      },
+      "title": "RepeatSettings",
+      "type": "object"
+    },
+    "ReplaceFieldOp": {
+      "description": "Replace the question with ``field.id`` by ``field``, where it is.",
+      "properties": {
+        "op": {
+          "const": "replace_field",
+          "default": "replace_field",
+          "title": "Op",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/EditorField"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "ReplaceFieldOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "SetChoiceOp": {
+      "properties": {
+        "op": {
+          "const": "set_choice",
+          "default": "set_choice",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "choiceId": {
+          "title": "Choiceid",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "fieldId",
+        "choiceId"
+      ],
+      "title": "SetChoiceOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "SetFieldLogicOp": {
+      "description": "Conditional visibility on a field (\"show X only when Y = ...\"). The\nrule lives on the TARGET field; conditions reference earlier answers.\n``logic: null`` clears the rule.",
+      "properties": {
+        "op": {
+          "const": "set_field_logic",
+          "default": "set_field_logic",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldLogicSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "fieldId"
+      ],
+      "title": "SetFieldLogicOp",
+      "type": "object"
+    },
+    "SetFieldValidationOp": {
+      "properties": {
+        "op": {
+          "const": "set_field_validation",
+          "default": "set_field_validation",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "validation": {
+          "$ref": "#/$defs/FieldValidationPatch"
+        }
+      },
+      "required": [
+        "fieldId",
+        "validation"
+      ],
+      "title": "SetFieldValidationOp",
+      "type": "object"
+    },
+    "SetHiddenFieldsOp": {
+      "description": "The form's hidden fields (URL parameter names), as a whole. Pipes of\nnames no longer listed are removed from question titles.",
+      "properties": {
+        "op": {
+          "const": "set_hidden_fields",
+          "default": "set_hidden_fields",
+          "title": "Op",
+          "type": "string"
+        },
+        "names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Names",
+          "type": "array"
+        }
+      },
+      "required": [
+        "names"
+      ],
+      "title": "SetHiddenFieldsOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "SetPageJumpsOp": {
+      "description": "Branching: after this page, jump to a target page (or submit) when the\nconditions match; first matching jump wins, no match = next page.\n``jumps: null`` clears.",
+      "properties": {
+        "op": {
+          "const": "set_page_jumps",
+          "default": "set_page_jumps",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "jumps": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PageJumpSpec"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jumps"
+        }
+      },
+      "required": [
+        "pageId"
+      ],
+      "title": "SetPageJumpsOp",
+      "type": "object"
+    },
+    "SetQuestionNumberingOp": {
+      "description": "Number the questions of one page (``page_id``) or of every page.",
+      "properties": {
+        "op": {
+          "const": "set_question_numbering",
+          "default": "set_question_numbering",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pageid"
+        },
+        "show": {
+          "title": "Show",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "show"
+      ],
+      "title": "SetQuestionNumberingOp",
+      "type": "object"
+    },
+    "SetSectionTitleOp": {
+      "description": "Name a question page's section (``properties.sectionTitle``): what\nthe Leaflet section bar and the welcome page's contents list show for\nthe page, before its opening heading and its first question. The page is\ngiven by ``page_id`` or by ``page_index`` (0-based, among the question\npages, the ``index`` of the form snapshot). ``title`` null or \"\" clears\nit. The welcome page and the ending have no section title.\n\nThe length is checked when the op is applied, not when it is parsed, so\none long title fails alone instead of the whole turn.",
+      "properties": {
+        "op": {
+          "const": "set_section_title",
+          "default": "set_section_title",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pageid"
+        },
+        "pageIndex": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pageindex"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "title": "SetSectionTitleOp",
+      "type": "object"
+    },
+    "SetThemePresetOp": {
+      "description": "Dress the form in one of the theme presets (constants/themes.py), by\nname (any case), as the builder's theme picker does: the preset's\ncolours, no background, and its own style if it has one (Leaflet), else\nthe form's current style. ``style`` sets the style instead\n(constants/themes.py THEME_STYLES). Both are checked when the op is\napplied, so an unknown name fails alone instead of the whole turn.",
+      "properties": {
+        "op": {
+          "const": "set_theme_preset",
+          "default": "set_theme_preset",
+          "title": "Op",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 60,
+          "title": "Name",
+          "type": "string"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "maxLength": 30,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Style"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "SetThemePresetOp",
+      "type": "object"
+    },
+    "StandardAttachmentProperties": {
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        }
+      },
+      "title": "StandardAttachmentProperties",
+      "type": "object"
+    },
+    "StandardAttachmentType": {
+      "enum": [
+        "image",
+        "video"
+      ],
+      "title": "StandardAttachmentType",
+      "type": "string"
+    },
+    "StandardChoice": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldAttachment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "StandardChoice",
+      "type": "object"
+    },
+    "StandardFieldAttachment": {
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardAttachmentType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "href": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Href"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "properties": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardAttachmentProperties"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": {
+            "description": null
+          }
+        },
+        "embed_provider": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EmbedProvider"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "StandardFieldAttachment",
+      "type": "object"
+    },
+    "StandardFieldProperty": {
+      "properties": {
+        "hidden": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidden"
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldLogic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "jumps": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PageJump"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jumps"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldPosition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/StandardChoice"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choices"
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/StandardFormField"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "allowMultipleSelection": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allowmultipleselection"
+        },
+        "allowOtherChoice": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allowotherchoice"
+        },
+        "hideMarks": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidemarks"
+        },
+        "buttonText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttontext"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Steps"
+        },
+        "startFrom": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startfrom"
+        },
+        "ratingShape": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ratingshape"
+        },
+        "labels": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Labels"
+        },
+        "dateFormat": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dateformat"
+        },
+        "actions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ConditionalActions"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actions"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Condition"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "logicalOperator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LogicalOperator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "updateId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updateid"
+        },
+        "mentions": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mentions"
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayoutType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rowTitles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rowtitles"
+        },
+        "columnTitles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columntitles"
+        },
+        "tabularValue": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tabularvalue"
+        },
+        "colSpan": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Colspan"
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RepeatSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "dateRules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DateRule"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Daterules"
+        },
+        "whyWeAsk": {
+          "anyOf": [
+            {
+              "maxLength": 280,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Whyweask"
+        },
+        "sectionTitle": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sectiontitle"
+        },
+        "showQuestionNumbers": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showquestionnumbers"
+        }
+      },
+      "title": "StandardFieldProperty",
+      "type": "object"
+    },
+    "StandardFieldPropertyCamelModel": {
+      "properties": {
+        "hidden": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidden"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/StandardChoice"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choices"
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/StandardFormFieldCamelModel"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "allowMultipleSelection": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allowmultipleselection"
+        },
+        "allowOtherChoice": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allowotherchoice"
+        },
+        "hideMarks": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidemarks"
+        },
+        "buttonText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttontext"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Steps"
+        },
+        "startFrom": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startfrom"
+        },
+        "ratingShape": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ratingshape"
+        },
+        "labels": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Labels"
+        },
+        "dateFormat": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dateformat"
+        },
+        "updateId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updateid"
+        },
+        "actions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ConditionalActionsCamelModel"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actions"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ConditionCamelModel"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "logicalOperator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LogicalOperator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldLogic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "jumps": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PageJump"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jumps"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldPosition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mentions": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mentions"
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayoutType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rowTitles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rowtitles"
+        },
+        "columnTitles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columntitles"
+        },
+        "tabularValue": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tabularvalue"
+        },
+        "colSpan": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Colspan"
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RepeatSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "dateRules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DateRule"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Daterules"
+        },
+        "whyWeAsk": {
+          "anyOf": [
+            {
+              "maxLength": 280,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Whyweask"
+        },
+        "sectionTitle": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sectiontitle"
+        },
+        "showQuestionNumbers": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showquestionnumbers"
+        }
+      },
+      "title": "StandardFieldPropertyCamelModel",
+      "type": "object"
+    },
+    "StandardFieldValidations": {
+      "properties": {
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "max_length": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Length"
+        },
+        "min_length": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Length"
+        },
+        "min_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Value"
+        },
+        "max_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Value"
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regex"
+        },
+        "min_choices": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Choices"
+        },
+        "max_choices": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Choices"
+        }
+      },
+      "title": "StandardFieldValidations",
+      "type": "object"
+    },
+    "StandardFieldValidationsCamelModal": {
+      "properties": {
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "maxLength": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxlength"
+        },
+        "minLength": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minlength"
+        },
+        "minValue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minvalue"
+        },
+        "maxValue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxvalue"
+        },
+        "minChoices": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minchoices"
+        },
+        "maxChoices": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxchoices"
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regex"
+        }
+      },
+      "title": "StandardFieldValidationsCamelModal",
+      "type": "object"
+    },
+    "StandardFormField": {
+      "description": "Data transfer object for Fields in a standard form.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFormFieldType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FormBuilderTagTypes"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "properties": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldProperty"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldValidations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldAttachment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "image_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Url"
+        },
+        "internal": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Internal"
+        }
+      },
+      "title": "StandardFormField",
+      "type": "object"
+    },
+    "StandardFormFieldCamelModel": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFormFieldType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FormBuilderTagTypes"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "properties": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldPropertyCamelModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "validations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldValidationsCamelModal"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StandardFieldAttachment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        },
+        "internal": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Internal"
+        }
+      },
+      "title": "StandardFormFieldCamelModel",
+      "type": "object"
+    },
+    "StandardFormFieldType": {
+      "enum": [
+        "slide",
+        "date",
+        "short_text",
+        "long_text",
+        "multiple_choice",
+        "opinion_scale",
+        "ranking",
+        "rating",
+        "dropdown",
+        "matrix",
+        "tabular_input",
+        "file_upload",
+        "group",
+        "email",
+        "payment",
+        "statement",
+        "page_break",
+        "calculated",
+        "hidden",
+        "conditional",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "p",
+        "strong",
+        "divider",
+        "markdown",
+        "input_short_text",
+        "input_long_text",
+        "input_markdown",
+        "input_multiple_choice",
+        "input_multiselect",
+        "input_checkboxes",
+        "input_email",
+        "input_number",
+        "input_phone_number",
+        "input_link",
+        "input_date",
+        "input_time",
+        "input_date_range",
+        "input_time_range",
+        "input_datetime_range",
+        "input_dropdown",
+        "input_rating",
+        "input_linear_scale",
+        "input_template_button",
+        "input_file_upload",
+        "input_ranking",
+        "input_matrix",
+        "text",
+        "yes_no",
+        "url",
+        "linear_rating",
+        "phone_number",
+        "number",
+        "VIDEO_CONTENT",
+        "IMAGE_CONTENT",
+        "date_input",
+        "email_input",
+        "number_input",
+        "short_text_input",
+        "long_text_input",
+        "multiple_choice_input",
+        "ranking_input",
+        "rating_input",
+        "drop_down_input",
+        "media_input",
+        "matrix_row_input"
+      ],
+      "title": "StandardFormFieldType",
+      "type": "string"
+    },
+    "Theme": {
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "primary": {
+          "title": "Primary",
+          "type": "string"
+        },
+        "secondary": {
+          "title": "Secondary",
+          "type": "string"
+        },
+        "tertiary": {
+          "title": "Tertiary",
+          "type": "string"
+        },
+        "accent": {
+          "title": "Accent",
+          "type": "string"
+        },
+        "background": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThemeBackground"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Style"
+        }
+      },
+      "required": [
+        "title",
+        "primary",
+        "secondary",
+        "tertiary",
+        "accent"
+      ],
+      "title": "Theme",
+      "type": "object"
+    },
+    "ThemeBackground": {
+      "description": "Optional page-ground decoration. Field names are camelCase on purpose:\nthe webapp sends the theme verbatim inside the form JSON (no camel<->snake\nconversion happens for this nested object), and the same shape round-trips\nback out. Lenient here — strict validation lives on the workspace\ntheme-presets endpoint where themes are authored.",
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type"
+        },
+        "gradientFrom": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gradientfrom"
+        },
+        "gradientTo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gradientto"
+        },
+        "gradientAngle": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gradientangle"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pattern"
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        }
+      },
+      "title": "ThemeBackground",
+      "type": "object"
+    },
+    "UpdateFieldOp": {
+      "properties": {
+        "op": {
+          "const": "update_field",
+          "default": "update_field",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "patch": {
+          "$ref": "#/$defs/FieldPatch"
+        }
+      },
+      "required": [
+        "fieldId",
+        "patch"
+      ],
+      "title": "UpdateFieldOp",
+      "type": "object"
+    },
+    "UpdateFormInfoOp": {
+      "properties": {
+        "op": {
+          "const": "update_form_info",
+          "default": "update_form_info",
+          "title": "Op",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        }
+      },
+      "title": "UpdateFormInfoOp",
+      "type": "object"
+    },
+    "UpdateFormSettingsOp": {
+      "properties": {
+        "op": {
+          "const": "update_form_settings",
+          "default": "update_form_settings",
+          "title": "Op",
+          "type": "string"
+        },
+        "patch": {
+          "$ref": "#/$defs/FormSettingsPatch"
+        }
+      },
+      "required": [
+        "patch"
+      ],
+      "title": "UpdateFormSettingsOp",
+      "type": "object"
+    },
+    "UpdateLogoOp": {
+      "description": "The logo's settings. The logo itself only changes by an upload.",
+      "properties": {
+        "op": {
+          "const": "update_logo",
+          "default": "update_logo",
+          "title": "Op",
+          "type": "string"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "left",
+                "center"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        },
+        "alt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alt"
+        },
+        "useWorkspaceLogo": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Useworkspacelogo"
+        }
+      },
+      "title": "UpdateLogoOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "UpdatePageOp": {
+      "properties": {
+        "op": {
+          "const": "update_page",
+          "default": "update_page",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "patch": {
+          "$ref": "#/$defs/PagePatch"
+        }
+      },
+      "required": [
+        "pageId",
+        "patch"
+      ],
+      "title": "UpdatePageOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "UpdateThemeOp": {
+      "properties": {
+        "op": {
+          "const": "update_theme",
+          "default": "update_theme",
+          "title": "Op",
+          "type": "string"
+        },
+        "theme": {
+          "$ref": "#/$defs/Theme"
+        }
+      },
+      "required": [
+        "theme"
+      ],
+      "title": "UpdateThemeOp",
+      "type": "object"
+    },
+    "UpdateWelcomePageOp": {
+      "properties": {
+        "op": {
+          "const": "update_welcome_page",
+          "default": "update_welcome_page",
+          "title": "Op",
+          "type": "string"
+        },
+        "patch": {
+          "$ref": "#/$defs/WelcomePagePatch"
+        }
+      },
+      "required": [
+        "patch"
+      ],
+      "title": "UpdateWelcomePageOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
+    "WelcomePagePatch": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayoutType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "imageUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imageurl"
+        },
+        "buttonText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buttontext"
+        }
+      },
+      "title": "WelcomePagePatch",
+      "type": "object"
+    }
+  },
+  "description": "Envelope for parsing an AI/MCP payload of operations.",
+  "properties": {
+    "ops": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "add_choice": "#/$defs/AddChoiceOp",
+            "add_field": "#/$defs/AddFieldOp",
+            "add_group": "#/$defs/AddGroupOp",
+            "add_page": "#/$defs/AddPageOp",
+            "duplicate_page": "#/$defs/DuplicatePageOp",
+            "insert_field": "#/$defs/InsertFieldOp",
+            "insert_page": "#/$defs/InsertPageOp",
+            "move_choice": "#/$defs/MoveChoiceOp",
+            "move_field": "#/$defs/MoveFieldOp",
+            "move_page": "#/$defs/MovePageOp",
+            "remove_choice": "#/$defs/RemoveChoiceOp",
+            "remove_field": "#/$defs/RemoveFieldOp",
+            "remove_page": "#/$defs/RemovePageOp",
+            "replace_field": "#/$defs/ReplaceFieldOp",
+            "set_choice": "#/$defs/SetChoiceOp",
+            "set_field_logic": "#/$defs/SetFieldLogicOp",
+            "set_field_validation": "#/$defs/SetFieldValidationOp",
+            "set_hidden_fields": "#/$defs/SetHiddenFieldsOp",
+            "set_page_jumps": "#/$defs/SetPageJumpsOp",
+            "set_question_numbering": "#/$defs/SetQuestionNumberingOp",
+            "set_section_title": "#/$defs/SetSectionTitleOp",
+            "set_theme_preset": "#/$defs/SetThemePresetOp",
+            "update_field": "#/$defs/UpdateFieldOp",
+            "update_form_info": "#/$defs/UpdateFormInfoOp",
+            "update_form_settings": "#/$defs/UpdateFormSettingsOp",
+            "update_logo": "#/$defs/UpdateLogoOp",
+            "update_page": "#/$defs/UpdatePageOp",
+            "update_theme": "#/$defs/UpdateThemeOp",
+            "update_welcome_page": "#/$defs/UpdateWelcomePageOp"
+          },
+          "propertyName": "op"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/AddFieldOp"
+          },
+          {
+            "$ref": "#/$defs/AddGroupOp"
+          },
+          {
+            "$ref": "#/$defs/UpdateFieldOp"
+          },
+          {
+            "$ref": "#/$defs/RemoveFieldOp"
+          },
+          {
+            "$ref": "#/$defs/MoveFieldOp"
+          },
+          {
+            "$ref": "#/$defs/AddPageOp"
+          },
+          {
+            "$ref": "#/$defs/RemovePageOp"
+          },
+          {
+            "$ref": "#/$defs/UpdateFormInfoOp"
+          },
+          {
+            "$ref": "#/$defs/UpdateFormSettingsOp"
+          },
+          {
+            "$ref": "#/$defs/SetFieldLogicOp"
+          },
+          {
+            "$ref": "#/$defs/SetPageJumpsOp"
+          },
+          {
+            "$ref": "#/$defs/DuplicatePageOp"
+          },
+          {
+            "$ref": "#/$defs/UpdateThemeOp"
+          },
+          {
+            "$ref": "#/$defs/SetThemePresetOp"
+          },
+          {
+            "$ref": "#/$defs/SetSectionTitleOp"
+          },
+          {
+            "$ref": "#/$defs/MovePageOp"
+          },
+          {
+            "$ref": "#/$defs/SetFieldValidationOp"
+          },
+          {
+            "$ref": "#/$defs/SetQuestionNumberingOp"
+          },
+          {
+            "$ref": "#/$defs/InsertFieldOp"
+          },
+          {
+            "$ref": "#/$defs/ReplaceFieldOp"
+          },
+          {
+            "$ref": "#/$defs/InsertPageOp"
+          },
+          {
+            "$ref": "#/$defs/UpdatePageOp"
+          },
+          {
+            "$ref": "#/$defs/UpdateWelcomePageOp"
+          },
+          {
+            "$ref": "#/$defs/SetHiddenFieldsOp"
+          },
+          {
+            "$ref": "#/$defs/UpdateLogoOp"
+          },
+          {
+            "$ref": "#/$defs/SetChoiceOp"
+          },
+          {
+            "$ref": "#/$defs/AddChoiceOp"
+          },
+          {
+            "$ref": "#/$defs/RemoveChoiceOp"
+          },
+          {
+            "$ref": "#/$defs/MoveChoiceOp"
+          }
+        ]
+      },
+      "title": "Ops",
+      "type": "array"
+    }
+  },
+  "required": [
+    "ops"
+  ],
+  "title": "BetterCollected form edit operations v1",
+  "type": "object"
+}

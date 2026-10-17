@@ -17,6 +17,7 @@ Contract:
   through ``StandardForm`` — the model proposes, the schema disposes.
 """
 
+import json
 import uuid
 from contextvars import ContextVar
 from typing import (
@@ -43,31 +44,53 @@ from common.models.standard_form import (
     DateRule,
     FieldLogic,
     FieldLogicCondition,
+    FieldPosition,
     LayoutType,
+    LOGO_ALT_MAX_LENGTH,
     PageJump,
     REPEAT_CHILD_FIELD_TYPES,
     RepeatSettings,
     StandardChoice,
+    StandardFieldAttachment,
     StandardFieldProperty,
     StandardFieldValidations,
     StandardForm,
     StandardFormField,
     StandardFormFieldType,
     Theme,
+    WelcomePageField,
     date_rule_problems,
     prune_date_rules,
     SECTION_TITLE_MAX_LENGTH,
     WHY_WE_ASK_MAX_LENGTH,
 )
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    WithJsonSchema,
+    field_validator,
+    model_validator,
+)
+from pydantic_core import PydanticCustomError
 
 from backend.app.constants.themes import (
     THEME_STYLES,
     preset_name,
     themes as THEME_PRESETS,
 )
-from backend.app.services.image_urls import checked_image_url
-from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
+from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
+from backend.app.services.image_urls import (
+    IMAGE_URL_ERROR,
+    checked_image_url,
+    first_party_image_url,
+)
+from backend.app.services.internal_fields import (
+    INTERNAL_CAPABLE_TYPES,
+    internal_logic_violations,
+)
 from backend.app.services.policy_url import checked_policy_url
 from pydantic.alias_generators import to_camel
 
@@ -179,7 +202,9 @@ class FieldPatch(_CamelModel):
     ``*_items`` / ``item_*`` / ``export_layout`` keys only apply to
     repeating groups."""
 
-    title: Optional[str] = None
+    # Plain text. The form editor may also send a rich-text (TipTap)
+    # document (see _check_title); nobody else may.
+    title: Optional[Union[str, Dict[str, Any]]] = None
     description: Optional[str] = None
     required: Optional[bool] = None
     placeholder: Optional[str] = None
@@ -199,6 +224,17 @@ class FieldPatch(_CamelModel):
     date_rules: Optional[List[DateRuleSpec]] = None
     # "Why we ask this" line under the question ("" clears).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def _plain_title_outside_the_editor(cls, value: Any, info: ValidationInfo) -> Any:
+        if isinstance(value, dict) and not (info.context or {}).get(EDITOR_CONTEXT):
+            raise PydanticCustomError(
+                "rich_text_title",
+                "A title must be plain text here; rich-text titles come only "
+                "from the form editor.",
+            )
+        return value
 
 
 class AddFieldOp(_CamelModel):
@@ -453,6 +489,187 @@ class SetSectionTitleOp(_CamelModel):
     title: Optional[str] = None
 
 
+# ===========================================================================
+# Editor ops: models
+#
+# Lossless, id-addressed edits for the form editor. The editor sends whole
+# questions and pages with the ids it chose, and these ops keep every id and
+# every property they are given. They are checked like a whole-form save
+# (PATCH .../forms/{form_id}) and refused everywhere else for now: a payload
+# is parsed with them only when the caller passes ``allow_editor_ops=True`` to
+# parse_ops (EDITOR_ONLY_OPS). Handlers: "Editor ops: handlers" below.
+# ===========================================================================
+
+# Validation context key that admits the editor ops (see parse_ops).
+EDITOR_CONTEXT = "editor_ops"
+
+
+class _EditorOp(_CamelModel):
+    """An op only the form editor may send."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _editor_only(cls, data: Any, info: ValidationInfo) -> Any:
+        if not (info.context or {}).get(EDITOR_CONTEXT):
+            raise PydanticCustomError(
+                "editor_only_op",
+                "The operation '{op}' is only available in the form editor; "
+                "it cannot be used here.",
+                {"op": cls.model_fields["op"].default},
+            )
+        return data
+
+
+# A question or page as the editor holds it (the camelCase shape a
+# whole-form save takes, StandardFormFieldCamelModel). Read when the op is
+# applied, so a refused one fails alone.
+EDITOR_FIELD_DEF = "EditorField"
+EditorFieldPayload = Annotated[
+    Dict[str, Any],
+    # ops_schema.py points this at the EditorField definition
+    WithJsonSchema({"type": "object", "x-editorField": True}),
+]
+
+
+class _StrictPatch(_CamelModel):
+    """A partial update: a key left out stays as it is, null clears it,
+    unknown keys are refused."""
+
+    model_config = ConfigDict(
+        populate_by_name=True, alias_generator=to_camel, extra="forbid"
+    )
+
+
+class InsertFieldOp(_EditorOp):
+    """Insert a complete question, its id kept, on a page at ``index`` (or,
+    with ``group_id``, into that repeating group)."""
+
+    op: Literal["insert_field"] = "insert_field"
+    page_id: Optional[str] = None
+    group_id: Optional[str] = None
+    index: int = Field(ge=0)
+    field: EditorFieldPayload
+
+
+class ReplaceFieldOp(_EditorOp):
+    """Replace the question with ``field.id`` by ``field``, where it is."""
+
+    op: Literal["replace_field"] = "replace_field"
+    field: EditorFieldPayload
+
+
+class InsertPageOp(_EditorOp):
+    """Insert a complete page (type ``slide``, its questions included), ids
+    kept, at ``index`` among the question pages."""
+
+    op: Literal["insert_page"] = "insert_page"
+    index: int = Field(ge=0)
+    page: EditorFieldPayload
+
+
+class PagePatch(_StrictPatch):
+    layout: Optional[LayoutType] = None
+    image_url: Optional[str] = None
+    theme: Optional[Theme] = None
+    position: Optional[FieldPosition] = None
+    show_question_numbers: Optional[bool] = None
+    section_title: Optional[str] = None
+
+
+class UpdatePageOp(_EditorOp):
+    op: Literal["update_page"] = "update_page"
+    page_id: str
+    patch: PagePatch
+
+
+class WelcomePagePatch(_StrictPatch):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    layout: Optional[LayoutType] = None
+    image_url: Optional[str] = None
+    button_text: Optional[str] = None
+
+
+class UpdateWelcomePageOp(_EditorOp):
+    op: Literal["update_welcome_page"] = "update_welcome_page"
+    patch: WelcomePagePatch
+
+
+class SetHiddenFieldsOp(_EditorOp):
+    """The form's hidden fields (URL parameter names), as a whole. Pipes of
+    names no longer listed are removed from question titles."""
+
+    op: Literal["set_hidden_fields"] = "set_hidden_fields"
+    names: List[str]
+
+
+class UpdateLogoOp(_EditorOp):
+    """The logo's settings. The logo itself only changes by an upload."""
+
+    op: Literal["update_logo"] = "update_logo"
+    position: Optional[Literal["auto", "left", "center"]] = None
+    alt: Optional[str] = None
+    use_workspace_logo: Optional[bool] = None
+
+
+class EditorChoice(_CamelModel):
+    id: str
+    value: Optional[str] = None
+    ref: Optional[str] = None
+    label: Optional[str] = None
+    attachment: Optional[StandardFieldAttachment] = None
+
+
+class SetChoiceOp(_EditorOp):
+    op: Literal["set_choice"] = "set_choice"
+    field_id: str
+    choice_id: str
+    value: Optional[str] = None
+
+
+class AddChoiceOp(_EditorOp):
+    """Add a choice, its id kept, at ``index`` (default: the end)."""
+
+    op: Literal["add_choice"] = "add_choice"
+    field_id: str
+    choice: EditorChoice
+    index: Optional[int] = Field(None, ge=0)
+
+
+class RemoveChoiceOp(_EditorOp):
+    op: Literal["remove_choice"] = "remove_choice"
+    field_id: str
+    choice_id: str
+
+
+class MoveChoiceOp(_EditorOp):
+    op: Literal["move_choice"] = "move_choice"
+    field_id: str
+    choice_id: str
+    index: int = Field(ge=0)
+
+
+EDITOR_OP_TYPES = (
+    InsertFieldOp,
+    ReplaceFieldOp,
+    InsertPageOp,
+    UpdatePageOp,
+    UpdateWelcomePageOp,
+    SetHiddenFieldsOp,
+    UpdateLogoOp,
+    SetChoiceOp,
+    AddChoiceOp,
+    RemoveChoiceOp,
+    MoveChoiceOp,
+)
+# Ops only the form editor may send (refused by parse_ops without allow_editor_ops=True).
+EDITOR_ONLY_OPS = frozenset(t.model_fields["op"].default for t in EDITOR_OP_TYPES)
+
+# ===========================================================================
+# End of editor ops: models
+# ===========================================================================
+
+
 FormOp = Annotated[
     Union[
         AddFieldOp,
@@ -473,6 +690,18 @@ FormOp = Annotated[
         MovePageOp,
         SetFieldValidationOp,
         SetQuestionNumberingOp,
+        # editor ops (EDITOR_OP_TYPES)
+        InsertFieldOp,
+        ReplaceFieldOp,
+        InsertPageOp,
+        UpdatePageOp,
+        UpdateWelcomePageOp,
+        SetHiddenFieldsOp,
+        UpdateLogoOp,
+        SetChoiceOp,
+        AddChoiceOp,
+        RemoveChoiceOp,
+        MoveChoiceOp,
     ],
     Field(discriminator="op"),
 ]
@@ -900,6 +1129,7 @@ def _date_rule_sources(form: StandardForm) -> set:
 
 def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
     _, parent, _, field, _ = _locate_field(form, op.field_id)
+    _check_title(op.patch.title)
     if op.patch.internal and parent is not None:
         raise OpError(INTERNAL_IN_GROUP_MESSAGE)
     if op.patch.internal and op.field_id in _logic_sources(form):
@@ -926,7 +1156,11 @@ def _dropped_rules_note(form: StandardForm) -> str:
 def _apply_remove_field(form: StandardForm, op: RemoveFieldOp) -> str:
     _, _, container, field, position = _locate_field(form, op.field_id)
     container.pop(position)
-    return f"Removed '{_title_text(field)}'{_dropped_rules_note(form)}"
+    gone = {f.id for f in _subtree(field)}
+    return (
+        f"Removed '{_title_text(field)}'{_dropped_rules_note(form)}"
+        f"{_dropped_references_note(form, gone)}"
+    )
 
 
 def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
@@ -988,7 +1222,10 @@ def _apply_remove_page(form: StandardForm, op: RemovePageOp) -> str:
     page = _find_page(form, op.page_id)
     form.fields.remove(page)
     count = len((page.properties.fields if page.properties else None) or [])
-    return f"Removed a page ({count} field(s) with it){_dropped_rules_note(form)}"
+    return (
+        f"Removed a page ({count} field(s) with it){_dropped_rules_note(form)}"
+        f"{_dropped_references_note(form, {f.id for f in _subtree(page)})}"
+    )
 
 
 def _apply_update_form_info(form: StandardForm, op: UpdateFormInfoOp) -> str:
@@ -1477,6 +1714,715 @@ def _apply_set_question_numbering(form: StandardForm, op: SetQuestionNumberingOp
     return f"Turned question numbers {'on' if op.show else 'off'} for {where}"
 
 
+# ===========================================================================
+# Editor ops: handlers (models: "Editor ops: models" above)
+# ===========================================================================
+
+# A rich-text title, serialised: at most this many characters, nested at
+# most this deep.
+TITLE_JSON_MAX_CHARS = 64 * 1024
+TITLE_JSON_MAX_DEPTH = 64
+# Hidden fields: any names a whole-form save accepts (older forms may hold
+# names the builder's editor no longer lets you type), within these limits.
+HIDDEN_FIELDS_MAX = 100
+HIDDEN_FIELD_NAME_MAX_LENGTH = 200
+# The rich-text node that pipes an answer or a hidden field into a title.
+ANSWER_PIPE_NODE = "answerPipe"
+CHOICE_EDIT_TYPES = {
+    StandardFormFieldType.MULTIPLE_CHOICE,
+    StandardFormFieldType.DROPDOWN,
+    StandardFormFieldType.RANKING,
+}
+
+
+def _json_depth(value: Any) -> int:
+    depth, pending = 0, [(value, 1)]
+    while pending:
+        item, level = pending.pop()
+        if isinstance(item, dict):
+            depth = max(depth, level)
+            pending.extend((v, level + 1) for v in item.values())
+        elif isinstance(item, list):
+            depth = max(depth, level)
+            pending.extend((v, level + 1) for v in item)
+    return depth
+
+
+# What a rich-text title may hold: the node and mark types (with their
+# attributes) of the builder's title editor (webapp rich-text-editor
+# ``Extenstions``: StarterKit without links, TextStyle, FontSize, Color,
+# AnswerPipe). Respondent pages render titles with that schema, which
+# refuses any other type or attribute.
+_STR = (str, type(None))
+TITLE_NODES: Dict[str, Dict[str, Any]] = {
+    "doc": {},
+    "paragraph": {},
+    "text": {},
+    "heading": {"level": int},
+    "hardBreak": {},
+    "blockquote": {},
+    "bulletList": {},
+    "orderedList": {"start": (int, type(None)), "type": _STR},
+    "listItem": {},
+    "codeBlock": {"language": _STR},
+    "horizontalRule": {},
+    ANSWER_PIPE_NODE: {"kind": str, "pipeKey": _STR, "label": _STR, "fallback": _STR},
+}
+TITLE_MARKS: Dict[str, Dict[str, Any]] = {
+    "bold": {},
+    "italic": {},
+    "underline": {},
+    "strike": {},
+    "code": {},
+    "textStyle": {"fontSize": _STR, "color": _STR},
+}
+_PIPE_KINDS = {"field", "hidden", "group"}
+_NODE_KEYS = {"type", "attrs", "content", "marks", "text"}
+
+
+def _attrs_problem(what: str, attrs: Any, allowed: Dict[str, Any]) -> Optional[str]:
+    if attrs is None:
+        return None
+    if not isinstance(attrs, dict):
+        return f"The attributes of a '{what}' must be an object."
+    for key, value in attrs.items():
+        if key not in allowed:
+            return f"A '{what}' cannot have the attribute '{key}'."
+        if isinstance(value, bool) or not isinstance(value, allowed[key]):
+            return f"The attribute '{key}' of a '{what}' has the wrong type."
+    return None
+
+
+def _rich_text_problem(title: Dict[str, Any]) -> Optional[str]:
+    """Why ``title`` is not a document the title editor can render, if so."""
+    if title.get("type") != "doc":
+        return "A rich-text title must be a document (type 'doc')."
+    pending = [title]
+    while pending:
+        node = pending.pop()
+        if not isinstance(node, dict):
+            return "A rich-text title may only hold nodes (objects)."
+        kind = node.get("type")
+        if kind not in TITLE_NODES:
+            return f"A rich-text title cannot hold a '{kind}' node."
+        unknown = set(node) - _NODE_KEYS
+        if unknown:
+            return f"A '{kind}' node cannot have '{sorted(unknown)[0]}'."
+        attrs = node.get("attrs")
+        problem = _attrs_problem(kind, attrs, TITLE_NODES[kind])
+        if problem:
+            return problem
+        if kind == "heading" and not 1 <= (attrs or {}).get("level", 1) <= 6:
+            return "A heading's level must be 1 to 6."
+        if kind == ANSWER_PIPE_NODE and (attrs or {}).get("kind", "field") not in _PIPE_KINDS:
+            return "An answer pipe's kind must be field, hidden or group."
+        if kind == "text":
+            if not isinstance(node.get("text"), str) or not node["text"]:
+                return "A text node needs some text."
+        elif "text" in node:
+            return f"A '{kind}' node cannot hold text."
+        marks = node.get("marks")
+        if marks is not None:
+            if not isinstance(marks, list):
+                return "Marks must be a list."
+            for mark in marks:
+                name = mark.get("type") if isinstance(mark, dict) else None
+                if name not in TITLE_MARKS:
+                    return f"A rich-text title cannot use a '{name}' mark."
+                if set(mark) - {"type", "attrs"}:
+                    return f"A '{name}' mark can only have attributes."
+                problem = _attrs_problem(name, mark.get("attrs"), TITLE_MARKS[name])
+                if problem:
+                    return problem
+        content = node.get("content")
+        if content is not None:
+            if not isinstance(content, list) or kind == "text":
+                return f"The content of a '{kind}' node is not valid."
+            pending.extend(content)
+    return None
+
+
+def _check_title(title: Any) -> None:
+    """A rich-text title must stay small (TITLE_JSON_MAX_CHARS serialised,
+    TITLE_JSON_MAX_DEPTH deep) and hold only what the title editor holds
+    (TITLE_NODES, TITLE_MARKS)."""
+    if not isinstance(title, dict):
+        return
+    if _json_depth(title) > TITLE_JSON_MAX_DEPTH:
+        raise OpError(
+            f"A rich-text title can be nested at most {TITLE_JSON_MAX_DEPTH} levels deep."
+        )
+    size = len(json.dumps(title, separators=(",", ":"), ensure_ascii=False))
+    if size > TITLE_JSON_MAX_CHARS:
+        raise OpError(
+            f"A rich-text title can be at most {TITLE_JSON_MAX_CHARS} characters "
+            f"long as JSON (this one has {size})."
+        )
+    problem = _rich_text_problem(title)
+    if problem:
+        raise OpError(problem)
+
+
+def _subtree(field: StandardFormField) -> List[StandardFormField]:
+    """``field`` and every field nested in it."""
+    found, pending = [], [field]
+    while pending:
+        item = pending.pop(0)
+        found.append(item)
+        pending.extend((item.properties.fields if item.properties else None) or [])
+    return found
+
+
+def _form_ids(form: StandardForm) -> Set[str]:
+    ids: Set[str] = set()
+    for item in form.fields or []:
+        ids.update(f.id for f in _subtree(item) if f.id)
+    return ids
+
+
+def _check_new_ids(form: StandardForm, item: StandardFormField, replaced=()) -> None:
+    """Every id of ``item`` (and of its nested fields) is given and unused
+    in ``form``, apart from the ids of what ``item`` replaces."""
+    taken = _form_ids(form) - set(replaced)
+    seen: Set[str] = set()
+    for field in _subtree(item):
+        if not isinstance(field.id, str) or not field.id.strip():
+            raise OpError("Every page and question needs an id.")
+        if field.id in taken or field.id in seen:
+            raise OpError(f"The id '{field.id}' is already used in this form.")
+        seen.add(field.id)
+        choice_ids = [
+            c.id for c in (field.properties.choices if field.properties else None) or []
+        ]
+        if len(set(choice_ids)) != len(choice_ids):
+            raise OpError(f"The choices of '{_title_text(field)}' need unique ids.")
+
+
+class _KeptImages:
+    """The image addresses ``form`` already holds, collected only when a
+    non-first-party address needs them (most ops have none), and without
+    copying the form."""
+
+    def __init__(self, form: StandardForm):
+        self._form = form
+        self._urls: Optional[Set[str]] = None
+
+    def __contains__(self, url: str) -> bool:
+        if self._urls is None:
+            from backend.app.services.form_images import map_form_images
+
+            found: Set[str] = set()
+
+            def collect(value: Optional[str]) -> Optional[str]:
+                if isinstance(value, str) and value.strip():
+                    found.add(value.strip())
+                return value  # unchanged: only read here
+
+            map_form_images(self._form, collect)
+            self._urls = found
+        return url in self._urls
+
+
+def _editor_image(url: Optional[str], keep: "_KeptImages") -> Optional[str]:
+    """The address to store for one image, as a whole-form save stores it
+    (services/form_images.py): first-party, or already on the form."""
+    if url is None or not isinstance(url, str) or not url.strip():
+        return url
+    stored = first_party_image_url(url)
+    if stored is not None:
+        return stored
+    if url.strip() in keep:
+        return url
+    raise OpError(IMAGE_URL_ERROR)
+
+
+def _editor_attachment(attachment: Any, keep: "_KeptImages") -> None:
+    if attachment is not None and getattr(attachment.type, "value", attachment.type) == "image":
+        attachment.href = _editor_image(attachment.href, keep)
+
+
+def _editor_theme(theme: Optional[Theme], keep: "_KeptImages") -> None:
+    if theme is not None and theme.background is not None:
+        theme.background.imageUrl = _editor_image(theme.background.imageUrl, keep)
+
+
+def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> StandardFormField:
+    """A question or page as the editor sends it, read the way a whole-form
+    save reads it and checked like one: the stored model (its group and date
+    rule checks included), titles, answer patterns, internal fields and
+    images."""
+    try:
+        model = StandardFormFieldCamelModel.model_validate(raw)
+        item = StandardFormField(**model.model_dump(mode="json"))
+    except ValidationError as error:
+        raise OpError(
+            "; ".join(
+                ".".join(str(part) for part in e["loc"]) + ": " + e["msg"]
+                if e["loc"]
+                else str(e["msg"]).removeprefix("Value error, ")
+                for e in error.errors(include_input=False, include_url=False)[:5]
+            )
+        )
+    except ValueError as error:
+        raise OpError(_validation_message(error))
+    is_page = item.type == StandardFormFieldType.SLIDE
+    if page and not is_page:
+        raise OpError("insert_page needs a page: a field of type 'slide'.")
+    if not page and is_page:
+        raise OpError("A page is not a question: use insert_page or update_page.")
+    keep = _KeptImages(form)
+    for field in _subtree(item):
+        if field is not item and field.type == StandardFormFieldType.SLIDE:
+            raise OpError("A page cannot be placed inside another page or question.")
+        if field.type is None:
+            raise OpError(f"'{_title_text(field)}' needs a type.")
+        _check_title(field.title)
+        regex = field.validations.regex if field.validations else None
+        if regex is not None and regex.strip():
+            _checked_pattern(regex)
+        if field.internal:
+            _ensure_can_be_internal(field.type)
+        field.image_url = _editor_image(field.image_url, keep)
+        _editor_attachment(field.attachment, keep)
+        if field.properties is not None:
+            _editor_theme(field.properties.theme, keep)
+            for choice in field.properties.choices or []:
+                _editor_attachment(choice.attachment, keep)
+    return item
+
+
+def _new_problems(form: StandardForm, before: Tuple[Set[str], Set[str]]) -> Optional[str]:
+    """The first problem of ``form`` a whole-form save would refuse (logic
+    on an internal field, a date rule) that was not there ``before``."""
+    for problem in internal_logic_violations(form):
+        if problem not in before[0]:
+            return problem
+    for problem in date_rule_problems(form.fields):
+        if problem not in before[1]:
+            return problem
+    return None
+
+
+def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str]]:
+    return set(internal_logic_violations(form)), set(date_rule_problems(form.fields))
+
+
+def _live_question_ids(form: StandardForm) -> Dict[str, StandardFormField]:
+    """Questions respondents answer, by id: what logic and pipes may use
+    (the builder's getInputFieldsById)."""
+    found: Dict[str, StandardFormField] = {}
+    for page in _pages(form):
+        for field in (page.properties.fields if page.properties else None) or []:
+            if field.id and not field.internal:
+                found[field.id] = field
+            if _is_repeating_group(field):
+                for child in _children(field):
+                    if child.id and not child.internal:
+                        found[child.id] = child
+    return found
+
+
+def _prune_references(
+    form: StandardForm,
+    gone: Set[str] = frozenset(),
+    hidden_names: Optional[Set[str]] = None,
+    hidden_gone: Set[str] = frozenset(),
+) -> int:
+    """Remove what refers to a question that is not there, as the editor
+    does after a delete (webapp pruneOrphanedConditions and
+    pruneOrphanedPipes): logic and jump conditions on a missing question (a
+    rule or jump left without conditions goes too) and answer pipes in
+    titles; with ``hidden_names``, also pipes of hidden fields not in it.
+    Jumps to a missing page stay, so the editor can show them as broken.
+
+    Returns how many of the removed references were to ``gone`` (the
+    questions this op removed) or ``hidden_gone`` (the hidden fields it
+    removed); older orphans are removed too but not counted."""
+    live = _live_question_ids(form)
+    removed = 0
+
+    def is_live(condition: FieldLogicCondition) -> bool:
+        if condition.field_id not in live:
+            return False
+        if not condition.group_mode or condition.group_mode == "COUNT":
+            return True
+        return bool(condition.child_field_id) and condition.child_field_id in live
+
+    def live_conditions(conditions) -> List[FieldLogicCondition]:
+        nonlocal removed
+        kept = []
+        for condition in conditions or []:
+            if is_live(condition):
+                kept.append(condition)
+            elif condition.field_id in gone or condition.child_field_id in gone:
+                removed += 1
+        return kept
+
+    def orphan_pipe(node: Any) -> Optional[Set[str]]:
+        """None when ``node`` is not an orphaned pipe, else the ids (or the
+        hidden field name) it referred to."""
+        if not isinstance(node, dict) or node.get("type") != ANSWER_PIPE_NODE:
+            return None
+        attrs = node.get("attrs") or {}
+        key = attrs.get("pipeKey")
+        if attrs.get("kind") == "hidden":
+            if hidden_names is not None and key not in hidden_names:
+                return {f"hidden:{key}"}
+            return None
+        if attrs.get("kind") == "group":
+            parts = str(key or "").split(":")
+            group = live.get(parts[0])
+            child_id = parts[2] if len(parts) > 2 else None
+            children = (group.properties.fields if group and group.properties else None) or []
+            if (
+                group is None
+                or group.type != StandardFormFieldType.GROUP
+                or child_id
+                and not any(c.id == child_id for c in children)
+            ):
+                return {parts[0], child_id} - {None}
+            return None
+        return None if key in live else {key}
+
+    referred_gone = set(gone) | {f"hidden:{name}" for name in hidden_gone}
+
+    def prune_pipes(node: Any) -> None:
+        nonlocal removed
+        if not isinstance(node, dict) or not isinstance(node.get("content"), list):
+            return
+        kept = []
+        for child in node["content"]:
+            refs = orphan_pipe(child)
+            if refs is None:
+                kept.append(child)
+            elif refs & referred_gone:
+                removed += 1
+        node["content"] = kept
+        for child in kept:
+            prune_pipes(child)
+
+    def prune_question(field: StandardFormField) -> None:
+        if isinstance(field.title, dict):
+            prune_pipes(field.title)
+        logic = field.properties.logic if field.properties else None
+        if logic is not None:
+            conditions = live_conditions(logic.conditions)
+            if conditions:
+                logic.conditions = conditions
+            else:
+                field.properties.logic = None
+
+    for page in _pages(form):
+        properties = page.properties
+        if properties is None:
+            continue
+        if properties.jumps is not None:
+            jumps = []
+            for jump in properties.jumps:
+                conditions = live_conditions(jump.conditions)
+                if conditions:
+                    jump.conditions = conditions
+                    jumps.append(jump)
+            properties.jumps = jumps or None
+        for field in properties.fields or []:
+            prune_question(field)
+            if _is_repeating_group(field):
+                for child in _children(field):
+                    prune_question(child)
+    return removed
+
+
+def _dropped_references_note(form: StandardForm, gone: Set[str]) -> str:
+    dropped = _prune_references(form, gone)
+    return f" (and {dropped} logic or piping reference(s) to it)" if dropped else ""
+
+
+def _page_number(form: StandardForm, page: StandardFormField) -> int:
+    return _pages(form).index(page) + 1
+
+
+def _apply_insert_field(form: StandardForm, op: InsertFieldOp) -> str:
+    field = _editor_item(op.field, form, page=False)
+    _check_new_ids(form, field)
+    if op.group_id is not None:
+        page, group = _find_group(form, op.group_id)
+        if op.page_id is not None and page.id != op.page_id:
+            raise OpError(f"The group '{op.group_id}' is not on page '{op.page_id}'.")
+        _check_child_type(field.type, field.internal)
+        container = _children(group)
+        where = f"the group '{_title_text(group)}'"
+    elif op.page_id is not None:
+        page = _find_page(form, op.page_id)
+        container = _children(page)
+        where = f"page {_page_number(form, page)}"
+    else:
+        raise OpError("insert_field needs a pageId (or a groupId).")
+    known = _known_problems(form)
+    position = min(op.index, len(container))
+    container.insert(position, field)
+    problem = _new_problems(form, known)
+    if problem:
+        container.pop(position)
+        raise OpError(problem)
+    _note_created(field.id)
+    return f"Inserted '{_title_text(field)}' ({field.type.value}) into {where}"
+
+
+def _apply_replace_field(form: StandardForm, op: ReplaceFieldOp) -> str:
+    field = _editor_item(op.field, form, page=False)
+    if field.id in {page.id for page in _pages(form)}:
+        raise OpError(f"'{field.id}' is a page: change it with update_page.")
+    _, parent, container, old, position = _locate_field(form, field.id)
+    _check_new_ids(form, field, replaced={f.id for f in _subtree(old)})
+    if parent is not None:
+        _check_child_type(field.type, field.internal)
+    known = _known_problems(form)
+    container[position] = field
+    problem = _new_problems(form, known)
+    if problem:
+        container[position] = old
+        raise OpError(problem)
+    gone = {f.id for f in _subtree(old)} - {f.id for f in _subtree(field)}
+    return f"Replaced '{_title_text(field)}'{_dropped_references_note(form, gone)}"
+
+
+def _apply_insert_page(form: StandardForm, op: InsertPageOp) -> str:
+    page = _editor_item(op.page, form, page=True)
+    _check_new_ids(form, page)
+    if form.fields is None:
+        form.fields = []
+    pages = _pages(form)
+    known = _known_problems(form)
+    if op.index >= len(pages):
+        position = len(form.fields)
+    else:
+        position = form.fields.index(pages[op.index])
+    form.fields.insert(position, page)
+    problem = _new_problems(form, known)
+    if problem:
+        form.fields.pop(position)
+        raise OpError(problem)
+    _note_created(page.id)
+    count = len(_children(page))
+    return f"Inserted a page with {count} field(s) at position {_page_number(form, page)}"
+
+
+_PAGE_PATCH_LABELS = {
+    "layout": "layout",
+    "image_url": "image",
+    "theme": "theme",
+    "position": "position",
+    "show_question_numbers": "question numbers",
+    "section_title": "section title",
+}
+
+
+def _apply_update_page(form: StandardForm, op: UpdatePageOp) -> str:
+    page = _find_page(form, op.page_id)
+    patch = op.patch
+    given = [key for key in _PAGE_PATCH_LABELS if key in patch.model_fields_set]
+    if not given:
+        raise OpError("The update contained no changes.")
+    keep = _KeptImages(form)
+    properties = page.properties
+    if properties is None:
+        properties = page.properties = StandardFieldProperty(fields=[])
+    # Checked first: a refused value leaves the page as it was.
+    image_url = _editor_image(patch.image_url, keep) if "image_url" in given else None
+    theme = patch.theme.model_copy(deep=True) if patch.theme is not None else None
+    _editor_theme(theme, keep)
+    section_title = None
+    if "section_title" in given and patch.section_title is not None:
+        section_title = patch.section_title.strip() or None
+        if section_title and len(section_title) > SECTION_TITLE_MAX_LENGTH:
+            raise OpError(
+                f"A section title can be at most {SECTION_TITLE_MAX_LENGTH} characters."
+            )
+    if "layout" in given:
+        properties.layout = patch.layout
+    if "image_url" in given:
+        page.image_url = image_url or None
+    if "theme" in given:
+        properties.theme = theme
+    if "position" in given:
+        properties.position = patch.position
+    if "show_question_numbers" in given:
+        properties.show_question_numbers = patch.show_question_numbers
+    if "section_title" in given:
+        properties.section_title = section_title
+    labels = ", ".join(_PAGE_PATCH_LABELS[key] for key in given)
+    return f"Updated page {_page_number(form, page)} ({labels})"
+
+
+_WELCOME_PATCH_KEYS = {
+    "title": "title",
+    "description": "description",
+    "layout": "layout",
+    "image_url": "imageUrl",
+    "button_text": "buttonText",
+}
+
+
+def _apply_update_welcome_page(form: StandardForm, op: UpdateWelcomePageOp) -> str:
+    patch = op.patch
+    given = [key for key in _WELCOME_PATCH_KEYS if key in patch.model_fields_set]
+    if not given:
+        raise OpError("The update contained no changes.")
+    image_url = None
+    if "image_url" in given:
+        image_url = _editor_image(patch.image_url, _KeptImages(form)) or None
+    if form.welcome_page is None:
+        form.welcome_page = WelcomePageField()
+    for key in given:
+        value = image_url if key == "image_url" else getattr(patch, key)
+        setattr(form.welcome_page, _WELCOME_PATCH_KEYS[key], value)
+    return "Updated the welcome page (" + ", ".join(given).replace("_", " ") + ")"
+
+
+def _apply_set_hidden_fields(form: StandardForm, op: SetHiddenFieldsOp) -> str:
+    """Names as a whole-form save takes them (the builder's editor only lets
+    a creator type URL-safe ones, but an older form may hold others and
+    stays editable), within HIDDEN_FIELDS_MAX and
+    HIDDEN_FIELD_NAME_MAX_LENGTH."""
+    if len(op.names) > HIDDEN_FIELDS_MAX:
+        raise OpError(f"A form can have at most {HIDDEN_FIELDS_MAX} hidden fields.")
+    for name in op.names:
+        if len(name) > HIDDEN_FIELD_NAME_MAX_LENGTH:
+            raise OpError(
+                f"A hidden field name can be at most {HIDDEN_FIELD_NAME_MAX_LENGTH} "
+                "characters."
+            )
+    before = set(form.hidden_fields or [])
+    form.hidden_fields = list(op.names)
+    dropped = _prune_references(
+        form, hidden_names=set(op.names), hidden_gone=before - set(op.names)
+    )
+    note = f" (and {dropped} piping reference(s) to removed ones)" if dropped else ""
+    return f"Set {len(op.names)} hidden field(s){note}"
+
+
+def _apply_update_logo(form: StandardForm, op: UpdateLogoOp) -> str:
+    given = op.model_fields_set & {"position", "alt", "use_workspace_logo"}
+    if not given:
+        raise OpError("The update contained no changes.")
+    if op.alt is not None and len(op.alt) > LOGO_ALT_MAX_LENGTH:
+        raise OpError(f"The logo's alt text can be at most {LOGO_ALT_MAX_LENGTH} characters.")
+    if "position" in given:
+        form.logo_position = op.position
+    if "alt" in given:
+        form.logo_alt = op.alt
+    if "use_workspace_logo" in given:
+        form.use_workspace_logo = op.use_workspace_logo
+    labels = {"position": "position", "alt": "alt text", "use_workspace_logo": "workspace logo"}
+    return "Updated the logo settings (" + ", ".join(labels[k] for k in sorted(given)) + ")"
+
+
+def _choice_field(form: StandardForm, field_id: str, change: bool) -> Tuple[StandardFormField, List[StandardChoice]]:
+    _, _, _, field, _ = _locate_field(form, field_id)
+    if field.type == StandardFormFieldType.YES_NO and change:
+        raise OpError("Yes/No choices are fixed.")
+    if field.type not in CHOICE_EDIT_TYPES and field.type != StandardFormFieldType.YES_NO:
+        kind = field.type.value if field.type else "unknown"
+        raise OpError(f"'{_title_text(field)}' is a {kind} question: it has no choices.")
+    if field.properties is None:
+        field.properties = StandardFieldProperty(fields=[])
+    if field.properties.choices is None:
+        field.properties.choices = []
+    return field, field.properties.choices
+
+
+def _choice_position(field: StandardFormField, choices: List[StandardChoice], choice_id: str) -> int:
+    for position, choice in enumerate(choices):
+        if choice.id == choice_id:
+            return position
+    raise OpError(f"'{_title_text(field)}' has no choice '{choice_id}'.")
+
+
+def _apply_set_choice(form: StandardForm, op: SetChoiceOp) -> str:
+    field, choices = _choice_field(form, op.field_id, change=True)
+    choice = choices[_choice_position(field, choices, op.choice_id)]
+    choice.value = op.value
+    return f"Changed a choice of '{_title_text(field)}'"
+
+
+def _apply_add_choice(form: StandardForm, op: AddChoiceOp) -> str:
+    field, choices = _choice_field(form, op.field_id, change=True)
+    if not op.choice.id.strip():
+        raise OpError("A choice needs an id.")
+    if any(c.id == op.choice.id for c in choices):
+        raise OpError(f"'{_title_text(field)}' already has a choice '{op.choice.id}'.")
+    choice = StandardChoice(**op.choice.model_dump())
+    _editor_attachment(choice.attachment, _KeptImages(form))
+    position = len(choices) if op.index is None else min(op.index, len(choices))
+    choices.insert(position, choice)
+    return f"Added a choice to '{_title_text(field)}'"
+
+
+def _apply_remove_choice(form: StandardForm, op: RemoveChoiceOp) -> str:
+    field, choices = _choice_field(form, op.field_id, change=True)
+    choices.pop(_choice_position(field, choices, op.choice_id))
+    return f"Removed a choice of '{_title_text(field)}'"
+
+
+def _apply_move_choice(form: StandardForm, op: MoveChoiceOp) -> str:
+    field, choices = _choice_field(form, op.field_id, change=False)
+    choice = choices.pop(_choice_position(field, choices, op.choice_id))
+    position = min(op.index, len(choices))
+    choices.insert(position, choice)
+    return f"Moved a choice of '{_title_text(field)}' to position {position + 1}"
+
+
+def _payload_count(raw: Any) -> int:
+    """Fields in an editor payload, nested ones included (count_fields of
+    what it will be)."""
+    total, pending = 0, [raw]
+    while pending:
+        item = pending.pop()
+        if not isinstance(item, dict):
+            continue
+        total += 1
+        properties = item.get("properties")
+        if isinstance(properties, dict) and isinstance(properties.get("fields"), list):
+            pending.extend(properties["fields"])
+    return total
+
+
+def _editor_growth(form: StandardForm, op) -> Tuple[int, int]:
+    """Pages and fields an editor op adds (see _growth)."""
+    if isinstance(op, InsertFieldOp):
+        return 0, _payload_count(op.field)
+    if isinstance(op, InsertPageOp):
+        return 1, max(0, _payload_count(op.page) - 1)
+    if isinstance(op, ReplaceFieldOp):
+        field_id = op.field.get("id")
+        try:
+            _, _, _, old, _ = _locate_field(form, field_id)
+        except OpError:
+            return 0, 0
+        return 0, max(0, _payload_count(op.field) - count_fields([old]))
+    return 0, 0
+
+
+_EDITOR_HANDLERS = {
+    "insert_field": _apply_insert_field,
+    "replace_field": _apply_replace_field,
+    "insert_page": _apply_insert_page,
+    "update_page": _apply_update_page,
+    "update_welcome_page": _apply_update_welcome_page,
+    "set_hidden_fields": _apply_set_hidden_fields,
+    "update_logo": _apply_update_logo,
+    "set_choice": _apply_set_choice,
+    "add_choice": _apply_add_choice,
+    "remove_choice": _apply_remove_choice,
+    "move_choice": _apply_move_choice,
+}
+assert set(_EDITOR_HANDLERS) == EDITOR_ONLY_OPS
+
+# ===========================================================================
+# End of editor ops: handlers
+# ===========================================================================
+
+
 _HANDLERS = {
     "add_field": _apply_add_field,
     "add_group": _apply_add_group,
@@ -1497,6 +2443,7 @@ _HANDLERS = {
     "set_field_validation": _apply_set_field_validation,
     "set_question_numbering": _apply_set_question_numbering,
 }
+_HANDLERS.update(_EDITOR_HANDLERS)
 OP_NAMES = frozenset(_HANDLERS)
 
 # Most ops one MCP update_form call or one dry run may carry.
@@ -1584,7 +2531,8 @@ def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
     if not found:
         return op
     try:
-        return type(op).model_validate(resolved)
+        # an editor op got here through parse_ops(allow_editor_ops=True)
+        return type(op).model_validate(resolved, context={EDITOR_CONTEXT: True})
     except ValueError as error:
         raise OpError(_validation_message(error))
 
@@ -1670,6 +2618,8 @@ def _growth(form: StandardForm, op) -> Tuple[int, int]:
     if isinstance(op, DuplicatePageOp):
         page = _find_page(form, op.page_id)
         return 1, count_fields(page.properties.fields if page.properties else None)
+    if isinstance(op, EDITOR_OP_TYPES):
+        return _editor_growth(form, op)
     return 0, 0
 
 
@@ -1797,6 +2747,13 @@ def applied(results: List[OpResult], atomic: bool) -> bool:
     return any(r.ok for r in results)
 
 
-def parse_ops(payload: List[Dict[str, Any]]) -> List[FormOp]:
-    """Parse a raw ops payload (AI/MCP JSON) into typed operations."""
-    return FormOps.model_validate({"ops": payload}).ops
+def parse_ops(
+    payload: List[Dict[str, Any]], *, allow_editor_ops: bool = False
+) -> List[FormOp]:
+    """Parse a raw ops payload (AI/MCP JSON) into typed operations.
+
+    The editor ops (EDITOR_ONLY_OPS) are refused, each with its own error
+    at its index, unless ``allow_editor_ops`` is true: only the form editor
+    may send them."""
+    context = {EDITOR_CONTEXT: True} if allow_editor_ops else None
+    return FormOps.model_validate({"ops": payload}, context=context).ops

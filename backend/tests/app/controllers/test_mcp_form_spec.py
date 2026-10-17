@@ -228,6 +228,27 @@ class TestMCPLimits:
             False
         ]
 
+    async def test_update_form_and_dry_run_refuse_editor_ops(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+    ):
+        form = await _v2(workspace_form.form_id)
+        token = await _make_key(workspace.id, ["forms:read", "forms:write"])
+        ops = [
+            {"op": "update_form_info", "title": "Not stored"},
+            {"op": "update_logo", "alt": "Logo"},
+        ]
+        for tool in ("update_form", "dry_run_ops"):
+            result = await _call_tool(
+                client, token, tool, {"form_id": form.form_id, "ops": ops}
+            )
+            text = _error_text(result)
+            assert "update_logo" in text and "only available in the form editor" in text
+        stored = await container.form_repo().get_form_document_by_id(form.form_id)
+        assert stored.title == form.title
+
     async def test_validate_form_refuses_a_document_over_1_mb(
         self, client: AsyncClient, workspace: Coroutine[Any, Any, WorkspaceDocument]
     ):

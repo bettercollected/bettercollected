@@ -1,0 +1,6738 @@
+{
+ "formId": "form-200",
+ "title": "Synthetic 200-question form",
+ "description": "Synthetic fixture for editor performance tests.",
+ "builderVersion": "v2",
+ "welcomePage": {
+  "title": "Synthetic 200-question form",
+  "description": "Generated test content.",
+  "buttonText": "Start"
+ },
+ "thankyouPage": [
+  {
+   "title": "Thanks",
+   "message": "Done."
+  }
+ ],
+ "hiddenFields": [
+  "utm_source",
+  "campaign"
+ ],
+ "fields": [
+  {
+   "id": "page-01",
+   "index": 0,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p01-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Question 1 of section 1"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p01-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (1)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p01-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p01-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p01-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p01-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p01-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p01-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p01-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p01-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p01-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p01-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p01-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p01-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p01-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p01-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p01-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p01-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p01-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p01-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p01-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p01-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 1"
+   }
+  },
+  {
+   "id": "page-02",
+   "index": 1,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p02-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 2: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p01-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p02-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (2)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p02-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p02-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p02-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p02-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p02-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p02-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p02-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p02-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p02-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p02-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p02-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p02-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p02-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p02-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p02-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p02-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p02-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p02-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p02-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p02-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 2"
+   }
+  },
+  {
+   "id": "page-03",
+   "index": 2,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p03-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 3: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p02-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p03-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (3)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p03-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p03-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p03-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p03-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p03-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p03-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p03-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p03-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p03-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p03-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p03-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p03-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p03-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p03-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p03-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p03-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p03-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p03-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p03-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p03-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 3"
+   }
+  },
+  {
+   "id": "page-04",
+   "index": 3,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p04-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 4: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p03-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p04-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (4)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p04-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p04-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p04-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p04-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p04-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p04-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p04-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "OR",
+        "conditions": [
+         {
+          "fieldId": "p04-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         },
+         {
+          "fieldId": "p04-q10",
+          "fieldType": "group",
+          "comparison": "GREATER_THAN_EQUAL",
+          "value": 2,
+          "groupMode": "COUNT"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p04-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p04-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p04-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p04-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p04-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p04-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p04-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p04-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p04-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p04-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p04-q10",
+      "type": "group",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "People involved"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "repeat": {
+        "minItems": 1,
+        "maxItems": 3,
+        "itemLabel": "Person",
+        "itemTitle": "{{field:p04-q10-name}}"
+       },
+       "fields": [
+        {
+         "id": "p04-q10-name",
+         "index": 0,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Name"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p04-q10-born",
+         "index": 1,
+         "type": "date",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Date of birth"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p04-q10-role",
+         "index": 2,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Role"
+             }
+            ]
+           }
+          ]
+         },
+         "properties": {
+          "logic": {
+           "action": "SHOW",
+           "conditions": [
+            {
+             "fieldId": "p04-q10-name",
+             "fieldType": "short_text",
+             "comparison": "IS_NOT_EMPTY"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 4"
+   }
+  },
+  {
+   "id": "page-05",
+   "index": 4,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p05-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 5: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p04-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p05-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (5)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p05-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p05-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p05-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p05-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p05-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p05-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p05-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p05-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p05-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p05-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p05-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p05-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p05-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p05-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p05-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p05-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p05-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p05-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p05-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p05-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 5",
+    "jumps": [
+     {
+      "operator": "AND",
+      "conditions": [
+       {
+        "fieldId": "p05-q03",
+        "fieldType": "yes_no",
+        "comparison": "IS_EQUAL",
+        "value": "No"
+       }
+      ],
+      "target": "page-07"
+     }
+    ]
+   }
+  },
+  {
+   "id": "page-06",
+   "index": 5,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p06-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 6: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p05-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p06-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (6)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p06-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p06-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p06-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p06-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p06-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p06-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p06-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p06-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p06-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p06-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p06-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p06-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p06-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p06-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p06-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p06-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p06-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p06-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p06-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p06-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 6"
+   }
+  },
+  {
+   "id": "page-07",
+   "index": 6,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p07-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 7: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p06-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p07-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (7)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p07-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p07-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p07-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p07-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p07-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p07-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p07-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p07-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p07-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p07-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p07-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p07-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p07-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p07-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p07-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p07-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p07-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p07-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p07-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p07-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 7"
+   }
+  },
+  {
+   "id": "page-08",
+   "index": 7,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p08-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 8: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p07-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p08-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (8)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p08-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p08-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p08-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p08-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p08-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p08-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p08-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "OR",
+        "conditions": [
+         {
+          "fieldId": "p08-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         },
+         {
+          "fieldId": "p08-q10",
+          "fieldType": "group",
+          "comparison": "GREATER_THAN_EQUAL",
+          "value": 2,
+          "groupMode": "COUNT"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p08-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p08-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p08-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p08-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p08-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p08-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p08-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p08-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p08-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p08-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p08-q10",
+      "type": "group",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "People involved"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "repeat": {
+        "minItems": 1,
+        "maxItems": 3,
+        "itemLabel": "Person",
+        "itemTitle": "{{field:p08-q10-name}}"
+       },
+       "fields": [
+        {
+         "id": "p08-q10-name",
+         "index": 0,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Name"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p08-q10-born",
+         "index": 1,
+         "type": "date",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Date of birth"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p08-q10-role",
+         "index": 2,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Role"
+             }
+            ]
+           }
+          ]
+         },
+         "properties": {
+          "logic": {
+           "action": "SHOW",
+           "conditions": [
+            {
+             "fieldId": "p08-q10-name",
+             "fieldType": "short_text",
+             "comparison": "IS_NOT_EMPTY"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 8"
+   }
+  },
+  {
+   "id": "page-09",
+   "index": 8,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p09-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 9: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p08-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p09-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (9)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p09-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p09-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p09-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p09-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p09-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p09-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p09-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p09-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p09-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p09-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p09-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p09-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p09-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p09-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p09-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p09-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p09-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p09-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p09-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p09-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 9"
+   }
+  },
+  {
+   "id": "page-10",
+   "index": 9,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p10-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 10: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p09-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p10-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (10)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p10-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p10-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p10-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p10-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p10-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p10-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p10-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p10-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p10-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p10-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p10-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p10-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p10-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p10-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p10-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p10-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p10-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p10-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p10-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p10-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 10",
+    "jumps": [
+     {
+      "operator": "AND",
+      "conditions": [
+       {
+        "fieldId": "p10-q03",
+        "fieldType": "yes_no",
+        "comparison": "IS_EQUAL",
+        "value": "No"
+       }
+      ],
+      "target": "page-12"
+     }
+    ]
+   }
+  },
+  {
+   "id": "page-11",
+   "index": 10,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p11-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 11: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p10-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p11-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (11)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p11-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p11-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p11-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p11-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p11-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p11-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p11-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p11-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p11-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p11-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p11-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p11-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p11-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p11-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p11-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p11-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p11-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p11-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p11-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p11-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 11"
+   }
+  },
+  {
+   "id": "page-12",
+   "index": 11,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p12-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 12: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p11-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p12-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (12)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p12-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p12-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p12-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p12-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p12-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p12-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p12-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "OR",
+        "conditions": [
+         {
+          "fieldId": "p12-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         },
+         {
+          "fieldId": "p12-q10",
+          "fieldType": "group",
+          "comparison": "GREATER_THAN_EQUAL",
+          "value": 2,
+          "groupMode": "COUNT"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p12-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p12-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p12-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p12-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p12-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p12-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p12-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p12-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p12-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p12-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p12-q10",
+      "type": "group",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "People involved"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "repeat": {
+        "minItems": 1,
+        "maxItems": 3,
+        "itemLabel": "Person",
+        "itemTitle": "{{field:p12-q10-name}}"
+       },
+       "fields": [
+        {
+         "id": "p12-q10-name",
+         "index": 0,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Name"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p12-q10-born",
+         "index": 1,
+         "type": "date",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Date of birth"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p12-q10-role",
+         "index": 2,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Role"
+             }
+            ]
+           }
+          ]
+         },
+         "properties": {
+          "logic": {
+           "action": "SHOW",
+           "conditions": [
+            {
+             "fieldId": "p12-q10-name",
+             "fieldType": "short_text",
+             "comparison": "IS_NOT_EMPTY"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 12"
+   }
+  },
+  {
+   "id": "page-13",
+   "index": 12,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p13-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 13: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p12-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p13-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (13)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p13-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p13-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p13-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p13-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p13-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p13-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p13-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p13-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p13-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p13-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p13-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p13-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p13-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p13-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p13-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p13-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p13-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p13-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p13-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p13-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 13"
+   }
+  },
+  {
+   "id": "page-14",
+   "index": 13,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p14-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 14: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p13-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p14-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (14)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p14-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p14-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p14-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p14-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p14-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p14-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p14-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p14-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p14-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p14-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p14-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p14-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p14-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p14-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p14-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p14-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p14-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p14-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p14-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p14-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 14"
+   }
+  },
+  {
+   "id": "page-15",
+   "index": 14,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p15-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 15: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p14-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p15-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (15)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p15-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p15-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p15-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p15-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p15-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p15-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p15-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p15-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p15-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p15-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p15-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p15-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p15-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p15-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p15-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p15-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p15-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p15-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p15-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p15-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 15",
+    "jumps": [
+     {
+      "operator": "AND",
+      "conditions": [
+       {
+        "fieldId": "p15-q03",
+        "fieldType": "yes_no",
+        "comparison": "IS_EQUAL",
+        "value": "No"
+       }
+      ],
+      "target": "page-17"
+     }
+    ]
+   }
+  },
+  {
+   "id": "page-16",
+   "index": 15,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p16-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 16: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p15-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p16-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (16)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p16-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p16-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p16-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p16-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p16-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p16-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p16-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "OR",
+        "conditions": [
+         {
+          "fieldId": "p16-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         },
+         {
+          "fieldId": "p16-q10",
+          "fieldType": "group",
+          "comparison": "GREATER_THAN_EQUAL",
+          "value": 2,
+          "groupMode": "COUNT"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p16-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p16-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p16-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p16-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p16-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p16-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p16-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p16-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p16-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p16-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p16-q10",
+      "type": "group",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "People involved"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "repeat": {
+        "minItems": 1,
+        "maxItems": 3,
+        "itemLabel": "Person",
+        "itemTitle": "{{field:p16-q10-name}}"
+       },
+       "fields": [
+        {
+         "id": "p16-q10-name",
+         "index": 0,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Name"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p16-q10-born",
+         "index": 1,
+         "type": "date",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Date of birth"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p16-q10-role",
+         "index": 2,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Role"
+             }
+            ]
+           }
+          ]
+         },
+         "properties": {
+          "logic": {
+           "action": "SHOW",
+           "conditions": [
+            {
+             "fieldId": "p16-q10-name",
+             "fieldType": "short_text",
+             "comparison": "IS_NOT_EMPTY"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 16"
+   }
+  },
+  {
+   "id": "page-17",
+   "index": 16,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p17-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 17: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p16-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p17-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (17)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p17-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p17-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p17-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p17-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p17-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p17-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p17-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p17-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p17-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p17-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p17-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p17-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p17-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p17-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p17-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p17-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p17-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p17-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p17-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p17-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 17"
+   }
+  },
+  {
+   "id": "page-18",
+   "index": 17,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p18-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 18: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p17-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p18-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (18)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p18-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p18-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p18-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p18-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p18-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p18-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p18-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p18-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p18-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p18-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p18-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p18-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p18-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p18-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p18-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p18-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p18-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p18-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p18-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p18-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 18"
+   }
+  },
+  {
+   "id": "page-19",
+   "index": 18,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p19-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 19: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p18-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p19-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (19)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p19-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p19-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p19-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p19-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p19-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p19-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p19-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+         {
+          "fieldId": "p19-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p19-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p19-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p19-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p19-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p19-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p19-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p19-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p19-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p19-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p19-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p19-q10",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Reference from "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "hidden",
+            "pipeKey": "utm_source"
+           }
+          },
+          {
+           "type": "text",
+           "text": " for "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p19-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 19"
+   }
+  },
+  {
+   "id": "page-20",
+   "index": 19,
+   "type": "slide",
+   "properties": {
+    "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+    "fields": [
+     {
+      "id": "p20-q01",
+      "type": "short_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Section 20: following up on "
+          },
+          {
+           "type": "answerPipe",
+           "attrs": {
+            "kind": "field",
+            "pipeKey": "p19-q01"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "placeholder": "Answer"
+      },
+      "validations": {
+       "required": true,
+       "maxLength": 80
+      },
+      "index": 0
+     },
+     {
+      "id": "p20-q02",
+      "type": "multiple_choice",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Pick an option (20)"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p20-q02-c1",
+         "value": "Option 1"
+        },
+        {
+         "id": "p20-q02-c2",
+         "value": "Option 2"
+        },
+        {
+         "id": "p20-q02-c3",
+         "value": "Option 3"
+        }
+       ]
+      },
+      "index": 1
+     },
+     {
+      "id": "p20-q03",
+      "type": "yes_no",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Does this apply to you?"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "choices": [
+        {
+         "id": "p20-q03-yes",
+         "value": "Yes"
+        },
+        {
+         "id": "p20-q03-no",
+         "value": "No"
+        }
+       ]
+      },
+      "index": 2
+     },
+     {
+      "id": "p20-q04",
+      "type": "long_text",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Tell us more"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "logic": {
+        "action": "SHOW",
+        "operator": "OR",
+        "conditions": [
+         {
+          "fieldId": "p20-q03",
+          "fieldType": "yes_no",
+          "comparison": "IS_EQUAL",
+          "value": "Yes"
+         },
+         {
+          "fieldId": "p20-q10",
+          "fieldType": "group",
+          "comparison": "GREATER_THAN_EQUAL",
+          "value": 2,
+          "groupMode": "COUNT"
+         }
+        ]
+       }
+      },
+      "index": 3
+     },
+     {
+      "id": "p20-q05",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Start date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "Start"
+      },
+      "index": 4
+     },
+     {
+      "id": "p20-q06",
+      "type": "date",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "End date"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "label": "End",
+       "dateRules": [
+        {
+         "comparison": "after",
+         "target": "field",
+         "fieldId": "p20-q05"
+        }
+       ]
+      },
+      "index": 5
+     },
+     {
+      "id": "p20-q07",
+      "type": "number",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "How many?"
+          }
+         ]
+        }
+       ]
+      },
+      "validations": {
+       "minValue": 0,
+       "maxValue": 100
+      },
+      "index": 6
+     },
+     {
+      "id": "p20-q08",
+      "type": "email",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Email address"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "whyWeAsk": "To send a confirmation",
+       "colSpan": 6
+      },
+      "index": 7
+     },
+     {
+      "id": "p20-q09",
+      "type": "dropdown",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Choose one"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "colSpan": 6,
+       "choices": [
+        {
+         "id": "p20-q09-c1",
+         "value": "Item 1"
+        },
+        {
+         "id": "p20-q09-c2",
+         "value": "Item 2"
+        },
+        {
+         "id": "p20-q09-c3",
+         "value": "Item 3"
+        },
+        {
+         "id": "p20-q09-c4",
+         "value": "Item 4"
+        }
+       ]
+      },
+      "index": 8
+     },
+     {
+      "id": "p20-q10",
+      "type": "group",
+      "title": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "People involved"
+          }
+         ]
+        }
+       ]
+      },
+      "properties": {
+       "repeat": {
+        "minItems": 1,
+        "maxItems": 3,
+        "itemLabel": "Person",
+        "itemTitle": "{{field:p20-q10-name}}"
+       },
+       "fields": [
+        {
+         "id": "p20-q10-name",
+         "index": 0,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Name"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p20-q10-born",
+         "index": 1,
+         "type": "date",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Date of birth"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        {
+         "id": "p20-q10-role",
+         "index": 2,
+         "type": "short_text",
+         "title": {
+          "type": "doc",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "type": "text",
+              "text": "Role"
+             }
+            ]
+           }
+          ]
+         },
+         "properties": {
+          "logic": {
+           "action": "SHOW",
+           "conditions": [
+            {
+             "fieldId": "p20-q10-name",
+             "fieldType": "short_text",
+             "comparison": "IS_NOT_EMPTY"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      "index": 9
+     }
+    ],
+    "sectionTitle": "Section 20"
+   }
+  }
+ ]
+}

@@ -109,3 +109,72 @@ Both need permission to edit forms in the workspace. A document can be at
 most 1 MB, with at most 200 pages and 2000 fields in all (group questions
 included); a batch can have at most 200 operations. The MCP server offers
 the same as `validate_form`, `dry_run_ops` and `get_form_spec`.
+
+# Edit operations
+
+A form is changed by a list of edit operations, applied in order, each
+addressing pages and questions by id. The JSON Schema of every operation is
+[`form-ops-v1.schema.json`](form-ops-v1.schema.json), generated from the
+models in `backend/backend/app/services/ai/ops.py`. After you change them,
+regenerate it from `backend/`:
+
+```bash
+uv run python -m backend.app.services.ai.ops_schema
+```
+
+A test fails when the committed file is out of date.
+
+Some operations are for the form builder only (listed in `x-editorOnlyOps`,
+and marked `"x-editorOnly": true` on their definition): they take whole
+questions and pages with the ids the builder chose (`insert_field`,
+`replace_field`, `insert_page`), page and welcome page settings
+(`update_page`, `update_welcome_page`), hidden fields (`set_hidden_fields`),
+logo settings (`update_logo`) and choices by id (`set_choice`, `add_choice`,
+`remove_choice`, `move_choice`). They are checked like a whole-form save
+(ids unique in the form, size limits, image addresses, answer patterns,
+repeating group rules). The public API, the MCP server and the AI assistant
+refuse them, with an error for each such operation.
+
+## Conformance cases
+
+[`form-ops-v1.cases.json`](form-ops-v1.cases.json) lists operations applied
+to a form and what they must produce. Any implementation of the operations
+should pass every case.
+
+```json
+{
+  "forms": { "<name>": { "title": "...", "fields": [] } },
+  "cases": [
+    {
+      "name": "what the case shows",
+      "before": "<name>",
+      "ops": [{ "op": "remove_field", "fieldId": "q1" }],
+      "atomic": false,
+      "expect": { "form": {}, "error": { "index": 0, "messageContains": "..." } }
+    }
+  ]
+}
+```
+
+- `before` is the form the operations start from: the name of one of
+  `forms`, a form, or `{"$generated": {"pages": n, "fieldsPerPage": m}}`
+  (pages `p<i>` holding short text questions `p<i>f<j>` titled `"Q"`, for
+  the size limits). Forms are in the builder's camelCase shape.
+- `atomic`: all or nothing. When an operation fails, the form stays as it
+  was. Otherwise each failed operation is skipped and the rest apply.
+- `expect.error`: the first operation that fails is at `index`, and its
+  message contains `messageContains`. The operations before it apply. In an
+  atomic case the form is unchanged.
+- `expect.form`: the whole form afterwards, with `index` values renumbered.
+  It is left out when the form does not change, and for generated forms.
+- `expect` without `error` means every operation applies.
+- Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
+  order of first appearance, walking the form depth first with object keys
+  in sorted order. Compare after replacing them the same way.
+- Removing a question or a page also removes what referred to it: logic and
+  jump conditions on it (a rule or jump left with no conditions goes too),
+  answer pipes in titles and date rules. Jumps to a removed page stay, so the
+  builder can show them as broken.
+- A rich-text title holds only the node and mark types of the builder's
+  title editor (`TITLE_NODES` and `TITLE_MARKS` in `ops.py`). Only the form
+  builder may send one; elsewhere titles are plain text.
