@@ -49,7 +49,10 @@ def form() -> StandardForm:
                     "pets",
                     T.YES_NO,
                     "Pets?",
-                    choices=[StandardChoice(id="y", value="Yes"), StandardChoice(id="n", value="No")],
+                    choices=[
+                        StandardChoice(id="y", value="Yes"),
+                        StandardChoice(id="n", value="No"),
+                    ],
                 ),
                 _q("age", T.NUMBER, "Age"),
                 _q(
@@ -59,7 +62,15 @@ def form() -> StandardForm:
                     allow_multiple_selection=True,
                     choices=[StandardChoice(id=c, value=c) for c in ("A", "B", "C")],
                 ),
-                _q("colour", T.DROPDOWN, "Colour", choices=[StandardChoice(id="r", value="Red"), StandardChoice(id="b", value="Blue")]),
+                _q(
+                    "colour",
+                    T.DROPDOWN,
+                    "Colour",
+                    choices=[
+                        StandardChoice(id="r", value="Red"),
+                        StandardChoice(id="b", value="Blue"),
+                    ],
+                ),
             ),
             _page("p2", _q("notes", T.LONG_TEXT, "Notes")),
             _page("p3"),
@@ -100,21 +111,53 @@ def test_refs_build_a_page_with_logic_and_jumps_in_one_batch(form):
     new, results = run(
         form,
         [
-            {"op": "add_page", "ref": "pg", "fields": [{"title": "Has car?", "type": "yes_no", "ref": "car"}]},
-            {"op": "add_field", "pageId": "$ref:pg", "ref": "plate", "field": {"title": "Plate", "type": "short_text"}},
+            {
+                "op": "add_page",
+                "ref": "pg",
+                "fields": [{"title": "Has car?", "type": "yes_no", "ref": "car"}],
+            },
+            {
+                "op": "add_field",
+                "pageId": "$ref:pg",
+                "ref": "plate",
+                "field": {"title": "Plate", "type": "short_text"},
+            },
             {
                 "op": "set_field_logic",
                 "fieldId": "$ref:plate",
-                "logic": {"action": "SHOW", "conditions": [{"fieldId": "$ref:car", "comparison": "IS_EQUAL", "value": "Yes"}]},
+                "logic": {
+                    "action": "SHOW",
+                    "conditions": [
+                        {
+                            "fieldId": "$ref:car",
+                            "comparison": "IS_EQUAL",
+                            "value": "Yes",
+                        }
+                    ],
+                },
             },
             {
                 "op": "set_page_jumps",
                 "pageId": "p1",
                 "jumps": [
-                    {"conditions": [{"fieldId": "pets", "comparison": "IS_EQUAL", "value": "Yes"}], "target": "$ref:pg"}
+                    {
+                        "conditions": [
+                            {
+                                "fieldId": "pets",
+                                "comparison": "IS_EQUAL",
+                                "value": "Yes",
+                            }
+                        ],
+                        "target": "$ref:pg",
+                    }
                 ],
             },
-            {"op": "move_field", "fieldId": "$ref:plate", "toPageId": "$ref:pg", "index": 0},
+            {
+                "op": "move_field",
+                "fieldId": "$ref:plate",
+                "toPageId": "$ref:pg",
+                "index": 0,
+            },
         ],
     )
     assert all(r.ok for r in results), results
@@ -140,20 +183,36 @@ def test_refs_for_groups_and_their_questions(form):
                 "ref": "kids",
                 "title": "Children",
                 "itemLabel": "Child",
-                "fields": [{"title": "Child name", "type": "short_text", "ref": "kid-name"}],
+                "fields": [
+                    {"title": "Child name", "type": "short_text", "ref": "kid-name"}
+                ],
             },
-            {"op": "add_field", "groupId": "$ref:kids", "field": {"title": "Allergies", "type": "yes_no", "ref": "allergy"}},
+            {
+                "op": "add_field",
+                "groupId": "$ref:kids",
+                "field": {"title": "Allergies", "type": "yes_no", "ref": "allergy"},
+            },
             {
                 "op": "set_field_logic",
                 "fieldId": "notes",
                 "logic": {
                     "action": "SHOW",
                     "conditions": [
-                        {"fieldId": "$ref:kids", "groupMode": "ANY", "childFieldId": "$ref:allergy", "comparison": "IS_EQUAL", "value": "Yes"}
+                        {
+                            "fieldId": "$ref:kids",
+                            "groupMode": "ANY",
+                            "childFieldId": "$ref:allergy",
+                            "comparison": "IS_EQUAL",
+                            "value": "Yes",
+                        }
                     ],
                 },
             },
-            {"op": "update_field", "fieldId": "$ref:kid-name", "patch": {"required": True}},
+            {
+                "op": "update_field",
+                "fieldId": "$ref:kid-name",
+                "patch": {"required": True},
+            },
         ],
     )
     assert all(r.ok for r in results), results
@@ -182,12 +241,28 @@ def test_unknown_duplicate_and_failed_refs_are_plain_errors(form):
     _, results = run(
         form,
         [
-            {"op": "add_field", "pageId": "$ref:nowhere", "field": {"title": "X", "type": "short_text"}},
+            {
+                "op": "add_field",
+                "pageId": "$ref:nowhere",
+                "field": {"title": "X", "type": "short_text"},
+            },
             {"op": "add_page", "ref": "a"},
             {"op": "add_page", "ref": "a"},
-            {"op": "add_field", "pageId": "missing-page", "ref": "lost", "field": {"title": "Y", "type": "short_text"}},
+            {
+                "op": "add_field",
+                "pageId": "missing-page",
+                "ref": "lost",
+                "field": {"title": "Y", "type": "short_text"},
+            },
             {"op": "remove_field", "fieldId": "$ref:lost"},
-            {"op": "add_page", "ref": "b", "fields": [{"title": "1", "type": "text", "ref": "same"}, {"title": "2", "type": "text", "ref": "same"}]},
+            {
+                "op": "add_page",
+                "ref": "b",
+                "fields": [
+                    {"title": "1", "type": "text", "ref": "same"},
+                    {"title": "2", "type": "text", "ref": "same"},
+                ],
+            },
         ],
     )
     assert [r.ok for r in results] == [False, True, False, False, False, False]
@@ -200,7 +275,13 @@ def test_unknown_duplicate_and_failed_refs_are_plain_errors(form):
 def test_ref_text_outside_id_keys_is_left_alone(form):
     new, results = run(
         form,
-        [{"op": "add_field", "pageId": "p3", "field": {"title": "$ref:literal", "type": "short_text"}}],
+        [
+            {
+                "op": "add_field",
+                "pageId": "p3",
+                "field": {"title": "$ref:literal", "type": "short_text"},
+            }
+        ],
     )
     assert results[0].ok
     assert questions(new, "p3")[0].title == "$ref:literal"
@@ -209,7 +290,14 @@ def test_ref_text_outside_id_keys_is_left_alone(form):
 def test_add_field_refuses_two_different_refs(form):
     _, results = run(
         form,
-        [{"op": "add_field", "pageId": "p3", "ref": "a", "field": {"title": "Q", "type": "short_text", "ref": "b"}}],
+        [
+            {
+                "op": "add_field",
+                "pageId": "p3",
+                "ref": "a",
+                "field": {"title": "Q", "type": "short_text", "ref": "b"},
+            }
+        ],
     )
     assert not results[0].ok and "two different refs" in results[0].message
 
@@ -222,7 +310,9 @@ def test_ref_names_are_checked_when_parsing():
 
 
 def test_created_id_is_reported(form):
-    _, results = run(form, [{"op": "add_page"}, {"op": "update_form_info", "title": "T"}])
+    _, results = run(
+        form, [{"op": "add_page"}, {"op": "update_form_info", "title": "T"}]
+    )
     assert results[0].created_id and results[1].created_id is None
     dumped = results[0].model_dump(by_alias=True)
     assert dumped["createdId"] == results[0].created_id
@@ -235,7 +325,11 @@ def test_created_id_is_reported(form):
 MIXED = [
     {"op": "update_form_info", "title": "Renamed"},
     {"op": "remove_field", "fieldId": "does-not-exist"},
-    {"op": "add_field", "pageId": "p3", "field": {"title": "New", "type": "short_text"}},
+    {
+        "op": "add_field",
+        "pageId": "p3",
+        "field": {"title": "New", "type": "short_text"},
+    },
     {"op": "move_page", "pageId": "nope", "index": 0},
 ]
 
@@ -245,8 +339,15 @@ def test_atomic_leaves_the_form_unchanged_and_reports_every_error(form):
     new, results = run(form, MIXED, atomic=True)
     assert new.model_dump() == before
     assert new is not form
-    assert [(r.index, r.ok) for r in results] == [(0, True), (1, False), (2, True), (3, False)]
-    assert "was not found" in results[1].message and "was not found" in results[3].message
+    assert [(r.index, r.ok) for r in results] == [
+        (0, True),
+        (1, False),
+        (2, True),
+        (3, False),
+    ]
+    assert (
+        "was not found" in results[1].message and "was not found" in results[3].message
+    )
     assert applied(results, atomic=True) is False
 
 
@@ -271,7 +372,11 @@ def test_atomic_failed_ref_rolls_back_the_whole_batch(form):
         form,
         [
             {"op": "add_page", "ref": "pg"},
-            {"op": "add_field", "pageId": "$ref:typo", "field": {"title": "Q", "type": "short_text"}},
+            {
+                "op": "add_field",
+                "pageId": "$ref:typo",
+                "field": {"title": "Q", "type": "short_text"},
+            },
         ],
         atomic=True,
     )
@@ -308,11 +413,15 @@ def test_move_page_errors(form):
 
 
 def test_move_field_across_pages_appends_without_an_index(form):
-    new, results = run(form, [{"op": "move_field", "fieldId": "name", "toPageId": "p2"}])
+    new, results = run(
+        form, [{"op": "move_field", "fieldId": "name", "toPageId": "p2"}]
+    )
     assert results[0].ok
     assert [f.id for f in questions(new, "p2")] == ["notes", "name"]
     assert "name" not in [f.id for f in questions(new, "p1")]
-    new, results = run(form, [{"op": "move_field", "fieldId": "notes", "toPageId": "p1", "index": 0}])
+    new, results = run(
+        form, [{"op": "move_field", "fieldId": "notes", "toPageId": "p1", "index": 0}]
+    )
     assert results[0].ok and questions(new, "p1")[0].id == "notes"
 
 
@@ -322,28 +431,65 @@ def test_move_field_across_pages_appends_without_an_index(form):
 
 
 def _rules(form, fid):
-    return by_title(form, next(f.title for p in form.fields for f in p.properties.fields if f.id == fid)).validations
+    return by_title(
+        form,
+        next(f.title for p in form.fields for f in p.properties.fields if f.id == fid),
+    ).validations
 
 
 def test_text_lengths_and_patterns(form):
     new, results = run(
         form,
         [
-            {"op": "set_field_validation", "fieldId": "name", "validation": {"minLength": 2, "maxLength": 40, "preset": "letters"}},
-            {"op": "set_field_validation", "fieldId": "notes", "validation": {"maxLength": 500, "required": True}},
+            {
+                "op": "set_field_validation",
+                "fieldId": "name",
+                "validation": {"minLength": 2, "maxLength": 40, "preset": "letters"},
+            },
+            {
+                "op": "set_field_validation",
+                "fieldId": "notes",
+                "validation": {"maxLength": 500, "required": True},
+            },
         ],
     )
     assert all(r.ok for r in results), results
     rules = _rules(new, "name")
-    assert (rules.min_length, rules.max_length, rules.regex) == (2, 40, VALIDATION_PRESETS["letters"])
-    assert _rules(new, "notes").max_length == 500 and _rules(new, "notes").required is True
+    assert (rules.min_length, rules.max_length, rules.regex) == (
+        2,
+        40,
+        VALIDATION_PRESETS["letters"],
+    )
+    assert (
+        _rules(new, "notes").max_length == 500 and _rules(new, "notes").required is True
+    )
 
-    new, results = run(new, [{"op": "set_field_validation", "fieldId": "name", "validation": {"pattern": "^[A-Z]{2}\\d{4}$", "minLength": None}}])
+    new, results = run(
+        new,
+        [
+            {
+                "op": "set_field_validation",
+                "fieldId": "name",
+                "validation": {"pattern": "^[A-Z]{2}\\d{4}$", "minLength": None},
+            }
+        ],
+    )
     assert results[0].ok
     assert _rules(new, "name").regex == "^[A-Z]{2}\\d{4}$"
-    assert _rules(new, "name").min_length is None and _rules(new, "name").max_length == 40
+    assert (
+        _rules(new, "name").min_length is None and _rules(new, "name").max_length == 40
+    )
 
-    new, results = run(new, [{"op": "set_field_validation", "fieldId": "name", "validation": {"pattern": None}}])
+    new, results = run(
+        new,
+        [
+            {
+                "op": "set_field_validation",
+                "fieldId": "name",
+                "validation": {"pattern": None},
+            }
+        ],
+    )
     assert results[0].ok and _rules(new, "name").regex is None
 
 
@@ -351,13 +497,24 @@ def test_values_and_choices(form):
     new, results = run(
         form,
         [
-            {"op": "set_field_validation", "fieldId": "age", "validation": {"minValue": 18, "maxValue": 120}},
-            {"op": "set_field_validation", "fieldId": "topics", "validation": {"minChoices": 1, "maxChoices": 2}},
+            {
+                "op": "set_field_validation",
+                "fieldId": "age",
+                "validation": {"minValue": 18, "maxValue": 120},
+            },
+            {
+                "op": "set_field_validation",
+                "fieldId": "topics",
+                "validation": {"minChoices": 1, "maxChoices": 2},
+            },
         ],
     )
     assert all(r.ok for r in results), results
     assert (_rules(new, "age").min_value, _rules(new, "age").max_value) == (18, 120)
-    assert (_rules(new, "topics").min_choices, _rules(new, "topics").max_choices) == (1, 2)
+    assert (_rules(new, "topics").min_choices, _rules(new, "topics").max_choices) == (
+        1,
+        2,
+    )
 
 
 @pytest.mark.parametrize(
@@ -373,16 +530,25 @@ def test_values_and_choices(form):
         ("name", {"minLength": -1}, "cannot be negative"),
         ("name", {"pattern": "(unclosed"}, "is not a valid pattern"),
         ("name", {"pattern": "a" * 201}, "at most 200 characters"),
-        ("name", {"pattern": "^a$", "preset": "digits"}, "either a pattern or a preset"),
+        (
+            "name",
+            {"pattern": "^a$", "preset": "digits"},
+            "either a pattern or a preset",
+        ),
         ("name", {}, "Nothing to change"),
         ("p1", {"required": True}, "was not found"),
     ],
 )
-def test_validation_errors_are_plain_and_change_nothing(form, field_id, validation, expected):
+def test_validation_errors_are_plain_and_change_nothing(
+    form, field_id, validation, expected
+):
     def rules(f):
         return [q.validations for p in f.fields for q in p.properties.fields]
 
-    new, results = run(form, [{"op": "set_field_validation", "fieldId": field_id, "validation": validation}])
+    new, results = run(
+        form,
+        [{"op": "set_field_validation", "fieldId": field_id, "validation": validation}],
+    )
     assert not results[0].ok
     assert expected in results[0].message, results[0].message
     assert rules(new) == rules(form)
@@ -394,11 +560,23 @@ def test_validation_errors_are_plain_and_change_nothing(form, field_id, validati
 
 
 def test_question_numbering_for_one_page_or_all(form):
-    new, results = run(form, [{"op": "set_question_numbering", "pageId": "p2", "show": True}])
+    new, results = run(
+        form, [{"op": "set_question_numbering", "pageId": "p2", "show": True}]
+    )
     assert results[0].ok and "page 2" in results[0].message
-    assert [p.properties.show_question_numbers for p in new.fields] == [None, True, None]
+    assert [p.properties.show_question_numbers for p in new.fields] == [
+        None,
+        True,
+        None,
+    ]
     new, results = run(new, [{"op": "set_question_numbering", "show": False}])
     assert results[0].ok and "every page" in results[0].message
-    assert [p.properties.show_question_numbers for p in new.fields] == [False, False, False]
-    _, results = run(form, [{"op": "set_question_numbering", "pageId": "zzz", "show": True}])
+    assert [p.properties.show_question_numbers for p in new.fields] == [
+        False,
+        False,
+        False,
+    ]
+    _, results = run(
+        form, [{"op": "set_question_numbering", "pageId": "zzz", "show": True}]
+    )
     assert not results[0].ok
