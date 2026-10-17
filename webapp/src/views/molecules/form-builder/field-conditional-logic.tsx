@@ -48,7 +48,7 @@ export default function FieldConditionalLogicEditor() {
                     <div className="text-black-700 text-xs font-medium">Logic</div>
                     <div className="text-black-600 text-[11px]">Show or hide this field based on answers</div>
                 </div>
-                <Switch checked={enabled} onCheckedChange={toggle} />
+                <Switch aria-label="Show or hide this field based on answers" checked={enabled} onCheckedChange={toggle} />
             </div>
 
             {enabled && logic && (

@@ -20,11 +20,13 @@ import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
+import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { validateSlide } from '@app/utils/vvalidation-utils';
@@ -191,7 +193,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
           )
         : null;
     const pageFields = section?.openingTextId ? visibleFields.filter((field) => field.id !== section.openingTextId) : visibleFields;
-    const numbering = leaflet ? { numbers: questionNumbers(pageFields, index + 1), hang: leafletNumbersHang(pageLayout) } : null;
+    // Leaflet always numbers its questions; other styles when the form has
+    // question numbering on (utils/question-numbering.ts).
+    const numbering = leaflet
+        ? { numbers: questionNumbers(pageFields, index + 1), hang: leafletNumbersHang(pageLayout) }
+        : formSlide?.properties?.showQuestionNumbers
+          ? { numbers: plainQuestionNumbers(pageFields, index + 1, hasSeveralPages(standardForm?.fields)), hang: false, plain: true }
+          : null;
     const theme = standardForm?.theme;
     const marginVar = numbering ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbering.numbers, index + 1)}px` } as React.CSSProperties) : undefined;
     // The header's words in the action colour where it reads as text on the page.
@@ -229,6 +237,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             // (keyed by the item-scoped id the question renders under).
             ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {})
         };
+        // Answer rules (length, format, value range, number of options) on
+        // answers given; a missing one is Required's to report.
+        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {})).forEach(([id, problems]) => {
+            if (!invalidations[id]) invalidations[id] = problems as any;
+        });
         // Date rules (e.g. "after Start date"), on top of a missing answer.
         Object.entries(validateDateRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, getInputFieldsById(standardForm?.fields))).forEach(([id, problems]) => {
             invalidations[id] = [...(invalidations[id] ?? []), ...problems] as any;

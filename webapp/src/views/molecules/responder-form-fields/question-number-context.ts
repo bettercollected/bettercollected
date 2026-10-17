@@ -1,8 +1,10 @@
 import { createContext } from 'react';
 
 /**
- * The Leaflet style's question numbers for the page being shown (field id →
- * "2.1"), and whether they may hang outside the text measure (wide, centred
- * pages). Absent everywhere else, so other styles render no numbers.
+ * The question numbers for the page being shown (field id → "2.1"), and
+ * whether they may hang outside the text measure (wide, centred pages).
+ * The Leaflet style always numbers; other styles number when the form has
+ * question numbering on (`plain`: set in the form's own label style, not
+ * the Leaflet serif). Absent otherwise, so no numbers render.
  */
-export const QuestionNumberContext = createContext<{ numbers: Record<string, string>; hang: boolean } | null>(null);
+export const QuestionNumberContext = createContext<{ numbers: Record<string, string>; hang: boolean; plain?: boolean } | null>(null);
