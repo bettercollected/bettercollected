@@ -5,7 +5,7 @@ import { atom, useAtom } from 'jotai';
  * page once it has copied the loaded form into the builder atoms; until then
  * AutoSaveForm treats state changes as loading, not as edits.
  */
-const builderHydratedFormIdAtom = atom<string | null>(null);
+export const builderHydratedFormIdAtom = atom<string | null>(null);
 
 export function useBuilderHydration() {
     const [hydratedFormId, setHydratedFormId] = useAtom(builderHydratedFormIdAtom);

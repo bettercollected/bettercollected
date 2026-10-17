@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/sha
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
-import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
+import { builderHydratedFormIdAtom, useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import { IFormState, formStateAtom } from '@app/store/jotai/form';
 import { builderFieldsAtom } from '@app/store/jotai/form-document';
 import { usePatchV2FormMutation } from '@app/store/redux/form-api';
@@ -136,12 +136,20 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         queue.enqueue(JSON.stringify(latestRef.current));
     };
 
+    /** Does the builder hold this form now (loaded into it, and not let go of yet)? */
+    const holdsThisForm = () => store.get(builderHydratedFormIdAtom) === formId;
+
     // The form as it is now: the first state once hydrated is what the
     // server has; each later change is saved AUTOSAVE_DEBOUNCE_MS after the
-    // last one.
+    // last one. Once that first state is taken, only states of this form,
+    // while the builder holds it, count: the editor page resets the builder
+    // when it closes (before this component's own cleanup flushes), and that
+    // empty form must never be what is saved.
     const takeState = (parts: SavedParts) => {
+        if (baselineTakenRef.current && !holdsThisForm()) return;
         const combinedFormState = savedFormOf(parts.formState, parts.fields);
         latestRef.current = combinedFormState;
+        // Hydrated as of the latest render: the render that hydrated takes the baseline.
         if (!hydratedRef.current) return;
         // The first state after loading is what the server has.
         if (!baselineTakenRef.current) {
@@ -172,6 +180,8 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         // Each change of the pages or the form-level state, without re-rendering.
         let last = currentParts(store);
         const changed = () => {
+            // The builder no longer holds this form (the editor is closing and reset it): not an edit.
+            if (baselineTakenRef.current && store.get(builderHydratedFormIdAtom) !== formId) return;
             const now = currentParts(store);
             if (sameParts(now, last)) return;
             last = now;
@@ -181,7 +191,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         };
         const unsubscribe = [store.sub(builderFieldsAtom, changed), store.sub(formStateAtom, changed)];
         return () => unsubscribe.forEach((stop) => stop());
-    }, [store]);
+    }, [store, formId]);
 
     // An edit made while the workspace was still loading saves once it is.
     useEffect(() => {
@@ -216,7 +226,9 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             window.removeEventListener('beforeunload', onBeforeUnload);
             window.removeEventListener('online', onOnline);
             if (activeAutosave?.formId === formId) activeAutosave = null;
-            // Leaving the editor inside the app: save what the debounce held.
+            // Leaving the editor inside the app: save what the debounce held,
+            // the latest state of this form taken while the builder held it
+            // (see takeState), never the reset that closing the editor makes.
             if (timerRef.current) enqueueLatest();
         };
     }, [formId]);
