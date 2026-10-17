@@ -27,10 +27,18 @@ counters (``FixedWindowRateLimiter.claim``) decides it; only the first
 accept that gets past every check takes it. Statuses are then written to
 the proposal's record alone (``update_proposal``), never by saving the
 whole session, so a chat turn saved at the same time cannot undo them.
+
+Once the form is written, the accept is a success: the ``accepted`` status
+write is retried a couple of times, and when it still fails, the version
+the accept wrote is marked next to the claim instead
+(``_record_accepted``). A later accept or reject that finds the stored form
+at exactly that version reports the proposal as accepted (and writes the
+status then), rather than "busy" until the claim expires.
 """
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import json
 import re
@@ -75,6 +83,8 @@ DECIDE_CLAIM_SCOPE = "ai:proposal:decide"
 _EPOCH = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
 _PROPOSAL_ID = re.compile(r"^([0-9a-f]{24})-([0-9a-f]{16})$")
 MAX_PROPOSAL_OPS = MAX_OPS_PER_BATCH
+# a decision that must be recorded is retried after these pauses (seconds)
+DECISION_WRITE_RETRY_DELAYS: Tuple[float, ...] = (0.05, 0.25)
 
 
 class _CamelModel(BaseModel):
@@ -413,6 +423,19 @@ def _aware(value: Any) -> Optional[dt.datetime]:
     return value
 
 
+def _keep_until(record: Dict[str, Any]) -> dt.datetime:
+    """How long a proposal's claims are kept: a day past the proposal, so a
+    late retry still finds them."""
+    return (_aware(record.get("expires_at")) or _EPOCH) + dt.timedelta(days=1)
+
+
+def _accepted_key(proposal_id: str, version: dt.datetime) -> str:
+    """The mark of an accept that wrote ``version`` of the form (to the
+    millisecond, as every store keeps it) but not its status."""
+    ms = (_aware(version) - _EPOCH) // dt.timedelta(milliseconds=1)
+    return f"{proposal_id}#accepted@{ms}"
+
+
 class FormAIProposalService:
     def __init__(
         self,
@@ -493,14 +516,109 @@ class FormAIProposalService:
         attempt that broke off without deciding (``_give_back``) moves the
         proposal to the next attempt, which can be claimed again."""
         attempt = int(record.get("attempt") or 0)
-        expires_at = _aware(record.get("expires_at")) or _EPOCH
-        # kept a day past the proposal, so a late retry still finds it
-        keep_until = expires_at + dt.timedelta(days=1)
         if await self._rate_limiter.claim(
-            DECIDE_CLAIM_SCOPE, f"{proposal_id}#{attempt}", keep_until
+            DECIDE_CLAIM_SCOPE, f"{proposal_id}#{attempt}", _keep_until(record)
         ):
             return attempt
         raise _busy()
+
+    async def _set_decision(self, session, proposal_id: str, **fields) -> None:
+        """``_set`` for a decision that must be recorded: retried a couple
+        of times before the error stands."""
+        for delay in (*DECISION_WRITE_RETRY_DELAYS, None):
+            try:
+                await self._set(session, proposal_id, **fields)
+                return
+            except Exception:  # noqa: BLE001 — raised after the last try
+                if delay is None:
+                    raise
+                await asyncio.sleep(delay)
+
+    async def _record_accepted(
+        self,
+        session,
+        proposal_id: str,
+        record: Dict[str, Any],
+        chosen: List[int],
+        version: Optional[dt.datetime],
+    ) -> None:
+        """The form is written (as ``version``): record the proposal as
+        accepted. When the status cannot be written, mark the version next
+        to the claim, for ``_accepted_as``; never an error, since the
+        accept itself succeeded."""
+        try:
+            await self._set_decision(
+                session,
+                proposal_id,
+                status=STATUS_ACCEPTED,
+                accepted_op_indexes=chosen,
+            )
+            return
+        except Exception as error:  # noqa: BLE001 — the form is written
+            failed = type(error).__name__
+        try:
+            if version is None:
+                raise ValueError("no stored version")
+            await self._rate_limiter.claim(
+                DECIDE_CLAIM_SCOPE,
+                _accepted_key(proposal_id, version),
+                _keep_until(record),
+            )
+            logger.warning(
+                "AI proposal accepted; status not written ({}), version marked",
+                failed,
+            )
+        except Exception as again:  # noqa: BLE001 — logged by type only
+            logger.warning(
+                "AI proposal accepted; status not written ({}), version not "
+                "marked ({})",
+                failed,
+                type(again).__name__,
+            )
+
+    async def _accepted_as(
+        self, session, proposal_id: str, record: Dict[str, Any], version: Any
+    ) -> bool:
+        """Whether the stored form (at ``version``) is the one an accept of
+        this proposal wrote without recording its status
+        (``_record_accepted``). If so, the status is written now, when it
+        can be."""
+        if version is None or same_version(
+            version, _aware(record.get("base_updated_at"))
+        ):
+            return False
+        try:
+            if not await self._rate_limiter.claimed(
+                DECIDE_CLAIM_SCOPE,
+                _accepted_key(proposal_id, version),
+                _keep_until(record),
+            ):
+                return False
+        except Exception:  # noqa: BLE001 — unknown: the caller's answer stands
+            return False
+        try:
+            await self._set(
+                session,
+                proposal_id,
+                only_if_status=STATUS_PROPOSED,
+                status=STATUS_ACCEPTED,
+            )
+        except Exception:  # noqa: BLE001 — the mark keeps answering
+            pass
+        return True
+
+    async def _accepted_since(
+        self, workspace_id, form_id, session, proposal_id: str, record
+    ) -> bool:
+        """``_accepted_as`` for the form as stored now; False when the form
+        cannot be read."""
+        try:
+            form_document, _ = await self._load_form(workspace_id, form_id)
+        except Exception:  # noqa: BLE001 — unknown: the caller's answer stands
+            return False
+        return await self._accepted_as(
+            session, proposal_id, record, form_document.updated_at
+        )
 
     async def _give_back(self, session, proposal_id: str, attempt: int, error) -> None:
         """An unexpected failure after the claim, before a decision was
@@ -644,6 +762,10 @@ class FormAIProposalService:
         form_document, settings = await self._load_form(workspace_id, form_id)
         base = _aware(record.get("base_updated_at"))
         if not same_version(form_document.updated_at, base):
+            if await self._accepted_as(
+                session, proposal_id, record, form_document.updated_at
+            ):
+                raise _closed(STATUS_ACCEPTED)
             raise _stale([], FORM_CHANGED_SINCE)
         form = StandardForm(**form_document.model_dump())
         _, trial = await run_in_threadpool(
@@ -694,7 +816,7 @@ class FormAIProposalService:
                 raise _stale(failures(results))
         except HTTPException as error:
             # the claim is spent: the proposal cannot be accepted again
-            await self._set(session, proposal_id, status=STATUS_FAILED)
+            await self._set_decision(session, proposal_id, status=STATUS_FAILED)
             if (
                 error.status_code == HTTPStatus.CONFLICT
                 and isinstance(error.content, dict)
@@ -706,11 +828,8 @@ class FormAIProposalService:
             await self._give_back(session, proposal_id, attempt, error)
             raise
 
-        await self._set(
-            session,
-            proposal_id,
-            status=STATUS_ACCEPTED,
-            accepted_op_indexes=chosen,
+        await self._record_accepted(
+            session, proposal_id, record, chosen, form_document.updated_at
         )
         return AcceptProposalResponse(
             proposal_id=proposal_id,
@@ -739,7 +858,11 @@ class FormAIProposalService:
             except HTTPException:
                 status = await self._decided(workspace_id, form_id, proposal_id, user)
                 if status == STATUS_PROPOSED:
-                    raise
+                    if not await self._accepted_since(
+                        workspace_id, form_id, session, proposal_id, record
+                    ):
+                        raise
+                    status = STATUS_ACCEPTED
             else:
                 try:
                     if await self._set(
