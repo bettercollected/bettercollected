@@ -477,6 +477,12 @@ class RateLimitCounterRow(Base, BaseRow):
     __table_args__ = (Index(None, "expires_at"),)
 
 
+class ApiIdempotencyKeyRow(Base, BaseRow):
+    __tablename__ = "api_idempotency_keys"
+    expires_at = S.ts("expires_at")
+    __table_args__ = (Index(None, "expires_at"),)
+
+
 class AllowedOriginRow(Base, BaseRow):
     __tablename__ = "allowed_origins"
     origin = S.text("origin")
