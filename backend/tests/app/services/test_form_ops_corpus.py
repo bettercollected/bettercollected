@@ -87,7 +87,7 @@ def run_case(
     case: Dict[str, Any], forms: Dict[str, Any], compute: bool = False
 ) -> Dict[str, Any]:
     before = from_document(case["before"], forms)
-    ops = parse_ops(case["ops"], editor=True)
+    ops = parse_ops(case["ops"], allow_editor_ops=True)
     after, results = apply_form_ops(before, ops, atomic=case["atomic"])
     document = normalise_ids(to_document(after))
     unchanged = document == normalise_ids(to_document(before))

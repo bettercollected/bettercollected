@@ -485,7 +485,7 @@ class SetSectionTitleOp(_CamelModel):
 # questions and pages with the ids it chose, and these ops keep every id and
 # every property they are given. They are checked like a whole-form save
 # (PATCH .../forms/{form_id}) and refused everywhere else for now: a payload
-# is parsed with them only when the caller passes ``editor=True`` to
+# is parsed with them only when the caller passes ``allow_editor_ops=True`` to
 # parse_ops (EDITOR_ONLY_OPS). Handlers: "Editor ops: handlers" below.
 # ===========================================================================
 
@@ -651,7 +651,7 @@ EDITOR_OP_TYPES = (
     RemoveChoiceOp,
     MoveChoiceOp,
 )
-# Ops only the form editor may send (refused by parse_ops without editor=True).
+# Ops only the form editor may send (refused by parse_ops without allow_editor_ops=True).
 EDITOR_ONLY_OPS = frozenset(t.model_fields["op"].default for t in EDITOR_OP_TYPES)
 
 # ===========================================================================
@@ -2376,7 +2376,7 @@ def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
     if not found:
         return op
     try:
-        # an editor op got here through parse_ops(editor=True)
+        # an editor op got here through parse_ops(allow_editor_ops=True)
         return type(op).model_validate(resolved, context={EDITOR_CONTEXT: True})
     except ValueError as error:
         raise OpError(_validation_message(error))
@@ -2592,11 +2592,13 @@ def applied(results: List[OpResult], atomic: bool) -> bool:
     return any(r.ok for r in results)
 
 
-def parse_ops(payload: List[Dict[str, Any]], *, editor: bool = False) -> List[FormOp]:
+def parse_ops(
+    payload: List[Dict[str, Any]], *, allow_editor_ops: bool = False
+) -> List[FormOp]:
     """Parse a raw ops payload (AI/MCP JSON) into typed operations.
 
     The editor ops (EDITOR_ONLY_OPS) are refused, each with its own error
-    at its index, unless ``editor`` is true: only the form editor may send
-    them."""
-    context = {EDITOR_CONTEXT: True} if editor else None
+    at its index, unless ``allow_editor_ops`` is true: only the form editor
+    may send them."""
+    context = {EDITOR_CONTEXT: True} if allow_editor_ops else None
     return FormOps.model_validate({"ops": payload}, context=context).ops

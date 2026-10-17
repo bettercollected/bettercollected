@@ -63,7 +63,7 @@ def test_parse_ops_refuses_each_editor_op_at_its_index(name):
     # the public API and dry runs report it at the op's path
     assert ops_errors(raised.value) == [{"path": "/ops/1", "message": error["msg"]}]
     # the editor may send it
-    [_, op] = parse_ops(payload, editor=True)
+    [_, op] = parse_ops(payload, allow_editor_ops=True)
     assert op.op == name
 
 
@@ -138,7 +138,7 @@ def test_refs_reach_an_editor_op():
                 "field": {"id": "x", "type": "short_text"},
             },
         ],
-        editor=True,
+        allow_editor_ops=True,
     )
     after, results = apply_form_ops(form, ops, atomic=True)
     assert all(r.ok for r in results), [r.message for r in results]
@@ -169,7 +169,7 @@ def test_an_image_already_on_the_form_is_kept():
                 "field": {"id": "a", "type": "short_text", "imageUrl": old},
             }
         ],
-        editor=True,
+        allow_editor_ops=True,
     )
     _, results = apply_form_ops(form, keep)
     assert results[0].ok, results[0].message
@@ -180,7 +180,7 @@ def test_an_image_already_on_the_form_is_kept():
                 "field": {"id": "a", "type": "short_text", "imageUrl": old + "?x"},
             }
         ],
-        editor=True,
+        allow_editor_ops=True,
     )
     _, results = apply_form_ops(form, refuse)
     assert not results[0].ok
