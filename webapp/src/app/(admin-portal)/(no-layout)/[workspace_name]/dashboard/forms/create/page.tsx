@@ -8,6 +8,7 @@ import AIIcon from '@Components/icons/ai-icon';
 import { GoogleFormIcon } from '@Components/icons/google-form';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 import cn from 'classnames';
+import { useSetAtom } from 'jotai';
 import { FileText } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -19,7 +20,8 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useAppSelector } from '@app/store/hooks';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { initialFormState } from '@app/store/jotai/form';
+import { resetFromServerAtom } from '@app/store/jotai/form-document';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
 import { useCreateFormFromTemplateMutation, useGetTemplatesQuery } from '@app/store/redux/template-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -39,7 +41,7 @@ const CardVariants = {
 export default function CreateFormPage(props: { searchParams: Promise<{ modal?: string }> }) {
     const searchParams = use(props.searchParams);
     const [createV2Form] = useCreateV2FormMutation();
-    const { resetFields } = useFormFieldsAtom();
+    const resetFromServer = useSetAtom(resetFromServerAtom);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const [openPicker] = useDrivePicker();
@@ -71,7 +73,8 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
 
     const handleCreateForm = async (type: string) => {
         const isMultiPage = type === 'Modern Form';
-        resetFields();
+        // A new form starts from an empty document with no undo history.
+        resetFromServer({ ...initialFormState, fields: [] });
         // New forms default to a calm, single-column layout with no decorative
         // image (see DESIGN.md §3). Creators opt into the image / split
         // layout per page via the Layout panel.
