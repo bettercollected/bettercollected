@@ -42,6 +42,7 @@ from backend.app.schemas.scim import (
 )
 from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
+from backend.app.schemas.api_idempotency_record import ApiIdempotencyRecordDocument
 from common.db import MirrorWriteFailureDocument
 
 document_models = []
@@ -83,6 +84,7 @@ async def init_db(db: str, client: AsyncMongoClient):
             ResponderGroupDocument,
             FlowEventDocument,
             RateLimitCounterDocument,
+            ApiIdempotencyRecordDocument,
             WorkspaceDomainDocument,
             SsoConnectionDocument,
             SsoUsedStateDocument,

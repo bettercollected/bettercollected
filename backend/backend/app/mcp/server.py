@@ -9,10 +9,9 @@ Tools deliberately reuse the same services/pipelines as the product —
 ``update_form`` goes through the exact ops engine the builder chat uses.
 """
 
-import datetime as dt
 import json
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
@@ -22,16 +21,21 @@ from starlette.concurrency import run_in_threadpool
 from mcp.server.transport_security import TransportSecuritySettings
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.permission import Permission
 from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH, CreateFormWithAI
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
-from backend.app.repositories.response_scope import (
-    find_response_in_workspace,
-    response_scope,
-)
+from backend.app.repositories.response_scope import response_scope
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.api_keys import APIKeyService
+from backend.app.services.api_responses import (
+    list_response_summaries,
+    response_detail,
+)
+from backend.app.services.api_access import (
+    acting_user,
+    audit_key_call,
+    require_key_scope,
+)
 from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import applied, parse_ops, too_many_ops
 from backend.app.services.ai.profile import AIProfileService
@@ -69,62 +73,27 @@ mcp = FastMCP(
 )
 
 
-# What the key's creator must still hold, right now, for each scope: a key
-# never does more than the person who made it currently may (a removed,
-# disabled or demoted creator makes the key refuse).
-# A bulk read of answers through the API is an export, so responses:read
-# needs response.export as well as response.read (doc §4).
-SCOPE_PERMISSIONS: Dict[str, Tuple[Permission, ...]] = {
-    "forms:read": (Permission.FORM_READ,),
-    "forms:write": (Permission.FORM_EDIT,),
-    "responses:read": (Permission.RESPONSE_READ, Permission.RESPONSE_EXPORT),
-    "deletion_requests:read": (Permission.PRIVACY_MANAGE,),
-    "deletion_requests:write": (Permission.PRIVACY_MANAGE,),
-}
-
-
 async def _key(scope: str) -> WorkspaceAPIKeyDocument:
     key = current_api_key.get()
     if key is None:
         raise ValueError("Not authenticated")
     try:
-        APIKeyService.require_scope(key, scope)
+        await require_key_scope(key, scope)
     except HTTPException as e:
         # Our HTTPException carries the message in `content`, which str() drops
         # — re-raise as ValueError so the MCP client sees why it was denied.
-        raise ValueError(str(e.content)) from e
-    held = await _c().authorization_service().effective_permissions(
-        _acting_user(key), key.workspace_id
-    )
-    missing = [p.value for p in SCOPE_PERMISSIONS[scope] if p not in held]
-    if missing:
-        raise ValueError(
-            "Forbidden: the person who created this API key no longer has "
-            f"{', '.join(repr(p) for p in missing)} in this workspace."
-        )
+        raise ValueError(_error_text(e)) from e
     return key
 
 
 def _acting_user(key: WorkspaceAPIKeyDocument) -> User:
-    # Authorization inside the product services runs as the key's creator.
-    return User(id=key.created_by, sub=f"api-key:{key.name}", roles=["FORM_CREATOR"])
+    return acting_user(key)
 
 
 async def _audit(tool: str, ok: bool, detail: str = "") -> None:
-    try:
-        key = current_api_key.get()
-        if key is None:
-            return
-        await _c().mcp_audit_log_repo().add(
-            workspace_id=key.workspace_id,
-            key_id=str(key.id),
-            tool=tool,
-            ok=ok,
-            detail=detail[:300],
-            at=dt.datetime.now(dt.timezone.utc),
-        )
-    except Exception:  # noqa: BLE001 — auditing must not break tool calls
-        pass
+    key = current_api_key.get()
+    if key is not None:
+        await audit_key_call(key, tool, ok, detail)
 
 
 async def _workspace_form_ids(
@@ -173,9 +142,7 @@ async def get_form(form_id: str) -> str:
     return json.dumps(
         StandardFormCamelModel(
             **StandardForm(**form.model_dump()).model_dump()
-        ).model_dump(
-            mode="json", by_alias=True, exclude_none=True, exclude={"secrets"}
-        )
+        ).model_dump(mode="json", by_alias=True, exclude_none=True, exclude={"secrets"})
     )
 
 
@@ -441,26 +408,13 @@ async def publish_form(form_id: str) -> str:
 @mcp.tool()
 async def list_responses(form_id: str, limit: int = 20) -> str:
     """List a form's responses (most recent first): response id, submission
-    time, and answer count. Use get_response for full answers."""
+    time, answer count and any deletion request's status. Use get_response
+    for full answers."""
     key = await _key("responses:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
-    limit = max(1, min(limit, 100))
     # this workspace's responses only (#768)
-    scope = await response_scope(
-        _c().workspace_form_repo(), key.workspace_id, [form_id]
-    )
-    responses = await _c().form_response_repo().list_recent_by_form_id(scope, limit)
-    items = [
-        {
-            "responseId": r.response_id,
-            "submittedAt": str(getattr(r, "created_at", "")),
-            # Answers are encrypted at rest (str/bytes) — len() of ciphertext
-            # is meaningless, so only count when they are a readable dict.
-            "answerCount": len(r.answers) if isinstance(r.answers, dict) else None,
-        }
-        for r in responses
-    ]
+    items, _ = await list_response_summaries(key.workspace_id, form_id, limit)
     await _audit("list_responses", True, f"{form_id}: {len(items)}")
     return json.dumps(items)
 
@@ -469,51 +423,13 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
 async def get_response(response_id: str) -> str:
     """Get one response's full answers."""
     key = await _key("responses:read")
-    # this workspace's copy (#768)
-    response = await find_response_in_workspace(
-        _c().form_response_repo(),
-        _c().workspace_form_repo(),
-        key.workspace_id,
-        response_id,
-    )
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
-    if not response or response.form_id not in workspace_forms:
+    # this workspace's copy (#768), decrypted on this read path only (the
+    # same rule as the dashboard's response views)
+    detail = await response_detail(key.workspace_id, response_id)
+    if detail is None:
         raise ValueError("Response not found in this workspace.")
-    # Answers are encrypted at rest — decrypt on this read path (the same
-    # rule as the dashboard's response views).
-    answers = response.answers
-    if isinstance(answers, (bytes, str)):
-        from common.services.crypto_service import crypto_service
-
-        answers = json.loads(
-            crypto_service.decrypt(
-                workspace_id=key.workspace_id, form_id=response.form_id, data=answers
-            )
-        )
-    # Staff-entered values of the form's internal fields (same encryption).
-    internal = response.internal_answers
-    if isinstance(internal, (bytes, str)):
-        from common.services.crypto_service import crypto_service
-
-        internal = json.loads(
-            crypto_service.decrypt(
-                workspace_id=key.workspace_id, form_id=response.form_id, data=internal
-            )
-        )
     await _audit("get_response", True, response_id)
-    return json.dumps(
-        {
-            "responseId": response.response_id,
-            "formId": response.form_id,
-            "submittedAt": str(getattr(response, "created_at", "")),
-            "answers": json.loads(
-                json.dumps(answers if isinstance(answers, dict) else {}, default=str)
-            ),
-            "internalAnswers": json.loads(
-                json.dumps(internal if isinstance(internal, dict) else {}, default=str)
-            ),
-        }
-    )
+    return json.dumps(detail)
 
 
 @mcp.tool()

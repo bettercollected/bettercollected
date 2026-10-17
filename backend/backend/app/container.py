@@ -30,6 +30,7 @@ from backend.app.repositories.postgres.ai import (
     PostgresFlowEventRepository,
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
+    PostgresIdempotencyRepository,
     PostgresMcpAuditLogRepository,
     PostgresRateLimitRepository,
     PostgresWorkspaceAIProfileRepository,
@@ -95,6 +96,7 @@ from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.form_import_repository import FormImportRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
+from backend.app.repositories.idempotency_repository import IdempotencyRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -181,6 +183,8 @@ from backend.app.services.analytics_service import AnalyticsService
 
 from backend.app.services.form_actions_service import FormActionsService
 from backend.app.services.form_spec.service import FormSpecService
+from backend.app.services.form_spec.writes import FormSpecWriter
+from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.config import settings
 
@@ -611,6 +615,19 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(McpAuditLogRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresMcpAuditLogRepository, pg_sessionmaker
+        ),
+    )
+    # the public API's Idempotency-Key records (services/idempotency.py)
+    idempotency_repo: IdempotencyRepository = providers.Singleton(
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(IdempotencyRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresIdempotencyRepository, pg_sessionmaker
         ),
     )
 
@@ -1179,6 +1196,17 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
+    )
+    # The public API: forms from spec documents, Idempotency-Key records.
+    form_spec_writer: FormSpecWriter = providers.Singleton(
+        FormSpecWriter,
+        form_spec_service=form_spec_service,
+        workspace_form_service=workspace_form_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+    )
+    idempotency_service: IdempotencyService = providers.Singleton(
+        IdempotencyService, idempotency_repo=idempotency_repo
     )
 
 
