@@ -540,6 +540,40 @@ def hidden_calculation_ids(form: Any) -> Set[str]:
     }
 
 
+def strip_hidden_calculations(form: Any) -> Any:
+    """Remove the calculations kept from respondents from a form payload in
+    place (and return it): for the respondent's own submission view and
+    receipt, which show answers only. The live form keeps them, its logic
+    needs the formulas."""
+    if form is None:
+        return form
+
+    def _set(obj: Any, key: str, value: Any) -> None:
+        if isinstance(obj, dict):
+            obj[key] = value
+        else:
+            setattr(obj, key, value)
+
+    def hidden(field: Any) -> bool:
+        return is_calculated(field) and bool(
+            _get(_get(field, "properties"), "hidden_from_respondents")
+            or _get(_get(field, "properties"), "hiddenFromRespondents")
+        )
+
+    pending = list(_get(form, "fields") or [])
+    while pending:
+        field = pending.pop()
+        properties = _get(field, "properties")
+        children = _get(properties, "fields")
+        if not children:
+            continue
+        kept = [child for child in children if not hidden(child)]
+        if len(kept) != len(children):
+            _set(properties, "fields", kept)
+        pending.extend(kept)
+    return form
+
+
 def drop_answers(response: Any, ids: Set[str]) -> Any:
     """Remove the answers to ``ids`` from a (decrypted) response in place:
     a respondent's copy never carries a calculation kept from them."""

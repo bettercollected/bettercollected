@@ -367,6 +367,16 @@ async def test_a_submission_records_the_ending_its_calculation_chose(workspace):
 # --- calculations kept from respondents -----------------------------------------
 
 
+def _field_ids(form_json):
+    ids = []
+    for page in form_json.get("fields") or []:
+        ids.append(page.get("id"))
+        ids.extend(
+            f.get("id") for f in (page.get("properties") or {}).get("fields") or []
+        )
+    return ids
+
+
 def _cookies(user):
     token = access_token(user)
     return {"Authorization": token, "RefreshToken": token}
@@ -406,12 +416,26 @@ async def test_hidden_calculations_never_reach_the_respondent(client, workspace)
     answers = mine.json()["response"]["answers"]
     assert answers["total"]["number"] == 6
     assert "risk" not in answers and "3333" not in mine.text
+    # nor its definition (title, formula): the view shows answers only
+    assert _field_ids(mine.json()["form"]) == ["p0", "qty", "total"]
+    assert "Risk score" not in mine.text
 
     receipt = await client.get(
         f"/api/v1/workspaces/{workspace.id}/submissions/by-uuid/{response.submission_uuid}"
     )
     assert receipt.status_code == 200
     assert "3333" not in receipt.text
+    assert _field_ids(receipt.json()["form"]) == ["p0", "qty", "total"]
+    assert "Risk score" not in receipt.text
+
+    # the live form keeps it: its logic needs the formula
+    live = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}",
+        params={"published": "true"},
+        cookies=_cookies(testUser2),
+    )
+    assert live.status_code == 200
+    assert "risk" in _field_ids(live.json())
 
     set_page(Page[StandardFormResponseCamelModel])
     set_params(Params(page=1, size=50))
