@@ -177,4 +177,6 @@ should pass every case.
   builder can show them as broken.
 - A rich-text title holds only the node and mark types of the builder's
   title editor (`TITLE_NODES` and `TITLE_MARKS` in `ops.py`). Only the form
-  builder may send one; elsewhere titles are plain text.
+  builder may send one; elsewhere titles are plain text. A `textStyle` font
+  size is 8 to 96 pixels (`"24"` or `"24px"`), a colour `#rgb`, `#rrggbb`,
+  `rgb()` or `rgba()` (`backend/backend/app/services/rich_text.py`).
