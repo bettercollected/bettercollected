@@ -1,75 +1,43 @@
-import { ThemeBackground, ThemeStyle } from '@app/constants/theme';
 import { atom, useAtom } from 'jotai';
+import { selectAtom } from 'jotai/utils';
 
-import { ThemeColor } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { deepCopy } from '@app/utils/object-utils';
 
 import { useActiveThankYouPageComponent } from './active-builder-component';
+import { IFormState, IThemeState } from './form-defaults';
+import { CommitMeta, FORM_STATE_KEYS, FormDocument, FormStateKey, commitFormKeysAtom, formDocAtom } from './form-document';
 
-export interface IFormState {
-    title: string;
-    description?: string | null;
-    welcomePage?: {
-        title?: string;
-        description?: string;
-        layout?: FormSlideLayout;
-        imageUrl?: string;
-        buttonText?: string;
-    };
-    thankyouPage?: Array<{
-        title?: string;
-        message?: string;
-        buttonText?: string;
-        buttonLink?: string;
-        layout?: FormSlideLayout;
-        imageUrl?: string;
-    }>;
-    theme?: IThemeState;
-    /**
-     * Declared hidden-field (URL parameter) names, e.g. ['utm_source', 'name'].
-     * Captured from the share link at fill time and stored with the response;
-     * available to answer piping in question text.
-     */
-    hiddenFields?: string[];
-    /** Organisation logo settings; the file itself is uploaded on its own (utils/form-logo.ts). */
-    logoPosition?: 'left' | 'center' | 'auto';
-    logoAlt?: string;
-    useWorkspaceLogo?: boolean;
-}
+export type { IFormState, IThemeState } from './form-defaults';
+export { initialFormState } from './form-defaults';
 
-export interface IThemeState {
-    title: string;
-    primary: string;
-    secondary: string;
-    tertiary: string;
-    accent: string;
-    background?: ThemeBackground;
-    style?: ThemeStyle;
-}
+type FormStateUpdate = IFormState | ((prev: IFormState) => IFormState);
 
+const pickFormState = (doc: FormDocument): IFormState => {
+    const state: Record<string, unknown> = {};
+    for (const key of FORM_STATE_KEYS) if ((doc as unknown as Record<string, unknown>)[key] !== undefined) state[key] = (doc as unknown as Record<string, unknown>)[key];
+    return state as unknown as IFormState;
+};
+const sameFormState = (a: IFormState, b: IFormState) => FORM_STATE_KEYS.every((key) => (a as unknown as Record<string, unknown>)[key] === (b as unknown as Record<string, unknown>)[key]);
+const formSectionsAtom = selectAtom(formDocAtom, pickFormState, sameFormState);
 
-export const initialFormState: IFormState = {
-    title: '',
-    description: undefined,
-    welcomePage: {
-        title: '',
-        layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
-    },
-    thankyouPage: [
-        {
-            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
-        }
-    ],
-    theme: {
-        title: 'Default',
-        primary: ThemeColor.primary,
-        secondary: ThemeColor.secondary,
-        tertiary: ThemeColor.tertiary,
-        accent: ThemeColor.accent
+/**
+ * The form-level part of the builder's document (title, welcome and ending
+ * pages, theme, hidden fields, logo settings): a view of the form document
+ * (form-document.ts). A write becomes ops on the document — one undo step,
+ * merged with the previous one while typing under the same coalesce key (or
+ * none, with `{ undoable: false }`).
+ * Keys the written state leaves out are removed, as before.
+ */
+export const formStateAtom = atom(
+    (get) => get(formSectionsAtom),
+    (get, set, update: FormStateUpdate, meta?: string | CommitMeta) => {
+        const next = typeof update === 'function' ? update(get(formSectionsAtom)) : update;
+        const values: Partial<Record<FormStateKey, unknown>> = {};
+        for (const key of FORM_STATE_KEYS) values[key] = (next as unknown as Record<string, unknown>)?.[key];
+        set(commitFormKeysAtom, values, typeof meta === 'string' ? { coalesceKey: meta } : (meta ?? {}));
     }
-}
-export const formStateAtom = atom<IFormState>(initialFormState);
+);
 
 /**
  * The editor state with every form-level part of a server form copied in:
@@ -110,48 +78,58 @@ export function useFormState() {
     // the description, the editor page seeds the loaded form) — spreading the
     // render-time `formState` closure instead of `prev` let whichever effect
     // ran last resurrect stale state and silently drop the others' writes.
+    // The second argument names the text being typed, so that typing is one
+    // undo step.
     const [formState, setFormState] = useAtom(formStateAtom);
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
 
     const setFormTitle = (title: string) => {
-        setFormState((prev) => ({ ...prev, title }));
+        setFormState((prev) => ({ ...prev, title }), 'form:title');
     };
 
-    const setFormDescription = (description?: string) => {
-        setFormState((prev) => ({
-            ...prev,
-            welcomePage: {
-                ...(prev?.welcomePage || {}),
-                description: description
-            }
-        }));
+    /** `options.undoable` false: a default written on mount, not an edit (no undo step). */
+    const setFormDescription = (description?: string, options: { undoable?: boolean } = {}) => {
+        setFormState(
+            (prev) => ({
+                ...prev,
+                welcomePage: {
+                    ...(prev?.welcomePage || {}),
+                    description: description
+                }
+            }),
+            { coalesceKey: 'welcome:description', undoable: options.undoable }
+        );
     };
 
     const setThankYouPageTitle = (thankyouPageIndex: number, title?: string) => {
-        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { title }));
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { title }), `ending:${thankyouPageIndex}:title`);
     };
 
     const setThankYouPageDescription = (thankyouPageIndex: number, description?: string) => {
-        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { message: description }));
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { message: description }), `ending:${thankyouPageIndex}:message`);
     };
 
     const setThankYouPageButtonText = (thankyouPageIndex: number, btnText?: string) => {
-        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { buttonText: btnText }));
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { buttonText: btnText }), `ending:${thankyouPageIndex}:buttonText`);
     };
 
     const setThankYouPageButtonLink = (thankyouPageIndex: number, btnLink?: string) => {
-        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { buttonLink: btnLink }));
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { buttonLink: btnLink }), `ending:${thankyouPageIndex}:buttonLink`);
     };
 
     const setWelcomePageButtonText = (btnText: string) => {
-        setFormState((prev) => ({
-            ...prev,
-            welcomePage: { ...prev.welcomePage, buttonText: btnText }
-        }));
+        setFormState(
+            (prev) => ({
+                ...prev,
+                welcomePage: { ...prev.welcomePage, buttonText: btnText }
+            }),
+            'welcome:buttonText'
+        );
     };
 
-    const updateFormTheme = (theme: IThemeState) => {
-        setFormState((prev) => ({ ...prev, theme }));
+    /** `options.undoable` false: the loaded form's theme put in place, not an edit (no undo step). */
+    const updateFormTheme = (theme: IThemeState, options: { undoable?: boolean } = {}) => {
+        setFormState((prev) => ({ ...prev, theme }), { coalesceKey: 'form:theme', undoable: options.undoable });
     };
 
     const setHiddenFields = (hiddenFields: string[]) => {
@@ -159,7 +137,7 @@ export function useFormState() {
     };
 
     const setLogoSettings = (settings: Pick<IFormState, 'logoPosition' | 'logoAlt' | 'useWorkspaceLogo'>) => {
-        setFormState((prev) => ({ ...prev, ...settings }));
+        setFormState((prev) => ({ ...prev, ...settings }), 'form:logo');
     };
 
     const updateWelcomePageImage = (imageUrl: string) => {

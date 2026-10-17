@@ -8,10 +8,13 @@ import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useSetAtom } from 'jotai';
+
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import useFormFieldsAtom, { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
+import { resetFromServerAtom } from '@app/store/jotai/form-document';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { deepCopy } from '@app/utils/object-utils';
 import AIBuildChecklist from '@app/views/molecules/form-builder/ai-build-checklist';
@@ -30,8 +33,9 @@ import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormEditPage(props: { params: Promise<{ form_id: string }> }) {
     const params = use(props.params);
-    const { formFields, setFormFields, initFormFields } = useFormFieldsAtom();
-    const { setFormState, formState, } = useFormState();
+    const { formFields } = useFormFieldsAtom();
+    const { formState } = useFormState();
+    const resetFromServer = useSetAtom(resetFromServerAtom);
     const { setHydratedFormId } = useBuilderHydration();
 
     const { activeSlideComponent } = useActiveSlideComponent();
@@ -96,12 +100,10 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     useEffect(() => {
         return () => {
             setHydratedFormId(null);
-            setFormState({ ...initialFormState });
-            // initialFieldsState is an ARRAY — `{ ...array }` turns it into an
-            // object and poisons the atom for the next editor mount (anything
-            // calling formFields.some/map then crashes). Deep-copy keeps the
-            // module-level template safe from later in-place mutations too.
-            setFormFields(deepCopy(initialFieldsState));
+            // Back to an empty document, with no undo history. Deep-copy
+            // keeps the module-level template safe from later in-place
+            // mutations too.
+            resetFromServer({ ...initialFormState, fields: deepCopy(initialFieldsState) });
         };
     }, []);
 
@@ -114,15 +116,18 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
 
     useEffect(() => {
         if (standardForm.formId) {
+            // The loaded form becomes the document (no undo history): its
+            // form-level parts as below, its pages as they are.
+            let form: any;
             if (!standardForm.welcomePage || !standardForm.thankyouPage) {
                 // formState's own (empty) description must not hide the form's:
                 // autosave writes it back on every save.
-                const form = { ...standardForm, ...formState, description: standardForm.description };
-                setFormState(form);
+                form = { ...standardForm, ...formState, description: standardForm.description };
             } else {
                 const copiedThankyouPage = deepCopy(standardForm?.thankyouPage || formState.thankyouPage);
                 const copiedWelcomePage = deepCopy(standardForm?.welcomePage || formState.welcomePage);
-                const form = {
+                form = {
+                    ...standardForm,
                     ...formState,
                     title: standardForm.title,
                     description: standardForm.description,
@@ -133,10 +138,8 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     logoAlt: standardForm.logoAlt,
                     useWorkspaceLogo: standardForm.useWorkspaceLogo
                 };
-                setFormState(form);
             }
-            const deepCopiedFormFields = deepCopy(standardForm?.fields || []);
-            initFormFields(deepCopiedFormFields);
+            resetFromServer({ ...form, fields: deepCopy(standardForm?.fields || []) });
             setNavbarState({
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage
