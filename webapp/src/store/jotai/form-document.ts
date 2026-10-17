@@ -17,8 +17,9 @@
  * pages whose reference did not change keep their copy, the others are
  * copied again.
  *
- * Endings (and anything else no op expresses yet, or a change the engine
- * refuses) are carried by local ops that never leave the builder:
+ * Endings are changed with the engine's ending ops (`set_endings` from
+ * the entity diff). What no op expresses yet, or a change the engine
+ * refuses, is carried by local ops that never leave the builder:
  * `local_set_form_keys` and `local_set_fields`.
  */
 import { atom } from 'jotai';
@@ -142,7 +143,7 @@ function applyLocal(doc: FormDocument, op: LocalOp): { doc: FormDocument; invers
 }
 
 /** Form-level keys whose earlier value some op can set again (see entityDiff). */
-const EXPRESSED_FORM_KEYS = new Set(['title', 'description', 'welcomePage', 'theme', 'hiddenFields', 'logoPosition', 'logoAlt', 'useWorkspaceLogo', 'settings']);
+const EXPRESSED_FORM_KEYS = new Set(['title', 'description', 'welcomePage', 'thankyouPage', 'theme', 'hiddenFields', 'logoPosition', 'logoAlt', 'useWorkspaceLogo', 'settings']);
 
 /**
  * The engine's inverse cannot clear a form-level key that was absent before
@@ -305,8 +306,11 @@ export function planFormKeys(doc: FormDocument, values: Partial<Record<FormState
         first = noChange(doc);
     }
     const after = first.doc as unknown as Record<string, unknown>;
+    // Endings set by the engine come back in its shape (ids given, unset
+    // and unknown keys dropped, as the server stores them): that is the value.
+    const endingsSet = first.forward.some((op) => op.op === 'set_endings') && Array.isArray(after.thankyouPage) && Array.isArray(values.thankyouPage);
     const rest: Record<string, unknown> = {};
-    for (const key of keys) if (!jsonEqual(after[key], values[key]) || (after[key] === undefined) !== (values[key] === undefined)) rest[key] = clone(values[key]);
+    for (const key of keys) if (!(key === 'thankyouPage' && endingsSet) && (!jsonEqual(after[key], values[key]) || (after[key] === undefined) !== (values[key] === undefined))) rest[key] = clone(values[key]);
     if (!Object.keys(rest).length) return first;
     const local: DocOp[] = [{ op: SET_FORM_KEYS, values: rest }];
     const result = applyDocOps(first.doc, local);

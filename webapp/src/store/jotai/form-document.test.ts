@@ -104,14 +104,31 @@ describe('form document: dispatch, undo and redo', () => {
         expect(doc().title).toBe('One');
     });
 
-    it('endings (no op sets them yet) are undone through a local op', () => {
-        const endings = [{ title: 'Eligible', message: 'You qualify.' }];
+    it('endings are changed, undone and redone through ending ops', () => {
+        const loaded = doc().thankyouPage!;
+        const endings = [
+            { id: 'ending-1', title: 'Eligible', message: 'You qualify.' },
+            { id: 'ending-2', name: 'Not eligible', title: 'Sorry', message: 'You do not qualify.' }
+        ];
         store.set(formStateAtom, { ...store.get(formStateAtom), thankyouPage: endings });
-        expect(steps()[0].forward).toEqual([{ op: SET_FORM_KEYS, values: { thankyouPage: endings } }]);
+        const [step] = steps();
+        expect(step.forward.map((op) => op.op)).toEqual(['set_endings']);
+        expect(step.inverse.map((op) => op.op)).toEqual(['set_endings']);
         expect(doc().thankyouPage).toEqual(endings);
         expect(doc().thankyouPage).not.toBe(endings);
         store.set(undoAtom);
-        expect(doc().thankyouPage).toEqual(form200.thankyouPage);
+        expect(doc().thankyouPage).toHaveLength(1);
+        expect(doc().thankyouPage![0]).toMatchObject(loaded[0]);
+        store.set(redoAtom);
+        expect(doc().thankyouPage).toEqual(endings);
+    });
+
+    it('editing one ending keeps the ids page jumps name', () => {
+        store.set(formStateAtom, { ...store.get(formStateAtom), thankyouPage: [{ id: 'ok', title: 'A' }, { id: 'no', title: 'B' }] });
+        store.set(formStateAtom, (prev) => ({ ...prev, thankyouPage: prev.thankyouPage!.map((e, i) => (i === 1 ? { ...e, title: 'B2' } : e)) }));
+        expect(doc().thankyouPage!.map((e) => e.id)).toEqual(['ok', 'no']);
+        expect(doc().thankyouPage![1].title).toBe('B2');
+        expect(steps().flatMap((s) => s.forward.map((op) => op.op))).not.toContain(SET_FORM_KEYS);
     });
 });
 
