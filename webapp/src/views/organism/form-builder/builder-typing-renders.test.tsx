@@ -38,6 +38,8 @@ const OTHER_FIELD_ID = 'p03-q02';
 const KEYSTROKES = 30;
 /** The title editor writes the title this long after the last change. */
 const TITLE_DEBOUNCE_MS = 300;
+/** Mounting the whole builder with 200 questions is slow when the suite runs in parallel. */
+const MOUNT_TIMEOUT_MS = 30_000;
 
 const UNITS = {
     CanvasField: (props: { fieldId?: string }) => `field:${props.fieldId}`,
@@ -174,7 +176,7 @@ describe('typing in a question title on the whole builder (form-200)', () => {
         expect(storedTitleText(jotai)).toContain('Start date' + 'x'.repeat(KEYSTROKES + 1));
         expect(stats.units).toEqual([`field:${FIELD_ID}`, 'inspector', `row:${FIELD_ID}`]);
         expect(stats.unitsPerKeystrokeMax).toBeLessThanOrEqual(3);
-    });
+    }, MOUNT_TIMEOUT_MS);
 
     it('leaves the inspector alone when it shows another question', async () => {
         const { jotai, tracker, editor } = await mountBuilder({ field: OTHER_FIELD_ID });
@@ -183,5 +185,5 @@ describe('typing in a question title on the whole builder (form-200)', () => {
 
         expect(storedTitleText(jotai)).toContain('Start date' + 'x'.repeat(KEYSTROKES + 1));
         expect(stats.units).toEqual([`field:${FIELD_ID}`, `row:${FIELD_ID}`]);
-    });
+    }, MOUNT_TIMEOUT_MS);
 });

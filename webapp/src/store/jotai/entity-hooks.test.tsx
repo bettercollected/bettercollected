@@ -211,12 +211,28 @@ describe('useFieldActions and useBuilderActions', () => {
         const actions = actionsFromHook(store);
         // A node type the engine does not accept in a title.
         const odd = { type: 'doc', content: [{ type: 'mysteryNode', content: [{ type: 'text', text: 'Hi' }] }] };
+        const copyBefore = store.get(builderFieldsAtom);
+        const docBefore = store.get(formDocAtom);
         act(() => void actions.updateTitle('p01-q01', odd as any));
+
+        // Refused by the engine: the step came from the builder copy being handed over.
+        const step = store.get(docHistoryAtom).steps[0];
+        expect(store.get(docHistoryAtom).steps).toHaveLength(1);
+        expect(step.builderFields).toBeDefined();
         expect(store.get(formDocAtom).fields![0].properties!.fields![0].title).toEqual(odd);
         expect(builderField(store, 0, 0).title).toEqual(odd);
-        expect(store.get(docHistoryAtom).steps).toHaveLength(1);
+        // The copy was edited in place (its page objects kept) and handed over as a new array.
+        const copyAfter = store.get(builderFieldsAtom);
+        expect(copyAfter).not.toBe(copyBefore);
+        copyAfter.forEach((page, i) => expect(page).toBe(copyBefore[i]));
+        // The document was not: its earlier version is as it was, and the copy shares nothing with it.
+        expect(docBefore.fields![0].properties!.fields![0].title).toEqual(form200.fields[0].properties.fields[0].title);
+        expect(builderField(store, 0, 0)).not.toBe(store.get(formDocAtom).fields![0].properties!.fields![0]);
+        expect(builderField(store, 0, 0).title).not.toBe(store.get(formDocAtom).fields![0].properties!.fields![0].title);
+
         act(() => void store.set(undoAtom));
         expect(store.get(formDocAtom).fields![0].properties!.fields![0].title).toEqual(form200.fields[0].properties.fields[0].title);
+        expect(builderField(store, 0, 0).title).toEqual(form200.fields[0].properties.fields[0].title);
     });
 
     it('act on a repeating group question by id', () => {

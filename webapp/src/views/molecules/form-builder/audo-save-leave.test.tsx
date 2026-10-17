@@ -5,12 +5,6 @@ import { Provider, useSetAtom, useStore } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const patchFormMock = vi.fn();
-vi.mock('@app/store/redux/form-api', async (importOriginal) => {
-    const actual: any = await importOriginal();
-    return { ...actual, usePatchV2FormMutation: () => [patchFormMock] };
-});
-
 import { FieldTypes } from '@app/models/dtos/form';
 import { setForm } from '@app/store/forms/slice';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
@@ -23,6 +17,12 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 import { deepCopy } from '@app/utils/object-utils';
 
 import AutoSaveForm, { AUTOSAVE_DEBOUNCE_MS } from './audo-save-form';
+
+const patchFormMock = vi.fn();
+vi.mock('@app/store/redux/form-api', async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return { ...actual, usePatchV2FormMutation: () => [patchFormMock] };
+});
 
 const LOADED_VERSION = '2026-10-17T09:00:00.000+00:00';
 const title = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });

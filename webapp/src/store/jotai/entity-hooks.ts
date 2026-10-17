@@ -54,6 +54,13 @@ export function usePageIds(): string[] {
  * A value derived from the form document; re-renders only when it changes
  * (by `equal`, default Object.is). `deps` are what `select` uses besides
  * the document.
+ *
+ * `deps` are compared item by item (Object.is) on every render, and the
+ * derived atom is made anew when one differs, which re-renders the caller.
+ * So they must be values that stay the same while nothing changed: ids,
+ * indexes, strings, or objects kept by reference. An object or array built
+ * during render (`[a, b]`, `{ ...x }`, `list.map(...)`) differs on every
+ * render and would re-render the caller over and over.
  */
 export function useDocValue<T>(select: (doc: FormDocument) => T, deps: unknown[], equal?: (a: T, b: T) => boolean): T {
     return useSelected(formDocAtom, select, deps, equal);
@@ -62,7 +69,9 @@ export function useDocValue<T>(select: (doc: FormDocument) => T, deps: unknown[]
 /**
  * A value derived from the builder's pages (the mutable copy its older
  * mutators edit, for values that hand those objects on); re-renders only
- * when it changes (by `equal`, default Object.is).
+ * when it changes (by `equal`, default Object.is). `deps` follow the same
+ * rule as useDocValue's: values that stay the same between renders, never
+ * an array or object built during render.
  */
 export function useBuilderFieldsValue<T>(select: (fields: StandardFormFieldDto[]) => T, deps: unknown[], equal?: (a: T, b: T) => boolean): T {
     return useSelected(builderFieldsAtom, select, deps, equal);
@@ -122,10 +131,16 @@ export const changeFieldAtom = atom(null, (get, set, { fieldId, update, coalesce
     const next = update(current);
     if (next === current || jsonEqual(next, current)) return false;
     if (set(dispatchAtom, { ops: [{ op: 'replace_field', field: next as FormField }], coalesceKey })) return true;
+    // Refused: the change is made the way the builder's older mutators make
+    // theirs. The builder's copy of the pages is theirs to edit in place
+    // (form-document.ts): the question is replaced in its page's (or its
+    // group's) list, in that copy, and the copy is handed over as a new
+    // array, which plans the ops (or a local replace) and records the step.
+    // The document itself is never edited in place, and the new question is
+    // a JSON copy, so the builder's copy never shares objects with it.
     const pages = get(builderFieldsAtom);
     const found = locateCopy(pages, fieldId);
     if (!found) return false;
-    // A copy: the builder's pages never share objects with the document.
     found.list[found.at] = clone(update(found.list[found.at]));
     return set(commitBuilderFieldsAtom, [...pages], coalesceKey ? { coalesceKey } : {});
 });
