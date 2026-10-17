@@ -18,7 +18,6 @@ import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { GroupInfoDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { handleRegexType } from '@app/models/enums/group-regex';
-import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
@@ -34,7 +33,6 @@ export default function CreateGroupModal() {
     const { t } = useTranslation();
     const { closeModal } = useModal();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
-    const authState = useAppSelector(selectAuth);
     const form = useAppSelector(selectForm);
     const { addFormOnGroup } = useGroupForm();
     const existingGroups = form?.groups || [];
@@ -131,7 +129,7 @@ export default function CreateGroupModal() {
                             <div>
                                 <Button
                                     data-umami-event={'Add New Group Button'}
-                                    data-umami-event-email={authState.email}
+                                   
                                     isLoading={isLoading}
                                     variant="secondary"
                                     disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)}

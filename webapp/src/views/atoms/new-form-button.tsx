@@ -18,7 +18,6 @@ export default function NewFormButton() {
     return (
         <Button
             data-umami-event="New Form button"
-            data-umami-event-email={auth.email}
             className="min-w-[115px]"
             size="medium"
             onClick={async () => {

@@ -7,7 +7,6 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -41,7 +40,6 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
     const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
     const router = useRouter();
     const pathname = usePathname();
-    const authState = useAppSelector(selectAuth);
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const [problems, setProblems] = useState<PublishProblem[]>([]);
@@ -104,7 +102,7 @@ const PublishButton = ({ refresh = false, fields }: { refresh?: boolean; fields?
 
     return (
         <>
-            <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
+            <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'}>
                 Publish
             </Button>
             <PublishProblemsDialog

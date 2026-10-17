@@ -6,8 +6,6 @@ import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
-import { selectAuth } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import SlideLayoutBackgroundImage from '@Components/icons/slide-layout-background-image';
@@ -18,9 +16,8 @@ import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import Image from 'next/image';
 
 const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
-    const authState = useAppSelector(selectAuth);
     return (
-        <button data-umami-event={`${props.name} Button`} data-umami-event-email={authState.email}>
+        <button data-umami-event={`${props.name} Button`}>
             <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
                 <div
                     className="border-black-300 relative mb-1 overflow-hidden rounded border "
@@ -41,7 +38,6 @@ const Layout = (props: { Icon: any; name: string; image: string; style?: FormSli
 export default function LayoutsTab({ closePopover }: { closePopover: () => void }) {
     const { formFields, addSlide } = useFormFieldsAtom();
     const { setActiveSlideComponent, activeSlideComponent } = useActiveSlideComponent();
-    const authState = useAppSelector(selectAuth);
 
     const NO_IMAGE_LAYOUTS = [FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN];
 
@@ -89,7 +85,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
         <ScrollArea className="z-10 h-[495px] w-full overflow-auto pr-4">
             <div className="">
                 <div className="mb-2 text-sm font-medium">Blank</div>
-                <button data-umami-event={'Add Blank Page Button'} data-umami-event-email={authState.email}>
+                <button data-umami-event={'Add Blank Page Button'}>
                     <div
                         className="hover:bg-black-200 border-black-300 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
                         onClick={() => {

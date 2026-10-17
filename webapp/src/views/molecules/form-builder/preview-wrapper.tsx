@@ -8,7 +8,6 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { cn } from '@app/shadcn/util/lib';
-import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -34,7 +33,6 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const workspace = useAppSelector(selectWorkspace);
     const isMobile = useIsMobile();
     const { openModal } = useModal();
-    const authState = useAppSelector(selectAuth);
     const { currentSlide } = useResponderState();
 
     useEffect(() => {
@@ -56,7 +54,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         <DesktopIcon />
                         Desktop
                     </div>
-                    <button data-umami-event={'Preview in Mobile View Button'} data-umami-event-email={authState.email}>
+                    <button data-umami-event={'Preview in Mobile View Button'}>
                         <div onClick={() => setIsDesktopView(false)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'text-black-600' : 'bg-black-200 text-black-800 rounded-lg p-2')}>
                             <MobileIcon />
                             Mobile

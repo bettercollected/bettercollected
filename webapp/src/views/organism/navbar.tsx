@@ -194,7 +194,6 @@ const Navbar = () => {
                 </Popover>
                 <button
                     data-umami-event={'Add Heading Button'}
-                    data-umami-event-email={authState.email}
                     type="button"
                     aria-disabled={!isContentPage}
                     onClick={handleAddText}
@@ -206,7 +205,6 @@ const Navbar = () => {
                 </button>
                 <button
                     data-umami-event={'Open Flow View'}
-                    data-umami-event-email={authState.email}
                     onClick={() => setFlowViewOpen(true)}
                     title="Open the flow view to edit page branching"
                     className="text-black-700 hover:bg-black-100 hover:text-black-900 flex cursor-pointer flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium"
@@ -237,7 +235,7 @@ const Navbar = () => {
                 </div>
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`} data-umami-event-email={authState.email}>
+                        <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`}>
                             Preview
                         </Button>
                     </SheetTrigger>
