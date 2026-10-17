@@ -1,0 +1,85 @@
+{
+  "name": "outline_en_good_feedback",
+  "kind": "outline",
+  "description": "A two-page feedback outline: email shown only when a reply is wanted.",
+  "language": "en",
+  "expected_findings": [],
+  "expected_types": [
+    "email",
+    "rating"
+  ],
+  "reply": {
+    "title": "Bakery feedback",
+    "description": "Tell us how your visit went so we can bake better.",
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "visit",
+        "sectionTitle": "Your visit",
+        "questions": [
+          {
+            "key": "rating",
+            "label": "How would you rate your visit?",
+            "type": "rating",
+            "required": true
+          },
+          {
+            "key": "bought",
+            "label": "Which products did you buy?",
+            "type": "multiple_choice",
+            "choices": [
+              "Bread",
+              "Pastries",
+              "Cakes"
+            ],
+            "allowMultiple": true
+          },
+          {
+            "key": "better",
+            "label": "What could we do better?",
+            "type": "long_text"
+          }
+        ]
+      },
+      {
+        "key": "contact",
+        "sectionTitle": "Contact details",
+        "questions": [
+          {
+            "key": "reply",
+            "label": "Would you like a reply from us?",
+            "type": "yes_no"
+          },
+          {
+            "key": "email",
+            "label": "What is your email address?",
+            "type": "email",
+            "whyWeAsk": "We only use it to reply to your feedback."
+          }
+        ]
+      }
+    ],
+    "logic": [
+      {
+        "target": "email",
+        "action": "show",
+        "match": "all",
+        "conditions": [
+          {
+            "question": "reply",
+            "comparison": "equals",
+            "value": "Yes"
+          }
+        ]
+      }
+    ],
+    "jumps": [],
+    "omitted": [
+      {
+        "label": "Home address",
+        "reason": "Not needed to reply to feedback."
+      }
+    ]
+  }
+}

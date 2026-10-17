@@ -1,0 +1,47 @@
+{
+  "name": "outline_en_plain_theme_requested",
+  "kind": "outline",
+  "description": "'Use the Plain theme instead': another theme is expected and was chosen.",
+  "language": "en",
+  "theme_requested": true,
+  "expected_findings": [],
+  "reply": {
+    "title": "Equipment loan",
+    "description": "Borrow equipment from the makerspace.",
+    "language": "en",
+    "theme": "Default",
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Which item would you like to borrow?",
+            "type": "dropdown",
+            "required": false,
+            "choices": [
+              "Drill",
+              "Soldering iron",
+              "3D printer"
+            ]
+          },
+          {
+            "key": "q2",
+            "label": "When do you want to pick it up?",
+            "type": "date",
+            "required": false
+          },
+          {
+            "key": "q3",
+            "label": "How many days do you need it for?",
+            "type": "number",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

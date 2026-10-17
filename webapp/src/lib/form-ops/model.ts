@@ -23,6 +23,13 @@ export class OpError extends Error {
 export class SizeLimitReached extends OpError {}
 
 // common/form_spec/models.py
+/**
+ * Is `key` one of `table`'s own keys? For lookups of names that come from a
+ * payload: `key in table` would also find inherited names such as
+ * `constructor` or `__proto__`.
+ */
+export const hasOwn = (table: object, key: string): boolean => Object.prototype.hasOwnProperty.call(table, key);
+
 export const MAX_PAGES = 200;
 export const MAX_FIELDS = 2000;
 export const PATTERN_MAX_LENGTH = 200;

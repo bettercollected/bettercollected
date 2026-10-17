@@ -98,6 +98,17 @@ const getClassName = (view?: DIALOG_MODALS) => {
     }
 };
 
+// The dialog's accessible name, for views that set one (others keep the
+// shared default).
+const getTitle = (view?: DIALOG_MODALS): string | undefined => {
+    switch (view) {
+        case 'START_WITH_AI':
+            return 'Start with AI';
+        default:
+            return undefined;
+    }
+};
+
 export function DialogModalContainer() {
     const { isOpen, view, closeDialogModal, props } = useDialogModal();
 
@@ -115,14 +126,14 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent onClickCloseIcon={closeDialogModal} className={cn('bg-white! p-0!', getClassName(view))}>
+            <DialogContent onClickCloseIcon={closeDialogModal} title={getTitle(view)} className={cn('bg-white! p-0!', getClassName(view))}>
                 {GetModalToRender(view, props)}
             </DialogContent>
         </Dialog>
     );
 }
 
-export function DialogModalTrigger({ view, children, ...props }: { view: DIALOG_MODALS; children: React.ReactNode;[key: string]: any }) {
+export function DialogModalTrigger({ view, children, ...props }: { view: DIALOG_MODALS; children: React.ReactNode; [key: string]: any }) {
     const { openDialogModal } = useDialogModal();
     return (
         <div

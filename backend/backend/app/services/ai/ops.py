@@ -95,6 +95,7 @@ from backend.app.services.internal_fields import (
     internal_logic_violations,
 )
 from backend.app.services.policy_url import checked_policy_url
+from backend.app.services.rich_text import style_value_problem
 from pydantic.alias_generators import to_camel
 
 
@@ -1916,6 +1917,11 @@ def _rich_text_problem(title: Dict[str, Any]) -> Optional[str]:
                 problem = _attrs_problem(name, mark.get("attrs"), TITLE_MARKS[name])
                 if problem:
                     return problem
+                # the font size and colour go into a style attribute
+                for key, value in (mark.get("attrs") or {}).items():
+                    problem = style_value_problem(key, value)
+                    if problem:
+                        return problem
         content = node.get("content")
         if content is not None:
             if not isinstance(content, list) or kind == "text":

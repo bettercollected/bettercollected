@@ -1,0 +1,79 @@
+{
+  "name": "outline_nl_good_registration",
+  "kind": "outline",
+  "description": "Een nette Nederlandse aanmelding over twee pagina's.",
+  "language": "nl",
+  "expected_findings": [],
+  "reply": {
+    "title": "Aanmelden voor de taalcursus",
+    "description": "Meld je aan voor de taalcursus van het buurthuis.",
+    "language": "nl",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Wat is je naam?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "q2",
+            "label": "Wat is je e-mailadres?",
+            "type": "email",
+            "required": true,
+            "whyWeAsk": "We sturen je hiermee de bevestiging en het rooster."
+          },
+          {
+            "key": "q3",
+            "label": "Wat is je telefoonnummer?",
+            "type": "phone_number",
+            "required": false,
+            "whyWeAsk": "Zo kunnen we je bellen als een les niet doorgaat."
+          }
+        ],
+        "sectionTitle": "Je gegevens"
+      },
+      {
+        "key": "p2",
+        "questions": [
+          {
+            "key": "q4",
+            "label": "Welk niveau heb je nu?",
+            "type": "dropdown",
+            "required": false,
+            "choices": [
+              "Beginner",
+              "Gevorderd",
+              "Ver gevorderd"
+            ]
+          },
+          {
+            "key": "q5",
+            "label": "Op welke dagen kun je het beste?",
+            "type": "multiple_choice",
+            "required": false,
+            "choices": [
+              "Maandag",
+              "Woensdag",
+              "Zaterdag"
+            ],
+            "allowMultiple": true
+          },
+          {
+            "key": "q6",
+            "label": "Wat wil je graag leren?",
+            "type": "long_text",
+            "required": false
+          }
+        ],
+        "sectionTitle": "Je cursus"
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

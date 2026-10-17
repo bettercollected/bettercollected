@@ -225,7 +225,21 @@ INSIGHTS_REPLY = json.dumps(
         "sentiment": "Positive.",
     }
 )
-GENERATED_FORM = {"title": "Generated", "description": "", "fields": []}
+from tests.app.ai_helpers import OUTLINE_REPLY  # noqa: E402
+
+GENERATED_FORM = OUTLINE_REPLY
+# an outline with a gap (a choice question without choices) the build asks
+# the model to fill, and the model's answer
+GAP_OUTLINE = {
+    "title": "Survey",
+    "pages": [
+        {
+            "key": "p1",
+            "questions": [{"key": "q1", "label": "Pick one", "type": "dropdown"}],
+        }
+    ],
+}
+GAP_REPLY = json.dumps({"questions": [{"key": "q1", "choices": ["A", "B"]}]})
 TEMPLATE_BODY = json.dumps({"title": "Matrix template", "fields": []})
 
 
@@ -618,6 +632,32 @@ CASES = [
         lambda c: {"json": {"prompt": "A survey"}},
         ok=200,
         ai_replies=(GENERATED_FORM,),
+    ),
+    Case(
+        "ai.outline",
+        "POST",
+        W + "/forms/ai/outline",
+        P.FORM_CREATE,
+        lambda c: {"json": {"prompt": "A survey"}},
+        allowed_403=AI_OFF,
+    ),
+    Case(
+        "ai.outline.on",
+        "POST",
+        W + "/forms/ai/outline",
+        P.FORM_CREATE,
+        lambda c: {"json": {"prompt": "A survey"}},
+        ok=200,
+        ai_replies=(GENERATED_FORM,),
+    ),
+    Case(
+        "ai.build.on",
+        "POST",
+        W + "/forms/ai/build",
+        P.FORM_CREATE,
+        lambda c: {"json": {"outline": GAP_OUTLINE}},
+        ok=200,
+        ai_replies=(GAP_REPLY,),
     ),
     Case(
         "ai.chat",

@@ -1,0 +1,8 @@
+{
+  "name": "outline_en_fenced_reply",
+  "kind": "outline",
+  "description": "A reply wrapped in a markdown fence with prose after it still parses.",
+  "language": "en",
+  "expected_findings": [],
+  "reply": "```json\n{\n  \"title\": \"Newsletter sign-up\",\n  \"description\": \"Get our monthly update about the neighbourhood.\",\n  \"language\": \"en\",\n  \"theme\": null,\n  \"pages\": [\n    {\n      \"key\": \"p1\",\n      \"questions\": [\n        {\n          \"key\": \"q1\",\n          \"label\": \"What is your email address?\",\n          \"type\": \"email\",\n          \"required\": true,\n          \"whyWeAsk\": \"We need it to send you the newsletter.\"\n        },\n        {\n          \"key\": \"q2\",\n          \"label\": \"Which topics interest you?\",\n          \"type\": \"multiple_choice\",\n          \"required\": false,\n          \"choices\": [\n            \"Events\",\n            \"Local news\",\n            \"Volunteering\"\n          ],\n          \"allowMultiple\": true\n        }\n      ]\n    }\n  ],\n  \"logic\": [],\n  \"jumps\": [],\n  \"omitted\": []\n}\n```\nHere is the outline you asked for."
+}

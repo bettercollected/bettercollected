@@ -28,6 +28,12 @@ from backend.app.services.ai.insights import (
     FormAIInsightsSettingsDto,
     FormAIInsightsSettingsRequest,
 )
+from backend.app.services.ai.outline_service import (
+    BuildFromOutlineRequest,
+    BuildFromOutlineResponse,
+    FormOutlineRequest,
+    FormOutlineResponse,
+)
 from backend.app.services.ai.review import (
     ApplyReviewFixRequest,
     ApplyReviewFixResponse,
@@ -289,6 +295,33 @@ class WorkspaceFormsRouter(Routable):
         """Apply one finding's fix ops — same write path as chat editing."""
         return await container.form_ai_review_service().apply_fix(
             workspace_id=workspace_id, form_id=form_id, request=request, user=user
+        )
+
+    @post("/ai/outline")
+    async def outline_form_with_ai(
+        self,
+        workspace_id: PydanticObjectId,
+        request: FormOutlineRequest,
+        user=Depends(get_logged_user),
+    ) -> FormOutlineResponse:
+        """Step 1 of AI form creation: the model's outline of the form
+        (pages, questions, rules) for the person to review. Stores nothing."""
+        outline = await container.form_outline_service().outline(
+            workspace_id=workspace_id, request=request, user=user
+        )
+        return FormOutlineResponse(outline=outline.dump())
+
+    @post("/ai/build")
+    async def build_form_from_outline(
+        self,
+        workspace_id: PydanticObjectId,
+        request: BuildFromOutlineRequest,
+        user=Depends(get_logged_user),
+    ) -> BuildFromOutlineResponse:
+        """Step 2: build a (possibly edited) outline into a new draft form
+        through the ops engine, with the quality findings."""
+        return await container.form_outline_service().build_response(
+            workspace_id=workspace_id, request=request, user=user
         )
 
     @post("/ai")

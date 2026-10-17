@@ -6,9 +6,38 @@ still runs in every test that uses it.
 """
 
 import datetime as dt
+import json
 
 from backend.app.container import container
 from tests.app.controllers.data import testUser
+
+
+# A small valid outline reply (services/ai/outline.py): what form generation
+# asks the model for first.
+OUTLINE = {
+    "title": "Generated",
+    "description": None,
+    "language": "en",
+    "theme": None,
+    "pages": [
+        {
+            "key": "p1",
+            "sectionTitle": "About you",
+            "questions": [
+                {
+                    "key": "q1",
+                    "label": "What should we call you?",
+                    "type": "short_text",
+                    "required": True,
+                }
+            ],
+        }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": [],
+}
+OUTLINE_REPLY = json.dumps(OUTLINE)
 
 
 class FakeProvider:
@@ -23,10 +52,6 @@ class FakeProvider:
     async def chat(self, system: str, messages: list, **options) -> str:
         # options: max_output_tokens, json_mode (what the call asked for)
         self.calls.append({"system": system, "messages": messages, **options})
-        return self.replies.pop(0)
-
-    async def generate_form(self, prompt: str) -> dict:
-        self.calls.append({"prompt": prompt})
         return self.replies.pop(0)
 
     async def analyze_page(self, system, prompt, image, schema):

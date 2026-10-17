@@ -1,0 +1,62 @@
+{
+  "name": "outline_en_optional_marked_required",
+  "kind": "outline",
+  "description": "Six questions, all required, one of them saying it is optional.",
+  "language": "en",
+  "expected_findings": [
+    "all_required",
+    "optional_marked_required"
+  ],
+  "reply": {
+    "title": "Course evaluation",
+    "description": "Tell us what you thought of the course.",
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "How would you rate the course overall?",
+            "type": "rating",
+            "required": true
+          },
+          {
+            "key": "q2",
+            "label": "How clear were the explanations?",
+            "type": "linear_rating",
+            "required": true
+          },
+          {
+            "key": "q3",
+            "label": "Which session did you like best?",
+            "type": "short_text",
+            "required": true
+          },
+          {
+            "key": "q4",
+            "label": "What should we change?",
+            "type": "long_text",
+            "required": true
+          },
+          {
+            "key": "q5",
+            "label": "Would you recommend this course?",
+            "type": "yes_no",
+            "required": true
+          },
+          {
+            "key": "q6",
+            "label": "Any other comments? (optional)",
+            "type": "long_text",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}

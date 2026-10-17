@@ -134,6 +134,7 @@ from backend.app.services.ai.insights import FormAIInsightsService
 from backend.app.services.ai.review import FormAIReviewService
 from backend.app.services.ai.usage import AIUsageGuard
 from backend.app.services.openai_service import OpenAIService
+from backend.app.services.ai.outline_service import FormOutlineService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
@@ -865,6 +866,15 @@ class AppContainer(containers.DeclarativeContainer):
     openai_service: OpenAIService = providers.Singleton(
         OpenAIService,
         workspace_service=workspace_service,
+        workspace_form_service=workspace_form_service,
+        authorization_service=authorization_service,
+        ai_consent_service=ai_consent_service,
+        ai_usage_guard=ai_usage_guard,
+    )
+
+    form_outline_service: FormOutlineService = providers.Singleton(
+        FormOutlineService,
+        openai_service=openai_service,
         workspace_form_service=workspace_form_service,
         authorization_service=authorization_service,
         ai_consent_service=ai_consent_service,

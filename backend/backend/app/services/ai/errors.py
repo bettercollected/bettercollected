@@ -28,16 +28,6 @@ class AIError(HTTPException):
         self.message = message
 
 
-def ai_step_limit() -> AIError:
-    """The tool loop reached AI_MAX_TOOL_ITERATIONS or AI_MAX_TOOL_CALLS."""
-    return AIError(
-        HTTPStatus.BAD_GATEWAY,
-        "ai_step_limit",
-        "The AI needed more steps than one request allows and was stopped. "
-        "Nothing was created. Try a shorter or simpler request.",
-    )
-
-
 def ai_timeout() -> AIError:
     return AIError(
         HTTPStatus.GATEWAY_TIMEOUT,

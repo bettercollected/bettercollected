@@ -280,7 +280,7 @@ async def test_the_openai_provider_asks_for_strict_output():
         message = SimpleNamespace(content='{"sections": [], "questions": []}')
         return SimpleNamespace(choices=[SimpleNamespace(message=message)])
 
-    provider = OpenAIFormProvider(unsplash_service=None)
+    provider = OpenAIFormProvider()
     provider._client = SimpleNamespace(
         chat=SimpleNamespace(completions=SimpleNamespace(create=create))
     )

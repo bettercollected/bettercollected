@@ -1,0 +1,44 @@
+{
+  "name": "outline_en_theme_request_ignored",
+  "kind": "outline",
+  "description": "The request asked for another look, but the form kept Leaflet.",
+  "language": "en",
+  "theme_requested": true,
+  "expected_findings": [
+    "theme_request_ignored"
+  ],
+  "reply": {
+    "title": "Party RSVP",
+    "description": "Let us know if you can come to the summer party.",
+    "language": "en",
+    "theme": null,
+    "pages": [
+      {
+        "key": "p1",
+        "questions": [
+          {
+            "key": "q1",
+            "label": "Will you attend?",
+            "type": "yes_no",
+            "required": true
+          },
+          {
+            "key": "q2",
+            "label": "How many guests will you bring?",
+            "type": "number",
+            "required": false
+          },
+          {
+            "key": "q3",
+            "label": "Do you have any dietary needs?",
+            "type": "long_text",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "logic": [],
+    "jumps": [],
+    "omitted": []
+  }
+}
