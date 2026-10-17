@@ -212,6 +212,28 @@ edits (422), skipping rules whose other question is unanswered or hidden by logi
 accepted within one day either side of UTC (the server can't know the respondent's zone), and on an edit
 "today" is the submission day.
 
+**Answer validation** (`services/answer_validation.py`): every submission and respondent edit is checked
+against the form the respondent filled, the same way the respondent page does (`validateSlide`,
+`utils/answer-rules.ts`, `utils/conditional-logic.ts` — keep them in step; shared cases in
+`docs/spec/answer-validation.cases.json`, run by pytest and vitest). Required counts on the pages the
+respondent goes through (replayed from page 1 with the submitted answers and the same jump resolution),
+leaving out questions hidden by logic, internal questions and content blocks; repeating-group items are
+checked per item. Answer rules (min/max length, pattern, min/max value, min/max choices) apply to
+counted questions with an answer. Types apply to every answer (the value in the slot of the question's
+type, existing option ids), and ids that are not questions of the draft or the published version are
+refused (on an edit, unknown ids are dropped as before and only changed answers are reported). Patterns
+are matched with RE2 (`google-re2`, linear time); longer text than 10,000 characters is left to the
+browser. Creator patterns are untrusted, so their cost is bounded: RE2 gets 1 MB per pattern
+(`PATTERN_MAX_MEM`: heavy ones fail fast), programs over 5,000 instructions are not used, one
+response compiles at most 50 uncached patterns and spends at most 0.25 s on patterns, the cache is
+bounded by entries and total program size, and `check_answers` runs in a worker thread. A pattern
+over 200 characters (the cap the builder and the form spec share,
+`common.form_spec.models.PATTERN_MAX_LENGTH`), one RE2 cannot compile (lookarounds,
+backreferences) or one past the budget is not enforced; only field ids are logged. Integers too
+big for a float count as Infinity, as in JavaScript. Problems answer 422 `{"code": "invalid_answers", "errors": [{"fieldId", "rule", "item"?}]}`,
+never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
+v1 and imported forms (fields not on pages) are not validated.
+
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
 `_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:

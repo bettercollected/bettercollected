@@ -12,8 +12,9 @@ evaluated with the item's own answers, exactly like the webapp does, so a
 child hidden by logic is never required.
 
 Groups hidden by logic or on pages skipped by a jump submit no answer at all;
-a missing group answer is therefore accepted (the server does not re-run
-page navigation), but a submitted one must respect the limits.
+a missing group answer is therefore accepted here, but a submitted one must
+respect the limits. (``answer_validation`` replays page navigation and checks
+the required questions of the items a group shows on the respondent's path.)
 """
 
 from typing import Any, Dict, Iterable, List, Optional
@@ -86,6 +87,9 @@ def _is_empty(value: Any) -> bool:
 def _to_number(value: Any) -> float:
     try:
         return float(value)
+    except OverflowError:
+        # an integer too big for a float: JavaScript's Number makes it Infinity
+        return float("inf") if value > 0 else float("-inf")
     except (TypeError, ValueError):
         return float("nan")
 

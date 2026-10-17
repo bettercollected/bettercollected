@@ -36,7 +36,8 @@
         "PAGE_OF": "Pagina {{current}} van {{total}}",
         "CONTINUE": "Volgende",
         "SUBMIT": "Antwoorden versturen",
-        "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer."
+        "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer.",
+        "SUBMIT_INVALID": "Een paar antwoorden moeten nog worden aangepast. Ze zijn hieronder gemarkeerd."
     },
     "CONSENT": {
         "SHARE_EMAIL": "Mijn e-mailadres delen met wie dit formulier verzamelt",
@@ -109,7 +110,9 @@
         "TOO_FEW_CHOICES_one": "Kies minstens {{count}} optie.",
         "TOO_FEW_CHOICES_other": "Kies minstens {{count}} opties.",
         "TOO_MANY_CHOICES_one": "Kies hooguit {{count}} optie.",
-        "TOO_MANY_CHOICES_other": "Kies hooguit {{count}} opties."
+        "TOO_MANY_CHOICES_other": "Kies hooguit {{count}} opties.",
+        "SERVER_TYPE": "Dit antwoord kon niet worden verwerkt. Beantwoord de vraag opnieuw.",
+        "SERVER_CHOICE": "Kies een van de getoonde opties."
     },
     "DATE": {
         "PICK": "Kies een datum",

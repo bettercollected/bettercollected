@@ -19,6 +19,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from fastapi import UploadFile
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 
 from backend.app.constants.themes import new_form_theme
@@ -54,6 +55,7 @@ from backend.app.services.form_logo import (
 from backend.app.services.form_concurrency import ensure_not_changed_since
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.answer_validation import answer_ids, check_answers
 from backend.app.services.date_rules import today_range, validate_date_rule_answers
 from backend.app.services.form_service import FormService
 from backend.app.services.internal_fields import (
@@ -916,6 +918,16 @@ class WorkspaceFormService:
                 or {}
             )
         merged.update(response.answers or {})
+        # Required, answer rules and types (services/answer_validation.py) on
+        # the answers after the edit, reported for what this edit touches.
+        # CPU-bound (creator patterns): off the event loop.
+        await run_in_threadpool(
+            check_answers,
+            form,
+            merged,
+            str(form_id),
+            only=list((response.answers or {}).keys()),
+        )
         _check_date_rules(
             form,
             merged,
@@ -1017,6 +1029,17 @@ class WorkspaceFormService:
         # Respondents fill the published version; check against what they saw.
         response.answers = _checked_group_answers(
             latest_version_of_form or form, response.answers
+        )
+        # Required, answer rules and types (services/answer_validation.py).
+        # Answers may use the ids of the draft and the published version:
+        # anything else is not a question of this form.
+        # CPU-bound (creator patterns): off the event loop.
+        await run_in_threadpool(
+            check_answers,
+            latest_version_of_form or form,
+            response.answers,
+            str(form_id),
+            known_ids=answer_ids(form, latest_version_of_form),
         )
         _check_date_rules(latest_version_of_form or form, response.answers)
         # Files go up only once the submission is known to be accepted, so a

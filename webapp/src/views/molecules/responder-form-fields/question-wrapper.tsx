@@ -17,6 +17,7 @@ import { answerRuleMessage, checkAnswerRules, isAnswerRuleProblem } from '@app/u
 import { isAnswerableField } from '@app/utils/leaflet-sections';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { isServerProblem, serverProblemMessage } from '@app/utils/server-answer-errors';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
@@ -39,6 +40,9 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     const flaggedOnlyRules = flagged.length > 0 && flagged.every(isAnswerRuleProblem);
     const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id]) : [];
     const ruleMessage = ruleProblems.length ? answerRuleMessage(field, ruleProblems[0], t) : undefined;
+    // Problems only the server finds (an answer of the wrong kind).
+    const serverProblem = flagged.find(isServerProblem);
+    const serverMessage = serverProblem ? serverProblemMessage(serverProblem, t) : undefined;
     // A caller may own the error (e.g. a repeating group's item-count message).
     const hasError = errorMessage !== undefined ? !!errorMessage : flaggedOnlyRules ? !!ruleMessage : flagged.length > 0;
 
@@ -147,7 +151,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
             {hasError && (
                 <div id={errorId} role="alert" className="mt-2 flex items-start gap-2 text-[15px] leading-snug font-medium" style={{ color: theme?.primary }}>
                     <AlertCircle className="mt-px h-[18px] w-[18px] shrink-0 text-[#C43D3D]" strokeWidth={2} aria-hidden="true" />
-                    <span>{errorMessage || ruleMessage || t('FIELD.ANSWER_REQUIRED')}</span>
+                    <span>{errorMessage || ruleMessage || serverMessage || t('FIELD.ANSWER_REQUIRED')}</span>
                 </div>
             )}
         </>

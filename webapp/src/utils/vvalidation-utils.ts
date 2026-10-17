@@ -8,6 +8,7 @@ import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
 import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
 import { compilePattern } from '@app/utils/answer-rules';
+import { hasAnswerValue } from '@app/utils/repeating-groups';
 
 /**
  * Validation method to check if the given value is undefined or not.
@@ -286,6 +287,11 @@ export const validateConditionsAndReturnUpdatedForm = (formToUpdate: StandardFor
     return formToUpdate;
 };
 
+/**
+ * Required questions of a page that have no answer. An answer counts only
+ * when it carries a value (`hasAnswerValue`), the same test the server applies
+ * on submit (backend services/answer_validation.py).
+ */
 export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>) {
     const invalidFields: Record<string, Array<Invalidations>> = {};
     slide?.properties?.fields?.forEach((field) => {
@@ -294,16 +300,16 @@ export function validateSlide(slide: StandardFormFieldDto, answers: Record<strin
         if (field.type === FieldType.MATRIX && field?.validations?.required) {
             field.properties?.fields?.map((row: StandardFormFieldDto) => {
                 if (field.properties?.allowMultipleSelection) {
-                    if (!answers[row.id]?.choices.values.length) {
+                    if (!answers[row.id]?.choices?.values?.length) {
                         invalidFields[field.id] = [Invalidations.REQUIRED];
                     }
                 } else {
-                    if (!answers[row.id]) {
+                    if (!hasAnswerValue(answers[row.id])) {
                         invalidFields[field.id] = [Invalidations.REQUIRED];
                     }
                 }
             });
-        } else if (field?.validations?.required && !answers[field.id]) {
+        } else if (field?.validations?.required && !hasAnswerValue(answers[field.id])) {
             invalidFields[field.id] = [Invalidations.REQUIRED];
         }
     });

@@ -36,7 +36,8 @@
         "PAGE_OF": "Page {{current}} of {{total}}",
         "CONTINUE": "Continue",
         "SUBMIT": "Submit response",
-        "SUBMIT_ERROR": "Your response could not be sent. Please try again."
+        "SUBMIT_ERROR": "Your response could not be sent. Please try again.",
+        "SUBMIT_INVALID": "Some answers need another look. They are marked below."
     },
     "CONSENT": {
         "SHARE_EMAIL": "Share my email with the form collector",
@@ -109,7 +110,9 @@
         "TOO_FEW_CHOICES_one": "Choose at least {{count}} option.",
         "TOO_FEW_CHOICES_other": "Choose at least {{count}} options.",
         "TOO_MANY_CHOICES_one": "Choose at most {{count}} option.",
-        "TOO_MANY_CHOICES_other": "Choose at most {{count}} options."
+        "TOO_MANY_CHOICES_other": "Choose at most {{count}} options.",
+        "SERVER_TYPE": "This answer could not be accepted. Please answer the question again.",
+        "SERVER_CHOICE": "Choose one of the options shown."
     },
     "DATE": {
         "PICK": "Pick a date",

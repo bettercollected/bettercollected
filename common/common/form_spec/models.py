@@ -47,10 +47,10 @@ def checked_pattern(pattern: str) -> str:
     Raises ValueError with a plain message. The one rule for the spec and
     the set_field_validation op.
 
-    Only compiled here, never matched. If answers are ever checked against
-    patterns on the server, match with re2 (linear time) or with a timeout
-    and a capped input length: a creator's pattern is untrusted and Python's
-    re can backtrack for a very long time."""
+    Only compiled here, never matched: submitted answers are matched with
+    re2 (linear time) on a capped input in the backend's
+    services/answer_validation.py. A creator's pattern is untrusted and
+    Python's re can backtrack for a very long time."""
     pattern = pattern.strip()
     if not pattern:
         raise ValueError("The pattern is empty: give a regular expression, or none.")
