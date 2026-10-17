@@ -235,3 +235,31 @@ class TestMCPLimits:
         spec = {"specVersion": "1", "description": "x" * (1024 * 1024)}
         result = await _call_tool(client, token, "validate_form", {"spec": spec})
         assert "larger than 1 MB" in _error_text(result)
+
+
+class TestMCPGrowth:
+    async def test_an_atomic_update_that_grows_too_far_stores_nothing(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        monkeypatch,
+    ):
+        from backend.app.services.ai import ops as ops_module
+
+        monkeypatch.setattr(ops_module, "MAX_PAGES", 3)
+        form = await _v2(workspace_form.form_id)
+        token = await _make_key(workspace.id, ["forms:read", "forms:write"])
+        ops = [{"op": "duplicate_page", "pageId": "page-1"}] * 200
+        result = _tool_text(
+            await _call_tool(
+                client,
+                token,
+                "update_form",
+                {"form_id": form.form_id, "ops": ops, "atomic": True},
+            )
+        )
+        assert result["applied"] is False
+        assert "at most 3 pages" in result["results"][2]["message"]
+        stored = await container.form_repo().get_form_document_by_id(form.form_id)
+        assert stored.model_dump() == form.model_dump()

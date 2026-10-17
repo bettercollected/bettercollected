@@ -20,6 +20,7 @@ from common.models.standard_form import StandardForm
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic.alias_generators import to_camel
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
@@ -148,7 +149,10 @@ async def persist_ops_to_form(
     settings) is written.
     Returns (new_form, results, updated_settings_or_none).
     """
-    new_form, results = apply_form_ops(form, ops, atomic=atomic)
+    # CPU-bound on a large form: off the event loop
+    new_form, results = await run_in_threadpool(
+        apply_form_ops, form, ops, atomic=atomic
+    )
     if atomic and not all(r.ok for r in results):
         return new_form, results, None
     if any(r.ok for r in results):

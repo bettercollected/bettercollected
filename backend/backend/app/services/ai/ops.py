@@ -17,11 +17,16 @@ Contract:
   through ``StandardForm`` — the model proposes, the schema disposes.
 """
 
-import re
 import uuid
 from contextvars import ContextVar
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
+from common.form_spec.models import (
+    MAX_FIELDS,
+    MAX_PAGES,
+    checked_pattern,
+    count_fields,
+)
 from common.models.standard_form import (
     DATE_RULES_MAX,
     DateRule,
@@ -108,6 +113,11 @@ REF_ID_KEYS = frozenset(
     }
 )
 _RefName = Annotated[Optional[str], Field(None, pattern=REF_PATTERN)]
+
+# Most questions one add_page / add_group may create (checked when parsing;
+# the form's own size limits, MAX_PAGES / MAX_FIELDS, when applying).
+MAX_NEW_PAGE_FIELDS = 200
+MAX_NEW_GROUP_FIELDS = 100
 
 
 class NewFieldSpec(_CamelModel):
@@ -209,7 +219,9 @@ class AddGroupOp(_CamelModel):
     max_items: int = 3
     item_title: Optional[str] = None
     export_layout: Optional[Literal["columns", "rows"]] = None
-    fields: List[NewFieldSpec] = Field(default_factory=list)
+    fields: List[NewFieldSpec] = Field(
+        default_factory=list, max_length=MAX_NEW_GROUP_FIELDS
+    )
     after_field_id: Optional[str] = None
     index: Optional[int] = None
     ref: _RefName = None
@@ -237,7 +249,7 @@ class MoveFieldOp(_CamelModel):
 class AddPageOp(_CamelModel):
     op: Literal["add_page"] = "add_page"
     index: Optional[int] = None  # default: append
-    fields: Optional[List[NewFieldSpec]] = None
+    fields: Optional[List[NewFieldSpec]] = Field(None, max_length=MAX_NEW_PAGE_FIELDS)
     ref: _RefName = None
 
 
@@ -255,7 +267,7 @@ VALIDATION_PRESETS = {
     "letters": "^[A-Za-z\u00C0-\u024F' -]+$",
     "alphanumeric": "^[A-Za-z0-9]+$",
 }
-PATTERN_MAX_LENGTH = 200
+# PATTERN_MAX_LENGTH and the pattern rule itself: common.form_spec.models
 
 
 class FieldValidationPatch(_CamelModel):
@@ -1308,16 +1320,11 @@ def _rule_applies(field: StandardFormField, types, rule: str, kinds: str) -> Non
 
 
 def _checked_pattern(pattern: str) -> str:
-    pattern = pattern.strip()
-    if not pattern:
-        raise OpError("The pattern is empty: give a regular expression, or null to clear it.")
-    if len(pattern) > PATTERN_MAX_LENGTH:
-        raise OpError(f"A pattern can be at most {PATTERN_MAX_LENGTH} characters.")
+    # The spec's rule (compile only; see checked_pattern on matching).
     try:
-        re.compile(pattern)
-    except re.error as error:
-        raise OpError(f"'{pattern}' is not a valid pattern ({error}).")
-    return pattern
+        return checked_pattern(pattern)
+    except ValueError as error:
+        raise OpError(str(error))
 
 
 def _apply_set_field_validation(form: StandardForm, op: SetFieldValidationOp) -> str:
@@ -1525,6 +1532,53 @@ def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
         raise OpError(_validation_message(error))
 
 
+class _SizeLimitReached(OpError):
+    """An op would take the form past MAX_PAGES / MAX_FIELDS: it fails and
+    the rest of the batch is not applied (later ops can only add more)."""
+
+
+SIZE_LIMIT_SKIPPED = (
+    "Not applied: an earlier operation reached the form's size limit."
+)
+
+
+def _form_size(form: StandardForm) -> Tuple[int, int]:
+    """(question pages, fields on them, group questions included)."""
+    pages = _pages(form)
+    return len(pages), sum(
+        count_fields(page.properties.fields if page.properties else None)
+        for page in pages
+    )
+
+
+def _growth(form: StandardForm, op) -> Tuple[int, int]:
+    """Pages and fields an op adds, known before it runs — so an op that
+    would be too big is refused before anything is copied."""
+    if isinstance(op, AddPageOp):
+        return 1, len(op.fields or [])
+    if isinstance(op, AddFieldOp):
+        return 0, 1
+    if isinstance(op, AddGroupOp):
+        return 0, 1 + len(op.fields)
+    if isinstance(op, DuplicatePageOp):
+        page = _find_page(form, op.page_id)
+        return 1, count_fields(page.properties.fields if page.properties else None)
+    return 0, 0
+
+
+def _size_problem(pages: int, fields: int, before: Tuple[int, int]) -> Optional[str]:
+    """Why ``(pages, fields)`` is too big, unless it did not grow (a form
+    already over a limit can still be edited and shrunk)."""
+    if pages > MAX_PAGES and pages > before[0]:
+        return f"A form can have at most {MAX_PAGES} pages; this would make {pages}."
+    if fields > MAX_FIELDS and fields > before[1]:
+        return (
+            f"A form can have at most {MAX_FIELDS} fields in all; this would make "
+            f"{fields}."
+        )
+    return None
+
+
 def apply_form_ops(
     form: StandardForm, ops: List[FormOp], *, atomic: bool = False
 ) -> Tuple[StandardForm, List[OpResult]]:
@@ -1535,14 +1589,24 @@ def apply_form_ops(
     the returned form is an unchanged copy of ``form``; every op is still
     tried so that all errors come back, each with its op index.
     The returned form is renumbered and re-validated as a whole.
+
+    Size: an op that would take the form past MAX_PAGES or MAX_FIELDS
+    fails before it runs, and the rest of the batch is not applied.
     """
     working = form.model_copy(deep=True)
     results: List[OpResult] = []
+    size = _form_size(working)
+    stopped = False
     # ref name -> (index of the op that defines it, the created id or None
     # when that op failed)
     refs: Dict[str, Tuple[int, Optional[str]]] = {}
 
     for i, op in enumerate(ops):
+        if stopped:
+            results.append(
+                OpResult(index=i, op=op.op, ok=False, message=SIZE_LIMIT_SKIPPED)
+            )
+            continue
         handler = _HANDLERS.get(op.op)
         token = _CREATED.set(None)
         defined: List[Tuple[str, Optional[int]]] = []
@@ -1560,7 +1624,21 @@ def apply_form_ops(
                         "each ref names one new item."
                     )
             op = _resolve_refs(op, refs)
+            add_pages, add_fields = _growth(working, op)
+            if add_pages or add_fields:
+                problem = _size_problem(
+                    size[0] + add_pages, size[1] + add_fields, size
+                )
+                if problem:
+                    raise _SizeLimitReached(problem)
             message = handler(working, op)
+            after = _form_size(working)
+            problem = _size_problem(*after, size)
+            if problem:
+                # Not foreseen by _growth: the change is already made, so
+                # nothing of this batch may be applied.
+                raise _SizeLimitReached(problem)
+            size = after
             created = _CREATED.get()
             for name, position in defined:
                 if created is None:
@@ -1577,6 +1655,14 @@ def apply_form_ops(
             for name, _ in defined:
                 refs.setdefault(name, (i, None))
             results.append(OpResult(index=i, op=op.op, ok=False, message=str(e)))
+            if isinstance(e, _SizeLimitReached):
+                stopped = True
+                if _form_size(working) != size:
+                    # changed past the limit: drop the whole batch
+                    return form.model_copy(deep=True), results + [
+                        OpResult(index=j, op=o.op, ok=False, message=SIZE_LIMIT_SKIPPED)
+                        for j, o in enumerate(ops[i + 1 :], start=i + 1)
+                    ]
         finally:
             _CREATED.reset(token)
 
