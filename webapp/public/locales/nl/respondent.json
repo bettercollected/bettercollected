@@ -82,6 +82,10 @@
     },
     "FIELD": {
         "REQUIRED": "(verplicht)",
+        "CALCULATED_EMPTY": "Nog niet berekend",
+        "CALCULATION": "Berekening",
+        "CALCULATED_TRUE": "Ja",
+        "CALCULATED_FALSE": "Nee",
         "OPTIONAL": "Niet verplicht",
         "ANSWER_REQUIRED": "Beantwoord deze vraag om verder te gaan.",
         "YES": "Ja",

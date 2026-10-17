@@ -3,6 +3,7 @@ import type { Draft } from 'immer';
 
 import { FieldTypes } from '@app/models/dtos/form';
 
+import { REQUIRED_CALCULATION_MESSAGE, setCalculation } from '../calculations';
 import { checkedDateRules, dateRuleProblems, dateRuleSources } from '../date-rules';
 import {
     ADDABLE_FIELD_TYPES,
@@ -110,6 +111,8 @@ export function buildField(spec: NewFieldSpec, index: number, newId: () => strin
         if (spec.type !== FieldTypes.DATE) throw new OpError('A label only applies to date questions.');
         properties.label = spec.label;
     }
+    setCalculation(spec.type, properties, spec);
+    if (spec.type === FieldTypes.CALCULATED && spec.required) throw new OpError(REQUIRED_CALCULATION_MESSAGE);
     const validations = spec.required != null ? { required: spec.required } : {};
     if (spec.internal) ensureCanBeInternal(spec.type);
     const field: FormField = { id: newId(), index, type: spec.type, title: spec.title, properties, validations };
@@ -186,6 +189,8 @@ function patchField(target: Draft<FormField>, plain: FormField, patch: FieldPatc
         setKey(properties, 'dateRules', rules.length ? rules : undefined);
         changed.push('date rules');
     }
+    changed.push(...setCalculation(type, properties, patch));
+    if (patch.required && type === FieldTypes.CALCULATED) throw new OpError(REQUIRED_CALCULATION_MESSAGE);
     const groupPatch: Record<string, any> = {};
     for (const key of REPEAT_KEYS) if (patch[key] != null) groupPatch[key] = patch[key];
     const groupKeys = Object.keys(groupPatch) as Array<(typeof REPEAT_KEYS)[number]>;

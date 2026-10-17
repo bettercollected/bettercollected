@@ -10,6 +10,7 @@ import { FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, Re
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { reorder } from '@app/utils/array-utils';
+import { pruneOrphanedCalculationRefs } from '@app/utils/calculated-fields';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules, remapDateRules } from '@app/utils/date-rules';
 import { fieldAndChildIds, locateField, moveFieldInSlides, movePageInSlides, pruneOutOfOrderReferences } from '@app/utils/form-outline';
@@ -251,6 +252,7 @@ export default function useFormFieldsAtom() {
         pruneOrphanedConditions(updatedFormFields);
         pruneOrphanedPipes(updatedFormFields);
         pruneOrphanedDateRules(updatedFormFields);
+        pruneOrphanedCalculationRefs(updatedFormFields);
         if (activeSlideComponent?.index === formFields.length) {
             setActiveSlideComponent({
                 id: 'welcome-page',
@@ -383,6 +385,7 @@ export default function useFormFieldsAtom() {
             pruneOrphanedConditions(formFields);
             pruneOrphanedPipes(formFields);
             pruneOrphanedDateRules(formFields);
+            pruneOrphanedCalculationRefs(formFields);
         }
         setFormFields([...formFields]);
     };
@@ -499,6 +502,7 @@ export default function useFormFieldsAtom() {
         }
         // A question whose type changed is no longer a date its siblings can use.
         pruneOrphanedDateRules(formFields);
+        pruneOrphanedCalculationRefs(formFields);
         setFormFields([...formFields]);
     };
 
@@ -567,6 +571,7 @@ export default function useFormFieldsAtom() {
         pruneOrphanedConditions(formFields);
         pruneOrphanedPipes(formFields);
         pruneOrphanedDateRules(formFields);
+        pruneOrphanedCalculationRefs(formFields);
         const next = [...formFields];
         setFormFields(next);
         setTimeout(() => {
@@ -948,6 +953,7 @@ export default function useFormFieldsAtom() {
             pruneOrphanedConditions(formFields);
             pruneOrphanedPipes(formFields);
             pruneOrphanedDateRules(formFields);
+            pruneOrphanedCalculationRefs(formFields);
         }
         setFormFields([...formFields]);
     };

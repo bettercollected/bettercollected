@@ -1,6 +1,7 @@
 from typing import Any, Optional, Dict, List
 
 from common.models.standard_form import (
+    CalculationFormat,
     ParameterValue,
     StandardForm,
     StandardFormFieldType,
@@ -114,6 +115,11 @@ class StandardFieldPropertyCamelModel(CamelModel):
     section_title: Optional[str] = Field(None, max_length=SECTION_TITLE_MAX_LENGTH)
     # A page's "number the questions" switch (webapp showQuestionNumbers).
     show_question_numbers: Optional[bool] = None
+    # A calculated field (common StandardFieldProperty.expression and co.).
+    expression: Optional[Any] = None
+    format: Optional[CalculationFormat] = None
+    hidden_from_respondents: Optional[bool] = None
+    unanswered_as_zero: Optional[bool] = None
 
 
 class StandardFormFieldCamelModel(CamelModel):

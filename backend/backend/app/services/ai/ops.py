@@ -39,8 +39,10 @@ from common.form_spec.models import (
     checked_pattern,
     count_fields,
 )
+from common.expressions import validate_expression
 from common.models.standard_form import (
     DATE_RULES_MAX,
+    CalculationFormat,
     DateRule,
     FieldLogic,
     FieldLogicCondition,
@@ -90,6 +92,7 @@ from backend.app.constants.themes import (
     themes as THEME_PRESETS,
 )
 from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
+from backend.app.services.calculated_fields import calculated_field_problems
 from backend.app.services.image_urls import (
     IMAGE_URL_ERROR,
     checked_image_url,
@@ -125,6 +128,7 @@ ADDABLE_FIELD_TYPES = {
     StandardFormFieldType.LINEAR_RATING,
     StandardFormFieldType.FILE_UPLOAD,
     StandardFormFieldType.TEXT,  # statement / display-only
+    StandardFormFieldType.CALCULATED,  # a computed value (expression AST)
 }
 
 CHOICE_FIELD_TYPES = {
@@ -159,6 +163,8 @@ REF_ID_KEYS = frozenset(
         "child_field_id",
         "target",
         "ending_id",
+        # a calculated field's expression: {"var": "$ref:<name>"}
+        "var",
     }
 )
 _RefName = Annotated[Optional[str], Field(None, pattern=REF_PATTERN)]
@@ -191,6 +197,13 @@ class NewFieldSpec(_CamelModel):
     # "Why we ask this", shown under the question; publishing needs one on
     # email, phone and ID-number questions (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
+    # calculated only: the formula as an expressions-v1 AST
+    # (docs/spec/expressions-v1.md), its display format, and whether
+    # respondents never see the value (computed and stored only).
+    expression: Optional[Any] = None
+    format: Optional[CalculationFormat] = None
+    hidden_from_respondents: Optional[bool] = None
+    unanswered_as_zero: Optional[bool] = None
     # Client reference for the new field (see REF_PREFIX).
     ref: _RefName = None
 
@@ -234,6 +247,11 @@ class FieldPatch(_CamelModel):
     date_rules: Optional[List[DateRuleSpec]] = None
     # "Why we ask this" line under the question ("" clears).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
+    # calculated fields only (see NewFieldSpec)
+    expression: Optional[Any] = None
+    format: Optional[CalculationFormat] = None
+    hidden_from_respondents: Optional[bool] = None
+    unanswered_as_zero: Optional[bool] = None
 
     @field_validator("title", mode="before")
     @classmethod
@@ -939,6 +957,12 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
             raise OpError("A label only applies to date questions.")
         properties.label = spec.label
 
+    _set_calculation(
+        spec.type, properties, spec.expression, spec.format, spec.hidden_from_respondents, spec.unanswered_as_zero
+    )
+    if spec.type == StandardFormFieldType.CALCULATED and spec.required:
+        raise OpError("A calculation is computed, never answered, so it cannot be required.")
+
     validations = StandardFieldValidations(required=spec.required) if spec.required is not None else StandardFieldValidations()
     if spec.internal:
         _ensure_can_be_internal(spec.type)
@@ -953,6 +977,52 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         validations=validations,
         internal=True if spec.internal else None,
     )
+
+
+def _set_calculation(
+    field_type: Any,
+    properties: StandardFieldProperty,
+    expression: Any,
+    format: Optional[CalculationFormat],
+    hidden: Optional[bool],
+    as_zero: Optional[bool] = None,
+) -> List[str]:
+    """Set a calculated field's expression, format and visibility (only the
+    ones given); refuses them on any other type and a malformed AST (with the
+    path of the bad node). Variables are checked against the form after the
+    op (apply_form_ops). Returns change fragments."""
+    given = [
+        name
+        for name, value in (
+            ("expression", expression),
+            ("format", format),
+            ("hiddenFromRespondents", hidden),
+            ("unansweredAsZero", as_zero),
+        )
+        if value is not None
+    ]
+    if not given:
+        return []
+    if getattr(field_type, "value", field_type) != StandardFormFieldType.CALCULATED.value:
+        raise OpError(f"{', '.join(given)}: only calculated fields have these.")
+    if expression is not None:
+        problems = validate_expression(expression)
+        if problems:
+            raise OpError(f"The expression is not valid at '{problems[0].path or '/'}': {problems[0].message}")
+        properties.expression = expression
+    if format is not None:
+        properties.format = format
+    if hidden is not None:
+        properties.hidden_from_respondents = True if hidden else None
+    if as_zero is not None:
+        properties.unanswered_as_zero = as_zero
+    labels = {
+        "expression": "formula",
+        "format": "format",
+        "hiddenFromRespondents": "visibility",
+        "unansweredAsZero": "unanswered as 0",
+    }
+    return [labels[name] for name in given]
 
 
 def _ensure_can_be_internal(field_type) -> None:
@@ -1029,6 +1099,18 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
         # validated against the form by _apply_update_field beforehand
         field.properties.date_rules = _date_rules(patch.date_rules) or None
         changed.append("date rules")
+    changed.extend(
+        _set_calculation(
+            field.type,
+            field.properties,
+            patch.expression,
+            patch.format,
+            patch.hidden_from_respondents,
+            patch.unanswered_as_zero,
+        )
+    )
+    if patch.required and field.type == StandardFormFieldType.CALCULATED:
+        raise OpError("A calculation is computed, never answered, so it cannot be required.")
     group_keys = ("min_items", "max_items", "item_label", "item_title", "export_layout")
     group_patch = {k: getattr(patch, k) for k in group_keys if getattr(patch, k) is not None}
     if group_patch:
@@ -2218,20 +2300,32 @@ def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> Standar
     return item
 
 
-def _new_problems(form: StandardForm, before: Tuple[Set[str], Set[str]]) -> Optional[str]:
+def _calculation_messages(form: StandardForm) -> List[str]:
+    return [_calculation_message(p) for p in calculated_field_problems(form)]
+
+
+def _new_problems(form: StandardForm, before: Tuple[Set[str], Set[str], Set[str]]) -> Optional[str]:
     """The first problem of ``form`` a whole-form save would refuse (logic
-    on an internal field, a date rule) that was not there ``before``."""
+    on an internal field, a date rule, a calculation) that was not there
+    ``before``."""
     for problem in internal_logic_violations(form):
         if problem not in before[0]:
             return problem
     for problem in date_rule_problems(form.fields):
         if problem not in before[1]:
             return problem
+    for problem in _calculation_messages(form):
+        if problem not in before[2]:
+            return problem
     return None
 
 
-def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str]]:
-    return set(internal_logic_violations(form)), set(date_rule_problems(form.fields))
+def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str], Set[str]]:
+    return (
+        set(internal_logic_violations(form)),
+        set(date_rule_problems(form.fields)),
+        set(_calculation_messages(form)),
+    )
 
 
 def _live_question_ids(form: StandardForm) -> Dict[str, StandardFormField]:
@@ -2842,6 +2936,39 @@ def ref_dependencies(ops: List[FormOp]) -> List[Set[int]]:
     return needs
 
 
+def _calculation_problems(form: StandardForm) -> Optional[List[Any]]:
+    """The form's calculation problems, or None when it has no calculated
+    field (nothing to keep valid)."""
+    pending = list(form.fields or [])
+    while pending:
+        field = pending.pop()
+        if field.type == StandardFormFieldType.CALCULATED:
+            return calculated_field_problems(form)
+        pending.extend((field.properties.fields if field.properties else None) or [])
+    return None
+
+
+def _carries_calculation(op) -> bool:
+    """Does the op bring a calculated field or an expression?"""
+    # typed specs and the editor ops' raw questions and pages alike
+    pending = [op.model_dump(exclude_none=True)]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            kind = value.get("type")
+            if getattr(kind, "value", kind) == StandardFormFieldType.CALCULATED.value or "expression" in value:
+                return True
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+    return False
+
+
+def _calculation_message(problem: Any) -> str:
+    where = f" (expression node '{problem.path}')" if problem.path else ""
+    return f"{problem.message}{where}"
+
+
 def finished_form(working: StandardForm) -> StandardForm:
     """``working`` as a batch leaves it: renumbered, date rules no save
     would accept pruned, and validated as a whole (on a copy)."""
@@ -2956,6 +3083,15 @@ def apply_form_ops(
                         "each ref names one new item."
                     )
             op = _resolve_refs(op, refs)
+            # Calculations must stay valid after every op: an op that leaves
+            # one with an unknown field, an internal field or a circle is
+            # refused and undone (the builder save would refuse the form).
+            calc_before = _calculation_problems(working)
+            snapshot = (
+                working.model_copy(deep=True)
+                if calc_before is not None or _carries_calculation(op)
+                else None
+            )
             add_pages, add_fields = _growth(working, op)
             if add_pages or add_fields:
                 problem = _size_problem(
@@ -2964,6 +3100,13 @@ def apply_form_ops(
                 if problem:
                     raise _SizeLimitReached(problem)
             message = handler(working, op)
+            if snapshot is not None:
+                new_problems = [
+                    p for p in (_calculation_problems(working) or []) if p not in (calc_before or [])
+                ]
+                if new_problems:
+                    working = snapshot
+                    raise OpError(_calculation_message(new_problems[0]))
             after = _form_size(working)
             problem = _size_problem(*after, size)
             if problem:

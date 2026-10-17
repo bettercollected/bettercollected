@@ -73,7 +73,8 @@ export const ADDABLE_FIELD_TYPES = new Set<string>([
     FieldTypes.RATING,
     FieldTypes.LINEAR_RATING,
     FieldTypes.FILE_UPLOAD,
-    FieldTypes.TEXT
+    FieldTypes.TEXT,
+    FieldTypes.CALCULATED
 ]);
 export const CHOICE_FIELD_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN]);
 export const RATING_FIELD_TYPES = new Set<string>([FieldTypes.RATING, FieldTypes.LINEAR_RATING]);

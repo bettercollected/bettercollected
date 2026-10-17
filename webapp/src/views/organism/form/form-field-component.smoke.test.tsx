@@ -51,6 +51,7 @@ const FIELDS: Array<{ name: string; field: StandardFormFieldDto }> = [
     { name: 'rating', field: base(FieldTypes.RATING, { properties: { fields: [], steps: 5 } }) },
     { name: 'linear_rating', field: base(FieldTypes.LINEAR_RATING, { properties: { fields: [], steps: 10 } }) },
     { name: 'file_upload', field: base(FieldTypes.FILE_UPLOAD) },
+    { name: 'calculated', field: base(FieldTypes.CALCULATED, { properties: { fields: [], expression: { '+': [1, 2] } } }) },
     {
         name: 'matrix',
         field: base(FieldTypes.MATRIX, {

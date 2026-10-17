@@ -182,6 +182,7 @@ export interface FormField {
         | "file_upload"
         | "group"
         | "email"
+        | "calculated"
         | "text"
         | "yes_no"
         | "url"
@@ -197,7 +198,6 @@ export interface FormField {
         | "payment"
         | "statement"
         | "page_break"
-        | "calculated"
         | "hidden"
         | "conditional"
         | "h1"
@@ -294,6 +294,16 @@ export interface FormField {
     | null;
   whyWeAsk?: string | null;
   logic?: Logic | null;
+  expression?: unknown;
+  format?: CalculationFormat | null;
+  /**
+   * A calculated field that is computed and stored but never shown to respondents.
+   */
+  hiddenFromRespondents?: boolean | null;
+  /**
+   * A calculated field: unanswered questions it uses count as 0 (default: on, unless the format is text).
+   */
+  unansweredAsZero?: boolean | null;
   repeat?: Repeat | null;
   /**
    * The questions of a group.
@@ -370,6 +380,24 @@ export interface Logic {
   action?: ("SHOW" | "HIDE") | null;
   operator?: ("AND" | "OR") | null;
   conditions?: Condition[] | null;
+}
+/**
+ * How a calculated field shows its value (display only; the stored
+ * value is the computed one).
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "CalculationFormat".
+ */
+export interface CalculationFormat {
+  /**
+   * number (default), currency, percent (0.25 shows as 25%) or text.
+   */
+  style?: ("number" | "currency" | "percent" | "text") | null;
+  decimals?: number | null;
+  /**
+   * ISO 4217 code; EUR by default.
+   */
+  currency?: string | null;
 }
 /**
  * Makes a group repeatable: its questions are answered once per item.

@@ -56,6 +56,14 @@ export interface StandardFormFieldProperties {
      * it out keeps the stored one.
      */
     sectionTitle?: string;
+    /** A calculated field's formula as an expressions-v1 AST (utils/calculated-fields.ts); absent = no formula yet. */
+    expression?: any;
+    /** How a calculated field shows its value: number (decimals), currency, percent or text. */
+    format?: { style?: 'number' | 'currency' | 'percent' | 'text'; decimals?: number; currency?: string };
+    /** A calculated field respondents never see (computed and stored only). */
+    hiddenFromRespondents?: boolean;
+    /** A calculated field: unanswered questions it reads count as 0 (default: on unless the format is text). */
+    unansweredAsZero?: boolean;
 }
 
 export interface StandardFormFieldDto {
@@ -344,6 +352,8 @@ export enum FieldTypes {
     TABULAR_INPUT = 'tabular_input',
     FILE_UPLOAD = 'file_upload',
     GROUP = 'group',
+    /** A value computed from other answers (utils/calculated-fields.ts). */
+    CALCULATED = 'calculated',
     PAYMENT = 'payment',
     STATEMENT = 'statement',
     VIDEO_CONTENT = 'VIDEO_CONTENT',

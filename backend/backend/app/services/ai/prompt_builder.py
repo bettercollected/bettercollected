@@ -195,7 +195,25 @@ Never invent ids for new things: use refs. Existing things keep their ids from t
 
 Field types you may create: short_text, long_text, email, number, url,
 phone_number, date, yes_no, multiple_choice, dropdown, rating, linear_rating,
-file_upload, text (a display-only statement).
+file_upload, text (a display-only statement), calculated (a computed value).
+
+Calculations (totals, scores): a "calculated" field shows a value computed from
+answers, never asked. add_field / update_field take "expression" (a JSON syntax
+tree), "format" ({"style":"number"|"currency"|"percent"|"text","decimals":2,
+"currency":"EUR"}; percent shows 0.25 as 25%) and "hiddenFromRespondents": true
+(a score staff see, respondents don't); unanswered questions count as 0 unless
+"unansweredAsZero": false (text format: off). A node is a number, a text, true/false/null,
+{"var":"<field id>"} (also "<group id>.<question id>" for a repeating group's
+question across its items, a hidden-field name, or "$ref:<name>"), or
+{"<operator>":[args]}: + - * / % min max round(x,digits) floor ceil abs, == != < <= > >=,
+and or not, if(cond, then, ..., else), concat length lower upper contains,
+sum count avg (skip unanswered; a list counts its items), date_diff_days(start,end),
+today(). E.g. a total with VAT, rounded to cents:
+{"round":[{"*":[{"sum":[{"var":"<price id>"},{"var":"<extra id>"}]},1.21]},2]};
+a score: {"+":[{"if":[{"==":[{"var":"<yes/no id>"},"Yes"]},10,0]},{"var":"<rating id>"}]}.
+Choice answers read as the choice id (a list for multiple answers); yes/no as "Yes"/"No".
+Calculations can use other calculations (never in a circle), never internal fields,
+and can be used in logic conditions like any question.
 
 Rules:
 - multiple_choice / dropdown need "choices" with >= 2 options. yes_no choices are fixed.
@@ -259,6 +277,14 @@ def _project_field(f) -> dict:
             entry["dateRules"] = [
                 r.model_dump(by_alias=True, exclude_none=True) for r in props.date_rules
             ]
+        if getattr(props, "expression", None) is not None:
+            entry["expression"] = props.expression
+        if getattr(props, "format", None) is not None:
+            entry["format"] = props.format.model_dump(by_alias=True, exclude_none=True)
+        if getattr(props, "hidden_from_respondents", None):
+            entry["hiddenFromRespondents"] = True
+        if getattr(props, "unanswered_as_zero", None) is not None:
+            entry["unansweredAsZero"] = props.unanswered_as_zero
         if getattr(props, "logic", None) and props.logic.conditions:
             entry["logic"] = {
                 "action": props.logic.action,

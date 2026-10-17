@@ -51,6 +51,7 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.calculated_fields import drop_answers, hidden_calculation_ids
 from backend.app.services.internal_fields import (
     fields_by_id,
     internal_field_ids,
@@ -158,9 +159,17 @@ class FormResponseService:
             if not request_for_deletion:
                 present_to_respondent(item, None, enabled=False, with_entries=False)
         if not request_for_deletion:
-            return self.decrypt_response_page(
+            page = self.decrypt_response_page(
                 workspace_id=workspace_id, responses_page=user_responses
             )
+            # nor the calculations kept from respondents
+            hidden: Dict[str, Set[str]] = {}
+            for item in page.items:
+                form_id = str(item.form_id)
+                if form_id not in hidden:
+                    hidden[form_id] = await self.hidden_calculation_ids(form_id)
+                drop_answers(item, hidden[form_id])
+            return page
         return user_responses
 
     async def get_workspace_form_submissions(
@@ -336,6 +345,10 @@ class FormResponseService:
                 decrypted_response,
                 await self._workspace_title(workspace_id),
                 enabled=bool(workspace_form.settings.respondent_feedback_enabled),
+            )
+            # calculations kept from respondents stay kept from them
+            drop_answers(
+                decrypted_response, await self.hidden_calculation_ids(response.form_id)
             )
         for key, decrypted_answer in decrypted_response.answers.items():
             decrypted_answer = (
@@ -644,6 +657,10 @@ class FormResponseService:
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
         )
+        # nor the calculations kept from respondents
+        drop_answers(
+            decrypted_response, await self.hidden_calculation_ids(response.form_id)
+        )
         respondent_response = StandardFormResponseCamelModel(
             **decrypted_response.model_dump(mode="json")
         )
@@ -699,6 +716,18 @@ class FormResponseService:
         if form is None:
             form = await self._form_repo.get_form_document_by_id(str(form_id))
         return internal_fields(form) if form else []
+
+    async def hidden_calculation_ids(self, form_id: str) -> Set[str]:
+        """Ids of calculations kept from respondents in any version of the
+        form or its draft: a value that was hidden when it was computed
+        stays hidden from the respondent's copies of their answers."""
+        ids: Set[str] = set()
+        versions = await self._form_repo.get_versions_of_form(form_id)
+        draft = await self._form_repo.get_form_document_by_id(str(form_id))
+        for form in (*(versions or []), draft):
+            if form is not None:
+                ids |= hidden_calculation_ids(form)
+        return ids
 
     async def all_internal_field_ids(
         self, form_id: str, every_version: bool = False
