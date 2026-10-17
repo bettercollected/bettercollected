@@ -88,7 +88,7 @@ describe('inserting a question', () => {
         renderEditor(true);
         fireEvent.click(await screen.findByLabelText('Insert in new page'));
         await act(async () => fireEvent.click(screen.getByRole('button', { name: /^Email$/ })));
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Basics' })).toBeInTheDocument();
         // not the previous page's last question
         expect(screen.queryByTitle('City')).toBeNull();
     });
@@ -114,7 +114,7 @@ describe('field settings', () => {
                 </Provider>
             </ReduxProvider>
         );
-        expect(await screen.findByRole('button', { name: '‹ Back to page' })).toBeInTheDocument();
-        expect(screen.queryByText('Settings')).toBeNull();
+        expect(await screen.findByText('This question is no longer on the page.')).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Basics' })).toBeNull();
     });
 });
