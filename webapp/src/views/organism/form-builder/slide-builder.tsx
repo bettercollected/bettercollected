@@ -134,7 +134,12 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                         FORM_COLUMN,
                         // Page alignment positions the column, not each field.
                         columnPlacementClass(slide.properties?.layout),
-                        'flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-12'
+                        // The respondent's desktop grid (lg: from a 1024px window,
+                        // where a page is at least 448px wide). The canvas is a
+                        // fixed desktop-size page at any window width, so it asks
+                        // its page container (LayoutWrapper's @container/page),
+                        // not the window.
+                        'flex flex-col gap-12 @min-[448px]/page:grid @min-[448px]/page:grid-cols-12 @min-[448px]/page:gap-x-6 @min-[448px]/page:gap-y-12'
                     )}
                 >
                     <AnimatePresence>
@@ -264,7 +269,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                         ) : !disabled && !isScaledDown ? (
                             // An empty page shouldn't be a dead rectangle — give
                             // first-run creators a direct way in (audit B4).
-                            <div className="flex h-full w-full items-center justify-center lg:col-span-12">
+                            <div className="flex h-full w-full items-center justify-center @min-[448px]/page:col-span-12">
                                 <button
                                     type="button"
                                     className="flex flex-col items-center gap-2 rounded border border-dashed border-black-400 bg-white/60 px-10 py-8 text-sm font-medium text-black-700 transition-colors hover:border-black-600 hover:text-black-900"
