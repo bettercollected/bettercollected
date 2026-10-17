@@ -50,6 +50,7 @@ from backend.app.services.authorization_service import (
     DISABLED_WORKSPACE_OWNER_PERMISSIONS,
 )
 from backend.app.services.form_service import FormService
+from backend.config import settings
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from tests.app.auth_helpers import access_token
 from tests.app.sso_helpers import (  # noqa: F401
@@ -201,6 +202,8 @@ class Case:
     # run with AI enabled for the workspace and the form, the fake provider
     # answering with these replies
     ai_replies: Optional[Tuple] = None
+    # API settings switched on for the case (an endpoint behind a flag)
+    api_settings: Optional[Dict[str, object]] = None
 
 
 def _png() -> bytes:
@@ -681,6 +684,17 @@ CASES = [
         P.FORM_EDIT,
         lambda c: {"json": {"ops": []}},
     ),
+    # the builder's op-batch save: an allowed role without If-Match gets 428,
+    # so authorization comes before anything else is read
+    Case(
+        "forms.ops.save",
+        "POST",
+        F + "/ops",
+        P.FORM_EDIT,
+        lambda c: {"json": {"ops": []}, "headers": {"Idempotency-Key": "matrix"}},
+        ok=428,
+        api_settings={"EDITOR_OPS_SAVE_ENABLED": True},
+    ),
     Case("ai.insights.get", "GET", F + "/ai/insights", P.RESPONSE_READ, ok=200),
     Case(
         "ai.insights.generate",
@@ -1081,6 +1095,8 @@ async def test_permission_matrix(
         # allows insights on the form, then answers it with real questions
         await _seed_form_and_responses(workspace.id, matrix["form"])
 
+    for name, value in (case.api_settings or {}).items():
+        monkeypatch.setattr(settings.api_settings, name, value)
     request = case.request(matrix)
     response = await client.request(
         case.method,
