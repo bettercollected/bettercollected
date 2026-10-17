@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { validateFormOpen, validateSlide } from './vvalidation-utils';
+import { FormBuilderTagNames } from '@app/models/enums/form-builder';
+import { FormValidationError } from '@app/models/enums/form-validation';
+
+import { validateFormFieldAnswer, validateFormOpen, validateSlide } from './vvalidation-utils';
 
 const q = (id: string, required = false, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type: FieldTypes.SHORT_TEXT, ...(required ? { validations: { required: true } } : {}), ...extra });
 
@@ -45,5 +48,22 @@ describe('validateFormOpen', () => {
     it('future close dates are open, past ones are closed', () => {
         expect(validateFormOpen('2999-01-01T00:00:00Z')).toBe(true);
         expect(validateFormOpen('2000-01-01T00:00:00Z')).toBe(false);
+    });
+});
+
+describe('validateFormFieldAnswer — legacy (v1) answer checks', () => {
+    const legacy = (type: FormBuilderTagNames, validations: Record<string, unknown>) => ({ id: 'f', index: 0, type, validations }) as unknown as StandardFormFieldDto;
+
+    it('flags a text that does NOT match the pattern (it used to flag matching ones)', () => {
+        const field = legacy(FormBuilderTagNames.INPUT_SHORT_TEXT, { regex: '^[0-9]{4}$' });
+        expect(validateFormFieldAnswer(field, { text: '1234' } as any)).toEqual([]);
+        expect(validateFormFieldAnswer(field, { text: 'abcd' } as any)).toEqual([FormValidationError.REGEX_PATTERN]);
+    });
+
+    it('a limit of 0 is a limit, and too many choices is its own error', () => {
+        const number = legacy(FormBuilderTagNames.INPUT_NUMBER, { minValue: 0 });
+        expect(validateFormFieldAnswer(number, { number: -1 } as any)).toEqual([FormValidationError.INSUFFICIENT_VALUE]);
+        const choices = legacy(FormBuilderTagNames.INPUT_CHECKBOXES, { maxChoices: 1 });
+        expect(validateFormFieldAnswer(choices, { choices: { values: ['a', 'b'] } } as any)).toEqual([FormValidationError.EXCEEDS_MAX_CHOICES]);
     });
 });

@@ -24,6 +24,7 @@ import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { leafletMarginWidth, leafletSection, pageSectionTitle, questionNumbers } from '@app/utils/leaflet-sections';
 import { ownTitleText } from '@app/utils/publish-checks';
 import CanvasInsertMenu from '@app/views/molecules/form-builder/canvas-insert-menu';
+import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import MoveUpDown from '@app/views/molecules/form-builder/move-up-down';
 import PlainLanguageHints from '@app/views/molecules/form-builder/plain-language-hints';
 import SectionTitleInput from '@app/views/molecules/form-builder/section-title-input';
@@ -80,7 +81,7 @@ function InsertSlot({ slide, index, edge }: { slide: StandardFormFieldDto; index
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
-    const { duplicateField, updateSlideSectionTitle } = useFormFieldsAtom();
+    const { formFields, duplicateField, updateSlideSectionTitle } = useFormFieldsAtom();
     const { deleteQuestion } = useUndoableDelete();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
@@ -105,6 +106,8 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const section = leaflet ? leafletSection(slideFields ?? [], emptyLabel, ownTitle) : null;
     const fallbackTitle = leaflet ? leafletSection(slideFields ?? [], emptyLabel).shortTitle : '';
     const numbers = leaflet ? questionNumbers(slideFields ?? [], (slide?.index ?? 0) + 1) : {};
+    // Other styles: the form's question numbering, as respondents see it.
+    const plainNumbers = !leaflet && slide?.properties?.showQuestionNumbers ? plainQuestionNumbers(slideFields ?? [], (slide?.index ?? 0) + 1, hasSeveralPages(formFields)) : {};
     const numberInk = actionInk(theme);
     // The page's opening text block is edited where respondents see it: its
     // heading as the title on the navy section bar, the rest on the intro
@@ -316,7 +319,11 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                                 {number}
                                                             </span>
                                                         )}
-                                                        {!leaflet && slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
+                                                        {plainNumbers[field.id] && (
+                                                            <span aria-hidden="true" data-testid="canvas-question-number" className="shrink-0 self-start text-2xl font-semibold tabular-nums" style={{ color: theme?.primary }}>
+                                                                {plainNumbers[field.id]}
+                                                            </span>
+                                                        )}
                                                         <RichTextEditor
                                                             field={field}
                                                             slide={slide}
