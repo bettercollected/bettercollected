@@ -13,6 +13,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
+import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
 import { themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
@@ -76,15 +77,8 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                         layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-0' : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-1' : '',
                         layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'backdrop-blur-lg rounded-[8px] opacity-50' : 'opacity-100'
                     )}
-                    src={imageUrl}
+                    {...firstPartyImageProps(imageUrl)}
                     alt={altImage + ' image'}
-                    loader={
-                        imageUrl.startsWith('https://images.unsplash.com/')
-                            ? ({ src, width, quality }) => {
-                                  return src + `&q=${quality || '0.5'}&w=${width}&cs=tinysrgb&auto=format&dpr=1`;
-                              }
-                            : undefined
-                    }
                     fill
                     priority
                 />

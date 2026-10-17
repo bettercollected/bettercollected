@@ -1,0 +1,43 @@
+{
+  "name": "gen_en_plain_theme_requested",
+  "kind": "generate",
+  "description": "'Use the Plain theme instead': another theme is expected and was chosen.",
+  "language": "en",
+  "theme_requested": true,
+  "expected_findings": [],
+  "reply": {
+    "title": "Equipment loan",
+    "description": "Borrow equipment from the makerspace.",
+    "theme_name": "Default",
+    "fields": [
+      {
+        "title": "Your loan",
+        "type": "group",
+        "layout": "SINGLE_COLUMN_NO_BACKGROUND",
+        "properties": {
+          "fields": [
+            {
+              "title": "Which item would you like to borrow?",
+              "type": "dropdown",
+              "properties": {
+                "choices": [
+                  "Drill",
+                  "Soldering iron",
+                  "3D printer"
+                ]
+              }
+            },
+            {
+              "title": "When do you want to pick it up?",
+              "type": "date"
+            },
+            {
+              "title": "How many days do you need it for?",
+              "type": "number"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

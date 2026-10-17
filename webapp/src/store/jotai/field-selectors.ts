@@ -6,12 +6,13 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { FieldConditionalLogic, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { reorder } from '@app/utils/array-utils';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules, remapDateRules } from '@app/utils/date-rules';
+import { fieldAndChildIds, locateField, moveFieldInSlides, movePageInSlides, pruneOutOfOrderReferences } from '@app/utils/form-outline';
 import { SECTION_TITLE_MAX } from '@app/utils/leaflet-sections';
 import { newRepeatingGroup, remapGroupChildIds, remapTextTokens } from '@app/utils/repeating-groups';
 
@@ -392,6 +393,27 @@ export default function useFormFieldsAtom() {
             ...validation
         };
         setFormFields([...formFields]);
+    };
+
+    // Answer rules (validations beyond Required): merge `patch` into the
+    // field's validations; undefined, null, NaN or '' removes a rule. Typing
+    // into the same rule is one undo step.
+    const updateFieldValidations = (fieldIndex: number, slideIndex: number, patch: Partial<IFormFieldValidation>) => {
+        const target = formFields?.[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!target) return;
+        const next: Record<string, unknown> = { ...(target.validations || {}) };
+        Object.entries(patch).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '' || (typeof value === 'number' && !Number.isFinite(value))) delete next[key];
+            else next[key] = value;
+        });
+        target.validations = next as IFormFieldValidation;
+        setFormFields([...formFields], `validations:${target.id}:${Object.keys(patch).sort().join(',')}`);
+    };
+
+    // Question numbering for the whole form: the flag lives on every
+    // question page (StandardFieldProperty.showQuestionNumbers).
+    const setShowQuestionNumbersOnAllPages = (show: boolean) => {
+        setFormFields(formFields.map((slide) => (slide.type && slide.type !== FieldTypes.SLIDE ? slide : { ...slide, properties: { ...(slide.properties || {}), showQuestionNumbers: show } })));
     };
 
     const updateShowQuestionNumbers = (slideIndex: number, show: boolean) => {
@@ -861,7 +883,59 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    // After a reorder the active page/question keep their selection: their
+    // ids are stable, their indexes are looked up again.
+    const reselectAfterMove = () => {
+        if (activeFieldComponent?.id) {
+            const at = locateField(formFields, activeFieldComponent.id);
+            if (at) {
+                setActiveSlideComponent({ id: formFields[at.pageIndex].id, index: at.pageIndex });
+                setActiveFieldComponent({ id: activeFieldComponent.id, index: at.fieldIndex });
+                return;
+            }
+        }
+        if (activeSlideComponent && activeSlideComponent.index >= 0) {
+            const index = formFields.findIndex((slide) => slide.id === activeSlideComponent.id);
+            if (index >= 0) setActiveSlideComponent({ id: activeSlideComponent.id, index });
+        }
+    };
+
+    /**
+     * Move page `from` to position `to` (outline drag or menu). One undo
+     * step. Logic the new order turned around (a rule now using a later
+     * answer) is removed; `prunedReferences` says how much, `next` is the
+     * state after the move (what an undo toast restores from).
+     */
+    const movePage = (from: number, to: number): { next: StandardFormFieldDto[]; prunedReferences: number } | null => {
+        const page = formFields[from];
+        if (!page || !movePageInSlides(formFields, from, to)) return null;
+        const movedFieldIds = new Set((page.properties?.fields ?? []).flatMap(fieldAndChildIds));
+        const prunedReferences = pruneOutOfOrderReferences(formFields, movedFieldIds, new Set([page.id]));
+        const next = [...formFields];
+        setFormFields(next);
+        reselectAfterMove();
+        return { next, prunedReferences };
+    };
+
+    /**
+     * Move a page-level question to page `toPageIndex`, position `toIndex`
+     * (counted without the question), within its page or to another one.
+     * Same contract as `movePage`.
+     */
+    const moveFieldToPage = (fieldId: string, toPageIndex: number, toIndex: number): { next: StandardFormFieldDto[]; prunedReferences: number } | null => {
+        const at = locateField(formFields, fieldId);
+        const field = at ? formFields[at.pageIndex].properties!.fields![at.fieldIndex] : undefined;
+        if (!field || !moveFieldInSlides(formFields, fieldId, toPageIndex, toIndex)) return null;
+        const prunedReferences = pruneOutOfOrderReferences(formFields, new Set(fieldAndChildIds(field)));
+        const next = [...formFields];
+        setFormFields(next);
+        reselectAfterMove();
+        return { next, prunedReferences };
+    };
+
     return {
+        movePage,
+        moveFieldToPage,
         formFields,
         setFormFields,
         initFormFields,
@@ -881,6 +955,7 @@ export default function useFormFieldsAtom() {
         updateFieldRequired,
         updateFieldInternal,
         updateFieldValidation,
+        updateFieldValidations,
         updateFieldProperty,
         updateFieldConditionalLogic,
         updateGroupChildren,
@@ -891,6 +966,7 @@ export default function useFormFieldsAtom() {
         clearSlidePositions,
         duplicateSlide,
         updateShowQuestionNumbers,
+        setShowQuestionNumbersOnAllPages,
         updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,
         updateSlideLayout,

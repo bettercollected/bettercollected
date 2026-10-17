@@ -6,7 +6,6 @@ import { Check, Copy, ExternalLink } from 'lucide-react';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -22,7 +21,6 @@ export default function FormPublishedModal(props: any) {
     const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
-    const authState = useAppSelector(selectAuth);
     const [copied, setCopied] = useState(false);
 
     const shareUrl = getFormShareURL(standardForm, workspace);
@@ -63,7 +61,7 @@ export default function FormPublishedModal(props: any) {
                         rel="noopener noreferrer"
                         aria-label="Open form in a new tab"
                         data-umami-event={'PublishModal Open Form Link'}
-                        data-umami-event-email={authState.email}
+                       
                         className="text-black-600 hover:text-brand-500 shrink-0 transition-colors"
                     >
                         <ExternalLink className="h-4 w-4" />
@@ -76,7 +74,7 @@ export default function FormPublishedModal(props: any) {
                     icon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     className="shrink-0"
                     data-umami-event={'PublishModal Copy Button'}
-                    data-umami-event-email={authState.email}
+                   
                 >
                     {copied ? 'Copied' : 'Copy link'}
                 </Button>
@@ -85,10 +83,10 @@ export default function FormPublishedModal(props: any) {
             <div className="border-t-black-300 flex flex-col gap-2.5 border-t pt-5">
                 <span className="text-black-600 text-xs font-medium uppercase tracking-wide">Next steps</span>
                 <div className="text-black-700 flex flex-col gap-2 text-sm">
-                    <a href={settingsUrl} data-umami-event={'PublishModal Goto Settings Link'} data-umami-event-email={authState.email} className="hover:text-brand-600 text-brand-500 w-fit font-medium underline-offset-2 hover:underline">
+                    <a href={settingsUrl} data-umami-event={'PublishModal Goto Settings Link'} className="hover:text-brand-600 text-brand-500 w-fit font-medium underline-offset-2 hover:underline">
                         Form settings — custom domain, privacy, integrations
                     </a>
-                    <a href={dashboardUrl} data-umami-event={'PublishModal Goto Dashboard Link'} data-umami-event-email={authState.email} className="hover:text-brand-600 text-brand-500 w-fit font-medium underline-offset-2 hover:underline">
+                    <a href={dashboardUrl} data-umami-event={'PublishModal Goto Dashboard Link'} className="hover:text-brand-600 text-brand-500 w-fit font-medium underline-offset-2 hover:underline">
                         Back to dashboard
                     </a>
                 </div>

@@ -127,6 +127,17 @@ class AWSS3Service:
             raise HTTPException(550, "INFO: Failed to upload image")
         return self.public_url_of(key, bucket)
 
+    def public_object_exists(self, key: str, bucket=aws_settings.BUCKET) -> bool:
+        """Whether one of our public objects is stored under ``key``; False
+        when it isn't, or the store can't say (the caller then makes it)."""
+        if not key.startswith("public/"):
+            return False
+        try:
+            self._s3_client.head_object(Bucket=bucket, Key=key)
+        except ClientError:
+            return False
+        return True
+
     def copy_public_object(
         self, source_url: str, key: str, bucket=aws_settings.BUCKET
     ) -> Optional[str]:

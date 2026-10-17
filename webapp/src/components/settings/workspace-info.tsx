@@ -175,7 +175,6 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
 
             <Button
                 data-umami-event="Update Workspace Info From Workspace Settings"
-                data-umami-event-email={auth.email}
                 className="mt-4 w-full"
                 type="submit"
                 size="medium"

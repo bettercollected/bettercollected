@@ -136,6 +136,10 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                                     onPhotoSelect={async (photo: any) => {
                                         try {
                                             if (photo) {
+                                                // Stored as Unsplash's address: the backend rewrites it to
+                                                // its own /images/unsplash route on save when its public
+                                                // address is configured, and pages always load it through
+                                                // that route (utils/first-party-image.ts), never from Unsplash.
                                                 updatePageImage(photo.urls.raw);
                                                 setPhotoInLocalStorage(photo);
                                                 triggerUnsplashDownloadEndpoint(photo);

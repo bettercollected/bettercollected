@@ -37,6 +37,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.form_images import first_party_or_kept
 from backend.app.services.custom_domain_service import (
     CustomDomainService,
     cleared_fields,
@@ -93,6 +94,18 @@ async def request_code_mail(http_client: HttpClient, params: dict) -> None:
         status = getattr(exc, "status_code", type(exc).__name__)
         logger.warning(f"Sign-in code mail not requested: auth answered {status}")
         raise HTTPException(HTTPStatus.BAD_GATEWAY, CODE_MAIL_FAILED)
+
+
+def _saved_background_url(theme) -> Optional[str]:
+    """A stored saved theme's background image address, if any."""
+    background = (
+        theme.get("background")
+        if isinstance(theme, dict)
+        else getattr(theme, "background", None)
+    )
+    if isinstance(background, dict):
+        return background.get("imageUrl")
+    return getattr(background, "imageUrl", None)
 
 
 class WorkspaceService:
@@ -346,6 +359,21 @@ class WorkspaceService:
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
         )
+        # first-party background images only, as on a form; a saved theme's
+        # address that is already stored is kept (services/form_images.py)
+        keep = frozenset(
+            url.strip()
+            for url in (
+                _saved_background_url(theme)
+                for theme in (workspace_document.custom_themes or [])
+            )
+            if isinstance(url, str)
+        )
+        for theme in custom_themes:
+            if theme.background is not None:
+                theme.background.imageUrl = first_party_or_kept(
+                    theme.background.imageUrl, keep
+                )
         workspace_document.custom_themes = custom_themes
         saved_workspace = await self._workspace_repo.update(
             workspace_document.id, workspace_document

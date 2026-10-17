@@ -39,7 +39,7 @@ function Builder({ rail = false }: { rail?: boolean }) {
         builder.initFormFields(pages());
         setActiveSlideComponent({ id: 'page-1', index: 0 });
     }, []);
-    return rail && builder.formFields.length ? <SlideOptions slideIndex={1} /> : null;
+    return rail && builder.formFields.length ? <SlideOptions slideIndex={1} pageName="Page 2" visible onMoved={() => undefined} /> : null;
 }
 
 function renderBuilder(rail = false) {
@@ -88,8 +88,8 @@ describe('deleting with undo', () => {
 
     it('the page rail deletes the same way: at once, with Undo', async () => {
         renderBuilder(true);
-        fireEvent.click(document.querySelector('[data-state="closed"]') as Element);
-        await act(async () => fireEvent.click(await screen.findByText('Delete')));
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Page 2' }), { key: 'Enter' });
+        await act(async () => fireEvent.click(await screen.findByRole('menuitem', { name: 'Delete' })));
         expect(seen.builder!.formFields.map((p) => p.id)).toEqual(['page-1']);
         expect(screen.getByText('Page deleted, with 1 question')).toBeInTheDocument();
         await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Undo' })));

@@ -21,7 +21,7 @@ export default function UnsplashPhotoCard({ photo, onPhotoSelect = (_: any) => {
                             e.stopPropagation();
                         }}
                     >
-                        <Image className="h-6 w-6 rounded-full" src={photo.user.profile_image.small} alt={photo.user.username} width={24} height={24} />
+                        <Image className="h-6 w-6 rounded-full" src={photo.user.profile_image.small} alt={photo.user.username} width={24} height={24} unoptimized />
                         <h6 className="word-breaker text-xs hover:underline">{photo.user.name}</h6>
                     </Link>
                 </div>
@@ -41,7 +41,10 @@ const ImageWithLoader = ({ photo }: { photo: any }) => {
                 onLoadingComplete={() => {
                     setNextImageLoading(false);
                 }}
-                src={photo.urls.full}
+                // the picker only (the editor): loaded from Unsplash as its
+                // guidelines ask; what is picked is served to respondents by us
+                src={photo.urls.small}
+                unoptimized
                 sizes="10vw"
                 alt={photo.alt_description}
                 width={0}

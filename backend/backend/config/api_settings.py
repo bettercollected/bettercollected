@@ -38,5 +38,21 @@ class ApiSettings(BaseSettings):
     # window; more answer 429 with Retry-After until the window ends. 0 = off.
     PUBLIC_API_REQUESTS_PER_WINDOW: int = 120
     PUBLIC_API_WINDOW_SECONDS: int = 60
+    # This API's address as browsers reach it, the same value as the webapp's
+    # NEXT_PUBLIC_API_ENDPOINT_HOST. Unsplash images on forms are stored as
+    # <PUBLIC_URL>/images/unsplash/<photo> (services/unsplash_route.py), so
+    # respondents load them from us, never from Unsplash. Unset (or a loopback
+    # address outside development), Unsplash addresses are kept as they are.
+    PUBLIC_URL: str = ""
+    # GET /images/unsplash/...: requests per client address in each window,
+    # and of those, how many may fetch a photo not cached yet.
+    IMAGE_PROXY_PER_WINDOW: int = 600
+    IMAGE_PROXY_FETCHES_PER_WINDOW: int = 30
+    IMAGE_PROXY_WINDOW_SECONDS: int = 60
+    # ...and how many photos everyone together may fetch from Unsplash.
+    IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW: int = 120
+    # POST /workspaces/{id}/images/import: copies per person in each window.
+    IMAGE_IMPORTS_PER_WINDOW: int = 30
+    IMAGE_IMPORTS_WINDOW_SECONDS: int = 600
 
     model_config = SettingsConfigDict(env_prefix="API_")

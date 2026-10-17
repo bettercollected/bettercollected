@@ -85,6 +85,24 @@
         "RATE": "{{value}} van {{total}} geven",
         "CHOOSE_MANY": "Kies er zoveel als je wilt."
     },
+    "RULE": {
+        "TOO_SHORT_one": "Gebruik minstens {{count}} teken.",
+        "TOO_SHORT_other": "Gebruik minstens {{count}} tekens.",
+        "TOO_LONG_one": "Gebruik hooguit {{count}} teken.",
+        "TOO_LONG_other": "Gebruik hooguit {{count}} tekens.",
+        "PATTERN": "Dit antwoord heeft niet de verwachte vorm. Controleer het.",
+        "FORMAT_POSTCODE_NL": "Vul een Nederlandse postcode in, bijvoorbeeld {{example}}.",
+        "FORMAT_IBAN": "Vul een IBAN in, bijvoorbeeld {{example}}.",
+        "FORMAT_PHONE": "Vul een telefoonnummer in, bijvoorbeeld {{example}}.",
+        "FORMAT_LETTERS": "Gebruik alleen letters.",
+        "TOO_SMALL": "Vul een getal van {{min}} of meer in.",
+        "TOO_LARGE": "Vul een getal van {{max}} of minder in.",
+        "NOT_INTEGER": "Vul een heel getal in, zonder decimalen.",
+        "TOO_FEW_CHOICES_one": "Kies minstens {{count}} optie.",
+        "TOO_FEW_CHOICES_other": "Kies minstens {{count}} opties.",
+        "TOO_MANY_CHOICES_one": "Kies hooguit {{count}} optie.",
+        "TOO_MANY_CHOICES_other": "Kies hooguit {{count}} opties."
+    },
     "DATE": {
         "PICK": "Kies een datum",
         "INVALID": "Kies een geldige datum.",

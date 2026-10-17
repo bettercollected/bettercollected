@@ -448,6 +448,21 @@ What one AI request may cost, all in `config/ai_settings.py` (env prefix `AI_`).
   and policy links are checked (`image_urls.py`, `policy_url.py`).
 - **Logging:** AI paths log error types, counts and ids only, never a prompt,
   a reply, a tool query or an exception message.
+- **Quality evals:** `services/ai/quality.check_form_quality` scores a
+  generated or edited form (why-we-ask, questions per page, section titles,
+  EN/NL language, duplicates, required fields, choices, image hosts, logic
+  references, the Leaflet default) with findings that carry codes and ids,
+  never form text. The synthetic golden replies in `tests/fixtures/ai_evals/`
+  run through the real pipeline (`services/ai/eval_pipeline.py`) in CI; when a
+  prompt change moves a finding on purpose, update the fixture. To measure a
+  prompt change against a provider, run `AI_EVAL_ALLOW_LIVE=1 uv run python -m
+  scripts.ai_eval --live --out <dir outside the repo>` (both the flag and the
+  variable are needed; it sends only the synthetic prompts in `prompts.json`,
+  costs tokens, honours the AI limits unless `--ignore-limits`, and writes
+  `report.json` and `report.md`). `--prompts` only accepts a file inside
+  `tests/fixtures/ai_evals/`. Without `--live` it replays the fixtures and
+  never reads `backend/.env`. Never in CI. Never run --live on a production
+  host.
 
 ## PDF form import (in progress)
 
@@ -466,9 +481,10 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   the image `bettercollected/backend:sandbox-test`, skipped otherwise). Backend and jobs worker
   reach it over `PDF_IMPORT_SANDBOX_SOCKET` with `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX=true`.
   `server.py` and `runner.py` must never import the backend package. Native modes
-  (`render`, and `logo`: the organisation logo upload, decoded and re-encoded
-  without metadata by `pdf_import/logo_image.py`, see `services/form_logo.py`;
-  the API never decodes an image itself and answers 503 without the sandbox)
+  (`render`, `logo`: the organisation logo upload, and `image`: a fetched
+  picture, see "Images on forms" below; both decoded and re-encoded without
+  metadata by `pdf_import/logo_image.py`, see `services/form_logo.py`; the API
+  never decodes an image itself and answers 503 without the sandbox)
   never run in a local child. An unreachable or unresponsive sandbox
   raises `SandboxUnavailable` (not the document's fault): the import stays queued
   while retries remain, and is failed with a "try again later" message on the
@@ -612,6 +628,50 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
 - Tests generate their own documents (`tests/app/pdf_import/documents.py`);
   do not add real-world forms to the repository.
+
+## Images on forms (first-party only)
+
+Respondents' browsers never contact a third-party image host. Every image a
+form holds (theme and page-theme backgrounds, welcome/ending images, page
+layout and question images, the cover) and every saved theme's background is
+one of ours; `services/image_urls.py` is the single allow-list:
+
+- **Our storage** (`AWS_PUBLIC_URL` or the endpoint, our bucket, `public/`,
+  `media_library/`, `images/`) and the builder's two built-in placeholders.
+- **Unsplash through our server:** `GET /images/unsplash/{photo}`
+  (`services/image_service.py`, `services/unsplash_route.py`). A form stores
+  `<API_PUBLIC_URL>/images/unsplash/<photo>?<sizing>`; `images.unsplash.com`
+  addresses are accepted on input only to be rewritten to it, and the webapp
+  rewrites old ones at render time (`src/utils/first-party-image.ts`). The route
+  takes a photo path and only `w h q fit fm crop auto` (rounded to a fixed set
+  of sizes, AVIF asked as WebP, `crop` only `entropy`), fetches from the fixed
+  host with no redirects, has the sandbox's `image` mode re-encode it, stores
+  it once under `public/image-cache/unsplash/<hash>` and redirects there.
+  Rate-limited per client address (`API_IMAGE_PROXY_*`; IPv6 by /64,
+  `utils/client_ip.rate_limit_key`), tighter for requests that fetch, plus one
+  cap on fetches by everyone together (`API_IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW`).
+  `API_PUBLIC_URL` must equal the webapp's `NEXT_PUBLIC_API_ENDPOINT_HOST`; the
+  deployment compose refuses to start without it. Unset, or a loopback address
+  while `API_HOST` doesn't name localhost (and the environment isn't `test`),
+  fails closed (`unsplash_route.route_configured`): Unsplash addresses are
+  stored as they came, never rewritten to a local address, and a warning is
+  logged at startup. The picker stores Unsplash's address; the save rewrites it.
+- **Pasted addresses are copied in:** `POST /workspaces/{id}/images/import`
+  (`form.edit`, `API_IMAGE_IMPORTS_*` per person) fetches through
+  `services/image_fetch.py` (https only, default port, no credentials; DNS
+  resolved by us and every answer must be public, the connection pinned to
+  that address; at most 3 redirects, each re-checked; timeouts; 10 MB read
+  while streaming; JPEG/PNG/WebP only), re-encodes in the sandbox and stores
+  under `public/media/<workspace>/`. Refusals are 422 `{code, message}` with a
+  plain-language message the editor shows; logs carry the code, never the
+  address.
+- **Saves are checked** (`services/form_images.py`): the whole-form PATCH, form
+  creation and the saved-themes PATCH keep first-party addresses, rewrite
+  Unsplash ones, keep an address the stored draft (or stored themes) already
+  holds, and refuse anything else with 422 `image_not_allowed`; a template copy
+  drops it instead. Tests: `test_image_urls.py`, `test_image_fetch.py`,
+  `test_images.py`, `test_form_images.py` (no network: fetch, DNS and the
+  sandbox are faked).
 
 ## Cross-service integration points
 

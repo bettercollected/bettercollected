@@ -55,6 +55,12 @@ def main(argv) -> int:
                 from pdf_import.logo_image import reencode_logo
 
                 result = reencode_logo(data)
+            elif mode == "image":
+                # a fetched picture (Unsplash, a pasted address): the same,
+                # larger; the pixel limit travels in the max_pixels slot
+                from pdf_import.logo_image import reencode_image
+
+                result = reencode_image(data, max_pixels)
             elif mode == "render":
                 # for rendering, the page list names the pages TO render; the
                 # longest side in pixels travels in the max_pixels slot's place

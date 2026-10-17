@@ -43,6 +43,7 @@ from backend.app.services.actions_service import ActionService
 from backend.app.services.ai.notice_token import stamp_response as stamp_ai_notice
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
+from backend.app.services.form_images import check_form_images
 from backend.app.services.form_logo import (
     CheckedLogo,
     logo_extension_of,
@@ -563,6 +564,9 @@ class WorkspaceFormService:
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
+        # first-party images only (services/form_images.py); a copy drops
+        # the others instead of refusing
+        check_form_images(form, None, drop=drop_unusable_settings)
         settings = (
             form.settings
             if form.settings
@@ -661,6 +665,9 @@ class WorkspaceFormService:
         ensure_not_changed_since(
             existing_form.updated_at if existing_form else None, expected_updated_at
         )
+        # first-party images only; an address the draft already holds is kept
+        # (services/form_images.py).
+        check_form_images(form, existing_form)
         # Settings are checked and applied here but stored after the form:
         # the form's conditional write is what can still refuse the save.
         settings_changed = bool(form.settings)
@@ -1198,6 +1205,10 @@ class WorkspaceFormService:
         )
         duplicated_form.description = form.description
         duplicated_form.button_text = form.button_text
+        # A copy is a new form: first-party images only, as for a template copy
+        # (Unsplash rewritten, others dropped); the source's grandfathered
+        # addresses do not carry over (services/form_images.py).
+        check_form_images(duplicated_form, None, drop=True)
         if is_template:
             duplicated_form.workspace_id = workspace_id
             duplicated_form.created_by = user.id
