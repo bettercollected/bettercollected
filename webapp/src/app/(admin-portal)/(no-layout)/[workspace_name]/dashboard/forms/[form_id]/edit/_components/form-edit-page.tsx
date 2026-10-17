@@ -114,7 +114,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     useEffect(() => {
         if (standardForm.formId) {
             if (!standardForm.welcomePage || !standardForm.thankyouPage) {
-                const form = { ...standardForm, ...formState };
+                // formState's own (empty) description must not hide the form's:
+                // autosave writes it back on every save.
+                const form = { ...standardForm, ...formState, description: standardForm.description };
                 setFormState(form);
             } else {
                 const copiedThankyouPage = deepCopy(standardForm?.thankyouPage || formState.thankyouPage);
@@ -122,6 +124,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 const form = {
                     ...formState,
                     title: standardForm.title,
+                    description: standardForm.description,
                     thankyouPage: copiedThankyouPage,
                     welcomePage: copiedWelcomePage,
                     hiddenFields: standardForm.hiddenFields,

@@ -27,6 +27,7 @@ from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.services.ai_form_provider import AIFormProvider
 from backend.app.services.google_ai_provider import GoogleAIFormProvider
+from backend.app.services.image_urls import allowed_image_url_or_none
 from backend.app.services.openai_provider import OpenAIFormProvider
 from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -170,8 +171,14 @@ class OpenAIService:
             else new_form_theme()
         )
 
-        welcome_image_url: Optional[str] = openai_form.get("welcome_image_url")
-        cover_image_url: Optional[str] = openai_form.get("cover_image_url")
+        # Only images from our storage or Unsplash (services/image_urls.py):
+        # respondents' browsers load them directly.
+        welcome_image_url: Optional[str] = allowed_image_url_or_none(
+            openai_form.get("welcome_image_url")
+        )
+        cover_image_url: Optional[str] = allowed_image_url_or_none(
+            openai_form.get("cover_image_url")
+        )
 
         # Auto-select welcome layout: use image-side layout when image present
         welcome_layout = (
@@ -208,8 +215,11 @@ class OpenAIService:
         for index, field in enumerate(openai_fields):
             # Per-field layout: read directly from the AI-generated field dict.
             # Fall back to image-aware default: if image_url present use TWO_COLUMN_IMAGE_LEFT.
-            image_url: Optional[str] = field.get("image_url") or None
+            image_url: Optional[str] = allowed_image_url_or_none(field.get("image_url"))
             layout_value: Optional[str] = field.get("layout")
+            if field.get("image_url") and not image_url:
+                # A refused image takes its image layout with it.
+                layout_value = None
             if not layout_value:
                 layout_value = (
                     LayoutType.TWO_COLUMN_IMAGE_LEFT.value
