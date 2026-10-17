@@ -22,12 +22,17 @@ from common.form_spec.roundtrip import (
     EXCLUDED_PROPERTIES,
     creator_view,
 )
+from common.form_spec.models import (
+    CURRENT_FIELD_TYPES,
+    LEGACY_FIELD_TYPES,
+)
 from common.form_spec.schema import SCHEMA_PATH, main, render_schema
 from common.models.standard_form import (
     StandardFieldProperty,
     StandardFieldValidations,
     StandardForm,
     StandardFormField,
+    StandardFormFieldType,
 )
 from tests.form_spec_fixture import RICH_TITLE, varied_form, varied_form_data
 
@@ -57,10 +62,31 @@ def test_the_schema_is_versioned_and_closed():
     # camelCase names, server-owned data absent
     field = schema["$defs"]["FormField"]["properties"]
     assert {"colSpan", "whyWeAsk", "dateRules", "allowMultipleSelection"} <= set(field)
-    assert "slide" not in schema["$defs"]["FieldType"]["enum"]
+    current, legacy = field["type"]["anyOf"]
+    assert "slide" not in current["enum"] + legacy["enum"]
     for absent in ("formId", "workspaceId", "publishedAt", "createdAt", "secrets"):
         assert absent not in schema["properties"]
     assert schema["$defs"]["Logo"]["properties"]["url"]["readOnly"] is True
+
+
+def test_legacy_field_types_are_deprecated_but_still_read():
+    schema = json.loads(render_schema())
+    current, legacy = schema["$defs"]["FormField"]["properties"]["type"]["anyOf"]
+    assert "deprecated" not in current and legacy["deprecated"] is True
+    assert set(current["enum"]) == CURRENT_FIELD_TYPES
+    assert set(legacy["enum"]) == LEGACY_FIELD_TYPES
+    assert {"short_text", "group", "matrix", "IMAGE_CONTENT"} <= CURRENT_FIELD_TYPES
+    assert {"h1", "input_short_text", "ranking", "payment"} <= LEGACY_FIELD_TYPES
+    # every stored type except the page is one or the other
+    assert CURRENT_FIELD_TYPES | LEGACY_FIELD_TYPES == {
+        t.value for t in StandardFormFieldType
+    } - {"slide"}
+    document = {
+        "specVersion": "1",
+        "pages": [{"id": "p", "fields": [{"id": "h", "type": "h1", "title": "Hi"}]}],
+    }
+    form = spec_to_form(FormSpec.model_validate(document))
+    assert form_to_spec(form).pages[0].fields[0].type == "h1"
 
 
 def test_round_trip_keeps_every_creator_controlled_value():

@@ -31,7 +31,9 @@ document that can pipe answers). Depending on the type it also has `choices`,
 `validations` (`required`, `minLength`, `maxLength`, `minValue`, `maxValue`,
 `pattern`, `minChoices`, `maxChoices`), `colSpan` (1 to 12), `logic` (show or
 hide it), `dateRules`, `whyWeAsk`, `internal`, and for a repeating group
-`repeat` and its own `fields`. Unknown keys are refused.
+`repeat` and its own `fields`. Unknown keys are refused. Types the builder
+no longer offers are marked `deprecated` in the schema: they are still
+accepted so that older forms can be read, and validation warns about them.
 
 Ids are chosen by the writer and must be unique within the form. Logic
 conditions and page jumps refer to them; a jump's `target` is a page id or

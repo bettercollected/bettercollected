@@ -48,6 +48,62 @@ FieldType = enum.Enum(
 )
 FieldType.__doc__ = "A question or content block type."
 
+# The types the page-based builder offers today. Every other FieldType is
+# legacy (first-generation builder, imports): still accepted, so stored
+# forms keep reading, but marked deprecated in the schema and warned about
+# by validation.
+CURRENT_FIELD_TYPES = frozenset(
+    {
+        "short_text",
+        "long_text",
+        "email",
+        "number",
+        "url",
+        "phone_number",
+        "date",
+        "yes_no",
+        "multiple_choice",
+        "dropdown",
+        "rating",
+        "linear_rating",
+        "file_upload",
+        "matrix",
+        "tabular_input",
+        "group",
+        "text",
+        "IMAGE_CONTENT",
+        "VIDEO_CONTENT",
+    }
+)
+LEGACY_FIELD_TYPES = frozenset(m.value for m in FieldType) - CURRENT_FIELD_TYPES
+
+
+def _field_type_json_schema(cls, core_schema, handler):
+    """Current and legacy types as two branches, the legacy one
+    ``deprecated`` (JSON Schema can't mark single enum values)."""
+    values = [m.value for m in cls]
+    return {
+        "title": "FieldType",
+        "description": cls.__doc__,
+        "anyOf": [
+            {
+                "type": "string",
+                "enum": [v for v in values if v in CURRENT_FIELD_TYPES],
+            },
+            {
+                "type": "string",
+                "enum": [v for v in values if v in LEGACY_FIELD_TYPES],
+                "deprecated": True,
+                "description": "Legacy types the builder no longer offers: "
+                "still accepted so that stored forms can be read; do not use "
+                "them for new questions.",
+            },
+        ],
+    }
+
+
+FieldType.__get_pydantic_json_schema__ = classmethod(_field_type_json_schema)
+
 Layout = enum.Enum(
     "Layout", {member.name: member.value for member in LayoutType}, type=str
 )

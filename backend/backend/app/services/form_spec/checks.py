@@ -15,7 +15,7 @@ from common.form_spec import (
     spec_to_form,
     validation_errors,
 )
-from common.form_spec.models import JUMP_TARGET_SUBMIT
+from common.form_spec.models import JUMP_TARGET_SUBMIT, LEGACY_FIELD_TYPES
 from common.models.standard_form import date_rule_problems
 from pydantic import ValidationError
 
@@ -256,6 +256,15 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                 "The logo is set by uploading it; a url in the document is ignored.",
             )
         )
+    for path, field, _ in index.questions.values():
+        if field.type in LEGACY_FIELD_TYPES:
+            warnings.append(
+                _problem(
+                    f"{path}/type",
+                    f"'{field.type}' is a legacy type the builder no longer offers; "
+                    "use a current type for new questions.",
+                )
+            )
     for problem in publish_problems(form):
         entry = index.questions.get(problem.get("fieldId") or "")
         warnings.append(

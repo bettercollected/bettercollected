@@ -261,6 +261,24 @@ class TestValidate:
             e["path"] == path and words in e["message"] for e in body["errors"]
         ), body["errors"]
 
+    async def test_a_legacy_type_is_accepted_with_a_warning(
+        self, client: AsyncClient, workspace, test_user_cookies
+    ):
+        document = copy.deepcopy(VALID)
+        document["pages"][1]["fields"].append(
+            {"id": "old", "type": "input_short_text", "title": "Old"}
+        )
+        response = await client.post(
+            _url(workspace), json=document, cookies=test_user_cookies
+        )
+        body = response.json()
+        assert body["valid"] is True, body["errors"]
+        assert {
+            "path": "/pages/1/fields/2/type",
+            "message": "'input_short_text' is a legacy type the builder no longer "
+            "offers; use a current type for new questions.",
+        } in body["warnings"]
+
     async def test_a_body_that_is_not_an_object(
         self, client: AsyncClient, workspace, test_user_cookies
     ):
