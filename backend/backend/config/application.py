@@ -51,6 +51,10 @@ class Application(BaseSettings):
 
     DEBUG: bool = True
     ENABLE_SUGGEST_PRICE: bool = False
+    # Submitted answers are checked against the form (Required, answer rules,
+    # types; services/answer_validation.py). False = "log only": problems are
+    # logged (form id, count, rule codes) and the response is stored anyway.
+    RESPONSE_VALIDATION_ENFORCE: bool = True
     apm_settings: APMSettings = APMSettings()
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()

@@ -1,0 +1,4084 @@
+{
+  "description": "Submitted answers checked against their form: Required on the pages a respondent goes through (visibility rules and page jumps), answer rules and answer types. Run by backend/tests/app/services/test_answer_validation.py (every case) and webapp src/utils/answer-validation-cases.test.ts (the cases whose checks include 'required'). 'form' is the list of pages as the respondent page receives it; 'errors' lists every problem, in any order.",
+  "cases": [
+    {
+      "name": "required question unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required question answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "required answer without a value",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": ""
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required answer with only its type",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "optional question unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "required yes/no answered No",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "required number answered 0",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "required question hidden by a SHOW rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "required question shown by its SHOW rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "SHOW rule on an unanswered question keeps it hidden",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "required question hidden by a HIDE rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "HIDE rule not met keeps the question",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "OR rule met by its second condition",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "OR",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      },
+                      {
+                        "fieldId": "q3",
+                        "fieldType": "short_text",
+                        "comparison": "CONTAINS",
+                        "value": "ja"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        },
+        "q3": {
+          "type": "text",
+          "text": "JA graag"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "OR rule met by neither condition",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "OR",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      },
+                      {
+                        "fieldId": "q3",
+                        "fieldType": "short_text",
+                        "comparison": "CONTAINS",
+                        "value": "ja"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        },
+        "q3": {
+          "type": "text",
+          "text": "nee"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rule with no conditions never hides",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": []
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "number comparison in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "number",
+                        "comparison": "GREATER_THAN",
+                        "value": "17"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": 18
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "page skipped by a jump",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "page reached when the jump does not match",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "page reached without the jump question answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "jump to submit ends the form",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "jump to a page that no longer exists goes to the next page",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "gone"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "first matching jump wins",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "p3"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "p2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q3",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "jump with no conditions is ignored",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "jump forward over two pages",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "p4"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p4",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q4",
+                "type": "short_text",
+                "title": "q4",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q4",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "internal question is never required",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                },
+                "internal": true
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "content blocks are never required",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t1",
+                "type": "text",
+                "title": "t1",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "s1",
+                "type": "statement",
+                "title": "s1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "group never filled: its minimum items are checked",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "People",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Person"
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "c2",
+                      "type": "yes_no",
+                      "title": "c2"
+                    },
+                    {
+                      "id": "c3",
+                      "type": "short_text",
+                      "title": "c3",
+                      "validations": {
+                        "required": true
+                      },
+                      "properties": {
+                        "logic": {
+                          "action": "SHOW",
+                          "operator": "AND",
+                          "conditions": [
+                            {
+                              "fieldId": "c2",
+                              "fieldType": "yes_no",
+                              "comparison": "IS_EQUAL",
+                              "value": "Yes"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "c1",
+          "rule": "required",
+          "item": 0
+        }
+      ]
+    },
+    {
+      "name": "group item answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "People",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Person"
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "c2",
+                      "type": "yes_no",
+                      "title": "c2"
+                    },
+                    {
+                      "id": "c3",
+                      "type": "short_text",
+                      "title": "c3",
+                      "validations": {
+                        "required": true
+                      },
+                      "properties": {
+                        "logic": {
+                          "action": "SHOW",
+                          "operator": "AND",
+                          "conditions": [
+                            {
+                              "fieldId": "c2",
+                              "fieldType": "yes_no",
+                              "comparison": "IS_EQUAL",
+                              "value": "Yes"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "Ann"
+              }
+            }
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "group item missing a required answer",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "People",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Person"
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "c2",
+                      "type": "yes_no",
+                      "title": "c2"
+                    },
+                    {
+                      "id": "c3",
+                      "type": "short_text",
+                      "title": "c3",
+                      "validations": {
+                        "required": true
+                      },
+                      "properties": {
+                        "logic": {
+                          "action": "SHOW",
+                          "operator": "AND",
+                          "conditions": [
+                            {
+                              "fieldId": "c2",
+                              "fieldType": "yes_no",
+                              "comparison": "IS_EQUAL",
+                              "value": "Yes"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "Ann"
+              }
+            },
+            {
+              "c2": {
+                "type": "boolean",
+                "boolean": false
+              }
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "c1",
+          "rule": "required",
+          "item": 1
+        }
+      ]
+    },
+    {
+      "name": "group child shown by the item's own answer",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "People",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Person"
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "c2",
+                      "type": "yes_no",
+                      "title": "c2"
+                    },
+                    {
+                      "id": "c3",
+                      "type": "short_text",
+                      "title": "c3",
+                      "validations": {
+                        "required": true
+                      },
+                      "properties": {
+                        "logic": {
+                          "action": "SHOW",
+                          "operator": "AND",
+                          "conditions": [
+                            {
+                              "fieldId": "c2",
+                              "fieldType": "yes_no",
+                              "comparison": "IS_EQUAL",
+                              "value": "Yes"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "Ann"
+              },
+              "c2": {
+                "type": "boolean",
+                "boolean": true
+              }
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "c3",
+          "rule": "required",
+          "item": 0
+        }
+      ]
+    },
+    {
+      "name": "group on a skipped page",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "People",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Person"
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "c2",
+                      "type": "yes_no",
+                      "title": "c2"
+                    },
+                    {
+                      "id": "c3",
+                      "type": "short_text",
+                      "title": "c3",
+                      "validations": {
+                        "required": true
+                      },
+                      "properties": {
+                        "logic": {
+                          "action": "SHOW",
+                          "operator": "AND",
+                          "conditions": [
+                            {
+                              "fieldId": "c2",
+                              "fieldType": "yes_no",
+                              "comparison": "IS_EQUAL",
+                              "value": "Yes"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "required matrix with a row unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "m1",
+                "type": "matrix",
+                "title": "Grid",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "fields": [
+                    {
+                      "id": "r1",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "r1": {
+          "type": "choice",
+          "choice": {
+            "value": "a"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "m1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required matrix with every row answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "m1",
+                "type": "matrix",
+                "title": "Grid",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "fields": [
+                    {
+                      "id": "r1",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "r1": {
+          "type": "choice",
+          "choice": {
+            "value": "a"
+          }
+        },
+        "r2": {
+          "type": "choice",
+          "choice": {
+            "value": "b"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "text too short",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "minLength": 3
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "ab"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_short"
+        }
+      ]
+    },
+    {
+      "name": "text too long",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "long_text",
+                "title": "q1",
+                "validations": {
+                  "maxLength": 3
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "abcd"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_long"
+        }
+      ]
+    },
+    {
+      "name": "length counts characters, not code units",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "maxLength": 2
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "😀😀"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "length at the limits",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "minLength": 2,
+                  "maxLength": 2
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "ab"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "length limit 0 is a limit",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "maxLength": 0
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "a"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_long"
+        }
+      ]
+    },
+    {
+      "name": "pattern matched",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^[1-9][0-9]{3} ?[A-Za-z]{2}$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "1234 AB"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "pattern not matched",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^[1-9][0-9]{3} ?[A-Za-z]{2}$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "0123 AB"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "pattern"
+        }
+      ]
+    },
+    {
+      "name": "pattern matched after trimming",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^[1-9][0-9]{3} ?[A-Za-z]{2}$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": " 1234AB\n"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "pattern is a search, not a full match",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "[0-9]"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "room 7b"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "$ is the end of the text only",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "long_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^a$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "a\nb"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "pattern"
+        }
+      ]
+    },
+    {
+      "name": "letters preset accepts accents",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^[\\p{L} '-]+$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "Zoë Anne-Marie"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "letters preset refuses digits",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^[\\p{L} '-]+$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "R2D2"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "pattern"
+        }
+      ]
+    },
+    {
+      "name": "\\u escape in a pattern",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^caf\\u00e9$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "café"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "pattern on long text",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "long_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^[a-z ]+$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "Hello"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "pattern"
+        }
+      ]
+    },
+    {
+      "name": "several rules broken at once",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "minLength": 5,
+                  "regex": "^[0-9]+$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "ab"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_short"
+        },
+        {
+          "fieldId": "q1",
+          "rule": "pattern"
+        }
+      ]
+    },
+    {
+      "name": "number below the lowest value",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "minValue": 1
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": 0
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_small"
+        }
+      ]
+    },
+    {
+      "name": "number above the highest value",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "maxValue": 12.5
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": 13
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_large"
+        }
+      ]
+    },
+    {
+      "name": "number typed as text",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "maxValue": 100
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": "1e3"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_large"
+        }
+      ]
+    },
+    {
+      "name": "decimal number within range",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "minValue": 0,
+                  "maxValue": 12.5
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": "12.5"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "whole numbers only refuses a decimal",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "regex": "^-?\\d+$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": "1.5"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "not_integer"
+        }
+      ]
+    },
+    {
+      "name": "whole numbers only accepts a negative number",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "regex": "^-?\\d+$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": -4
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "custom pattern on a number",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1",
+                "validations": {
+                  "regex": "^[0-9]{4}$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": 123
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "pattern"
+        }
+      ]
+    },
+    {
+      "name": "too few options",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "validations": {
+                  "minChoices": 2
+                },
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "allowOtherChoice": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "a"
+            ]
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_few_choices"
+        }
+      ]
+    },
+    {
+      "name": "too many options",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 2
+                },
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "allowOtherChoice": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_many_choices"
+        }
+      ]
+    },
+    {
+      "name": "the other answer counts as an option",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "validations": {
+                  "minChoices": 2
+                },
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "allowOtherChoice": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "a"
+            ],
+            "other": "Something else"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a blank other answer does not count",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "validations": {
+                  "minChoices": 2
+                },
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "allowOtherChoice": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "a"
+            ],
+            "other": "  "
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_few_choices"
+        }
+      ]
+    },
+    {
+      "name": "rules are not checked on an empty answer",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "minLength": 3
+                }
+              },
+              {
+                "id": "q2",
+                "type": "number",
+                "title": "q2",
+                "validations": {
+                  "minValue": 5
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": ""
+        },
+        "q2": {
+          "type": "number"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rules are not checked on a question hidden by logic",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "minLength": 5
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        },
+        "q2": {
+          "type": "text",
+          "text": "ab"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rules are not checked on a skipped page",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "minLength": 5
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "q2": {
+          "type": "text",
+          "text": "ab"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rules apply inside a group item",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "properties": {
+                  "repeat": {
+                    "minItems": 0,
+                    "maxItems": 3
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "maxLength": 3
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "abc"
+              }
+            },
+            {
+              "c1": {
+                "type": "text",
+                "text": "abcd"
+              }
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "c1",
+          "rule": "too_long",
+          "item": 1
+        }
+      ]
+    },
+    {
+      "name": "lookahead pattern is not enforced",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^(?=.*[0-9]).+$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "abc"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "backreference pattern is not enforced",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^(a)\\1$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "ab"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "pattern over 200 characters is not enforced",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "regex": "^a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?b$"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "c"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "text in a number question",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "12"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "number that is not a number",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "number",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": "twelve"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "number in a text question",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": 12
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "text in a yes/no question",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "yes"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "two value slots in one answer",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "a",
+          "number": 1
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "choice that is an option",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "b"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice that is not an option",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "z"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "choice"
+        }
+      ]
+    },
+    {
+      "name": "other answer where other is not allowed",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "other": "mine"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "choice"
+        }
+      ]
+    },
+    {
+      "name": "other answer where other is allowed",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ],
+                  "allowOtherChoice": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "other": "mine"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "several choices on a single-choice question",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "a",
+              "b"
+            ]
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "choices that are not options",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "allowOtherChoice": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "a",
+              "z"
+            ]
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "choice"
+        }
+      ]
+    },
+    {
+      "name": "dropdown choice",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A"
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    },
+                    {
+                      "id": "c",
+                      "value": "C"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "matrix row answered with an option of the row",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "m1",
+                "type": "matrix",
+                "title": "Grid",
+                "validations": {},
+                "properties": {
+                  "fields": [
+                    {
+                      "id": "r1",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "r1": {
+          "type": "choice",
+          "choice": {
+            "value": "a"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "matrix row answered with a foreign option",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "m1",
+                "type": "matrix",
+                "title": "Grid",
+                "validations": {},
+                "properties": {
+                  "fields": [
+                    {
+                      "id": "r1",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "type": "multiple_choice",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "a",
+                            "value": "A"
+                          },
+                          {
+                            "id": "b",
+                            "value": "B"
+                          },
+                          {
+                            "id": "c",
+                            "value": "C"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "r1": {
+          "type": "choice",
+          "choice": {
+            "value": "z"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "r1",
+          "rule": "choice"
+        }
+      ]
+    },
+    {
+      "name": "answer to an unknown id",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "x"
+        },
+        "nope": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "nope",
+          "rule": "unknown_field"
+        }
+      ]
+    },
+    {
+      "name": "type is checked even on a skipped page",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes"
+                  }
+                ],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "number",
+                "title": "q2"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "q2": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "type is checked inside a group item",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "properties": {
+                  "repeat": {
+                    "minItems": 0,
+                    "maxItems": 3
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "number",
+                      "title": "c1"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "number",
+                "number": 1
+              }
+            },
+            {
+              "c1": {
+                "type": "text",
+                "text": "x"
+              }
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "c1",
+          "rule": "type",
+          "item": 1
+        }
+      ]
+    }
+  ]
+}

@@ -12,8 +12,9 @@ evaluated with the item's own answers, exactly like the webapp does, so a
 child hidden by logic is never required.
 
 Groups hidden by logic or on pages skipped by a jump submit no answer at all;
-a missing group answer is therefore accepted (the server does not re-run
-page navigation), but a submitted one must respect the limits.
+a missing group answer is therefore accepted here, but a submitted one must
+respect the limits. (``answer_validation`` replays page navigation and checks
+the required questions of the items a group shows on the respondent's path.)
 """
 
 from typing import Any, Dict, Iterable, List, Optional
