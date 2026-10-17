@@ -7,9 +7,13 @@ form. Session auth with ``form.edit``; behind ``API_EDITOR_OPS_SAVE_ENABLED``
 - ``If-Match`` is required (428 without it, 412 when stale), with the same
   ETag as the public API (``writes.form_etag``: the draft's ``updated_at`` and
   a hash of its spec document). The editor's form GET hands it out as the
-  ``ETag`` header and the ``etag`` field.
+  ``ETag`` header and the ``etag`` field when asked (``?withEtag=1``).
 - ``Idempotency-Key`` is required (400 without it) and kept in the public
   API's store (``services/idempotency.py``), scoped to the user and the form.
+  ``If-Match`` is part of the request a key names. A 412 is not kept: the key
+  is released, so the batch can be resent with it once rebased.
+- At most ``API_EDITOR_OPS_PER_WINDOW`` batches per person in each window
+  (429 with Retry-After).
 - Atomic only: any failed op is a 422 ``ops_failed`` and nothing is stored.
   The write is conditional (``persist_ops_to_form(expected_updated_at=...)``),
   so a save landing between the check and the write is a 412 too.
@@ -65,6 +69,11 @@ from backend.app.services.idempotency import (
 from backend.config import settings as app_settings
 
 IDEMPOTENCY_KEY_REQUIRED_CODE = "idempotency_key_required"
+RATE_LIMIT_SCOPE = "editor_ops"
+RATE_LIMITED_CODE = "rate_limited"
+# answers about the form's version, not the request: never kept for the key,
+# so the same batch resent after a refetch runs again
+_NOT_KEPT = {HTTPStatus.PRECONDITION_FAILED, HTTPStatus.PRECONDITION_REQUIRED}
 
 # Editor-only ops (lossless, id-addressed edits only the builder makes) are
 # refused on the AI, MCP and public API paths; this endpoint is the one place
@@ -145,11 +154,13 @@ class EditorOpsService:
         workspace_form_repo,
         form_repo,
         idempotency_service: IdempotencyService,
+        rate_limiter=None,
     ):
         self._authorization = authorization_service
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
         self._idempotency = idempotency_service
+        self._limiter = rate_limiter
 
     # -- reading -----------------------------------------------------------
 
@@ -231,6 +242,7 @@ class EditorOpsService:
             workspace_id, str(form_id)
         ) is None:
             raise _not_found()
+        await self._rate_limit(user)
         tags = parse_if_match(if_match)
         if tags is None:
             raise precondition_required()
@@ -247,19 +259,24 @@ class EditorOpsService:
         body = await read_document_bytes(request)
 
         scope = idempotency_scope(user, form_id)
-        fingerprint = request_hash(request.method, request.url.path, body)
+        fingerprint = request_hash(
+            request.method, request.url.path, body, ",".join(tags)
+        )
         stored = await self._idempotency.begin(scope, idempotency_key, fingerprint)
         if stored is not None:
             return await self._replay(workspace_id, form_id, stored)
         try:
             results = await self._apply(workspace_id, form_id, body, tags)
         except HTTPException as error:
-            await self._idempotency.finish(
-                scope,
-                idempotency_key,
-                error.status_code,
-                {"kind": "body", "body": error.content},
-            )
+            if error.status_code in _NOT_KEPT:
+                await self._idempotency.abandon(scope, idempotency_key)
+            else:
+                await self._idempotency.finish(
+                    scope,
+                    idempotency_key,
+                    error.status_code,
+                    {"kind": "body", "body": error.content},
+                )
             logger.info(
                 "editor ops save: form {} refused with {}", form_id, error.status_code
             )
@@ -278,6 +295,26 @@ class EditorOpsService:
             {"applied": True, "results": results, "etag": etag, "form": form},
             headers={"ETag": etag},
         )
+
+    async def _rate_limit(self, user: User) -> None:
+        limit = app_settings.api_settings.EDITOR_OPS_PER_WINDOW
+        if self._limiter is None or limit <= 0:
+            return
+        verdict = await self._limiter.hit(
+            RATE_LIMIT_SCOPE,
+            str(user.id),
+            limit,
+            app_settings.api_settings.EDITOR_OPS_WINDOW_SECONDS,
+        )
+        if not verdict.allowed:
+            raise HTTPException(
+                status_code=HTTPStatus.TOO_MANY_REQUESTS,
+                content={
+                    "code": RATE_LIMITED_CODE,
+                    "message": "Too many saves; try again shortly.",
+                },
+                headers={"Retry-After": str(verdict.retry_after)},
+            )
 
     async def _apply(
         self,
