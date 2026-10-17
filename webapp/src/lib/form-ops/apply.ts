@@ -13,6 +13,7 @@
 import { Immer } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
+import { calculationsTouched, newCalculationProblem } from './calculations';
 import { dateRuleFixes } from './date-rules';
 import { EDITOR_ONLY_OPS, HANDLERS } from './handlers';
 import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_MARK, type OpContext, draftAt, droppedRulesText, setKey } from './handlers/context';
@@ -198,6 +199,15 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             });
             if (failure) throw failure;
             [working, message] = settleMarks(working, message, opContext);
+            // Calculations stay valid after every op (backend apply_form_ops):
+            // one left broken refuses the op and undoes it.
+            if (calculationsTouched(state, working)) {
+                const problem = newCalculationProblem(state, working);
+                if (problem) {
+                    working = state;
+                    throw new OpError(problem);
+                }
+            }
             if (STRUCTURAL.has(name)) {
                 const after = formSize(working);
                 const problem = sizeProblem(after[0], after[1], size);

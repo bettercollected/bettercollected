@@ -37,6 +37,11 @@ export interface NewFieldSpec {
     allowMultiple?: boolean | null;
     label?: string | null;
     whyWeAsk?: string | null;
+    /** calculated only (backend NewFieldSpec): an expressions-v1 AST, its format, visibility and "unanswered as 0". */
+    expression?: unknown;
+    format?: Record<string, unknown> | null;
+    hiddenFromRespondents?: boolean | null;
+    unansweredAsZero?: boolean | null;
     ref?: string | null;
 }
 
@@ -69,6 +74,10 @@ export interface FieldPatch {
     label?: string | null;
     dateRules?: DateRuleSpec[] | null;
     whyWeAsk?: string | null;
+    expression?: unknown;
+    format?: Record<string, unknown> | null;
+    hiddenFromRespondents?: boolean | null;
+    unansweredAsZero?: boolean | null;
 }
 
 /** Answer rules. A key that is present (even null) is changed; null clears it. */

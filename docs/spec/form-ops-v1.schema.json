@@ -322,6 +322,58 @@
       "title": "AddPageOp",
       "type": "object"
     },
+    "CalculationFormat": {
+      "description": "How a calculated field shows its value: a number with ``decimals``\nplaces, an amount of ``currency`` (ISO 4217 code, EUR by default), a\npercentage (0.25 shows as 25%) or plain text. Display only: the stored\nvalue is the computed one, unrounded.",
+      "properties": {
+        "style": {
+          "anyOf": [
+            {
+              "enum": [
+                "number",
+                "currency",
+                "percent",
+                "text"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Style"
+        },
+        "decimals": {
+          "anyOf": [
+            {
+              "maximum": 6,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decimals"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{3}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        }
+      },
+      "title": "CalculationFormat",
+      "type": "object"
+    },
     "Comparison": {
       "enum": [
         "contains",
@@ -1210,6 +1262,51 @@
           ],
           "default": null,
           "title": "Whyweask"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalculationFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hiddenFromRespondents": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hiddenfromrespondents"
+        },
+        "unansweredAsZero": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unansweredaszero"
         }
       },
       "title": "FieldPatch",
@@ -1916,6 +2013,51 @@
           ],
           "default": null,
           "title": "Whyweask"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalculationFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hiddenFromRespondents": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hiddenfromrespondents"
+        },
+        "unansweredAsZero": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unansweredaszero"
         },
         "ref": {
           "anyOf": [
@@ -3117,6 +3259,51 @@
           ],
           "default": null,
           "title": "Showquestionnumbers"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalculationFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hiddenFromRespondents": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hiddenfromrespondents"
+        },
+        "unansweredAsZero": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unansweredaszero"
         }
       },
       "title": "StandardFieldProperty",
@@ -3567,6 +3754,51 @@
           ],
           "default": null,
           "title": "Showquestionnumbers"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalculationFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hiddenFromRespondents": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hiddenfromrespondents"
+        },
+        "unansweredAsZero": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unansweredaszero"
         }
       },
       "title": "StandardFieldPropertyCamelModel",
