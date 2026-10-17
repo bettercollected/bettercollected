@@ -385,6 +385,17 @@ function mergeTarget(history: DocHistory, coalesceKey: string | undefined, at: n
     return !!coalesceKey && history.open && !!last && history.cursor === history.steps.length && last.coalesceKey === coalesceKey && at - last.at < UNDO_COALESCE_MS ? last : null;
 }
 
+/** The same form: pages and form-level parts equal (unchanged ones by reference, the rest by value). */
+function sameDocument(a: FormDocument, b: FormDocument): boolean {
+    if (a === b) return true;
+    const x = a as unknown as Record<string, unknown>;
+    const y = b as unknown as Record<string, unknown>;
+    for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) if (key !== 'fields' && x[key] !== y[key] && !jsonEqual(x[key], y[key])) return false;
+    const pa = a.fields ?? [];
+    const pb = b.fields ?? [];
+    return pa.length === pb.length && pa.every((page, i) => page === pb[i] || jsonEqual(page, pb[i]));
+}
+
 function recordStep(history: DocHistory, step: HistoryStep): DocHistory {
     const last = history.steps[history.cursor - 1];
     const merge = mergeTarget(history, step.coalesceKey, step.at) !== null;
@@ -392,6 +403,13 @@ function recordStep(history: DocHistory, step: HistoryStep): DocHistory {
     if (merge) {
         // The merged step: the first step's inverse, the last one's ops.
         const merged: HistoryStep = { ...last, forward: mergeOps(last.forward, step.forward), inverse: mergeOps(step.inverse, last.inverse), at: step.at, builderFields: step.builderFields, after: step.after };
+        // Typing that ends where it started (erased, or reverted by the
+        // input's own undo) leaves no step behind: an undo must not "undo"
+        // nothing while the edit before it waits one more press.
+        if (sameDocument(merged.before, merged.after)) {
+            const kept = history.steps.slice(0, history.cursor - 1);
+            return { steps: kept, cursor: kept.length, open: false };
+        }
         steps = [...history.steps.slice(0, history.cursor - 1), merged];
     } else {
         steps = [...history.steps.slice(0, history.cursor), step];
