@@ -20,9 +20,12 @@ bounded number of variants per photo.
 """
 
 import hashlib
+import ipaddress
 import re
 from typing import Dict, Iterable, Mapping, Optional, Tuple
 from urllib.parse import urlencode, urlsplit, parse_qsl
+
+from loguru import logger
 
 from backend.config import settings
 
@@ -44,19 +47,9 @@ MAX_REQUESTED_SIDE = 10000
 FITS = frozenset(
     {"clamp", "clip", "crop", "facearea", "fill", "fillmax", "max", "min", "scale"}
 )
-CROPS = frozenset(
-    {
-        "top",
-        "bottom",
-        "left",
-        "right",
-        "faces",
-        "focalpoint",
-        "edges",
-        "entropy",
-        "center",
-    }
-)
+# exactly what our addresses carry: the AI image search's urls.regular
+# (crop=entropy); the picker's urls.raw and the next/image loader send none
+CROPS = frozenset({"entropy"})
 # requested format -> what we ask for: never AVIF (the sandbox re-encodes
 # PNG, JPEG and WebP only)
 FORMATS = {"jpg": "jpg", "jpeg": "jpg", "pjpg": "jpg", "png": "png"}
@@ -189,6 +182,53 @@ def upstream_url(path: str, params: Mapping[str, str]) -> str:
     return f"{UNSPLASH_ORIGIN}/{path}" + (f"?{query}" if query else "")
 
 
+_LOOPBACK_NAMES = {"localhost", "localhost.localdomain", "ip6-localhost"}
+
+
+def _is_local_host(host: str) -> bool:
+    host = (host or "").lower().rstrip(".")
+    if host in _LOOPBACK_NAMES or host.endswith(".localhost"):
+        return True
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return address.is_loopback or address.is_unspecified
+
+
+def _local_instance() -> bool:
+    """Development or tests: the API itself runs on this machine
+    (``API_HOST`` names localhost, as the cookie settings read it) or the
+    environment says test."""
+    api = settings.api_settings
+    return "localhost" in (api.HOST or "") or (api.ENVIRONMENT or "").lower() == "test"
+
+
+def route_configured() -> bool:
+    """Whether we may store our Unsplash route's address on forms: only with
+    an ``API_PUBLIC_URL`` that browsers can reach. Unset, or a loopback
+    address outside development, fails closed: Unsplash addresses are then
+    stored as they came (respondent pages still load them through the route,
+    since the webapp knows its API host) instead of an address that would
+    break the image for good."""
+    parts = urlsplit((settings.api_settings.PUBLIC_URL or "").strip())
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return False
+    if _is_local_host(parts.hostname) and not _local_instance():
+        return False
+    return True
+
+
+def log_if_route_unconfigured() -> None:
+    """One warning at startup when Unsplash addresses won't be rewritten."""
+    if not route_configured():
+        logger.warning(
+            "API_PUBLIC_URL is unset or a local address: Unsplash images on "
+            "forms are kept as Unsplash addresses, not rewritten to this API's "
+            "/images/unsplash route. Set it to the API's public address."
+        )
+
+
 def route_base() -> str:
     """``<API_PUBLIC_URL>/images/unsplash/``"""
     base = (settings.api_settings.PUBLIC_URL or "").strip().rstrip("/")
@@ -227,12 +267,17 @@ def to_route_url(url: str) -> Optional[str]:
     photo = unsplash_photo(url)
     if photo is None:
         return None
+    if not route_configured():
+        # fail closed: keep the Unsplash address (see route_configured)
+        return url.strip()
     return route_url(*photo)
 
 
 def is_route_url(url: str) -> bool:
     """Whether ``url`` is one of our Unsplash addresses: our API's public
     address, a photo path, and only valid allow-listed parameters."""
+    if not route_configured():
+        return False
     base = urlsplit(route_base())
     if not base.scheme or not base.netloc:
         return False

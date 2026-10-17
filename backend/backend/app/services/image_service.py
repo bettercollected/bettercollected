@@ -56,6 +56,7 @@ from backend.app.services.pdf_import.logo_image import (
 )
 from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
+from backend.app.utils.client_ip import rate_limit_key
 from backend.config import settings
 
 CACHE_FOLDER = "public/image-cache/unsplash"
@@ -67,6 +68,9 @@ _KNOWN_LIMIT = 10_000
 
 PROXY_SCOPE = "image-proxy"
 PROXY_FETCH_SCOPE = "image-proxy-fetch"
+PROXY_GLOBAL_FETCH_SCOPE = "image-proxy-fetch-all"
+# the single counter every client's fetches share
+GLOBAL_CLIENT = "all"
 IMPORT_SCOPE = "image-import"
 
 # what the editor says, by refusal code
@@ -219,7 +223,8 @@ class ImageService:
         except unsplash_route.BadImageParams as bad:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content=str(bad))
         api = settings.api_settings
-        client_id = client or "unknown"
+        # an IPv6 client by its /64
+        client_id = rate_limit_key(client)
         verdict = await self._limiter.hit(
             PROXY_SCOPE,
             client_id,
@@ -268,6 +273,16 @@ class ImageService:
             PROXY_FETCH_SCOPE,
             client,
             api.IMAGE_PROXY_FETCHES_PER_WINDOW,
+            api.IMAGE_PROXY_WINDOW_SECONDS,
+        )
+        if not verdict.allowed:
+            raise _too_many(verdict)
+        # and a bound on all of them together: many addresses can't make us
+        # fetch (and re-encode) more than this from Unsplash per window
+        verdict = await self._limiter.hit(
+            PROXY_GLOBAL_FETCH_SCOPE,
+            GLOBAL_CLIENT,
+            api.IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW,
             api.IMAGE_PROXY_WINDOW_SECONDS,
         )
         if not verdict.allowed:

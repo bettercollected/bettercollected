@@ -191,6 +191,8 @@ async def test_only_photo_paths_are_served(client: AsyncClient, fetch, path):
         "fm=gif",
         "fit=evil",
         "crop=evil",
+        "crop=faces",
+        "crop=top,left",
         "w=99999999",
     ],
 )
@@ -261,6 +263,62 @@ async def test_requests_are_limited_per_client(client: AsyncClient, fetch, monke
     monkeypatch.setattr(settings.api_settings, "IMAGE_PROXY_PER_WINDOW", 4)
     assert (await client.get(unsplash("photo-0"))).status_code == 429
     assert len(fetch.calls) == 2
+
+
+def from_ip(address: str) -> dict:
+    # the test client connects from loopback, a trusted proxy: the hop it
+    # names is the client
+    return {"X-Forwarded-For": address}
+
+
+async def test_all_clients_together_fetch_a_bounded_number_of_photos(
+    client: AsyncClient, fetch, monkeypatch
+):
+    monkeypatch.setattr(
+        settings.api_settings, "IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW", 3
+    )
+    for n in range(3):
+        response = await client.get(
+            unsplash(f"photo-{n}"), headers=from_ip(f"203.0.113.{n + 1}")
+        )
+        assert response.status_code == 302
+    # a fresh address, well under its own limit, still can't make us fetch
+    refused = await client.get(unsplash("photo-9"), headers=from_ip("198.51.100.7"))
+    assert refused.status_code == 429 and "retry-after" in refused.headers
+    assert len(fetch.calls) == 3
+    # cached photos are still served to anyone
+    again = await client.get(unsplash("photo-1"), headers=from_ip("198.51.100.7"))
+    assert again.status_code == 302
+
+
+async def test_an_ipv6_client_is_limited_by_its_64(
+    client: AsyncClient, fetch, monkeypatch
+):
+    monkeypatch.setattr(settings.api_settings, "IMAGE_PROXY_FETCHES_PER_WINDOW", 2)
+    for n in range(2):
+        response = await client.get(
+            unsplash(f"photo-{n}"), headers=from_ip(f"2001:db8:1:2::{n + 1}")
+        )
+        assert response.status_code == 302
+    # another address in the same /64: the same budget
+    same = await client.get(
+        unsplash("photo-8"), headers=from_ip("2001:db8:1:2:ffff::9")
+    )
+    assert same.status_code == 429
+    # another /64: its own
+    other = await client.get(unsplash("photo-9"), headers=from_ip("2001:db8:1:3::1"))
+    assert other.status_code == 302
+
+
+def test_rate_limit_keys():
+    from backend.app.utils.client_ip import rate_limit_key
+
+    assert rate_limit_key("203.0.113.9") == "203.0.113.9"
+    assert rate_limit_key("2001:db8:1:2::1") == rate_limit_key("2001:db8:1:2:ab::7")
+    assert rate_limit_key("2001:db8:1:2::1") == "2001:db8:1:2::/64"
+    assert rate_limit_key("2001:db8:1:3::1") != rate_limit_key("2001:db8:1:2::1")
+    assert rate_limit_key("::ffff:203.0.113.9") == "203.0.113.9"
+    assert rate_limit_key(None) == rate_limit_key("garbage") == "unknown"
 
 
 # --- an image address copied in ------------------------------------------------

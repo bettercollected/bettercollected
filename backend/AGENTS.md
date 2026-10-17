@@ -613,11 +613,18 @@ one of ours; `services/image_urls.py` is the single allow-list:
   addresses are accepted on input only to be rewritten to it, and the webapp
   rewrites old ones at render time (`src/utils/first-party-image.ts`). The route
   takes a photo path and only `w h q fit fm crop auto` (rounded to a fixed set
-  of sizes, AVIF asked as WebP), fetches from the fixed host with no redirects,
-  has the sandbox's `image` mode re-encode it, stores it once under
-  `public/image-cache/unsplash/<hash>` and redirects there. Rate-limited per
-  client address (`API_IMAGE_PROXY_*`), tighter for requests that fetch.
-  `API_PUBLIC_URL` must equal the webapp's `NEXT_PUBLIC_API_ENDPOINT_HOST`.
+  of sizes, AVIF asked as WebP, `crop` only `entropy`), fetches from the fixed
+  host with no redirects, has the sandbox's `image` mode re-encode it, stores
+  it once under `public/image-cache/unsplash/<hash>` and redirects there.
+  Rate-limited per client address (`API_IMAGE_PROXY_*`; IPv6 by /64,
+  `utils/client_ip.rate_limit_key`), tighter for requests that fetch, plus one
+  cap on fetches by everyone together (`API_IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW`).
+  `API_PUBLIC_URL` must equal the webapp's `NEXT_PUBLIC_API_ENDPOINT_HOST`; the
+  deployment compose refuses to start without it. Unset, or a loopback address
+  while `API_HOST` doesn't name localhost (and the environment isn't `test`),
+  fails closed (`unsplash_route.route_configured`): Unsplash addresses are
+  stored as they came, never rewritten to a local address, and a warning is
+  logged at startup. The picker stores Unsplash's address; the save rewrites it.
 - **Pasted addresses are copied in:** `POST /workspaces/{id}/images/import`
   (`form.edit`, `API_IMAGE_IMPORTS_*` per person) fetches through
   `services/image_fetch.py` (https only, default port, no credentials; DNS

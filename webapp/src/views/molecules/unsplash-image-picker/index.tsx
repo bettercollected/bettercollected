@@ -7,7 +7,6 @@ import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/views/organism/form-builder/add-slide/add-slice-tabs';
 import PhotoList from './photo-list';
 import SearchBar from './photo-search';
@@ -137,8 +136,11 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                                     onPhotoSelect={async (photo: any) => {
                                         try {
                                             if (photo) {
-                                                // served through our server: respondents never contact Unsplash
-                                                updatePageImage(firstPartyImageUrl(photo.urls.raw));
+                                                // Stored as Unsplash's address: the backend rewrites it to
+                                                // its own /images/unsplash route on save when its public
+                                                // address is configured, and pages always load it through
+                                                // that route (utils/first-party-image.ts), never from Unsplash.
+                                                updatePageImage(photo.urls.raw);
                                                 setPhotoInLocalStorage(photo);
                                                 triggerUnsplashDownloadEndpoint(photo);
                                                 closeDialogModal();

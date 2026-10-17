@@ -5,6 +5,7 @@ address is accepted only to be rewritten to our route, so respondents'
 browsers never contact Unsplash; anything else is refused."""
 
 import pytest
+from loguru import logger
 from common.models.standard_form import (
     StandardFieldProperty,
     StandardForm,
@@ -15,6 +16,7 @@ from common.models.standard_form import (
 )
 
 from backend.app.container import container
+from backend.app.services import unsplash_route
 from backend.app.services.ai.ops import UpdateThemeOp, apply_form_ops, parse_ops
 from backend.app.services.image_urls import (
     BUILTIN_IMAGE_URLS,
@@ -266,3 +268,79 @@ def test_ai_created_forms_keep_only_allowed_images():
     # kept, served through our server
     assert kept.image_url == ROUTED
     assert kept.properties.layout == "TWO_COLUMN_IMAGE_RIGHT"
+
+
+# -- without a usable API_PUBLIC_URL: fail closed --------------------------------
+
+
+@pytest.mark.parametrize(
+    "public_url",
+    [
+        "",
+        "   ",
+        "not a url",
+        "http://localhost:8000/api/v1",
+        "http://127.0.0.1:8000/api/v1",
+        "http://[::1]:8000/api/v1",
+        "http://0.0.0.0:8000/api/v1",
+        "http://app.localhost/api/v1",
+    ],
+)
+def test_without_a_public_api_address_unsplash_addresses_are_kept(
+    monkeypatch, public_url
+):
+    monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", public_url)
+    monkeypatch.setattr(settings.api_settings, "HOST", "forms.example.org")
+    monkeypatch.setattr(settings.api_settings, "ENVIRONMENT", "local")
+    assert not unsplash_route.route_configured()
+    # kept as they came: never a local address stored for good, never refused
+    assert checked_image_url(UNSPLASH) == UNSPLASH
+    assert first_party_image_url(f"  {UNSPLASH} ") == UNSPLASH
+    assert allowed_image_url_or_none(UNSPLASH) == UNSPLASH
+    # no route address counts as first-party then
+    assert not is_first_party_image_url(
+        "http://localhost:8000/api/v1/images/unsplash/photo-1"
+    )
+    # everything else is unchanged
+    assert checked_image_url(f"{STORAGE}/{BUCKET}/public/x.png")
+    with pytest.raises(ValueError):
+        checked_image_url("https://tracker.example.com/pixel.png")
+
+
+@pytest.mark.parametrize(
+    "host,environment",
+    [("localhost", "local"), ("localhost:8000", "production"), ("", "test")],
+)
+def test_a_local_public_address_is_used_in_development_and_tests(
+    monkeypatch, host, environment
+):
+    monkeypatch.setattr(
+        settings.api_settings, "PUBLIC_URL", "http://localhost:8000/api/v1"
+    )
+    monkeypatch.setattr(settings.api_settings, "HOST", host)
+    monkeypatch.setattr(settings.api_settings, "ENVIRONMENT", environment)
+    assert unsplash_route.route_configured()
+    assert checked_image_url(UNSPLASH) == (
+        "http://localhost:8000/api/v1/images/unsplash/photo-1500530855697-b586d89ba3ee"
+    )
+
+
+def test_one_warning_at_startup_when_unconfigured(monkeypatch):
+    messages = []
+    sink = logger.add(lambda message: messages.append(str(message)), level="WARNING")
+    try:
+        monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", "")
+        unsplash_route.log_if_route_unconfigured()
+        assert len(messages) == 1 and "API_PUBLIC_URL" in messages[0]
+        monkeypatch.setattr(settings.api_settings, "PUBLIC_URL", API)
+        unsplash_route.log_if_route_unconfigured()
+        assert len(messages) == 1
+    finally:
+        logger.remove(sink)
+
+
+def test_crop_takes_only_what_our_addresses_carry():
+    assert unsplash_route.clean_params([("crop", "entropy")]) == {"crop": "entropy"}
+    for value in ("faces", "edges", "top,left", "focalpoint", "entropy,faces"):
+        with pytest.raises(unsplash_route.BadImageParams):
+            unsplash_route.clean_params([("crop", value)])
