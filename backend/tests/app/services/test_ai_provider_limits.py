@@ -288,17 +288,26 @@ async def test_a_slow_call_is_a_504(limits):
 
 
 async def test_a_slow_generation_is_a_504(limits):
-    # every round trip is quick, the whole loop is not
+    # The whole-generation deadline fires while a round trip is still well
+    # within its own (much longer) call timeout. One quick round trip, then
+    # one that outlasts the deadline: the step and tool caps can't be reached,
+    # so only the deadline can end it, however slow the machine.
     limits(
-        GENERATION_TIMEOUT_SECONDS=0.1, MAX_TOOL_ITERATIONS=1000, MAX_TOOL_CALLS=1000
+        GENERATION_TIMEOUT_SECONDS=0.2,
+        CALL_TIMEOUT_SECONDS=60,
+        MAX_TOOL_ITERATIONS=1000,
+        MAX_TOOL_CALLS=1000,
     )
     provider = OpenAIFormProvider(FakeUnsplash())
+    calls = []
 
-    async def tool_after_a_while(kwargs):
-        await asyncio.sleep(0.02)
+    async def quick_then_slow(kwargs):
+        calls.append(1)
+        if len(calls) > 1:
+            await asyncio.sleep(30)
         return _reply([_tool_call("t")])
 
-    _fake_client(provider, tool_after_a_while)
+    _fake_client(provider, quick_then_slow)
     with pytest.raises(AIError) as raised:
         await provider.generate_form("a form")
     assert raised.value.code == "ai_timeout"

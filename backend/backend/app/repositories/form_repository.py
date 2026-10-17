@@ -1,7 +1,10 @@
+from datetime import datetime
 from typing import List, Optional
 
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
+from beanie.odm.utils.dump import get_dict
+from beanie.odm.utils.parsing import parse_obj
 from beanie.odm.queries.aggregation import AggregationQuery
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import apaginate
@@ -12,8 +15,36 @@ from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.models.dtos.form_actions_dto import FormActionsDto
+from backend.app.services.form_concurrency import (
+    ensure_not_changed_since,
+    form_changed,
+    next_updated_at,
+)
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from common.db.routing import write_op
+
+
+def apply_form_update(form_document: FormDocument, form: StandardForm) -> None:
+    """Copy a whole-form save onto the stored draft (both stores)."""
+    form_document.fields = form.fields
+    # None means "the client didn't send hidden fields" (e.g. an older
+    # webapp bundle) — preserve what's stored. An explicit [] clears them.
+    if form.hidden_fields is not None:
+        form_document.hidden_fields = form.hidden_fields
+    form_document.title = form.title
+    form_document.logo = form.logo
+    form_document.cover_image = form.cover_image
+    form_document.description = form.description
+    form_document.welcome_page = form.welcome_page
+    form_document.thankyou_page = form.thankyou_page
+    form_document.theme = form.theme
+    # The logo settings: None means "not sent" (an older client); keep them.
+    for name in ("logo_position", "logo_alt", "use_workspace_logo"):
+        if getattr(form, name, None) is not None:
+            setattr(form_document, name, getattr(form, name))
+    form_document.consent = form.consent if form.consent else form_document.consent
+    form_document.settings = form.settings if form.settings else form_document.settings
+
 
 # Arrays the $lookups leave behind once their values are folded into the
 # document; nothing reads them and they can be large (every version of a form).
@@ -429,27 +460,50 @@ class FormRepository:
     @write_op
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         form_document = await FormDocument.find_one({"form_id": str(form_id)})
-        form_document.fields = form.fields
-        # None means "the client didn't send hidden fields" (e.g. an older
-        # webapp bundle) — preserve what's stored. An explicit [] clears them.
-        if form.hidden_fields is not None:
-            form_document.hidden_fields = form.hidden_fields
-        form_document.title = form.title
-        form_document.logo = form.logo
-        form_document.cover_image = form.cover_image
-        form_document.description = form.description
-        form_document.welcome_page = form.welcome_page
-        form_document.thankyou_page = form.thankyou_page
-        form_document.theme = form.theme
-        # The logo settings: None means "not sent" (an older client); keep them.
-        for name in ("logo_position", "logo_alt", "use_workspace_logo"):
-            if getattr(form, name, None) is not None:
-                setattr(form_document, name, getattr(form, name))
-        form_document.consent = form.consent if form.consent else form_document.consent
-        form_document.settings = (
-            form.settings if form.settings else form_document.settings
-        )
+        apply_form_update(form_document, form)
         return await form_document.save()
+
+    async def _stored_draft(self, form_id: PydanticObjectId):
+        """The draft as stored (raw BSON), for a conditional write."""
+        return await FormDocument.get_pymongo_collection().find_one(
+            {"form_id": str(form_id)}
+        )
+
+    @write_op(replay=True)
+    async def update_form_if_unchanged(
+        self,
+        form_id: PydanticObjectId,
+        form: StandardForm,
+        expected_updated_at: datetime,
+    ):
+        """``update_form`` as a conditional write: refused with 409 when the
+        stored draft is newer than ``expected_updated_at``
+        (services/form_concurrency.py), including when another save lands
+        between this read and this write. The filter is the stored
+        ``updated_at`` exactly as read (string or date), so the write applies
+        only to the draft that passed the check. Replayed: the mirror stores
+        this document, with this ``updated_at``, instead of re-checking."""
+        raw = await self._stored_draft(form_id)
+        if raw is None:
+            return None
+        form_document = parse_obj(FormDocument, raw)
+        ensure_not_changed_since(form_document.updated_at, expected_updated_at)
+        apply_form_update(form_document, form)
+        form_document.updated_at = next_updated_at(form_document.updated_at)
+        result = await FormDocument.get_pymongo_collection().update_one(
+            {"_id": raw["_id"], "updated_at": raw.get("updated_at")},
+            {
+                "$set": get_dict(
+                    form_document,
+                    to_db=True,
+                    exclude={"_id"},
+                    keep_nulls=FormDocument.get_settings().keep_nulls,
+                )
+            },
+        )
+        if result.matched_count == 0:
+            raise form_changed()
+        return form_document
 
     @write_op
     async def set_form_logo(self, form_id: str, logo: Optional[str]):
