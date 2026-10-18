@@ -6,6 +6,7 @@
  * whole-form save (ids unique in the form, size limits, image addresses,
  * answer patterns, repeating group rules).
  */
+import { themeProblems } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
 import { styleValueProblem } from '@app/utils/rich-text-style';
 
@@ -193,7 +194,10 @@ function editorAttachment(attachment: any, keep: Set<string>, options: ApplyOpti
     if (attachment && attachment.type === 'image') setKey(attachment, 'href', editorImage(attachment.href, keep, options));
 }
 
-function editorTheme(theme: any, keep: Set<string>, options: ApplyOptions): void {
+function editorTheme(theme: any, keep: Set<string>, options: ApplyOptions, path = 'properties.theme'): void {
+    // type, shape and highlight on their lists (backend _check_theme)
+    const problems = themeProblems(theme, path);
+    if (problems.length) throw new OpError(problems.join(' '));
     if (theme?.background) setKey(theme.background, 'imageUrl', editorImage(theme.background.imageUrl, keep, options));
 }
 
@@ -425,7 +429,7 @@ export const updatePage: Handler<UpdatePageOp> = (ctx, op) => {
     const imageUrl = given.includes('imageUrl') ? editorImage(patch.imageUrl, keep, ctx.options) : undefined;
     const theme = patch.theme != null ? withoutNulls(clone(patch.theme)) : undefined;
     if (theme) for (const key of THEME_KEYS) if (typeof theme[key] !== 'string') throw new OpError(`patch.theme.${key}: Field required`);
-    editorTheme(theme, keep, ctx.options);
+    editorTheme(theme, keep, ctx.options, 'theme');
     let sectionTitle: string | undefined;
     if (given.includes('sectionTitle') && patch.sectionTitle != null) {
         sectionTitle = String(patch.sectionTitle).trim() || undefined;

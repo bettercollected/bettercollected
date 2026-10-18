@@ -23,6 +23,13 @@ THEME = {
     "tertiary": "#2563EB",
     "accent": "#DBEAFE",
     "style": "sheet",
+    "titleFont": "besley",
+    "bodyFont": "atkinson-next",
+    "dataFont": "atkinson-mono",
+    "titleWidth": "normal",
+    "radius": "soft",
+    "buttonStyle": "outlined",
+    "highlight": "#A3305A",
     "background": {
         "type": "gradient",
         "gradientFrom": "#FFFFFF",

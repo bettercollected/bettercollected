@@ -4,8 +4,15 @@ from typing import Any, Optional, Dict, List
 
 from beanie import PydanticObjectId
 from common.models.consent import ResponseRetentionType
+from common.models.standard_form import theme_problems
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel, Field, field_validator, model_serializer
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from backend.app.constants.themes import THEME_STYLES
 
@@ -108,6 +115,22 @@ class WorkspaceThemeDto(BaseModel):
     accent: str
     background: Optional[WorkspaceThemeBackgroundDto] = None
     style: Optional[str] = None
+    # Type, shape and highlight (common.models.standard_form THEME_FONTS and
+    # the lists beside it); absent keeps the look forms had before them.
+    titleFont: Optional[str] = None
+    bodyFont: Optional[str] = None
+    dataFont: Optional[str] = None
+    titleWidth: Optional[str] = None
+    radius: Optional[str] = None
+    buttonStyle: Optional[str] = None
+    highlight: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _listed_type_and_shape(self) -> "WorkspaceThemeDto":
+        problems = theme_problems(self)
+        if problems:
+            raise ValueError(" ".join(problems))
+        return self
 
     @field_validator("style")
     @classmethod

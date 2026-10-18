@@ -72,7 +72,9 @@ from common.models.standard_form import (
     date_rule_problems,
     prune_date_rules,
     SECTION_TITLE_MAX_LENGTH,
+    THEME_TYPE_SHAPE_KEYS,
     WHY_WE_ASK_MAX_LENGTH,
+    theme_problems,
 )
 from pydantic import (
     BaseModel,
@@ -485,6 +487,12 @@ class UpdateFormSettingsOp(_CamelModel):
 
 
 class UpdateThemeOp(_CamelModel):
+    """Replace the form's theme: its colours, background and style and,
+    optionally, its type and shape (``titleFont``, ``bodyFont``,
+    ``dataFont``, ``titleWidth``, ``radius``, ``buttonStyle``) and
+    ``highlight`` colour. Those are checked when the op is applied: each is
+    absent or one of its listed values, and the highlight is #rrggbb."""
+
     op: Literal["update_theme"] = "update_theme"
     theme: Theme
 
@@ -1632,7 +1640,16 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     return f"Duplicated page '{op.page_id}' ({field_count} fields) as '{clone.id}'"
 
 
+def _check_theme(theme: Optional[Theme], path: str) -> None:
+    """Refuse a theme whose type, shape or highlight keys are not on their
+    lists (common.models.standard_form.theme_problems)."""
+    problems = theme_problems(theme, path)
+    if problems:
+        raise OpError(" ".join(problems))
+
+
 def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
+    _check_theme(op.theme, "theme")
     theme = op.theme.model_copy(deep=True)
     background = theme.background
     if background is not None and background.imageUrl is not None:
@@ -1667,6 +1684,12 @@ def _apply_set_theme_preset(form: StandardForm, op: SetThemePresetOp) -> str:
         theme.style = style
     elif theme.style is None and form.theme is not None:
         theme.style = form.theme.style
+    # Type and shape the preset leaves open keep the form's own, like the
+    # style; colours (the highlight among them) come from the preset.
+    if form.theme is not None:
+        for key in THEME_TYPE_SHAPE_KEYS:
+            if getattr(theme, key) is None:
+                setattr(theme, key, getattr(form.theme, key, None))
     form.theme = theme
     style = f" in the {theme.style} style" if theme.style else ""
     return f"Applied the '{theme.title}' theme{style}"
@@ -2250,7 +2273,8 @@ def _editor_attachment(attachment: Any, keep: "_KeptImages") -> None:
         attachment.href = _editor_image(attachment.href, keep)
 
 
-def _editor_theme(theme: Optional[Theme], keep: "_KeptImages") -> None:
+def _editor_theme(theme: Optional[Theme], keep: "_KeptImages", path: str = "properties.theme") -> None:
+    _check_theme(theme, path)
     if theme is not None and theme.background is not None:
         theme.background.imageUrl = _editor_image(theme.background.imageUrl, keep)
 
@@ -2551,7 +2575,7 @@ def _apply_update_page(form: StandardForm, op: UpdatePageOp) -> str:
     # Checked first: a refused value leaves the page as it was.
     image_url = _editor_image(patch.image_url, keep) if "image_url" in given else None
     theme = patch.theme.model_copy(deep=True) if patch.theme is not None else None
-    _editor_theme(theme, keep)
+    _editor_theme(theme, keep, "theme")
     section_title = None
     if "section_title" in given and patch.section_title is not None:
         section_title = patch.section_title.strip() or None

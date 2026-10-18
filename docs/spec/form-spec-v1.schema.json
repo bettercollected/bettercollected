@@ -1484,6 +1484,136 @@
           "default": null,
           "description": "e.g. classic, sheet, studio, leaflet",
           "title": "Style"
+        },
+        "titleFont": {
+          "anyOf": [
+            {
+              "enum": [
+                "public-sans",
+                "atkinson-next",
+                "archivo",
+                "besley",
+                "rubik",
+                "atkinson-mono"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Face of titles and question labels. Absent: the text face (or the style's own title face).",
+          "title": "Titlefont"
+        },
+        "bodyFont": {
+          "anyOf": [
+            {
+              "enum": [
+                "public-sans",
+                "atkinson-next",
+                "archivo",
+                "besley",
+                "rubik",
+                "atkinson-mono"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Face of everything else respondents read. Absent: public-sans.",
+          "title": "Bodyfont"
+        },
+        "dataFont": {
+          "anyOf": [
+            {
+              "enum": [
+                "public-sans",
+                "atkinson-next",
+                "archivo",
+                "besley",
+                "rubik",
+                "atkinson-mono"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Face of data such as the submission number. Absent: the app's mono face.",
+          "title": "Datafont"
+        },
+        "titleWidth": {
+          "anyOf": [
+            {
+              "enum": [
+                "normal",
+                "expanded"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Width of display titles: expanded is 125% on a face with a width axis (archivo).",
+          "title": "Titlewidth"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "enum": [
+                "sharp",
+                "soft",
+                "round"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Corners of fields, option cards and buttons: sharp 0, soft 6px, round 16px. Absent: the style's own.",
+          "title": "Radius"
+        },
+        "buttonStyle": {
+          "anyOf": [
+            {
+              "enum": [
+                "filled",
+                "outlined",
+                "pill"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Absent: filled.",
+          "title": "Buttonstyle"
+        },
+        "highlight": {
+          "anyOf": [
+            {
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
+          "title": "Highlight"
         }
       },
       "required": [

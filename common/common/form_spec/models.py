@@ -200,6 +200,11 @@ class ThemeBackground(_Spec):
     )
 
 
+ThemeFont = Literal[
+    "public-sans", "atkinson-next", "archivo", "besley", "rubik", "atkinson-mono"
+]
+
+
 class Theme(_Spec):
     """Colours and style of the form (or of one page, as an override)."""
 
@@ -211,6 +216,39 @@ class Theme(_Spec):
     background: Optional[ThemeBackground] = None
     style: Optional[str] = Field(
         None, description="e.g. classic, sheet, studio, leaflet"
+    )
+    # Type and shape (common.models.standard_form THEME_FONTS and the lists
+    # beside it). Absent means the form's look before these keys existed.
+    title_font: Optional[ThemeFont] = Field(
+        None,
+        description=(
+            "Face of titles and question labels. Absent: the text face "
+            "(or the style's own title face)."
+        ),
+    )
+    body_font: Optional[ThemeFont] = Field(
+        None,
+        description="Face of everything else respondents read. Absent: public-sans.",
+    )
+    data_font: Optional[ThemeFont] = Field(
+        None,
+        description="Face of data such as the submission number. Absent: the app's mono face.",
+    )
+    title_width: Optional[Literal["normal", "expanded"]] = Field(
+        None,
+        description="Width of display titles: expanded is 125% on a face with a width axis (archivo).",
+    )
+    radius: Optional[Literal["sharp", "soft", "round"]] = Field(
+        None,
+        description="Corners of fields, option cards and buttons: sharp 0, soft 6px, round 16px. Absent: the style's own.",
+    )
+    button_style: Optional[Literal["filled", "outlined", "pill"]] = Field(
+        None, description="Absent: filled."
+    )
+    highlight: Optional[str] = Field(
+        None,
+        pattern=r"^#[0-9a-fA-F]{6}$",
+        description="The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
     )
 
 
