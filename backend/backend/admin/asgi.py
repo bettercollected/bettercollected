@@ -14,6 +14,7 @@ from backend.admin.gate.csrf import CsrfMiddleware
 from backend.admin.gate.levels import Level, RouteRegistry
 from backend.admin.gate.middleware import Checker, GateMiddleware
 from backend.admin.gate.settings import GateSettings
+from backend.admin.gate.stepup import StepUpRefused
 from backend.admin.portal import Portal
 
 log = logging.getLogger("backend.admin")
@@ -52,6 +53,10 @@ async def _invalid(request: Request, exc: RequestValidationError) -> Response:
     return Response(status_code=400)
 
 
+async def _stepup_refused(request: Request, exc: StepUpRefused) -> Response:
+    return exc.response
+
+
 async def _failure(request: Request, exc: Exception) -> Response:
     return Response(status_code=500)  # no detail; the gate logs the type and request id
 
@@ -81,8 +86,10 @@ def get_admin_application(
     )  # no CORS middleware, on purpose
     for route in reg.router.routes:  # flat APIRoutes, each with its level
         inner.add_api_route(
-            route.path, route.endpoint, methods=sorted(route.methods), include_in_schema=False
+            route.path, route.endpoint, methods=sorted(route.methods),
+            include_in_schema=False, dependencies=route.dependencies,
         )
+    inner.add_exception_handler(StepUpRefused, _stepup_refused)
     inner.add_exception_handler(StarletteHTTPException, _http_error)
     inner.add_exception_handler(RequestValidationError, _invalid)
     inner.add_exception_handler(Exception, _failure)

@@ -123,8 +123,11 @@ def _text(key, section, readers, description, default=None, tier=T1, **kw):
 # --------------------------------------------------------------- server
 
 SERVER: Tuple[SettingSpec, ...] = (
-    _bool("DEBUG", "server", (BACKEND, AUTH, GOOGLE), True,
-          "Debug mode of the API services (the code default is on).", tier=T2),
+    _bool("DEBUG", "server", (BACKEND, AUTH, GOOGLE), False,
+          "Debug mode of the API services (off unless explicitly enabled).", tier=T2),
+    _bool("API_DOCS_ENABLED", "server", (BACKEND, AUTH, GOOGLE), False,
+          "Serve the interactive API docs (/docs, /redoc) and /openapi.json of the internal APIs.",
+          tier=T2),
     _text("API_ENVIRONMENT", "server", (BACKEND, AUTH, GOOGLE),
           "Environment label shown in logs and error reports.", "local", max_length=64),
     _text("API_TITLE", "server", (BACKEND, AUTH), "Title of the generated API documentation.",
@@ -538,7 +541,8 @@ TODO_LIVE: Dict[str, str] = {
     "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/schemas/flow_event.py:14",
     "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py:90",
     "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
-    "API_ROOT_PATH": "backend/backend/app/asgi.py:191",
+    "API_ROOT_PATH": "backend/backend/app/asgi.py:193",
+    "API_DOCS_ENABLED": "backend/backend/app/asgi.py:193",
     "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:648",
     "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:649",
 }
