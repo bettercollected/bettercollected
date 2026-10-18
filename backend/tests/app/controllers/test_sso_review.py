@@ -477,7 +477,6 @@ async def test_a_respondent_session_cannot_start_an_import_oauth(
         ("GET", "/api/v1/user/tags/details"),
         ("POST", "/api/v1/actions"),
         ("GET", "/api/v1/stripe/session/create/checkout"),
-        ("GET", "/api/v1/admin/metrics"),
         ("POST", "/api/v1/coupons/redeem/X"),
     ],
 )

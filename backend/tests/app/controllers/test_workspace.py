@@ -395,8 +395,7 @@ class TestWorkspaces:
         workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
         test_pro_user_cookies: dict[str, str],
     ):
-        # /admin/metrics is the platform admin dashboard: a workspace called
-        # "admin" would lose its pages to it.
+        # "admin" stays reserved for the platform administration paths.
         for handle in ("admin", "Admin"):
             available = await client.get(
                 f"{common_url}/check-handle-availability/{handle}",

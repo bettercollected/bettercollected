@@ -1,7 +1,7 @@
 """Platform admins named by configuration (``PLATFORM_ADMIN_EMAILS``).
 
 A listed email gets the ADMIN role, and with it every platform-admin power
-(``get_logged_admin`` in the backend), not only the metrics page. So the grant
+(``get_logged_admin`` in the backend). So the grant
 needs proof the user owns the address: it applies only to sessions whose email
 was verified at sign-in (OTP, or Google reporting it verified), never to a
 provider that merely returns an email (Typeform) or to an unverified one.

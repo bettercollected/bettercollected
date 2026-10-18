@@ -138,7 +138,6 @@ from backend.app.services.ai.outline_service import FormOutlineService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
-from backend.app.services.platform_metrics_service import PlatformMetricsService
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.respondent_feedback_service import (
@@ -1183,14 +1182,6 @@ class AppContainer(containers.DeclarativeContainer):
         AnalyticsService,
         authorization_service=authorization_service,
         workspace_repo=workspace_repo,
-    )
-
-    platform_metrics_service: PlatformMetricsService = providers.Singleton(
-        PlatformMetricsService,
-        workspace_repo=workspace_repo,
-        workspace_form_repo=workspace_form_repo,
-        form_response_repo=form_response_repo,
-        http_client=http_client,
     )
 
     integration_service: IntegrationService = providers.Singleton(
