@@ -87,6 +87,9 @@ class FakeBucket:
 
 @pytest.fixture(autouse=True)
 def setup(monkeypatch):
+    # the test client connects from 127.0.0.1: it is the proxy whose
+    # X-Forwarded-For is believed (the default trusts nobody)
+    monkeypatch.setattr(settings.api_settings, "TRUSTED_PROXIES", "127.0.0.1")
     monkeypatch.setattr(settings.aws_settings, "PUBLIC_URL", STORAGE)
     monkeypatch.setattr(settings.aws_settings, "BUCKET", BUCKET)
     service = container.image_service()

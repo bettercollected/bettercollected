@@ -824,10 +824,16 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`
   scattered through services.
 - **Client addresses and rate limits:** read a client's address with `utils/client_ip.request_client_ip(request)`,
-  never a raw header, and never log it. From the peer it walks X-Forwarded-For leftwards through trusted proxies
-  (loopback, private networks, `API_TRUSTED_PROXIES`); when the first other hop is a Cloudflare edge
-  (`API_TRUST_CLOUDFLARE`, default on; ranges built in as `CLOUDFLARE_IPS`, dated, overridable with
-  `API_CLOUDFLARE_IPS`) the client is `CF-Connecting-IP`, otherwise that hop. CF-Connecting-IP is never read for a
-  request that didn't come through Cloudflare. `services/rate_limiter.FixedWindowRateLimiter` counts requests per scope, client and window in
+  never a raw header, and never log it. The logic is the pure `common/utils/client_ip.resolve_client_ip(peer,
+  forwarded_for, cf_connecting_ip, trusted_proxies, cloudflare_ips)` (reusable by other services; the backend module
+  re-exports it). The default trusts no proxy: the TCP peer is the client. Only when the peer is inside
+  `TRUSTED_PROXIES` (alias `API_TRUSTED_PROXIES`; comma-separated IPs/CIDRs, IPv4 and IPv6) is X-Forwarded-For walked
+  from the right, skipping trusted proxies, taking the first untrusted hop (never the left-most entry); when that hop
+  is a Cloudflare edge (`API_TRUST_CLOUDFLARE`, default on; ranges built in as `CLOUDFLARE_IPS`, dated, overridable with
+  `API_CLOUDFLARE_IPS`) the client is `CF-Connecting-IP`. Garbage never raises; it falls back to the last readable
+  hop. Private ranges are NOT trusted implicitly (a container on the overlay could forge the headers). Counters
+  key IPv6 by /64 (`rate_limit_key`). `services/rate_limiter.FixedWindowRateLimiter` counts requests per scope, client and window in
   `rate_limit_counters` (analytics group, twin revision 0013), shared by every replica; counter ids are keyed hashes,
-  so no address is stored. The public `flow-events` endpoint uses it (#767).
+  so no address is stored. The public `flow-events` endpoint uses it (#767), per /64 for IPv6, and deletes events after
+  `API_FLOW_EVENTS_RETENTION_DAYS` (395): a Mongo TTL index on `created_at`, and for Postgres a sweep on the write path
+  (`FlowEventService._sweep_expired`, at most every 6 h per process, using the existing `created_at` index).

@@ -7,7 +7,9 @@ workspace and published, both pages must be pages of its published version
 form per window. Unknown and unpublished forms answer the same 404.
 """
 
+import logging
 import time
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Callable, Dict, FrozenSet, Optional, Tuple
@@ -17,6 +19,7 @@ from bson.errors import InvalidId
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.flow_event_dto import FlowEventRequest
+from backend.app.utils.client_ip import rate_limit_key
 from backend.app.repositories.flow_event_repository import FlowEventRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -30,6 +33,10 @@ RATE_LIMIT_SCOPE = "flow-events"
 # how long a form's published pages are reused before they are read again
 FORM_CACHE_SECONDS = 30.0
 FORM_CACHE_SIZE = 2048
+# expired events are swept at most this often per process (on the write path)
+RETENTION_SWEEP_SECONDS = 6 * 3600.0
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,7 @@ class FlowEventService:
         self._events = flow_event_repo
         self._limiter = rate_limiter
         self._monotonic = monotonic
+        self._last_sweep: Optional[float] = None
         # (workspace, form id or slug) -> the published pages; only servable
         # forms are cached, so an unknown id is always looked up
         self._cache: Dict[Tuple[str, str], _ServableForm] = {}
@@ -73,7 +81,7 @@ class FlowEventService:
             raise _not_found()
         verdict = await self._limiter.hit(
             RATE_LIMIT_SCOPE,
-            f"{form.form_id}\n{client or 'unknown'}",
+            f"{form.form_id}\n{rate_limit_key(client)}",
             settings.api_settings.FLOW_EVENTS_PER_WINDOW,
             settings.api_settings.FLOW_EVENTS_WINDOW_SECONDS,
         )
@@ -99,6 +107,25 @@ class FlowEventService:
             from_page=event.from_page,
             to_page=event.to_page,
         )
+        await self._sweep_expired()
+
+    async def _sweep_expired(self) -> None:
+        """Retention for stores without a TTL index (Postgres): delete events
+        older than API_FLOW_EVENTS_RETENTION_DAYS, at most every
+        RETENTION_SWEEP_SECONDS per process. Never fails the request."""
+        days = settings.api_settings.FLOW_EVENTS_RETENTION_DAYS
+        now = self._monotonic()
+        if days <= 0 or (
+            self._last_sweep is not None
+            and now - self._last_sweep < RETENTION_SWEEP_SECONDS
+        ):
+            return
+        self._last_sweep = now
+        try:
+            cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+            await self._events.delete_older_than(cutoff)
+        except Exception:
+            logger.warning("flow event retention sweep failed", exc_info=True)
 
     @staticmethod
     def _known_pages(form: _ServableForm, event: FlowEventRequest) -> bool:

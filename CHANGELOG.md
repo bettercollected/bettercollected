@@ -11,6 +11,28 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+### Security
+
+- **The client address can no longer be forged.** The backend used to believe
+  `X-Forwarded-For` and `CF-Connecting-IP` from any private-network peer, so a
+  request arriving through Swarm ingress or from another container could claim
+  any address. It now trusts no proxy by default (the TCP peer is the client)
+  and reads those headers only when the peer is inside `TRUSTED_PROXIES`
+  (comma-separated IPs/CIDRs, IPv4 and IPv6; `API_TRUSTED_PROXIES` is accepted
+  as an alias), walking `X-Forwarded-For` from the right and taking the first
+  address that is not a trusted proxy. The logic lives in
+  `common/utils/client_ip.py` for reuse by other services.
+  **Upgrade note:** self-hosters behind a reverse proxy or load balancer must
+  set `TRUSTED_PROXIES` (in the root `.env`, passed through by
+  `docker-compose.deployment.yml`) to the proxy's address(es), or all clients
+  look like the proxy and share its rate limits. Hosted stacks that set
+  `API_TRUSTED_PROXIES` keep working, but should list the private networks
+  they previously relied on being trusted implicitly.
+- **Flow events are limited per /64 for IPv6** (IPv4 stays per address) and
+  **deleted after 13 months** (`API_FLOW_EVENTS_RETENTION_DAYS`, default 395,
+  0 keeps them): a MongoDB TTL index on `created_at`, and for PostgreSQL a
+  sweep on the write path using the existing `created_at` index.
+
 ### Added
 
 - **Complete-look theme presets, Kantlijn and Raster**: each sets colours,

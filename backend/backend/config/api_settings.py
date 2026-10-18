@@ -1,5 +1,6 @@
 from typing import Optional
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.version import __version__
@@ -19,13 +20,18 @@ class ApiSettings(BaseSettings):
     ENABLE_EXPORT_CSV: bool = False
     CLIENT_URL: str = "http://localhost:3000"
     ENABLE_GOOGLE_PICKER_API: bool = False
-    # Proxies whose X-Forwarded-For is believed, besides loopback and the
-    # private networks (always trusted): comma-separated addresses or CIDRs.
-    # A request from anywhere else is identified by its own address, whatever
-    # headers it sends (utils/client_ip.py).
-    TRUSTED_PROXIES: str = ""
-    # Behind Cloudflare: when the first hop past our proxies is a Cloudflare
-    # edge, the client is its CF-Connecting-IP. Off for a deployment that
+    # The proxies whose X-Forwarded-For / CF-Connecting-IP are believed:
+    # comma-separated addresses or CIDRs, IPv4 and IPv6. Default: none, so the
+    # TCP peer is the client address, whatever headers the request carries.
+    # Set TRUSTED_PROXIES (or API_TRUSTED_PROXIES, the original name) to the
+    # reverse proxy in front of the API (utils/client_ip.py).
+    TRUSTED_PROXIES: str = Field(
+        default="",
+        validation_alias=AliasChoices("TRUSTED_PROXIES", "API_TRUSTED_PROXIES"),
+    )
+    # Behind Cloudflare (and only for a request from a trusted proxy): when the
+    # first hop past our proxies is a Cloudflare edge, the client is its
+    # CF-Connecting-IP. Off for a deployment that
     # isn't behind Cloudflare. CLOUDFLARE_IPS replaces the built-in ranges
     # (utils/client_ip.CLOUDFLARE_IPS, comma-separated CIDRs).
     TRUST_CLOUDFLARE: bool = True
@@ -57,5 +63,8 @@ class ApiSettings(BaseSettings):
     # Retry-After beyond that; 0 = no limit).
     EDITOR_OPS_PER_WINDOW: int = 300
     EDITOR_OPS_WINDOW_SECONDS: int = 60
+    # Flow events (anonymous page transitions) are deleted this many days after
+    # they were recorded (13 months by default). 0 keeps them forever.
+    FLOW_EVENTS_RETENTION_DAYS: int = 395
 
     model_config = SettingsConfigDict(env_prefix="API_")

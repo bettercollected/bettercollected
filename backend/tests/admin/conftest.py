@@ -52,6 +52,24 @@ def roles_sql(suffix: str, admin_pw: str, mig_pw: str) -> str:
     )
 
 
+# The suite-wide autouse fixtures (Mongo cleaning, the app's rate-limit clock,
+# mirror-failure checks) need the whole application. Nothing here does, so they
+# are replaced with no-ops for every test in this directory, database or not.
+@pytest.fixture(autouse=True)
+def _clean_db():
+    yield
+
+
+@pytest.fixture(autouse=True)
+def rate_limit_clock():
+    yield {}
+
+
+@pytest.fixture(autouse=True)
+def no_silent_mirror_failures():
+    yield
+
+
 @pytest.fixture(autouse=True)
 def master_key(monkeypatch):
     monkeypatch.setenv(MASTER_KEY_KEY, MASTER_KEY)
