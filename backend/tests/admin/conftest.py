@@ -170,3 +170,22 @@ async def runtime_engine(server, migrated):
     engine = create_async_engine(server.url(migrated, "runtime"), poolclass=NullPool)
     yield engine
     await engine.dispose()
+
+
+# The admin tests need no application or mirror metrics: the suite-wide autouse
+# fixtures are replaced with no-ops here.
+
+
+@pytest.fixture(autouse=True)
+def _clean_db():
+    yield
+
+
+@pytest.fixture(autouse=True)
+def rate_limit_clock():
+    yield {}
+
+
+@pytest.fixture(autouse=True)
+def no_silent_mirror_failures():
+    yield
