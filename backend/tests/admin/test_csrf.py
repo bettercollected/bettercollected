@@ -4,7 +4,7 @@ from backend.admin.security import csrf
 from backend.admin.security.clock import FakeClock
 
 KEY = b"k" * 32
-HOSTS = ["admin.example.org", "localhost:8100"]
+HOSTS = ["https://admin.example.org", "http://localhost:8100"]
 
 
 def test_session_token_is_stable_per_session_and_key():
@@ -67,6 +67,13 @@ def test_form_token_from_the_future_is_rejected():
     "headers,allowed",
     [
         ({"Origin": "https://admin.example.org"}, True),
+        ({"Origin": "https://admin.example.org:443"}, True),
+        ({"Origin": "http://admin.example.org"}, False),
+        ({"Origin": "https://admin.example.org:8443"}, False),
+        ({"Origin": "https://localhost:8100"}, False),
+        ({"Referer": "http://admin.example.org/login"}, False),
+        ({"Origin": "https://xn--admin-9ra.example.org"}, False),
+        ({"Origin": "https://admín.example.org"}, False),
         ({"Origin": "https://ADMIN.example.org"}, True),
         ({"origin": "http://localhost:8100"}, True),
         (
@@ -127,5 +134,35 @@ def test_origin_allowed_never_raises_on_garbage():
 
 
 def test_ipv6_origin_matches_a_bracketed_allow_list_entry():
-    assert csrf.origin_allowed({"Origin": "http://[::1]:8100"}, ["[::1]:8100"])
-    assert not csrf.origin_allowed({"Origin": "http://[::1]:8101"}, ["[::1]:8100"])
+    assert csrf.origin_allowed({"Origin": "http://[::1]:8100"}, ["http://[::1]:8100"])
+    assert not csrf.origin_allowed(
+        {"Origin": "http://[::1]:8101"}, ["http://[::1]:8100"]
+    )
+
+
+def test_default_ports_are_implied_in_the_allow_list_too():
+    assert csrf.origin_allowed(
+        {"Origin": "https://a.example"}, ["https://a.example:443"]
+    )
+    assert csrf.origin_allowed({"Origin": "http://a.example:80"}, ["http://a.example"])
+    assert not csrf.origin_allowed(
+        {"Origin": "https://a.example"}, ["http://a.example"]
+    )
+    assert not csrf.origin_allowed({"Origin": "http://a.example"}, ["a.example"])
+
+
+def test_short_csrf_keys_are_refused_without_echoing_them():
+    from backend.admin.security.keycheck import WeakKeyError
+
+    clock = FakeClock(10_000)
+    secret = b"short-key-value"
+    for call in (
+        lambda: csrf.session_token(secret, "s"),
+        lambda: csrf.verify_session_token(secret, "s", "t"),
+        lambda: csrf.issue_form_token(secret, clock),
+        lambda: csrf.verify_form_token(secret, "a.b.c", "a.b.c", clock),
+    ):
+        with pytest.raises(WeakKeyError) as raised:
+            call()
+        assert "short-key-value" not in str(raised.value)
+        assert "32 bytes" in str(raised.value)

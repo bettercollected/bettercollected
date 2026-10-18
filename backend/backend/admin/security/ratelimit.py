@@ -39,6 +39,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.admin.security.clock import Clock
+from backend.admin.security.keycheck import require_key
 
 # ---------------------------------------------------------------- storage
 
@@ -50,6 +51,11 @@ class AttemptStore(Protocol):
         ...
 
     async def count(self, key: str, window_start: datetime) -> int: ...
+
+    async def sum_since(self, key: str, since: datetime) -> int:
+        """Total of the counters of ``key`` whose ``window_start`` is at or
+        after ``since`` (for rolling windows made of small buckets)."""
+        ...
 
     async def latest_window(self, key: str) -> Optional[datetime]:
         """The newest ``window_start`` stored under ``key``."""
@@ -78,6 +84,11 @@ class MemoryAttemptStore:
 
     async def count(self, key: str, window_start: datetime) -> int:
         return self.rows.get((key, window_start), 0)
+
+    async def sum_since(self, key: str, since: datetime) -> int:
+        return sum(
+            c for (k, start), c in self.rows.items() if k == key and start >= since
+        )
 
     async def latest_window(self, key: str) -> Optional[datetime]:
         starts = [start for (k, start) in self.rows if k == key]
@@ -131,6 +142,14 @@ class SqlAttemptStore:
         async with self._engine.connect() as conn:
             return int((await conn.execute(query)).scalar() or 0)
 
+    async def sum_since(self, key: str, since: datetime) -> int:
+        t = self._table
+        query = select(func.coalesce(func.sum(t.c.count), 0)).where(
+            t.c.key == key, t.c.window_start >= since
+        )
+        async with self._engine.connect() as conn:
+            return int((await conn.execute(query)).scalar() or 0)
+
     async def latest_window(self, key: str) -> Optional[datetime]:
         t = self._table
         query = select(func.max(t.c.window_start)).where(t.c.key == key)
@@ -164,6 +183,13 @@ CODE_REQUEST_PER_IP = Rule("code_ip", 10, 600)
 CHALLENGE_ATTEMPTS = Rule("challenge", 5, 600)
 FACTOR_FAILURES = Rule("factor_fail", 5, 300)
 GLOBAL_FAILURES = Rule("global_fail", 50, 600)
+# slow guessing: failures in any rolling 24 h, counted in 15-minute buckets
+LONG_FAILURE_LIMIT = 15
+LONG_WINDOW_SECONDS = 24 * 60 * 60
+LONG_BUCKET_SECONDS = 15 * 60
+# one address contributes at most this many failures to the global breaker
+# per breaker window, so one source cannot trip it alone
+GLOBAL_PER_IP_CAP = 5
 LOCKOUT_SECONDS = (15 * 60, 60 * 60, 4 * 60 * 60)
 STRIKE_WINDOW_SECONDS = 24 * 60 * 60
 GLOBAL_PAUSE_SECONDS = 10 * 60
@@ -241,7 +267,7 @@ class Limiter:
     def __init__(self, store: AttemptStore, clock: Clock, pepper: bytes) -> None:
         self._store = store
         self._clock = clock
-        self._pepper = pepper
+        self._pepper = require_key(pepper, "rate limit key")
 
     # keys
     def email_key(self, email: str) -> str:
@@ -312,27 +338,55 @@ class Limiter:
             return LockStatus(True, until, self._retry(until))
         return LockStatus(False, None, 0)
 
-    async def record_failure(self, subject: str) -> FailureOutcome:
-        """Count a wrong TOTP / recovery code. The fifth failure in five
-        minutes locks the subject: 15 min, then 1 h, then 4 h for each further
+    async def _trip(self, subject: str) -> FailureOutcome:
+        """Lock ``subject``: 15 min, then 1 h, then 4 h for each further
         lockout within a day."""
-        fail_key, strike_key, lock_key = self._subject_keys(subject)
-        start, _ = self._window(FACTOR_FAILURES)
-        count = await self._store.increment(fail_key, start)
-        if count < FACTOR_FAILURES.limit:
-            return FailureOutcome(False, False, 0, None, 0)
-        if count == FACTOR_FAILURES.limit:
-            strike_start, _ = self._window(Rule("strikes", 1, STRIKE_WINDOW_SECONDS))
-            strikes = await self._store.increment(strike_key, strike_start)
-            level = min(strikes, len(LOCKOUT_SECONDS))
-            until = self._until(LOCKOUT_SECONDS[level - 1])
-            await self._store.increment(lock_key, until)
-            return FailureOutcome(True, True, level, until, self._retry(until))
+        _, strike_key, lock_key = self._subject_keys(subject)
+        strike_start, _ = self._window(Rule("strikes", 1, STRIKE_WINDOW_SECONDS))
+        strikes = await self._store.increment(strike_key, strike_start)
+        level = min(strikes, len(LOCKOUT_SECONDS))
+        until = self._until(LOCKOUT_SECONDS[level - 1])
+        await self._store.increment(lock_key, until)
+        return FailureOutcome(True, True, level, until, self._retry(until))
+
+    async def record_failure(self, subject: str) -> FailureOutcome:
+        """Count a wrong TOTP / recovery code. Two rules lock the subject
+        (and share the escalation): five failures in five minutes, and
+        fifteen in any rolling 24 hours (which catches slow guessing that
+        stays under the short rule). A failure while already locked is not
+        counted and reports the lock."""
         status = await self.lock_status(subject)
-        return FailureOutcome(status.locked, False, 0, status.until, status.retry_after)
+        if status.locked:
+            return FailureOutcome(True, False, 0, status.until, status.retry_after)
+        fail_key, _, _ = self._subject_keys(subject)
+        long_key = fail_key + ":long"
+        start, _ = self._window(FACTOR_FAILURES)
+        short = await self._store.increment(fail_key, start)
+        bucket = int(self._clock.time() // LONG_BUCKET_SECONDS) * LONG_BUCKET_SECONDS
+        await self._store.increment(
+            long_key, datetime.fromtimestamp(bucket, timezone.utc)
+        )
+        since = datetime.fromtimestamp(
+            self._clock.time() - LONG_WINDOW_SECONDS, timezone.utc
+        )
+        long_total = await self._store.sum_since(long_key, since)
+        if short == FACTOR_FAILURES.limit or long_total >= LONG_FAILURE_LIMIT:
+            if long_total >= LONG_FAILURE_LIMIT:
+                await self._store.reset(long_key)  # start over after the lockout
+            return await self._trip(subject)
+        if short > FACTOR_FAILURES.limit:  # concurrent overshoot
+            again = await self.lock_status(subject)
+            return FailureOutcome(
+                again.locked, False, 0, again.until, again.retry_after
+            )
+        return FailureOutcome(False, False, 0, None, 0)
 
     async def record_success(self, subject: str) -> None:
-        """A correct code: the failure counter and the escalation reset."""
+        """A correct code: the five-minute failure counter and the escalation
+        reset. It does not clear an active lockout (callers check
+        ``lock_status`` before verifying, so a locked subject never gets
+        here) and it does not clear the rolling 24 h tally, so slow guessing
+        cannot be wiped by a legitimate sign-in."""
         fail_key, strike_key, _ = self._subject_keys(subject)
         await self._store.reset(fail_key)
         await self._store.reset(strike_key)
@@ -341,6 +395,7 @@ class Limiter:
         """Operator override: clear failures, escalation and any lockout."""
         for key in self._subject_keys(subject):
             await self._store.reset(key)
+        await self._store.reset(self._subject_keys(subject)[0] + ":long")
 
     # global breaker
     def _global_keys(self) -> Tuple[str, str]:
@@ -355,11 +410,27 @@ class Limiter:
             return BreakerOutcome(True, False, self._retry(until))
         return BreakerOutcome(False, False, 0)
 
-    async def record_global_failure(self) -> BreakerOutcome:
-        """Count any failed sign-in step. The 50th within ten minutes pauses
-        all sign-in for ten minutes."""
+    async def record_global_failure(
+        self, client: Optional[str], identified_admin: bool
+    ) -> BreakerOutcome:
+        """Count a failed sign-in step toward the global breaker; the 50th
+        within ten minutes pauses all sign-in for ten minutes.
+
+        Only failures that cannot be produced by anyone on the internet count:
+        pass ``identified_admin=True`` only for a failure after the email-code
+        step of a configured admin (wrong challenge or factor code). Failures
+        for unknown or non-admin emails are not counted (False), and one
+        address (IPv6 by /64) contributes at most ``GLOBAL_PER_IP_CAP``
+        failures per window, so a single source cannot trip the breaker. The
+        pause is not extended by later failures and lifts by itself after
+        ``GLOBAL_PAUSE_SECONDS``; ``resume_sign_in`` lifts it earlier."""
+        if not identified_admin:
+            return await self.sign_in_pause()
         fail_key, pause_key = self._global_keys()
         start, _ = self._window(GLOBAL_FAILURES)
+        ip_count = await self._store.increment(self.ip_key(client) + ":gfail", start)
+        if ip_count > GLOBAL_PER_IP_CAP:
+            return await self.sign_in_pause()
         count = await self._store.increment(fail_key, start)
         if count < GLOBAL_FAILURES.limit:
             return BreakerOutcome(False, False, 0)
@@ -367,14 +438,32 @@ class Limiter:
             until = self._until(GLOBAL_PAUSE_SECONDS)
             await self._store.increment(pause_key, until)
             return BreakerOutcome(True, True, self._retry(until))
-        current = await self.sign_in_pause()
-        return current
+        return await self.sign_in_pause()
 
     async def resume_sign_in(self) -> None:
-        """Operator override of the global breaker."""
+        """Operator override of the global breaker (see ``operator_resume``)."""
         for key in self._global_keys():
             await self._store.reset(key)
 
     async def cleanup(self, keep_seconds: int = 2 * STRIKE_WINDOW_SECONDS) -> int:
         """Drop counters older than ``keep_seconds``."""
         return await self._store.cleanup(self._until(-keep_seconds))
+
+
+# ------------------------------------------------------------ operator hooks
+#
+# Entry points for the host CLI (``unlock`` and ``resume-sign-in``). They take
+# the same store, clock and pepper as the service, so they reach the same
+# rows, and need no HTTP.
+
+
+async def operator_unlock(
+    store: AttemptStore, clock: Clock, pepper: bytes, email: str
+) -> None:
+    """Clear failures, escalation and lockout of one admin email."""
+    await Limiter(store, clock, pepper).unlock(email)
+
+
+async def operator_resume(store: AttemptStore, clock: Clock, pepper: bytes) -> None:
+    """Lift the global sign-in pause now (it also lifts itself)."""
+    await Limiter(store, clock, pepper).resume_sign_in()

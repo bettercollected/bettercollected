@@ -13,6 +13,8 @@ import secrets
 from dataclasses import dataclass, field
 from typing import List, Optional, Sequence
 
+from backend.admin.security.keycheck import require_key
+
 CODE_COUNT = 10
 CODE_CHARS = 16
 GROUP = 4
@@ -30,6 +32,8 @@ def generate_code() -> str:
 
 
 def hash_code(pepper: bytes, code: str) -> str:
+    """HMAC-SHA256 of the normalised code; ``pepper`` must be 32+ bytes."""
+    pepper = require_key(pepper, "recovery pepper")
     digest = hmac.new(pepper, normalise(code).encode("utf-8"), hashlib.sha256)
     return digest.hexdigest()
 

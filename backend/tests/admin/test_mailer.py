@@ -8,7 +8,7 @@ from backend.admin.security.mailer import AdminMailer, FakeTransport, MailConfig
 
 def make(fail=False):
     transport = FakeTransport(fail=fail)
-    return AdminMailer(transport), transport
+    return AdminMailer.for_transport(transport), transport
 
 
 async def test_sign_in_code_mail():
@@ -61,16 +61,16 @@ def test_subjects_are_constants_free_of_user_text():
         assert "\n" not in message.subject and "evil" not in message.subject
 
 
-def test_interpolated_values_are_one_escaped_line():
+def test_interpolated_values_are_one_plain_line():
     message = mailer.enrolment_message(
         "<b>x</b>\r\nBcc: evil@example.org & co", "1.1.1.1"
     )
-    assert "<b>" not in message.body
-    assert "&lt;b&gt;x&lt;/b&gt; Bcc: evil@example.org &amp; co" in message.body
+    assert "<b>x</b> Bcc: evil@example.org & co" in message.body
+    assert "\r" not in message.body.split("account ", 1)[1].split("\n", 1)[0]
     assert mailer.clean("a\x00b c") == "a b c"
     long = mailer.clean("x" * 1000)
     assert len(long) <= mailer.MAX_VALUE
-    assert mailer.clean("\"'") == "&quot;&#x27;"
+    assert mailer.clean("\"'") == "\"'"
 
 
 async def test_failures_are_swallowed_and_logged_without_recipient_or_code(caplog):
@@ -97,7 +97,7 @@ async def test_one_failing_recipient_does_not_stop_the_others():
             await super().send(to, subject, body)
 
     transport = Flaky()
-    sent = await AdminMailer(transport).notify_enrolment(
+    sent = await AdminMailer.for_transport(transport).notify_enrolment(
         ["a@example.org", "bad@example.org", "c@example.org"],
         "a@example.org",
         "1.1.1.1",
@@ -152,3 +152,50 @@ async def test_fastmail_transport_builds_a_plain_text_message(monkeypatch):
 @pytest.mark.parametrize("value", [None, 5, ["x"]])
 def test_clean_accepts_any_object(value):
     assert isinstance(mailer.clean(value), str)
+
+
+async def test_provider_is_consulted_on_every_send_and_transport_rebuilt_on_change():
+    first, second = FakeTransport(), FakeTransport()
+    built = []
+
+    def factory(config):
+        built.append(config.sender)
+        return first if config.sender == "a@example.org" else second
+
+    class Switch:
+        config = MailConfig(smtp_server="smtp.example.org", sender="a@example.org")
+
+        def get(self):
+            return self.config
+
+    provider = Switch()
+    admin_mailer = AdminMailer(provider, factory)
+    assert await admin_mailer.send_sign_in_code("x@example.org", "12345678", "1.1.1.1")
+    assert await admin_mailer.send_sign_in_code("x@example.org", "12345678", "1.1.1.1")
+    assert built == ["a@example.org"] and len(first.sent) == 2
+    provider.config = MailConfig(smtp_server="smtp.example.org", sender="b@example.org")
+    assert await admin_mailer.send_sign_in_code("x@example.org", "12345678", "1.1.1.1")
+    assert built == ["a@example.org", "b@example.org"] and len(second.sent) == 1
+
+
+async def test_unconfigured_or_failing_provider_is_a_logged_non_event(caplog):
+    class Broken:
+        def get(self):
+            raise KeyError("secret-setting-name")
+
+    for provider in (Broken(), mailer.StaticMailConfigProvider(MailConfig())):
+        admin_mailer = AdminMailer(provider, lambda c: FakeTransport())
+        assert (
+            await admin_mailer.send_sign_in_code("x@example.org", "87654321", "1.1.1.1")
+            is False
+        )
+    assert "87654321" not in caplog.text and "x@example.org" not in caplog.text
+
+
+def test_env_provider_reads_the_environment_each_time():
+    env = {"MAIL_SMTP_SERVER": "a", "MAIL_SENDER": "s@example.org"}
+    provider = mailer.EnvMailConfigProvider(env)
+    assert provider.get().smtp_server == "a"
+    env["MAIL_SMTP_SERVER"] = "b"
+    assert provider.get().smtp_server == "b"
+    assert isinstance(provider, mailer.MailConfigProvider)

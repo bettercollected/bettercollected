@@ -1,7 +1,7 @@
 """Fixed plain-text mails of the admin sign-in.
 
 Subjects are constants; nothing a user typed reaches a subject, and values put
-in a body (addresses, account names) are reduced to one escaped line first.
+in a body (addresses, account names) are reduced to one plain line first.
 Sending never raises: a failure is logged without recipient or code, and the
 send methods answer whether the mail went out.
 
@@ -11,12 +11,20 @@ platform (``MAIL_USER``, ``MAIL_PASSWORD``, ``MAIL_SMTP_SERVER``,
 ``MAIL_USE_CREDENTIALS``, ``MAIL_VALIDATE_CERTS``).
 """
 
-import html
 import logging
 import os
 import re
 from dataclasses import dataclass
-from typing import List, Mapping, Optional, Protocol, Sequence
+from typing import (
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    runtime_checkable,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +38,13 @@ MAX_VALUE = 120
 
 
 def clean(value: object) -> str:
-    """One short escaped line: control characters and line breaks collapse to
-    a space, length is capped, ``<>&"'`` are HTML-escaped."""
+    """One short line of plain text: control characters and line breaks
+    collapse to a space (no header or line injection), length is capped. The
+    mails are plain text, so nothing is HTML-escaped."""
     text = " ".join(_CONTROL.sub(" ", str(value)).split())
     if len(text) > MAX_VALUE:
         text = text[: MAX_VALUE - 1] + "…"
-    return html.escape(text, quote=True)
+    return text
 
 
 @dataclass(frozen=True)
@@ -180,13 +189,67 @@ class FakeTransport:
         self.sent.append(Message(subject, body))
 
 
+@runtime_checkable
+class MailConfigProvider(Protocol):
+    def get(self) -> MailConfig:
+        """The mail settings to use for the next send."""
+        ...
+
+
+class EnvMailConfigProvider:
+    """The default: ``MAIL_*`` environment variables, read on every call."""
+
+    def __init__(self, env: Optional[Mapping[str, str]] = None) -> None:
+        self._env = env
+
+    def get(self) -> MailConfig:
+        return MailConfig.from_env(self._env)
+
+
+class StaticMailConfigProvider:
+    def __init__(self, config: MailConfig) -> None:
+        self._config = config
+
+    def get(self) -> MailConfig:
+        return self._config
+
+
+TransportFactory = Callable[[MailConfig], MailTransport]
+
+
 class AdminMailer:
-    def __init__(self, transport: MailTransport) -> None:
-        self._transport = transport
+    """Sends the fixed mails. The settings come from a provider on every
+    send, so a later settings store can supply them without code changes;
+    the transport is rebuilt only when the settings change."""
+
+    def __init__(
+        self,
+        provider: Optional[MailConfigProvider] = None,
+        transport_factory: TransportFactory = FastMailTransport,
+    ) -> None:
+        self._provider = provider or EnvMailConfigProvider()
+        self._factory = transport_factory
+        self._cached: Optional[Tuple[MailConfig, MailTransport]] = None
+
+    @classmethod
+    def for_transport(cls, transport: MailTransport) -> "AdminMailer":
+        """A mailer on a ready transport (tests, or an embedding service)."""
+        return cls(
+            StaticMailConfigProvider(MailConfig(smtp_server="-", sender="-")),
+            lambda _config: transport,
+        )
+
+    def _transport(self) -> MailTransport:
+        config = self._provider.get()
+        if not config.configured:
+            raise RuntimeError("mail is not configured")
+        if self._cached is None or self._cached[0] != config:
+            self._cached = (config, self._factory(config))
+        return self._cached[1]
 
     async def _deliver(self, to: str, message: Message) -> bool:
         try:
-            await self._transport.send(to, message.subject, message.body)
+            await self._transport().send(to, message.subject, message.body)
             return True
         except Exception as exc:  # fire-and-forget: never reaches the caller
             # type only: the message of a mail error can carry the address
