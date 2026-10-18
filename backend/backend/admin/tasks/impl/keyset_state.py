@@ -32,11 +32,11 @@ from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
     KEYSET_ENV,
     KeysetError,
-    keyset_ids_fingerprint,
     parse_keyset,
 )
 from common.settings.canonical import SettingRow, canonical_manifest
 from common.settings.keys import SectionKeys
+from common.settings.loader import keyset_fingerprint
 from common.settings.signing import Manifest, sign_manifest
 
 KEY = KEYSET_ENV
@@ -299,8 +299,9 @@ async def check_consumers(
     The fingerprint is the hash of the key ids (not of which one is primary), so
     after a promote it is the settings revision and ``restart_pending`` that
     show a service runs the promoted keyset."""
-    expected = keyset_ids_fingerprint(ids)
+    # the value a service's heartbeat carries: the loader's own function
     # a google instance that reports is checked whatever `google_in_use` says
+    expected = keyset_fingerprint(ids)
     found = await consumers(conn, ["backend", "google"])
     live = [c for c in found if c.age_seconds <= RETIRED_AFTER_SECONDS]
     for service in required_services(google_in_use):

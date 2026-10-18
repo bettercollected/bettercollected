@@ -11,8 +11,9 @@ from sqlalchemy import text
 from tink import aead, cleartext_keyset_handle
 
 from backend.admin.services.settings_store import Actor, SettingsService, store_registry
-from common.services.keyset import KEYSET_ENV, keyset_ids_fingerprint, parse_keyset
+from common.services.keyset import KEYSET_ENV, parse_keyset
 from common.settings.keys import SectionKeys
+from common.settings.loader import keyset_fingerprint
 from tests.admin.conftest import MASTER_KEY
 
 KEY = KEYSET_ENV
@@ -73,6 +74,6 @@ async def heartbeat(
                 "r": revision,
                 "e": list(env),
                 "p": restart_pending,
-                "fp": fp if fp is not None else keyset_ids_fingerprint(ids),
+                "fp": fp if fp is not None else keyset_fingerprint(ids),
             },
         )

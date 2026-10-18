@@ -202,16 +202,6 @@ def key_ids(keyset: tink_pb2.Keyset) -> List[int]:
     return [key.key_id for key in keyset.key]
 
 
-def keyset_ids_fingerprint(ids: Iterable) -> str:
-    """The short hash of a keyset's key ids that services report in their
-    heartbeat (``settings.service_state.keyset_fp``): ids only, never key
-    material, and independent of order and of which key is primary. The
-    settings loader computes the same value (a test keeps them equal)."""
-    ordered = sorted(str(i) for i in ids)
-    digest = hashlib.sha256(("bc-keyset-v1|" + ",".join(ordered)).encode()).hexdigest()
-    return "ks-" + digest[:12]
-
-
 def only_primary(keyset: tink_pb2.Keyset) -> tink_pb2.Keyset:
     """A copy of ``keyset`` holding its primary key only."""
     primary = tink_pb2.Keyset(primary_key_id=keyset.primary_key_id)

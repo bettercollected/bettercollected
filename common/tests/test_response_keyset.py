@@ -25,7 +25,6 @@ from common.services.keyset import (
     ciphertext_key_id,
     encode_keyset,
     key_digest,
-    keyset_ids_fingerprint,
     only_primary,
     promote,
     parse_keyset,
@@ -251,20 +250,17 @@ def test_promote_refuses_an_unknown_key_without_quoting_anything():
     assert "keyset" in str(error.value)
 
 
-def test_the_heartbeat_fingerprint_is_ids_only_and_order_free():
-    one = keyset_ids_fingerprint([3, 1, 2])
-    assert one == keyset_ids_fingerprint(["2", "3", "1"])
-    assert one != keyset_ids_fingerprint([1, 2])
-    assert one.startswith("ks-") and len(one) == 15
-    assert re.fullmatch(r"[A-Za-z0-9_.:-]{0,64}", one)
-    # a fixed vector: the settings loader must compute the same value
-    assert keyset_ids_fingerprint([1, 2, 3]) == one
-    # TODO(settings loader): the test below compares with the loader once
-    # `common.settings.loader` is in this tree.
-    assert one == "ks-" + __import__("hashlib").sha256(b"bc-keyset-v1|1,2,3").hexdigest()[:12]
+def test_the_heartbeat_fingerprint_the_keyset_tasks_compare_is_the_loaders():
+    """The keyset tasks compare a service's heartbeat ``keyset_fp`` with the
+    loader's own function of the stored key ids; nothing is copied."""
+    from common.settings.loader import keyset_fingerprint
 
-
-def test_the_fingerprint_equals_the_settings_loaders_when_it_exists():
-    loader = pytest.importorskip("common.settings.loader")
-    for ids in ([1], [3, 1, 2], [4294967295, 7]):
-        assert keyset_ids_fingerprint(ids) == loader.keyset_fingerprint(ids)
+    keyset = parse_keyset(generated_keyset())
+    added = add_secondary_key(keyset)
+    ids = [k.key_id for k in added.key]
+    one = keyset_fingerprint(ids)
+    assert one == keyset_fingerprint(reversed(ids))  # order free
+    assert one != keyset_fingerprint(ids[:1])
+    # which key is primary is not part of it: promote does not change it
+    assert one == keyset_fingerprint([k.key_id for k in promote(added, ids[1]).key])
+    assert one.startswith("ks-") and re.fullmatch(r"[A-Za-z0-9_.:-]{0,64}", one)
