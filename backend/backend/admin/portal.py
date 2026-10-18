@@ -32,6 +32,7 @@ from backend.admin.services.pages import PageService
 from backend.admin.services.sessions import SessionService
 from backend.admin.services.signin import SignInService
 from backend.admin.services.stepup import StepUpService
+from backend.admin.services.task_pages import TaskPageService
 
 log = logging.getLogger("backend.admin")
 
@@ -75,6 +76,7 @@ class Portal:
     factors: FactorService
     stepup: StepUpService
     pages: PageService
+    tasks: TaskPageService
     csrf_key: bytes
     templates: Environment
 
@@ -110,7 +112,7 @@ class Portal:
         stepup = StepUpService(clock, sessions, store, stepup_key)
         return cls(
             settings, engine, clock, limiter, mailer, sessions, signin, factors,
-            stepup, PageService(engine, clock), csrf_key, make_templates(),
+            stepup, PageService(engine, clock), TaskPageService(engine, clock), csrf_key, make_templates(),
         )
 
     def checkers(self) -> dict:

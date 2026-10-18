@@ -1,0 +1,131 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Run") }} {{ d.run.id[:8] }}{% endblock %}
+{% block content %}
+{% set r = d.run %}
+{% set refusal_texts = {
+  "bad_signature": _("The request signature did not verify, so the runner refused it."),
+  "expired": _("The request waited too long in the queue and expired."),
+  "unknown_task": _("The runner does not know this task."),
+  "version_mismatch": _("The task changed version after the request was made."),
+  "bad_params": _("The runner found the parameters invalid."),
+  "dry_run_required": _("The runner found no successful dry run with the same parameters from the last 24 hours before this request."),
+  "not_resumable": _("The task cannot be resumed."),
+  "resume_mismatch": _("The run being resumed does not match this request (task, version, parameters or keys differ, or it did not end failed, cancelled or interrupted)."),
+  "already_resumed": _("The run being resumed was already resumed to completion."),
+  "lock_held": _("Another run holds a lock this task needs."),
+} %}
+<p><a href="/tasks/runs">{{ _("Run history") }}</a> {{ "/" }} <a href="/tasks">{{ _("All tasks") }}</a></p>
+<h1>{{ r.title or r.task }} <span class="tag">{{ _("run") }} {{ r.id[:8] }}</span></h1>
+{% include "_task_notice.html" %}
+
+<section aria-labelledby="status">
+  <h2 id="status">{{ _("Status") }}</h2>
+  <div id="live" data-run-id="{{ r.id }}" data-terminal="{{ 'yes' if r.terminal else 'no' }}" data-last-seq="{{ d.events[-1].seq if d.events else 0 }}" data-follow="{{ 'no' if d.next_after else 'yes' }}">
+    <p>
+      <strong id="state">{{ r.state }}</strong>{% if r.dry_run %} <span class="tag">{{ _("dry run") }}</span>{% endif %}{% if r.cancel_requested_at and r.active %} <span class="tag tag-warn" id="cancel-flag">{{ _("cancel requested") }}</span>{% endif %}
+      {% if not r.terminal %}<span id="live-indicator" class="tag" hidden>{{ _("Live") }}</span>{% endif %}
+    </p>
+    {% if r.percent is not none %}
+    <p><progress id="progress" max="100" value="{{ r.percent }}" aria-label="{{ _('Progress') }}">{{ r.percent }}{{ "%" }}</progress> <span id="progress-text">{{ r.done }}{{ " / " }}{{ r.total }}</span></p>
+    {% elif r.done is not none %}
+    <p><progress id="progress" max="100" value="0" aria-label="{{ _('Progress') }}" hidden></progress> <span id="progress-text">{{ r.done }}</span></p>
+    {% else %}
+    <p><progress id="progress" max="100" value="0" aria-label="{{ _('Progress') }}" hidden></progress> <span id="progress-text"></span></p>
+    {% endif %}
+    <p><a href="/tasks/runs/{{ r.id }}">{{ _("Refresh") }}</a></p>
+  </div>
+  {% if r.refusal_code %}
+  <p class="error" role="alert"><code>{{ r.refusal_code }}</code>{% if r.refusal_code in refusal_texts %}: {{ refusal_texts[r.refusal_code] }}{% else %}: {{ _("The task declined to run.") }}{% endif %}</p>
+  {% endif %}
+  {% if r.state == "failed" %}<p class="error" role="alert">{{ _("The run failed. The recorded events below name the error class.") }}</p>{% endif %}
+  <dl class="facts">
+    <dt>{{ _("Task") }}</dt><dd><a href="/tasks/{{ r.task }}"><code>{{ r.task }}</code></a>, {{ _("version") }} {{ r.version }}</dd>
+    <dt>{{ _("Requested by") }}</dt><dd>{{ r.requested_by }}</dd>
+    <dt>{{ _("Queued") }}</dt><dd>{{ r.created_at | ts }}</dd>
+    <dt>{{ _("Started") }}</dt><dd>{{ r.started_at | ts }}</dd>
+    <dt>{{ _("Finished") }}</dt><dd>{{ r.finished_at | ts }}</dd>
+    {% if r.resumes_run_id %}<dt>{{ _("Resumes") }}</dt><dd><a href="/tasks/runs/{{ r.resumes_run_id }}"><code>{{ r.resumes_run_id[:8] }}</code></a></dd>{% endif %}
+    <dt>{{ _("Checkpoints") }}</dt><dd>{% if d.checkpoints %}{{ _("saved") }} ({{ d.checkpoints }}){% else %}{{ _("none") }}{% endif %}</dd>
+  </dl>
+</section>
+
+{% if d.can_cancel or d.can_resume or d.resume_blocked %}
+<section aria-labelledby="actions">
+  <h2 id="actions">{{ _("Actions") }}</h2>
+  {% if d.can_cancel or d.can_resume %}
+  <form method="post" action="/tasks/prepare">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="run_id" value="{{ r.id }}">
+    <div class="field">
+      <label for="code">{{ _("Authenticator or recovery code") }}</label>
+      <input id="code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="24">
+    </div>
+    <div class="actions">
+      {% if d.can_cancel %}<button type="submit" name="action" value="cancel">{{ _("Cancel the run...") }}</button>{% endif %}
+      {% if d.can_resume %}<button type="submit" name="action" value="resume">{{ _("Resume...") }}</button>{% endif %}
+    </div>
+  </form>
+  {% endif %}
+  {% if d.resume_blocked and r.state in ("failed", "interrupted", "cancelled") %}
+  {% set blocked = {"not_resumable": _("This task cannot be resumed."), "already_resumed": _("This run was already resumed to completion."), "resume_active": _("A resume of this run is already queued or running."), "version_changed": _("The task changed version after this run."), "unknown_task": _("The task is no longer available."), "stored_params": _("The stored parameters no longer match the task."), "read_only": _("The run could not be checked right now.")} %}
+  <p>{{ _("Resume is not offered:") }} {{ blocked[d.resume_blocked] if d.resume_blocked in blocked else d.resume_blocked }}</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if d.params %}
+<section aria-labelledby="params">
+  <h2 id="params">{{ _("Parameters") }}</h2>
+  <table>
+    <tbody>
+    {% for label, value in d.params %}
+    <tr><th scope="row">{{ label }}</th><td>{% if value is sameas true %}{{ _("yes") }}{% elif value is sameas false %}{{ _("no") }}{% else %}{{ value }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if d.result is not none %}
+<section aria-labelledby="result">
+  <h2 id="result">{{ _("Result") }}</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Result') }}">
+  <table>
+    <tbody>
+    {% for path, value in d.result %}
+    <tr><th scope="row"><code>{{ path }}</code></th><td>{% if value is sameas true %}{{ _("yes") }}{% elif value is sameas false %}{{ _("no") }}{% elif value is none %}-{% else %}{{ value }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% elif d.result_note == "mismatch" %}
+<p>{{ _("The stored result does not match the task's current result schema and is not shown.") }}</p>
+{% endif %}
+
+<section aria-labelledby="events">
+  <h2 id="events">{{ _("Events") }} ({{ d.event_count }})</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Events') }}">
+  <table>
+    <thead><tr>
+      <th scope="col">{{ _("No.") }}</th><th scope="col">{{ _("Time") }}</th><th scope="col">{{ _("Code") }}</th>
+      <th scope="col">{{ _("Counters") }}</th><th scope="col">{{ _("Ids") }}</th><th scope="col">{{ _("Error class") }}</th>
+    </tr></thead>
+    <tbody id="event-rows">
+    {% for e in d.events %}
+    <tr>
+      <td>{{ e.seq }}</td><td>{{ e.at | ts }}</td><td><code>{{ e.code }}</code></td>
+      <td>{% for k, v in e.counts %}{{ k }}{{ "=" }}{{ v }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</td>
+      <td>{% for i in e.ids %}<code>{{ i }}</code>{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</td>
+      <td>{{ e.error_class or "-" }}</td>
+    </tr>
+    {% else %}
+    <tr id="no-events"><td colspan="6">{{ _("No events yet.") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if d.next_after %}<p><a href="/tasks/runs/{{ r.id }}?after={{ d.next_after }}">{{ _("Later events") }}</a></p>{% endif %}
+</section>
+<script src="/static/tasks.js" defer></script>
+{% endblock %}

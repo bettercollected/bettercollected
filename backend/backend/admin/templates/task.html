@@ -1,0 +1,91 @@
+{% extends "shell.html" %}
+{% block title %}{{ meta.title or meta.name }}{% endblock %}
+{% block content %}
+<p><a href="/tasks">{{ _("All tasks") }}</a></p>
+<h1>{{ meta.title or meta.name }}</h1>
+<dl class="facts">
+  <dt>{{ _("Name") }}</dt><dd><code>{{ meta.name }}</code>, {{ _("version") }} {{ meta.version }}</dd>
+  <dt>{{ _("Kind") }}</dt><dd>{% if meta.mutating %}{{ _("Changes data") }}{% else %}{{ _("Read-only") }}{% endif %}</dd>
+  <dt>{{ _("Resumable") }}</dt><dd>{% if meta.resumable %}{{ _("yes") }}{% else %}{{ _("no") }}{% endif %}</dd>
+  <dt>{{ _("Locks") }}</dt><dd>{% if meta.resources %}{% for res in meta.resources %}<code>{{ res }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</dd>
+</dl>
+{% if meta.requires_prior_dry_run %}
+<p class="banner banner-warn">{{ _("A real run needs a successful dry run with exactly the same parameters, finished less than 24 hours ago. The runner checks this again when it picks the run up.") }}</p>
+{% endif %}
+{% include "_task_notice.html" %}
+
+{% if meta.mutating %}
+<section aria-labelledby="last-dry">
+  <h2 id="last-dry">{{ _("Last dry run") }}</h2>
+  {% if last_dry %}
+  <p><a href="/tasks/runs/{{ last_dry.id }}">{{ last_dry.finished_at | ts }}</a>, {{ _("requested by") }} {{ last_dry.requested_by }}. {{ _("It counts for a real run only with the same parameters.") }}</p>
+  {% else %}
+  <p>{{ _("None yet for this version.") }}</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<h2>{{ _("Parameters") }}</h2>
+{% if not can_submit %}
+<p class="error" role="alert">{{ _("This task has a required parameter this form cannot show, so it cannot be started from here.") }}</p>
+{% endif %}
+<form method="post" action="/tasks/{{ meta.name }}/dry-run" class="taskform">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="task" value="{{ meta.name }}">
+  {% for f in fields %}
+  {% set err = f.name in bad %}
+  {% if not f.supported %}
+  <p class="warn" role="note"><code>{{ f.name }}</code>: {{ _("this parameter's type cannot be edited here; the default is used.") }}</p>
+  {% elif f.kind == "bool" %}
+  <div class="field">
+    <label class="check" for="{{ f.input_name }}"><input type="checkbox" id="{{ f.input_name }}" name="{{ f.input_name }}"{% if values[f.input_name] %} checked{% endif %}{% if err %} aria-invalid="true"{% endif %}> {{ f.label }}</label>
+    {% if err %}<p class="error">{{ _("Not accepted.") }}</p>{% endif %}
+  </div>
+  {% else %}
+  <div class="field">
+    <label for="{{ f.input_name }}">{{ f.label }}{% if f.required %} <span class="req">({{ _("required") }})</span>{% endif %}</label>
+    {% if f.kind == "enum" %}
+    <select id="{{ f.input_name }}" name="{{ f.input_name }}" aria-describedby="{{ f.input_name }}-hint"{% if err %} aria-invalid="true"{% endif %}>
+      {% for c in f.choices %}<option value="{{ c }}"{% if c == values[f.input_name] %} selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+    {% elif f.kind == "int" %}
+    <input type="number" id="{{ f.input_name }}" name="{{ f.input_name }}" value="{{ values[f.input_name] }}" step="1"{% if f.minimum is not none %} min="{{ f.minimum }}"{% endif %}{% if f.maximum is not none %} max="{{ f.maximum }}"{% endif %}{% if f.required %} required{% endif %} aria-describedby="{{ f.input_name }}-hint"{% if err %} aria-invalid="true"{% endif %}>
+    {% elif f.kind == "lines" %}
+    <textarea id="{{ f.input_name }}" name="{{ f.input_name }}" rows="5" spellcheck="false" autocomplete="off" maxlength="20000"{% if f.required %} required{% endif %} aria-describedby="{{ f.input_name }}-hint"{% if err %} aria-invalid="true"{% endif %}>{{ values[f.input_name] }}</textarea>
+    {% else %}
+    <input type="text" id="{{ f.input_name }}" name="{{ f.input_name }}" value="{{ values[f.input_name] }}" spellcheck="false" autocomplete="off"{% if f.max_length %} maxlength="{{ f.max_length }}"{% endif %}{% if f.pattern %} pattern="{{ f.pattern }}"{% endif %}{% if f.required %} required{% endif %} aria-describedby="{{ f.input_name }}-hint"{% if err %} aria-invalid="true"{% endif %}>
+    {% endif %}
+    <p class="hint" id="{{ f.input_name }}-hint">
+      {% if err %}<span class="error">{{ _("Not accepted.") }}</span> {% endif %}
+      {% if f.kind == "int" %}{{ _("A whole number") }}{% if f.minimum is not none and f.maximum is not none %} {{ _("from") }} {{ f.minimum }} {{ _("to") }} {{ f.maximum }}{% elif f.minimum is not none %} {{ _("of at least") }} {{ f.minimum }}{% elif f.maximum is not none %} {{ _("of at most") }} {{ f.maximum }}{% endif %}.
+      {% elif f.kind == "lines" %}{{ _("One id per line") }}{% if f.max_items %}, {{ _("at most") }} {{ f.max_items }}{% endif %}. {{ _("Ids use letters, digits and _ . : -") }}
+      {% elif f.kind == "text" %}{% if f.max_length %}{{ _("At most") }} {{ f.max_length }} {{ _("characters") }}. {% endif %}{% if f.pattern %}{{ _("Ids use letters, digits and _ . : -") }}{% endif %}
+      {% endif %}
+      {% if not f.required and f.kind != "int" and f.kind != "enum" %}{{ _("Optional; leave empty for none.") }}{% endif %}
+      {% if f.description %}{{ f.description }}{% endif %}
+    </p>
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  {% if can_submit %}
+  {% if meta.mutating %}
+  <div class="actions">
+    <button type="submit">{{ _("Dry run") }}</button>
+  </div>
+  <p>{{ _("A dry run changes nothing. It needs no extra code.") }}</p>
+  <div class="field">
+    <label for="code">{{ _("Authenticator or recovery code (needed only to apply)") }}</label>
+    <input id="code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="24">
+  </div>
+  <div class="actions">
+    <button type="submit" formaction="/tasks/prepare" name="action" value="apply">{{ _("Apply...") }}</button>
+  </div>
+  <p>{{ _("Apply shows what will run and asks you to confirm.") }}</p>
+  {% else %}
+  <p>{{ _("This task only reads data.") }}</p>
+  <div class="actions"><button type="submit">{{ _("Run") }}</button></div>
+  {% endif %}
+  {% endif %}
+</form>
+{% endblock %}

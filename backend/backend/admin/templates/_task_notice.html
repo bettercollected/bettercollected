@@ -1,0 +1,27 @@
+{% if notice %}
+{% set texts = {
+  "started": _("The run was queued. The runner picks it up shortly; this page shows its progress."),
+  "resume_started": _("The resume was queued. The runner picks it up shortly; this page shows its progress."),
+  "cancel_requested": _("Cancel requested. The run stops at its next safe point; it may finish a batch first."),
+  "cancel_again": _("Cancel was already requested for this run."),
+  "bad_params": _("The parameters were not accepted. Fix the fields marked below and try again."),
+  "params_too_large": _("The parameters are too large to queue."),
+  "rate_limited": _("Too many dry runs just now. Try again later."),
+  "dry_run_required": _("A real run needs a successful dry run with the same parameters, finished less than 24 hours ago. Start a dry run first."),
+  "unknown_task": _("That task is not available."),
+  "unknown_run": _("That run was not found."),
+  "not_active": _("That run is not queued or running, so it cannot be cancelled."),
+  "not_resumable": _("This task cannot be resumed."),
+  "not_eligible": _("Only a failed, interrupted or cancelled run can be resumed."),
+  "resume_active": _("A resume of this run is already queued or running."),
+  "already_resumed": _("This run was already resumed to completion; resuming it again is refused."),
+  "version_changed": _("The task changed version after this run, so it cannot be resumed. Start a new run."),
+  "stored_params": _("The stored parameters no longer match the task, so it cannot be resumed."),
+  "read_only": _("The run could not be checked right now."),
+} %}
+{% if notice in ("started", "resume_started", "cancel_requested", "cancel_again") %}
+<p class="banner banner-keep" role="status">{{ texts[notice] }}</p>
+{% elif notice in texts %}
+<p class="error" role="alert">{{ texts[notice] }}{% if notice == "rate_limited" and retry_minutes %} ({{ retry_minutes }} {{ _("min") }}){% endif %}</p>
+{% endif %}
+{% endif %}

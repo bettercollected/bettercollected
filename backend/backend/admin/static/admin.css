@@ -64,3 +64,16 @@ details summary { cursor: pointer; }
 .table-scroll:focus-visible { outline-offset: 0; }
 @media (max-width: 40rem) { .filters .field { flex: 1 1 100%; } .who { width: 100%; justify-content: space-between; } }
 .nowrap { white-space: nowrap; }
+/* task pages */
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 1rem; }
+dl.facts dt { font-weight: 600; }
+dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+.taskform { max-width: 40rem; }
+.taskform .field { margin-bottom: 0.75rem; }
+.taskform textarea { width: 100%; padding: 0.5rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 4px; }
+.taskform input[type="number"], input[type="number"] { width: 100%; padding: 0.5rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 4px; }
+.hint { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.req { font-weight: 400; color: var(--muted); }
+.actions { margin: 0.5rem 0; }
+progress { width: min(24rem, 70%); height: 1rem; vertical-align: middle; }
+[hidden] { display: none !important; }
