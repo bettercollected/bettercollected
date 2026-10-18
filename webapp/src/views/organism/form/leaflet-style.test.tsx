@@ -1,7 +1,7 @@
 // Respondent text resolves through the app's i18n instance.
 import React from 'react';
 
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -207,6 +207,23 @@ describe('Leaflet style', () => {
         expect(input.getAttribute('aria-describedby')).toContain(message.closest('[role=alert]')!.id);
         const group = input.closest('[data-question-wrapper]') as HTMLElement;
         expect(group.style.getPropertyValue('--invalid-edge')).toBe('#C8102E');
+    });
+
+    it("section titles are marked with the form's language; the page's own fallback is not", async () => {
+        const form = (store.getState() as any).form;
+        store.dispatch(setForm({ ...form, settings: { ...form.settings, language: 'nl' }, fields: [...form.fields, slide('s4', 3, [])] }));
+
+        wrap(<FormSlide index={1} isPreviewMode />);
+        const bar = await screen.findByTestId('leaflet-section-bar');
+        expect(within(bar).getByText('About your visit').closest('[lang]')).toHaveAttribute('lang', 'nl');
+        cleanup();
+
+        wrap(<WelcomePage isPreviewMode />);
+        const contents = await screen.findByTestId('leaflet-contents');
+        const items = within(contents).getAllByRole('listitem');
+        expect(within(items[0]).getByText('Your details').closest('[lang]')).toHaveAttribute('lang', 'nl');
+        // "Section 4": the page's language, not the form's
+        expect(within(items[3]).getByText('Section 4').closest('[lang]')).toBeNull();
     });
 
     it('other styles carry no section bar and no numbers', async () => {

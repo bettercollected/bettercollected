@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { FormTheme } from '@app/constants/theme';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -37,7 +38,8 @@ export function LeafletSectionBar({
     layout,
     headingLevel = 2,
     className,
-    titleEditor
+    titleEditor,
+    lang
 }: {
     theme?: Partial<FormTheme>;
     numeral?: number | string;
@@ -49,6 +51,8 @@ export function LeafletSectionBar({
     className?: string;
     /** Builder only: an editor shown in place of the section title. */
     titleEditor?: ReactNode;
+    /** The title's language, when it is the form's own text in another language than the page's (useFormContentLanguage). */
+    lang?: string;
 }) {
     const hang = leafletNumbersHang(layout);
     const Heading = headingLevel === 1 ? 'h1' : 'h2';
@@ -68,7 +72,9 @@ export function LeafletSectionBar({
                         >
                             {numeral}
                         </span>
-                        <span className="text-[22px] leading-[1.25] text-balance [overflow-wrap:anywhere]">{titleEditor ?? <ShortLabel short={title} full={fullTitle} />}</span>
+                        <span className="text-[22px] leading-[1.25] text-balance [overflow-wrap:anywhere]" lang={titleEditor ? undefined : lang}>
+                            {titleEditor ?? <ShortLabel short={title} full={fullTitle} />}
+                        </span>
                     </Heading>
                 )}
             </div>
@@ -110,6 +116,7 @@ export function LeafletTopRule({ theme }: { theme?: Partial<FormTheme> }) {
  */
 export function LeafletContents({ pages, theme }: { pages: ReadonlyArray<StandardFormFieldDto> | undefined; theme?: Partial<FormTheme> }) {
     const { t } = useRespondentLanguage();
+    const contentLang = useFormContentLanguage();
     const sections = (pages ?? []).map((page, position) => leafletSection(page?.properties?.fields ?? [], t('LEAFLET.SECTION', { n: position + 1 }), page?.properties?.sectionTitle));
     const rule = leafletColours(theme).rule;
     if (!sections.length) return null;
@@ -125,7 +132,8 @@ export function LeafletContents({ pages, theme }: { pages: ReadonlyArray<Standar
                         <span className="tabular-nums" style={{ fontFamily: leafletSerif.style.fontFamily, fontWeight: 600, color: numeralInk }}>
                             {position + 1}
                         </span>
-                        <span className="[overflow-wrap:anywhere]">
+                        {/* the form's own text; "Section n" is the page's */}
+                        <span className="[overflow-wrap:anywhere]" lang={section.source === 'empty' ? undefined : contentLang}>
                             <ShortLabel short={section.shortTitle} full={section.title} />
                         </span>
                     </li>

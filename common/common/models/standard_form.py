@@ -331,7 +331,8 @@ def checked_form_language(value: Optional[str]) -> Optional[str]:
 
 # A well-formed language tag ("nl", "en-GB", "pt-BR"): what the respondent
 # page accepts for `lang` (webapp use-form-content-language.ts).
-_LANGUAGE_TAG = re.compile(r"^[a-z]{2,3}(-[a-z0-9]{2,8})*$", re.IGNORECASE)
+# Used with fullmatch: the whole value, no trailing newline.
+_LANGUAGE_TAG = re.compile(r"[a-z]{2,3}(-[a-z0-9]{2,8})*", re.IGNORECASE)
 
 
 def normalised_form_language(value: Optional[str]) -> Optional[str]:
@@ -347,7 +348,7 @@ def normalised_form_language(value: Optional[str]) -> Optional[str]:
         return checked_form_language(value)
     except ValueError:
         tag = value.strip()
-        return tag if len(tag) <= 35 and _LANGUAGE_TAG.match(tag) else None
+        return tag if len(tag) <= 35 and _LANGUAGE_TAG.fullmatch(tag) else None
 
 
 class StandardFormSettings(BaseModel):

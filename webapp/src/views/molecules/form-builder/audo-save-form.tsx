@@ -13,7 +13,7 @@ import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { builderHydratedFormIdAtom, useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import { IFormState, formStateAtom } from '@app/store/jotai/form';
 import { builderFieldsAtom } from '@app/store/jotai/form-document';
-import { formLanguageAtom } from '@app/store/jotai/form-language';
+import { adoptSavedLanguageAtom, formLanguageAtom } from '@app/store/jotai/form-language';
 import { usePatchV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FlushResult, SaveOutcome, SaveQueue } from '@app/utils/autosave-queue';
@@ -119,7 +119,16 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         if (version) formData.append('expected_updated_at', version);
                         const response: any = await patch({ formId, workspaceId, body: formData });
                         const outcome = saveOutcomeOf(response);
-                        if (outcome.kind === 'saved') contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
+                        if (outcome.kind === 'saved') {
+                            contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
+                            // The language the server stored: it keeps its own
+                            // for a tag that cannot be set (after an undo back to
+                            // an imported "en-GB", say), and the builder shows that.
+                            const saved = response.data?.settings;
+                            if (saved && typeof saved === 'object' && 'language' in saved) {
+                                store.set(adoptSavedLanguageAtom, { sent: JSON.parse(body)?.settings?.language ?? null, saved: saved.language ?? null });
+                            }
+                        }
                         return outcome;
                     },
                     onState: (state, { savedAt }) => {

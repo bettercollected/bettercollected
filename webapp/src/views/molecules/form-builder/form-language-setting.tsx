@@ -6,6 +6,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
 
 import { FORM_LANGUAGES, formLanguageName } from '@app/lib/form-ops';
+import { isLanguageTag } from '@app/lib/hooks/use-form-content-language';
 import { dispatchAtom } from '@app/store/jotai/form-document';
 import { formLanguageAtom } from '@app/store/jotai/form-language';
 import { InspectorSection } from '@app/views/molecules/form-builder/inspector-controls';
@@ -40,7 +41,11 @@ export default function FormLanguageSetting() {
                     className="h-8 w-full rounded border border-control bg-white px-2 py-0 text-xs focus:border-brand-500"
                 >
                     <option value="">{t('FORM_LANGUAGE.NOT_SET')}</option>
-                    {other && <option value={other}>{other}</option>}
+                    {other && (
+                        <option value={other} lang={isLanguageTag(other) ? other : undefined}>
+                            {other}
+                        </option>
+                    )}
                     {FORM_LANGUAGES.map(({ code, name }) => (
                         <option key={code} value={code} lang={code}>
                             {name}
