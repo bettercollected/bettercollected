@@ -1003,14 +1003,14 @@ async def test_every_kind_of_failed_import_says_why_and_leaves_no_draft(
     lines = []
     # diagnose=False as in production (handlers/__init__.py): with it on,
     # loguru prints local values such as memory addresses, which can contain
-    # "4711" by chance.
+    # the marker by chance.
     sink = logger.add(
         lambda message: lines.append(str(message)), level="DEBUG", diagnose=False
     )
     try:
         before = await _forms_in(workspace)
         response = await upload(
-            client, workspace, test_user_cookies, data, "Confidential intake 4711.pdf"
+            client, workspace, test_user_cookies, data, "Confidential intake Quokka.pdf"
         )
         assert response.status_code == 202, response.text
         body = response.json()
@@ -1030,7 +1030,9 @@ async def test_every_kind_of_failed_import_says_why_and_leaves_no_draft(
     assert await container.form_import_repo().count_active(workspace.id) == 0
     logged = "\n".join(lines)
     assert f"form import {body['id']}" in logged  # the sink saw the import's log
-    assert "Confidential" not in logged and "4711" not in logged
+    # Words, not digits: ids and timestamps in the log are hex and decimal,
+    # so a numeric marker could match one of them by chance.
+    assert "Confidential" not in logged and "Quokka" not in logged
     assert "Full name" not in logged and "Application form" not in logged
 
 
