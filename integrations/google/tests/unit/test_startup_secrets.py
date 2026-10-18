@@ -3,11 +3,20 @@ AUTH_AES_HEX_KEY (common/configs/shipped_secrets.py)."""
 
 import base64
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+from common.services.keyset import (
+    add_primary_key,
+    encode_keyset,
+    key_digest,
+    only_primary,
+    parse_keyset,
+)
 
 SERVICE_DIR = Path(__file__).resolve().parents[2]
 GOOD_JWT = "b" * 64
@@ -71,3 +80,50 @@ def test_refuses_to_start(jwt_secret, fernet_key, problem):
     assert problem in result.stderr
     assert "openssl rand -hex 32" in result.stderr
     assert PUBLISHED not in result.stderr
+
+
+# MASTER_ENCRYPTION_KEYSET (which encrypts the Google credentials) is warned
+# about, not refused: a new keyset could not read what is stored
+# (docs/response-keyset-rotation.md).
+def load_keyset(keyset_value):
+    """A fresh process importing what loads the keyset at startup."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("AUTH_")}
+    env.update(
+        AUTH_JWT_SECRET=GOOD_JWT,
+        AUTH_AES_HEX_KEY=GOOD_FERNET,
+        MASTER_ENCRYPTION_KEYSET=keyset_value,
+        DOTENV_PATH=str(SERVICE_DIR / "no-such-dir" / ".env"),
+    )
+    return subprocess.run(
+        [sys.executable, "-c", "import googleform.app.repositories.oauth_credential"],
+        cwd=SERVICE_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+
+def published_keyset():
+    """CI's test keyset, which is the one the repository published."""
+    ci = (SERVICE_DIR.parents[1] / ".github" / "workflows" / "ci.yml").read_text()
+    return re.search(r'MASTER_ENCRYPTION_KEYSET:\s*"([^"]+)"', ci).group(1)
+
+
+def test_warns_about_a_published_keyset_by_name_only():
+    value = published_keyset()
+    result = load_keyset(value)
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "MASTER_ENCRYPTION_KEYSET is a keyset that was published" in result.stderr
+    assert value not in result.stderr
+    for key in parse_keyset(value).key:
+        assert key_digest(key) not in result.stderr
+
+
+def test_no_keyset_warning_with_a_generated_keyset():
+    generated = encode_keyset(
+        only_primary(add_primary_key(parse_keyset(published_keyset())))
+    )
+    result = load_keyset(generated)
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "MASTER_ENCRYPTION_KEYSET" not in result.stderr
