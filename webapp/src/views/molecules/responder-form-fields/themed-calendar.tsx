@@ -15,18 +15,24 @@ export type ThemedCalendarProps = React.ComponentProps<typeof DayPicker>;
  * A Calendar component themed to match the form's FieldInput style: the
  * page colour as its ground, the button colour for the month and its days and
  * the chosen day, the border colour for weekday labels and today. Every text
- * colour is held to 4.5:1 on its ground (calendarColours), so a theme whose
- * own colours fall short gets a darker step of them.
+ * colour is held to 4.5:1 on its ground and the focus ring to 3:1
+ * (calendarColours), so a theme whose own colours fall short gets a darker
+ * step of them.
+ *
+ * Days of the previous and next month are not shown: in a colour that reads
+ * at 4.5:1 they can't be told apart from the month's own days in every theme,
+ * and a respondent could pick 30 September thinking it is in October.
  */
-function ThemedCalendar({ className, classNames, showOutsideDays = true, ...props }: ThemedCalendarProps) {
+function ThemedCalendar({ className, classNames, ...props }: ThemedCalendarProps) {
     const { theme } = useFormState();
     const colours = calendarColours(theme);
 
     return (
         <DayPicker
-            showOutsideDays={showOutsideDays}
             className={cn('p-3', className)}
-            style={{ background: colours.background, ['--calendar-nav' as string]: colours.nav, ['--calendar-nav-hover' as string]: colours.day }}
+            // The popover is portalled out of the form's layout, so the focus
+            // ring colour (tailwind.css :focus-visible) is set here too.
+            style={{ background: colours.background, ['--calendar-nav' as string]: colours.nav, ['--calendar-nav-hover' as string]: colours.day, ['--focus-ring' as string]: colours.focus }}
             classNames={{
                 months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
                 // `nav` is a sibling of month_caption (not its parent, as in v8), so
@@ -59,8 +65,6 @@ function ThemedCalendar({ className, classNames, showOutsideDays = true, ...prop
                 day_button: 'h-9 w-9 rounded-[4px] p-0',
                 selected: '',
                 today: 'rounded-[4px]',
-                // Told apart by a lighter weight and a softer (still 4.5:1) colour,
-                // not by fading them below what can be read.
                 outside: '',
                 disabled: 'opacity-50',
                 range_middle: '',
@@ -70,18 +74,18 @@ function ThemedCalendar({ className, classNames, showOutsideDays = true, ...prop
             styles={{
                 caption_label: { color: colours.day },
                 weekday: { color: colours.weekday },
-                day: { color: colours.day, fontWeight: 400 }
+                day: { color: colours.day }
             }}
-            // Applied in the order outside, today, selected: the chosen day wins.
+            // Applied in the order today, selected: the chosen day wins.
             modifiersStyles={{
-                outside: { color: colours.outside, fontWeight: 300 },
                 today: { background: colours.todayBackground, color: colours.today },
-                selected: { background: colours.selectedBackground, color: colours.selected, fontWeight: 400 }
+                selected: { background: colours.selectedBackground, color: colours.selected }
             }}
             components={{
                 Chevron: ({ orientation, ...props }) => (orientation === 'left' ? <ChevronLeft className="h-4 w-4" {...props} /> : <ChevronRight className="h-4 w-4" {...props} />)
             }}
             {...props}
+            showOutsideDays={false}
         />
     );
 }
