@@ -34,14 +34,39 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
     # with store_not_configured / keyset_missing)
     assert sorted(env) == [
         "DATABASE_URL",
+        "DB_WRITE_MODE",
+        "DB_WRITE_MODE__GOOGLE",
+        "DB_WRITE_MODE__RESPONSES",
+        "GOOGLE_DATABASE_URL",
+        "GOOGLE_MONGO_DB",
         "MASTER_ENCRYPTION_KEYSET",
         "MONGO_DB",
         "MONGO_URI",
         "SETTINGS_MASTER_KEY",
         "TASKS_DATABASE_URL",
     ]
-    for name in ("DATABASE_URL", "MASTER_ENCRYPTION_KEYSET", "MONGO_DB", "MONGO_URI"):
+    for name in (
+        "DB_WRITE_MODE",
+        "DB_WRITE_MODE__GOOGLE",
+        "DB_WRITE_MODE__RESPONSES",
+        "GOOGLE_MONGO_DB",
+        "MASTER_ENCRYPTION_KEYSET",
+        "MONGO_DB",
+        "MONGO_URI",
+    ):
         assert env[name].startswith("${") and env[name].endswith(":-}")
+    # the data stores: by default the narrow data roles, one per owning schema,
+    # each built from its own password; never the backend's or Google's role
+    app_url, google_url = env["DATABASE_URL"], env["GOOGLE_DATABASE_URL"]
+    assert app_url.startswith("${TASK_RUNNER_DATABASE_URL:-postgresql+asyncpg://bc_tasks_data_app:")
+    assert "${BC_TASKS_DATA_APP_PASSWORD}" in app_url and "@app-postgres:" in app_url
+    assert google_url.startswith(
+        "${TASK_RUNNER_GOOGLE_DATABASE_URL:-postgresql+asyncpg://bc_tasks_data_google:"
+    )
+    assert "${BC_TASKS_DATA_GOOGLE_PASSWORD}" in google_url and "@app-postgres:" in google_url
+    for url in (app_url, google_url):
+        for broad in ("bc_app", "bc_google:", "bc_auth", "bc_admin", "bc_jobs_exec", "bc_tasks:"):
+            assert broad not in url
     assert env["TASKS_DATABASE_URL"].startswith("postgresql+asyncpg://bc_tasks:")
     assert "@app-postgres:" in env["TASKS_DATABASE_URL"]
     assert "ADMIN_TASKS_SELFTEST" not in json.dumps(COMPOSE)
@@ -72,3 +97,51 @@ def test_the_roles_script_declares_the_runner_role_and_its_schema():
     assert "REVOKE ALL ON SCHEMA tasks FROM PUBLIC" in ROLES
     assert "ALTER DEFAULT PRIVILEGES" not in ROLES.upper()
     assert "RESET bc.tasks_pw" in ROLES
+
+
+def test_the_data_role_passwords_are_generated_checked_and_never_printed():
+    for name in ("BC_TASKS_DATA_APP_PASSWORD", "BC_TASKS_DATA_GOOGLE_PASSWORD"):
+        assert re.search(rf"for var in [^;\n]*\b{name}\b", DEPLOY)
+        assert re.search(
+            rf"for var in BC_ADMIN_PASSWORD[^;\n]*\b{name}\b[^;\n]*; do\n\s+value=", DEPLOY
+        )  # the URL-safe check covers it
+        assert name in COMPOSE["services"]["app-postgres"]["environment"]
+        for line in DEPLOY.splitlines():
+            if name in line and "echo" in line:
+                assert f"${name}" not in line and f"${{{name}" not in line
+    # the roles script runs again after the services' migrations, so a first
+    # deploy also grants on the tables they just created
+    runs = [m.start() for m in re.finditer(r"< postgres/ensure-admin-roles\.sh", DEPLOY)]
+    assert len(runs) == 2
+    first, second = runs
+    assert first < DEPLOY.index("alembic -c /api/auth/alembic.ini upgrade head") < second
+    assert DEPLOY.index("/api/integrations/google/alembic.ini upgrade head") < second
+
+
+def test_the_roles_script_declares_one_data_role_per_owning_schema_without_broad_grants():
+    for name in ("BC_TASKS_DATA_APP_PASSWORD", "BC_TASKS_DATA_GOOGLE_PASSWORD"):
+        assert name in ROLES
+    for var in ("bc.tasks_data_app_pw", "bc.tasks_data_google_pw"):
+        assert var in ROLES and f"RESET {var}" in ROLES
+    assert "'bc_tasks_data_app', 'bc.tasks_data_app_pw'" in ROLES
+    assert "'bc_tasks_data_google', 'bc.tasks_data_google_pw'" in ROLES
+    assert "SET search_path = pg_catalog" in ROLES
+    # not in the list of roles that get the admin, tasks and settings schemas
+    assert "['bc_tasks_data" not in ROLES.split("data_roles text[][]")[0]
+    # grants on the other services' tables are column-level, never table-level or ALL,
+    # and each role holds only its own schema's
+    grants = [
+        l.strip()
+        for l in ROLES.splitlines()
+        if re.search(r"TO bc_tasks_data_(app|google);", l) and l.strip().startswith("GRANT")
+    ]
+    assert grants
+    for line in grants:
+        assert re.match(
+            r"GRANT (USAGE ON SCHEMA (app|google)|SELECT \([a-z_, ]+\) ON|UPDATE \((doc, _bc_checksum)\) ON)",
+            line,
+        ), line
+        assert "ALL" not in line and "INSERT" not in line and "DELETE" not in line
+        role = "app" if line.endswith("bc_tasks_data_app;") else "google"
+        assert f" {role}." in line or f"SCHEMA {role} " in line, line
+    assert not re.search(r"GRANT TEMPORARY[^;]*bc_tasks_data", ROLES)

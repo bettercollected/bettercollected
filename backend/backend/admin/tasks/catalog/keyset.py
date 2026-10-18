@@ -1,0 +1,217 @@
+"""The keyset rotation task family: ``keyset.add_key``, ``keyset.promote``,
+``keyset.reencrypt``, ``keyset.verify`` and ``keyset.drop_old``.
+
+The order of a rotation (docs/response-keyset-rotation.md):
+
+1. ``add_key``: a new key is added as a SECONDARY; nothing changes for the
+   services until they restart with the new keyset.
+2. (the services restart and report the keyset they hold)
+3. ``promote``: the new key becomes the primary; services restart again.
+4. ``reencrypt``: every stored value moves to the primary key.
+5. ``verify``: a read-only full check that every value opens.
+6. ``drop_old``: the other keys are removed, only when a full scan of every
+   target in every store finds no value on them.
+
+All five share the lock ``keyset`` (exclusive across the family) and
+``responses.encryption``. The keyset is never a parameter, a result, an event
+or a log line: only key ids and counts.
+
+``typeform_acknowledged``: the Typeform integration is a separate image that
+also receives ``MASTER_ENCRYPTION_KEYSET`` from its environment. It reports no
+heartbeat and what it stores cannot be checked or re-encrypted from here, so
+the operator confirms they have dealt with it (kept the old key, or will
+reconnect its accounts) before any step that could make its data unreadable.
+"""
+
+import enum
+from typing import Annotated, Optional
+
+from pydantic import Field
+
+from backend.admin.tasks.catalog.responses_common import StoreChoice
+from backend.admin.tasks.spec import Params, Result, TaskMeta
+
+RESOURCES = ("keyset", "responses.encryption")
+
+
+class Targets(str, enum.Enum):
+    responses = "responses"
+    google_credentials = "google_credentials"
+
+
+class Refusals(str, enum.Enum):
+    keyset_missing = "keyset_missing"
+    keyset_unreadable = "keyset_unreadable"
+    keyset_not_in_store = "keyset_not_in_store"
+    keyset_not_readable_by_runner = "keyset_not_readable_by_runner"
+    keyset_unverified = "keyset_unverified"
+    store_not_configured = "store_not_configured"
+    store_unreachable = "store_unreachable"
+    store_empty = "store_empty"
+    typeform_not_acknowledged = "typeform_not_acknowledged"
+    published_primary = "published_primary"
+    published_key_to_promote = "published_key_to_promote"
+    primary_mismatch = "primary_mismatch"
+    key_not_in_keyset = "key_not_in_keyset"
+    rotation_in_progress = "rotation_in_progress"
+    consumer_not_reporting = "consumer_not_reporting"
+    consumer_stale = "consumer_stale"
+    consumer_env_override = "consumer_env_override"
+    consumer_restart_pending = "consumer_restart_pending"
+    consumer_missing_key = "consumer_missing_key"
+    consumer_behind = "consumer_behind"
+    values_on_old_key = "values_on_old_key"
+    scan_incomplete = "scan_incomplete"
+    stale_version = "stale_version"
+    typeform_reporting = "typeform_reporting"
+    google_flags_conflict = "google_flags_conflict"
+    values_not_readable = "values_not_readable"
+
+
+class Events(str, enum.Enum):
+    consumers_ready = "consumers_ready"
+    key_added = "key_added"
+    key_promoted = "key_promoted"
+    key_dropped = "key_dropped"
+    counted = "counted"
+    reencrypted = "reencrypted"
+    verified = "verified"
+
+
+# ------------------------------------------------------------------ params
+class AddKeyParams(Params):
+    pass
+
+
+class PromoteParams(Params):
+    # the key to make primary (a key id, as add_key reported it)
+    new_primary_id: Annotated[int, Field(ge=1, le=4294967295)]
+    typeform_acknowledged: bool = False
+    # false when the stack never ran the Google Forms integration
+    google_in_use: bool = True
+
+
+class ReencryptParams(Params):
+    # the primary the stored keyset must have now (guards against a stale view)
+    primary_id: Annotated[int, Field(ge=1, le=4294967295)]
+    targets: Annotated[list[Targets], Field(max_length=2)] = []  # empty: all
+    stores: StoreChoice = StoreChoice.auto
+    batch_size: Annotated[int, Field(ge=100, le=1000)] = 200
+    typeform_acknowledged: bool = False
+    google_in_use: bool = True
+
+
+class VerifyParams(Params):
+    targets: Annotated[list[Targets], Field(max_length=2)] = []
+    stores: StoreChoice = StoreChoice.auto
+    batch_size: Annotated[int, Field(ge=100, le=1000)] = 500
+
+
+class DropOldParams(Params):
+    # No target or store selection on purpose: a key is dropped only after a
+    # full scan of every target in every store the services write.
+    typeform_acknowledged: bool = False
+    google_in_use: bool = True
+    # accept a Google credentials target that holds no records (the Google Forms
+    # integration was never used). Responses are never accepted empty.
+    allow_empty_google: bool = False
+    batch_size: Annotated[int, Field(ge=100, le=1000)] = 500
+
+
+# ----------------------------------------------------------------- results
+class KeyChange(Result):
+    """What a write to the stored keyset did. Ids and numbers only."""
+
+    changed: bool
+    primary_id: int = 0
+    key_count: int = 0
+    added_key_id: int = 0
+    previous_primary_id: int = 0
+    dropped_count: int = 0
+    version: int = 0
+    revision: int = 0
+
+
+class TargetCounts(Result):
+    records: int = 0
+    values: int = 0
+    values_stale: int = 0
+    records_stale: int = 0
+    records_current: int = 0
+    records_reencrypted: int = 0
+    values_reencrypted: int = 0
+    records_unopenable: int = 0
+    values_unopenable: int = 0
+    values_openable: int = 0
+    records_changed_concurrently: int = 0
+    records_readback_failed: int = 0
+    mirror_records_copied: int = 0
+    stopped: int = 0
+
+
+class StoreCounts(Result):
+    mongo: Optional[TargetCounts] = None
+    postgres: Optional[TargetCounts] = None
+
+
+class ScanResult(Result):
+    complete: bool
+    primary_id: int = 0
+    responses: Optional[StoreCounts] = None
+    google_credentials: Optional[StoreCounts] = None
+    values_stale: int = 0
+    values_unopenable: int = 0
+
+
+class DropOldResult(Result):
+    complete: bool
+    changed: bool
+    nothing_to_drop: bool = False
+    primary_id: int = 0
+    dropped_count: int = 0
+    key_count: int = 0
+    version: int = 0
+    revision: int = 0
+    responses: Optional[StoreCounts] = None
+    google_credentials: Optional[StoreCounts] = None
+
+
+def _meta(name, params, result, *, mutating, title, resumable=False, idempotent=False):
+    return TaskMeta(
+        name=name,
+        version=1,
+        params=params,
+        result=result,
+        events=Events,
+        mutating=mutating,
+        resources=RESOURCES,
+        resumable=resumable,
+        requires_prior_dry_run=mutating,
+        title=title,
+        refusals=Refusals,
+        idempotent=idempotent,
+    )
+
+
+ADD_KEY = _meta(
+    "keyset.add_key", AddKeyParams, KeyChange, mutating=True,
+    title="Add a new response key as a secondary",
+)
+PROMOTE = _meta(
+    "keyset.promote", PromoteParams, KeyChange, mutating=True,
+    title="Make a response key the primary",
+)
+REENCRYPT = _meta(
+    "keyset.reencrypt", ReencryptParams, ScanResult, mutating=True, resumable=True,
+    idempotent=True, title="Re-encrypt stored values with the primary key",
+)
+VERIFY = _meta(
+    "keyset.verify", VerifyParams, ScanResult, mutating=False,
+    title="Check that every stored value opens",
+)
+DROP_OLD = _meta(
+    "keyset.drop_old", DropOldParams, DropOldResult, mutating=True,
+    title="Drop the response keys nothing uses",
+)
+
+ALL = (ADD_KEY, PROMOTE, REENCRYPT, VERIFY, DROP_OLD)

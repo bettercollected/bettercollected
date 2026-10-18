@@ -47,7 +47,12 @@ needs_postgres = pytest.mark.skipif(
 
 
 def roles_sql(
-    suffix: str, admin_pw: str, mig_pw: str, tasks_pw: str = "unused-tasks-pw"
+    suffix: str,
+    admin_pw: str,
+    mig_pw: str,
+    tasks_pw: str = "unused-tasks-pw",
+    tasks_data_app_pw: str = "unused-tasks-data-app-pw",
+    tasks_data_google_pw: str = "unused-tasks-data-google-pw",
 ) -> str:
     """The roles script's SQL with psql variables bound and role names suffixed."""
     script = ROLES_SCRIPT.read_text()
@@ -55,11 +60,13 @@ def roles_sql(
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin_counts\b", f"bc_admin_counts_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
-    sql = re.sub(r"\bbc_(app|auth|google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
+    sql = re.sub(r"\bbc_(app|auth|google|tasks_data_app|tasks_data_google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return (
         sql.replace(":'admin_pw'", f"'{admin_pw}'")
         .replace(":'mig_pw'", f"'{mig_pw}'")
         .replace(":'tasks_pw'", f"'{tasks_pw}'")
+        .replace(":'tasks_data_app_pw'", f"'{tasks_data_app_pw}'")
+        .replace(":'tasks_data_google_pw'", f"'{tasks_data_google_pw}'")
     )
 
 
@@ -129,6 +136,12 @@ class Server:
             return _with_database(
                 self.admin_url, database, self.runtime_role, self.admin_pw
             )
+        if role == "data_app":
+            return _with_database(self.admin_url, database, self.data_app_role, self.data_app_pw)
+        if role == "data_google":
+            return _with_database(
+                self.admin_url, database, self.data_google_role, self.data_google_pw
+            )
         if role == "owner":
             return _with_database(
                 self.admin_url, database, self.owner_role, self.mig_pw
@@ -146,6 +159,16 @@ class Server:
         return name
 
     created: list = None  # set in the fixture
+    data_app_pw: str = ""  # the task runner's data roles, set in the fixture
+    data_google_pw: str = ""
+
+    @property
+    def data_app_role(self) -> str:
+        return f"bc_tasks_data_app_{self.suffix}"
+
+    @property
+    def data_google_role(self) -> str:
+        return f"bc_tasks_data_google_{self.suffix}"
 
 
 async def _create_from_template(postgres_url: str, name: str, template: str) -> None:
@@ -173,7 +196,14 @@ async def _bootstrap(server: Server, database: str) -> None:
     # bc_tasks is created by the roles script itself (the runner's login role)
     await _execute(
         server.url(database),
-        roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw),
+        roles_sql(
+            server.suffix,
+            server.admin_pw,
+            server.mig_pw,
+            server.tasks_pw,
+            server.data_app_pw,
+            server.data_google_pw,
+        ),
     )
     for logical in READER_ROLES:
         await _execute(
@@ -200,6 +230,8 @@ async def server():
         boot,
     )
     srv.created = [template, boot]
+    srv.data_app_pw = secrets.token_hex(12)
+    srv.data_google_pw = secrets.token_hex(12)
     role_vars = {
         "ADMIN_DB_RUNTIME_ROLE": srv.runtime_role,
         **{f"ADMIN_DB_ROLE_{r.upper()}": srv.reader_role(r) for r in READER_ROLES},
@@ -224,6 +256,8 @@ async def server():
         for role in (
             srv.runtime_role,
             srv.owner_role,
+            srv.data_app_role,
+            srv.data_google_role,
             *(f"bc_{r}_{suffix}" for r in {*INIT_ROLES, *READER_ROLES}),
             f"bc_admin_counts_{suffix}",
         ):

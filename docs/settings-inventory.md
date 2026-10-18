@@ -47,7 +47,7 @@ environment, whatever the tier.
 | `AUTH_AES_HEX_KEY` | auth_keys | backend, auth, google, temporal_worker, actions_executor | str | yes | R | T4 |  |
 | `AUTH_INTERNAL_NOTIFY_KEY` | auth_keys | backend, auth, google | str | yes | R | T4 |  |
 | `AUTH_JWT_SECRET` | auth_keys | backend, auth, google | str | yes | R | T4 |  |
-| `MASTER_ENCRYPTION_KEYSET` | auth_keys | backend, google | str | yes | R | T4 |  |
+| `MASTER_ENCRYPTION_KEYSET` | auth_keys | backend, google, tasks | str | yes | R | T4 |  |
 | `TEMPORAL_API_KEY` | auth_keys | backend | str | yes | R | T4 |  |
 | `STRIPE_CANCEL_URL` | billing | auth | url |  | R | T3 |  |
 | `STRIPE_PRODUCT_ID` | billing | auth | str max 100 |  | R | T3 |  |
@@ -308,7 +308,9 @@ environment, whatever the tier.
 | Name | Means |
 |---|---|
 | `CLIENT_URL` | `API_CLIENT_URL` |
+| `GOOGLE_DATABASE_URL` | `DATABASE_URL` |
 | `TASK_RUNNER_DATABASE_URL` | `DATABASE_URL` |
+| `TASK_RUNNER_GOOGLE_DATABASE_URL` | `DATABASE_URL` |
 | `TASK_RUNNER_KEYSET` | `MASTER_ENCRYPTION_KEYSET` |
 | `TASK_RUNNER_MONGO_DB` | `MONGO_DB` |
 | `TASK_RUNNER_MONGO_URI` | `MONGO_URI` |
@@ -324,6 +326,7 @@ environment, whatever the tier.
 | `ENABLE_COMMAND_FORM_BUILDERS` | listed in the deployment env file; no service reads it |
 | `ENABLE_FORM_BUILDER` | listed in the deployment env file; no service reads it |
 | `GOOGLE_ENABLED` | compose profile switch |
+| `GOOGLE_MONGO_DB` | the Google integration's Mongo database, read by the keyset rotation tasks and script |
 | `MOCK_SAML_IMAGE` | compose image selection for the development identity provider |
 | `NODE_ENV` | set by the Node.js tooling |
 | `OAUTHLIB_INSECURE_TRANSPORT` | read by the oauthlib library |
@@ -336,6 +339,7 @@ environment, whatever the tier.
 | `SANDBOX_UID` | compose build argument of the local sandbox |
 | `SCHEDULAR_INTERVAL_MINUTES` | listed in an env example; no service reads it |
 | `STRIPE_REDIRECT_URL` | compose interpolation expanded into the STRIPE_*_URL keys |
+| `TASK_RUNNER_GOOGLE_MONGO_DB` | the task-runner compose service's name for GOOGLE_MONGO_DB |
 | `TEMPLATE_PREDEFINED_WORKSPACE_ID` | listed in an env example; no service reads it |
 | `TYPEFORM_BASIC_REDIRECT_URI` | listed in the deployment env file; no service reads it |
 | `TYPEFORM_BASIC_SCOPE` | listed in the deployment env file; no service reads it |
