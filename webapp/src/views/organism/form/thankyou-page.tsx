@@ -5,6 +5,7 @@ import { Copy } from 'lucide-react';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -50,6 +51,12 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
 
     // The heading is customizable (and pipeable) like the message; the classic
     // greeting stays as the default for forms that never set one.
+    // The author's own title, message and button are marked when in another
+    // language than the page; the defaults are in the page's language.
+    const contentLang = useFormContentLanguage();
+    const titleLang = thankyouPage?.title ? contentLang : undefined;
+    const messageLang = thankyouPage?.message ? contentLang : undefined;
+
     function getThankYouTitle() {
         const title = thankyouPage?.title;
         if (!title) return t('ENDING.TITLE');
@@ -81,9 +88,11 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
             <>
                 {!accountInStrip && <UserAvatarDropDown disabled />}
                 {!accountInStrip && <LeafletTopRule theme={theme} />}
-                <LeafletSectionBar theme={theme} title={getThankYouTitle()} layout={thankyouPage?.layout} headingLevel={1} />
+                <LeafletSectionBar theme={theme} title={<span lang={titleLang}>{getThankYouTitle()}</span>} layout={thankyouPage?.layout} headingLevel={1} />
                 <LeafletIntroBand theme={theme} layout={thankyouPage?.layout}>
-                    <p className="max-w-[62ch] text-pretty">{getThankYouMessage()}</p>
+                    <p className="max-w-[62ch] text-pretty" lang={messageLang}>
+                        {getThankYouMessage()}
+                    </p>
                 </LeafletIntroBand>
                 <div className={cn(FORM_COLUMN, columnPlacementClass(thankyouPage?.layout), 'flex flex-col items-start pt-8')} data-testid="thankyou-column">
                     <section aria-labelledby="leaflet-next" className="w-full" data-testid="leaflet-next">
@@ -110,7 +119,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                     </section>
                     {thankyouPage?.buttonText && buttonHref !== null && (
                         <Button flat style={{ background: theme?.secondary }} className="mt-8 min-h-12 rounded-[4px] px-8 text-base font-semibold">
-                            <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
+                            <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" lang={contentLang}>
                                 {thankyouPage.buttonText}
                             </Link>
                         </Button>
@@ -126,15 +135,15 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
             {/* Same column, alignment and vertical placement as the welcome
                 page (form-column.ts, layout-wrapper.tsx). */}
             <div className={cn(FORM_COLUMN, columnPlacementClass(thankyouPage?.layout), 'flex flex-col bg-inherit pt-6', greetingAlignClass(thankyouPage?.layout))} data-testid="thankyou-column">
-                <h1 className="max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: theme?.primary }}>
+                <h1 className="max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: theme?.primary }} lang={titleLang}>
                     {getThankYouTitle()}
                 </h1>
-                <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ color: softInk(theme) }}>
+                <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ color: softInk(theme) }} lang={messageLang}>
                     {getThankYouMessage()}
                 </p>
                 {thankyouPage?.buttonText && buttonHref !== null && (
                     <Button flat style={{ background: theme?.secondary }} className="mt-8 min-h-12 rounded-[8px] px-8 text-base font-semibold">
-                        <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
+                        <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" lang={contentLang}>
                             {thankyouPage.buttonText}
                         </Link>
                     </Button>

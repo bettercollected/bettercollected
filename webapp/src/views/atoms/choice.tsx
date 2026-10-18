@@ -89,11 +89,13 @@ export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: 
 }
 
 /** The row's content: control, then the label. */
-export function ChoiceContent({ kind, selected, theme, solid, children }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; solid?: boolean; children: ReactNode }) {
+export function ChoiceContent({ kind, selected, theme, solid, lang, children }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; solid?: boolean; lang?: string; children: ReactNode }) {
     return (
         <>
             <ChoiceIndicator kind={kind} selected={selected} theme={theme} inverted={solid} />
-            <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{children}</span>
+            <span className="min-w-0 flex-1 [overflow-wrap:anywhere]" lang={lang}>
+                {children}
+            </span>
         </>
     );
 }
@@ -106,6 +108,8 @@ interface ChoiceProps {
     onClick?: (choiceId: string) => any;
     /** Which control the row draws; also its role (checkbox) when it is one. */
     kind?: ChoiceKind;
+    /** The option's language, when it is not the page's (see useFormContentLanguage). */
+    lang?: string;
 }
 
 /**
@@ -113,12 +117,12 @@ interface ChoiceProps {
  * (role="checkbox" + aria-checked); single-answer lists outside a radio group
  * (the dropdown's options) stay toggle buttons with aria-pressed.
  */
-const Choice = forwardRef<HTMLButtonElement, ChoiceProps>(({ isSelected = false, theme, index, choice, onClick, kind = 'radio' }, ref) => {
+const Choice = forwardRef<HTMLButtonElement, ChoiceProps>(({ isSelected = false, theme, index, choice, onClick, kind = 'radio', lang }, ref) => {
     const row = choiceRowStyle(theme, isSelected);
     const semantics = kind === 'checkbox' ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-pressed': isSelected };
     return (
         <button ref={ref} type="button" {...semantics} style={row.style} className={row.className} key={choice.id} onClick={() => onClick && onClick(choice.id || '')}>
-            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid}>
+            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid} lang={choice.value ? lang : undefined}>
                 {choice.value ? choice.value : `Item ${index + 1}`}
             </ChoiceContent>
         </button>

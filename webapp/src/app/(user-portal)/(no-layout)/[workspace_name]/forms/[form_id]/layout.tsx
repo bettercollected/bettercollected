@@ -1,4 +1,5 @@
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
+import RespondentDocumentLanguage from '@app/components/form/respondent-document-language';
 import RespondentTypeface from '@app/components/form/respondent-typeface';
 import environments from '@app/configs/environments';
 import { getFormById, getWorkspaceByName } from '@app/lib/server/api';
@@ -83,6 +84,8 @@ export default async function CustomDomainLayout({ children, params }: { childre
 
     return (
         <WorkspaceDispatcher workspace={workspace}>
+            {/* The page is in the respondent's language (<html lang>). */}
+            <RespondentDocumentLanguage />
             <RespondentTypeface>{children}</RespondentTypeface>
         </WorkspaceDispatcher>
     );

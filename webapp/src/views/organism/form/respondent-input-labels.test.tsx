@@ -75,8 +75,8 @@ function Page() {
     return <FormSlide index={0} isPreviewMode />;
 }
 
-const open = () => {
-    store.dispatch(setForm({ formId: `labels-${Math.random()}`, title: 'Labels', fields: [{ id: 's1', index: 0, type: FieldTypes.SLIDE, properties: { fields: FIELDS } }] }));
+const open = (fields: StandardFormFieldDto[] = FIELDS, settings?: Record<string, unknown>) => {
+    store.dispatch(setForm({ formId: `labels-${Math.random()}`, title: 'Labels', settings, fields: [{ id: 's1', index: 0, type: FieldTypes.SLIDE, properties: { fields } }] } as any));
     return render(
         <ReduxProvider store={store}>
             <Provider>
@@ -141,14 +141,14 @@ describe('respondent controls are named by their question', () => {
         const input = (await screen.findByLabelText('Upload your CV')) as HTMLInputElement;
         expect(input.type).toBe('file');
         expect(input).toHaveAccessibleName('Upload your CV');
-        expect(input).toHaveAccessibleDescription(/Max size limit: 25 MB.*About upload your cv/);
+        expect(input).toHaveAccessibleDescription(/About upload your cv.*Max size limit: 25 MB/);
         expect(input.className).not.toMatch(/(^|\s)hidden(\s|$)/);
     });
 
     it('the dropdown and date buttons describe their current value', async () => {
         open();
-        expect(await screen.findByRole('button', { name: 'Which country?' })).toHaveAccessibleDescription(/^Select an option/);
-        expect(screen.getByRole('button', { name: 'When were you born?' })).toHaveAccessibleDescription(/^Pick a date/);
+        expect(await screen.findByRole('button', { name: 'Which country?' })).toHaveAccessibleDescription('About which country? Select an option');
+        expect(screen.getByRole('button', { name: 'When were you born?' })).toHaveAccessibleDescription('About when were you born? Pick a date');
     });
 
     it('matrix rows are groups named by the row, cells by the column', async () => {
@@ -194,5 +194,138 @@ describe('respondent controls are named by their question', () => {
         // Colour contrast needs layout jsdom does not have; the theme presets are checked elsewhere.
         const results = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
         expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+    });
+});
+
+// Described in the order things show on screen: the question's description,
+// "Why we ask this", the field's own hints, then the error.
+describe('respondent controls are described in reading order', () => {
+    const WHY = { whyWeAsk: 'To plan the menu.' };
+    const ORDERED: StandardFormFieldDto[] = [
+        question('multi', FieldTypes.MULTIPLE_CHOICE, 'Which fruits?', { choices: choices('Apple', 'Pear'), allowMultipleSelection: true, ...WHY }, { validations: { required: true } }),
+        question('dropdown', FieldTypes.DROP_DOWN, 'Which country?', { choices: choices('Netherlands', 'Belgium'), ...WHY }),
+        question('date', FieldTypes.DATE, 'When were you born?', WHY),
+        question('file', FieldTypes.FILE_UPLOAD, 'Upload your CV', WHY)
+    ];
+
+    beforeEach(() => {
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+    });
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it('checkboxes: description, why we ask, then the "choose many" hint', async () => {
+        open(ORDERED);
+        const group = await screen.findByRole('group', { name: 'Which fruits?' });
+        expect(group).toHaveAccessibleDescription('(required) About which fruits? Why we ask this: To plan the menu. Choose as many as you like.');
+    });
+
+    it('the hint comes before the error', async () => {
+        open(ORDERED);
+        const group = await screen.findByRole('group', { name: 'Which fruits?' });
+        act(() => void fireEvent.click(screen.getByRole('button', { name: 'Submit response' })));
+        expect(await screen.findByText('Please answer this question to continue.')).toBeInTheDocument();
+        expect(group).toHaveAccessibleDescription('(required) About which fruits? Why we ask this: To plan the menu. Choose as many as you like. Please answer this question to continue.');
+    });
+
+    it('dropdown, date and file: their own hint after why we ask', async () => {
+        open(ORDERED);
+        expect(await screen.findByRole('button', { name: 'Which country?' })).toHaveAccessibleDescription('About which country? Why we ask this: To plan the menu. Select an option');
+        expect(screen.getByRole('button', { name: 'When were you born?' })).toHaveAccessibleDescription('About when were you born? Why we ask this: To plan the menu. Pick a date');
+        expect(screen.getByLabelText('Upload your CV')).toHaveAccessibleDescription(/^About upload your cv Why we ask this: To plan the menu\. Choose your file or drag file ?Max size limit: 25 MB$/);
+    });
+});
+
+// The inputs sit in no form of their own (each unnamed form made screen
+// readers say "end of form" after every question). Enter in a one-line input
+// still moves on to the next question; short and long text are text areas,
+// where Enter starts a new line, as it did inside the forms.
+describe('respondent inputs outside forms', () => {
+    const TEXT: StandardFormFieldDto[] = [
+        question('email', FieldTypes.EMAIL, 'What is your email address?', {}, { index: 0 }),
+        question('link', FieldTypes.LINK, 'Your website', {}, { index: 1 }),
+        question('phone', FieldTypes.PHONE_NUMBER, 'Your phone number', {}, { index: 2 }),
+        question('short', FieldTypes.SHORT_TEXT, 'What is your name?', {}, { index: 3 }),
+        question('long', FieldTypes.LONG_TEXT, 'Tell us more', {}, { index: 4 })
+    ];
+    const enter = (element: Element) => fireEvent.keyDown(element, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13 });
+
+    beforeEach(() => {
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+    });
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it('no question puts its input in a form', async () => {
+        const { container } = open();
+        await screen.findByRole('textbox', { name: 'What is your name?' });
+        expect(container.querySelectorAll('form')).toHaveLength(0);
+    });
+
+    it('Enter moves from email to link to phone to short text', async () => {
+        open(TEXT);
+        const email = await screen.findByRole('textbox', { name: 'What is your email address?' });
+        const link = screen.getByRole('textbox', { name: 'Your website' });
+        const phone = screen.getByRole('textbox', { name: 'Your phone number' });
+        const name = screen.getByRole('textbox', { name: 'What is your name?' });
+
+        email.focus();
+        expect(enter(email)).toBe(false); // handled: no default action
+        expect(link).toHaveFocus();
+        enter(link);
+        expect(phone).toHaveFocus();
+        enter(phone);
+        expect(name).toHaveFocus();
+    });
+
+    it.each(['What is your name?', 'Tell us more'])('Enter in "%s" (a text area) is left to it: a new line', async (title) => {
+        open(TEXT);
+        const area = await screen.findByRole('textbox', { name: title });
+        area.focus();
+        expect(enter(area)).toBe(true); // not prevented
+        expect(area).toHaveFocus();
+    });
+
+    it('Enter in the last question stays put', async () => {
+        open([question('only', FieldTypes.EMAIL, 'What is your email address?', {}, { index: 0 })]);
+        const email = await screen.findByRole('textbox', { name: 'What is your email address?' });
+        email.focus();
+        expect(enter(email)).toBe(false);
+        expect(email).toHaveFocus();
+    });
+});
+
+// The form's own text is marked with its declared language when that is
+// not the respondent's interface language (the page's <html lang>).
+describe('form content language', () => {
+    const NL_FIELDS: StandardFormFieldDto[] = [question('single', FieldTypes.MULTIPLE_CHOICE, 'Lievelingskleur?', { choices: choices('Rood', 'Groen'), whyWeAsk: 'Voor de statistiek.' })];
+
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it('a Dutch form under an English interface marks its title, description, reason and options', async () => {
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+        open(NL_FIELDS, { language: 'nl' });
+        await screen.findByRole('radiogroup', { name: 'Lievelingskleur?' });
+        expect(document.getElementById('q-title-single')).toHaveAttribute('lang', 'nl');
+        expect(document.getElementById('q-desc-single')).toHaveAttribute('lang', 'nl');
+        expect(screen.getByText('Voor de statistiek.')).toHaveAttribute('lang', 'nl');
+        expect(screen.getByText('Rood')).toHaveAttribute('lang', 'nl');
+        // The interface text around it stays in the page's language.
+        expect(screen.getByText('Why we ask this:').closest('[lang="nl"]')).toBeNull();
+        expect(screen.getByText('Optional').closest('[lang="nl"]')).toBeNull();
+    });
+
+    it('a Dutch form under a Dutch interface needs no marks', async () => {
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=nl');
+        open(NL_FIELDS, { language: 'nl-NL' });
+        await screen.findByRole('radiogroup', { name: 'Lievelingskleur?' });
+        expect(document.querySelector('[lang="nl-NL"]')).toBeNull();
+    });
+
+    it('a form that declares no language is taken to be in the page language', async () => {
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+        open(NL_FIELDS);
+        await screen.findByRole('radiogroup', { name: 'Lievelingskleur?' });
+        expect(document.getElementById('q-title-single')).not.toHaveAttribute('lang');
     });
 });

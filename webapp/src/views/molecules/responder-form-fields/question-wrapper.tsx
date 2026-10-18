@@ -4,6 +4,7 @@ import parse from 'html-react-parser';
 import { AlertCircle } from 'lucide-react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
@@ -45,6 +46,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
 
     const { invalidFields } = formResponse;
     const { t, language } = useRespondentLanguage();
+    // The author's text (title, description, reason) is marked when the form
+    // declares another language than the page's; the chrome around it is not.
+    const contentLang = useFormContentLanguage();
     // Answer rules (length, format, range, number of options): flagged on
     // Continue, then re-checked against the answer as it is now, so the
     // message goes away as soon as the answer is fixed.
@@ -113,10 +117,20 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const hasTitle = /(^|>)[^<]*\S/.test(titleHtml);
     const itemHeadingId = itemScope ? `group-item-${itemScope.groupId}-${itemScope.index}` : undefined;
     const labelledBy = [hasTitle ? titleId : null, itemHeadingId].filter(Boolean).join(' ') || undefined;
-    const describedBy = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
+    // Described in reading order: description, "why we ask", then the error.
+    const infoIds = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null].filter(Boolean).join(' ') || undefined;
+    const describedBy = [infoIds, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
     const questionLabel: QuestionLabel = useMemo(
-        () => ({ labelledBy, describedBy, requiredId: isAnswerable && isRequired ? requiredId : undefined, required: isAnswerable && isRequired, invalid: hasError }),
-        [labelledBy, describedBy, requiredId, isAnswerable, isRequired, hasError]
+        () => ({
+            labelledBy,
+            describedBy,
+            infoIds,
+            errorId: hasError ? errorId : undefined,
+            requiredId: isAnswerable && isRequired ? requiredId : undefined,
+            required: isAnswerable && isRequired,
+            invalid: hasError
+        }),
+        [labelledBy, describedBy, infoIds, errorId, requiredId, isAnswerable, isRequired, hasError]
     );
     useEffect(() => {
         const controls = groupRef.current?.querySelectorAll<HTMLElement>('input:not([type=hidden]), textarea, select, [role=radiogroup], [role=combobox]');
@@ -143,7 +157,7 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                         (ratified 2026-07-08 against the form-redesign mocks). */}
                     <div className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
                         {/* The title alone (no required mark): it is the controls' accessible name. */}
-                        <div id={titleId} className="contents">
+                        <div id={titleId} className="contents" lang={contentLang}>
                             {parse(titleHtml)}
                         </div>
                         {isAnswerable && isRequired && (
@@ -162,7 +176,7 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                     {isAnswerable && !isRequired && <span className="text-[13px] font-normal text-black-700">{t('FIELD.OPTIONAL')}</span>}
                 </div>
                 {resolvedDescription && (
-                    <div id={`q-desc-${field.id}`} className="mt-1.5 max-w-[62ch] text-[15px] leading-relaxed text-black-700">
+                    <div id={`q-desc-${field.id}`} className="mt-1.5 max-w-[62ch] text-[15px] leading-relaxed text-black-700" lang={contentLang}>
                         {resolvedDescription}
                     </div>
                 )}
@@ -178,7 +192,7 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                         <span className="font-semibold" style={{ color: theme?.primary }} lang={language}>
                             {t('QUESTION.WHY_WE_ASK')}
                         </span>{' '}
-                        {whyWeAsk}
+                        <span lang={contentLang}>{whyWeAsk}</span>
                     </p>
                 )}
             </div>

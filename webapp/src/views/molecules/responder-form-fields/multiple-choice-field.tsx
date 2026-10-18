@@ -7,6 +7,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { cn } from '@app/shadcn/util/lib';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -17,6 +18,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
     const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
     const { t } = useRespondentLanguage();
+    const contentLang = useFormContentLanguage();
     const tokens = styleTokens(theme?.style);
 
     const standardForm = useAppSelector(selectForm);
@@ -52,7 +54,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                             value={getSelectedValue() ?? null}
                             onChange={(value, { viaArrowKeys }) => handleClick(value, !viaArrowKeys)}
                             className={cn(tokens.ruledChoices ? '' : 'space-y-2')}
-                            options={(field.properties?.choices ?? []).map((choice, index) => ({ key: choice.id ?? String(index), value: choice.id ?? '', label: choice.value ? choice.value : `Item ${index + 1}` }))}
+                            options={(field.properties?.choices ?? []).map((choice, index) => ({ key: choice.id ?? String(index), value: choice.id ?? '', label: choice.value ? choice.value : `Item ${index + 1}`, lang: choice.value ? contentLang : undefined }))}
                         />
                     )}
                 </WithQuestionLabel>

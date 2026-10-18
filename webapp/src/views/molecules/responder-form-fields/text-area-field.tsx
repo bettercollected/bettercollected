@@ -1,14 +1,10 @@
-import { StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
-import { selectForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
-import { useResponderState } from '@app/store/jotai/responder-form-state';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { getRespondentPlaceholder } from '@app/utils/form-utils';
-import { scrollToDivById } from '@app/utils/scroll-utils';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
@@ -59,8 +55,6 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
     const { formResponse, addFieldTextAnswer, addFieldEmailAnswer, addFieldNumberAnswer, addFieldURLAnswer, removeAnswer } = useFormResponse();
     const [inputVal, setInputVal] = useState((formResponse.answers && formResponse.answers[field.id]?.text) || '');
 
-    const form: StandardFormDto = useAppSelector(selectForm);
-    const { currentSlide } = useResponderState();
     const { t } = useRespondentLanguage();
     const { theme } = useFormState();
 
@@ -80,27 +74,22 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
 
     return (
         <QuestionWrapper field={field}>
-            <form
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
+            {/* No form of its own (Enter in a text area starts a new line, so
+                one never submitted anyway). */}
+            <LabelledTextArea
+                $formTheme={theme}
+                rows={1}
+                value={inputVal}
+                onChange={(e) => setInputVal(e.target.value)}
+                // leaving the field (e.g. to click Submit) must not wait for the debounce
+                onBlur={() => commit(inputVal)}
+                className="border px-4 py-3 text-base leading-normal outline-hidden transition-shadow lg:text-lg lg:leading-7"
+                style={{
+                    resize: 'none'
                 }}
-            >
-                <LabelledTextArea
-                    $formTheme={theme}
-                    rows={1}
-                    value={inputVal}
-                    onChange={(e) => setInputVal(e.target.value)}
-                    // leaving the field (e.g. to click Submit) must not wait for the debounce
-                    onBlur={() => commit(inputVal)}
-                    className="border px-4 py-3 text-base leading-normal outline-hidden transition-shadow lg:text-lg lg:leading-7"
-                    style={{
-                        resize: 'none'
-                    }}
-                    id={`input-field-${field.id}`}
-                    placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
-                />
-            </form>
+                id={`input-field-${field.id}`}
+                placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
+            />
         </QuestionWrapper>
     );
 }

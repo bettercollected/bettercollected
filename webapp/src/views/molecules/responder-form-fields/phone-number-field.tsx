@@ -5,12 +5,9 @@ import styled from 'styled-components';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { getPlaceholderValueForField } from '@app/utils/form-utils';
 
-import { selectForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { useEnterToNextQuestion } from './next-question';
 import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -55,45 +52,39 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
         }
         addFieldPhoneNumberAnswer(field.id, phone);
     };
-    const form = useAppSelector(selectForm);
-    const { currentSlide } = useResponderState();
+    const onEnter = useEnterToNextQuestion(field);
 
     return (
         <QuestionWrapper field={field}>
-            <form
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
+            {/* No form of its own: Enter moves on to the next question. */}
+            <LabelledPhoneInput
+                $formTheme={theme}
+                value={(formResponse.answers && formResponse.answers[field.id]?.phone_number) || ''}
+                onChange={(e) => handleChange(e)}
+                onEnterKeyPress={onEnter}
+                country={defaultCountry()}
+                buttonStyle={{
+                    border: '0px',
+                    borderRight: `1px solid ${theme?.tertiary || '#818CA0'}`,
+                    background: '#ffffff',
+                    height: '100%'
                 }}
-            >
-                <LabelledPhoneInput
-                    $formTheme={theme}
-                    value={(formResponse.answers && formResponse.answers[field.id]?.phone_number) || ''}
-                    onChange={(e) => handleChange(e)}
-                    country={defaultCountry()}
-                    buttonStyle={{
-                        border: '0px',
-                        borderRight: `1px solid ${theme?.tertiary || '#818CA0'}`,
-                        background: '#ffffff',
-                        height: '100%'
-                    }}
-                    dropdownStyle={{ background: '#ffffff' }}
-                    inputStyle={{
-                        border: `1px solid ${theme?.tertiary || '#818CA0'}`,
-                        borderRadius: '6px',
-                        background: '#ffffff',
-                        color: theme?.primary
-                    }}
-                    placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
-                    inputProps={{
-                        // Exact width math: the flag button occupies 3.5rem, so the
-                        // input takes the rest — mx-14 + w-[93%] double-counted the
-                        // gutter and drifted at wider viewports.
-                        className: 'text-base lg:text-lg py-3 ml-14 w-[calc(100%-3.5rem)]',
-                        id: `input-field-${field.id}`
-                    }}
-                />
-            </form>
+                dropdownStyle={{ background: '#ffffff' }}
+                inputStyle={{
+                    border: `1px solid ${theme?.tertiary || '#818CA0'}`,
+                    borderRadius: '6px',
+                    background: '#ffffff',
+                    color: theme?.primary
+                }}
+                placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
+                inputProps={{
+                    // Exact width math: the flag button occupies 3.5rem, so the
+                    // input takes the rest — mx-14 + w-[93%] double-counted the
+                    // gutter and drifted at wider viewports.
+                    className: 'text-base lg:text-lg py-3 ml-14 w-[calc(100%-3.5rem)]',
+                    id: `input-field-${field.id}`
+                }}
+            />
         </QuestionWrapper>
     );
 }
