@@ -160,5 +160,18 @@
         "DAYS_other": "{{count}} dagen na het insturen.",
         "UNTIL_DATE": "Tot {{date}}.",
         "UNTIL_DELETED": "Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd."
+    },
+    "FEEDBACK": {
+        "RESPONSE_FROM": "Reactie van {{author}}",
+        "NO_UPDATES": "Nog geen updates. Kijk hier later nog eens.",
+        "STATUS": "Status"
+    },
+    "LOOKUP": {
+        "TITLE": "Zoek een inzending op nummer",
+        "HINT": "Elke inzending krijgt een inzendnummer. Vul het in om die inzending te bekijken of te laten verwijderen.",
+        "LABEL": "Inzendnummer",
+        "PLACEHOLDER": "Vul het inzendnummer in",
+        "SEARCH": "Zoeken",
+        "NOT_FOUND": "Er is geen inzending met dit nummer."
     }
 }

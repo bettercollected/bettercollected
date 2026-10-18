@@ -131,7 +131,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                     <WorkspaceDetailsCard workspace={workspace} />
                     {/* Same sidebar placement as the portal: one utility
                         column, two-column page. */}
-                    <SearchBySubmissionNumber className="w-full" />
+                    <SearchBySubmissionNumber className="w-full" audience="team" />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
                     <div className="border-black-300 flex shrink-0 space-x-1 overflow-x-auto border-b pb-0">
