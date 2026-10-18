@@ -10,10 +10,10 @@
   <button type="submit">{{ _("Run verification") }}</button>
 </form>
 <h2>{{ _("Last result") }}</h2>
-{% if result is none %}
+{% if result.ok is none %}
 <p>{{ _("Not run since this service started.") }}</p>
 {% else %}
-<p>{{ _("Run at") }} {{ result.at | ts }}: {% if result.ok %}<span class="ok">{{ _("no problems found") }}</span>{% else %}<span class="bad">{{ result.problems | length }} {{ _("problem(s)") }}</span>{% endif %}</p>
+<p>{{ _("Run at") }} {{ result.last_run | ts }}: {% if result.ok %}<span class="ok">{{ _("no problems found") }}</span>{% else %}<span class="bad">{{ result.problems | length }} {{ _("problem(s)") }}</span>{% endif %}</p>
 {% if not result.ok %}
 <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Problems') }}">
 <table>

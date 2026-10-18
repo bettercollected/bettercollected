@@ -19,7 +19,11 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.responses import HTMLResponse
 
+from backend.admin.config import MASTER_KEY_KEY, parse_master_key
 from backend.admin.gate.checkers import build_checkers
+from backend.admin.loops.base import LoopRunner
+from backend.admin.loops.config import LoopSettings
+from backend.admin.loops.status import IntegrityStatus, LoopStatus, StatusBoard
 from backend.admin.portal_config import PortalSettings
 from backend.admin.repositories.tables import attempts
 from backend.admin.security.clock import Clock, SystemClock
@@ -31,7 +35,7 @@ from backend.admin.security.ratelimit import Limiter, SqlAttemptStore
 from backend.admin.services.factors import FactorService
 from backend.admin.services.pages import PageService
 from backend.admin.services.sessions import SessionService
-from backend.admin.services.settings_pages import IntegrityCache, SettingsPages
+from backend.admin.services.settings_pages import SettingsPages
 from backend.admin.services.settings_store import SettingsService, store_registry
 from backend.admin.services.signin import SignInService
 from backend.admin.services.stepup import StepUpService
@@ -83,7 +87,11 @@ class Portal:
     templates: Environment
     settings_pages: SettingsPages
     pending_key: bytes
-    integrity: IntegrityCache = field(default_factory=IntegrityCache)
+    loop_settings: LoopSettings = field(default_factory=LoopSettings)
+    board: StatusBoard = field(default_factory=StatusBoard)
+    master_key: bytes = field(default=b"", repr=False)
+    master_previous: Optional[bytes] = field(default=None, repr=False)
+    runner: Optional[LoopRunner] = None
 
     @classmethod
     def build(
@@ -118,23 +126,23 @@ class Portal:
         pending_key = require_key(admin_key("pending", env=source), "pending-change key")
         pages = PageService(engine, clock)
         registry = store_registry()
-        previous = (source.get(MASTER_KEY_PREVIOUS_KEY) or "").strip()
+        previous_raw = (source.get(MASTER_KEY_PREVIOUS_KEY) or "").strip()
+        master_key = parse_master_key(source.get(MASTER_KEY_KEY))
+        master_previous = parse_master_key(previous_raw) if previous_raw else None
         keys = SectionKeys(
-            parse_master_key(source.get(MASTER_KEY_KEY)),
+            master_key,
             sections={s.section for s in registry},
-            master_previous=parse_master_key(previous) if previous else None,
+            master_previous=master_previous,
         )
         service = SettingsService(engine, registry, keys, clock=clock.now)
         return cls(
             settings, engine, clock, limiter, mailer, sessions, signin, factors,
             stepup, pages, csrf_key, make_templates(),
             SettingsPages(engine, service, pages, clock), pending_key,
+            loop_settings=LoopSettings.from_env(source),
+            master_key=master_key,
+            master_previous=master_previous,
         )
-
-    def integrity_status(self):
-        """The last settings verification result (None before the first run);
-        in this process only. The one place pages read it from."""
-        return self.integrity.last
 
     def checkers(self) -> dict:
         return build_checkers(self.sessions, self.settings)
@@ -151,7 +159,38 @@ class Portal:
             log.warning("PLATFORM_ADMIN_EMAILS is empty: nobody can sign in")
         return revoked
 
+    # ------------------------------------------------------------- loops
+
+    def integrity_status(self) -> IntegrityStatus:
+        """The latest settings integrity result (for the shell banner)."""
+        return self.board.integrity
+
+    def loop_status(self) -> dict[str, LoopStatus]:
+        """Each background loop's state, a read-only copy (for the Health page)."""
+        return self.board.snapshot()
+
+    def mail_status(self) -> str:
+        """``ok``, ``mail not configured`` or ``unknown`` (sender not run yet)."""
+        return self.board.mail
+
+    async def start_loops(self) -> bool:
+        """Start the background loops (full portal mode only); False when they
+        are switched off with ``ADMIN_LOOPS_ENABLED=false``."""
+        if not self.loop_settings.enabled:
+            return False
+        from backend.admin.loops.build import build_runner
+
+        self.runner = build_runner(self)
+        await self.runner.start()
+        return True
+
+    async def stop_loops(self) -> None:
+        if self.runner is not None:
+            await self.runner.stop()
+            self.runner = None
+
     async def cleanup_loop(self) -> None:
+        """The plain cleanup, used only when the loops are switched off."""
         while True:
             await asyncio.sleep(CLEANUP_EVERY_SECONDS)
             try:

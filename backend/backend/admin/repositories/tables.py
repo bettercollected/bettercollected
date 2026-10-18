@@ -21,7 +21,7 @@ from sqlalchemy import (
     Text,
     text,
 )
-from sqlalchemy.dialects.postgresql import INET, JSONB, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, INET, JSONB, TIMESTAMP, UUID
 
 from common.db.base import NAMING_CONVENTION
 
@@ -161,8 +161,24 @@ notifications = Table(
     Column("status", Text, nullable=False, server_default="pending"),
     Column("attempts", Integer, nullable=False, server_default="0"),
     _ts("sent_at"),
+    _ts("next_attempt_at", nullable=False, server_default=text("now()")),
+    Column("last_error_code", Text),
+    Column("dedupe_key", Text),
+    Column(
+        "delivered_to", ARRAY(Text), nullable=False, server_default=text("'{}'::text[]")
+    ),
     CheckConstraint("kind ~ '^[a-z][a-z0-9_.]{0,63}$'", name="kind"),
     CheckConstraint("status IN ('pending', 'sent', 'failed')", name="status"),
     CheckConstraint("pg_column_size(payload) <= 4096", name="payload"),
+    CheckConstraint(
+        "last_error_code IS NULL OR last_error_code ~ '^[a-z][a-z0-9_]{0,31}$'",
+        name="last_error_code",
+    ),
+    CheckConstraint(
+        "dedupe_key IS NULL OR dedupe_key ~ '^[A-Za-z0-9_.:-]{1,128}$'", name="dedupe_key"
+    ),
+    CheckConstraint("cardinality(delivered_to) <= 50", name="delivered_to"),
     Index("ix_notifications_status_created_at", "status", "created_at"),
+    Index("ix_notifications_status_next_attempt_at", "status", "next_attempt_at"),
+    Index("ix_notifications_dedupe_key", "dedupe_key"),
 )

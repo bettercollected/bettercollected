@@ -143,7 +143,7 @@ def register(reg: RouteRegistry) -> None:
                 notice=sp.notice_view("rate_limited"),
             )
         try:
-            result = await portal.settings_pages.run_verify(portal.integrity)
+            result = await portal.settings_pages.run_verify(portal.board)
         except Exception:  # noqa: BLE001 - class only, never the cause
             return await _page(
                 request, "integrity.html", "settings", 500, result=portal.integrity_status(),

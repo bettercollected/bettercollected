@@ -25,6 +25,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.admin.repositories import settings_views as repo
+from backend.admin.loops.status import IntegrityStatus, StatusBoard
 from backend.admin.security.clock import Clock
 from backend.admin.services import pages as pg
 from backend.admin.services.settings_store import Problem, SettingsError, SettingsService
@@ -288,23 +289,6 @@ class NotificationItem:
     version: str
 
 
-@dataclass
-class IntegrityResult:
-    at: datetime
-    problems: tuple  # (key, reason) pairs
-
-    @property
-    def ok(self) -> bool:
-        return not self.problems
-
-
-@dataclass
-class IntegrityCache:
-    """The last verification result, in this process only (no table)."""
-
-    last: Optional[IntegrityResult] = None
-
-
 class SettingsPages:
     def __init__(self, engine: AsyncEngine, service: SettingsService, pages: pg.PageService, clock: Clock):
         self._engine = engine
@@ -370,17 +354,15 @@ class SettingsPages:
             for r in rows
         ]
 
-    async def run_verify(self, cache: IntegrityCache) -> IntegrityResult:
-        """One bounded verification; the result (keys and reason codes only) is cached."""
+    async def run_verify(self, board: StatusBoard) -> IntegrityStatus:
+        """One bounded verification; the result (keys and reason codes only) goes
+        on the shared status board, where the shell banner reads it."""
         found: list[Problem] = await asyncio.wait_for(
             self.service.verify(), timeout=VERIFY_TIMEOUT_SECONDS
         )
-        result = IntegrityResult(
-            self._clock.now(),
-            tuple(sorted({(p.key[:64], p.reason[:48]) for p in found})),
-        )
-        cache.last = result
-        return result
+        problems = tuple(sorted({(p.key[:64], p.reason[:48]) for p in found}))
+        board.integrity = IntegrityStatus(not problems, problems, self._clock.now())
+        return board.integrity
 
 
 def step_up_for(service: SettingsService, action: str, key: str, material: Any, version: int, email: str, now: datetime):
