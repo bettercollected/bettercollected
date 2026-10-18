@@ -173,6 +173,45 @@ def add_primary_key(keyset: tink_pb2.Keyset) -> tink_pb2.Keyset:
     return rotated
 
 
+def add_secondary_key(keyset: tink_pb2.Keyset) -> tink_pb2.Keyset:
+    """A copy of ``keyset`` with a new AES-256-GCM key added as a SECONDARY: the
+    primary stays, so a service given this keyset keeps encrypting with the old
+    key and can already decrypt with the new one. The first half of a
+    two-step rotation: add as secondary, wait until every service holds it,
+    then :func:`promote`. The new key's id is the one id not in ``keyset``."""
+    rotated = add_primary_key(keyset)
+    rotated.primary_key_id = keyset.primary_key_id
+    return rotated
+
+
+def promote(keyset: tink_pb2.Keyset, key_id: int) -> tink_pb2.Keyset:
+    """A copy of ``keyset`` whose primary is ``key_id``, which must already be
+    one of its enabled keys. Promoting the current primary changes nothing."""
+    chosen = [k for k in keyset.key if k.key_id == key_id]
+    if not chosen:
+        raise KeysetError("the key to promote is not in the keyset")
+    if chosen[0].status != tink_pb2.ENABLED:
+        raise KeysetError("the key to promote is not enabled")
+    promoted = tink_pb2.Keyset()
+    promoted.CopyFrom(keyset)
+    promoted.primary_key_id = key_id
+    return promoted
+
+
+def key_ids(keyset: tink_pb2.Keyset) -> List[int]:
+    return [key.key_id for key in keyset.key]
+
+
+def keyset_ids_fingerprint(ids: Iterable) -> str:
+    """The short hash of a keyset's key ids that services report in their
+    heartbeat (``settings.service_state.keyset_fp``): ids only, never key
+    material, and independent of order and of which key is primary. The
+    settings loader computes the same value (a test keeps them equal)."""
+    ordered = sorted(str(i) for i in ids)
+    digest = hashlib.sha256(("bc-keyset-v1|" + ",".join(ordered)).encode()).hexdigest()
+    return "ks-" + digest[:12]
+
+
 def only_primary(keyset: tink_pb2.Keyset) -> tink_pb2.Keyset:
     """A copy of ``keyset`` holding its primary key only."""
     primary = tink_pb2.Keyset(primary_key_id=keyset.primary_key_id)

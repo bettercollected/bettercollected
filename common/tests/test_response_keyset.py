@@ -21,10 +21,13 @@ from common.services.keyset import (
     KeysetError,
     UnreadableCiphertext,
     add_primary_key,
+    add_secondary_key,
     ciphertext_key_id,
     encode_keyset,
     key_digest,
+    keyset_ids_fingerprint,
     only_primary,
+    promote,
     parse_keyset,
     published_key_ids,
     published_key_warning,
@@ -204,3 +207,56 @@ def test_bad_keysets_are_refused_without_quoting_them(bad):
     if bad:
         assert bad not in str(error.value)
     assert published_key_warning(bad) is None
+
+
+# ------------------------------------------------- two-step rotation
+def test_add_secondary_keeps_the_primary_and_the_old_ciphertexts_readable():
+    old = parse_keyset(generated_keyset())
+    stored = CryptoService(encode_keyset(old)).encrypt("ws", "form", b"an answer")
+
+    added = add_secondary_key(old)
+    assert added.primary_key_id == old.primary_key_id
+    assert len(added.key) == 2
+    new_id = ({k.key_id for k in added.key} - {k.key_id for k in old.key}).pop()
+    cipher = CryptoService(encode_keyset(added))
+    assert cipher.primary_key_id == old.primary_key_id
+    # still encrypts with the old key, so a service not yet updated can read it
+    assert ciphertext_key_id(cipher.encrypt("ws", "form", b"x")) == old.primary_key_id
+    assert cipher.decrypt("ws", "form", stored) == b"an answer"
+    assert new_id not in {k.key_id for k in old.key}
+    # the input is not modified
+    assert len(old.key) == 1
+
+
+def test_promote_makes_the_new_key_primary_and_changes_nothing_else():
+    old = parse_keyset(generated_keyset())
+    added = add_secondary_key(old)
+    new_id = ({k.key_id for k in added.key} - {k.key_id for k in old.key}).pop()
+
+    promoted = promote(added, new_id)
+    assert promoted.primary_key_id == new_id
+    assert [k.key_id for k in promoted.key] == [k.key_id for k in added.key]
+    assert [key_digest(k) for k in promoted.key] == [key_digest(k) for k in added.key]
+    assert added.primary_key_id == old.primary_key_id  # input untouched
+    cipher = CryptoService(encode_keyset(promoted))
+    assert ciphertext_key_id(cipher.encrypt("ws", "form", b"x")) == new_id
+    # idempotent
+    assert promote(promoted, new_id).primary_key_id == new_id
+
+
+def test_promote_refuses_an_unknown_key_without_quoting_anything():
+    keyset = parse_keyset(generated_keyset())
+    with pytest.raises(KeysetError) as error:
+        promote(keyset, keyset.primary_key_id + 1)
+    assert "keyset" in str(error.value)
+
+
+def test_the_heartbeat_fingerprint_is_ids_only_and_order_free():
+    one = keyset_ids_fingerprint([3, 1, 2])
+    assert one == keyset_ids_fingerprint(["2", "3", "1"])
+    assert one != keyset_ids_fingerprint([1, 2])
+    assert one.startswith("ks-") and len(one) == 15
+    assert re.fullmatch(r"[A-Za-z0-9_.:-]{0,64}", one)
+    # a fixed vector: the settings loader must compute the same value
+    assert keyset_ids_fingerprint([1, 2, 3]) == one
+    assert one == "ks-" + __import__("hashlib").sha256(b"bc-keyset-v1|1,2,3").hexdigest()[:12]
