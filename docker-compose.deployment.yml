@@ -5,6 +5,12 @@ volumes:
   app-postgres-data:
   umami-db-data:
   temporal-postgres-data:
+networks:
+  admin-edge:
+    ipam:
+      config:
+        - subnet: ${ADMIN_EDGE_SUBNET:-172.30.77.0/29}
+          gateway: ${ADMIN_EDGE_GATEWAY:-172.30.77.1}
 services:
   mongodb:
     image: mongo:latest
@@ -230,6 +236,43 @@ services:
       timeout: 5s
       retries: 20
       start_period: 15s
+
+  # Internal admin service (docs/admin-service.md). Published on the host's
+  # loopback only and never routed by nginx; reach it with `ssh -L`. It gets
+  # its own pinned network so that Docker's NAT shows it a known gateway
+  # address (allowed in ADMIN_ALLOWED_IPS) instead of any sibling container.
+  # No env_file and no database or other service's secrets. Attach `default`
+  # here only when it needs the database (later change).
+  admin:
+    image: bettercollected/backend:nightly
+    command: ["/api/backend/.venv/bin/python", "-m", "backend.admin.serve"]
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    environment:
+      ADMIN_BIND_HOST: 0.0.0.0
+      ADMIN_LISTEN_PORT: "8000"
+      ADMIN_PORT: ${ADMIN_PORT:-8100}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-127.0.0.1/32}
+      ADMIN_ALLOWED_HOSTS: ${ADMIN_ALLOWED_HOSTS:-localhost:${ADMIN_PORT:-8100},127.0.0.1:${ADMIN_PORT:-8100}}
+      ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-}
+      ADMIN_EDGE_GATEWAY: ${ADMIN_EDGE_GATEWAY:-172.30.77.1}
+    ports:
+      - "127.0.0.1:${ADMIN_PORT:-8100}:8000"
+    networks:
+      - admin-edge
+    healthcheck:
+      test: ["CMD", "/api/backend/.venv/bin/python", "-I", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read() == b'ok' else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
 
   # Opens uploaded PDF forms for the import (#698, #703). Isolated on purpose:
   # unprivileged user, no network, read-only filesystem, no capabilities, a
