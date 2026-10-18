@@ -61,3 +61,4 @@ details summary { cursor: pointer; }
 .chain { overflow-wrap: anywhere; }
 .table-scroll:focus-visible { outline-offset: 0; }
 @media (max-width: 40rem) { .filters .field { flex: 1 1 100%; } .who { width: 100%; justify-content: space-between; } }
+.nowrap { white-space: nowrap; }
