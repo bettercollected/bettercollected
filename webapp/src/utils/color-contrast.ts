@@ -37,3 +37,44 @@ export function contrast(a: string, b: string): number {
     const l2 = relativeLuminance(b);
     return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
+
+/** `#RRGGBB` of `weight` of `a` and the rest `b` (both hex). */
+export function mixColours(a: string, b: string, weight: number): string {
+    const ca = hexChannels(a) ?? [0, 0, 0];
+    const cb = hexChannels(b) ?? [0, 0, 0];
+    return (
+        '#' +
+        ca
+            .map((value, i) => Math.round(value * weight + cb[i] * (1 - weight)))
+            .map((value) => value.toString(16).padStart(2, '0'))
+            .join('')
+            .toUpperCase()
+    );
+}
+
+/** Black or white, whichever reads better on `background` (at least 4.58:1 on any colour). */
+export function blackOrWhite(background: string): string {
+    return contrast('#000000', background) >= contrast('#FFFFFF', background) ? '#000000' : '#FFFFFF';
+}
+
+/**
+ * `colour` where it reaches `minimum` on `background`. Else the lightest step
+ * of it mixed towards `towards` that does, so it keeps as much of its own
+ * look as it can; else black or white, which always reach 4.5:1. Colours that
+ * are not hex fall back the same way.
+ */
+export function legibleOn(colour: string | undefined, background: string, towards: string | undefined, minimum: number = AA_TEXT): string {
+    if (!hexChannels(background)) return colour || '#000000';
+    if (colour && hexChannels(colour)) {
+        if (contrast(colour, background) >= minimum) return colour;
+        if (towards && hexChannels(towards)) {
+            for (let step = 1; step <= 10; step++) {
+                const candidate = mixColours(towards, colour, step / 10);
+                if (contrast(candidate, background) >= minimum) return candidate;
+            }
+        }
+    } else if (towards && hexChannels(towards) && contrast(towards, background) >= minimum) {
+        return towards;
+    }
+    return blackOrWhite(background);
+}
