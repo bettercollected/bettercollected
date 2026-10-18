@@ -414,6 +414,38 @@ async def scan(
     return dict(counts)
 
 
+async def verify_store(
+    store,
+    target: Target,
+    rotation: Rotation,
+    batch_size: int,
+    on_batch: Optional[Callable[[int], Any]] = None,
+) -> Dict:
+    """Read-only: every value must open with the keyset (under some candidate
+    context). Counts only: records, values, values per key id, values that do
+    not open. Never keeps a plaintext."""
+    counts: Counter = Counter(records=0, values_stale=0, values_unopenable=0)
+    links = await store.links() if target.needs_links else {}
+    after = None
+    while True:
+        batch = await store.batch(after, batch_size)
+        if not batch:
+            break
+        after = batch[-1]["id"]
+        for record in batch:
+            counts["records"] += 1
+            values = target.values(record)
+            _count_values(counts, rotation, values)
+            contexts = target.contexts(record, links)
+            for _, value in values:
+                context, _plain = rotation._open(contexts, value)
+                counts["values_openable" if context is not None else "values_unopenable"] += 1
+        if on_batch is not None and await on_batch(counts["records"]):
+            counts["stopped"] = 1
+            break
+    return dict(counts)
+
+
 async def reencrypt_store(
     store,
     target: Target,

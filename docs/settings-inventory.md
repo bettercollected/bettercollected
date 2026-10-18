@@ -47,7 +47,7 @@ environment, whatever the tier.
 | `AUTH_AES_HEX_KEY` | auth_keys | backend, auth, google, temporal_worker, actions_executor | str | yes | R | T4 |  |
 | `AUTH_INTERNAL_NOTIFY_KEY` | auth_keys | backend, auth, google | str | yes | R | T4 |  |
 | `AUTH_JWT_SECRET` | auth_keys | backend, auth, google | str | yes | R | T4 |  |
-| `MASTER_ENCRYPTION_KEYSET` | auth_keys | backend, google | str | yes | R | T4 |  |
+| `MASTER_ENCRYPTION_KEYSET` | auth_keys | backend, google, tasks | str | yes | R | T4 |  |
 | `TEMPORAL_API_KEY` | auth_keys | backend | str | yes | R | T4 |  |
 | `STRIPE_CANCEL_URL` | billing | auth | url |  | R | T3 |  |
 | `STRIPE_PRODUCT_ID` | billing | auth | str max 100 |  | R | T3 |  |
