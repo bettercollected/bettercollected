@@ -314,6 +314,8 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
     from backend.db.startup import MIGRATIONS as APP
     from common.db.ddl import helper_function_ddl
     from common.db.schema_guard import upgrade_schema
+    from tests.admin.conftest import roles_sql
+    from tests.app.db.test_auto_migrate import _execute
     from bson import ObjectId
 
     await upgrade_schema(server.url(migrated), APP)
@@ -323,6 +325,12 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
         await conn.execute(text(
             "CREATE TABLE auth.users (id text PRIMARY KEY, doc jsonb NOT NULL, "
             "plan text GENERATED ALWAYS AS (auth.bc_text(doc -> 'plan')) STORED)"))
+    # the roles script runs on every deploy: it grants the counts function's owner
+    # SELECT on the tables that exist by now
+    await _execute(
+        server.url(migrated),
+        roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw),
+    )
     now = datetime.now(timezone.utc)
 
     def oid(days_ago: float) -> str:
@@ -332,7 +340,7 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
         for i, (days, doc) in enumerate([(100, {}), (10, {"disabled": True}), (1, {})]):
             await conn.execute(text("INSERT INTO app.workspaces (id, doc, _bc_checksum) VALUES (:i, CAST(:d AS jsonb), 'x')"),
                                {"i": oid(days), "d": json.dumps({"workspace_name": f"w{i}", **doc})})
-        forms = [(50, "f1", "u1", "self"), (5, "f2", "u1", "google"), (2, "f3", "u2", None)]
+        forms = [(50, "f1", "u1", "self"), (5, "f2", "u1", "weird<b>x"), (2, "f3", "u2", None)]
         for days, form, user, provider in forms:
             settings = {"provider": provider} if provider else {}
             await conn.execute(text("INSERT INTO app.workspace_forms (id, doc, _bc_checksum) VALUES (:i, CAST(:d AS jsonb), 'x')"),
@@ -360,7 +368,7 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
     assert why is None, why
     assert counts["organizations"] == {"total": 3, "new_last_30_days": 2, "disabled": 1}
     assert counts["forms"]["total"] == 3 and counts["forms"]["published"] == 1
-    assert counts["forms"]["by_provider"] == {"self": 1, "google": 1, "unknown": 1}
+    assert counts["forms"]["by_provider"] == {"self": 1, "other": 1, "unknown": 1}
     assert counts["forms"]["new_last_30_days"] == 2
     assert counts["form_creators"] == {"total": 2, "active_last_30_days": 2}
     assert counts["responses"] == {"total": 4, "last_7_days": 2, "last_30_days": 3}
@@ -371,6 +379,53 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
     assert len(counts["weekly"]) == 12 and sum(w["responses"] for w in counts["weekly"]) == 4
     html = (await b.get("/metrics")).text
     assert "Platform counts are not available" not in html and "self" in html
+    # the owner is no superuser, can create nothing, and the other services' roles
+    # cannot change what the function calls (it calls nothing outside pg_catalog)
+    async with superuser.connect() as conn:
+        owner = (await conn.execute(text(
+            "SELECT r.rolname, r.rolsuper, r.rolcanlogin, r.rolcreaterole, r.rolcreatedb, r.rolbypassrls "
+            "FROM pg_proc p JOIN pg_roles r ON r.oid = p.proowner WHERE p.proname = 'platform_counts'"))).one()
+        assert owner.rolname == f"bc_admin_counts_{server.suffix}"
+        assert not (owner.rolsuper or owner.rolcanlogin or owner.rolcreaterole or owner.rolcreatedb or owner.rolbypassrls)
+        creates = (await conn.execute(text(
+            "SELECT nspname FROM pg_namespace WHERE has_schema_privilege(:r, oid, 'CREATE')"),
+            {"r": owner.rolname})).all()
+        assert creates == []
+        owned = (await conn.execute(text(
+            "SELECT count(*) FROM pg_class c WHERE c.relowner = (SELECT oid FROM pg_roles WHERE rolname = :r)"),
+            {"r": owner.rolname})).scalar_one()
+        assert owned == 0
+        definition = (await conn.execute(text(
+            "SELECT pg_get_functiondef(p.oid) FROM pg_proc p WHERE p.proname = 'platform_counts'"))).scalar_one()
+        config = (await conn.execute(text(
+            "SELECT proconfig FROM pg_proc WHERE proname = 'platform_counts'"))).scalar_one()
+        assert "search_path=pg_catalog, pg_temp" in config
+        assert "SECURITY DEFINER" in definition
+        # no schema-qualified function call (tables are qualified, calls never are)
+        assert not re.search(r"[A-Za-z_]+\.[A-Za-z_]+\s*\(", definition.split("$function$")[1]), definition
+        await conn.execute(text("DROP FUNCTION auth.bc_ts(jsonb)"))
+        await conn.commit()
+    for role in ("auth", "app"):
+        hostile = create_async_engine(server.url(migrated, f"reader:{role}"), poolclass=NullPool)
+        try:
+            if role == "auth":
+                async with hostile.begin() as conn:
+                    await conn.execute(text(
+                        "CREATE FUNCTION auth.bc_ts(v jsonb) RETURNS timestamptz LANGUAGE plpgsql AS "
+                        "$$ BEGIN RAISE EXCEPTION 'ran as the owner'; END $$"))
+            for statement in (
+                "ALTER FUNCTION admin.platform_counts() OWNER TO CURRENT_USER",
+                "CREATE OR REPLACE FUNCTION admin.platform_counts() RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$",
+                "SELECT admin.platform_counts()",
+            ):
+                with pytest.raises(Exception):
+                    async with hostile.begin() as conn:
+                        await conn.execute(text(statement))
+        finally:
+            await hostile.dispose()
+    portal.pages._metrics = None
+    again, why = await portal.pages.metrics()
+    assert why is None and again["users"] == counts["users"] and again["organizations"] == counts["organizations"]
     # the app and auth schemas stay out of the admin role's reach
     async with portal.engine.connect() as conn:
         with pytest.raises(Exception):
@@ -387,3 +442,30 @@ async def test_only_the_admin_role_may_run_the_counts_function(server, migrated)
                     await conn.execute(text("SELECT admin.platform_counts()"))
         finally:
             await engine.dispose()
+
+
+async def test_audit_date_bounds_that_overflow_are_a_bad_filter_not_an_error(portal, app):
+    b = await signed_in(portal, app)
+    for name in ("to", "from"):
+        for value in ("9999-12-31", "0001-01-01", "9999-12-31T23:59:59"):
+            r = await b.get(f"/api/audit?{name}={value}")
+            assert r.status_code in (200, 400), (name, value, r.status_code)
+    assert (await b.get("/api/audit?to=9999-12-31")).status_code == 400
+    assert (await b.get("/audit?to=9999-12-31")).status_code == 400
+    await b.aclose()
+
+
+def test_url_settings_show_only_their_origin():
+    hook = "https://hooks.example.com:8443/services/T000/B000/SECRETTOKEN?x=1"
+    shown = pg.shown_value(hook, True)
+    assert shown == "https://hooks.example.com:8443/[path hidden]"
+    assert pg.shown_value("https://user:pw@hooks.example.com/", True) == "https://hooks.example.com"
+    assert pg.shown_value("not a url", True) == "[hidden]"
+    spec = next(sp for sp in pg.all_specs() if sp.key == "EVENT_WEBHOOK_URL")
+    row = pg.PageService._config_row(spec, None, set(), [])
+    assert row.value is None or "SECRET" not in row.value
+
+
+def test_provider_names_are_an_allowlist_with_an_other_bucket():
+    shown = pg._known_providers({"google": 2, "self": 1, "x<script>": 3, "y": 4, "unknown": 5})
+    assert shown == {"google": 2, "self": 1, "other": 7, "unknown": 5}

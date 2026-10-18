@@ -53,6 +53,7 @@ def roles_sql(
     script = ROLES_SCRIPT.read_text()
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
+    sql = re.sub(r"\bbc_admin_counts\b", f"bc_admin_counts_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
     sql = re.sub(r"\bbc_(app|auth|google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return (
@@ -224,6 +225,7 @@ async def server():
             srv.runtime_role,
             srv.owner_role,
             *(f"bc_{r}_{suffix}" for r in {*INIT_ROLES, *READER_ROLES}),
+            f"bc_admin_counts_{suffix}",
         ):
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
 

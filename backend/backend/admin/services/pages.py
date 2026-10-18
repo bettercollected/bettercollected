@@ -17,6 +17,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, time as dtime, timedelta, timezone
 from typing import Any, Optional
+from urllib.parse import urlsplit
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -229,7 +230,7 @@ def _moment(value: Optional[str], name: str, *, end: bool) -> Optional[datetime]
             moment = datetime.combine(day, dtime.min, tzinfo=timezone.utc)
             return moment + timedelta(days=1) if end else moment
         moment = datetime.fromisoformat(value)
-    except ValueError:
+    except (ValueError, OverflowError):
         raise BadFilter(name) from None
     return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
@@ -271,15 +272,46 @@ def item_json(item: AuditItem) -> dict:
 
 
 # -- the service ------------------------------------------------------------------
-def shown_value(raw: Any) -> Optional[str]:
-    """A non-secret value as text: bounded, credentials in URLs removed."""
+def _origin_only(value: str) -> str:
+    """``scheme://host[:port]`` of a URL; anything after it (a path, query or
+    fragment can carry a token, as chat-style webhooks do) is hidden."""
+    try:
+        parts = urlsplit(value)
+        host = parts.hostname
+        port = f":{parts.port}" if parts.port else ""
+    except ValueError:
+        return "[hidden]"
+    if not parts.scheme or not host:
+        return "[hidden]"
+    more = bool(parts.path.strip("/") or parts.query or parts.fragment)
+    return f"{parts.scheme}://{host}{port}" + ("/[path hidden]" if more else "")
+
+
+def shown_value(raw: Any, is_url: bool = False) -> Optional[str]:
+    """A non-secret value as text: bounded; for a URL setting only its origin,
+    for other text credentials in URLs removed."""
     if raw is None:
         return None
     text_value = raw if isinstance(raw, str) else json.dumps(raw, ensure_ascii=False)
+    if is_url:
+        return _origin_only(text_value)
     text_value = _USERINFO.sub(r"\1[removed]@", text_value)
     if len(text_value) > MAX_VALUE_SHOWN:
         text_value = text_value[:MAX_VALUE_SHOWN] + "..."
     return text_value
+
+
+KNOWN_PROVIDERS = ("self", "google", "typeform", "unknown")
+
+
+def _known_providers(by_provider: dict) -> dict:
+    """Provider names come from stored form settings (user-controlled text), so
+    only the known ones are shown by name; the rest are summed as ``other``."""
+    shown: dict = {}
+    for name, n in by_provider.items():
+        key = name if name in KNOWN_PROVIDERS else "other"
+        shown[key] = shown.get(key, 0) + n
+    return shown
 
 
 class PageService:
@@ -398,7 +430,7 @@ class PageService:
                 if live is not None and live.value is not None
                 else spec.default
             )
-            value = shown_value(raw)
+            value = shown_value(raw, spec.type.value == "url")
         return ConfigRow(
             **base, source=source, overridden=overridden, restart=restart, value=value,
             is_set=is_set, version=entry.version if entry is not None else None,
@@ -424,6 +456,8 @@ class PageService:
                 counts = await repo.platform_counts(conn)
         except Exception as exc:  # noqa: BLE001 - type only, never the message
             return None, type(exc).__name__
+        counts = dict(counts)
+        counts["forms"] = {**counts["forms"], "by_provider": _known_providers(counts["forms"]["by_provider"])}
         self._metrics = (now, counts)
         return counts, None
 
