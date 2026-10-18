@@ -369,13 +369,14 @@ def test_snapshot_symlink_and_foreign_service_are_refused(tmp_path, keys):
     assert err.value.reason == "missing"
 
 
-def test_snapshot_directory_must_be_private(tmp_path, keys):
+def test_an_open_directory_we_own_is_closed_not_refused(tmp_path, keys):
     d = tmp_path / "open"
     d.mkdir(mode=0o755)
     os.chmod(d, 0o755)
     raw = good(keys)
-    with pytest.raises(SnapshotError):
-        write_snapshot(str(d), "backend", raw.rows, raw.manifest)
+    path = write_snapshot(str(d), "backend", raw.rows, raw.manifest)
+    assert stat.S_IMODE(d.stat().st_mode) == 0o700
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
 
 
 def test_unwritable_snapshot_directory_does_not_stop_the_service(tmp_path, keys, caplog):

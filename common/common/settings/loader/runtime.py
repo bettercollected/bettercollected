@@ -13,6 +13,10 @@ Failure policy
 * Critical keys (secrets, tier T3 and T4) that were rejected, with no last
   good value and nothing in the environment, stop a ``required`` service at
   start-up. After start-up nothing stops the service; it keeps what it has.
+* A stored secret that is rejected, missing or cannot be opened, with no last
+  good value and no environment value, is refused (the field keeps its code
+  default, which is empty for secrets) and its key is logged once. Only
+  ``required`` stops the service; production should use ``required``.
 * Unreachable store: the signed disk snapshot, re-verified and not older than
   ``SETTINGS_SNAPSHOT_MAX_AGE_DAYS``. With no usable snapshot a ``required``
   service starts only if the environment holds every key in
@@ -48,6 +52,7 @@ from ..snapshot import (
     verify_snapshot,
 )
 from .config import LoaderConfig
+from .proven import LIVE_PROVEN
 from .disk import SnapshotError, read_snapshot, write_snapshot
 from .source import (
     PgSnapshotSource,
@@ -247,7 +252,11 @@ class SettingsRuntime:
             if (before.version if before else None) == (after.version if after else None):
                 continue
             if key in self.registry and not self._env_has(key):
-                if self.registry.get(key).reload_class is Reload.R:
+                spec = self.registry.get(key)
+                # an H key whose consumer is not proven to read it live needs a restart too
+                if spec.reload_class is Reload.R or (
+                    spec.reload_class is Reload.H and key not in LIVE_PROVEN
+                ):
                     self.restart_pending = True
 
     def _write_disk(self, raw: RawSnapshot) -> None:
@@ -384,7 +393,14 @@ class SettingsRuntime:
                 open_secret=lambda r: keys.open(r.section, r.key, r.version, r.blob or ""),
             )
         except ResolveError as exc:
-            log.warning("%s", exc)
+            token = (key, row.version, "unusable")
+            if token not in self._logged:
+                self._logged.add(token)
+                # a stored secret that cannot be used is refused: the setting
+                # falls back to its code default (empty for secrets), never to
+                # a value from elsewhere. Production should run with
+                # SETTINGS_STORE=required, which stops the service instead.
+                log.error("%s; refused, the code default applies", exc)
             if self.config.mode == "required" and key in self.critical_keys():
                 raise StoreError(f"settings store: no usable value for critical setting {key}") from None
             return None

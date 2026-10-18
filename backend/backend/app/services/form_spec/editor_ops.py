@@ -71,6 +71,7 @@ from backend.app.services.idempotency import (
     request_hash,
 )
 from backend.config import settings as app_settings
+from common.settings.loader import live
 
 IDEMPOTENCY_KEY_REQUIRED_CODE = "idempotency_key_required"
 RATE_LIMIT_SCOPE = "editor_ops"
@@ -191,7 +192,7 @@ class EditorOpsService:
     ) -> Optional[str]:
         """The draft's ETag for someone who may edit it while op saves are
         on, else None (the GET then simply has none)."""
-        if not app_settings.api_settings.EDITOR_OPS_SAVE_ENABLED:
+        if not live().api.EDITOR_OPS_SAVE_ENABLED:
             return None
         if user is None or not await self._authorization.has_permission(
             user, Permission.FORM_EDIT, workspace_id
@@ -237,7 +238,7 @@ class EditorOpsService:
         if_match: Optional[str],
         idempotency_key: Optional[str],
     ) -> JSONResponse:
-        if not app_settings.api_settings.EDITOR_OPS_SAVE_ENABLED:
+        if not live().api.EDITOR_OPS_SAVE_ENABLED:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Not Found")
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         if await self._workspace_form_repo.find_workspace_form(
@@ -299,14 +300,14 @@ class EditorOpsService:
         )
 
     async def _rate_limit(self, user: User) -> None:
-        limit = app_settings.api_settings.EDITOR_OPS_PER_WINDOW
+        limit = live().api.EDITOR_OPS_PER_WINDOW
         if self._limiter is None or limit <= 0:
             return
         verdict = await self._limiter.hit(
             RATE_LIMIT_SCOPE,
             str(user.id),
             limit,
-            app_settings.api_settings.EDITOR_OPS_WINDOW_SECONDS,
+            live().api.EDITOR_OPS_WINDOW_SECONDS,
         )
         if not verdict.allowed:
             raise HTTPException(

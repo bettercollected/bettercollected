@@ -5,6 +5,7 @@ from pathlib import Path
 
 from common.configs.shipped_secrets import require_secrets
 from common.settings.loader import (
+    current_runtime,
     ensure_poller,
     expose_live,
     load_snapshot,
@@ -109,15 +110,21 @@ expose_live("ai", settings.ai)
 expose_live("api", settings.api_settings)
 
 
-def _keyset_key_ids():
+def keyset_key_ids():
     """Key ids (never key material) of MASTER_ENCRYPTION_KEYSET, for the
-    fingerprint this service reports to the settings store."""
+    fingerprint this service reports to the settings store. The value is the
+    resolved one: the environment, else the store's verified row."""
     from common.services.keyset import KEYSET_ENV, parse_keyset
 
-    return [key.key_id for key in parse_keyset(os.getenv(KEYSET_ENV)).key]
+    value = (os.getenv(KEYSET_ENV) or "").strip()
+    if not value:
+        runtime = current_runtime()
+        resolved = runtime.resolve_key(KEYSET_ENV) if runtime is not None else None
+        value = resolved.value if resolved is not None else ""
+    return [key.key_id for key in parse_keyset(value).key]
 
 
-set_keyset_key_ids(_keyset_key_ids)
+set_keyset_key_ids(keyset_key_ids)
 ensure_poller()  # no-op when the store is off
 
 # Session tokens are signed with AUTH_JWT_SECRET and OAuth/SSO state, action

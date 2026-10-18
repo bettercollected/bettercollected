@@ -2,8 +2,9 @@
 
 After each verified load the loader writes the accepted rows exactly as they
 came from the store (ciphertext of secrets, row signatures) together with the
-signed manifest. Nothing in the file is plaintext, and nothing in it is
-trusted: on read every row is verified again with the same keys, versions and
+signed manifest. Secret values are sealed (ciphertext), but non-secret values (limits, URLs,
+flags) are stored as plain JSON, so the file is as sensitive as the non-secret
+configuration. Nothing in it is trusted: on read every row is verified again with the same keys, versions and
 revision tracker as a database load. The embedded save time is not signed, so
 the file's protection is its location: a directory owned by the service's own
 user, mode 700, a file mode 600, no symlinks (checked on read), written by an
@@ -82,8 +83,16 @@ def _ensure_directory(directory: str) -> None:
     info = os.lstat(directory)
     if not stat.S_ISDIR(info.st_mode):
         raise SnapshotError("directory_unsafe")
-    if hasattr(os, "geteuid") and (info.st_uid != os.geteuid() or info.st_mode & 0o077):
-        raise SnapshotError("directory_unsafe")
+    if hasattr(os, "geteuid"):
+        if info.st_uid != os.geteuid():
+            raise SnapshotError("directory_unsafe")
+        if info.st_mode & 0o077:
+            # a directory we own but that is too open (a fresh volume mount is
+            # 755): close it rather than refuse
+            try:
+                os.chmod(directory, 0o700)
+            except OSError:
+                raise SnapshotError("directory_unsafe") from None
 
 
 def write_snapshot(

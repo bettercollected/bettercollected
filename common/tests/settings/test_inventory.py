@@ -149,6 +149,12 @@ def test_hot_keys_are_exactly_the_proven_set():
     assert {s.key for s in all_specs() if s.reload_class is Reload.H} == HOT_KEYS
 
 
+def test_every_hot_key_is_a_proven_live_consumer():
+    from common.settings.loader.proven import LIVE_PROVEN
+
+    assert HOT_KEYS == LIVE_PROVEN
+
+
 def test_every_hot_key_has_a_live_read_test():
     tests = ROOT / "backend/tests/app/services/test_live_settings_reads.py"
     if not tests.is_file():

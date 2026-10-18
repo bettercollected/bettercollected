@@ -9,6 +9,8 @@ not pass these tests, and must stay R (see ``TODO_LIVE`` in
 here, so the keys appear as strings in the parametrisation.
 """
 
+import base64
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -23,6 +25,14 @@ from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.image_service import ImageService
 from backend.app.services.rate_limiter import Verdict
 from backend.config import settings
+from common.settings.canonical import SettingRow
+from common.settings.keys import SectionKeys
+from common.settings.loader import LoaderConfig, SettingsRuntime
+from common.settings.loader import runtime as runtime_module
+from common.settings.loader.source import RawSnapshot
+from common.settings.registry import default_registry
+from common.settings.signing import Manifest
+from common.settings.snapshot import FakeSnapshot
 
 
 class RecordingLimiter:
@@ -43,9 +53,67 @@ ALLOW = Verdict(True, 1, 1)
 DENY = Verdict(False, 99, 7)
 
 
+class HotStore:
+    """A fake settings store behind a real loader runtime: ``set`` publishes a
+    new signed revision and the runtime applies it, as the poller would. The
+    settings objects are left untouched, so a consumer that sees the new value
+    read it through ``live()``."""
+
+    MASTER = base64.b64encode(bytes(range(48))).decode()
+
+    def __init__(self, monkeypatch, tmp_path):
+        self.registry = default_registry()
+        self.keys = SectionKeys(self.MASTER, sections={s.section for s in self.registry})
+        self.rows = {}
+        self.revision = 0
+        self.raw = RawSnapshot([], Manifest(0, {}, ""))
+        source = SimpleNamespace(
+            fetch=lambda: self.raw,
+            fetch_revision=lambda: self.raw.manifest.revision,
+            report_state=lambda *a: None,
+        )
+        cfg = LoaderConfig(
+            service="backend", mode="auto", database_url="postgresql://x/y",
+            master_key=self.MASTER, snapshot_dir=str(tmp_path / "snap"),
+        )
+        self.runtime = SettingsRuntime(cfg, registry=self.registry, source=source, env={})
+        self.runtime.start()
+        monkeypatch.setattr(runtime_module, "_runtime", self.runtime)
+
+    def set(self, key, value):
+        spec = self.registry.get(key)
+        version = self.rows[key].version + 1 if key in self.rows else 1
+        self.rows[key] = SettingRow(
+            key, spec.section, spec.readers, False, "H", version,
+            datetime(2026, 10, 18, tzinfo=timezone.utc), value=value,
+        )
+        self.revision += 1
+        snap = FakeSnapshot.build(self.rows.values(), self.keys, self.revision)
+        self.raw = RawSnapshot(list(snap.row_list), snap.signed_manifest)
+        assert self.runtime.poll_once() is True
+        assert self.runtime.live_value(key) == (True, value), key
+
+
+_STORE = {"current": None}
+
+
+@pytest.fixture(autouse=True, params=["object", "store"])
+def hot_mode(request, monkeypatch, tmp_path):
+    """Every test runs twice: the value changed on the settings object (the
+    loader off) and changed in the loader's snapshot (the store on)."""
+    _STORE["current"] = HotStore(monkeypatch, tmp_path) if request.param == "store" else None
+    yield request.param
+    _STORE["current"] = None
+
+
 def _set(monkeypatch, target, field, value):
     assert hasattr(target, field), field
-    monkeypatch.setattr(target, field, value)
+    store = _STORE["current"]
+    if store is None:
+        monkeypatch.setattr(target, field, value)
+        return
+    prefix = type(target).model_config.get("env_prefix", "")
+    store.set(f"{prefix}{field}".upper(), value)
 
 
 # ---------------------------------------------------------------- AI
