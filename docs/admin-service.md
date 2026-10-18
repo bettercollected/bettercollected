@@ -148,8 +148,8 @@ but invalid stop startup.
 
 After the second factor the portal shows a shell (navigation, the signed-in
 address, sign out, a notice area) and these pages. Every one is a `GET` at the
-`SECOND_FACTOR` level; none changes state. `Settings` and `Tasks` are listed in
-the navigation as not available yet.
+`SECOND_FACTOR` level; none changes state. `Settings` is listed in the navigation as not
+available yet; the task pages are described under "Task pages" below.
 
 | Page | What it shows |
 |---|---|
@@ -342,6 +342,40 @@ credentials), and `read` on `workspace_forms`. Put its URI in `TASK_RUNNER_MONGO
 rotate `MASTER_ENCRYPTION_KEYSET`; the order and every guard are in
 [response-keyset-rotation.md](response-keyset-rotation.md). They hold the locks `keyset` and
 `responses.encryption`, so only one of them runs at a time.
+
+## Task pages
+
+`/tasks` lists the registered tasks (title, version, whether it changes data,
+resumable, needs a prior dry run, locks) with the latest run of each. The portal
+imports only the task catalog, the spec and the signing helpers, never an
+implementation or the runner, so it cannot run a task itself: it writes a signed
+row into `tasks.runs` and the runner executes it only if the signature verifies.
+
+| Route | What it does |
+|---|---|
+| `GET /tasks/<name>` | the parameter form, generated from the task's `Params` schema (text with length limit and pattern, numbers with a range, enums as selects, flags as checkboxes, lists of ids one per line with a maximum count); a type the form cannot express is not rendered and says so, and a required one removes the start buttons. Shows the last dry run |
+| `POST /tasks/<name>/dry-run` | CSRF, audited, at most 10 per admin per 5 minutes; no step-up. A read-only task has a single "Run" button that uses this route |
+| `POST /tasks/prepare` | the code step: verifies a fresh authenticator or recovery code (same lockouts as `/api/stepup`) and renders a confirmation page that holds a single-use token. It changes no task state |
+| `POST /tasks/<name>/apply` | needs that token, bound to hash(task, version, canonical params hash, `dry_run=false`) |
+| `POST /tasks/runs/<id>/cancel` | token bound to the run id; sets `cancel_requested_at` (the only column the admin role may update); idempotent; only for queued or running runs |
+| `POST /tasks/runs/<id>/resume` | token bound to the run id and its params hash; a new signed request with `resumes_run_id` and the same params |
+| `GET /tasks/runs`, `GET /tasks/runs/<id>` | history (filters `task`, `state`, `page`) and one run: state, progress, the typed result (rendered through the task's `Result` schema; integers, booleans and ids only), the runner's refusal code with an explanation, sanitised events (code, counters, ids; 50 per page) and whether a checkpoint exists |
+| `GET /api/tasks/runs/<id>?after=<seq>` | JSON for polling: state, progress and the events after `seq` |
+
+Everything works without JavaScript (the run page has a Refresh link). The run
+page loads one self-hosted script, `/static/tasks.js`, that polls the JSON every
+two seconds while the run is active, shows a "Live" indicator and reloads once
+when the run ends; it writes with `textContent` only. The content security
+policy stays `script-src 'self'`.
+
+Starting a real run inserts the run row (state `queued`, signed as `tasks/request`)
+and the `task.run.requested` audit row in one transaction; a task that requires a
+prior dry run is refused unless a succeeded dry run of the same task, version and
+params hash finished less than 24 hours ago and before now (the runner checks again
+against the signed request time, and the page shows the runner's refusal code
+if it still refuses). Parameters travel only in POST bodies, never in a URL, and
+the audit row carries the validated parameters through the usual masking. All
+refusals are fixed sentences that never repeat a submitted value.
 
 ## Background loops
 

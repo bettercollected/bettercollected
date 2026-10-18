@@ -1,0 +1,44 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Confirm") }}{% endblock %}
+{% block content %}
+<h1>{% if kind == "apply" %}{{ _("Confirm: apply") }}{% elif kind == "cancel" %}{{ _("Confirm: cancel run") }}{% else %}{{ _("Confirm: resume run") }}{% endif %}</h1>
+<p><code>{{ title }}</code>{% if version %}, {{ _("version") }} {{ version }}{% endif %}</p>
+{% if summary %}
+<table class="kv">
+  <caption>{{ _("Parameters") }}</caption>
+  <tbody>
+  {% for label, value in summary %}
+  <tr><th scope="row">{{ label }}</th><td>{% if value is sameas true %}{{ _("yes") }}{% elif value is sameas false %}{{ _("no") }}{% else %}{{ value }}{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if token %}
+<p>{{ _("The code was accepted. This confirmation works once and expires in two minutes.") }}</p>
+<form method="post" action="{{ destination }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="stepup_token" value="{{ token }}">
+  {% for name, value in hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+  <button type="submit">{% if kind == "apply" %}{{ _("Start the run") }}{% elif kind == "cancel" %}{{ _("Cancel the run") }}{% else %}{{ _("Resume the run") }}{% endif %}</button>
+</form>
+{% else %}
+{% if locked_minutes %}
+<p class="error" role="alert">{{ _("Too many attempts. Try again later.") }} ({{ locked_minutes }} {{ _("min") }})</p>
+{% elif failed %}
+<p class="error" role="alert">{{ _("That code did not work. Check the code and try again.") }}</p>
+{% else %}
+<p>{{ _("This action needs a fresh code. Enter the code from your authenticator app, or a recovery code.") }}</p>
+{% endif %}
+<form method="post" action="/tasks/prepare">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="{{ kind }}">
+  {% if kind == "apply" %}<input type="hidden" name="task" value="{{ task }}">{% else %}<input type="hidden" name="run_id" value="{{ run_id }}">{% endif %}
+  {% for name, value in hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+  <label for="code">{{ _("Authenticator or recovery code") }}</label>
+  <input id="code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required maxlength="24" autofocus>
+  <button type="submit">{{ _("Continue") }}</button>
+</form>
+{% endif %}
+<p><a href="{{ back }}">{{ _("Back without starting anything") }}</a></p>
+{% endblock %}

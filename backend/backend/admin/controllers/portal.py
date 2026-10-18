@@ -20,7 +20,8 @@ from backend.admin.portal import STATIC_DIR, Portal
 from backend.admin.security import csrf
 
 MAX_FIELD = 400
-STATIC_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}\.css$")
+STATIC_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}\.(css|js)$")
+STATIC_TYPES = {"css": "text/css", "js": "text/javascript"}
 
 
 def _portal(request: Request) -> Portal:
@@ -72,7 +73,7 @@ def build_registry() -> RouteRegistry:
         path = (STATIC_DIR / name) if STATIC_NAME.match(name) else None
         if path is None or not path.is_file() or path.is_symlink():
             return Response(status_code=404)
-        return FileResponse(path, media_type="text/css")
+        return FileResponse(path, media_type=STATIC_TYPES[path.suffix[1:]])
 
     # -- before sign-in ----------------------------------------------------------
     @reg.route("/login", level=Level.ADDRESS)
@@ -126,6 +127,10 @@ def build_registry() -> RouteRegistry:
     from backend.admin.controllers import pages
 
     pages.register(reg)
+
+    from backend.admin.controllers import tasks
+
+    tasks.register(reg)
 
     from backend.admin.controllers import settings as settings_pages
 
