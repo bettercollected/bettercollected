@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[3]
 ROLES_SCRIPT = ROOT / "postgres" / "ensure-admin-roles.sh"
 INIT_ROLES = ("app", "auth", "google", "jobs_exec")
 # the settings store's reader roles, see backend.admin.migration_support
-# (READER_SERVICES); "tasks" does not exist in production yet, so it is created here
+# (READER_SERVICES); "tasks" is the task runner's role, created by the roles script
 READER_ROLES = ("app", "auth", "google", "tasks")
 MASTER_KEY = base64.b64encode(bytes(range(48))).decode()
 
@@ -46,15 +46,19 @@ needs_postgres = pytest.mark.skipif(
 )
 
 
-def roles_sql(suffix: str, admin_pw: str, mig_pw: str) -> str:
+def roles_sql(
+    suffix: str, admin_pw: str, mig_pw: str, tasks_pw: str = "unused-tasks-pw"
+) -> str:
     """The roles script's SQL with psql variables bound and role names suffixed."""
     script = ROLES_SCRIPT.read_text()
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
     sql = re.sub(r"\bbc_(app|auth|google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
-    return sql.replace(":'admin_pw'", f"'{admin_pw}'").replace(
-        ":'mig_pw'", f"'{mig_pw}'"
+    return (
+        sql.replace(":'admin_pw'", f"'{admin_pw}'")
+        .replace(":'mig_pw'", f"'{mig_pw}'")
+        .replace(":'tasks_pw'", f"'{tasks_pw}'")
     )
 
 
@@ -99,6 +103,15 @@ class Server:
     @property
     def owner_role(self) -> str:
         return f"bc_admin_mig_{self.suffix}"
+
+    @property
+    def tasks_role(self) -> str:
+        return self.reader_role("tasks")
+
+    @property
+    def tasks_pw(self) -> str:
+        # the runner role is also a settings reader: one password for all readers
+        return self.reader_pw
 
     def reader_role(self, logical: str) -> str:
         return f"bc_{logical}_{self.suffix}"
@@ -156,12 +169,10 @@ async def _bootstrap(server: Server, database: str) -> None:
     await _execute(
         server.url(database), init_sql(database, server.suffix, init_passwords)
     )
+    # bc_tasks is created by the roles script itself (the runner's login role)
     await _execute(
         server.url(database),
-        f'CREATE ROLE "{server.reader_role("tasks")}" LOGIN NOSUPERUSER',
-    )
-    await _execute(
-        server.url(database), roles_sql(server.suffix, server.admin_pw, server.mig_pw)
+        roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw),
     )
     for logical in READER_ROLES:
         await _execute(
@@ -239,6 +250,13 @@ async def owner_engine(server, migrated):
 @pytest_asyncio.fixture(loop_scope="session")
 async def runtime_engine(server, migrated):
     engine = create_async_engine(server.url(migrated, "runtime"), poolclass=NullPool)
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def tasks_engine(server, migrated):
+    engine = create_async_engine(server.url(migrated, "reader:tasks"), poolclass=NullPool)
     yield engine
     await engine.dispose()
 

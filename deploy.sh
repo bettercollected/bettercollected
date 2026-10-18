@@ -65,7 +65,7 @@ fi
 # TEMPORAL_API_KEY: shared by the backend (TEMPORAL_API_KEY) and the Temporal
 # worker / actions-executor (API_KEY); the backend's internal job routes refuse
 # requests without it and answer 503 while it is unset.
-for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
+for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
   if ! grep -q "^${var}=" .env 2>/dev/null; then
     echo "${var}=$(openssl rand -hex 24)" >> .env
     echo "Generated a new ${var} in .env (first run)."
@@ -89,6 +89,7 @@ unset value
 # The internal admin service (database foundations only so far): BC_ADMIN_PASSWORD
 # is its runtime role, BC_ADMIN_MIG_PASSWORD the migration role that owns schema
 # `admin` (generated above; postgres/ensure-admin-roles.sh applies them).
+# BC_TASKS_PASSWORD is the data task runner's role (generated above too).
 # SETTINGS_MASTER_KEY (base64, 48 random bytes) is generated once and never
 # overwritten: it encrypts the admin second-factor secrets and keys the audit
 # log's hash chain.

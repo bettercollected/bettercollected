@@ -144,6 +144,7 @@ services:
       # read by postgres/ensure-admin-roles.sh, which deploy.sh runs here on every deploy
       BC_ADMIN_PASSWORD: ${BC_ADMIN_PASSWORD:?set by deploy.sh in the root .env}
       BC_ADMIN_MIG_PASSWORD: ${BC_ADMIN_MIG_PASSWORD:?set by deploy.sh in the root .env}
+      BC_TASKS_PASSWORD: ${BC_TASKS_PASSWORD:?set by deploy.sh in the root .env}
     # explicit priorities: without them Compose 2.24 / Engine 27 sometimes left
     # this container on one network only (docs/admin-service.md)
     networks:
@@ -321,6 +322,33 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
+    restart: unless-stopped
+
+  # The data task runner for the internal admin service: claims signed task
+  # requests from the tasks schema and runs them. Not started by deploy.sh yet
+  # (like `admin`); start it with `docker compose up -d task-runner`. Isolated on
+  # purpose: no published port, no env_file, only the two variables it needs, its
+  # own database role (bc_tasks), read-only filesystem, no capabilities, and not
+  # attached to admin-edge. Task implementations that need Mongo or other
+  # services add exactly the variables they need here.
+  task-runner:
+    image: bettercollected/backend:nightly
+    command: ["/api/backend/.venv/bin/python", "-m", "backend.admin.runner"]
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    environment:
+      TASKS_DATABASE_URL: postgresql+asyncpg://bc_tasks:${BC_TASKS_PASSWORD:?set by deploy.sh in the root .env}@app-postgres:5432/bettercollected
+      SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
+    depends_on:
+      app-postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   # Opens uploaded PDF forms for the import (#698, #703). Isolated on purpose:
