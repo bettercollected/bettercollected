@@ -5,7 +5,7 @@
 // not shown, so they can't be taken for days of this one.
 import React from 'react';
 
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { describe, expect, it } from 'vitest';
 
@@ -97,5 +97,16 @@ describe.each([
         const today = container.querySelector('[data-today="true"]') as HTMLElement;
         expect(today.style.background).toBe(rgb(colours.todayBackground));
         expect(today.style.color).toBe(rgb(colours.today));
+    });
+});
+
+describe("the date picker without the other months' days", () => {
+    it('still moves by keyboard into the next month', async () => {
+        open(preset('Default'), { selected: new Date(2026, 9, 31) });
+        const last = await screen.findByRole('button', { name: /October 31st, 2026/ });
+        act(() => last.focus());
+        await act(async () => void fireEvent.keyDown(last, { key: 'ArrowRight' }));
+        expect(document.activeElement).toHaveAccessibleName(/November 1st, 2026/);
+        expect(screen.getByRole('grid', { name: /November 2026/ })).toBeInTheDocument();
     });
 });
