@@ -10,6 +10,7 @@ import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { cn } from '@app/shadcn/util/lib';
 import { Close } from '@app/components/icons/close';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
+import { useQuestionLabel } from '@app/views/molecules/responder-form-fields/question-label-context';
 
 interface TabularInputFieldProps {
   value: string[][];
@@ -37,6 +38,11 @@ export default function TabularInputField({
   const { theme } = useFormState();
   const { updateTabularRowTitle, updateTabularColumnTitle } = useBuilderActions();
   const activeField = useAtomValue(activeFieldAtom);
+  // For respondents the table is named by its question and each cell by its
+  // row and column titles (no question label on the builder canvas).
+  const { group } = useQuestionLabel();
+  const rowHeaderId = (rowIdx: number) => `table-${field.id}-row-${rowIdx}`;
+  const columnHeaderId = (colIdx: number) => `table-${field.id}-col-${colIdx}`;
 
   const minRows = 2;
   const minCols = 2;
@@ -102,16 +108,18 @@ export default function TabularInputField({
         )} 
         style={{ borderColor: theme?.secondary }}
       >
-        <Table className="min-w-max w-full border-collapse">
+        <Table className="min-w-max w-full border-collapse" {...group}>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead
-                className="sticky left-0 z-20 min-w-24 max-w-40 border-r border-b border-t-[2px] border-black-300"
+              {/* The empty corner is a plain cell: an empty header names nothing. */}
+              <TableCell
+                className="sticky left-0 z-20 h-12 min-w-24 max-w-40 border-r border-b border-t-[2px] border-black-300 px-4 py-0"
                 style={sharedHeaderStyle}
               />
               {localColTitles.map((col, idx) => (
                 <TableHead
                   key={idx}
+                  id={columnHeaderId(idx)}
                   className={cn(
                     "relative group text-center font-semibold px-3 py-3 min-w-28 max-w-48 border-r border-b border-t-[2px]",
                     idx === localColTitles.length - 1 && "rounded-tr-lg border-r-[2px]"
@@ -146,6 +154,7 @@ export default function TabularInputField({
             {tableData.map((row, rowIdx) => (
               <TableRow key={rowIdx} className="hover:bg-muted/10 transition-colors">
                 <TableCell
+                  id={rowHeaderId(rowIdx)}
                   className={cn(
                     "sticky left-0 z-10 min-w-24 max-w-40 px-3 py-2 font-medium text-center border-r border-b border-black-300",
                     rowIdx === tableData.length - 1 && "rounded-bl-lg border-b-[2px]"
@@ -190,6 +199,7 @@ export default function TabularInputField({
                     <Input
                       value={cell ?? ''}
                       disabled={disabled}
+                      aria-labelledby={`${rowHeaderId(rowIdx)} ${columnHeaderId(colIdx)}`}
                       onChange={(e) => handleInputChange(rowIdx, colIdx, e.target.value)}
                       className="text-center text-sm! bg-transparent border-none focus:ring-0 h-8"
                     />

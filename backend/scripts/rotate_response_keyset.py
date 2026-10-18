@@ -68,6 +68,7 @@ from common.services.keyset import (
     KEYSET_ENV,
     CryptoService,
     KeysetError,
+    UnreadableCiphertext,
     add_primary_key,
     ciphertext_key_id,
     describe_keyset,
@@ -353,19 +354,15 @@ class Rotation:
         return [(p, v) for p, v in values if ciphertext_key_id(v) != self.primary]
 
     def _encrypt(self, context: Tuple[str, str], plaintext: bytes) -> bytes:
-        # the primitive directly: CryptoService.encrypt passes through a
-        # plaintext that happens to start with "v1:" unencrypted
-        associated = self.cipher.compose_full_context(*context, b"")
-        return self.cipher.ciphertext_prefix + self.cipher.crypto.encrypt(
-            plaintext, associated
-        )
+        # always encrypts, even a plaintext that starts with "v1:"
+        return self.cipher.encrypt(*context, plaintext)
 
     def _open(self, contexts, value: bytes):
         """The first candidate context that decrypts ``value``, and the plaintext."""
         for context in contexts:
             try:
                 return context, self.cipher.decrypt(*context, value)
-            except Exception:  # tink: this context does not authenticate it
+            except UnreadableCiphertext:  # this context does not authenticate it
                 continue
         return None, None
 

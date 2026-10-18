@@ -28,7 +28,8 @@ Helpers here work on pydantic models and raw dicts alike, like
 from typing import Any, List, Optional
 
 from common.models.standard_form import RespondentFeedback
-from common.services.crypto_service import crypto_service
+from common.services.crypto_service import UnreadableCiphertext, crypto_service
+from loguru import logger
 
 from backend.app.models.dtos.respondent_feedback_dto import (
     RespondentFeedbackEntry,
@@ -37,6 +38,9 @@ from backend.app.models.dtos.respondent_feedback_dto import (
 )
 
 FEEDBACK_KEY = "respondent_feedback"
+# A decrypted message is text; this (empty bytes, never a stored value) stands
+# for one whose stored value does not decrypt: never shown, marked for staff.
+UNREADABLE_MESSAGE = b""
 _FEEDBACK_KEYS = (FEEDBACK_KEY, "respondentFeedback")
 
 
@@ -72,13 +76,18 @@ def encrypt_message(workspace_id, form_id: str, message: Optional[str]):
     )
 
 
-def decrypt_message(workspace_id, form_id: str, message) -> Optional[str]:
+def decrypt_message(workspace_id, form_id: str, message) -> Optional[str | bytes]:
+    """The message as text, or ``UNREADABLE_MESSAGE`` when it does not decrypt."""
     if message is None:
         return None
     if isinstance(message, (bytes, bytearray)):
-        plain = crypto_service.decrypt(
-            workspace_id=workspace_id, form_id=form_id, data=bytes(message)
-        )
+        try:
+            plain = crypto_service.decrypt(
+                workspace_id=workspace_id, form_id=form_id, data=bytes(message)
+            )
+        except UnreadableCiphertext:
+            logger.warning("feedback message of form {} does not decrypt", form_id)
+            return UNREADABLE_MESSAGE
         return plain.decode("utf-8") if isinstance(plain, bytes) else plain
     return message
 
@@ -119,6 +128,7 @@ def staff_feedback(entries: List[RespondentFeedback]) -> List[StaffFeedbackEntry
             id=entry.id,
             status=entry.status,
             message=_text(entry.message),
+            message_unreadable=_unreadable(entry.message),
             created_at=entry.created_at,
             created_by=entry.created_by,
             created_by_email=entry.created_by_email,
@@ -194,3 +204,8 @@ def emails_respondent(form_settings: Any, response: Any) -> bool:
 def _text(message) -> Optional[str]:
     # an undecrypted message must never be shown as if it were text
     return message if isinstance(message, str) else None
+
+
+def _unreadable(message) -> Optional[bool]:
+    # set by ``decrypt_message`` for a stored value that does not decrypt
+    return True if message == UNREADABLE_MESSAGE else None

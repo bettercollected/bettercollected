@@ -392,6 +392,7 @@ class TestSave:
                     stored,
                     StandardForm(**stored.model_dump()),
                     parse_ops([{"op": "update_form_info", "title": "Other save"}]),
+                    workspace_id=workspace.id,
                     atomic=True,
                 )
             return await original(document, form, ops, **kwargs)

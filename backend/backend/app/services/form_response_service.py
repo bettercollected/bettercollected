@@ -14,14 +14,18 @@ from common.models.standard_form import (
     StandardFormFieldType,
 )
 from common.models.user import User
-from common.services.crypto_service import crypto_service
+from common.services.crypto_service import UnreadableCiphertext, crypto_service
 from fastapi_pagination import Page
+from loguru import logger
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.form_response_dto import (
     InternalAnswersResponse,
     SingleSubmissionResponse,
+    SubmissionPath,
+    SubmissionPathStep,
 )
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.respondent_feedback_dto import StaffFeedback
@@ -85,6 +89,16 @@ def is_plain_file_id(value) -> bool:
         isinstance(value, str)
         and _PLAIN_FILE_ID.fullmatch(value) is not None
         and value not in (".", "..")
+    )
+
+
+def _log_unreadable(response: Any, field: str) -> None:
+    # ids only: never the stored value
+    logger.warning(
+        "response {} of form {}: {} does not decrypt",
+        getattr(response, "response_id", None),
+        getattr(response, "form_id", None),
+        field,
     )
 
 
@@ -241,12 +255,81 @@ class FormResponseService:
         form_id: str,
         workspace_id: PydanticObjectId,
         user: User,
-        permission: Permission = Permission.RESPONSE_READ,
     ):
-        # Every response of the form, unpaginated. The flow view's
-        # per-response insights read it with response.read; the CSV download
-        # goes through the export route, which asks for response.export.
-        await self._authorization.authorize(user, permission, workspace_id)
+        # Every response of the form, unpaginated and decrypted: a bulk
+        # download, so response.export (doc §4), never response.read alone.
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_EXPORT, workspace_id
+        )
+        await self._form_in_workspace(workspace_id, form_id)
+        form_responses = await self._form_response_repo.list_by_form_id(
+            await self.scope(workspace_id, [form_id])
+        )
+        return self.decrypt_form_responses(
+            workspace_id=workspace_id, responses=form_responses
+        )
+
+    async def get_workspace_form_submission_paths(
+        self, form_id: str, workspace_id: PydanticObjectId, user: User
+    ) -> List[SubmissionPath]:
+        """The path each submission of the form takes through its pages
+        under the form's current (draft) rules, for the flow view's insights
+        (response.read). The answers are decrypted here only to replay the
+        jumps and never leave: no answer values, identities, response ids or
+        dates. Deletion-only stubs (no answers) are not submissions."""
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_READ, workspace_id
+        )
+        await self._form_in_workspace(workspace_id, form_id)
+        form = await self._form_repo.get_form_document_by_id(form_id)
+        stored = await self._form_response_repo.list_by_form_id(
+            await self.scope(workspace_id, [form_id])
+        )
+        return await run_in_threadpool(
+            self._submission_paths, workspace_id, form, stored
+        )
+
+    @staticmethod
+    def _submission_paths(
+        workspace_id: PydanticObjectId, form: Any, responses: Sequence[Any]
+    ) -> List[SubmissionPath]:
+        # Imported here: importing answer_validation with this module changes
+        # the import order, and with it which spelling of an int/str union
+        # typing caches first, so the public API's committed OpenAPI document
+        # would list Retention.value's types the other way round.
+        from backend.app.services.answer_validation import submission_path
+
+        paths: List[SubmissionPath] = []
+        for response in responses:
+            if response.answers is None:
+                continue
+            answers = response.answers
+            if not isinstance(answers, dict):
+                try:
+                    answers = json.loads(
+                        crypto_service.decrypt(
+                            workspace_id=workspace_id,
+                            form_id=response.form_id,
+                            data=answers,
+                        )
+                    )
+                except UnreadableCiphertext:
+                    _log_unreadable(response, "answers")
+                    continue
+            steps, ended, ending_id = submission_path(form, answers)
+            paths.append(
+                SubmissionPath(
+                    steps=[
+                        SubmissionPathStep(page_id=page_id, jump=jump)
+                        for page_id, jump in steps
+                    ],
+                    ended=ended,
+                    ending_id=ending_id,
+                )
+            )
+        return paths
+
+    async def _form_in_workspace(self, workspace_id: PydanticObjectId, form_id: str):
         # Scope the form to the workspace as well: without this the caller could
         # name any workspace they belong to and read another workspace's form.
         workspace_form = (
@@ -258,12 +341,6 @@ class FormResponseService:
             raise HTTPException(
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
-        form_responses = await self._form_response_repo.list_by_form_id(
-            await self.scope(workspace_id, [form_id])
-        )
-        return self.decrypt_form_responses(
-            workspace_id=workspace_id, responses=form_responses
-        )
 
     async def get_workspace_submission(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
@@ -541,30 +618,37 @@ class FormResponseService:
         workspace_id: PydanticObjectId,
         response: StandardFormResponseCamelModel,
     ):
-        if not isinstance(response.answers, dict):
-            response.answers = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id,
-                    form_id=response.form_id,
-                    data=response.answers,
+        # A stored value that does not decrypt is emptied rather than failing
+        # the whole read, and named in ``unreadable_fields`` where the payload
+        # has it (the workspace's submission views).
+        for field, encrypted, unreadable in (
+            ("answers", not isinstance(response.answers, dict), {}),
+            ("hidden_fields", isinstance(response.hidden_fields, (bytes, str)), None),
+            (
+                "internal_answers",
+                isinstance(getattr(response, "internal_answers", None), (bytes, str)),
+                None,
+            ),
+        ):
+            if not encrypted:
+                continue
+            try:
+                value = json.loads(
+                    crypto_service.decrypt(
+                        workspace_id=workspace_id,
+                        form_id=response.form_id,
+                        data=getattr(response, field),
+                    )
                 )
-            )
-        if isinstance(response.hidden_fields, (bytes, str)):
-            response.hidden_fields = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id,
-                    form_id=response.form_id,
-                    data=response.hidden_fields,
-                )
-            )
-        if isinstance(getattr(response, "internal_answers", None), (bytes, str)):
-            response.internal_answers = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id,
-                    form_id=response.form_id,
-                    data=response.internal_answers,
-                )
-            )
+            except UnreadableCiphertext:
+                _log_unreadable(response, field)
+                value = unreadable
+                if "unreadable_fields" in type(response).model_fields:
+                    response.unreadable_fields = [
+                        *(response.unreadable_fields or []),
+                        field,
+                    ]
+            setattr(response, field, value)
         if getattr(response, "respondent_feedback", None):
             response.respondent_feedback = decrypt_feedback(
                 workspace_id, response.form_id, response.respondent_feedback
@@ -819,7 +903,7 @@ class FormResponseService:
         if expected_version is not None and expected_version != stored_version:
             raise self._internal_answers_conflict(workspace_id, response)
 
-        current = self._decrypted_internal_answers(workspace_id, response)
+        current = self._decrypted_internal_answers(workspace_id, response, strict=True)
         meta = dict(response.internal_answers_meta or {})
         now = dt.datetime.now(dt.timezone.utc)
         for field_id, value in validated.items():
@@ -869,15 +953,31 @@ class FormResponseService:
         )
 
     def _decrypted_internal_answers(
-        self, workspace_id: PydanticObjectId, response: StandardFormResponse
+        self,
+        workspace_id: PydanticObjectId,
+        response: StandardFormResponse,
+        strict: bool = False,
     ) -> Dict[str, Any]:
+        """``strict``: refuse (409) when the stored values do not decrypt,
+        for a save that would otherwise replace them; else read them as
+        empty."""
         stored = response.internal_answers
         if isinstance(stored, (bytes, str)):
-            stored = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id, form_id=response.form_id, data=stored
+            try:
+                stored = json.loads(
+                    crypto_service.decrypt(
+                        workspace_id=workspace_id, form_id=response.form_id, data=stored
+                    )
                 )
-            )
+            except UnreadableCiphertext:
+                _log_unreadable(response, "internal_answers")
+                if strict:
+                    raise HTTPException(
+                        HTTPStatus.CONFLICT,
+                        content="The internal fields of this submission can't be "
+                        "read, so they can't be changed.",
+                    )
+                stored = {}
         return {
             key: (
                 value.model_dump(mode="json", exclude_none=True)

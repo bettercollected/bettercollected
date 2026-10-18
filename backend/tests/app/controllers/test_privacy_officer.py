@@ -88,6 +88,8 @@ async def test_a_privacy_officer_is_refused_the_answers(client: AsyncClient, req
     for path in (
         "/api/v1/workspaces/{ws}/forms/{form}/submissions",
         "/api/v1/workspaces/{ws}/forms/{form}/all-submissions",
+        "/api/v1/workspaces/{ws}/forms/{form}/all-submissions/export",
+        "/api/v1/workspaces/{ws}/forms/{form}/submission-paths",
         "/api/v1/workspaces/{ws}/submissions/{response}",
     ):
         refused = await client.get(path.format(**requested), cookies=_cookies(officer))

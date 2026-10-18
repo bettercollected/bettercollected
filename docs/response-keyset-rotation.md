@@ -169,7 +169,10 @@ same bytes, and writes it back only if the stored value has not changed since it
   workspace is unknown and none of its form's workspaces opens it, for example a response whose
   form was removed from every workspace. The record ids are in the log. Such values stay under the
   old key, and step 5 refuses while they do. Either keep the old key (stop before step 5) or delete
-  those records.
+  those records. The other values of the same record are still re-encrypted. Another cause: a
+  feedback message stored as plaintext because it started with `v1:` (before `encrypt` stopped
+  passing such values through). It only looks like ciphertext.
+  `python -m scripts.check_undecryptable_values` counts these (read-only).
 
 Repeat the dry run until it reports `values_stale` as 0 (or absent) for every target and store.
 

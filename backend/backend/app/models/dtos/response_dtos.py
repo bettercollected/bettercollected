@@ -160,6 +160,9 @@ class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     # dropped in WorkspaceFormService.submit_response.)
     respondent_feedback: Optional[List[RespondentFeedback]] = Field(None, exclude=True)
     feedback: Optional[RespondentFeedbackView] = None
+    # Encrypted fields whose stored value does not decrypt ("answers",
+    # "hidden_fields", "internal_answers"): returned empty, named here.
+    unreadable_fields: Optional[List[str]] = None
 
 
 class FormFileResponse(BaseModel):

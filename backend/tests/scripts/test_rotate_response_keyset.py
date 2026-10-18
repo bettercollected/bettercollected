@@ -63,6 +63,7 @@ class Data:
         with_orphan: bool = False,
         with_mixed: bool = False,
         with_credentials: bool = True,
+        with_legacy_plaintext: bool = False,
     ):
         self.expected = {}  # (target, record id, path) -> (context, plaintext)
         self.links = [
@@ -144,6 +145,24 @@ class Data:
             self.expected[("responses", str(mixed.id), ("hidden_fields",))] = (
                 (str(WS_B), "f2"),
                 b'{"ref": "a hidden value"}',
+            )
+
+        if with_legacy_plaintext:
+            # a feedback message stored before CryptoService.encrypt stopped
+            # passing "v1:..." through: looks like ciphertext, is plaintext
+            legacy = FormResponseDocument(
+                id=PydanticObjectId(),
+                form_id="f1",
+                workspace_id=WS_A,
+                answers=_enc(WS_A, "f1", '{"q1": "an answer"}'),
+                respondent_feedback=[
+                    RespondentFeedback(status="Closed", message=b"v1:a message")
+                ],
+            )
+            self.responses.append(legacy)
+            self.expected[("responses", str(legacy.id), ("answers",))] = (
+                (str(WS_A), "f1"),
+                b'{"q1": "an answer"}',
             )
 
         self.credentials = []
@@ -577,6 +596,41 @@ async def test_drop_old_refuses_while_a_record_cannot_be_reencrypted(
     assert code == 0
     counts = report["targets"]["responses"][primary_of(stores)]
     assert counts["records_unopenable"] == 1 and counts["values_unopenable"] == 1
+
+    code, refused = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(tmp_path / "final.keyset"),
+    )
+    assert code == 1 and refused["values_stale"] >= 1
+    assert not (tmp_path / "final.keyset").exists()
+
+
+async def test_a_legacy_plaintext_with_the_prefix_is_left_and_blocks_drop_old(
+    stores, tmp_path, capsys, monkeypatch
+):
+    """A value that only looks like ciphertext reads as unreadable: the rest of
+    its record is re-encrypted, the value is left as it is and counted, and
+    the old key stays (scripts.check_undecryptable_values finds such values)."""
+    data = Data(with_legacy_plaintext=True)
+    await seed(stores, data)
+    rotated_file, _, new_key = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 0
+    counts = report["targets"]["responses"][primary_of(stores)]
+    assert counts["records_unopenable"] == 1 and counts["values_unopenable"] == 1
+    assert counts["records_reencrypted"] == 4  # the legacy record's answers too
+    assert "a message" not in json.dumps(report)
+    after = await stored_values(stores)
+    legacy = [v for v in after.values() if v == b"v1:a message"]
+    assert len(legacy) == len(store_names(stores))  # untouched in every store
+    assert all(
+        ciphertext_key_id(v) == new_key for v in after.values() if v != b"v1:a message"
+    )
 
     code, refused = await cli(
         capsys,

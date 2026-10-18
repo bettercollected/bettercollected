@@ -8,9 +8,19 @@ repository (common.services.keyset).
 
 import os
 
-from common.services.keyset import KEYSET_ENV, CryptoService, warn_if_published
+from common.services.keyset import (
+    KEYSET_ENV,
+    CryptoService,
+    UnreadableCiphertext,
+    warn_if_published,
+)
 
-__all__ = ["CryptoService", "crypto_service", "default_crypto_service"]
+__all__ = [
+    "CryptoService",
+    "UnreadableCiphertext",
+    "crypto_service",
+    "default_crypto_service",
+]
 
 
 def default_crypto_service():

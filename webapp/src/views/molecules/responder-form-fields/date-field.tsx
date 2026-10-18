@@ -17,6 +17,7 @@ import { DateRuleContext, getDateRuleError, getDisabledDayMatcher, isoToLocalDat
 
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
+import { joinIds, useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 import { ThemedCalendar } from './themed-calendar';
 
@@ -80,11 +81,17 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
     const tertiaryColor = theme?.tertiary;
     const label = field.properties?.label?.trim();
     const buttonId = `date-picker-${field.id}`;
+    const labelId = `date-label-${field.id}`;
+    const valueId = `date-value-${field.id}`;
+    // Named by the question (and the field's own label); the chosen date, or
+    // "Pick a date", describes it. Empty on the builder canvas.
+    const { label: question, group } = useQuestionLabel();
+    const labelledBy = question?.labelledBy ? joinIds(question.labelledBy, label && labelId) : undefined;
 
     return (
         <div className="flex flex-col gap-1">
             {label && (
-                <label htmlFor={buttonId} className="text-sm font-medium" style={{ color: theme?.primary }}>
+                <label id={labelId} htmlFor={buttonId} className="text-sm font-medium" style={{ color: theme?.primary }}>
                     {label}
                 </label>
             )}
@@ -93,6 +100,8 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                     <button
                         id={buttonId}
                         type="button"
+                        aria-labelledby={labelledBy}
+                        aria-describedby={question ? joinIds(valueId, group['aria-describedby']) : undefined}
                         className={cn(
                             'flex min-h-12 w-full cursor-pointer items-center gap-2 border bg-white px-4 py-3 text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg',
                             isBuilder && 'pointer-events-none'
@@ -106,14 +115,19 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         }}
                     >
                         <CalendarIcon
+                            aria-hidden="true"
                             className="h-6 w-6 shrink-0"
                             style={{ color: secondaryColor }}
                         />
                         {date ? (
                             // The chosen date is the answer — ink, not the action colour.
-                            <span style={{ color: theme?.primary }}>{format(date, 'PPP', { locale })}</span>
+                            <span id={valueId} style={{ color: theme?.primary }}>
+                                {format(date, 'PPP', { locale })}
+                            </span>
                         ) : (
-                            <span style={{ color: '#667085' }}>{t('DATE.PICK')}</span>
+                            <span id={valueId} style={{ color: '#667085' }}>
+                                {t('DATE.PICK')}
+                            </span>
                         )}
                     </button>
                 </PopoverTrigger>

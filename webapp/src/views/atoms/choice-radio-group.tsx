@@ -1,4 +1,4 @@
-import { KeyboardEvent, ReactNode, useRef } from 'react';
+import { AriaAttributes, KeyboardEvent, ReactNode, useRef } from 'react';
 
 import { FormTheme } from '@app/constants/theme';
 
@@ -13,7 +13,8 @@ export interface RadioOption<T> {
 /**
  * A single-answer list as a WAI-ARIA radio group: one tab stop (the chosen
  * option, else the first), arrow keys move and choose, Space chooses, and
- * the group is named by the question (`labelledBy`). Every option is the
+ * the group is named by the question (`labelledBy`, or `labelProps` for the
+ * question's full name, description and state). Every option is the
  * shared choice row (atoms/choice.tsx).
  *
  * `onChange` says whether the choice came from the arrow keys, so callers
@@ -26,6 +27,7 @@ export default function ChoiceRadioGroup<T>({
     onChange,
     theme,
     labelledBy,
+    labelProps,
     className
 }: {
     options: Array<RadioOption<T>>;
@@ -33,6 +35,7 @@ export default function ChoiceRadioGroup<T>({
     onChange: (value: T, meta: { viaArrowKeys: boolean }) => void;
     theme?: Partial<FormTheme>;
     labelledBy?: string;
+    labelProps?: AriaAttributes;
     className?: string;
 }) {
     const refs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -49,7 +52,7 @@ export default function ChoiceRadioGroup<T>({
     };
 
     return (
-        <div role="radiogroup" aria-labelledby={labelledBy} className={className}>
+        <div role="radiogroup" aria-labelledby={labelledBy} {...labelProps} className={className}>
             {options.map((option, index) => {
                 const checked = index === selectedIndex;
                 const row = choiceRowStyle(theme, checked);

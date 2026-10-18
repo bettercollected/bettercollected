@@ -141,18 +141,26 @@ def _c():
 
 
 async def _persist_settings_ops(
-    form_id: str, ops, results: List[OpResult]
+    form_id: str, ops, results: List[OpResult], *, workspace_id: PydanticObjectId
 ) -> Optional[dict]:
-    """Write applied update_form_settings ops to the association document.
+    """Write applied update_form_settings ops to the association document
+    of ``workspace_id`` (the caller's workspace).
 
-    Returns the camelised updated settings, or None when no settings op
-    applied."""
+    A form can be linked to several workspaces, each with its own settings
+    (purpose, retention, policy link, ...): only the caller's are written,
+    never another workspace's. Returns the camelised updated settings, or
+    None when no settings op applied (or the form is not in that
+    workspace)."""
+    if workspace_id is None:
+        raise ValueError("workspace_id is required")
     if not any(
         result.ok and isinstance(op, UpdateFormSettingsOp)
         for op, result in zip(ops, results)
     ):
         return None
-    workspace_form = await _c().workspace_form_repo().find_first_by_form_id(form_id)
+    workspace_form = await _c().workspace_form_repo().find_workspace_form(
+        PydanticObjectId(workspace_id), str(form_id)
+    )
     if not workspace_form:
         return None
     settings = workspace_form.settings
@@ -167,6 +175,8 @@ async def persist_ops_to_form(
     form_document: FormDocument,
     form: StandardForm,
     ops,
+    *,
+    workspace_id: PydanticObjectId,
     atomic: bool = False,
     expected_updated_at: Optional[dt.datetime] = None,
 ) -> tuple:
@@ -181,6 +191,8 @@ async def persist_ops_to_form(
     409 form_changed when the stored draft changed since,
     form_concurrency.py), before any settings are written;
     ``form_document`` then carries the stored ``updated_at``.
+    ``workspace_id``: the caller's workspace (required): settings ops are
+    written to that workspace's association only.
     Returns (new_form, results, updated_settings_or_none).
     """
     # CPU-bound on a large form: off the event loop
@@ -205,7 +217,9 @@ async def persist_ops_to_form(
                     "message": "This form no longer exists. Nothing was changed.",
                 },
             )
-    settings = await _persist_settings_ops(form_document.form_id, ops, results)
+    settings = await _persist_settings_ops(
+        form_document.form_id, ops, results, workspace_id=workspace_id
+    )
     return new_form, results, settings
 
 
@@ -345,7 +359,7 @@ class FormAIChatService:
             )
         else:
             new_form, results, updated_settings = await persist_ops_to_form(
-                form_document, form, ops
+                form_document, form, ops, workspace_id=workspace_id
             )
 
         now = dt.datetime.now(dt.timezone.utc).isoformat()

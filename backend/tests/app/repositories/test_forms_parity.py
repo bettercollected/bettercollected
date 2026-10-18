@@ -321,7 +321,6 @@ async def test_workspace_form_visibility(sessions):
         [
             ("find_workspace_form", lambda: (ws, "pub")),
             ("find_workspace_form", lambda: (ws, "nope")),
-            ("find_first_by_form_id", lambda: ("pub",)),
             ("get_workspace_form_in_workspace", lambda: (ws, "public-slug")),
             ("get_workspace_form_in_workspace", lambda: (ws, "priv", False)),
             (

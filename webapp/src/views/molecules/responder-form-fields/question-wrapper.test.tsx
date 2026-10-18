@@ -12,7 +12,11 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { store } from '@app/store/store';
 
+import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
+
+/** A text box that takes its name and description from the question, as the field components do. */
+const LabelledProbe = () => <input {...useQuestionLabel().control} />;
 
 // RenderImage drags in the whole builder field registry — irrelevant here.
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
@@ -23,8 +27,8 @@ vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
 const field = (overrides: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id: 'f1', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Your name?', ...overrides });
 
 /** Renders QuestionWrapper with optional pre-seeded invalid fields / answers / hidden values. */
-const renderWrapper = (f: StandardFormFieldDto, opts: { invalid?: Record<string, any[]>; answers?: Record<string, any>; hiddenValues?: Record<string, string> } = {}) => {
-    const { invalid, answers, hiddenValues } = opts;
+const renderWrapper = (f: StandardFormFieldDto, opts: { invalid?: Record<string, any[]>; answers?: Record<string, any>; hiddenValues?: Record<string, string>; children?: React.ReactNode } = {}) => {
+    const { invalid, answers, hiddenValues, children } = opts;
     const needsSetup = !!(invalid || answers || hiddenValues);
     const Harness = () => {
         const { setInvalidFields, setFormResponse, formResponse } = useFormResponse();
@@ -38,7 +42,7 @@ const renderWrapper = (f: StandardFormFieldDto, opts: { invalid?: Record<string,
             setReady(true);
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, []);
-        return ready ? <QuestionWrapper field={f} /> : null;
+        return ready ? <QuestionWrapper field={f}>{children}</QuestionWrapper> : null;
     };
     return render(
         <ReduxProvider store={store}>
@@ -156,10 +160,10 @@ describe('QuestionWrapper — "why we ask this"', () => {
 
     it('shows the reason under an identifying question and links it for assistive tech (English)', async () => {
         vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['en-GB']);
-        renderWrapper(field({ type: FieldTypes.EMAIL, title: 'Email', properties: { whyWeAsk: 'To send you a copy of your answers.' } }));
+        renderWrapper(field({ type: FieldTypes.EMAIL, title: 'Email', properties: { whyWeAsk: 'To send you a copy of your answers.' } }), { children: <LabelledProbe /> });
         const reason = await screen.findByText(/To send you a copy of your answers\./);
         expect(reason.closest('p')).toHaveTextContent('Why we ask this: To send you a copy of your answers.');
-        expect(screen.getByRole('group').getAttribute('aria-describedby')).toContain('q-why-f1');
+        expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAccessibleDescription('Why we ask this: To send you a copy of your answers.');
     });
 
     it('labels the reason in Dutch for a Dutch respondent', async () => {
@@ -191,5 +195,44 @@ describe('QuestionWrapper — untitled fields', () => {
     it('shows a legacy plain title kept in value', () => {
         renderWrapper(field({ title: undefined, value: 'Where do you live?' }));
         expect(screen.getByText('Where do you live?')).toBeInTheDocument();
+    });
+});
+
+describe('QuestionWrapper — accessible name and description', () => {
+    it('names the control by the title alone, not the required mark', () => {
+        renderWrapper(field({ validations: { required: true } }), { children: <LabelledProbe /> });
+        const input = screen.getByRole('textbox', { name: 'Your name?' });
+        expect(input).toHaveAttribute('aria-required', 'true');
+    });
+
+    it('names the control by the rendered title, piped answers included', () => {
+        const title = {
+            type: 'doc',
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        { type: 'text', text: 'Hi ' },
+                        { type: 'text', text: 'there', marks: [{ type: 'bold' }] },
+                        { type: 'text', text: ', ' },
+                        { type: 'answerPipe', attrs: { kind: 'hidden', pipeKey: 'name', label: 'name', fallback: 'friend' } }
+                    ]
+                }
+            ]
+        };
+        renderWrapper(field({ title }), { hiddenValues: { name: 'Ada' }, children: <LabelledProbe /> });
+        expect(screen.getByRole('textbox', { name: 'Hi there, Ada' })).toBeInTheDocument();
+    });
+
+    it('marks the control invalid and describes it by the error while it shows', () => {
+        renderWrapper(field({ description: 'As on your passport.', validations: { required: true } }), { invalid: { f1: [0] }, children: <LabelledProbe /> });
+        const input = screen.getByRole('textbox', { name: 'Your name?' });
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+        expect(input).toHaveAccessibleDescription('As on your passport. Please answer this question to continue.');
+    });
+
+    it('leaves an untitled control to its own label', () => {
+        renderWrapper(field({ title: undefined }), { children: <LabelledProbe /> });
+        expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-labelledby');
     });
 });

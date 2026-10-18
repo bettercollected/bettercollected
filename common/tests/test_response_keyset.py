@@ -19,6 +19,7 @@ from common.services.keyset import (
     PUBLISHED_KEY_SHA256,
     CryptoService,
     KeysetError,
+    UnreadableCiphertext,
     add_primary_key,
     ciphertext_key_id,
     encode_keyset,
@@ -185,7 +186,7 @@ def test_rotation_keeps_old_ciphertexts_readable_and_tags_new_ones():
 
     final = CryptoService(encode_keyset(only_primary(rotated)))
     assert final.decrypt("ws", "form", fresh) == b"an answer"
-    with pytest.raises(tink.TinkError):
+    with pytest.raises(UnreadableCiphertext):
         final.decrypt("ws", "form", stored)
 
 

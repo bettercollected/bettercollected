@@ -11,6 +11,7 @@ import { scrollToDivById } from '@app/utils/scroll-utils';
 import { cn } from '@app/shadcn/util/lib';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
+import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
@@ -23,13 +24,15 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
     // A slide-level theme (when present) wins over the form theme.
     const colours = slide?.properties?.theme?.secondary ? slide.properties.theme : theme;
     const tokens = styleTokens(theme?.style);
+    // Named by the question (empty on the builder canvas, which has no wrapper).
+    const { group, label } = useQuestionLabel();
 
     return (
         // Square 48px cells: a comfortable touch target, numbers in the
         // theme's ink on a white face, the theme's border at rest (3:1 on its
         // ground), ink on hover, and the chosen number filled with the action
         // colour in semibold white, so the choice reads without colour too.
-        <div className="flex flex-row flex-wrap gap-2">
+        <div className="flex flex-row flex-wrap gap-2" {...(label ? { role: 'group', ...group } : {})}>
             {_.range(field.properties?.startFrom ?? 1, +(field.properties?.steps ?? 10) + 1, 1).map((index) => {
                 const selected = answer === index;
                 return (

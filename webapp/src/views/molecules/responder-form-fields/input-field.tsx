@@ -8,7 +8,14 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
+
+/** The input, named by the question it sits in (QuestionWrapper's label context). */
+function LabelledInput(props: React.ComponentProps<typeof FieldInputWrapper>) {
+    const { control } = useQuestionLabel();
+    return <FieldInputWrapper {...props} {...control} />;
+}
 
 export default function InputField({ field }: { field: StandardFormFieldDto }) {
     const { formResponse, addFieldTextAnswer, addFieldEmailAnswer, addFieldNumberAnswer, addFieldURLAnswer, removeAnswer } = useFormResponse();
@@ -67,7 +74,7 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
                     if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                 }}
             >
-                <FieldInputWrapper
+                <LabelledInput
                     id={`input-field-${field.id}`}
                     type={TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT) ? 'text' : field.type}
                     placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}

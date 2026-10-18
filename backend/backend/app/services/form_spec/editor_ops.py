@@ -344,6 +344,7 @@ class EditorOpsService:
                 document,
                 form,
                 ops,
+                workspace_id=workspace_id,
                 atomic=True,
                 expected_updated_at=document.updated_at or _EPOCH,
             )

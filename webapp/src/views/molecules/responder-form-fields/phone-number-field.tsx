@@ -11,6 +11,7 @@ import { getPlaceholderValueForField } from '@app/utils/form-utils';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 
@@ -38,6 +39,12 @@ const CustomPhoneInputField = styled(PhoneInput)<{ $formTheme?: IThemeState }>((
     };
 });
 
+/** The phone input, named by the question it sits in (QuestionWrapper's label context). */
+function LabelledPhoneInput({ inputProps, ...props }: React.ComponentProps<typeof CustomPhoneInputField>) {
+    const { control } = useQuestionLabel();
+    return <CustomPhoneInputField {...props} inputProps={{ ...inputProps, ...control }} />;
+}
+
 export default function PhoneNumberField({ field }: { field: StandardFormFieldDto }) {
     const { theme } = useFormState();
     const { addFieldPhoneNumberAnswer, removeAnswer, formResponse } = useFormResponse();
@@ -59,7 +66,7 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                 }}
             >
-                <CustomPhoneInputField
+                <LabelledPhoneInput
                     $formTheme={theme}
                     value={(formResponse.answers && formResponse.answers[field.id]?.phone_number) || ''}
                     onChange={(e) => handleChange(e)}
