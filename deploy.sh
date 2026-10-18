@@ -21,10 +21,9 @@ else
   exit 1
 fi
 
-# Create containers one at a time. With Compose 2.24 and Docker Engine 27 we saw a
-# container that belongs to two networks (app-postgres and admin on admin-db)
-# occasionally come up attached to only one when created in parallel (about half
-# the time in a loop of up/down); serial creation did not reproduce it.
+# Extra precaution (docs/admin-service.md): create containers one at a time. The
+# compose file's explicit network priorities are what fix the occasional
+# one-network attach of containers on two networks (app-postgres, admin).
 export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
 
 # The stack's own signing and encryption keys (AUTH_JWT_SECRET,

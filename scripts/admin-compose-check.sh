@@ -270,6 +270,17 @@ out="$(pgrun 'update admin.audit_log set action = action')"
 case "$out" in *"permission denied"*) ok "bc_admin cannot update the audit log" ;; *) bad "bc_admin cannot update the audit log ($out)" ;; esac
 super "drop table if exists app.admin_check_probe" >/dev/null
 
+echo "== network attachment is stable without COMPOSE_PARALLEL_LIMIT (5 fresh creations)"
+envfile="$skeleton_env"
+lost=0
+for _ in 1 2 3 4 5; do
+  dc down -v --remove-orphans --timeout 2 >/dev/null 2>&1
+  (unset COMPOSE_PARALLEL_LIMIT; dc up -d admin >/dev/null 2>&1)
+  [ "$(nets "$(dc ps -q app-postgres)")" = "admin-db default" ] || lost=$((lost + 1))
+  [ "$(nets "$(dc ps -q admin)")" = "admin-db admin-edge" ] || lost=$((lost + 1))
+done
+expect "no container lost a network in 5 plain up runs" "0" "$lost"
+
 echo
 echo "== $pass passed, $fail failed, $skip skipped"
 [ "$fail" -eq 0 ]

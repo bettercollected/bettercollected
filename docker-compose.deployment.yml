@@ -144,9 +144,13 @@ services:
       # read by postgres/ensure-admin-roles.sh, which deploy.sh runs here on every deploy
       BC_ADMIN_PASSWORD: ${BC_ADMIN_PASSWORD:?set by deploy.sh in the root .env}
       BC_ADMIN_MIG_PASSWORD: ${BC_ADMIN_MIG_PASSWORD:?set by deploy.sh in the root .env}
+    # explicit priorities: without them Compose 2.24 / Engine 27 sometimes left
+    # this container on one network only (docs/admin-service.md)
     networks:
-      - default
-      - admin-db
+      default:
+        priority: 100
+      admin-db:
+        priority: 50
     volumes:
       - app-postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -303,8 +307,10 @@ services:
     ports:
       - "127.0.0.1:${ADMIN_PORT:-8100}:8000"
     networks:
-      - admin-edge
-      - admin-db
+      admin-edge:
+        priority: 100
+      admin-db:
+        priority: 50
     depends_on:
       app-postgres:
         condition: service_healthy

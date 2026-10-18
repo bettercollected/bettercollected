@@ -41,13 +41,16 @@ mode instead of failing.
 - Because the service is not on `default`, no other container can resolve or
   route to it. Attaching it to `default` as well would let Docker pick which
   network host traffic comes from; keep the layout as it is.
-- `deploy.sh` sets `COMPOSE_PARALLEL_LIMIT=1`. With Compose 2.24 and Docker
-  Engine 27 a container on two networks (here `app-postgres` and `admin`)
-  sometimes came up attached to only one of them when created in parallel
-  (about half the time in repeated up/down runs; none in eight serial runs).
-  If you run `docker compose up` yourself, set the same variable. A service that
-  logs a name-resolution failure for `app-postgres` has hit this: recreate both
-  (`docker compose up -d --force-recreate app-postgres admin`).
+- Compose 2.24 with Docker Engine 27 sometimes attached a container on two
+  networks (`app-postgres`, `admin`) to only one of them when the networks were
+  created in parallel (3 to 5 of 10 up/down runs). The compose file therefore
+  gives those services explicit network `priority` values; with them, 0 of 40
+  plain `docker compose up` runs lost a network. Setting
+  `COMPOSE_PARALLEL_LIMIT=1` in the root `.env` does not help in this Compose
+  version (5 of 10 runs still lost a network), so it is not relied on;
+  `deploy.sh` and the check script still export it as an extra precaution. A
+  service that logs a name-resolution failure for `app-postgres` has hit this:
+  `docker compose up -d --force-recreate app-postgres admin`.
 - `scripts/admin-compose-check.sh` verifies all of this with real containers
   (see below).
 
