@@ -218,8 +218,13 @@ environment, whatever the tier.
 | `ADMIN_DATABASE_URL` | admin | admin | str | yes | R | T5 |  |
 | `ADMIN_DB_RUNTIME_ROLE` | admin | admin | str |  | R | T5 | `bc_admin` |
 | `ADMIN_EDGE_GATEWAY` | admin | admin | str |  | R | T5 |  |
+| `ADMIN_INTEGRITY_INTERVAL_SECONDS` | admin | admin | int 10..86400 |  | R | T5 | `600` |
 | `ADMIN_LISTEN_PORT` | admin | admin | int 1..65535 |  | R | T5 |  |
+| `ADMIN_LOOPS_ENABLED` | admin | admin | bool |  | R | T5 | `true` |
+| `ADMIN_NOTIFY_INTERVAL_SECONDS` | admin | admin | int 1..3600 |  | R | T5 | `15` |
+| `ADMIN_NOTIFY_MAX_PER_MINUTE` | admin | admin | int 1..600 |  | R | T5 | `30` |
 | `ADMIN_PORT` | admin | admin | int 1..65535 |  | R | T5 |  |
+| `ADMIN_RETENTION_INTERVAL_SECONDS` | admin | admin | int 10..86400 |  | R | T5 | `3600` |
 | `ADMIN_TASKS_MAX_REQUEST_AGE_HOURS` | admin | admin | int 1..24 |  | R | T5 | `24` |
 | `ADMIN_TASKS_SELFTEST` | admin | admin | bool |  | R | T5 | `false` |
 | `ADMIN_TRUSTED_PROXIES` | admin | admin | str |  | R | T5 |  |

@@ -279,6 +279,18 @@ class AdminMailer:
             logger.warning("admin mail not sent (%s)", type(exc).__name__)
             return False
 
+    def is_configured(self) -> bool:
+        """Whether the current settings can send mail at all."""
+        try:
+            return self._provider.get().configured
+        except Exception:  # noqa: BLE001 - a broken provider counts as not configured
+            return False
+
+    async def send_message(self, to: str, message: Message) -> bool:
+        """Send one prepared message to one address; True when the transport
+        accepted it. Never raises."""
+        return await self._deliver(to, message)
+
     async def send_sign_in_code(self, to: str, code: str, ip: str) -> bool:
         return await self._deliver(to, sign_in_code_message(code, ip))
 

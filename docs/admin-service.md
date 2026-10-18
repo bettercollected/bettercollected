@@ -227,6 +227,74 @@ them and refuse if one is missing. The scripts `backend/scripts/check_undecrypta
 and `backend/scripts/backfill_response_workspaces.py` stay as command-line
 tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
 
+## Background loops
+
+In full portal mode (never in the bare gate) the service runs three loops. Each is
+one asyncio task guarded by a Postgres session advisory lock on its own connection:
+with several admin processes only one runs a given loop, the others stand by and
+retry, and the lock is freed on shutdown (or when the connection dies). Intervals are
+jittered, a failing pass is logged by exception class only (never a message, address
+or payload), counted, and retried with a growing delay (up to 8 times the interval);
+nothing a loop does can stop the service. `ADMIN_LOOPS_ENABLED=false` switches them
+off (the old plain cleanup of sessions and counters then runs instead).
+
+| Loop | Every | What it does |
+| --- | --- | --- |
+| `notifications` | 15 s | mails every address in `PLATFORM_ADMIN_EMAILS` about pending rows of `admin.notifications` |
+| `retention` | 1 h | removes old rows, see the table below |
+| `integrity` | 10 min | runs the settings store check and reads the keys services reported as rejected |
+
+**Mail.** The text is fixed per kind (`settings.changed`, `settings.keyset_changed`,
+`settings.keyset_reencrypt`, `tasks.run`, `settings.integrity`) and names only the
+action, the setting or task, the version or run id and the requesting admin. Values,
+parameters, payload fields a template does not print and key material are never
+read. A row of an unknown kind, or a payload that does not fit its template, is
+marked `failed` (`unknown_kind` / `bad_payload`) and never rendered. A row becomes
+`sent` only when every current admin's mail was accepted; admins already served are
+remembered as truncated digests, so a retry mails only the rest. A failing delivery
+is retried after 1, 2, 4 and 8 minutes and then marked `failed` (`delivery_failed`).
+At most `ADMIN_NOTIFY_MAX_PER_MINUTE` mails (30) go out a minute. Each batch writes
+one audit row `notifications.batch` (actor kind `system`, counts only). If mail is
+not configured (`MAIL_SMTP_SERVER`, `MAIL_SENDER`) the loop idles, rows wait, and the
+status says `mail not configured`.
+
+**Retention.** Every statement is bounded (1000 rows) so a backlog drains over several
+passes. The audit log and the settings entries, history and manifest are never
+touched.
+
+| Data | Removed |
+| --- | --- |
+| sessions | ended more than 7 days ago |
+| sign-in challenges | expired more than 1 day ago |
+| rate-limit counters and used step-up tokens (`admin.attempts`) | older than 48 hours |
+| `tasks.run_events` | older than 90 days |
+| `tasks.checkpoints` | of runs finished more than 30 days ago |
+| `settings.service_state` | rows older than 7 days of a service with no newer row (a service that still reports prunes its own) |
+
+The admin role holds DELETE on `tasks.run_events`, `tasks.checkpoints` and
+`settings.service_state` for this; the runner role still can only append.
+
+**Integrity.** Any problem (a bad signature, a missing row, a manifest mismatch, a key a
+service rejected) sets the integrity status and is mailed once per incident: the
+same set of problems is not mailed again within 24 hours (kept in memory and, after a
+restart, found through the outbox row's dedupe key). When the problems are gone the
+status is ok again, and a later recurrence is a new incident.
+
+**Seeing the status.** `Portal.loop_status()` returns each loop's last run, last
+outcome (a short fixed phrase with counts), consecutive failures and whether this
+process leads it; `Portal.integrity_status()` returns `ok` (None until the first
+check), `(setting, reason)` pairs and the time of the check; `Portal.mail_status()` is
+`ok` or `mail not configured`. All are in-memory copies of one shared holder
+(`backend/admin/loops/status.py`) for the Health page and the shell banner.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `ADMIN_LOOPS_ENABLED` | `true` | run the loops |
+| `ADMIN_NOTIFY_INTERVAL_SECONDS` | `15` | outbox pass interval |
+| `ADMIN_NOTIFY_MAX_PER_MINUTE` | `30` | mail rate limit |
+| `ADMIN_RETENTION_INTERVAL_SECONDS` | `3600` | retention interval |
+| `ADMIN_INTEGRITY_INTERVAL_SECONDS` | `600` | integrity check interval |
+
 ## Variables
 
 | Variable | Default | Meaning |
