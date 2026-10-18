@@ -178,6 +178,43 @@ and is executable by `bc_admin` alone. The counts follow the Postgres store, so 
 once the application serves from Postgres; before the application migrations
 have run the page says they are not available.
 
+## Settings pages (changing settings)
+
+`/settings` lists every setting (filter by section or tier); `/settings/<key>`
+shows one with a typed form, `/settings/<key>/history` its versions,
+`/settings/integrity` runs the store verification on demand and
+`/settings/notifications` lists the queued admin notices (read-only; the
+sender is separate). All use the `SettingsService`, so validation, tiers,
+versions, history, audit rows and notices are the service's.
+
+Changing a setting takes two steps because the pages use no script:
+
+1. The edit, clear, restore or purge form includes a fresh authenticator or
+   recovery code and posts to `/settings/<key>/prepare`. That is the only
+   mutating settings route without a token; it writes nothing. It validates the
+   value, checks the typed confirmation (tier T3), checks the code, and answers
+   with an "apply" page holding a single-use token.
+2. The apply page posts to `/settings/<key>/set`, `/clear`, `/restore` or
+   `/purge-history`. Those routes require a token issued for exactly that
+   action, key, new value and the version the admin saw (the service's keyed
+   action hash), so a token cannot be replayed or moved to another change. A
+   change made by someone else in between is refused as stale.
+
+A new value is carried between the steps only as an AES-256-GCM blob bound to
+the session, action, key and version, valid for two minutes, so a secret never
+appears in HTML, a URL, a log line or an audit row. Secrets are written
+through a write-only password field and never prefilled; history shows only
+"set" or "cleared" for them (the last five sealed versions are kept; "purge"
+deletes the older ones). Key material (T4) shows no form, since a maintenance
+task rotates it, and environment-only keys (T5) can only be read. The portal
+asks for the code on every change, including tier T1 (the service itself only
+requires it from T2).
+
+Redirect messages use a fixed list of codes (`?notice=...`), never values.
+`/settings/integrity/run` needs no step-up (it reads only), is limited to three
+runs a minute and shows setting names with reason codes; a failed last run
+adds a notice to every page.
+
 ## Settings store: what the database guards do and do not do
 
 Schema `settings` holds signed (and, for secrets, encrypted) rows, a signed
