@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 import os
+import time
 from typing import Any, Coroutine
 from unittest.mock import patch
 
@@ -249,6 +250,23 @@ async def _clean_db(_initialized_app):
     if _postgres_configured() and container.flags().requires_postgres():
         await _truncate_postgres()
     yield
+
+
+@pytest.fixture(autouse=True)
+def rate_limit_clock(_initialized_app, monkeypatch):
+    """The shared rate limiter's clock, held still for the test.
+
+    Its fixed windows (a minute for the AI limits, an hour for the public API,
+    a day for the AI budget) are aligned to the epoch. On the real clock, a
+    test that fills a window and then expects a refusal fails whenever a
+    window boundary passes between the two requests: the refused request
+    lands in a fresh window and is let through. Held still, every request of
+    a test counts in one window; a test moves time by setting
+    ``rate_limit_clock["now"]``.
+    """
+    clock = {"now": time.time()}
+    monkeypatch.setattr(container.rate_limiter(), "_clock", lambda: clock["now"])
+    return clock
 
 
 @pytest_asyncio.fixture(loop_scope="session")
