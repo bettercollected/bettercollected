@@ -183,6 +183,8 @@ CODE_REQUEST_PER_EMAIL = Rule("code_email", 3, 600)
 CODE_REQUEST_PER_IP = Rule("code_ip", 10, 600)
 CHALLENGE_ATTEMPTS = Rule("challenge", 5, 600)
 FACTOR_FAILURES = Rule("factor_fail", 5, 300)
+# guesses at the second factor, counted BEFORE the code is looked at
+FACTOR_ATTEMPTS = Rule("factor_try", 5, 300)
 GLOBAL_FAILURES = Rule("global_fail", 50, 600)
 # slow guessing: failures in any rolling 24 h, counted in 15-minute buckets
 LONG_FAILURE_LIMIT = 15
@@ -328,6 +330,19 @@ class Limiter:
         base = hashed_key(self._pepper, "factor", normalise_email(subject))
         return base + ":fail", base + ":strikes", base + ":lock"
 
+    def _attempt_subject(self, subject: str) -> str:
+        return hashed_key(self._pepper, "factor", normalise_email(subject))
+
+    async def factor_attempt(self, subject: str) -> Decision:
+        """Reserve one guess at the second factor of ``subject``, atomically and
+        BEFORE the code is evaluated: at most five are evaluated per five
+        minutes, however many requests arrive at once (parallel guesses are
+        refused, not merely counted afterwards). A correct code resets the
+        reservations (``record_success``); wrong ones stay and feed
+        ``record_failure``'s lockout. A holder of a valid code gains nothing from
+        the reset, and the rolling 24 h failure tally is not reset by it."""
+        return await self.hit(FACTOR_ATTEMPTS, self._attempt_subject(subject))
+
     async def lock_status(self, subject: str) -> LockStatus:
         """Whether ``subject`` (an admin email) is locked out right now."""
         _, _, lock_key = self._subject_keys(subject)
@@ -388,12 +403,18 @@ class Limiter:
         fail_key, strike_key, _ = self._subject_keys(subject)
         await self._store.reset(fail_key)
         await self._store.reset(strike_key)
+        await self._store.reset(
+            f"{FACTOR_ATTEMPTS.name}:{self._attempt_subject(subject)}"
+        )
 
     async def unlock(self, subject: str) -> None:
         """Operator override: clear failures, escalation and any lockout."""
         for key in self._subject_keys(subject):
             await self._store.reset(key)
         await self._store.reset(self._subject_keys(subject)[0] + ":long")
+        await self._store.reset(
+            f"{FACTOR_ATTEMPTS.name}:{self._attempt_subject(subject)}"
+        )
 
     # global breaker
     def _global_keys(self) -> Tuple[str, str]:

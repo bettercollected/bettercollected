@@ -184,8 +184,8 @@ async def test_level_three_revokes_when_email_leaves_the_list(
 async def test_logout_revokes_clears_cookie_and_audits(app, transport, runtime_engine):
     b = Browser(app)
     token = await sign_in(b, transport)
-    page = await b.get("/mfa")
-    assert page.status_code == 200 and "Second factor required" in page.text
+    page = await b.get("/mfa/enrol")
+    assert page.status_code == 200 and "Set up an authenticator" in page.text
     csrf = page.text.split('name="csrf_token" value="')[1].split('"')[0]
     r = await b.post("/logout", data={"csrf_token": csrf})
     assert r.status_code == 303 and r.headers["location"] == "/login"

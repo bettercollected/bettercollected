@@ -327,14 +327,34 @@ class SessionService:
         return fresh
 
     def stepup_fresh(
-        self, session: Session, max_age_seconds: int = STEPUP_MAX_AGE_SECONDS
+        self, session: Session, max_age_seconds: Optional[int] = None
     ) -> bool:
         """Whether the session's second factor was confirmed recently enough
-        for a sensitive action (the 2FA stage sets ``stepup_at``)."""
+        for a sensitive action. The window is ``ADMIN_STEPUP_SECONDS`` (default
+        300, at most 600); a caller may ask for a shorter one, never longer."""
         if session.mfa_state != "mfa_ok" or session.stepup_at is None:
             return False
+        window = self._settings.stepup_seconds
+        if max_age_seconds is not None:
+            window = min(window, max_age_seconds)
         age = (self._clock.now() - session.stepup_at).total_seconds()
-        return 0 <= age <= min(max_age_seconds, 600)
+        return 0 <= age <= min(window, 600)
+
+    async def mark_stepup(
+        self, session: Session, *, conn: Optional[AsyncConnection] = None
+    ) -> Session:
+        """Start a new step-up window now (after a verified factor code);
+        returns the session as stored."""
+        if conn is None:
+            async with self._engine.begin() as own:
+                return await self.mark_stepup(session, conn=own)
+        await repo.set_stepup(conn, session.id, self._clock.now())
+        return Session.from_row(await repo.get_by_id(conn, session.id))
+
+    async def reload(self, session: Session) -> Optional[Session]:
+        async with self._engine.connect() as conn:
+            row = await repo.get_by_id(conn, session.id)
+        return None if row is None or row.revoked_at is not None else Session.from_row(row)
 
     # -- revocation ------------------------------------------------------------
     async def logout(
@@ -393,14 +413,22 @@ class SessionService:
         self, email: str, *, keep: Optional[uuid.UUID] = None, by: str = "system",
         reason: str = "revoke_all", ip=None, user_agent=None, request_id=None,
         actor_kind: str = "admin",
+        conn: Optional[AsyncConnection] = None,
     ) -> int:
-        """Revoke every live session of ``email`` (except ``keep``)."""
-        async with self._engine.begin() as conn:
-            live = await repo.list_live(conn, email.strip().lower(), self._clock.now())
-            return await self._revoke_rows(
-                conn, [r.id for r in live if r.id != keep], reason, by,
-                ip=ip, ua=user_agent, request_id=request_id, actor_kind=actor_kind,
-            )
+        """Revoke every live session of ``email`` (except ``keep``). Pass
+        ``conn`` to join the caller's transaction."""
+        if conn is None:
+            async with self._engine.begin() as own:
+                return await self.revoke_all(
+                    email, keep=keep, by=by, reason=reason, ip=ip,
+                    user_agent=user_agent, request_id=request_id,
+                    actor_kind=actor_kind, conn=own,
+                )
+        live = await repo.list_live(conn, email.strip().lower(), self._clock.now())
+        return await self._revoke_rows(
+            conn, [r.id for r in live if r.id != keep], reason, by,
+            ip=ip, ua=user_agent, request_id=request_id, actor_kind=actor_kind,
+        )
 
     async def revoke_for_removed_admin(
         self, session: Session, request_id: Optional[str] = None

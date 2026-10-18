@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Set up an authenticator") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+<h1>{{ _("Set up an authenticator") }}</h1>
+{% include "_factor_error.html" %}
+{% if qr %}
+<ol>
+  <li>{{ _("Scan this picture with your authenticator app.") }}</li>
+  <li>{{ _("Or type this key into the app by hand (time-based, 6 digits):") }}</li>
+</ol>
+<p><img class="qr" src="{{ qr }}" alt="{{ _('QR code for your authenticator app') }}" width="220" height="220"></p>
+<p><code class="secret">{{ secret }}</code></p>
+{% endif %}
+<form method="post" action="/mfa/enrol/confirm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="factor_id" value="{{ factor_id }}">
+  <label for="code">{{ _("Code from the app") }}</label>
+  <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" required maxlength="12" autofocus>
+  <button type="submit">{{ _("Confirm and finish") }}</button>
+</form>
+{% if not qr %}
+<form method="post" action="/mfa/enrol">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit" class="link">{{ _("Start again with a new setup code") }}</button>
+</form>
+{% endif %}
+{% endblock %}
