@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Admin") }}{% endblock %}
+{% block nav %}
+<form method="post" action="/logout" class="inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit" class="link">{{ _("Sign out") }}</button>
+</form>
+{% endblock %}
+{% block main %}
+<h1>{{ _("Admin") }}</h1>
+<p>{{ _("Signed in as") }} <strong>{{ email }}</strong>.</p>
+{% endblock %}
