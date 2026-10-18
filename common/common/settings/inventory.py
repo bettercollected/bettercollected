@@ -123,8 +123,8 @@ def _text(key, section, readers, description, default=None, tier=T1, **kw):
 # --------------------------------------------------------------- server
 
 SERVER: Tuple[SettingSpec, ...] = (
-    _bool("DEBUG", "server", (BACKEND, AUTH, GOOGLE), True,
-          "Debug mode of the API services (the code default is on).", tier=T2),
+    _bool("DEBUG", "server", (BACKEND, AUTH, GOOGLE), False,
+          "Debug mode of the API services (off unless explicitly enabled).", tier=T2),
     _bool("API_DOCS_ENABLED", "server", (BACKEND, AUTH, GOOGLE), False,
           "Serve the interactive API docs (/docs, /redoc) and /openapi.json of the internal APIs.",
           tier=T2),
