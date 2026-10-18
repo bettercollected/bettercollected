@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Recovery codes") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+<h1>{{ _("Recovery codes") }}</h1>
+<p>{{ _("Unused recovery codes left:") }} <strong>{{ left }}</strong></p>
+<p>{{ _("Making new codes cancels all the old ones. You will be asked for a fresh code first.") }}</p>
+<form method="post" action="/mfa/recovery-codes">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit">{{ _("Make new recovery codes") }}</button>
+</form>
+<p><a href="/account">{{ _("Back to your account") }}</a></p>
+{% endblock %}

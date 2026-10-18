@@ -12,7 +12,7 @@ session, admin and second-factor levels are supplied by later stages through
 from enum import IntEnum
 from typing import Callable, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from starlette.routing import Match
 
 
@@ -35,14 +35,33 @@ class RouteRegistry:
     def __init__(self) -> None:
         self.router = APIRouter()
 
-    def route(self, path: str, *, level: Level, methods=("GET",), **kwargs) -> Callable:
+    def route(
+        self, path: str, *, level: Level, methods=("GET",), stepup=None, **kwargs
+    ) -> Callable:
+        """``stepup`` (optional) is a ``StepUp`` or ``ActionBound`` from
+        ``gate.stepup``; it is enforced by a dependency before the handler and
+        needs a level of ``SECOND_FACTOR`` (only a completed second factor can
+        have a step-up)."""
         if not isinstance(level, Level) or level < Level.ADDRESS:
             raise ValueError(f"route {path}: a level of ADDRESS or above is required")
         if path == HEALTH_PATH:
             raise ValueError(f"{HEALTH_PATH} is handled by the gate itself")
 
+        if stepup is not None:
+            from backend.admin.gate import stepup as step
+
+            step.check_declaration(path, methods, stepup)
+            if level < Level.SECOND_FACTOR:
+                raise ValueError(f"route {path}: step-up needs the SECOND_FACTOR level")
+            kwargs["dependencies"] = [
+                *(kwargs.get("dependencies") or []),
+                Depends(step.dependency_for(stepup)),
+            ]
+
         def decorator(func: Callable) -> Callable:
             setattr(func, LEVEL_ATTR, level)
+            if stepup is not None:
+                setattr(func, step.STEPUP_ATTR, stepup)
             self.router.add_api_route(
                 path,
                 func,

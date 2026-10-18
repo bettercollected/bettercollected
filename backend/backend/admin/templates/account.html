@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Your account") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+<h1>{{ _("Your account") }}</h1>
+<p>{{ _("Signed in as") }} <strong>{{ email }}</strong>.</p>
+<h2>{{ _("Second factor") }}</h2>
+<p>{{ _("Unused recovery codes left:") }} <strong>{{ left }}</strong></p>
+<ul>
+  <li><a href="/mfa/recovery-codes">{{ _("Make new recovery codes") }}</a></li>
+  <li><a href="/mfa/enrol">{{ _("Replace the authenticator") }}</a></li>
+</ul>
+<h2>{{ _("Your sessions") }}</h2>
+<ul class="sessions">
+{% for s in sessions %}
+  <li>
+    {{ s.created }} - {{ s.last_seen }} - {{ s.ip }}
+    {% if s.current %}<strong>{{ _("(this session)") }}</strong>{% else %}
+    <form method="post" action="/account/sessions/{{ s.id }}/revoke" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="link">{{ _("Revoke") }}</button>
+    </form>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+<form method="post" action="/account/sessions/revoke-others">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit">{{ _("Sign out all other sessions") }}</button>
+</form>
+<p><a href="/">{{ _("Back") }}</a></p>
+{% endblock %}

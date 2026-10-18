@@ -1,10 +1,9 @@
-"""Routes of the admin portal: sign-in pages, the second-factor placeholder,
-logout, a minimal signed-in shell, a small JSON API and the stylesheet.
+"""Routes of the admin portal: sign-in pages, logout, a minimal signed-in shell, a small JSON API and the stylesheet.
 
-Levels: pages shown before sign-in are ``ADDRESS``; ``/mfa`` and ``/logout``
-are ``ADMIN`` (a session whose second factor is still pending can reach them
-and nothing else); everything else is ``SECOND_FACTOR`` and stays out of reach
-until the second-factor stage can issue ``mfa_ok`` sessions.
+Levels: pages shown before sign-in are ``ADDRESS``; ``/mfa/enrol``, ``/mfa/verify``
+and ``/logout`` are ``ADMIN`` (a session whose second factor is still pending can
+reach them, narrowed by ``controllers/mfa.py``); everything else is
+``SECOND_FACTOR``.
 """
 
 from __future__ import annotations
@@ -119,15 +118,10 @@ def build_registry() -> RouteRegistry:
         response.background = background
         return response
 
-    # -- signed in, second factor pending ----------------------------------------
-    @reg.route("/mfa", level=Level.ADMIN)
-    async def second_factor_page(request: Request):
-        session = request.scope["state"]["session"]
-        if session.mfa_state == "mfa_ok":
-            return RedirectResponse("/", status_code=303)
-        portal = _portal(request)
-        token = csrf.session_token(portal.csrf_key, str(session.id))
-        return portal.render("mfa_required.html", csrf_token=token, email=session.email)
+    # -- signed in, second factor pending: /mfa/* lives in controllers/mfa.py ------
+    from backend.admin.controllers import mfa
+
+    mfa.register(reg)
 
     @reg.route("/logout", level=Level.ADMIN, methods=["POST"])
     async def logout(request: Request):

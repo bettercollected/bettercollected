@@ -26,8 +26,10 @@ from backend.admin.security.keycheck import require_key
 from backend.admin.security.keys import admin_key
 from backend.admin.security.mailer import AdminMailer
 from backend.admin.security.ratelimit import Limiter, SqlAttemptStore
+from backend.admin.services.factors import FactorService
 from backend.admin.services.sessions import SessionService
 from backend.admin.services.signin import SignInService
+from backend.admin.services.stepup import StepUpService
 
 log = logging.getLogger("backend.admin")
 
@@ -58,6 +60,8 @@ class Portal:
     mailer: AdminMailer
     sessions: SessionService
     signin: SignInService
+    factors: FactorService
+    stepup: StepUpService
     csrf_key: bytes
     templates: Environment
 
@@ -78,15 +82,22 @@ class Portal:
         pepper = require_key(admin_key("pepper", env=source), "pepper")
         csrf_key = require_key(admin_key("csrf", env=source), "CSRF key")
         cookie_key = require_key(admin_key("signin", env=source), "sign-in key")
-        limiter = Limiter(limiter_store or SqlAttemptStore(engine, attempts), clock, pepper)
+        store = limiter_store or SqlAttemptStore(engine, attempts)
+        limiter = Limiter(store, clock, pepper)
+        totp_key = require_key(admin_key("totp", env=source), "TOTP key")
+        stepup_key = require_key(admin_key("stepup", env=source), "step-up key")
         mailer = mailer or AdminMailer()
         sessions = SessionService(engine, clock, settings)
         signin = SignInService(
             engine, clock, settings, limiter, mailer, sessions, pepper, cookie_key
         )
+        factors = FactorService(
+            engine, clock, settings, limiter, mailer, sessions, pepper, totp_key
+        )
+        stepup = StepUpService(clock, sessions, store, stepup_key)
         return cls(
-            settings, engine, clock, limiter, mailer, sessions, signin, csrf_key,
-            make_templates(),
+            settings, engine, clock, limiter, mailer, sessions, signin, factors,
+            stepup, csrf_key, make_templates(),
         )
 
     def checkers(self) -> dict:

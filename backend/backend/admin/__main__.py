@@ -88,6 +88,35 @@ async def _revoke_sessions(email: Optional[str]) -> int:
     return 0
 
 
+def _os_user() -> str:
+    import getpass
+    import os
+
+    try:
+        return getpass.getuser()
+    except Exception:  # noqa: BLE001 - a container user without a passwd entry
+        return f"uid{os.getuid()}"
+
+
+async def _reset_factor(email: str) -> int:
+    from backend.admin.portal_config import parse_admin_emails, ADMIN_EMAILS_KEY
+    import os
+
+    address = email.strip().lower()
+    if address not in parse_admin_emails(os.environ.get(ADMIN_EMAILS_KEY)):
+        print("refused: that address is not in PLATFORM_ADMIN_EMAILS", file=sys.stderr)
+        return 2
+
+    async def run(portal):
+        result = await portal.factors.reset_factor(address, _os_user())
+        for job in result.after:  # mail every admin; a mail failure is logged, not fatal
+            await job()
+
+    await _with_portal(run)
+    print("second factor removed; sessions revoked; re-enrolment is required at the next sign-in")
+    return 0
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m backend.admin")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -107,8 +136,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "revoke-sessions", help="revoke the live sessions of one email, or of everyone"
     )
     revoke.add_argument("email", nargs="?")
+    reset = sub.add_parser(
+        "reset-factor",
+        help="remove an admin's second factor and recovery codes (lost device and codes)",
+    )
+    reset.add_argument("--email", required=True)
+    reset.add_argument("--yes", action="store_true", help="confirm; nothing happens without it")
     args = parser.parse_args(argv)
     try:
+        if args.command == "reset-factor":
+            if not args.yes:
+                print("refused: pass --yes to confirm the reset", file=sys.stderr)
+                return 2
+            return asyncio.run(_reset_factor(args.email))
         if args.command == "unlock":
             return asyncio.run(_unlock(args.email))
         if args.command == "resume-sign-in":

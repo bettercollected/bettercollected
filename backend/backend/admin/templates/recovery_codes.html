@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Your recovery codes") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+<h1>{{ _("Your recovery codes") }}</h1>
+<p>{{ _("These codes are shown only once. Each works one time if you lose your authenticator. Store them somewhere safe, apart from this device.") }}</p>
+<ol class="codes">
+{% for code in codes %}
+  <li><code>{{ code }}</code></li>
+{% endfor %}
+</ol>
+<form method="post" action="/mfa/recovery-codes/saved">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label class="check"><input type="checkbox" name="saved" value="yes" required> {{ _("I saved these codes") }}</label>
+  <button type="submit">{{ _("Continue") }}</button>
+</form>
+{% endblock %}

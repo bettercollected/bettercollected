@@ -32,6 +32,8 @@ SUBJECT_SIGN_IN_CODE = "Your admin sign-in code"
 SUBJECT_ENROLMENT = "Security notice: a second factor was set up for an admin account"
 SUBJECT_RECOVERY_USE = "Security notice: a recovery code was used"
 SUBJECT_LOCKOUT = "Security notice: admin sign-in was locked"
+SUBJECT_NEW_ADDRESS = "Security notice: admin sign-in from a new address"
+SUBJECT_FACTOR_RESET = "Security notice: a second factor was reset by an operator"
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f  ]+")
 MAX_VALUE = 120
@@ -91,6 +93,27 @@ def lockout_message(account: str, ip: str, minutes: int) -> Message:
         "If this was not you, someone may be guessing codes.\n"
     )
     return Message(SUBJECT_LOCKOUT, body)
+
+
+def new_address_message(account: str, ip: str) -> Message:
+    body = (
+        f"The admin account {clean(account)} signed in from an address it has "
+        f"not used recently: {clean(ip)}.\n\n"
+        "If this was not expected, review the admin audit log and revoke the "
+        "account's sessions.\n"
+    )
+    return Message(SUBJECT_NEW_ADDRESS, body)
+
+
+def factor_reset_message(account: str) -> Message:
+    body = (
+        f"The second factor of the admin account {clean(account)} was removed "
+        "with the operator command on the host.\n"
+        "Its sessions were revoked; the account must set up a new second factor "
+        "at its next sign-in.\n\n"
+        "If this was not expected, review the admin audit log.\n"
+    )
+    return Message(SUBJECT_FACTOR_RESET, body)
 
 
 class MailTransport(Protocol):
@@ -281,3 +304,11 @@ class AdminMailer:
         self, admins: Sequence[str], account: str, ip: str, minutes: int
     ) -> int:
         return await self._notify(admins, lockout_message(account, ip, minutes))
+
+    async def notify_new_address(
+        self, admins: Sequence[str], account: str, ip: str
+    ) -> int:
+        return await self._notify(admins, new_address_message(account, ip))
+
+    async def notify_factor_reset(self, admins: Sequence[str], account: str) -> int:
+        return await self._notify(admins, factor_reset_message(account))
