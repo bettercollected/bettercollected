@@ -7,7 +7,7 @@ import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { useEnterToNextQuestion } from './next-question';
 import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -23,6 +23,7 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
     const form: StandardFormDto = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
     const { t } = useRespondentLanguage();
+    const onKeyDown = useEnterToNextQuestion(field);
     const handleChange = (value: any) => {
         if (!value) {
             removeAnswer(field.id);
@@ -68,21 +69,16 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
 
     return (
         <QuestionWrapper field={field}>
-            <form
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
-                }}
-            >
-                <LabelledInput
-                    id={`input-field-${field.id}`}
-                    type={TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT) ? 'text' : field.type}
-                    placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
-                    multiple={field.type === FieldTypes.LONG_TEXT}
-                    value={getFieldValue()}
-                    onChange={(value: any) => handleChange(value)}
-                />
-            </form>
+            {/* No form of its own: Enter moves on to the next question. */}
+            <LabelledInput
+                id={`input-field-${field.id}`}
+                type={TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT) ? 'text' : field.type}
+                placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
+                multiple={field.type === FieldTypes.LONG_TEXT}
+                value={getFieldValue()}
+                onChange={(value: any) => handleChange(value)}
+                onKeyDown={onKeyDown}
+            />
         </QuestionWrapper>
     );
 }
