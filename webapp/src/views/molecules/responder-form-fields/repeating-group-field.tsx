@@ -27,6 +27,7 @@ import {
     removeGroupItem,
     scopedFieldId
 } from '@app/utils/repeating-groups';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import QuestionWrapper from './question-wrapper';
 
@@ -59,13 +60,16 @@ function GroupItem({
     const scope: ItemScope = useMemo(() => ({ groupId: group.id, index, childIds: childIds ? childIds.split('|') : [] }), [group.id, index, childIds]);
     const hidden = getItemHiddenChildIds(group, formResponse.answers, index);
     const headingId = `group-item-${group.id}-${index}`;
+    // One level under the page's own heading: the form title (h1), or the
+    // Leaflet section bar (h2).
+    const ItemHeading = styleTokens(theme?.style).key === 'leaflet' ? 'h3' : 'h2';
 
     return (
         <section aria-labelledby={headingId} className="flex flex-col gap-8 rounded-xl border bg-white/70 p-4 md:p-6" style={{ borderColor: (theme?.tertiary ?? '#818CA0') + '55' }}>
             <div className="flex items-center justify-between gap-3">
-                <h3 id={headingId} className="text-black-900 text-base font-semibold">
+                <ItemHeading id={headingId} className="text-black-900 text-base font-semibold">
                     {header}
-                </h3>
+                </ItemHeading>
                 {removable && (
                     <button type="button" onClick={onRemove} className="text-black-700 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-black/5" aria-label={t('GROUP.REMOVE_LABEL', { header })}>
                         <Trash2 className="h-4 w-4" aria-hidden="true" />

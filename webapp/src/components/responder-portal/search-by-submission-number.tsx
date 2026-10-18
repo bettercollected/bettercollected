@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useState } from 'react';
+import { FormEvent, useId, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +18,7 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
     const isCustomDomain = window?.location?.host !== window.PUBLIC_CONFIG?.FORM_DOMAIN;
 
     const [error, setError] = useState(false);
+    const errorId = useId();
 
     const router = useRouter();
 
@@ -59,6 +60,8 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
                         }}
                         placeholder="Enter submission number"
                         aria-label="Submission number"
+                        aria-invalid={error || undefined}
+                        aria-describedby={error ? errorId : undefined}
                         className="w-full flex-1"
                     />
 
@@ -66,11 +69,12 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
                         <SearchIcon className="text-white" width={16} height={16} strokeWidth={2} />
                     </button>
                 </div>
-                <div className="mt-2 text-xs text-[#C43D3D]">
+                {/* Announced when it appears, and describes the field it is about. */}
+                <div className="mt-2 text-xs text-[#C43D3D]" aria-live="polite">
                     {error && (
-                        <div className="flex gap-2">
+                        <div id={errorId} className="flex gap-2">
                             {' '}
-                            <span>
+                            <span aria-hidden="true">
                                 <InfoIcon className="text-[#C43D3D]" width={16} height={16} />
                             </span>
                             The submission number does not match with any form responses
