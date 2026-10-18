@@ -222,3 +222,57 @@ As in step 3, with `keyset-rotation/final.keyset`. Then check that no service lo
   `drop-old`.
 - `drop-old` and the final keyset never touch stored data. Only `reencrypt` writes, and it writes
   only values that decrypt back correctly.
+
+## Rotating with the admin tasks
+
+When the keyset lives in the settings store (tier T4, changed by tasks only) the rotation is five
+tasks of the admin task runner instead of the script. Each is a task with typed parameters; a
+mutating one needs a succeeded dry run of the same parameters first. The keyset never appears in a
+parameter, result, event, audit row or log: only key ids and counts.
+
+| Step | Task | What it does |
+|---|---|---|
+| 1 | `keyset.add_key` | adds a new AES-256-GCM key as a SECONDARY (the primary does not move); refuses while a rotation is under way (more than one key) |
+| 2 | (restart the services) | they pick up the new keyset and report its key ids in their heartbeat |
+| 3 | `keyset.promote` (`new_primary_id`) | makes that key the primary; refuses a key that was published |
+| 4 | (restart the services) | |
+| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; a dual write mode copies the primary's new ciphertext to the mirror; refuses a published primary |
+| 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`) |
+| 7 | `keyset.drop_old` | removes the other keys only when a full scan of every target in every store the services write finds no value on them, and no store is empty |
+
+`drop_old` has no target or store parameters on purpose, and a scan that did not finish (cancelled)
+refuses. A Google credentials store that is empty because the integration was never used needs
+`allow_empty_google`; the responses store is never accepted empty. Values no candidate workspace
+opens stay where they are and are counted (`values_unopenable`); `drop_old` then refuses.
+
+**Readiness.** `promote`, `reencrypt` and `drop_old` first check the settings store's service
+heartbeats (`settings.service_state`) for the services that read the keyset (the backend, and the
+Google integration unless `google_in_use` is false): every instance reported in the last 2 minutes
+(an instance seen within the last 15 minutes that has stopped reporting is treated as possibly
+still running and refuses; older ones are taken as gone), holds a keyset with exactly the stored
+key ids (the heartbeat's `keyset_fp`, a hash of the key ids), has restarted onto the current
+settings revision (`restart_pending` false, `revision_applied` at least the store's revision) and
+does not override the keyset from its environment. The fingerprint does not say which key is
+primary, so after a promote the revision and restart flag are what show a service runs it. The
+refusals are `consumer_not_reporting`, `consumer_stale`, `consumer_missing_key`,
+`consumer_restart_pending`, `consumer_behind` and `consumer_env_override`.
+
+**Typeform.** The Typeform integration is a separate image that also receives the keyset from its
+environment. It reports no heartbeat and what it stores can be neither checked nor re-encrypted
+from here, so `promote`, `reencrypt` and `drop_old` need `typeform_acknowledged: true`: you confirm
+you kept the old key for it or will reconnect its accounts after the final keyset.
+
+**Where the new keyset is written.** The runner has no write privilege on the settings tables. It
+seals and signs the new row itself (for the keyset's section only) and calls
+`settings.task_write_keyset` (migration 0009), which accepts only this key, one version up, under
+the writer lock, with a matching signed manifest and an audit row (`settings.task_set`, actor kind
+`system`, the requesting admin in the detail) already in the same transaction. The same
+transaction enqueues a `settings.keyset_changed` notification for all admins (setting name, action,
+version and requester; never a value) in the admin outbox.
+
+**Requirements and limits.** The keyset must be in the settings store (imported with the admin
+import command) and the runner must be a reader of it. A keyset row imported before the runner
+became a reader is hidden from the runner: the tasks refuse with `keyset_not_readable_by_runner`.
+Its readers are part of the signed row, so only the admin service can fix it by re-writing the
+row with the runner among its readers; do not edit the table. Stacks whose services still take the
+keyset from the environment keep using the script above.

@@ -43,6 +43,7 @@ class Refusals(str, enum.Enum):
     keyset_missing = "keyset_missing"
     keyset_unreadable = "keyset_unreadable"
     keyset_not_in_store = "keyset_not_in_store"
+    keyset_not_readable_by_runner = "keyset_not_readable_by_runner"
     keyset_unverified = "keyset_unverified"
     store_not_configured = "store_not_configured"
     store_unreachable = "store_unreachable"

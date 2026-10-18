@@ -64,6 +64,7 @@ async def write(engine, new_value, *, keys=None, task="keyset.add_key"):
             requested_by=REQUESTER,
             run_id=str(uuid.uuid4()),
             task=task,
+            action="add_key",
         )
 
 
@@ -92,7 +93,7 @@ def call(version: int = 1, revision: int = 1) -> str:
     return (
         f"SELECT settings.task_write_keyset(CAST(:k AS text), {version}, {revision}, "
         "'auth_keys', ARRAY['backend'], 'v2:x', 'u', now(), repeat('a', 64), 'a', "
-        "repeat('b', 64), CAST('{}' AS jsonb), repeat('c', 64))"
+        "repeat('b', 64), CAST('{}' AS jsonb), repeat('c', 64), 'promote')"
     )
 
 
@@ -118,6 +119,21 @@ async def test_a_task_write_is_signed_audited_and_verifies(world, store):
     async with world.tasks.connect() as conn:
         stored = await state.read_stored(conn, state.runner_keys())
     assert stored.value == new and stored.version == version
+
+    # every admin is told in the same transaction: names and versions, never a value
+    async with world.owner.connect() as conn:
+        notices = (
+            await conn.execute(
+                text("SELECT kind, payload, audit_seq, status FROM admin.notifications "
+                     "WHERE kind = 'settings.keyset_changed'")
+            )
+        ).all()
+    assert len(notices) == 1
+    assert notices[0].status == "pending" and notices[0].audit_seq is not None
+    assert notices[0].payload == {
+        "setting": KEY, "tier": "T4", "action": "add_key", "version": version, "actor": REQUESTER,
+    }
+    assert new not in json.dumps(notices[0].payload)
 
     rows = await world.audit_rows("settings.task_set")
     assert len(rows) == 1
@@ -166,7 +182,7 @@ async def test_the_runner_can_write_no_other_key(world, store):
     assert code == "42501" and "not task-writable" in message
     code, _ = await sqlstate(world.tasks, NULL_CALL, k="AI_DEFAULT_PROVIDER")
     assert code == "42501"
-    code, _ = await sqlstate(world.tasks, "SELECT settings.task_write_keyset(NULL, 1, 1, 's', ARRAY['a'], 'v2:x', 'u', now(), 'x', 'a', 'b', '{}', 'c')")
+    code, _ = await sqlstate(world.tasks, "SELECT settings.task_write_keyset(NULL, 1, 1, 's', ARRAY['a'], 'v2:x', 'u', now(), 'x', 'a', 'b', '{}', 'c', 'promote')")
     assert code == "42501"
 
 
@@ -191,13 +207,15 @@ async def test_a_stale_read_is_a_refusal_not_an_overwrite(world, store):
         async with world.tasks.begin() as conn:
             await state.write_stored(
                 conn, keys, stale, encode_keyset(add_secondary_key(value)),
-                requested_by=REQUESTER, run_id=str(uuid.uuid4()), task="keyset.add_key",
+                requested_by=REQUESTER, run_id=str(uuid.uuid4()), task="keyset.add_key", action="add_key",
             )
     assert refused.value.code == "stale_version"
     async with world.tasks.connect() as conn:
         assert (await state.read_stored(conn, keys)).value == first
-    # the failed attempt left no audit row behind (same transaction)
+    # the failed attempt left no audit row and no notification behind (same transaction)
     assert len(await world.audit_rows("settings.task_set")) == 1
+    async with world.owner.connect() as conn:
+        assert (await conn.execute(text("SELECT count(*) FROM admin.notifications WHERE kind = 'settings.keyset_changed'"))).scalar_one() == 1
 
 
 async def test_no_audit_row_no_write(world, store, monkeypatch):
@@ -290,6 +308,9 @@ async def test_the_runner_has_no_direct_write_or_read_on_the_store(world, store)
         "UPDATE settings.manifest SET revision = revision + 1",
         "INSERT INTO settings.history (key) VALUES ('X')",
         "DELETE FROM settings.history",
+        # the outbox: only the function writes it for the runner
+        "INSERT INTO admin.notifications (kind, payload) VALUES ('x', '{}')",
+        "SELECT * FROM admin.notifications",
         "SELECT * FROM settings.v_backend",
         "SELECT * FROM settings.v_google",
     ):
@@ -321,7 +342,7 @@ async def test_the_function_checks_who_calls_even_if_granted_wrongly(world, stor
             await conn.execute(
                 text(
                     "GRANT EXECUTE ON FUNCTION settings.task_write_keyset(text, integer, bigint, "
-                    "text, text[], text, text, timestamptz, text, text, text, jsonb, text) "
+                    "text, text[], text, text, timestamptz, text, text, text, jsonb, text, text) "
                     f'TO "{server.reader_role("auth")}"'
                 )
             )
@@ -330,6 +351,13 @@ async def test_the_function_checks_who_calls_even_if_granted_wrongly(world, stor
     finally:
         await sup.dispose()
         await auth.dispose()
+
+
+async def test_an_unknown_action_is_refused(world, store):
+    row, revision = await entry(world)
+    sql = call(row.version, revision).replace("'promote')", "'delete_everything')")
+    code, _ = await sqlstate(world.tasks, sql, k=KEY)
+    assert code in ("22023", "42501")
 
 
 async def test_the_function_is_definer_with_a_pinned_search_path_and_not_public(world, store):

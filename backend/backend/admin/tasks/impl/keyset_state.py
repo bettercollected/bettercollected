@@ -88,6 +88,15 @@ async def read_stored(conn, keys: SectionKeys) -> Optional[StoredKeyset]:
         )
     ).first()
     if row is None:
+        # A row the runner's view hides is still named in the (unfiltered)
+        # signed manifest: it was written before the runner became a reader of
+        # the keyset. Only the admin service can re-sign it with the runner in
+        # its readers (docs/response-keyset-rotation.md); say so, not "absent".
+        listed = (
+            await conn.execute(text("SELECT entries::text FROM settings.v_tasks_manifest"))
+        ).scalar()
+        if listed is not None and KEY in json.loads(listed):
+            raise Refusal("keyset_not_readable_by_runner")
         return None
     m = row._mapping
     manifest_row = (
@@ -143,6 +152,7 @@ async def write_stored(
     requested_by: str,
     run_id: str,
     task: str,
+    action: str,
     extra: Optional[Mapping[str, Any]] = None,
 ) -> tuple[int, int]:
     """Write ``new_value`` as the next version of the keyset, in the caller's
@@ -197,7 +207,7 @@ async def write_stored(
             text(
                 "SELECT settings.task_write_keyset(:key, :ev, :er, :section, "
                 "CAST(:readers AS text[]), :blob, :by, :at, :sig, :actor, :digest, "
-                "CAST(CAST(:entries AS text) AS jsonb), :msig)"
+                "CAST(CAST(:entries AS text) AS jsonb), :msig, :action)"
             ),
             {
                 "key": KEY,
@@ -213,6 +223,7 @@ async def write_stored(
                 "digest": digest,
                 "entries": json.dumps(manifest.to_json()["entries"], allow_nan=False),
                 "msig": manifest.sig,
+                "action": action,
             },
         )
     except DBAPIError as error:

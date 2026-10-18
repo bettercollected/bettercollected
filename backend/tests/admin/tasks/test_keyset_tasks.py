@@ -61,6 +61,36 @@ def data_env(monkeypatch, _initialized_app):
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
 
 
+@pytest.fixture(autouse=True)
+async def _clean_data(data_env):
+    """The suite's Mongo cleaning is switched off for tests/admin: start (and
+    leave) every test with empty data stores."""
+    from backend.app.container import container
+    from tests.conftest import (
+        TEST_MONGO_DB,
+        _clear_mongo,
+        _postgres_configured,
+        _truncate_postgres,
+    )
+
+    async def clean():
+        await _clear_mongo(container.database_client()[TEST_MONGO_DB])
+        if _postgres_configured():
+            await _truncate_postgres()
+
+    await clean()
+    yield
+    await clean()
+
+
+class Run(dict):
+    """A run row that prints briefly in assertion messages."""
+
+    def __repr__(self):
+        keep = ("task", "state", "refusal_code", "dry_run", "error_class", "error_code", "result")
+        return "Run(" + ", ".join(f"{k}={self.get(k)!r}" for k in keep if k in self) + ")"
+
+
 class Flow:
     """One rotation on one store choice."""
 
@@ -74,7 +104,7 @@ class Flow:
             task, params or {}, dry_run=dry_run, resumes=resumes, requested_at=self.world.clock.now()
         )
         await self.world.drain()
-        return run_id, await self.world.run(run_id)
+        return run_id, Run(await self.world.run(run_id))
 
     async def both(self, task, params=None):
         """The dry run, then the real run (the runner demands the dry run)."""
@@ -246,7 +276,11 @@ async def test_the_whole_rotation_ends_with_every_value_readable_and_the_old_key
     names = {"mongo": ["mongo"], "postgres": ["postgres"], "both": ["mongo", "postgres"]}
     for name in names[flow.choice]:
         counts = getattr(result.responses, name)
-        assert counts.records_reencrypted > 0 and counts.records_readback_failed == 0
+        assert counts.records_readback_failed == 0
+        if name == ("mongo" if flow.choice != "postgres" else "postgres"):
+            assert counts.records_reencrypted > 0
+        else:  # the mirror was given the primary's new ciphertext: nothing left to do
+            assert counts.records_reencrypted + counts.records_current > 0
     if flow.choice == "both":  # the mirror holds the same ciphertext
         found = await stored_values("both")
         by_store = {}
@@ -299,6 +333,15 @@ async def test_the_whole_rotation_ends_with_every_value_readable_and_the_old_key
         "keyset.add_key", "keyset.promote", "keyset.drop_old",
     ]
     assert {r["actor_kind"] for r in rows} == {"system"}
+    async with world.owner.connect() as conn:
+        notices = (
+            await conn.execute(
+                text("SELECT payload FROM admin.notifications "
+                     "WHERE kind = 'settings.keyset_changed' ORDER BY created_at")
+            )
+        ).scalars().all()
+    assert [n["action"] for n in notices] == ["add_key", "promote", "drop_old"]
+    assert {n["actor"] for n in notices} == {"ops@example.org"}
     assert {r["detail"]["requested_by"] for r in rows} == {"ops@example.org"}
 
     # nothing secret anywhere: no keyset (any version), no record content
@@ -336,7 +379,22 @@ async def test_the_task_keyset_comes_from_the_store_never_the_environment(world,
         _, run = await flow.run(task, params, dry_run=True)
         assert run["state"] == "refused" and run["refusal_code"] == "keyset_not_in_store", task
     _, run = await flow.run("keyset.verify", {"stores": stores})
-    assert run["state"] == "succeeded" and run["result"]["values_unopenable"] == 0
+    assert run["state"] == "succeeded", run
+    assert run["result"]["values_unopenable"] == 0
+
+
+async def test_a_keyset_the_runner_may_not_read_is_named_not_called_absent(world, flow):
+    """Written before the runner was a reader: the view hides it, the signed
+    manifest still lists it."""
+    async with world.owner.begin() as conn:
+        await conn.execute(text("ALTER TABLE settings.entries DISABLE TRIGGER entries_guard"))
+        await conn.execute(
+            text("UPDATE settings.entries SET readers = ARRAY['backend', 'google'] WHERE key = :k"),
+            {"k": KEY},
+        )
+        await conn.execute(text("ALTER TABLE settings.entries ENABLE TRIGGER entries_guard"))
+    _, run = await flow.run("keyset.add_key", dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "keyset_not_readable_by_runner"
 
 
 # ------------------------------------------------------------- promote
@@ -381,6 +439,11 @@ async def test_every_consumer_must_confirm_before_a_step_that_depends_on_it(
         await flow.beat()
         _, promoted = await flow.both("keyset.promote", flow.params(new_primary_id=new_id))
         assert promoted["state"] == "succeeded"
+    if task == "keyset.drop_old":  # it needs the values moved first
+        await flow.beat()
+        rp = flow.params(primary_id=new_id, stores=flow.choice)
+        _, moved = await flow.both("keyset.reencrypt", rp)
+        assert moved["state"] == "succeeded", moved
     stored = await flow.stored()
     p = params(flow, new_id)
 
@@ -419,7 +482,7 @@ async def test_google_need_not_report_when_it_is_not_in_use(world, flow):
     _, added = await flow.both("keyset.add_key")
     new_id = added["result"]["added_key_id"]
     async with world.owner.begin() as conn:
-        await conn.execute(text("DELETE FROM settings.service_state WHERE service = 'google'"))
+        await conn.execute(text("DELETE FROM settings.service_state"))
     await heartbeat(world.owner, "backend", (await flow.stored()).value, revision=(await flow.stored()).revision)
     _, run = await flow.run("keyset.promote", flow.params(new_primary_id=new_id), dry_run=True)
     assert run["refusal_code"] == "consumer_not_reporting"

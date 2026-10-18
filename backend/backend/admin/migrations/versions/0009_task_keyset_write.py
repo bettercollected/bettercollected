@@ -29,7 +29,10 @@ narrow additions, nothing broader:
     transaction (no audit row, no write).
 
   It then updates the entry, the history and the manifest like the portal's
-  writer does. It cannot verify HMAC signatures (the keys are not in the
+  writer does, and enqueues one ``settings.keyset_changed`` notification for
+  all admins in the same transaction (payload: setting name, tier, action,
+  version and the requesting admin; never a value). The runner has no INSERT
+  privilege on the outbox: only this function writes it for it. It cannot verify HMAC signatures (the keys are not in the
   database): a row signed wrongly is written but refused by every reader, and
   ``settings-verify`` reports it.
 """
@@ -47,7 +50,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 SIGNATURE = (
     "text, integer, bigint, text, text[], text, text, timestamptz, text, text, "
-    "text, jsonb, text"
+    "text, jsonb, text, text"
 )
 
 
@@ -67,7 +70,8 @@ def upgrade() -> None:
             p_history_actor text,
             p_manifest_digest text,
             p_manifest_entries jsonb,
-            p_manifest_sig text
+            p_manifest_sig text,
+            p_action text
         ) RETURNS bigint
         LANGUAGE plpgsql SECURITY DEFINER
         SET search_path = pg_catalog, settings, admin AS $$
@@ -78,6 +82,7 @@ def upgrade() -> None:
             cur_entries jsonb;
             new_version integer;
             new_revision bigint;
+            audit_seq bigint;
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM settings.reader_roles
                            WHERE role = session_user AND service = 'tasks') THEN
@@ -113,6 +118,7 @@ def upgrade() -> None:
                OR p_manifest_sig IS NULL OR p_manifest_sig !~ '^[0-9a-f]{64}$'
                OR p_updated_by IS NULL OR length(p_updated_by) NOT BETWEEN 1 AND 320
                OR p_history_actor IS NULL OR length(p_history_actor) NOT BETWEEN 1 AND 320
+               OR p_action IS NULL OR NOT (p_action = ANY (ARRAY['add_key', 'promote', 'drop_old']))
                OR p_readers IS NULL OR cardinality(p_readers) NOT BETWEEN 1 AND 16
                OR NOT (p_readers <@ ARRAY['backend', 'auth', 'google', 'tasks', 'webapp', 'admin'])
                OR p_readers IS DISTINCT FROM (SELECT array_agg(r ORDER BY r) FROM unnest(p_readers) r)
@@ -130,8 +136,7 @@ def upgrade() -> None:
                     USING ERRCODE = 'invalid_parameter_value';
             END IF;
             -- no audit row, no write: the row for this write is already in this transaction
-            IF NOT EXISTS (
-                SELECT 1 FROM admin.audit_log a
+            SELECT a.seq INTO audit_seq FROM admin.audit_log a
                 WHERE a.xmin = pg_current_xact_id()::xid
                   AND a.action = 'settings.task_set'
                   AND a.actor_kind = 'system'
@@ -139,7 +144,8 @@ def upgrade() -> None:
                   AND a.target_type = 'setting' AND a.target_id = p_key
                   AND a.after ->> 'version' = new_version::text
                   AND a.detail ->> 'revision' = new_revision::text
-            ) THEN
+                ORDER BY a.seq DESC LIMIT 1;
+            IF NOT FOUND THEN
                 RAISE EXCEPTION 'settings.task_write_keyset: no audit row for this write'
                     USING ERRCODE = 'insufficient_privilege';
             END IF;
@@ -159,6 +165,12 @@ def upgrade() -> None:
                 revision = new_revision, digest = p_manifest_digest,
                 entries = p_manifest_entries, sig = p_manifest_sig
             WHERE id = 1;
+            -- every admin is told, in this same transaction (names and versions only)
+            INSERT INTO admin.notifications (kind, payload, audit_seq)
+            VALUES ('settings.keyset_changed',
+                    jsonb_build_object('setting', p_key, 'tier', 'T4', 'action', p_action,
+                                       'version', new_version, 'actor', p_history_actor),
+                    audit_seq);
             RETURN new_revision;
         END $$
         """

@@ -121,7 +121,7 @@ class _Base:
                         raise Refusal("store_unreachable") from None
         return plans
 
-    async def _write(self, ctx, keys, stored, new_keyset, extra=None):
+    async def _write(self, ctx, keys, stored, new_keyset, action, extra=None):
         async with ctx.connection() as conn:
             return await state.write_stored(
                 conn,
@@ -131,6 +131,7 @@ class _Base:
                 requested_by=ctx.requested_by,
                 run_id=ctx.run_id,
                 task=ctx.task,
+                action=action,
                 extra=extra,
             )
 
@@ -161,7 +162,7 @@ class AddKey(_Base):
         added = add_secondary_key(parsed)
         new_id = (set(key_ids(added)) - set(key_ids(parsed))).pop()
         version, revision = await self._write(
-            ctx, keys, stored, added, {"added_key_id": new_id}
+            ctx, keys, stored, added, "add_key", {"added_key_id": new_id}
         )
         await ctx.emit(
             Events.key_added, {"key_count": len(added.key)}, [str(new_id)]
@@ -209,7 +210,7 @@ class Promote(_Base):
             )
         promoted = promote(parsed, params.new_primary_id)
         version, revision = await self._write(
-            ctx, keys, stored, promoted, {"primary_id": params.new_primary_id}
+            ctx, keys, stored, promoted, "promote", {"primary_id": params.new_primary_id}
         )
         await ctx.emit(
             Events.key_promoted, {"key_count": len(promoted.key)}, [str(params.new_primary_id)]
@@ -514,7 +515,7 @@ class DropOld(_Base):
                 **out,
             )
         version, revision = await self._write(
-            ctx, keys, stored, only_primary(parsed), {"dropped_count": len(old)}
+            ctx, keys, stored, only_primary(parsed), "drop_old", {"dropped_count": len(old)}
         )
         await ctx.emit(Events.key_dropped, {"key_count": 1}, [str(k) for k in old][:20])
         return catalog.DropOldResult(

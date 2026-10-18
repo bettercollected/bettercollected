@@ -259,4 +259,12 @@ def test_the_heartbeat_fingerprint_is_ids_only_and_order_free():
     assert re.fullmatch(r"[A-Za-z0-9_.:-]{0,64}", one)
     # a fixed vector: the settings loader must compute the same value
     assert keyset_ids_fingerprint([1, 2, 3]) == one
+    # TODO(settings loader): the test below compares with the loader once
+    # `common.settings.loader` is in this tree.
     assert one == "ks-" + __import__("hashlib").sha256(b"bc-keyset-v1|1,2,3").hexdigest()[:12]
+
+
+def test_the_fingerprint_equals_the_settings_loaders_when_it_exists():
+    loader = pytest.importorskip("common.settings.loader")
+    for ids in ([1], [3, 1, 2], [4294967295, 7]):
+        assert keyset_ids_fingerprint(ids) == loader.keyset_fingerprint(ids)
