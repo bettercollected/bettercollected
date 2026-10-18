@@ -63,8 +63,10 @@ cp webapp/.env.example webapp/.env
 
 **Important:** the auth/JWT/crypto secrets (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`,
 `MASTER_ENCRYPTION_KEYSET`) must be identical across `backend`, `auth`, and the
-integrations, or sessions and encrypted data won't work across services. See the
-developers guide for how to generate them.
+integrations, or sessions and encrypted data won't work across services. The
+services refuse to start when `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY` is empty or
+a value that was ever published in this repository. See the developers guide for
+how to generate them.
 
 ## Coding standards
 

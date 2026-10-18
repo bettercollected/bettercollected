@@ -605,6 +605,37 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- No more shipped signing and encryption keys. `.env.deployment` used to
+  contain concrete values for `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` (a Fernet
+  key) and `MASTER_ENCRYPTION_KEYSET`; anyone could use them to forge session
+  tokens and to decrypt or forge Fernet-encrypted data (OAuth and SSO state,
+  form-action secrets, SCIM webhook secrets, Google credentials). They are gone
+  from the file. `deploy.sh` now generates all three into the root `.env` on
+  its first run (`deploy/generate-secrets.sh`; it never changes a value already
+  there) and `docker-compose.deployment.yml` passes them to the services. The
+  backend, its jobs worker, auth, the Google Forms integration and the Temporal
+  workers refuse to start when `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY`
+  (`AES_HEX_KEY` in the workers) is empty, not a valid Fernet key, or any value
+  that was ever published in this repository; the error says what to set.
+  **Upgrade — every stack must set its own values:**
+  - With `deploy.sh`: re-run it. Values you set yourself in `.env.deployment`
+    are copied into the root `.env` and kept; the published ones are replaced
+    with new random values.
+  - Rotating `AUTH_JWT_SECRET` signs everyone out once.
+  - Data encrypted with the old `AUTH_AES_HEX_KEY` can no longer be read:
+    reconnect Google Forms and Google Sheets, re-enter form-action secrets and
+    regenerate SCIM webhook secrets. In-progress SSO and OAuth sign-ins restart.
+  - Responses are encrypted with `MASTER_ENCRYPTION_KEYSET`, so a stack that
+    already holds responses must keep the keyset it has used: `deploy.sh`
+    stops and asks for it instead of generating a new one. Copy the
+    `MASTER_ENCRYPTION_KEYSET` line from your previous `.env.deployment` into
+    the root `.env`. That keyset was public too: anyone with access to the
+    database could read those responses, so plan a key rotation.
+  - Without `deploy.sh`: set your own `AUTH_JWT_SECRET` (`openssl rand -hex 32`)
+    and `AUTH_AES_HEX_KEY` (a Fernet key) on the backend, jobs worker, auth and
+    integrations, the same Fernet key as `AES_HEX_KEY` on the Temporal worker
+    and the actions-executor, and keep your `MASTER_ENCRYPTION_KEYSET`. See
+    `docs/DEVELOPERS_GUIDE.md`.
 - AI features are bounded: form generation's tool loop stops after
   `AI_MAX_TOOL_ITERATIONS` round trips (default 10) or `AI_MAX_TOOL_CALLS`
   tool calls (30) with a clear error; every call has an output token cap per

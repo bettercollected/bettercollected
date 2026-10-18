@@ -75,8 +75,11 @@ Python services double-nest the package: the FastAPI code for `backend` lives at
 
 - **Prereqs:** Python **3.10** (exact — services pin `python3.10`), **Poetry**, **Node 16.18+**, **Yarn 1.x**, Docker.
 - **One-shot setup:** `./install.sh` (Poetry install for Python services + `yarn` for webapp; skips missing dirs).
-- **Env file:** copy/fill `.env.deployment` (keys: `MONGO_URI`, `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, Stripe,
-  Google/Typeform OAuth, `TEMPORAL_SERVER_URL`, mail, encryption keysets). Each service also reads its own `.env`.
+- **Env file:** copy/fill `.env.deployment` (keys: `MONGO_URI`, Stripe, Google/Typeform OAuth,
+  `TEMPORAL_SERVER_URL`, mail). It ships no secrets: `deploy.sh` generates `AUTH_JWT_SECRET`,
+  `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` into the root `.env`, and the services refuse to start
+  with an empty or published value (`common/common/configs/shipped_secrets.py`). Each service also reads
+  its own `.env`.
 
 ## Run / build / test commands
 

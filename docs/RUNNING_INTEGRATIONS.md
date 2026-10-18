@@ -102,4 +102,4 @@ in `forms_plugin_configs` document in `bettercollected_backend` database.
 **Note**: If you want to enable/disable for the integrations by changing the `enabled` field in
 mongoDB `forms_plugin_configs` document
 
-#### Important note: Change the keys in .env.deployment if you are planning to deploy it in production
+#### Important note: `deploy.sh` generates the stack's own `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` into the root `.env`; keep that file, and change any other credentials in `.env.deployment` before deploying to production
