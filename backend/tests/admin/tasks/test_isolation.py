@@ -17,7 +17,9 @@ PACKAGE = Path(backend.admin.__file__).parent
 TASKS = PACKAGE / "tasks"
 BACKEND_ROOT = PACKAGE.parents[1]
 RUNNER_SIDE = ("backend.admin.tasks.impl", "backend.admin.tasks.runner", "backend.admin.runner")
-PUBLIC = ("backend.app", "common.services")
+# the runner may use the keyset module (common.services.keyset) but not the crypto
+# singleton or anything else of the shared services
+PUBLIC = ("backend.app", "common.services.crypto_service")
 
 
 def _imports(path: Path):
@@ -74,6 +76,17 @@ def test_the_runner_side_imports_no_public_application_module():
         if _under(n, PUBLIC)
     ]
     assert offenders == []
+
+
+def test_the_runner_side_uses_only_the_keyset_of_the_shared_services():
+    files = [p for p in PACKAGE.rglob("*.py") if _is_runner_side(p)]
+    used = {
+        n
+        for p in files
+        for n in _imports(p)
+        if n.startswith("common.services") and n != "common.services"
+    }
+    assert {n for n in used if not n.startswith("common.services.keyset")} == set()
 
 
 def test_spec_is_pure_metadata():

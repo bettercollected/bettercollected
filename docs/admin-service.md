@@ -168,6 +168,31 @@ asks the step-up module to issue a token for, and passes the same
 A replayed token, or a form left open while someone else changed the setting,
 fails with `stale_version`.
 
+## Task runner: the responses data tasks
+
+The `task-runner` service (backend image, no published port, own database role)
+runs the tasks the portal will list. Two of them work on stored responses:
+
+| Task | Does | Refuses with |
+|---|---|---|
+| `responses.check_undecryptable` | read-only: counts stored values that carry the ciphertext prefix but do not decrypt, per store and field (no ids, no values) | `store_not_configured`, `keyset_missing`, `keyset_unreadable`, `store_unreachable`, `store_empty` |
+| `responses.backfill_workspaces` | stamps responses and deletion requests that predate `workspace_id`; a dry run first (required), resumable, idempotent; ambiguous records (a form linked to several workspaces with nothing to authenticate them) are never guessed and stay unstamped | the same codes |
+
+Both need the data stores and the keyset in the runner's environment. The
+compose service passes them from the root `.env`, and they are empty by default
+(the tasks then refuse; nothing else changes):
+
+| Variable | Meaning |
+|---|---|
+| `TASK_RUNNER_DATABASE_URL` | Postgres URL of a dedicated role with only the grants these tasks need (read `form_responses`, `responses_deletion_requests` and the workspace links; update the two response tables for the backfill), never the backend's role: that would give the runner the whole app schema next to the keyset |
+| `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
+| `TASK_RUNNER_KEYSET` | the response keyset (until the settings store provides it); it never goes to a file or a log |
+
+`stores: auto` covers every configured store; `mongo`, `postgres` or `both` name
+them and refuse if one is missing. The scripts `backend/scripts/check_undecryptable_values.py`
+and `backend/scripts/backfill_response_workspaces.py` stay as command-line
+tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
+
 ## Variables
 
 | Variable | Default | Meaning |
