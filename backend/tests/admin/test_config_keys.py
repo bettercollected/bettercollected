@@ -10,6 +10,7 @@ from backend.admin.config import (
     parse_master_key,
 )
 from backend.admin.security.keys import admin_key, derive_key
+from common.settings.crypto.keys import MasterKeyError
 
 ADMIN_PURPOSES = ("audit", "pepper", "totp")
 
@@ -109,5 +110,5 @@ def test_bad_names_versions_or_contexts_are_refused(args):
 
 
 def test_derive_key_without_a_master_key_refuses():
-    with pytest.raises(AdminConfigError):
+    with pytest.raises(MasterKeyError):
         derive_key("admin", "audit", env={})
