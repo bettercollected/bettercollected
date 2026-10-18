@@ -362,9 +362,9 @@ and architecture.
 - Canonical path construction (`form_url = f"/{workspace_name}/forms/{slug}"`) must stay in sync with the webapp's
   `trackCanonicalFormView` helper (`webapp/src/lib/analytics/umami.ts`) — both sides hard-code the same shape so
   custom-domain and client-host traffic land under one path.
-- Deployment: `docker-compose.deployment.yml`'s `backend` service sets `UMAMI_URL=http://umami:3000` (internal
-  docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
-  `.env.deployment`.
+- Deployment: `deploy.sh` seeds the `UMAMI_URL` setting with `http://umami:3000` (internal docker network; it is
+  not pinned in compose any more) and replaces Umami's built-in `admin`/`umami` login with a generated password
+  stored as the `UMAMI_PASSWORD` setting (`deploy/umami-rotate.js`). `UMAMI_WEBSITE_ID` stays optional.
 
 ## Public API (forms as code)
 
