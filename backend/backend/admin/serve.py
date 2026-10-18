@@ -9,12 +9,16 @@ import os
 import uvicorn
 
 from backend.admin.asgi import get_admin_application
+from backend.admin.config import AdminSettings
+from backend.admin.db import make_engine
 from backend.admin.gate.settings import GateSettings
+from backend.admin.portal import Portal
 
 
 def main() -> None:
     settings = GateSettings.from_env()  # invalid configuration stops here
-    app = get_admin_application(settings)
+    portal = Portal.build(make_engine(AdminSettings.from_env()))  # invalid config stops here
+    app = get_admin_application(settings, portal=portal)
     uvicorn.run(
         app,
         host=os.environ.get("ADMIN_BIND_HOST") or "127.0.0.1",

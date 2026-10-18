@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block title %}{{ _("Admin") }}{% endblock %}</title>
+<link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+<a class="skip-link" href="#main">{{ _("Skip to content") }}</a>
+<header class="bar">
+  <span class="brand">{{ _("Admin") }}</span>
+  {% block nav %}{% endblock %}
+</header>
+<main id="main" tabindex="-1">
+{% block main %}{% endblock %}
+</main>
+</body>
+</html>
