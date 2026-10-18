@@ -14,6 +14,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-piping';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
+import RespondentPageShell from '@app/views/organism/form/respondent-page-shell';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
 import { layoutOfPage } from '@app/views/organism/layout/form-column';
 import { useRouter } from 'next/navigation';
@@ -152,35 +153,32 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         );
     }
 
+    if (data?.builderVersion !== 'v2') return <div className="relative flex h-dvh w-screen flex-col" />;
+
     return (
         // The form above, the trust strip (and its panel) below, in flow: the
         // page is centred in the space the strip leaves, and an open panel
         // never covers the form's button. dvh keeps the strip on screen under
         // a phone's browser bars.
-        <div className="relative flex h-dvh w-screen flex-col">
-            {data?.builderVersion === 'v2' && (
-                <div className="relative min-h-0 flex-1" data-fit-area>
-                    <Form />
-                </div>
-            )}
-            {data?.builderVersion === 'v2' && (
-                <div className="relative z-40 shrink-0">
-                    <TrustLayer
-                        ownerName={workspace?.title || workspace?.workspaceName}
-                        ownerImage={workspace?.profileImage}
-                        settings={data?.settings}
-                        portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
-                        layout={layoutOfPage(data, currentSlide, endingId)}
-                        // Open on the welcome page when the screen has room for
-                        // both; a strip with the toggle elsewhere, and on phones,
-                        // where the open panel would take half the screen.
-                        defaultExpanded={currentSlide === -1 && roomy}
-                        // ...and only when Start stays in view with it open.
-                        protectPrimaryAction
-                    />
-                </div>
-            )}
-        </div>
+        <RespondentPageShell
+            footer={
+                <TrustLayer
+                    ownerName={workspace?.title || workspace?.workspaceName}
+                    ownerImage={workspace?.profileImage}
+                    settings={data?.settings}
+                    portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
+                    layout={layoutOfPage(data, currentSlide, endingId)}
+                    // Open on the welcome page when the screen has room for
+                    // both; a strip with the toggle elsewhere, and on phones,
+                    // where the open panel would take half the screen.
+                    defaultExpanded={currentSlide === -1 && roomy}
+                    // ...and only when Start stays in view with it open.
+                    protectPrimaryAction
+                />
+            }
+        >
+            <Form />
+        </RespondentPageShell>
     );
 };
 
