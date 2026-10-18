@@ -40,10 +40,7 @@ from common.settings.registry import (
     is_env_only,
 )
 
-try:  # the loader names the hot keys it has a live-read test for
-    from common.settings.loader.proven import LIVE_PROVEN  # type: ignore[import-not-found]
-except ImportError:  # TODO: drop this fallback once the settings loader has landed
-    LIVE_PROVEN = None
+from common.settings.loader.proven import LIVE_PROVEN
 
 PENDING_SECONDS = 120
 HISTORY_SHOWN = 50
@@ -134,10 +131,7 @@ def parse_int(raw: Any, minimum: int = 0) -> Optional[int]:
 
 def reload_note(spec: SettingSpec) -> tuple[str, str]:
     """``(class name, explanation)`` for the edit page."""
-    live = (
-        spec.key in LIVE_PROVEN if LIVE_PROVEN is not None else spec.reload_class is Reload.H
-    )
-    if spec.reload_class is Reload.H and live:
+    if spec.reload_class is Reload.H and spec.key in LIVE_PROVEN:
         return "live", "Applies live: services pick up the change within about a minute."
     if spec.reload_class is Reload.B:
         return "build", "Applies to the next build of the web app image; a restart alone is not enough."

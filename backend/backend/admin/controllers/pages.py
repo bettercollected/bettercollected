@@ -40,7 +40,7 @@ async def _shell(request: Request, active: str) -> dict:
     banners = []
     if pending:
         banners.append({"kind": "restart", "services": ", ".join(pending)})
-    last = portal.integrity.last
+    last = portal.integrity_status()
     if last is not None and last.problems:
         banners.append({"kind": "integrity", "count": len(last.problems)})
     return {

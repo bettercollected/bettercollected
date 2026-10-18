@@ -126,7 +126,7 @@ def register(reg: RouteRegistry) -> None:
     async def integrity_page(request: Request):
         portal = _portal(request)
         return await _page(
-            request, "integrity.html", "settings", result=portal.integrity.last,
+            request, "integrity.html", "settings", result=portal.integrity_status(),
             notice=sp.notice_view(request.query_params.get("notice")),
         )
 
@@ -139,14 +139,14 @@ def register(reg: RouteRegistry) -> None:
         decision = await portal.limiter.hit(VERIFY_RULE, portal.limiter.email_key(session.email))
         if not decision.allowed:
             return await _page(
-                request, "integrity.html", "settings", 429, result=portal.integrity.last,
+                request, "integrity.html", "settings", 429, result=portal.integrity_status(),
                 notice=sp.notice_view("rate_limited"),
             )
         try:
             result = await portal.settings_pages.run_verify(portal.integrity)
         except Exception:  # noqa: BLE001 - class only, never the cause
             return await _page(
-                request, "integrity.html", "settings", 500, result=portal.integrity.last,
+                request, "integrity.html", "settings", 500, result=portal.integrity_status(),
                 notice=sp.notice_view("failed"),
             )
         return await _page(request, "integrity.html", "settings", result=result, notice=None)

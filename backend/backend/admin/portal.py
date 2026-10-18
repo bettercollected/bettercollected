@@ -131,6 +131,11 @@ class Portal:
             SettingsPages(engine, service, pages, clock), pending_key,
         )
 
+    def integrity_status(self):
+        """The last settings verification result (None before the first run);
+        in this process only. The one place pages read it from."""
+        return self.integrity.last
+
     def checkers(self) -> dict:
         return build_checkers(self.sessions, self.settings)
 
