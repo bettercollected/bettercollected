@@ -1,0 +1,1 @@
+{% if notice %}<p class="notice notice-{{ notice.kind }}" role="{{ 'alert' if notice.kind == 'error' else 'status' }}">{{ notice.text }}</p>{% endif %}

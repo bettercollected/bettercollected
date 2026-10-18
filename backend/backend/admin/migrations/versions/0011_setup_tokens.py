@@ -1,7 +1,7 @@
 """setup tokens: the first-run token the host operator prints once
 
 Revision ID: 0011_setup_tokens
-Revises: 0010_background_loops
+Revises: 0009_task_keyset_write
 Create Date: 2026-10-19
 
 ``setup-token`` (host command) stores only a keyed hash of a one-time token
@@ -20,7 +20,7 @@ from sqlalchemy.dialects import postgresql
 from backend.admin.migration_support import grant
 
 revision: str = "0011_setup_tokens"
-down_revision: Union[str, None] = "0010_background_loops"
+down_revision: Union[str, None] = "0009_task_keyset_write"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

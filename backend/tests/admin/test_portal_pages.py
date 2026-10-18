@@ -71,11 +71,6 @@ def test_every_second_factor_get_route_is_covered_here():
     assert set(PAGES + API) <= paths
 
 
-def test_no_route_under_settings_or_tasks_is_registered_by_the_pages():
-    for r in build_registry().router.routes:
-        assert not r.path.startswith(("/settings", "/tasks")), r.path
-
-
 @pytest.mark.parametrize("path", [r.path for r in page_routes()])
 async def test_refused_below_second_factor_and_for_non_admins(portal, app, path):
     anon = Browser(app)

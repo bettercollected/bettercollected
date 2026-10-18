@@ -64,7 +64,8 @@ EXECUTOR = "actions_executor"
 JOBS = "jobs"
 ADMIN = "admin"
 WEBAPP = "webapp"
-READERS = frozenset({BACKEND, AUTH, GOOGLE, WORKER, EXECUTOR, JOBS, ADMIN, WEBAPP})
+TASKS = "tasks"  # the admin task runner (reads the keyset it re-encrypts with)
+READERS = frozenset({BACKEND, AUTH, GOOGLE, WORKER, EXECUTOR, JOBS, ADMIN, WEBAPP, TASKS})
 
 T1, T2, T3, T4, T5 = Tier.T1, Tier.T2, Tier.T3, Tier.T4, Tier.T5
 H, R, B = Reload.H, Reload.R, Reload.B
@@ -258,7 +259,7 @@ KEY_MATERIAL: Tuple[SettingSpec, ...] = (
             description="Shared key for internal service calls; rotated by a task.", **KEYS),
     _secret("TEMPORAL_API_KEY", section="auth_keys", readers=(BACKEND,), tier=T4,
             description="Key the background workers present to the API (the workers call it API_KEY)."),
-    _secret("MASTER_ENCRYPTION_KEYSET", section="auth_keys", readers=(BACKEND, GOOGLE), tier=T4,
+    _secret("MASTER_ENCRYPTION_KEYSET", section="auth_keys", readers=(BACKEND, GOOGLE, TASKS), tier=T4,
             description="Keyset that encrypts stored responses; changed by a task only."),
     _secret("CUSTOM_DOMAIN_ASSERTION_KEYS", "custom_domain", (BACKEND, WEBAPP), tier=T4,
             description="Edge signing keys as id:secret pairs; the web app reads its own copy."),
@@ -731,6 +732,8 @@ ALIASES: Dict[str, str] = {
     "VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS": "PLATFORM_ADMIN_EMAILS",
     # the task-runner compose service's names for the data stores and the keyset
     "TASK_RUNNER_DATABASE_URL": "DATABASE_URL",
+    "TASK_RUNNER_GOOGLE_DATABASE_URL": "DATABASE_URL",
+    "GOOGLE_DATABASE_URL": "DATABASE_URL",
     "TASK_RUNNER_MONGO_URI": "MONGO_URI",
     "TASK_RUNNER_MONGO_DB": "MONGO_DB",
     "TASK_RUNNER_KEYSET": "MASTER_ENCRYPTION_KEYSET",
@@ -738,6 +741,8 @@ ALIASES: Dict[str, str] = {
 
 # Names in env files, compose files or code that no service reads as a setting.
 NOT_A_SETTING: Dict[str, str] = {
+    "GOOGLE_MONGO_DB": "the Google integration's Mongo database, read by the keyset rotation tasks and script",
+    "TASK_RUNNER_GOOGLE_MONGO_DB": "the task-runner compose service's name for GOOGLE_MONGO_DB",
     "NODE_ENV": "set by the Node.js tooling",
     "OAUTHLIB_INSECURE_TRANSPORT": "read by the oauthlib library",
     "OAUTHLIB_RELAX_TOKEN_SCOPE": "read by the oauthlib library",

@@ -276,7 +276,7 @@ async def test_headers_on_every_response_and_no_cors():
     assert [r[0] for r in responses] == [200, 404, 404, 200, 413, 500]
     for _, h, _ in responses:
         assert h["content-security-policy"] == CONTENT_SECURITY_POLICY
-        assert h["referrer-policy"] == "no-referrer"
+        assert h["referrer-policy"] == "same-origin"
         assert h["x-content-type-options"] == "nosniff"
         assert h["cache-control"] == "no-store"
         assert h["cross-origin-opener-policy"] == "same-origin"

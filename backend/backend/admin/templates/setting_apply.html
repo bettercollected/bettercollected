@@ -1,0 +1,28 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Apply the change") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Apply the change") }}</h1>
+<p>{{ _("Your code was accepted. Review the change, then apply it within") }} {{ seconds }} {{ _("seconds.") }}</p>
+<dl class="facts">
+  <dt>{{ _("Setting") }}</dt><dd><code>{{ detail.spec.key }}</code></dd>
+  <dt>{{ _("Change") }}</dt>
+  <dd>
+    {% if action == "set" %}{{ _("Set a new value") }}
+      {% if detail.spec.is_secret %}({{ _("hidden: secrets are never displayed") }}){% else %}: <code>{{ new_value }}</code>{% endif %}
+    {% elif action == "clear" %}{{ _("Clear the stored value") }}
+    {% elif action == "restore" %}{{ _("Restore version") }} {{ target }}
+    {% else %}{{ _("Delete older secret versions, keeping only the current one") }}{% endif %}
+  </dd>
+  <dt>{{ _("Based on version") }}</dt><dd>{{ version }}</dd>
+</dl>
+<form method="post" action="/settings/{{ detail.spec.key }}/{{ url_name }}" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="stepup_token" value="{{ token }}">
+  <input type="hidden" name="expected_version" value="{{ version }}">
+  <input type="hidden" name="confirmation" value="{{ confirmation }}">
+  {% if pending %}<input type="hidden" name="pending" value="{{ pending }}">{% endif %}
+  {% if target is not none %}<input type="hidden" name="version" value="{{ target }}">{% endif %}
+  <button type="submit" autofocus>{{ _("Apply") }}</button>
+</form>
+<p><a href="/settings/{{ detail.spec.key }}">{{ _("Cancel") }}</a></p>
+{% endblock %}
