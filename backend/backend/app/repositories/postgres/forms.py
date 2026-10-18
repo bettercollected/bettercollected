@@ -131,8 +131,14 @@ def _fold_settings(form: dict, workspace_form: dict) -> None:
     own = form.get("settings")
     _fold(form, workspace_form, {"settings": "settings"})
     settings = form.get("settings")
-    if isinstance(settings, dict) and isinstance(own, dict) and "language" in own:
+    if not isinstance(own, dict) or "language" not in own:
+        return
+    if isinstance(settings, dict):
         form["settings"] = {**settings, "language": own["language"]}
+    elif isinstance(own["language"], str):
+        # no association settings: the language alone (a builder that
+        # loaded none would clear it with its first save)
+        form["settings"] = {"language": own["language"]}
 
 
 class PostgresFormRepository(PostgresRepositoryBase):

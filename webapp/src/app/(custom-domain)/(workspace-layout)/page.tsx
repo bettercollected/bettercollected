@@ -3,8 +3,9 @@ import { notFound, redirect } from 'next/navigation';
 
 import environments from '@app/configs/environments';
 import { resolveCustomDomainWorkspace } from '@app/lib/server/custom-domain';
+import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 
-export default async function RootPage() {
+export default async function RootPage({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
@@ -17,7 +18,9 @@ export default async function RootPage() {
             notFound();
         }
 
-        redirect('/forms');
+        // A respondent's ?lang=nl|en survives the redirect; nothing else does.
+        const { lang } = await searchParams;
+        redirect(`/forms${respondentLangQuery(lang)}`);
     }
 
     // Special case for client domain - redirect to admin domain

@@ -424,6 +424,24 @@ def test_a_named_theme_is_applied_and_an_unknown_one_keeps_leaflet():
     assert form.theme.title == "Leaflet"
 
 
+@pytest.mark.parametrize(
+    "language, expected",
+    [("en", "en"), ("nl", "nl"), ("pt-BR", "pt"), ("nb", "nb"), ("ja", None)],
+)
+def test_the_outline_language_becomes_the_forms_language(language, expected):
+    ops = compile_outline(outline(language=language))
+    emitted = [op for op in ops if op["op"] == "set_form_language"]
+    form, results = build_form(outline(language=language))
+    assert applied(results, atomic=True)
+    if expected is None:
+        # not a language a form can declare: none is set
+        assert emitted == []
+        assert form.settings is None or form.settings.language is None
+    else:
+        assert emitted == [{"op": "set_form_language", "language": expected}]
+        assert form.settings.language == expected
+
+
 def test_the_built_form_passes_the_quality_checks():
     good = outline()
     form, _ = build_form(good)

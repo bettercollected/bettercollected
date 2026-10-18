@@ -1,11 +1,13 @@
 // The respondent's own views of a submission pass axe (WCAG 2.0/2.1 A and AA):
 // the organisation's feedback on it and finding it by its number.
+// Respondent text resolves through the app's i18n instance.
 import React from 'react';
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import '@app/shared/hocs/i18n-provider';
 import { store } from '@app/store/store';
 import { axeViolations } from '@app/test/axe';
 
@@ -58,5 +60,34 @@ describe('respondent portal views pass axe', () => {
         expect(input).toHaveAttribute('aria-invalid', 'true');
         expect(input).toHaveAccessibleDescription(/does not match with any form responses/);
         expect(await axeViolations(container)).toEqual([]);
+    });
+});
+
+describe('the submission-number search speaks the reader’s language', () => {
+    afterEach(() => window.history.replaceState(null, '', '/'));
+    const renderSearch = (audience?: 'respondent' | 'team') =>
+        render(
+            <ReduxProvider store={store}>
+                <SearchBySubmissionNumber audience={audience} />
+            </ReduxProvider>
+        );
+
+    it("is in the respondent's language on their pages, error included", async () => {
+        window.history.replaceState(null, '', '/acme/my-submissions?lang=nl');
+        const { container } = renderSearch();
+        expect(await screen.findByText('Zoek een inzending op nummer')).toBeInTheDocument();
+        expect(container.querySelector('form')).toHaveAttribute('lang', 'nl');
+        const input = screen.getByRole('textbox', { name: 'Inzendnummer' });
+        expect(input).toHaveAttribute('placeholder', 'Vul het inzendnummer in');
+        fireEvent.change(input, { target: { value: 'not-a-number' } });
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Zoeken' })));
+        expect(input).toHaveAccessibleDescription('Er is geen inzending met dit nummer.');
+    });
+
+    it("stays in the app's language on the team's dashboard", async () => {
+        window.history.replaceState(null, '', '/acme/dashboard?lang=nl');
+        const { container } = renderSearch('team');
+        expect(await screen.findByText('Find a response by its number')).toBeInTheDocument();
+        expect(container.querySelector('form')).toHaveAttribute('lang', 'en');
     });
 });

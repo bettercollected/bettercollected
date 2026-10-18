@@ -250,6 +250,17 @@ export interface SetFieldValidationOp {
     validation: FieldValidationPatch;
 }
 
+/**
+ * The language the form's own text is written in (`settings.language`):
+ * one of FORM_LANGUAGES (languages.ts), any case. Required key: null or ''
+ * clears it. Kept on the form itself, not on the workspace's settings that
+ * update_form_settings changes.
+ */
+export interface SetFormLanguageOp {
+    op: 'set_form_language';
+    language: string | null;
+}
+
 export interface SetQuestionNumberingOp {
     op: 'set_question_numbering';
     pageId?: string | null;
@@ -419,6 +430,7 @@ export type AiFormOp =
     | MovePageOp
     | SetFieldValidationOp
     | SetQuestionNumberingOp
+    | SetFormLanguageOp
     | AddEndingOp
     | UpdateEndingOp
     | RemoveEndingOp;

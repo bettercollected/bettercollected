@@ -25,6 +25,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   operations, the form spec, whole-form saves and saved themes accept only
   the listed values.
 
+- **Form language**: a form can declare the language its questions are
+  written in (Nederlands, English, Deutsch, Français, Español, Italiano,
+  Português, Polski, Dansk, Svenska, Norsk bokmål, Suomi), set under
+  Form → Language in the builder, by the new edit operation
+  `set_form_language` (AI chat, MCP, public API) or by `language` in the form
+  spec. Respondent pages mark the form's text with it for screen readers and
+  browsers, and it goes live with the next publish. Forms generated from an
+  outline get the outline's language.
+
 - **Repeating groups**: a group of questions respondents fill several times
   (one block per applicant, family member, employer, item) between a minimum
   and maximum, with "Add another <item>" / "Remove" controls and required

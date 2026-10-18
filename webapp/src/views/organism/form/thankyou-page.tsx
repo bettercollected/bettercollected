@@ -21,6 +21,7 @@ import { resolvePipesInText } from '@app/utils/answer-piping';
 import { endingToShow } from '@app/utils/endings';
 import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
+import { actionText, actionTextOn } from '@app/utils/theme-contrast';
 import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -109,7 +110,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                             <li className="border-b py-3" style={{ borderColor: rule }}>
                                 <span className="font-semibold">{t('PRIVACY.RIGHTS')}:</span> {t('PRIVACY.RIGHTS_TEXT')}{' '}
                                 {!isPreviewMode && (
-                                    <a href={submissionUrl} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-2" style={{ color: theme?.secondary }}>
+                                    <a href={submissionUrl} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-2" style={{ color: actionText(theme) }}>
                                         {t('PRIVACY.RIGHTS_LINK')}
                                         <span className="sr-only"> {t('PRIVACY.OPENS_IN_NEW_TAB')}</span>
                                     </a>
@@ -180,7 +181,7 @@ export function SubmissionReceipt({ responderId, submissionUrl, onCopy, edge, cl
                 <span className="text-[15px] font-semibold" style={{ color: theme?.primary }}>
                     {t('ENDING.SUBMISSION_NUMBER')}
                 </span>
-                <Link href={submissionUrl} className="text-[14px] font-medium underline underline-offset-2" style={{ color: theme?.secondary }}>
+                <Link href={submissionUrl} className="text-[14px] font-medium underline underline-offset-2" style={{ color: actionTextOn(theme, '#FFFFFF') }}>
                     {t('ENDING.ALL_SUBMISSIONS')}
                 </Link>
             </div>

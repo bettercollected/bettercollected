@@ -66,6 +66,12 @@ export const slice = createSlice({
             const keepLanguage = settings && typeof settings === 'object' && !('language' in settings) && state.settings?.language != null;
             return { ...state, settings: keepLanguage ? { ...settings, language: state.settings?.language } : settings };
         },
+        /** The form's own language as the builder's document has it (null: none). */
+        setFormLanguage: (state, action: { payload: string | null | undefined }) => {
+            const language = action.payload ?? null;
+            if ((state.settings?.language ?? null) === language) return state;
+            return { ...state, settings: { ...state.settings, language } as StandardFormDto['settings'] };
+        },
         /** The draft's organisation logo URL after an upload or removal (null: none). */
         setFormLogo: (state, action: { payload: string | null | undefined }) => {
             return { ...state, logo: action.payload || undefined };
@@ -94,6 +100,6 @@ export const selectForm = (state: RootState) => state.form;
  * their own form never sees staff-only fields either.
  */
 export const selectResponderForm = createSelector([selectForm], (form) => stripInternalFields(form));
-export const { setForm, setFormSettings, setFormLogo, resetSingleForm } = slice.actions;
+export const { setForm, setFormSettings, setFormLanguage, setFormLogo, resetSingleForm } = slice.actions;
 
 export default reducerObj;

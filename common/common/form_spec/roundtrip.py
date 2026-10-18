@@ -8,7 +8,7 @@ adapters' docstring and docs/spec/README.md for why).
 
 from typing import Any, Dict
 
-from common.models.standard_form import StandardForm
+from common.models.standard_form import FORM_LANGUAGES, StandardForm
 
 EXCLUDED_FORM = frozenset(
     {
@@ -58,9 +58,15 @@ PAGE_PROPERTIES = frozenset(
         "fields",
     }
 )
-# the form's own settings the trust block carries (the rest is server-owned)
+# the form's own settings the document carries: its language and what the
+# trust block holds (the rest is server-owned)
 KEPT_SETTINGS = frozenset(
-    {"privacy_policy_url", "response_expiration", "response_expiration_type"}
+    {
+        "language",
+        "privacy_policy_url",
+        "response_expiration",
+        "response_expiration_type",
+    }
 )
 
 
@@ -82,6 +88,9 @@ def creator_view(form: StandardForm) -> Dict[str, Any]:
     data["settings"] = {
         k: v for k, v in (data.get("settings") or {}).items() if k in KEPT_SETTINGS
     }
+    # only a language a form can declare is in the document
+    if data["settings"].get("language") not in FORM_LANGUAGES:
+        data["settings"].pop("language", None)
 
     def question(item: dict) -> dict:
         for key in EXCLUDED_FIELD:

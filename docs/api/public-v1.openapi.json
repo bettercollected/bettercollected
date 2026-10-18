@@ -2674,6 +2674,32 @@
             ],
             "title": "Description"
           },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "nl",
+                  "en",
+                  "de",
+                  "fr",
+                  "es",
+                  "it",
+                  "pt",
+                  "pl",
+                  "da",
+                  "sv",
+                  "nb",
+                  "fi"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "The language the form's own text (title, questions, choices) is written in, as a short BCP 47 tag. Respondent pages mark that text with it for screen readers and browsers. When a document that replaces a form leaves it out, the form keeps its language; null clears it."
+          },
           "welcomePage": {
             "anyOf": [
               {

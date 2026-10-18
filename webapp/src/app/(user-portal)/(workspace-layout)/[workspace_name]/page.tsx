@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation';
 
-export default async function WorkspaceIndexPage({ params }: { params: Promise<{ workspace_name: string }> }) {
+import { respondentLangQuery } from '@app/utils/respondent-lang-query';
+
+export default async function WorkspaceIndexPage({ params, searchParams }: { params: Promise<{ workspace_name: string }>; searchParams: Promise<{ lang?: string | string[] }> }) {
     const { workspace_name } = await params;
-    redirect(`/${workspace_name}/forms`);
+    // A respondent's ?lang=nl|en survives the redirect; nothing else does.
+    const { lang } = await searchParams;
+    redirect(`/${workspace_name}/forms${respondentLangQuery(lang)}`);
 }

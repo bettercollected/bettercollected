@@ -2,8 +2,8 @@
 
 import cn from 'classnames';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import React from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Divider from '@Components/common/divider';
@@ -21,12 +21,12 @@ import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import SiretoFooter from '@app/components/layout/sireto-footer';
 import PoweredBy from '@app/components/ui/powered-by';
-import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 import SearchBySubmissionNumber from './search-by-submission-number';
 
@@ -38,6 +38,8 @@ export default function ResponderPortalLayoutClient({
     hasCustomDomain: boolean;
 }) {
     const { t } = useTranslation();
+    // The tab names are in the respondent's language (and marked so).
+    const { t: tRespondent, language } = useRespondentLanguage();
     const auth = useAppSelector(selectAuth);
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
@@ -53,12 +55,12 @@ export default function ResponderPortalLayoutClient({
     const tabs = [
         {
             icon: <FormIcon />,
-            title: t(localesCommon.forms),
+            title: tRespondent('PORTAL.FORMS'),
             path: 'forms'
         },
         {
             icon: <HistoryIcon className="w-5 h-5" />,
-            title: t(formConstant.submittedForms),
+            title: tRespondent('PORTAL.MY_SUBMISSIONS'),
             path: 'my-submissions'
         }
     ];
@@ -66,12 +68,32 @@ export default function ResponderPortalLayoutClient({
     if (auth.id) {
         tabs.push({
             icon: <TrashIcon className="w-5 h-5" />,
-            title: t(formConstant.deletionRequests),
+            title: tRespondent('PORTAL.DELETION_REQUESTS'),
             path: 'deletion-requests'
         });
     }
 
     const basePath = hasCustomDomain ? '' : `/${workspace.workspaceName}`;
+    // A ?lang=nl|en from the link stays on the tab links, so the next page
+    // (and a reload of it) is in the same language.
+    const langQuery = respondentLangQuery(useSearchParams()?.get('lang'));
+
+    // On a narrow screen the tab bar scrolls sideways; a fade at the edge that
+    // has more tabs past it shows there is more to scroll to.
+    const tabBar = useRef<HTMLDivElement>(null);
+    const [moreTabs, setMoreTabs] = useState({ before: false, after: false });
+    useEffect(() => {
+        const bar = tabBar.current;
+        if (!bar) return;
+        const update = () => setMoreTabs({ before: bar.scrollLeft > 1, after: bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 1 });
+        update();
+        bar.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        return () => {
+            bar.removeEventListener('scroll', update);
+            window.removeEventListener('resize', update);
+        };
+    }, [tabs.length, language]);
 
     return (
         // Desktop: the page itself doesn't scroll — the sidebars are short, so
@@ -158,25 +180,29 @@ export default function ResponderPortalLayoutClient({
                 )}
             </div>
             <div className="flex flex-1 flex-col pb-4! md:min-h-0 md:min-w-0 md:pl-12">
-                <div className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0">
-                    {tabs.map((tab) => {
-                        const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
-                        return (
-                            <Link
-                                key={tab.path}
-                                href={`${basePath}/${tab.path}`}
-                                className={cn(
-                                    'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-hidden',
-                                    isActive
-                                        ? 'text-black-900 border-b-2 border-brand-500'
-                                        : 'text-black-600 hover:text-black-900 hover:border-black-300'
-                                )}
-                            >
-                                {tab.icon}
-                                {tab.title}
-                            </Link>
-                        );
-                    })}
+                <div className="relative">
+                    <div ref={tabBar} className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0" lang={language}>
+                        {tabs.map((tab) => {
+                            const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
+                            return (
+                                <Link
+                                    key={tab.path}
+                                    href={`${basePath}/${tab.path}${langQuery}`}
+                                    className={cn(
+                                        'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-hidden',
+                                        isActive
+                                            ? 'text-black-900 border-b-2 border-brand-500'
+                                            : 'text-black-600 hover:text-black-900 hover:border-black-300'
+                                    )}
+                                >
+                                    {tab.icon}
+                                    {tab.title}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                    {moreTabs.before && <div aria-hidden="true" data-testid="more-tabs-before" className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-linear-to-r from-[#F5F7FB] to-transparent" />}
+                    {moreTabs.after && <div aria-hidden="true" data-testid="more-tabs-after" className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-[#F5F7FB] to-transparent" />}
                 </div>
                 <div className="mt-4 flex flex-col gap-6 md:min-h-0 md:flex-1">
                     {/* Only the content column scrolls; the sidebar column

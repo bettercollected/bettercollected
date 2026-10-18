@@ -13,6 +13,7 @@ import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { builderHydratedFormIdAtom, useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import { IFormState, formStateAtom } from '@app/store/jotai/form';
 import { builderFieldsAtom } from '@app/store/jotai/form-document';
+import { adoptSavedLanguageAtom, formLanguageAtom } from '@app/store/jotai/form-language';
 import { usePatchV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FlushResult, SaveOutcome, SaveQueue } from '@app/utils/autosave-queue';
@@ -59,24 +60,30 @@ export async function flushAutosave(timeoutMs = 20000): Promise<FlushResult | 't
     }
 }
 
-/** What autosave reads: the form-level state and the builder's pages. */
+/** What autosave reads: the form-level state, the builder's pages and the form's language. */
 interface SavedParts {
     formState: IFormState;
     fields: StandardFormFieldDto[];
+    language: string | null;
 }
 
-const currentParts = (store: ReturnType<typeof useStore>): SavedParts => ({ formState: store.get(formStateAtom), fields: store.get(builderFieldsAtom) });
-const sameParts = (a: SavedParts, b: SavedParts) => a.formState === b.formState && a.fields === b.fields;
+const currentParts = (store: ReturnType<typeof useStore>): SavedParts => ({ formState: store.get(formStateAtom), fields: store.get(builderFieldsAtom), language: store.get(formLanguageAtom) });
+const sameParts = (a: SavedParts, b: SavedParts) => a.formState === b.formState && a.fields === b.fields && a.language === b.language;
 
-/** What autosave sends: the form-level state with the builder's pages. */
-function savedFormOf(formState: IFormState, fields: StandardFormFieldDto[]) {
+/**
+ * What autosave sends: the form-level state with the builder's pages, and
+ * the form's own language as its one setting (null clears it; the server
+ * keeps the form's other settings, and the workspace's are saved apart).
+ */
+function savedFormOf({ formState, fields, language }: SavedParts) {
     return {
         ...formState,
         welcomePage: {
             ...formState.welcomePage,
             title: formState.title
         },
-        fields
+        fields,
+        settings: { language }
     };
 }
 
@@ -112,7 +119,16 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         if (version) formData.append('expected_updated_at', version);
                         const response: any = await patch({ formId, workspaceId, body: formData });
                         const outcome = saveOutcomeOf(response);
-                        if (outcome.kind === 'saved') contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
+                        if (outcome.kind === 'saved') {
+                            contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
+                            // The language the server stored: it keeps its own
+                            // for a tag that cannot be set (after an undo back to
+                            // an imported "en-GB", say), and the builder shows that.
+                            const saved = response.data?.settings;
+                            if (saved && typeof saved === 'object' && 'language' in saved) {
+                                store.set(adoptSavedLanguageAtom, { sent: JSON.parse(body)?.settings?.language ?? null, saved: saved.language ?? null });
+                            }
+                        }
                         return outcome;
                     },
                     onState: (state, { savedAt }) => {
@@ -124,7 +140,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             )
     );
 
-    const latestRef = useRef(savedFormOf(store.get(formStateAtom), store.get(builderFieldsAtom)));
+    const latestRef = useRef(savedFormOf(currentParts(store)));
     const baselineTakenRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const allowLeaveRef = useRef(false);
@@ -147,7 +163,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
     // empty form must never be what is saved.
     const takeState = (parts: SavedParts) => {
         if (baselineTakenRef.current && !holdsThisForm()) return;
-        const combinedFormState = savedFormOf(parts.formState, parts.fields);
+        const combinedFormState = savedFormOf(parts);
         latestRef.current = combinedFormState;
         // Hydrated as of the latest render: the render that hydrated takes the baseline.
         if (!hydratedRef.current) return;
@@ -186,10 +202,10 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             if (sameParts(now, last)) return;
             last = now;
             // Before hydrating (and taking the server's state) a change only updates what is latest.
-            if (!baselineTakenRef.current) latestRef.current = savedFormOf(now.formState, now.fields);
+            if (!baselineTakenRef.current) latestRef.current = savedFormOf(now);
             else takeStateRef.current(now);
         };
-        const unsubscribe = [store.sub(builderFieldsAtom, changed), store.sub(formStateAtom, changed)];
+        const unsubscribe = [store.sub(builderFieldsAtom, changed), store.sub(formStateAtom, changed), store.sub(formLanguageAtom, changed)];
         return () => unsubscribe.forEach((stop) => stop());
     }, [store, formId]);
 

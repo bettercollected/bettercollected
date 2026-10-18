@@ -1,18 +1,19 @@
 import json
 from http import HTTPStatus
-from typing import Optional
+from typing import Any, Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, put, delete
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, Trigger
+from common.models.standard_form import StandardForm, StandardFormSettings, Trigger
 from common.models.user import User
 from fastapi import Depends, UploadFile, Form, BackgroundTasks, Query, Response
 from fastapi_pagination import Page
 from loguru import logger
 from pydantic import ValidationError
+from pydantic.alias_generators import to_snake
 from starlette.requests import Request
 
 from backend.app.container import container
@@ -82,13 +83,30 @@ def _is_stub(form) -> bool:
     return bool(getattr(form, "unauthorized", None))
 
 
+def _only_sent_settings(form: StandardForm, body: Any) -> None:
+    """The form's settings as the client sent them: only the keys in the
+    body count as given (``model_fields_set``), so a save that leaves a
+    setting out (the language, say) keeps the stored one
+    (form_repository.apply_form_update)."""
+    sent = body.get("settings") if isinstance(body, dict) else None
+    if form.settings is None or not isinstance(sent, dict):
+        return
+    names = {to_snake(key) for key in sent} & set(StandardFormSettings.model_fields)
+    form.settings = StandardFormSettings(
+        **{name: getattr(form.settings, name) for name in names}
+    )
+
+
 def _parse_form_body(form_body: str) -> StandardForm:
     """Parse a builder form payload (camelCase) into the stored snake_case
     model. Structural errors (e.g. a nested repeating group) are the
     client's fault: answer 422 with the reason instead of a 500."""
     try:
-        minified_form = FormDtoCamelModel(**json.loads(form_body))
-        return StandardForm(**minified_form.model_dump(mode="json"))
+        body = json.loads(form_body)
+        minified_form = FormDtoCamelModel(**body)
+        form = StandardForm(**minified_form.model_dump(mode="json"))
+        _only_sent_settings(form, body)
+        return form
     except ValidationError as e:
         reasons = "; ".join(
             str(error.get("msg", "")).removeprefix("Value error, ")

@@ -11,7 +11,10 @@ so later ops name what earlier ones create:
   with jumps (``"end"`` submits);
 - ``set_theme_preset`` when the outline names another look than Leaflet,
   the default every new form starts with (in the preset's own style, else
-  the classic one).
+  the classic one);
+- ``set_form_language`` with the outline's language, when it is one a form
+  can declare (FORM_LANGUAGES), so respondent pages mark the form's text
+  with it.
 
 ``build_form`` applies the batch atomically to a blank form (welcome page,
 one ending, Leaflet) in memory; the caller saves the result once.
@@ -20,6 +23,7 @@ one ending, Leaflet) in memory; the caller saves the result once.
 from typing import Any, Dict, List, Optional, Tuple
 
 from common.models.standard_form import (
+    FORM_LANGUAGES,
     LayoutType,
     StandardForm,
     ThankYouPageField,
@@ -252,7 +256,17 @@ def compile_outline(outline: FormOutline) -> List[Dict[str, Any]]:
                 "style": THEME_PRESETS[theme].style or "classic",
             }
         )
+    language = outline_language(outline)
+    if language:
+        ops.append({"op": "set_form_language", "language": language})
     return ops
+
+
+def outline_language(outline: FormOutline) -> Optional[str]:
+    """The language the outline is written in, as a form language
+    (FORM_LANGUAGES: "pt-BR" is "pt"), or None when it is not one."""
+    language = outline.language.split("-")[0].lower()
+    return language if language in FORM_LANGUAGES else None
 
 
 def blank_form(outline: FormOutline) -> StandardForm:

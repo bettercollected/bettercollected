@@ -2765,6 +2765,35 @@
       "title": "SetFieldValidationOp",
       "type": "object"
     },
+    "SetFormLanguageOp": {
+      "description": "The language the form's own text is written in (its title,\nquestions, choices): a short BCP 47 tag, one of FORM_LANGUAGES\n(common/models/standard_form.py), any case. ``language`` null or \"\"\nclears it. Respondent pages mark the form's text with it, so screen\nreaders and browsers read it in that language.\n\nKept on the form itself (``settings.language``), not on the workspace's\nform settings that update_form_settings changes: it is part of the form,\nshared by every workspace the form is in and copied into each published\nversion. The tag is checked when the op is applied, so an unknown one\nfails alone instead of the whole turn.",
+      "properties": {
+        "op": {
+          "const": "set_form_language",
+          "default": "set_form_language",
+          "title": "Op",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "maxLength": 35,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "One of: nl, en, de, fr, es, it, pt, pl, da, sv, nb, fi; null clears it.",
+          "title": "Language"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "title": "SetFormLanguageOp",
+      "type": "object"
+    },
     "SetHiddenFieldsOp": {
       "description": "The form's hidden fields (URL parameter names), as a whole. Pipes of\nnames no longer listed are removed from question titles.",
       "properties": {
@@ -5261,6 +5290,7 @@
             "set_endings": "#/$defs/SetEndingsOp",
             "set_field_logic": "#/$defs/SetFieldLogicOp",
             "set_field_validation": "#/$defs/SetFieldValidationOp",
+            "set_form_language": "#/$defs/SetFormLanguageOp",
             "set_hidden_fields": "#/$defs/SetHiddenFieldsOp",
             "set_page_jumps": "#/$defs/SetPageJumpsOp",
             "set_question_numbering": "#/$defs/SetQuestionNumberingOp",
@@ -5331,6 +5361,9 @@
           },
           {
             "$ref": "#/$defs/SetQuestionNumberingOp"
+          },
+          {
+            "$ref": "#/$defs/SetFormLanguageOp"
           },
           {
             "$ref": "#/$defs/AddEndingOp"

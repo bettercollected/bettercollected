@@ -24,6 +24,7 @@ from common.models.standard_form import (
     ENDING_MESSAGE_MAX_LENGTH,
     ENDING_NAME_MAX_LENGTH,
     ENDING_TITLE_MAX_LENGTH,
+    FORM_LANGUAGES,
     MAX_ENDINGS,
     LOGO_ALT_MAX_LENGTH,
     REPEAT_MAX_ITEMS_LIMIT,
@@ -540,6 +541,14 @@ class FormSpec(_Spec):
     spec_version: Literal["1"]
     title: Optional[str] = None
     description: Optional[str] = None
+    language: Optional[Literal[tuple(FORM_LANGUAGES)]] = Field(
+        None,
+        description="The language the form's own text (title, questions, "
+        "choices) is written in, as a short BCP 47 tag. Respondent pages mark "
+        "that text with it for screen readers and browsers. When a document "
+        "that replaces a form leaves it out, the form keeps its language; "
+        "null clears it.",
+    )
     welcome_page: Optional[WelcomePage] = None
     pages: List[Page] = Field(
         default_factory=list,

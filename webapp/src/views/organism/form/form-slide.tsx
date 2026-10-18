@@ -403,7 +403,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     width, straight under the header (pt-14 clears it). */}
                 {leaflet && section && (
                     <div className="pt-14" style={marginVar}>
-                        <LeafletSectionBar theme={theme} numeral={index + 1} title={section.shortTitle} fullTitle={section.title} layout={pageLayout} />
+                        <LeafletSectionBar theme={theme} numeral={index + 1} title={section.shortTitle} fullTitle={section.title} layout={pageLayout} lang={section.source === 'empty' ? undefined : contentLang} />
                         {section.intro && (
                             <LeafletIntroBand theme={theme} layout={pageLayout}>
                                 <FormFieldComponent field={section.intro} slideIndex={formSlide!.index} />

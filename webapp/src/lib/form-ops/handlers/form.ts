@@ -2,8 +2,9 @@
 import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, themeProblems } from '@app/constants/theme';
 
 import { IMAGE_URL_ERROR, firstPartyImageUrl } from '../images';
+import { checkedFormLanguage, formLanguageName } from '../languages';
 import { OpError, clone } from '../model';
-import type { FormSettingsPatch, SetThemePresetOp, UpdateFormInfoOp, UpdateFormSettingsOp, UpdateThemeOp } from '../types';
+import type { FormSettingsPatch, SetFormLanguageOp, SetThemePresetOp, UpdateFormInfoOp, UpdateFormSettingsOp, UpdateThemeOp } from '../types';
 import { type Handler, setKey } from './context';
 import { checkMaxLength } from './fields';
 
@@ -84,6 +85,21 @@ export const updateFormSettings: Handler<UpdateFormSettingsOp> = (ctx, op) => {
         applySettingsPatch(ctx.draft.settings as Record<string, any>, patch);
     }
     return 'Updated form settings: ' + changed.join(', ');
+};
+
+/**
+ * The form's own language (`settings.language`), a key of the form itself:
+ * written whatever `applySettings` says (backend `_apply_set_form_language`).
+ */
+export const setFormLanguage: Handler<SetFormLanguageOp> = (ctx, op) => {
+    const tag = checkedFormLanguage(op.language);
+    if (tag == null) {
+        if (ctx.draft.settings != null) setKey(ctx.draft.settings, 'language', undefined);
+        return "Cleared the form's language";
+    }
+    if (ctx.draft.settings == null) ctx.draft.settings = {} as any;
+    setKey(ctx.draft.settings, 'language', tag);
+    return `Set the form's language to ${formLanguageName(tag)} (${tag})`;
 };
 
 const THEME_KEYS = ['title', 'primary', 'secondary', 'tertiary', 'accent'] as const;
