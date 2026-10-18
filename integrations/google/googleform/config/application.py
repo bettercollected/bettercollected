@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 
+from common.configs.shipped_secrets import require_secrets
 from dotenv import load_dotenv
 
 from googleform.config.apm_settings import APMSettings
@@ -107,3 +108,12 @@ class Application(BaseSettings):
 
 
 settings = Application()
+
+# Tokens from the auth service are checked with AUTH_JWT_SECRET and Google
+# credentials are encrypted with AUTH_AES_HEX_KEY: never run with either unset
+# or set to a value published in the repository.
+require_secrets(
+    "the Google Forms integration",
+    jwt_secrets={"AUTH_JWT_SECRET": settings.AUTH_JWT_SECRET},
+    fernet_keys={"AUTH_AES_HEX_KEY": settings.AUTH_AES_HEX_KEY},
+)

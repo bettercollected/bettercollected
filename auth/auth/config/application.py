@@ -14,6 +14,7 @@ from auth.config.sso_settings import SSOSettings
 from auth.config.stripe import StripeSettings
 from auth.config.typeform_settings import TypeformSettings
 from auth.version import __version__
+from common.configs.shipped_secrets import require_secrets
 from dotenv import load_dotenv
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -80,3 +81,12 @@ class Application(BaseSettings):
 
 
 settings = Application()
+
+# Session tokens are signed with AUTH_JWT_SECRET and OAuth/SSO state is
+# encrypted with AUTH_AES_HEX_KEY: never run with either unset or set to a
+# value published in the repository.
+require_secrets(
+    "auth",
+    jwt_secrets={"AUTH_JWT_SECRET": settings.AUTH_JWT_SECRET},
+    fernet_keys={"AUTH_AES_HEX_KEY": settings.AUTH_AES_HEX_KEY},
+)

@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 
+from common.configs.shipped_secrets import require_secrets
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -86,3 +87,12 @@ class Application(BaseSettings):
 
 
 settings = Application()
+
+# Session tokens are signed with AUTH_JWT_SECRET and OAuth/SSO state, action
+# and SCIM secrets are encrypted with AUTH_AES_HEX_KEY: never run with either
+# unset or set to a value published in the repository.
+require_secrets(
+    "the backend",
+    jwt_secrets={"AUTH_JWT_SECRET": settings.auth_settings.JWT_SECRET},
+    fernet_keys={"AUTH_AES_HEX_KEY": settings.auth_settings.AES_HEX_KEY},
+)

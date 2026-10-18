@@ -9,7 +9,11 @@ from activities.delete_response import delete_response
 from activities.delete_user import delete_user
 from activities.import_form import import_form
 from activities.save_preview import save_preview
-from settings.application import log_if_api_key_missing, settings
+from settings.application import (
+    log_if_api_key_missing,
+    require_aes_hex_key,
+    settings,
+)
 from workflows.response_deletion_workflow import DeleteResponseWorkflow
 from workflows.user_deletion_workflow import DeleteUserWorkflow
 
@@ -37,6 +41,8 @@ async def run_worker():
 
 async def main():
     log_if_api_key_missing()
+    # preview tokens are decrypted with it (activities/get_preview_image.py)
+    require_aes_hex_key()
     workers = [run_worker() for i in range(0, settings.workers)]
     await asyncio.gather(*workers)
 
