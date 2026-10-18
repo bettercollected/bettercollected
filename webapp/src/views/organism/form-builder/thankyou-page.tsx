@@ -7,6 +7,7 @@ import { useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-
 import { useFormState } from '@app/store/jotai/form';
 import { IsValidString } from '@app/utils/string-utils';
 import { LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { canvasButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
@@ -53,7 +54,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                     </div>
                     {IsValidString(page?.buttonText) && (
                         <div className={cn(FORM_COLUMN, columnPlacementClass(layout), 'pt-8')}>
-                            <Button size={'medium'} className="z-10 min-h-12 rounded-[4px] px-8 py-3 text-base font-semibold" style={{ background: theme?.secondary }}>
+                            <Button size={'medium'} className="z-10 min-h-12 rounded-[4px] px-8 py-3 text-base font-semibold" style={canvasButtonStyle(theme, '4px')}>
                                 {page?.buttonText}
                             </Button>
                         </div>
@@ -91,7 +92,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                         <></>
                     )}
                     {formState.thankyouPage && IsValidString(formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.buttonText) ? (
-                        <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={{ background: theme?.secondary }}>
+                        <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={canvasButtonStyle(theme, '8px')}>
                             {formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.buttonText || 'Try bettercollected'}
                         </Button>
                     ) : (

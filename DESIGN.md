@@ -331,7 +331,7 @@ A theme may also set, each optional (`FormTheme` in
 | `dataFont` | the same | `font-mono` text, such as the submission number |
 | `titleWidth` | `normal`, `expanded` | Page titles at 125% width, on a face with a width axis (Archivo) |
 | `radius` | `sharp` (0), `soft` (6px), `round` (16px) | Fields, option cards and buttons |
-| `buttonStyle` | `filled`, `outlined`, `pill` | Start, Continue and Submit |
+| `buttonStyle` | `filled`, `outlined`, `pill` | Start, Continue, Submit and the ending's button |
 | `highlight` | `#rrggbb` | The chosen answer, the "why we ask" and "optional" notes, the focus ring |
 
 - **Absent means today.** A key left out (or null, as stored forms send it)

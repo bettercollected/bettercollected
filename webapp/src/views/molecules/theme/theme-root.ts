@@ -2,6 +2,7 @@ import { CSSProperties, useEffect } from 'react';
 
 import { themeFaces } from '@app/assets/fonts/theme-faces';
 import { FormTheme, THEME_BUTTON_STYLES, THEME_FONTS, THEME_RADII, ThemeFontId, ThemeRadius, isHexColour } from '@app/constants/theme';
+import { contrast } from '@app/utils/color-contrast';
 
 /**
  * A theme's type, shape and highlight as CSS custom properties and data
@@ -38,15 +39,8 @@ export function themeFontStack(id?: string | null): string | undefined {
 /** Corners per radius: fields, option cards and buttons alike. */
 export const THEME_RADIUS_PX: Record<ThemeRadius, string> = { sharp: '0px', soft: '6px', round: '16px' };
 
-/** WCAG 2.1 contrast of two #rrggbb colours (theme-shared's `contrast`, kept here so this module stands alone). */
-function ratio(a: string, b: string): number {
-    const lum = (hex: string) => {
-        const [r, g, bl] = [0, 2, 4].map((i) => parseInt(hex.slice(1 + i, 3 + i), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
-        return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
-    };
-    const [l1, l2] = [lum(a), lum(b)];
-    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-}
+/** WCAG 2.1 contrast of two hex colours. */
+const ratio = contrast;
 
 const pageOf = (theme?: Partial<FormTheme> | null) => (isHexColour(theme?.accent) ? theme!.accent : '#FFFFFF');
 const inkOf = (theme?: Partial<FormTheme> | null) => (isHexColour(theme?.primary) ? theme!.primary : '#101828');
@@ -201,7 +195,7 @@ export function themed(variable: string, fallback: string | undefined): string |
 
 /**
  * The style of a button painted in the form's action colour (Start,
- * Continue, Submit): today's fill, white text and corners unless the theme
+ * Continue, Submit, the ending's button): today's fill, white text and corners unless the theme
  * says otherwise through the variables above. `corner` is the button's
  * corner without a theme radius.
  */
