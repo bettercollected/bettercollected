@@ -737,3 +737,46 @@ async def test_rewrap_skips_and_reports_unknown_keys(svc, superuser):
     service = SettingsService(svc._engine, smaller, make_keys())
     result = await service.rewrap(CLI)
     assert result.skipped == (T1,)
+
+
+async def test_report_state_prunes_only_the_callers_stale_rows(server, migrated, superuser):
+    sql = "SELECT settings.report_state(:i, 1, CAST('{}' AS text[]), CAST('{}' AS text[]), false, '')"
+    async with superuser.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO settings.service_state (service, instance, reported_at, revision_applied) "
+                "SELECT 'backend', 'old-' || g, now() - interval '8 days', 1 FROM generate_series(1, 100) g"
+            )
+        )
+        await conn.execute(
+            text(
+                "INSERT INTO settings.service_state (service, instance, reported_at, revision_applied) "
+                "VALUES ('auth', 'old-auth', now() - interval '30 days', 1)"
+            )
+        )
+    engine = create_async_engine(server.url(migrated, "reader:app"), poolclass=NullPool)
+    try:
+        async with engine.begin() as conn:  # at the cap, but every row is stale: accepted
+            await conn.execute(text(sql), {"i": "new-1"})
+        count = await scalar(superuser, "SELECT count(*) FROM settings.service_state WHERE service = 'backend'")
+        assert count == 1
+        assert await scalar(superuser, "SELECT count(*) FROM settings.service_state WHERE service = 'auth'") == 1
+        # recent rows are never pruned: 100 instances in the last week fill the cap
+        async with superuser.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO settings.service_state (service, instance, reported_at, revision_applied) "
+                    "SELECT 'backend', 'recent-' || g, now() - interval '6 days', 1 FROM generate_series(1, 99) g"
+                )
+            )
+        async with engine.connect() as conn:
+            with pytest.raises(DBAPIError, match="too many instances"):
+                await conn.execute(text(sql), {"i": "new-2"})
+        assert await scalar(superuser, "SELECT count(*) FROM settings.service_state WHERE service = 'backend'") == 100
+    finally:
+        await engine.dispose()
+    # still callable by readers only
+    assert not await scalar(
+        superuser,
+        "SELECT has_function_privilege('public', 'settings.report_state(text, bigint, text[], text[], boolean, text)', 'EXECUTE')",
+    )
