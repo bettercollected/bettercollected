@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class MongoSettings(BaseSettings):
+class MongoSettings(StoreBackedSettings):
     DB: str = "bettercollected_backend"
     URI: str = "mongodb://localhost"
 

@@ -1,6 +1,9 @@
 version: '3.7'
 volumes:
   doc-sandbox:
+  settings-snapshots-backend:
+  settings-snapshots-auth:
+  settings-snapshots-google:
   mongo-data:
   app-postgres-data:
   umami-db-data:
@@ -192,6 +195,9 @@ services:
     image: bettercollected/backend:nightly
     # image: bettercollected/backend:nightly
     environment:
+      # the signed settings snapshot (a rollback floor and a DB-down fallback) must
+      # survive container recreation: keep it on a named volume
+      SETTINGS_SNAPSHOT_DIR: /var/lib/bc-settings
       # the internal API serves no /docs, /redoc or /openapi.json unless true
       API_DOCS_ENABLED: "false"
       # debug mode answers unhandled errors with an HTML traceback; keep it off
@@ -241,6 +247,7 @@ services:
     env_file:
       - .env.deployment
     volumes:
+      - settings-snapshots-backend:/var/lib/bc-settings
       - doc-sandbox:/run/doc-sandbox
     ports:
       - '8000:8000'
@@ -453,6 +460,9 @@ services:
     image: bettercollected/auth:nightly
     # image: bettercollected/auth:nightly
     environment:
+      # the signed settings snapshot (a rollback floor and a DB-down fallback) must
+      # survive container recreation: keep it on a named volume
+      SETTINGS_SNAPSHOT_DIR: /var/lib/bc-settings
       # the internal API serves no /docs, /redoc or /openapi.json unless true
       API_DOCS_ENABLED: "false"
       # debug mode answers unhandled errors with an HTML traceback; keep it off
@@ -478,6 +488,8 @@ services:
       SSO_POLIS_URL: ${SSO_POLIS_URL:-}
       SSO_POLIS_INTERNAL_URL: http://polis:5225
       SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
+    volumes:
+      - settings-snapshots-auth:/var/lib/bc-settings
     depends_on:
       mongodb:
         condition: service_healthy
@@ -508,6 +520,9 @@ services:
   integrations-googleform:
     image: bettercollected/integrations-google:nightly
     environment:
+      # the signed settings snapshot (a rollback floor and a DB-down fallback) must
+      # survive container recreation: keep it on a named volume
+      SETTINGS_SNAPSHOT_DIR: /var/lib/bc-settings
       # the internal API serves no /docs, /redoc or /openapi.json unless true
       API_DOCS_ENABLED: "false"
       # debug mode answers unhandled errors with an HTML traceback; keep it off
@@ -524,6 +539,8 @@ services:
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
     env_file:
       - .env.deployment
+    volumes:
+      - settings-snapshots-google:/var/lib/bc-settings
     depends_on:
       app-postgres:
         condition: service_healthy

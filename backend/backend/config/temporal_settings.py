@@ -1,9 +1,10 @@
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class TemporalSettings(BaseSettings):
+class TemporalSettings(StoreBackedSettings):
     server_uri: str = "localhost:7233"
     # Shared with the Temporal worker and the actions-executor (API_KEY there);
     # no default: unset means the internal job routes answer 503
