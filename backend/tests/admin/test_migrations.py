@@ -265,3 +265,19 @@ async def test_the_roles_script_is_idempotent(server, migrated):
         )
         == server.owner_role
     )
+
+
+def test_named_roles_resolve_with_overrides(monkeypatch):
+    from backend.admin.migration_support import role_name
+
+    monkeypatch.delenv("ADMIN_DB_RUNTIME_ROLE", raising=False)
+    monkeypatch.delenv("ADMIN_DB_ROLE_TASKS", raising=False)
+    assert role_name() == "bc_admin"
+    assert role_name("tasks") == "bc_tasks"
+    monkeypatch.setenv("ADMIN_DB_ROLE_TASKS", "bc_tasks_x1")
+    assert role_name("tasks") == "bc_tasks_x1"
+    monkeypatch.setenv("ADMIN_DB_ROLE_TASKS", "x; DROP")
+    with pytest.raises(ValueError):
+        role_name("tasks")
+    with pytest.raises(ValueError):
+        role_name("Bad Name")

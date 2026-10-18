@@ -60,6 +60,8 @@ def upgrade() -> None:
         sa.Column("after", postgresql.JSONB(astext_type=sa.Text())),
         sa.Column("detail", postgresql.JSONB(astext_type=sa.Text())),
         sa.Column("request_id", sa.Text()),
+        # version of the admin/audit subkey that signed this row (hashed with it)
+        sa.Column("key_version", sa.Integer(), server_default="1", nullable=False),
         sa.Column("prev_hash", sa.LargeBinary(), nullable=False),
         sa.Column("row_hash", sa.LargeBinary(), nullable=False),
         sa.CheckConstraint(

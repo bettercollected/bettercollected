@@ -134,6 +134,7 @@ audit_log = Table(
     Column("after", JSONB),
     Column("detail", JSONB),
     Column("request_id", Text),
+    Column("key_version", Integer, nullable=False, server_default="1"),
     Column("prev_hash", LargeBinary, nullable=False),
     Column("row_hash", LargeBinary, nullable=False),
     CheckConstraint(

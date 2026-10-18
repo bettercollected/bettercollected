@@ -9,7 +9,9 @@ from backend.admin.config import (
     AdminSettings,
     parse_master_key,
 )
-from backend.admin.security.keys import PURPOSES, derive_key
+from backend.admin.security.keys import admin_key, derive_key
+
+ADMIN_PURPOSES = ("audit", "pepper", "totp")
 
 GOOD = base64.b64encode(bytes(range(48))).decode()
 URL = "postgresql://bc_admin:s3cret-pw@db:5432/x"
@@ -59,27 +61,53 @@ def test_refuses_a_bad_database_url_without_printing_it(url):
 
 def test_subkeys_differ_per_purpose_and_are_stable():
     env = {MASTER_KEY_KEY: GOOD}
-    keys = {p: derive_key(p, env=env) for p in PURPOSES}
-    assert len(set(keys.values())) == len(PURPOSES)
+    keys = {p: derive_key("admin", p, env=env) for p in ADMIN_PURPOSES}
+    assert len(set(keys.values())) == len(ADMIN_PURPOSES)
     assert all(len(k) == 32 for k in keys.values())
-    assert keys == {p: derive_key(p, env=env) for p in PURPOSES}
-    assert derive_key("audit", 2, env=env) != keys["audit"]
+    assert keys == {p: admin_key(p, env=env) for p in ADMIN_PURPOSES}
+    assert derive_key("admin", "audit", 2, env=env) != keys["audit"]
+
+
+def test_namespaces_purposes_and_contexts_are_independent_and_open():
+    env = {MASTER_KEY_KEY: GOOD}
+    keys = [
+        derive_key("admin", "audit", env=env),
+        derive_key("settings", "audit", env=env),
+        derive_key("settings", "sign", env=env),
+        derive_key("settings", "wrap", 1, "smtp", env=env),
+        derive_key("settings", "wrap", 1, "admin_mail", env=env),
+        derive_key("tasks", "request", env=env),
+    ]
+    assert len(set(keys)) == len(keys)
+    assert derive_key("settings", "wrap", 1, "smtp", env=env) == keys[3]
+    assert derive_key("settings", "wrap", 1, None, env=env) != keys[3]
 
 
 def test_subkeys_depend_on_the_master_key():
     other = base64.b64encode(bytes(range(1, 49))).decode()
-    assert derive_key("audit", env={MASTER_KEY_KEY: GOOD}) != derive_key(
+    assert admin_key("audit", env={MASTER_KEY_KEY: GOOD}) != admin_key(
         "audit", env={MASTER_KEY_KEY: other}
     )
 
 
-def test_bad_purpose_or_version_is_refused():
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("admin", "Audit"),
+        ("", "audit"),
+        ("admin", ""),
+        ("admin/x", "audit"),
+        ("admin", "audit", 0),
+        ("admin", "audit", True),
+        ("admin", "audit", 1, "bad context!"),
+        ("admin", "audit", 1, ""),
+    ],
+)
+def test_bad_names_versions_or_contexts_are_refused(args):
     with pytest.raises(ValueError):
-        derive_key("mail", env={MASTER_KEY_KEY: GOOD})
-    with pytest.raises(ValueError):
-        derive_key("audit", 0, env={MASTER_KEY_KEY: GOOD})
+        derive_key(*args, env={MASTER_KEY_KEY: GOOD})
 
 
 def test_derive_key_without_a_master_key_refuses():
     with pytest.raises(AdminConfigError):
-        derive_key("audit", env={})
+        derive_key("admin", "audit", env={})

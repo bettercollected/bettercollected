@@ -12,7 +12,6 @@ from typing import Optional, Sequence
 
 from backend.admin.config import AdminConfigError, AdminSettings
 from backend.admin.db import make_engine
-from backend.admin.security.keys import derive_key
 from backend.admin.services import audit
 
 
@@ -26,11 +25,10 @@ def _parse_checkpoint(raw: str) -> tuple[int, bytes]:
 
 async def _audit_verify(checkpoint: Optional[tuple[int, bytes]]) -> int:
     settings = AdminSettings.from_env()
-    key = derive_key("audit")
     engine = make_engine(settings)
     try:
         async with engine.connect() as conn:
-            result = await audit.verify_chain(conn, key, checkpoint)
+            result = await audit.verify_chain(conn, None, checkpoint)
     finally:
         await engine.dispose()
     print(result.summary())

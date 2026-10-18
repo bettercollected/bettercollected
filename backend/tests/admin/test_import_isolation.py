@@ -61,7 +61,7 @@ def test_importing_the_package_loads_none_of_them():
         "import backend.admin, backend.admin.config, backend.admin.db\n"
         "import backend.admin.security.keys, backend.admin.services.audit\n"
         "import backend.admin.repositories.audit, backend.admin.repositories.tables\n"
-        "import backend.admin.__main__\n"
+        "import backend.admin.__main__, backend.admin.migration_support\n"
         f"forbidden = {FORBIDDEN!r}\n"
         "bad = [m for m in sys.modules if any(m == b or m.startswith(b + '.') for b in forbidden)]\n"
         "bad += [m for m in sys.modules if m == 'backend.app' or m.startswith('backend.app.')]\n"

@@ -16,7 +16,7 @@ from sqlalchemy.exc import DBAPIError
 
 import backend.admin as admin_package
 from backend.admin.config import DATABASE_URL_KEY, MASTER_KEY_KEY
-from backend.admin.security.keys import derive_key
+from backend.admin.security.keys import admin_key
 from backend.admin.services import audit
 from tests.admin.conftest import MASTER_KEY, needs_postgres
 
@@ -173,7 +173,7 @@ async def test_a_written_chain_verifies_and_links_rows(runtime_engine):
 
 async def test_verification_with_another_key_fails_at_the_first_row(runtime_engine):
     entries = await seeded(runtime_engine, 3)
-    other = derive_key("pepper")
+    other = admin_key("pepper")
     result = await verify(runtime_engine, key=other)
     assert (result.ok, result.break_seq, result.reason) == (
         False,
@@ -445,3 +445,52 @@ async def test_audit_verify_cli_refuses_without_a_master_key(server, migrated):
         _cli, server.url(migrated, "runtime"), base64.b64encode(os.urandom(48)).decode()
     )
     assert wrong.returncode == 0  # an empty log verifies under any key
+
+
+async def test_rows_carry_their_key_version_and_old_rows_still_verify(
+    owner_engine, runtime_engine, monkeypatch
+):
+    first = await seeded(runtime_engine, 2)  # signed with version 1
+    monkeypatch.setattr(audit, "AUDIT_KEY_VERSION", 2)
+    async with runtime_engine.begin() as conn:
+        later = await add(conn, 2)  # signed with version 2
+    async with runtime_engine.connect() as conn:
+        versions = (
+            (
+                await conn.execute(
+                    text("SELECT key_version FROM admin.audit_log ORDER BY seq")
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert versions == [1, 1, 2, 2]
+    assert (await verify(runtime_engine)).ok  # each row verified under its own version
+
+    # the version is part of the hashed payload: editing it breaks the chain
+    await _disable_triggers(owner_engine)
+    await as_owner(
+        owner_engine,
+        "UPDATE admin.audit_log SET key_version = 1 WHERE seq = :s",
+        s=later[0].seq,
+    )
+    result = await verify(runtime_engine)
+    assert (result.break_seq, result.reason) == (later[0].seq, "row_hash_mismatch")
+    assert first[0].seq < later[0].seq
+    await as_owner(
+        owner_engine,
+        "UPDATE admin.audit_log SET key_version = 0 WHERE seq = :s",
+        s=later[0].seq,
+    )
+    assert (await verify(runtime_engine)).reason == "row_hash_mismatch"  # not a crash
+
+
+async def test_system_actor_and_requesting_admin_in_detail(runtime_engine):
+    async with runtime_engine.begin() as conn:
+        await add(
+            conn,
+            actor_kind="system",
+            actor_email=None,
+            detail={"requested_by": "ops@example.org", "task": "t1"},
+        )
+    assert (await verify(runtime_engine)).ok

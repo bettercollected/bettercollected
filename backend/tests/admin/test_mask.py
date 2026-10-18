@@ -3,7 +3,13 @@ import random
 
 import pytest
 
-from backend.admin.services.audit import MAX_STRING, REDACTED, canonical_json, mask
+from backend.admin.services.audit import (
+    MAX_STRING,
+    REDACTED,
+    canonical_json,
+    mask,
+    setting_payload,
+)
 
 DENIED = [
     "secret",
@@ -100,3 +106,35 @@ def test_planted_secrets_never_survive(seed):
     rendered = canonical_json(mask(tree)).decode()
     for planted in planted_values:
         assert planted not in rendered
+
+
+def test_setting_payload_shapes_survive_masking():
+    out = mask(
+        {
+            "before": setting_payload("smtp.host", "mail.example.org", secret=False),
+            "after": setting_payload("smtp.password", "hunter2", secret=True),
+            "cleared": setting_payload("smtp.password", None, secret=True),
+        }
+    )
+    assert out["before"] == {"setting": "smtp.host", "value": "mail.example.org"}
+    assert out["after"] == {"setting": "smtp.password", "secret": "set"}
+    assert out["cleared"] == {"setting": "smtp.password", "secret": "cleared"}
+    assert "hunter2" not in canonical_json(out).decode()
+
+
+def test_a_secret_field_with_any_other_value_is_still_blanked():
+    out = mask({"secret": "hunter2", "nested": {"secret": {"set": 1}}, "key": "set"})
+    assert out == {"secret": REDACTED, "nested": {"secret": REDACTED}, "key": REDACTED}
+
+
+@pytest.mark.parametrize("seed", range(40))
+def test_setting_payloads_never_leak_secret_values(seed):
+    rng = random.Random(1000 + seed)
+    planted = f"PLANTED-{rng.getrandbits(64):x}"
+    name = rng.choice(["smtp.password", "api.key", "token", "otp_seed"])
+    payload = {
+        "before": setting_payload(name, planted, secret=True),
+        "after": setting_payload(name, None, secret=True),
+        "detail": {"changed": [name], "value": {"api_token": planted}},
+    }
+    assert planted not in canonical_json(mask(payload)).decode()

@@ -26,10 +26,15 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from backend.admin.repositories import audit as repo
-from backend.admin.security.keys import derive_key
+from backend.admin.security.keys import admin_key
 
 # Duplicated as literals in migration 0003 (frozen); a test asserts they agree.
 GENESIS_HASH = hashlib.sha256(b"bettercollected/admin/audit/genesis/v1").digest()
+
+# Version of the ``admin/audit`` subkey new rows are signed with. Each row stores
+# the version it used (and hashes it), so rotating the master key or this version
+# never breaks verification of older rows.
+AUDIT_KEY_VERSION = 1
 
 ACTOR_KINDS = frozenset({"admin", "cli", "system", "anonymous"})
 OUTCOMES = frozenset({"success", "failure", "denied"})
@@ -40,6 +45,11 @@ MAX_ITEMS = 50
 MAX_DEPTH = 6
 CHECKPOINT_EVERY = 100
 REDACTED = "[redacted]"
+
+# The one exception to the deny-list: a field literally named ``secret`` whose
+# value is one of these markers says *whether* a secret setting is set, never
+# what it is, so it survives masking.
+SECRET_MARKERS = ("set", "cleared")
 
 _DENY = re.compile(
     r"secret|token|password|passwd|key|code|otp|hash|authorization|cookie|seed|private",
@@ -61,6 +71,7 @@ _HASHED_FIELDS = (
     "after",
     "detail",
     "request_id",
+    "key_version",
 )
 
 
@@ -93,7 +104,9 @@ def mask(value: Any, _depth: int = 0) -> Any:
                 out["[truncated]"] = len(value) - MAX_ITEMS
                 break
             name = mask(str(k), MAX_DEPTH)
-            out[name] = REDACTED if _DENY.search(str(k)) else mask(v, _depth + 1)
+            keep_marker = k == "secret" and v in SECRET_MARKERS
+            denied = _DENY.search(str(k)) and not keep_marker
+            out[name] = REDACTED if denied else mask(v, _depth + 1)
         return out
     if isinstance(value, (list, tuple, set, frozenset)):
         items = list(value)
@@ -102,6 +115,22 @@ def mask(value: Any, _depth: int = 0) -> Any:
             masked.append(f"[truncated {len(items) - MAX_ITEMS}]")
         return masked
     return mask(str(value), _depth)
+
+
+def setting_payload(setting: str, value: Any, *, secret: bool) -> dict[str, Any]:
+    """The audit shape for a setting change (use it for ``before`` and ``after``).
+
+    ``{"setting": name, "value": v}`` for an ordinary setting; for one the
+    registry flags as secret, ``{"setting": name, "secret": "set" | "cleared"}``
+    and the value is never part of the payload. Callers pass values that are
+    already safe: ``mask()`` only looks at field names, so a planted secret
+    inside the *string* of a ``value`` field would be stored. Never put a secret
+    setting's value in ``value``; this helper makes that the default path.
+    """
+    if secret:
+        present = value is not None and value != ""
+        return {"setting": setting, "secret": "set" if present else "cleared"}
+    return {"setting": setting, "value": value}
 
 
 def canonical_json(value: Any) -> bytes:
@@ -203,7 +232,7 @@ async def write(
     Raises :class:`AuditError` / :class:`AuditPayloadTooLarge` on bad input and
     lets any database error propagate; the caller's transaction then rolls back.
     ``before``/``after``/``detail`` are masked and bounded here, so callers pass
-    plain dicts. ``key`` defaults to the ``admin/audit/v1`` subkey.
+    plain dicts. ``key`` defaults to the ``admin/audit`` subkey at ``AUDIT_KEY_VERSION``.
     """
     if actor_kind not in ACTOR_KINDS:
         raise AuditError("unknown actor_kind")
@@ -232,9 +261,10 @@ async def write(
         "after": _bounded("after", after),
         "detail": _bounded("detail", detail),
         "request_id": _clip(request_id, 64),
+        "key_version": AUDIT_KEY_VERSION,
     }
 
-    audit_key = key if key is not None else derive_key("audit")
+    audit_key = key if key is not None else admin_key("audit", AUDIT_KEY_VERSION)
     await repo.lock_chain(conn)
     head, now = await repo.head_and_now(conn)
     prev_hash = head if head is not None else GENESIS_HASH
@@ -275,7 +305,18 @@ async def verify_chain(
     """Recompute the whole chain; report the first break by seq and reason only.
     ``checkpoint`` (seq, row_hash from an ``audit.checkpoint`` line) also proves
     that row is still there, which catches deleted tail rows."""
-    audit_key = key if key is not None else derive_key("audit")
+    derived: dict[int, bytes] = {}
+
+    def key_for(version: int) -> Optional[bytes]:
+        if key is not None:
+            return key
+        if version not in derived:
+            try:
+                derived[version] = admin_key("audit", version)
+            except ValueError:
+                return None  # a tampered version number
+        return derived[version]
+
     expected_prev = GENESIS_HASH
     count = 0
     head_seq: Optional[int] = None
@@ -284,7 +325,10 @@ async def verify_chain(
         m = row._mapping
         if bytes(m["prev_hash"]) != expected_prev:
             return VerifyResult(False, count, head_seq, m["seq"], "prev_hash_mismatch")
-        recomputed = compute_row_hash(audit_key, expected_prev, m)
+        row_key = key_for(m["key_version"])
+        recomputed = (
+            compute_row_hash(row_key, expected_prev, m) if row_key is not None else b""
+        )
         if not hmac.compare_digest(recomputed, bytes(m["row_hash"])):
             return VerifyResult(False, count, head_seq, m["seq"], "row_hash_mismatch")
         expected_prev = recomputed
