@@ -8,6 +8,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import Choice from '@app/views/atoms/choice';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 import { selectForm } from '@app/store/forms/slice';
@@ -15,13 +16,14 @@ import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { ChevronDown } from 'lucide-react';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
-import { WithQuestionLabel, joinIds } from './question-label-context';
+import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 export default function DropDownField({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { theme } = useFormState();
     const { t } = useRespondentLanguage();
+    const contentLang = useFormContentLanguage();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
 
     const form = useAppSelector(selectForm);
@@ -70,7 +72,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
 
     return (
         <QuestionWrapper field={field}>
-            <WithQuestionLabel>
+            <WithQuestionLabel hints={[valueId]}>
                 {({ label, group }) => (
                     <Collapsible open={isOpen} onOpenChange={setIsOpen} className=" space-y-2">
                         <CollapsibleTrigger asChild>
@@ -82,11 +84,11 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                                 type="button"
                                 // Named by the question; the chosen answer (or "Select an option") describes it.
                                 aria-labelledby={label?.labelledBy}
-                                aria-describedby={joinIds(label && valueId, group['aria-describedby'])}
+                                aria-describedby={group['aria-describedby']}
                                 style={{ ...getTextStyle(), borderRadius: tokens.inputRadius, ['--hover-border' as string]: theme?.primary ?? '#101828' }}
                                 className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg"
                             >
-                                <span id={valueId} className="truncate">
+                                <span id={valueId} className="truncate" lang={choiceValue ? contentLang : undefined}>
                                     {choiceValue ? choiceValue : t('FIELD.SELECT_OPTION')}
                                 </span>
                                 <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
@@ -94,7 +96,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                         </CollapsibleTrigger>
                         <CollapsibleContent className={tokens.ruledChoices ? '' : 'space-y-2'}>
                             {field.properties?.choices?.map((choice, index) => {
-                                return <Choice key={choice.id} index={index} isSelected={!!selectedChoiceId && choice.id === selectedChoiceId} theme={theme} choice={choice} onClick={handleClick} />;
+                                return <Choice key={choice.id} index={index} isSelected={!!selectedChoiceId && choice.id === selectedChoiceId} theme={theme} choice={choice} onClick={handleClick} lang={contentLang} />;
                             })}
                         </CollapsibleContent>
                     </Collapsible>

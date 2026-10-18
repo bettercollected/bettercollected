@@ -85,7 +85,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
     const valueId = `date-value-${field.id}`;
     // Named by the question (and the field's own label); the chosen date, or
     // "Pick a date", describes it. Empty on the builder canvas.
-    const { label: question, group } = useQuestionLabel();
+    const { label: question, group } = useQuestionLabel(valueId);
     const labelledBy = question?.labelledBy ? joinIds(question.labelledBy, label && labelId) : undefined;
 
     return (
@@ -101,7 +101,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         id={buttonId}
                         type="button"
                         aria-labelledby={labelledBy}
-                        aria-describedby={question ? joinIds(valueId, group['aria-describedby']) : undefined}
+                        aria-describedby={group['aria-describedby']}
                         className={cn(
                             'flex min-h-12 w-full cursor-pointer items-center gap-2 border bg-white px-4 py-3 text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg',
                             isBuilder && 'pointer-events-none'

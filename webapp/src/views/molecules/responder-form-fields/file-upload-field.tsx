@@ -21,7 +21,7 @@ import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
-import { WithQuestionLabel, joinIds } from './question-label-context';
+import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
@@ -167,7 +167,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                                     color: theme?.secondary
                                 }}
                             />
-                            <WithQuestionLabel>
+                            <WithQuestionLabel hints={[hintId]}>
                                 {({ control }) => (
                                     <input
                                         ref={inputFileRef}
@@ -176,7 +176,6 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                                         className="sr-only"
                                         onChange={handleFileInputChange}
                                         {...control}
-                                        aria-describedby={joinIds(hintId, control['aria-describedby'])}
                                     />
                                 )}
                             </WithQuestionLabel>

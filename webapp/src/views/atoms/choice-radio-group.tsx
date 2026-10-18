@@ -8,6 +8,8 @@ export interface RadioOption<T> {
     value: T;
     label: ReactNode;
     key: string;
+    /** The label's language, when it is not the page's. */
+    lang?: string;
 }
 
 /**
@@ -71,7 +73,7 @@ export default function ChoiceRadioGroup<T>({
                         className={row.className}
                         style={row.style}
                     >
-                        <ChoiceContent kind="radio" selected={checked} theme={theme} solid={row.solid}>
+                        <ChoiceContent kind="radio" selected={checked} theme={theme} solid={row.solid} lang={option.lang}>
                             {option.label}
                         </ChoiceContent>
                     </button>

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
 
 import { FormTheme } from '@app/constants/theme';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
@@ -43,6 +44,8 @@ export default function WelcomePage({
 }>) {
     const standardForm = useAppSelector(selectResponderForm);
     const { t } = useRespondentLanguage();
+    // The author's title and introduction, marked when in another language than the page.
+    const contentLang = useFormContentLanguage();
     const { nextSlide } = useResponderState();
     const router = useRouter();
     const pathname = usePathname();
@@ -148,10 +151,10 @@ export default function WelcomePage({
                 <div data-primary-content>
                     {/* With a logo strip the row only held the account control, now in the strip. */}
                     {!accountInStrip && <LeafletTopRule theme={formTheme} />}
-                    <LeafletSectionBar theme={formTheme} title={standardForm?.title} layout={welcomePage?.layout} headingLevel={1} />
+                    <LeafletSectionBar theme={formTheme} title={<span lang={contentLang}>{standardForm?.title}</span>} layout={welcomePage?.layout} headingLevel={1} />
                     {welcomePage?.description && (
                         <LeafletIntroBand theme={formTheme} layout={welcomePage?.layout}>
-                            <p className="max-w-[62ch] text-pretty" style={{ whiteSpace: 'pre-line' }}>
+                            <p className="max-w-[62ch] text-pretty" style={{ whiteSpace: 'pre-line' }} lang={contentLang}>
                                 {welcomePage.description}
                             </p>
                         </LeafletIntroBand>
@@ -177,11 +180,11 @@ export default function WelcomePage({
                 {/* Title and introduction in the theme's ink (the introduction a
                     step lighter, still 7:1), on a measure that keeps long titles
                     to a few balanced lines. */}
-                <h1 className="max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: formTheme?.primary }}>
+                <h1 className="max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: formTheme?.primary }} lang={contentLang}>
                     {standardForm?.title}
                 </h1>
                 {welcomePage?.description && (
-                    <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ whiteSpace: 'pre-line', color: softInk(formTheme) }}>
+                    <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ whiteSpace: 'pre-line', color: softInk(formTheme) }} lang={contentLang}>
                         {welcomePage?.description}
                     </p>
                 )}

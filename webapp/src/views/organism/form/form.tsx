@@ -3,6 +3,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 import { useResponderFormLogo } from '@app/lib/hooks/use-form-logo';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
 import { selectResponderForm } from '@app/store/forms/slice';
@@ -46,6 +47,9 @@ const slideTransition = { duration: 0.35, ease: [0.32, 0.72, 0, 1] as [number, n
 const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: boolean; showDesktopLayout?: boolean }) => {
     const { currentSlide, prevActiveSlide: previousSlide, endingId } = useResponderState();
     const prefersReducedMotion = useReducedMotion();
+    // The form is in the respondent's language; on the public pages <html lang>
+    // says so too, and this also marks it inside the builder's preview.
+    const { language } = useRespondentLanguage();
 
     const standardForm = useAppSelector(selectResponderForm);
     // Leaflet pages start with a full-width bar at the top edge.
@@ -81,7 +85,7 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     return (
         // overflow-hidden clips the ±100% fly-in/out — without it the document
         // grows sideways mid-transition and a horizontal scrollbar flashes.
-        <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen', 'relative h-full w-full overflow-hidden')}>
+        <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen', 'relative h-full w-full overflow-hidden')} lang={language}>
             {currentSlide !== -1 && (
                 // Decorative: "Page x of y" in the header says the same in words.
                 <div className="absolute top-0 right-0 left-0 z-80!" aria-hidden="true">
