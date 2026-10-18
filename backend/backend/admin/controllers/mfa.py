@@ -29,6 +29,7 @@ from backend.admin.gate.stepup import STEPUP_ATTR, ActionBound, PROMPT_PATH, req
 from backend.admin.portal import Portal
 from backend.admin.security import csrf
 from backend.admin.services import factors as fsvc
+from backend.admin.services.sessions import hash_token
 from backend.admin.services.stepup import TOKEN_SECONDS, action_hash
 
 # where the step-up prompt may send the browser back to (never a request value)
@@ -41,7 +42,14 @@ def _session(request: Request):
 
 
 def _csrf(portal: Portal, session) -> str:
-    return csrf.session_token(portal.csrf_key, str(session.id))
+    return csrf.session_token(portal.csrf_key, session.csrf_subject)
+
+
+def _csrf_after_rotation(portal: Portal, session, new_token: str) -> str:
+    """The CSRF token for forms rendered in the response that rotates the session
+    token (the old subject is refused from now on)."""
+    subject = f"{session.id}.{hash_token(new_token).hex()}"
+    return csrf.session_token(portal.csrf_key, subject)
 
 
 def _token(request: Request) -> str:
@@ -117,7 +125,9 @@ def register(reg: RouteRegistry) -> None:
         _schedule(background, result.after)
         if result.ok:
             response = portal.render(
-                "recovery_codes.html", csrf_token=_csrf(portal, session), codes=result.codes
+                "recovery_codes.html",
+                csrf_token=_csrf_after_rotation(portal, session, result.new_token),
+                codes=result.codes,
             )
             cookies.set_cookie(response, cookies.SESSION_COOKIE, result.new_token)
         elif result.reason == fsvc.STEPUP_REQUIRED:

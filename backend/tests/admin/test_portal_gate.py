@@ -96,7 +96,7 @@ async def test_email_ok_session_reaches_only_mfa_logout_and_static(
     b = Browser(app)
     await sign_in(b, transport)
     session = (await portal.sessions.list_live(ADMIN))[0]
-    token = csrf.session_token(portal.csrf_key, str(session.id))
+    token = csrf.session_token(portal.csrf_key, session.csrf_subject)
     method = sorted(route.methods)[0]
     kw = {"headers": {"x-csrf-token": token}}
     if route.path.startswith("/api/") and method == "POST":
@@ -147,7 +147,7 @@ async def logged_in(app, portal, state="mfa_ok"):
     token, session = await portal.sessions.create(ADMIN, "127.0.0.1", UA, mfa_state=state)
     b = Browser(app)
     b.cookies[cookies.SESSION_COOKIE] = token
-    return b, csrf.session_token(portal.csrf_key, str(session.id)), session
+    return b, csrf.session_token(portal.csrf_key, session.csrf_subject), session
 
 
 @needs_postgres

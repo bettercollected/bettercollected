@@ -75,7 +75,7 @@ async def signed_in_unverified(portal, email=ADMIN, ip=IP):
 
 
 def csrf_of(portal, session) -> str:
-    return csrf.session_token(portal.csrf_key, str(session.id))
+    return csrf.session_token(portal.csrf_key, session.csrf_subject)
 
 
 async def enrol_browser(b, transport, clock):

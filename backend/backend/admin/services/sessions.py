@@ -13,7 +13,7 @@ import hashlib
 import logging
 import secrets
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Collection, Iterable, Optional
 
@@ -65,6 +65,14 @@ class Session:
     idle_expires_at: datetime
     abs_expires_at: datetime
     ip: Optional[str]
+    token_hash: bytes = field(default=b"", repr=False)
+
+    @property
+    def csrf_subject(self) -> str:
+        """What the session's CSRF token is derived from: the session id AND the
+        current token hash, so a rotation (new token) invalidates every token
+        issued before it."""
+        return f"{self.id}.{self.token_hash.hex()}"
 
     @classmethod
     def from_row(cls, row) -> "Session":
@@ -78,6 +86,7 @@ class Session:
             idle_expires_at=row.idle_expires_at,
             abs_expires_at=row.abs_expires_at,
             ip=str(row.ip) if row.ip is not None else None,
+            token_hash=bytes(row.token_hash),
         )
 
 
@@ -184,6 +193,9 @@ class SessionService:
                 )
         email = email.strip().lower()
         now = self._clock.now()
+        # One creator per address at a time (until this transaction ends), so
+        # parallel sign-ins cannot each see room and together exceed the cap.
+        await repo.lock_email(conn, email)
         live = await repo.list_live(conn, email, now)
         excess = len(live) - (self._settings.max_sessions - 1)
         if excess > 0:
