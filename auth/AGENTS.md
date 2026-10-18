@@ -145,3 +145,4 @@ poetry run flake8 . # lint
 - **JWT/crypto secrets** (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`) are shared contract with the backend — changing them
   breaks existing sessions across services.
 - Local OAuth over http needs `OAUTHLIB_INSECURE_TRANSPORT=1` / `OAUTHLIB_RELAX_TOKEN_SCOPE=1` (already in `.env.deployment`).
+- `DEBUG` is off by default (no HTML tracebacks on 500s); local dev turns it on with `DEBUG=true` in `auth/.env` (set by `.env.example`). Never enable it in a deployment.

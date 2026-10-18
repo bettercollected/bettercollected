@@ -185,6 +185,8 @@ services:
     image: bettercollected/backend:nightly
     # image: bettercollected/backend:nightly
     environment:
+      # debug mode answers unhandled errors with an HTML traceback; keep it off
+      DEBUG: "false"
       AUTH_BASE_URL: http://auth:8000/api/v1
       AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
       # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
@@ -389,6 +391,8 @@ services:
     image: bettercollected/auth:nightly
     # image: bettercollected/auth:nightly
     environment:
+      # debug mode answers unhandled errors with an HTML traceback; keep it off
+      DEBUG: "false"
       TYPEFORM_REDIRECT_URI: "http://localhost:8000/api/v1/auth/typeform/basic/callback"
       TYPEFORM_SCOPE: "accounts:read"
       # Stripe
@@ -440,6 +444,8 @@ services:
   integrations-googleform:
     image: bettercollected/integrations-google:nightly
     environment:
+      # debug mode answers unhandled errors with an HTML traceback; keep it off
+      DEBUG: "false"
       DATABASE_URL: postgresql+asyncpg://bc_google:${BC_GOOGLE_PASSWORD}@app-postgres:5432/bettercollected
       # calls the auth service's /users, which requires it
       AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}

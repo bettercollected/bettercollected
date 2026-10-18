@@ -13,6 +13,17 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- **Debug mode is off unless explicitly enabled.** `DEBUG` used to default to
+  `true` in the backend, auth and Google integration services, and the
+  deployment files did not set it, so a stack answered an unhandled server
+  error with an HTML traceback (source, local paths). The code default is now
+  `false`, and `.env.deployment` and `docker-compose.deployment.yml` set
+  `DEBUG` to false explicitly for those services. The `.env.example` files set
+  `DEBUG=true` for local development.
+  **Upgrade note:** self-hosters who relied on debug output must set
+  `DEBUG=true` explicitly (for example in `.env.deployment`) and should turn it
+  off again afterwards.
+
 - **The client address can no longer be forged.** The backend used to believe
   `X-Forwarded-For` and `CF-Connecting-IP` from any private-network peer, so a
   request arriving through Swarm ingress or from another container could claim

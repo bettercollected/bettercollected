@@ -74,6 +74,7 @@ docker compose -f docker-compose.local.yml up --build -d
 cp backend/.env.example backend/.env
 cp auth/.env.example auth/.env
 cp webapp/.env.example webapp/.env
+# the .env.example files set DEBUG=true (HTML tracebacks); the code default is off
 
 # 3. Install & run
 (cd backend && uv sync && uv run python -m uvicorn backend.app:get_application --port 8000 --reload)
