@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
+import { FormTheme } from '@app/constants/theme';
 import { useCalculatedFields } from '@app/lib/hooks/use-calculated-fields';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
@@ -66,7 +67,12 @@ import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 
 // A #rrggbb page colour at ~90% opacity; anything else (unset, named colours)
 // falls back to a translucent white.
-function headerGround(accent?: string) {
+export function headerGround(accent?: string, background?: FormTheme['background']) {
+    // Over a plain colour or a pattern (margin, columns, dots...) the bar is the
+    // page colour, opaque: a 90% bar lets the questions scrolling under it show
+    // through its text. Gradients and images keep the translucent, blurred bar.
+    const solid = !background || background.type === 'color' || background.type === 'pattern';
+    if (solid && accent && /^#[0-9a-fA-F]{6}$/.test(accent)) return accent;
     return accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? `${accent}E6` : 'rgba(255,255,255,0.85)';
 }
 
@@ -360,7 +366,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                 <div
                     className={cn('backdrop-blur-sm absolute top-0 right-0 left-0 z-10 mx-auto w-full', leaflet ? 'flex h-14 items-center border-b' : 'pt-5 pb-3')}
                     style={{
-                        background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent),
+                        background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent, (formSlide?.properties?.theme || standardForm?.theme)?.background),
                         ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {})
                     }}
                 >
