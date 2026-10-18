@@ -59,6 +59,8 @@ function formLevelOps(from: FormDoc, to: FormDoc): FormOp[] {
         for (const key of SETTINGS_TEXT_KEYS) if ((a[key] ?? '') !== (b[key] ?? '')) patch[key] = b[key] ?? '';
         for (const key of SETTINGS_SWITCH_KEYS) if ((a[key] ?? null) !== (b[key] ?? null)) patch[key] = !!b[key];
         if (Object.keys(patch).length) ops.push({ op: 'update_form_settings', patch });
+        // the form's own language (set_form_language)
+        if ((a.language ?? null) !== (b.language ?? null)) ops.push({ op: 'set_form_language', language: b.language ?? null });
     }
     return ops;
 }

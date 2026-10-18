@@ -211,6 +211,9 @@ def _replacement(existing: StandardForm, settings: Any, spec: FormSpec) -> Stand
     ):
         stored = getattr(settings, key, None) if settings is not None else None
         setattr(own, key, trust.get(key, stored))
+    # The language: left out, the form keeps its own; null clears it.
+    if "language" in spec.model_fields_set:
+        own.language = spec.language
     form.settings = own
     return form
 

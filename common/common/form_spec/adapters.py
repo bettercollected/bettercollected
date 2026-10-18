@@ -12,6 +12,8 @@ StandardForm. Not covered, and so not carried over (see docs/spec/README.md):
 - server-owned data: ``form_id``, ``imported_form_id``, ``type``, ``state``,
   ``published_at``, ``actions``, ``parameters``, ``secrets``, the provider
   settings (embed/custom URL, provider, visibility);
+- a declared language that is not one of ``FORM_LANGUAGES`` (some imports
+  set a regional tag such as "nl-NL");
 - derived data: every ``index`` (the array order is the order),
   ``builder_version`` (always "v2"), ``is_multi_page``;
 - data of the first-generation builder and of imports that page-based
@@ -34,6 +36,7 @@ import copy
 from typing import Any, Dict, List, Optional
 
 from common.models.standard_form import (
+    FORM_LANGUAGES,
     StandardForm,
     StandardFormField,
     StandardFormFieldType,
@@ -263,6 +266,14 @@ def _trust_to_spec(form: StandardForm, settings: Any) -> Optional[Dict[str, Any]
     return trust
 
 
+def _language_to_spec(form: StandardForm) -> Optional[str]:
+    """The form's declared language, when it is one a form can declare
+    (FORM_LANGUAGES). Others (an import's "nl-NL", say) are not in the
+    document, and a replace keeps them."""
+    language = form.settings.language if form.settings else None
+    return language if language in FORM_LANGUAGES else None
+
+
 def form_to_spec_dict(form: StandardForm, settings: Any = None) -> Dict[str, Any]:
     """The spec document of ``form`` as plain JSON-ready data (validated)."""
     return form_to_spec(form, settings).model_dump(
@@ -290,6 +301,7 @@ def form_to_spec(form: StandardForm, settings: Any = None) -> FormSpec:
         "specVersion": SPEC_VERSION,
         "title": form.title,
         "description": form.description,
+        "language": _language_to_spec(form),
         "welcomePage": (
             {
                 "title": welcome.title,
@@ -526,6 +538,7 @@ def spec_to_form(spec: FormSpec) -> StandardForm:
         "logo_alt": spec.logo.alt if spec.logo else None,
         "use_workspace_logo": spec.logo.use_workspace_logo if spec.logo else None,
         "settings": {
+            "language": spec.language,
             "privacy_policy_url": (
                 spec.trust.privacy_policy_url if spec.trust else None
             ),

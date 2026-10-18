@@ -176,6 +176,8 @@ class TestBuild:
         assert len(pages) == 4
         assert pages[1].properties.jumps[0].target == pages[3].id
         assert form.theme.title == "Leaflet"
+        # the outline's language, on the form itself
+        assert form.settings.language == "en"
         association = await container.workspace_form_repo().find_workspace_form(
             workspace.id, body["formId"]
         )
@@ -322,6 +324,26 @@ class TestGenerateInOneCall:
         form = await _stored(form_id)
         other = next(q for q in _questions(form) if q.title == "Which other task?")
         assert other.properties.logic is not None
+
+    async def test_a_generated_form_declares_the_outlines_language(
+        self, client: AsyncClient, workspace, test_user_cookies, fake
+    ):
+        await enable_ai(workspace)
+        fake.replies = [json.dumps(dict(copy.deepcopy(GOOD), language="nl"))]
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/ai",
+            cookies=test_user_cookies,
+            json={"prompt": "een formulier voor vrijwilligers"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        form = await _stored(body.get("formId") or body["form_id"])
+        assert form.settings.language == "nl"
+        # the form's own setting, not the workspace's
+        association = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, form.form_id
+        )
+        assert "language" not in association.settings.model_dump()
 
 
 class TestMCP:

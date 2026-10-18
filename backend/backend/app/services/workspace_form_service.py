@@ -15,6 +15,7 @@ from common.models.standard_form import (
     StandardFormResponse,
     Trigger,
     StandardFormSettings,
+    checked_form_language,
     date_rule_problems,
 )
 from common.models.user import User
@@ -170,6 +171,15 @@ def _retention_key(kind, value):
     kind = getattr(kind, "value", kind) or None
     value = value.strip() if isinstance(value, str) else value
     return kind, value or None
+
+
+# The workspace's settings a whole-form save may change (update_form).
+_WORKSPACE_SETTINGS_IN_SAVE = (
+    "response_data_owner_field",
+    "privacy_policy_url",
+    "response_expiration_type",
+    "response_expiration",
+)
 
 
 def _apply_retention_update(stored, incoming: StandardFormSettings) -> None:
@@ -716,8 +726,22 @@ class WorkspaceFormService:
         _sanitise_titles(form)
         # Settings are checked and applied here but stored after the form:
         # the form's conditional write is what can still refuse the save.
-        settings_changed = bool(form.settings)
-        if form.settings:
+        # The form's language: one a form can declare (FORM_LANGUAGES), as
+        # the op set_form_language takes it; sending back the stored one (an
+        # import's "en-GB", say) is not a change.
+        if form.settings is not None and form.settings.language is not None:
+            stored = existing_form.settings.language if existing_form.settings else None
+            if form.settings.language != stored:
+                form.settings.language = _unprocessable_unless(
+                    checked_form_language, form.settings.language
+                )
+        # (the builder's saves send the form's language alone: that is the
+        # form's own setting, written with the form, not the workspace's)
+        settings_changed = bool(form.settings) and any(
+            getattr(form.settings, key) is not None
+            for key in _WORKSPACE_SETTINGS_IN_SAVE
+        )
+        if settings_changed:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
                     form.settings.response_data_owner_field

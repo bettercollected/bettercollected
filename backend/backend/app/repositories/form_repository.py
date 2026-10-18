@@ -43,7 +43,22 @@ def apply_form_update(form_document: FormDocument, form: StandardForm) -> None:
         if getattr(form, name, None) is not None:
             setattr(form_document, name, getattr(form, name))
     form_document.consent = form.consent if form.consent else form_document.consent
-    form_document.settings = form.settings if form.settings else form_document.settings
+    if form.settings:
+        _apply_settings_update(form_document, form.settings)
+
+
+def _apply_settings_update(form_document: FormDocument, sent) -> None:
+    """The settings a whole-form save sends, onto the form's own settings:
+    the language as sent (the builder sends it with every save; none clears
+    it), the other values that are given. What the save leaves out stays:
+    a builder save sends the language alone."""
+    if form_document.settings is None:
+        form_document.settings = sent
+        return
+    stored = form_document.settings
+    for key in sent.model_dump(exclude_none=True):
+        setattr(stored, key, getattr(sent, key))
+    stored.language = sent.language
 
 
 # The settings a form is returned with: the workspace association's, plus

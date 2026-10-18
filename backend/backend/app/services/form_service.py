@@ -64,6 +64,12 @@ def _stub_settings(workspace_form, form) -> FormSettingsCamelModel:
     return settings
 
 
+def _declared_language(form) -> Optional[str]:
+    """The language a form or a published version declares (its own
+    ``settings.language``): a change to it alone is worth a new version."""
+    return form.settings.language if form.settings else None
+
+
 class FormService:
     def __init__(
         self,
@@ -525,6 +531,7 @@ class FormService:
             and form.welcome_page == latest_version.welcome_page
             and form.thankyou_page == latest_version.thankyou_page
             and form.theme == latest_version.theme
+            and _declared_language(form) == _declared_language(latest_version)
         ):
             return False
         return True

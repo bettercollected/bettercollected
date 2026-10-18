@@ -3,7 +3,7 @@ import type { Handler } from './context';
 import { addChoice, insertField, insertPage, moveChoice, removeChoice, replaceField, setChoice, setHiddenFields, updateLogo, updatePage, updateWelcomePage } from './editor';
 import { addEnding, removeEnding, setEndings, updateEnding } from './endings';
 import { addField, addGroup, moveField, removeField, setFieldLogic, setFieldValidation, updateField } from './fields';
-import { setThemePreset, updateFormInfo, updateFormSettings, updateTheme } from './form';
+import { setFormLanguage, setThemePreset, updateFormInfo, updateFormSettings, updateTheme } from './form';
 import { addPage, duplicatePage, movePage, removePage, setPageJumps, setQuestionNumbering, setSectionTitle } from './pages';
 
 /** The handler of each op, in the backend's order (ops.py `_HANDLERS`), then the editor ops. */
@@ -26,6 +26,7 @@ export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> 
     move_page: movePage,
     set_field_validation: setFieldValidation,
     set_question_numbering: setQuestionNumbering,
+    set_form_language: setFormLanguage,
     add_ending: addEnding,
     update_ending: updateEnding,
     remove_ending: removeEnding,

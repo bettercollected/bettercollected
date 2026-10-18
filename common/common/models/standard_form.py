@@ -293,6 +293,42 @@ class ConditionalActions(BaseModel):
     payload: Optional[List[str] | str] = None
 
 
+# The languages a form can declare as the language its own text is written
+# in (``StandardFormSettings.language``): short BCP 47 tags, each with its
+# own name. Set through the form ops (``set_form_language``) and the form
+# spec; the webapp keeps the same list (webapp/src/lib/form-ops/languages.ts).
+FORM_LANGUAGES = {
+    "nl": "Nederlands",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "it": "Italiano",
+    "pt": "Português",
+    "pl": "Polski",
+    "da": "Dansk",
+    "sv": "Svenska",
+    "nb": "Norsk bokmål",
+    "fi": "Suomi",
+}
+
+
+def checked_form_language(value: Optional[str]) -> Optional[str]:
+    """``value`` as a form language: one of FORM_LANGUAGES (trimmed, lower
+    case), or None for None or a blank value (no language). Raises
+    ValueError for anything else."""
+    if value is None or not value.strip():
+        return None
+    tag = value.strip().lower()
+    if tag not in FORM_LANGUAGES:
+        raise ValueError(
+            f"'{value.strip()}' is not a language a form can be set to. Use one of: "
+            + ", ".join(FORM_LANGUAGES)
+            + " (or null to clear it)."
+        )
+    return tag
+
+
 class StandardFormSettings(BaseModel):
     """
     Data transfer object for standard form settings.
