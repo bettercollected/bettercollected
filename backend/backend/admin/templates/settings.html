@@ -3,7 +3,11 @@
 {% block content %}
 <h1>{{ _("Settings") }}</h1>
 <p>{{ _("Change settings stored for the services. Every change needs a fresh second-factor code and is written to the audit log. Secrets show only whether they are set; their values are never sent to this page.") }}</p>
-<p><a href="/settings/integrity">{{ _("Integrity check") }}</a> &middot; <a href="/settings/notifications">{{ _("Pending notifications") }}</a> &middot; <a href="/config">{{ _("Read-only configuration view") }}</a></p>
+<ul class="inline-links">
+  <li><a href="/settings/integrity">{{ _("Integrity check") }}</a></li>
+  <li><a href="/settings/notifications">{{ _("Pending notifications") }}</a></li>
+  <li><a href="/config">{{ _("Read-only configuration view") }}</a></li>
+</ul>
 {% include "_notice.html" %}
 {% if error %}<p class="error" role="alert">{{ _("The filter was not understood:") }} {{ error }}.</p>{% endif %}
 
