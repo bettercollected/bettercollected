@@ -1,7 +1,9 @@
 import hmac
+import http.cookies
 import json
 import logging
 from http import HTTPStatus
+from typing import Optional
 
 from fastapi import Depends
 from common.models.user import User
@@ -108,6 +110,16 @@ async def _in_scope(request: Request, user: User) -> bool:
 def get_access_token(request: Request) -> str:
     access_token = request.cookies.get("Authorization")
     return access_token
+
+
+def forwarded_access_token(request: Request, response: Response) -> Optional[str]:
+    """The access token to forward to auth: the one ``get_logged_user`` just
+    issued on this response when the request's had expired, else the request's."""
+    for header in response.headers.getlist("set-cookie"):
+        cookie = http.cookies.SimpleCookie(header)
+        if "Authorization" in cookie:
+            return cookie["Authorization"].value
+    return get_access_token(request)
 
 
 def get_refresh_token(request: Request) -> str:
