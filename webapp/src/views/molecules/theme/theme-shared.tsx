@@ -1,6 +1,6 @@
 import { CSSProperties } from 'react';
 
-import { FormTheme, ThemeBackground, ThemePattern, ThemeStyle } from '@app/constants/theme';
+import { FormTheme, ThemeArtwork, ThemeBackground, ThemePattern, ThemeStyle, isHexColour } from '@app/constants/theme';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { cn } from '@app/shadcn/util/lib';
 import { contrast } from '@app/utils/color-contrast';
@@ -20,8 +20,22 @@ export const THEME_ROLE_FIELDS: Array<{ key: 'accent' | 'primary' | 'secondary' 
 const PATTERNS: Array<{ key: ThemePattern; label: string }> = [
     { key: 'dots', label: 'Dots' },
     { key: 'grid', label: 'Grid' },
-    { key: 'stripes', label: 'Stripes' }
+    { key: 'stripes', label: 'Stripes' },
+    { key: 'columns', label: 'Columns' },
+    { key: 'margin', label: 'Margin' }
 ];
+
+const ARTWORKS: Array<{ key: ThemeArtwork | null; label: string }> = [
+    { key: null, label: 'None' },
+    { key: 'marble', label: 'Marbled paper' }
+];
+
+/**
+ * Where the `margin` pattern draws its rule: 56px left of the form column
+ * (FORM_COLUMN, 672px, centred). On a page narrower than the column and its
+ * margin the stop falls off the page, and the page is all sheet.
+ */
+const MARGIN_RULE_AT = 'calc(50% - 392px)';
 
 /**
  * The one place the theme's background becomes CSS — used by the runtime page
@@ -30,7 +44,7 @@ const PATTERNS: Array<{ key: ThemePattern; label: string }> = [
  * what patterns draw on, what shows while an image loads, and the fallback for
  * incomplete gradient data).
  */
-export function themeBackgroundStyle(theme?: Partial<FormTheme>): CSSProperties {
+export function themeBackgroundStyle(theme?: Partial<FormTheme>, { compact = false, leftAligned = false }: { /** A small preview or swatch. */ compact?: boolean; /** A page whose column keeps to the left edge. */ leftAligned?: boolean } = {}): CSSProperties {
     const base: CSSProperties = { backgroundColor: theme?.accent };
     const bg = theme?.background;
     if (!bg || bg.type === 'color') return base;
@@ -43,6 +57,32 @@ export function themeBackgroundStyle(theme?: Partial<FormTheme>): CSSProperties 
         const ink = `${theme?.tertiary ?? '#818CA0'}26`;
         if (bg.pattern === 'dots') return { ...base, backgroundImage: `radial-gradient(${ink} 1.5px, transparent 1.5px)`, backgroundSize: '16px 16px' };
         if (bg.pattern === 'grid') return { ...base, backgroundImage: `linear-gradient(${ink} 1px, transparent 1px), linear-gradient(90deg, ${ink} 1px, transparent 1px)`, backgroundSize: '24px 24px' };
+        if (bg.pattern === 'columns') {
+            // Twelve columns (four on phones) between the page's side
+            // margins, the form gutter (tailwind.css --form-grid-*): hairlines
+            // at 20% of the tertiary, decorative, about 1.3:1 on a white page.
+            // repeat-x draws one line per column edge: the side margin is
+            // narrower than a column, so no line falls outside them.
+            const line = `${theme?.tertiary ?? '#818CA0'}33`;
+            if (compact) return { ...base, backgroundImage: `linear-gradient(90deg, ${line} 1px, transparent 1px)`, backgroundSize: '12px 100%', backgroundPosition: '6px 0' };
+            return {
+                ...base,
+                backgroundImage: `linear-gradient(90deg, ${line} 1px, transparent 1px)`,
+                backgroundSize: 'calc((100% - 2 * var(--form-grid-margin, 32px)) / var(--form-grid-columns, 12)) 100%',
+                backgroundPosition: 'var(--form-grid-margin, 32px) 0',
+                backgroundRepeat: 'repeat-x'
+            };
+        }
+        if (bg.pattern === 'margin') {
+            // An exercise-book page: the page colour as the margin, a hairline
+            // rule in the highlight (else the tertiary), then a white sheet
+            // for the questions where the ink reads on white (else the page
+            // colour itself). A left-aligned column has no room for a margin.
+            const sheet = isHexColour(theme?.primary) && contrast(theme!.primary!, '#FFFFFF') >= 4.5 ? '#FFFFFF' : (theme?.accent ?? '#FFFFFF');
+            const rule = isHexColour(theme?.highlight) ? theme!.highlight! : (theme?.tertiary ?? '#818CA0');
+            const at = compact ? '22%' : leftAligned ? '-2px' : MARGIN_RULE_AT;
+            return { ...base, backgroundImage: `linear-gradient(90deg, transparent ${at}, ${rule} ${at}, ${rule} calc(${at} + 1px), ${sheet} calc(${at} + 1px))` };
+        }
         return { ...base, backgroundImage: `repeating-linear-gradient(45deg, ${ink} 0px, ${ink} 1px, transparent 1px, transparent 12px)` };
     }
     if (bg.type === 'image' && bg.imageUrl) {
@@ -65,8 +105,16 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
         // numbered question over a ruled option, and the button.
         const serif = { fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 };
         const { rule } = leafletColours(color);
+        // The theme's faces, corners, buttons and highlight, as the Leaflet
+        // form wears them (theme-root.ts); nothing for a theme without them.
+        const leafletRoot = themeRootProps(color);
         return (
-            <div style={themeBackgroundStyle(color)} className="flex flex-col items-stretch pb-3" data-testid="theme-preview-leaflet">
+            <div
+                {...leafletRoot.attributes}
+                style={{ ...themeBackgroundStyle(color, { compact: true }), ...leafletRoot.style, ...(color.bodyFont ? { fontFamily: 'var(--font-form)' } : {}) }}
+                className="flex flex-col items-stretch pb-3"
+                data-testid="theme-preview-leaflet"
+            >
                 <span className="flex items-baseline gap-2 px-4 py-1.5 text-white" style={{ background: secondary }}>
                     <span className="text-[14px] leading-none" style={serif}>
                         1
@@ -75,17 +123,17 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
                         Section
                     </span>
                 </span>
-                <span className="grid grid-cols-[20px_1fr] items-baseline px-4 pt-2 text-[12px] leading-tight font-semibold" style={{ color: primary }}>
+                <span className="form-title-face grid grid-cols-[20px_1fr] items-baseline px-4 pt-2 text-[12px] leading-tight font-semibold" style={{ color: primary }}>
                     <span className="text-[11px]" style={{ ...serif, color: contrast(secondary, color.accent) >= 4.5 ? secondary : primary }}>
                         1.1
                     </span>
                     Question
                 </span>
                 <span className="mx-4 ml-9 flex items-center gap-1.5 border-b py-1 text-[11px] leading-tight" style={{ borderColor: rule, color: primary }}>
-                    <span className="h-2.5 w-2.5 rounded-full border-[1.5px] bg-white" style={{ borderColor: tertiary }} aria-hidden="true" />
+                    <span className="h-2.5 w-2.5 rounded-full border-[1.5px] bg-white" style={{ borderColor: tertiary, ...(color.highlight || color.selection ? { borderColor: 'var(--form-highlight-edge)', background: 'var(--form-highlight-edge)' } : {}) }} aria-hidden="true" />
                     Answer
                 </span>
-                <span style={{ background: secondary }} className="mt-2 ml-9 self-start rounded-[2px] px-2 py-0.5 text-[10px] leading-tight font-semibold text-white">
+                <span style={formButtonStyle(secondary, '2px')} className="mt-2 ml-9 self-start px-2 py-0.5 text-[10px] leading-tight font-semibold text-white">
                     Continue
                 </span>
             </div>
@@ -95,7 +143,7 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
     // wears them (theme-root.ts); nothing for a theme without them.
     const root = themeRootProps(color);
     return (
-        <div {...root.attributes} style={{ ...themeBackgroundStyle(color), ...root.style, ...(color.bodyFont ? { fontFamily: 'var(--font-form)' } : {}) }} className="flex flex-col items-start gap-1.5 px-4 py-3">
+        <div {...root.attributes} style={{ ...themeBackgroundStyle(color, { compact: true }), ...root.style, ...(color.bodyFont ? { fontFamily: 'var(--font-form)' } : {}) }} className="flex flex-col items-start gap-1.5 px-4 py-3">
             <span style={{ color: primary }} className={cn('form-title-face text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold')}>
                 Question
             </span>
@@ -367,20 +415,27 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
     const bg = theme.background;
     const type = bg?.type ?? 'color';
 
+    // The artwork beside the welcome page goes with any ground.
+    const artwork = bg?.artwork ? { artwork: bg.artwork } : {};
     const setType = (nextType: ThemeBackground['type']) => {
         if (nextType === 'color') {
-            onChange(undefined);
+            onChange(bg?.artwork ? { type: 'color', artwork: bg.artwork } : undefined);
             return;
         }
         if (nextType === 'gradient') {
-            onChange({ type: 'gradient', gradientFrom: bg?.gradientFrom ?? theme.accent, gradientTo: bg?.gradientTo ?? theme.secondary, gradientAngle: bg?.gradientAngle ?? 135 });
+            onChange({ type: 'gradient', gradientFrom: bg?.gradientFrom ?? theme.accent, gradientTo: bg?.gradientTo ?? theme.secondary, gradientAngle: bg?.gradientAngle ?? 135, ...artwork });
             return;
         }
         if (nextType === 'pattern') {
-            onChange({ type: 'pattern', pattern: bg?.pattern ?? 'dots' });
+            onChange({ type: 'pattern', pattern: bg?.pattern ?? 'dots', ...artwork });
             return;
         }
-        onChange({ type: 'image', imageUrl: bg?.imageUrl ?? '' });
+        onChange({ type: 'image', imageUrl: bg?.imageUrl ?? '', ...artwork });
+    };
+    const setArtwork = (next: ThemeArtwork | null) => {
+        const { artwork: _old, ...rest } = bg ?? { type: 'color' as const };
+        if (next) onChange({ ...rest, artwork: next });
+        else onChange(rest.type === 'color' ? undefined : rest);
     };
 
     return (
@@ -429,7 +484,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
             )}
 
             {type === 'pattern' && bg?.type === 'pattern' && (
-                <div className="flex gap-2" role="group" aria-label="Pattern">
+                <div className="grid grid-cols-3 gap-2" role="group" aria-label="Pattern">
                     {PATTERNS.map((pattern) => (
                         <button
                             key={pattern.key}
@@ -438,7 +493,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                             onClick={() => onChange({ ...bg, pattern: pattern.key })}
                             className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-300 hover:border-black-400')}
                         >
-                            <span className="block h-8 w-full" style={themeBackgroundStyle({ ...theme, background: { type: 'pattern', pattern: pattern.key } })} aria-hidden="true" />
+                            <span className="block h-8 w-full" style={themeBackgroundStyle({ ...theme, background: { type: 'pattern', pattern: pattern.key } }, { compact: true })} aria-hidden="true" />
                             <span className="text-black-700 block bg-white py-1 text-[10px] font-medium">{pattern.label}</span>
                         </button>
                     ))}
@@ -448,6 +503,22 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
             {type === 'image' && bg?.type === 'image' && (
                 <ImageUrlField value={bg.imageUrl ?? ''} onChange={(imageUrl) => onChange({ ...bg, imageUrl })} />
             )}
+
+            <span className="text-black-700 mt-1 text-xs">Artwork</span>
+            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label="Artwork">
+                {ARTWORKS.map((option) => (
+                    <button
+                        key={option.key ?? 'none'}
+                        type="button"
+                        aria-pressed={(bg?.artwork ?? null) === option.key}
+                        onClick={() => setArtwork(option.key)}
+                        className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', (bg?.artwork ?? null) === option.key ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white')}
+                    >
+                        {option.label}
+                    </button>
+                ))}
+            </div>
+            <p className="text-black-600 text-[11px] leading-relaxed">Fills the picture half of a welcome or ending page set beside an image, when the page has no image of its own. Served by bettercollected itself.</p>
         </div>
     );
 };

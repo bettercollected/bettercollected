@@ -17,6 +17,15 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 
 
+# Background patterns and artwork. Same lists as the webapp's THEME_PATTERNS
+# and THEME_ARTWORKS (webapp/src/constants/theme.ts); a backend test keeps
+# them together. `columns` is a twelve-column hairline grid, `margin` a page
+# with an exercise-book margin rule. Stored patterns are not held to the list
+# (older forms may carry others); saved workspace themes are.
+THEME_PATTERNS = ("dots", "grid", "stripes", "columns", "margin")
+THEME_ARTWORKS = ("marble",)
+
+
 class ThemeBackground(BaseModel):
     """Optional page-ground decoration. Field names are camelCase on purpose:
     the webapp sends the theme verbatim inside the form JSON (no camel<->snake
@@ -30,6 +39,20 @@ class ThemeBackground(BaseModel):
     gradientAngle: Optional[int] = None
     pattern: Optional[str] = None
     imageUrl: Optional[str] = None
+    # Built-in artwork the webapp serves itself (THEME_ARTWORKS): it fills
+    # the picture half of a welcome or ending page whose layout has one and
+    # no image of its own. Absent: none.
+    artwork: Optional[
+        Annotated[
+            str, WithJsonSchema({"enum": list(THEME_ARTWORKS), "type": "string"})
+        ]
+    ] = Field(
+        None,
+        description=(
+            "Built-in artwork beside the welcome page (marble: a marbled "
+            "endpaper), served by the app. Absent: none."
+        ),
+    )
 
 
 # Type and shape of a form theme. Every key is optional; a theme without it
@@ -92,8 +115,9 @@ ThemeHexColour = Annotated[
 
 def theme_problems(theme: Any, path: str = "theme") -> List[str]:
     """What is wrong with a theme's type, shape and highlight keys: each one
-    must be absent (or null) or one of its listed values, and ``highlight`` a
-    6-digit hex colour. Every writer checks a theme with this (the edit
+    must be absent (or null) or one of its listed values, ``highlight`` and
+    ``selection`` 6-digit hex colours, and the background's ``artwork`` on
+    its list. Every writer checks a theme with this (the edit
     operations, whole-form saves, saved workspace themes)."""
     if theme is None:
         return []
@@ -112,6 +136,21 @@ def theme_problems(theme: Any, path: str = "theme") -> List[str]:
         isinstance(highlight, str) and THEME_HEX_COLOUR.fullmatch(highlight)
     ):
         problems.append(f"{path}.highlight must be a 6-digit hex colour, e.g. #A3305A.")
+    selection = get("selection")
+    if selection is not None and not (
+        isinstance(selection, str) and THEME_HEX_COLOUR.fullmatch(selection)
+    ):
+        problems.append(f"{path}.selection must be a 6-digit hex colour, e.g. #1E4D3B.")
+    background = get("background")
+    artwork = (
+        background.get("artwork")
+        if isinstance(background, dict)
+        else getattr(background, "artwork", None)
+    )
+    if artwork is not None and artwork not in THEME_ARTWORKS:
+        problems.append(
+            f"{path}.background.artwork must be one of: {', '.join(THEME_ARTWORKS)}."
+        )
     return problems
 
 
@@ -165,6 +204,14 @@ class Theme(BaseModel):
         description=(
             "The chosen answer, the 'why we ask' and 'optional' notes and, where "
             "it reads at 3:1 on the page, the focus ring. Absent: secondary."
+        ),
+    )
+    selection: Optional[ThemeHexColour] = Field(
+        None,
+        description=(
+            "The chosen answer alone, when it should differ from the highlight "
+            "(which then keeps the notes and the focus ring). Absent: the "
+            "highlight, else secondary."
         ),
     )
 

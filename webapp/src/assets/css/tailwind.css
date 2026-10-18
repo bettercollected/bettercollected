@@ -930,6 +930,68 @@ input[type='number']::-webkit-outer-spin-button {
     color: var(--form-highlight-text);
 }
 
+/*
+ * Complete looks (theme presets that set type, shape and background):
+ * - a theme with its own title face sets the welcome and ending titles
+ *   (`form-greeting-title`) as display type, sized by the page's own width
+ *   (the page container, so the builder canvas matches), wider still when
+ *   expanded; at most 6rem;
+ * - over the `columns` ground an option at rest is filled with the page
+ *   colour, so the grid never runs through an answer;
+ * - an outlined button (`form-button`) fills with its ink on hover
+ *   (theme-root.ts sets the pair; the same two colours, the same contrast);
+ * - the `columns` background pattern's margins and count follow the form
+ *   gutter (form-column.ts): four columns between 20px margins on phones,
+ *   twelve between 32px ones from `sm` up.
+ */
+[data-form-title-font] .form-greeting-title {
+    max-width: 16ch;
+    font-size: clamp(2.5rem, 0.75rem + 10cqi, 5.5rem);
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+}
+
+[data-form-title-font][data-form-title-width='expanded'] .form-greeting-title {
+    max-width: none;
+    /* expanded type is wide: small enough on a phone for a long word to fit */
+    font-size: clamp(1.75rem, 8cqi, 6rem);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+}
+
+[data-form-ground='columns'] .form-choice-row {
+    background-color: var(--form-ground-fill);
+}
+
+[data-form-buttons='outlined'] .form-button {
+    transition:
+        background-color 150ms ease-out,
+        color 150ms ease-out;
+}
+
+[data-form-buttons='outlined'] .form-button:hover {
+    --form-button-bg: var(--form-button-hover-bg);
+    --form-button-fg: var(--form-button-hover-fg);
+}
+
+:root {
+    --form-grid-margin: 20px;
+    --form-grid-columns: 4;
+}
+
+@media (width >= 40rem) {
+    :root {
+        --form-grid-margin: 32px;
+        --form-grid-columns: 12;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-form-buttons='outlined'] .form-button {
+        transition: none;
+    }
+}
+
 /* Hide spin button for input type number */
 input.spin-button-hidden::-webkit-outer-spin-button,
 input.spin-button-hidden::-webkit-inner-spin-button {

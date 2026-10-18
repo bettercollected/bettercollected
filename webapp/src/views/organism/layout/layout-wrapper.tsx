@@ -16,9 +16,10 @@ import { cn } from '@app/shadcn/util/lib';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
+import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork } from '@app/views/molecules/theme/theme-artwork';
 import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
-import { FORM_GUTTER } from '@app/views/organism/layout/form-column';
+import { FORM_GUTTER, isLeftAligned } from '@app/views/organism/layout/form-column';
 
 interface ILayoutWrapper {
     layout?: FormSlideLayout;
@@ -48,14 +49,29 @@ interface ILayoutWrapper {
     logoSize?: 'cover' | 'page';
     /** The account control, shown in the logo strip's row (welcome and ending pages). */
     logoAction?: React.ReactNode;
+    /**
+     * The theme's artwork as a band along the top of the page (the ending,
+     * when its layout has no picture half): theme-artwork.tsx.
+     */
+    artworkBand?: boolean;
+    /**
+     * The theme the artwork and its headband come from, when the page wears
+     * another (the welcome page's cover, theme-artwork.tsx). Default: `theme`.
+     */
+    artworkTheme?: FormTheme;
 }
 
-const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false, topAligned = false, logo, logoSize = 'page', logoAction }: ILayoutWrapper) => {
+const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false, topAligned = false, logo, logoSize = 'page', logoAction, artworkBand = false, artworkTheme }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
     // The theme's type, shape and highlight (theme-root.ts): nothing for a
     // theme without them, so such a form renders as before.
     const themeRoot = themeRootProps(theme);
+    // A picture half without an image of its own shows the theme's built-in
+    // artwork, if it has one (theme-artwork.tsx), instead of an empty half.
+    const art = artworkTheme ?? theme;
+    const artwork = !imageUrl && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && !!themeArtwork(art);
+    const band = artworkBand && !!themeArtwork(art);
 
     const handleGridClick = () => {
         setShowControls(!showControls);
@@ -109,7 +125,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             style={
                 // On the image-background layout the slide's own image is
                 // the ground, so the theme background stays out of the way.
-                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? { background: 'transparent' } : themeBackgroundStyle(theme)
+                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? { background: 'transparent' } : themeBackgroundStyle(theme, { leftAligned: isLeftAligned(layout) })
             }
             className={cn(
                 // Under a logo strip the column holding both sets the height.
@@ -132,6 +148,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             A named container, so a page can lay itself out by the
             room it actually has (the builder canvas is narrower
             than the window). */}
+            {band && <ThemeArtworkBand theme={art} />}
             <div className={cn(FORM_GUTTER, '@container/page flex w-full grow flex-col', topAligned ? 'pb-8 lg:pb-12' : "py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12")}>{children}</div>
         </ScrollArea>
     );
@@ -174,9 +191,10 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     <div
                         className={cn(
                             'relative',
-                            showDesktopLayout ? 'h-auto' : 'h-[30%] lg:h-auto',
+                            // The artwork's phone band is a 120px strip above the text.
+                            showDesktopLayout ? 'h-auto' : artwork ? 'h-[120px] shrink-0 lg:h-auto' : 'h-[30%] lg:h-auto',
                             (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) || (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT) ? 'grid-cols-1' : '',
-                            imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : 'bg-neutral-100 hover:cursor-default'
+                            imageUrl && !disabled ? 'hover:cursor-pointer hover:bg-black/30!' : artwork ? 'hover:cursor-default' : 'bg-neutral-100 hover:cursor-default'
                         )}
                         // onClick={disabled ? () => {} : handleGridClick}
                         onMouseOver={disabled ? () => {} : () => setShowControls(true)}
@@ -185,6 +203,18 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     >
                         {imageUrl ? (
                             renderImageWithControls(imageUrl)
+                        ) : artwork ? (
+                            <>
+                                <ThemeArtworkPanel theme={art} layout={layout} desktop={showDesktopLayout} />
+                                {/* In the builder, an image of the page's own can still replace the artwork. */}
+                                {!disabled && showControls && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <Button variant="secondary" onClick={handleChangeImage}>
+                                            Select Layout Image
+                                        </Button>
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             !disabled && (
                                 <div className={cn('flex h-full items-center justify-center text-lg font-semibold')}>

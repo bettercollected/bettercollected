@@ -1,5 +1,5 @@
 /** Form-level ops: title, settings, theme. */
-import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, themeProblems } from '@app/constants/theme';
+import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, themeProblems, welcomeLayoutAfterPreset } from '@app/constants/theme';
 
 import { IMAGE_URL_ERROR, firstPartyImageUrl } from '../images';
 import { checkedFormLanguage, formLanguageName } from '../languages';
@@ -155,6 +155,10 @@ export const setThemePreset: Handler<SetThemePresetOp> = (ctx, op) => {
     // style; colours (the highlight among them) come from the preset.
     const current = ctx.state.theme as FormTheme | null | undefined;
     if (current != null) for (const key of THEME_TYPE_SHAPE_KEYS) if (theme[key] == null && current[key] != null) (theme as any)[key] = current[key];
+    // The welcome layout the preset is made for (backend _welcome_layout_after_preset).
+    const welcome = ctx.draft.welcomePage as { layout?: string | null; imageUrl?: string | null } | null | undefined;
+    const layout = welcomeLayoutAfterPreset(welcome, current, theme);
+    if (layout && welcome) welcome.layout = layout;
     ctx.draft.theme = theme;
     return `Applied the '${theme.title}' theme${theme.style ? ` in the ${theme.style} style` : ''}`;
 };

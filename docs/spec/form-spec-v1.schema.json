@@ -1614,6 +1614,20 @@
           "default": null,
           "description": "The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
           "title": "Highlight"
+        },
+        "selection": {
+          "anyOf": [
+            {
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
+          "title": "Selection"
         }
       },
       "required": [
@@ -1702,6 +1716,20 @@
           "default": null,
           "description": "Only images from our own storage or Unsplash are shown.",
           "title": "Imageurl"
+        },
+        "artwork": {
+          "anyOf": [
+            {
+              "const": "marble",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Built-in artwork served by the app (marble: a marbled endpaper). It fills the picture half of a welcome or ending page whose layout has one and no image of its own. Absent: none.",
+          "title": "Artwork"
         }
       },
       "title": "ThemeBackground",

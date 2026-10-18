@@ -130,6 +130,58 @@ theme_dict = {
         "tertiary": "#E11D48",
         "accent": "#FFE4E6",
     },
+    # Complete looks: colours, faces, corners, buttons and background in one
+    # pick. They set every type and shape key, so nothing of the previous
+    # look stays behind; picking one also sets the welcome page's layout
+    # (PRESET_WELCOME_LAYOUTS below).
+    "Kantlijn": {
+        "title": "Kantlijn",
+        "primary": "#16261F",
+        "secondary": "#1E4D3B",
+        "tertiary": "#7D8C84",
+        "accent": "#F8EEEC",
+        "style": "classic",
+        "titleFont": "besley",
+        "bodyFont": "atkinson-next",
+        "dataFont": "atkinson-mono",
+        "titleWidth": "normal",
+        "radius": "soft",
+        "buttonStyle": "filled",
+        "highlight": "#A3305A",
+        "selection": "#1E4D3B",
+        "background": {
+            "type": "pattern",
+            "pattern": "margin",
+            "artwork": "marble",
+        },
+    },
+    "Raster": {
+        "title": "Raster",
+        "primary": "#0E0E14",
+        "secondary": "#2B2FD1",
+        "tertiary": "#6D7083",
+        "accent": "#FFFFFF",
+        "style": "studio",
+        "titleFont": "archivo",
+        "bodyFont": "archivo",
+        "dataFont": "atkinson-mono",
+        "titleWidth": "expanded",
+        "radius": "sharp",
+        "buttonStyle": "outlined",
+        "background": {
+            "type": "pattern",
+            "pattern": "columns",
+        },
+    },
+}
+
+# The welcome page layout a complete-look preset is made for. Same list as
+# the webapp's PRESET_WELCOME_LAYOUTS (webapp/src/constants/theme.ts); a test
+# keeps them together. set_theme_preset applies it to a welcome page without
+# an image of its own (ops.py).
+PRESET_WELCOME_LAYOUTS = {
+    "Kantlijn": "TWO_COLUMN_IMAGE_RIGHT",
+    "Raster": "SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN",
 }
 
 # The names the backend's presets had before they followed the webapp, each
@@ -221,6 +273,18 @@ theme_descriptions = {
     "Rose": (
         "A rich rose-red palette, warm and confident. Good for fundraising, "
         "memberships, arts and culture, and campaigns that should feel heartfelt."
+    ),
+    "Kantlijn": (
+        "A complete look like a well-made small-press book: serif titles, a "
+        "cloth-green action colour, rose margin notes and a marbled endpaper "
+        "beside the welcome page. Suits associations, culture, heritage, "
+        "volunteering and forms that should feel crafted and personal."
+    ),
+    "Raster": (
+        "A complete look like a Swiss poster: large expanded titles on a "
+        "visible column grid, square edges, outlined buttons and one "
+        "ultramarine for the respondent's own answers. Suits design, "
+        "architecture, events, research and confident, modern organisations."
     ),
 }
 

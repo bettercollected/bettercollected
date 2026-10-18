@@ -121,6 +121,7 @@ class TestWorkspaces:
                 "radius": None,
                 "buttonStyle": None,
                 "highlight": None,
+                "selection": None,
             }
         ]
 

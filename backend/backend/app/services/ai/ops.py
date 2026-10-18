@@ -20,6 +20,7 @@ Contract:
 import json
 import uuid
 from contextvars import ContextVar
+from enum import Enum
 from typing import (
     Annotated,
     Any,
@@ -92,6 +93,7 @@ from pydantic import (
 from pydantic_core import PydanticCustomError
 
 from backend.app.constants.themes import (
+    PRESET_WELCOME_LAYOUTS,
     THEME_STYLES,
     preset_name,
     themes as THEME_PRESETS,
@@ -1715,9 +1717,48 @@ def _apply_set_theme_preset(form: StandardForm, op: SetThemePresetOp) -> str:
         for key in THEME_TYPE_SHAPE_KEYS:
             if getattr(theme, key) is None:
                 setattr(theme, key, getattr(form.theme, key, None))
+    layout = _welcome_layout_after_preset(form.welcome_page, form.theme, theme)
+    if layout is not None:
+        form.welcome_page.layout = LayoutType(layout)
     form.theme = theme
     style = f" in the {theme.style} style" if theme.style else ""
     return f"Applied the '{theme.title}' theme{style}"
+
+
+_IMAGE_LAYOUTS = {
+    "TWO_COLUMN_IMAGE_LEFT",
+    "TWO_COLUMN_IMAGE_RIGHT",
+    "SINGLE_COLUMN_IMAGE_BACKGROUND",
+}
+
+
+def _artwork(theme: Optional[Theme]) -> Optional[str]:
+    background = theme.background if theme is not None else None
+    return background.artwork if background is not None else None
+
+
+def _welcome_layout_after_preset(
+    welcome: Any, previous: Optional[Theme], preset: Theme
+) -> Optional[str]:
+    """The welcome page's layout after picking ``preset`` over the form's
+    ``previous`` theme, or None to leave it (the webapp's
+    ``welcomeLayoutAfterPreset`` does the same):
+
+    - a welcome page with an image of its own keeps its layout;
+    - otherwise it takes the layout the preset is made for, if any
+      (PRESET_WELCOME_LAYOUTS);
+    - a page set beside the previous theme's artwork, which the preset does
+      not have, goes back to the default layout (no empty picture half).
+    """
+    if welcome is None or (welcome.imageUrl or "").strip():
+        return None
+    current = welcome.layout.value if isinstance(welcome.layout, Enum) else welcome.layout
+    suggested = PRESET_WELCOME_LAYOUTS.get(preset.title)
+    if suggested:
+        return None if current == suggested else suggested
+    if _artwork(previous) and not _artwork(preset) and current in _IMAGE_LAYOUTS:
+        return "SINGLE_COLUMN_NO_BACKGROUND"
+    return None
 
 
 # Ids a model may use for the pages that are not question pages.

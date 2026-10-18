@@ -33,6 +33,10 @@ const BUTTONS: Array<{ key: ThemeButtonStyle; label: string }> = [
     { key: 'pill', label: 'THEME.BUTTON_PILL' }
 ];
 
+// The colours the editor sets: the highlight, and the chosen answer's own.
+const COLOUR_KEYS = ['highlight', 'selection'] as const;
+type ColourKey = (typeof COLOUR_KEYS)[number];
+
 const segment = (on: boolean) => cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', on ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white');
 
 /** A face option, set in that face (the builder loads it from the app; respondents only get the faces their form uses). */
@@ -45,8 +49,8 @@ const FaceName = ({ id, suffix }: { id: ThemeFontId; suffix?: string }) => (
 
 /**
  * Type, shape and highlight of the active theme, for the theme editors (the
- * builder's Design tab and the Themes page): title and text faces, wide
- * titles, corners, button style and highlight colour. Choosing the default of
+ * builder's Design tab and the Themes page): title, text and data faces, wide
+ * titles, corners, button style, highlight and chosen-answer colours. Choosing the default of
  * a key removes it, so a theme left at the defaults stays exactly as forms
  * were before these keys existed.
  */
@@ -60,18 +64,21 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
         if ((next.titleFont ?? next.bodyFont) !== 'archivo') delete next.titleWidth;
         onChange(next as unknown as FormTheme);
     };
-    // Adding or removing the highlight swaps the control that was pressed for
-    // another: keyboard focus moves to it (the colour input after adding, the
-    // add button after removing) instead of falling back to the page.
-    const colourRef = useRef<HTMLInputElement>(null);
-    const addRef = useRef<HTMLButtonElement>(null);
-    const focusNext = useRef<'colour' | 'add' | null>(null);
+    // Adding or removing a colour (highlight, chosen answer) swaps the control
+    // that was pressed for another: keyboard focus moves to it (the colour
+    // input after adding, the add button after removing) instead of falling
+    // back to the page.
+    const colourRefs = useRef<Partial<Record<ColourKey, HTMLInputElement | null>>>({});
+    const addRefs = useRef<Partial<Record<ColourKey, HTMLButtonElement | null>>>({});
+    const focusNext = useRef<{ key: ColourKey; to: 'colour' | 'add' } | null>(null);
     useEffect(() => {
-        const target = focusNext.current === 'colour' ? colourRef.current : focusNext.current === 'add' ? addRef.current : null;
+        const next = focusNext.current;
+        if (!next) return;
+        const target = next.to === 'colour' ? colourRefs.current[next.key] : addRefs.current[next.key];
         if (!target) return;
         focusNext.current = null;
         target.focus();
-    }, [theme.highlight]);
+    }, [theme.highlight, theme.selection]);
     const titleFace = theme.titleFont ?? theme.bodyFont;
     const radius = theme.radius ?? DEFAULT;
     const buttons = theme.buttonStyle ?? 'filled';
@@ -125,6 +132,30 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
                 </p>
             </div>
 
+            <div className="flex flex-col gap-1">
+                <span id={`${ids}-data`} className="text-xs text-black-700">
+                    {t('THEME.DATA_FONT')}
+                </span>
+                <Select value={theme.dataFont ?? DEFAULT} onValueChange={(value) => set({ dataFont: value === DEFAULT ? null : (value as ThemeFontId) })}>
+                    <SelectTrigger aria-labelledby={`${ids}-data`} aria-describedby={`${ids}-data-hint`} className="h-9 w-full border-control bg-white text-xs">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                        <SelectItem value={DEFAULT} className="text-xs">
+                            {t('THEME.DATA_FONT_DEFAULT')}
+                        </SelectItem>
+                        {THEME_FONTS.map((id) => (
+                            <SelectItem key={id} value={id} className="text-sm">
+                                <FaceName id={id} />
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <p id={`${ids}-data-hint`} className="text-[11px] leading-relaxed text-black-600">
+                    {t('THEME.DATA_FONT_HINT')}
+                </p>
+            </div>
+
             {/* Only Archivo has a wide cut: the switch shows where it does something. */}
             {titleFace === 'archivo' && (
                 <label className="flex items-start gap-2 text-xs">
@@ -174,51 +205,61 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
                 {buttons === 'outlined' && <p className="text-[11px] leading-relaxed text-black-600">{t('THEME.BUTTONS_HINT_OUTLINED')}</p>}
             </div>
 
-            <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between gap-3">
-                    <span id={`${ids}-highlight`} className="text-xs text-black-700">
-                        {t('THEME.HIGHLIGHT')}
-                    </span>
-                    {theme.highlight ? (
-                        <span className="flex items-center gap-2">
-                            <span className="text-[11px] text-black-600 uppercase tabular-nums">{theme.highlight}</span>
-                            <input
-                                ref={colourRef}
-                                type="color"
-                                aria-labelledby={`${ids}-highlight`}
-                                value={theme.highlight}
-                                onChange={(event) => set({ highlight: event.target.value.toUpperCase() })}
-                                className="h-7 w-9 cursor-pointer rounded border border-black-300 bg-white p-0.5"
-                            />
-                        </span>
-                    ) : (
-                        <button
-                            ref={addRef}
-                            type="button"
-                            onClick={() => {
-                                focusNext.current = 'colour';
-                                set({ highlight: (isHexColour(theme.secondary) ? theme.secondary : '#1649E2').toUpperCase() });
-                            }}
-                            className="text-[11px] font-medium text-brand-500 underline underline-offset-2 hover:text-brand-600"
-                        >
-                            {t('THEME.HIGHLIGHT_ADD')}
-                        </button>
-                    )}
-                </div>
-                <p className="text-[11px] leading-relaxed text-black-600">{theme.highlight ? t('THEME.HIGHLIGHT_HINT') : t('THEME.HIGHLIGHT_NONE')}</p>
-                {theme.highlight && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            focusNext.current = 'add';
-                            set({ highlight: null });
-                        }}
-                        className="self-start text-[11px] font-medium text-black-700 underline underline-offset-2 hover:text-black-900"
-                    >
-                        {t('THEME.HIGHLIGHT_REMOVE')}
-                    </button>
-                )}
-            </div>
+            {COLOUR_KEYS.map((key) => {
+                const value = theme[key];
+                const prefix = key === 'highlight' ? 'THEME.HIGHLIGHT' : 'THEME.SELECTION';
+                return (
+                    <div key={key} className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-3">
+                            <span id={`${ids}-${key}`} className="text-xs text-black-700">
+                                {t(prefix)}
+                            </span>
+                            {value ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="text-[11px] text-black-600 uppercase tabular-nums">{value}</span>
+                                    <input
+                                        ref={(element) => {
+                                            colourRefs.current[key] = element;
+                                        }}
+                                        type="color"
+                                        aria-labelledby={`${ids}-${key}`}
+                                        value={value}
+                                        onChange={(event) => set({ [key]: event.target.value.toUpperCase() })}
+                                        className="h-7 w-9 cursor-pointer rounded border border-black-300 bg-white p-0.5"
+                                    />
+                                </span>
+                            ) : (
+                                <button
+                                    ref={(element) => {
+                                        addRefs.current[key] = element;
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        focusNext.current = { key, to: 'colour' };
+                                        set({ [key]: (isHexColour(theme.secondary) ? theme.secondary : '#1649E2').toUpperCase() });
+                                    }}
+                                    className="text-[11px] font-medium text-brand-500 underline underline-offset-2 hover:text-brand-600"
+                                >
+                                    {t(`${prefix}_ADD`)}
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-black-600">{value ? t(`${prefix}_HINT`) : t(`${prefix}_NONE`)}</p>
+                        {value && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    focusNext.current = { key, to: 'add' };
+                                    set({ [key]: null });
+                                }}
+                                className="self-start text-[11px] font-medium text-black-700 underline underline-offset-2 hover:text-black-900"
+                            >
+                                {t(`${prefix}_REMOVE`)}
+                            </button>
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }

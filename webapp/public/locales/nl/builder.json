@@ -190,6 +190,9 @@
     "TITLE_FONT_DEFAULT": "Standaard",
     "BODY_FONT": "Letter van tekst",
     "BODY_FONT_HINT": "Alle andere tekst die invullers lezen.",
+    "DATA_FONT": "Letter van gegevens",
+    "DATA_FONT_DEFAULT": "Standaard (vaste breedte)",
+    "DATA_FONT_HINT": "Het inzendnummer en andere gegevens die invullers overnemen of voorlezen.",
     "FONT_DEFAULT_SUFFIX": "(standaard)",
     "WIDE_TITLES": "Brede titels",
     "WIDE_TITLES_HINT": "Zet titels een kwart breder, in de brede snit van Archivo.",
@@ -208,6 +211,11 @@
     "HIGHLIGHT_HINT": "Het gekozen antwoord en de notities bij een vraag. Is de kleur te licht om op de pagina te lezen, dan wordt de tekstkleur gebruikt.",
     "HIGHLIGHT_NONE": "Gebruikt de kleur van de knoppen.",
     "HIGHLIGHT_ADD": "Accentkleur toevoegen",
-    "HIGHLIGHT_REMOVE": "Accentkleur verwijderen"
+    "HIGHLIGHT_REMOVE": "Accentkleur verwijderen",
+    "SELECTION": "Gekozen antwoord",
+    "SELECTION_HINT": "Alleen het gekozen antwoord; de accentkleur blijft voor de notities. Is de kleur te licht om op de pagina te lezen, dan wordt de tekstkleur gebruikt.",
+    "SELECTION_NONE": "Gebruikt de accentkleur, anders de kleur van de knoppen.",
+    "SELECTION_ADD": "Kleur kiezen",
+    "SELECTION_REMOVE": "Kleur van gekozen antwoord verwijderen"
   }
 }

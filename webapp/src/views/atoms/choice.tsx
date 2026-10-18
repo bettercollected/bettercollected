@@ -83,7 +83,10 @@ export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: 
     }
     return {
         solid,
-        className: cn('group flex min-h-12 w-full cursor-pointer items-center gap-3 border border-(--choice-edge) px-4 py-3 text-left text-base leading-snug transition-colors duration-150 hover:border-(--choice-edge-hover)', selected && 'font-semibold'),
+        className: cn(
+            'form-choice-row group flex min-h-12 w-full cursor-pointer items-center gap-3 border border-(--choice-edge) px-4 py-3 text-left text-base leading-snug transition-colors duration-150 hover:border-(--choice-edge-hover)',
+            selected && 'font-semibold'
+        ),
         style: {
             ...vars,
             ['--choice-edge-hover' as string]: selected ? chosenEdge : theme?.primary,

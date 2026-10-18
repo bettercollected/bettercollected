@@ -1,3 +1,5 @@
+import { FormSlideLayout } from '@app/models/enums/form';
+
 // Default = the Sireto palette (DESIGN.md, Form themes): paper-mist surface,
 // ink for words, one confident blue for actions. Saturated full-bleed colour
 // stays available through the other themes — it's opt-in, not the default.
@@ -35,7 +37,18 @@ export const ThemeColor = {
 // enum once the renderer grows those modes — the model is deliberately open.
 export type ThemeStyle = 'classic' | 'sheet' | 'studio' | 'leaflet';
 
-export type ThemePattern = 'dots' | 'grid' | 'stripes';
+// `columns`: a twelve-column hairline grid (four on phones), decorative only.
+// `margin`: a page set like an exercise book: a margin in the page colour, a
+// hairline rule in the highlight, and a white sheet for the questions.
+export type ThemePattern = 'dots' | 'grid' | 'stripes' | 'columns' | 'margin';
+export const THEME_PATTERNS: ReadonlyArray<ThemePattern> = ['dots', 'grid', 'stripes', 'columns', 'margin'];
+
+// Built-in artwork, served by the app itself (public/themes/), never from a
+// third party. It fills the picture half of a welcome or ending page whose
+// layout has one and no image of its own, and runs as a band along the top
+// of the other pages that end the form. `marble`: a marbled endpaper.
+export type ThemeArtwork = 'marble';
+export const THEME_ARTWORKS: ReadonlyArray<ThemeArtwork> = ['marble'];
 
 // Optional decoration for the page ground. `accent` stays the base colour
 // everywhere (inputs, sticky surfaces, fallbacks) — the background only
@@ -47,6 +60,8 @@ export interface ThemeBackground {
     gradientAngle?: number;
     pattern?: ThemePattern;
     imageUrl?: string;
+    /** Built-in artwork beside the welcome page (see THEME_ARTWORKS). Absent: none. */
+    artwork?: ThemeArtwork | null;
 }
 
 export const THEME_STYLES: ReadonlyArray<ThemeStyle> = ['classic', 'sheet', 'studio', 'leaflet'];
@@ -87,7 +102,8 @@ export const isHexColour = (value: unknown): value is string => typeof value ===
 /**
  * What is wrong with a theme's type, shape and highlight keys, word for word
  * as the backend says it (common models/standard_form.py `theme_problems`):
- * each is absent (or null) or one of its listed values, the highlight #rrggbb.
+ * each is absent (or null) or one of its listed values, the highlight and
+ * the selection #rrggbb, the background's artwork on its list.
  */
 export function themeProblems(theme: unknown, path = 'theme'): string[] {
     if (theme == null || typeof theme !== 'object') return [];
@@ -97,6 +113,11 @@ export function themeProblems(theme: unknown, path = 'theme'): string[] {
         if (value[key] != null && !allowed.includes(value[key] as string)) problems.push(`${path}.${key} must be one of: ${allowed.join(', ')}.`);
     }
     if (value.highlight != null && !isHexColour(value.highlight)) problems.push(`${path}.highlight must be a 6-digit hex colour, e.g. #A3305A.`);
+    if (value.selection != null && !isHexColour(value.selection)) problems.push(`${path}.selection must be a 6-digit hex colour, e.g. #1E4D3B.`);
+    const background = value.background as Record<string, unknown> | null | undefined;
+    if (background != null && typeof background === 'object') {
+        if (background.artwork != null && !(THEME_ARTWORKS as readonly unknown[]).includes(background.artwork)) problems.push(`${path}.background.artwork must be one of: ${THEME_ARTWORKS.join(', ')}.`);
+    }
     return problems;
 }
 
@@ -106,7 +127,7 @@ export function themeProblems(theme: unknown, path = 'theme'): string[] {
  */
 export function themeTypeShape(theme?: Partial<FormTheme> | null): Partial<FormTheme> {
     const kept: Record<string, unknown> = {};
-    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight'] as const) if (theme?.[key] != null) kept[key] = theme[key];
+    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight', 'selection'] as const) if (theme?.[key] != null) kept[key] = theme[key];
     return kept as Partial<FormTheme>;
 }
 
@@ -129,6 +150,8 @@ export interface FormTheme {
     buttonStyle?: ThemeButtonStyle | null;
     /** #rrggbb: the chosen answer, the "why we ask" and "optional" notes, the focus ring where it reads. Absent: secondary. */
     highlight?: string | null;
+    /** #rrggbb: the chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary. */
+    selection?: string | null;
 }
 
 export const ThemeColors: Array<FormTheme> = [
@@ -248,13 +271,95 @@ export const ThemeColors: Array<FormTheme> = [
         secondary: '#BE123C',
         tertiary: '#E11D48',
         accent: '#FFE4E6'
+    },
+    // Complete looks: colours, faces, corners, buttons and background in
+    // one pick. They set every type and shape key, so nothing of the
+    // previous look stays behind.
+    {
+        // A small-press book: Besley titles, Atkinson Hyperlegible text, a
+        // cloth-green action colour, a rose rubric for notes and the margin
+        // rule, and a marbled endpaper beside the welcome page. Chosen
+        // answers stay in the cloth (selection) so rose never reads as an
+        // error. Ink 13.9:1, edge 3.1:1, rose 5.9:1 on the blush margin.
+        title: 'Kantlijn',
+        primary: '#16261F',
+        secondary: '#1E4D3B',
+        tertiary: '#7D8C84',
+        accent: '#F8EEEC',
+        style: 'classic',
+        titleFont: 'besley',
+        bodyFont: 'atkinson-next',
+        dataFont: 'atkinson-mono',
+        titleWidth: 'normal',
+        radius: 'soft',
+        buttonStyle: 'filled',
+        highlight: '#A3305A',
+        selection: '#1E4D3B',
+        background: {
+            type: 'pattern',
+            pattern: 'margin',
+            artwork: 'marble'
+        }
+    },
+    {
+        // A Swiss poster: expanded Archivo titles on a visible twelve-column
+        // grid, square edges, outlined buttons, and one ultramarine kept for
+        // what is the respondent's own (answers, actions, the submission
+        // number). Ultramarine 8.6:1 with white, edge 4.9:1 on white.
+        title: 'Raster',
+        primary: '#0E0E14',
+        secondary: '#2B2FD1',
+        tertiary: '#6D7083',
+        accent: '#FFFFFF',
+        style: 'studio',
+        titleFont: 'archivo',
+        bodyFont: 'archivo',
+        dataFont: 'atkinson-mono',
+        titleWidth: 'expanded',
+        radius: 'sharp',
+        buttonStyle: 'outlined',
+        background: {
+            type: 'pattern',
+            pattern: 'columns'
+        }
     }
 ];
+
+/**
+ * The welcome page layout a complete-look preset is made for: Kantlijn sets
+ * the welcome page beside its artwork, Raster sets it left aligned. The
+ * backend keeps the same list (constants/themes.py PRESET_WELCOME_LAYOUTS).
+ */
+export const PRESET_WELCOME_LAYOUTS: Readonly<Record<string, FormSlideLayout>> = {
+    Kantlijn: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+    Raster: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+};
+
+const IMAGE_LAYOUTS: ReadonlyArray<string> = [FormSlideLayout.TWO_COLUMN_IMAGE_LEFT, FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT, FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND];
+
+/**
+ * The welcome page's layout after picking the preset `next` over the
+ * theme `previous`, or undefined to leave it as it is (the backend's
+ * set_theme_preset does the same, ops.py `_welcome_layout_after_preset`):
+ *
+ * - a welcome page with an image of its own keeps its layout;
+ * - otherwise it takes the layout the preset is made for, if any;
+ * - a page set beside the previous theme's artwork, which the new theme
+ *   does not have, goes back to the default layout (no empty picture half).
+ */
+export function welcomeLayoutAfterPreset(welcomePage: { layout?: string | null; imageUrl?: string | null } | null | undefined, previous: Partial<FormTheme> | null | undefined, next: Partial<FormTheme>): FormSlideLayout | undefined {
+    if (welcomePage == null || welcomePage.imageUrl?.trim()) return undefined;
+    const suggested = next.title ? PRESET_WELCOME_LAYOUTS[next.title] : undefined;
+    if (suggested) return welcomePage.layout === suggested ? undefined : suggested;
+    if (previous?.background?.artwork && !next.background?.artwork && welcomePage.layout && IMAGE_LAYOUTS.includes(welcomePage.layout)) return FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND;
+    return undefined;
+}
 
 // The backend keeps a copy of this list (backend constants/themes.py
 // theme_dict) for forms the AI, the API and imports dress; this list is the
 // source of truth and a backend test fails when the two drift. Keep each
-// preset as plain `key: 'value'` lines so that test can read it.
+// preset as plain `key: 'value'` lines (and a `background: { ... }` block
+// of the same) so that test can read it.
 
 /**
  * The preset a form's theme was picked as, by its title (any case): what the

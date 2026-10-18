@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import Link from 'next/link';
 
-import { FormTheme, THEME_TYPE_SHAPE_KEYS, ThemeColors, findPreset, themeTypeShape } from '@app/constants/theme';
+import { FormTheme, THEME_TYPE_SHAPE_KEYS, ThemeColors, findPreset, themeTypeShape, welcomeLayoutAfterPreset } from '@app/constants/theme';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 import { useAppSelector } from '@app/store/hooks';
@@ -15,7 +15,7 @@ import ThemeTypeShapeEditor from '@app/views/molecules/theme/theme-type-shape-ed
 const CUSTOM_TITLE = 'Custom';
 
 export default function PageDesignTab() {
-    const { updateFormTheme, theme } = useFormState();
+    const { updateFormTheme, updateWelcomePageLayout, formState, theme } = useFormState();
     const workspace = useAppSelector(selectWorkspace);
     const savedThemes: FormTheme[] = workspace?.customThemes ?? [];
     const isCustom = theme?.title === CUSTOM_TITLE;
@@ -60,7 +60,12 @@ export default function PageDesignTab() {
         // the style (the set_theme_preset op does the same); its colours,
         // highlight included, replace the form's.
         const kept = Object.fromEntries(THEME_TYPE_SHAPE_KEYS.filter((key) => picked[key] == null && theme?.[key] != null).map((key) => [key, theme![key]]));
-        updateFormTheme({ ...picked, style: picked.style ?? theme?.style, ...kept });
+        const next: FormTheme = { ...structuredClone(picked), style: picked.style ?? theme?.style, ...kept };
+        // A complete-look preset sets the welcome page's layout it is made
+        // for (the set_theme_preset op does the same); a saved theme does not.
+        const layout = group === 'preset' ? welcomeLayoutAfterPreset(formState?.welcomePage, theme, next) : undefined;
+        updateFormTheme(next);
+        if (layout) updateWelcomePageLayout(layout);
     };
 
     // What the preview shows: the active theme, whatever its source — including

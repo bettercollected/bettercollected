@@ -4,6 +4,7 @@ from typing import Any, Optional, Dict, List
 
 from beanie import PydanticObjectId
 from common.models.consent import ResponseRetentionType
+from common.models.standard_form import THEME_PATTERNS
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field, field_validator, model_serializer
 
@@ -50,6 +51,9 @@ class WorkspaceThemeBackgroundDto(BaseModel):
     gradientAngle: Optional[int] = None
     pattern: Optional[str] = None
     imageUrl: Optional[str] = None
+    # Built-in artwork (common.models.standard_form THEME_ARTWORKS), checked
+    # with the theme's other listed keys (theme_problems, at the endpoint).
+    artwork: Optional[str] = None
 
     @field_validator("type")
     @classmethod
@@ -77,8 +81,8 @@ class WorkspaceThemeBackgroundDto(BaseModel):
     @field_validator("pattern")
     @classmethod
     def _known_pattern(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in ("dots", "grid", "stripes"):
-            raise ValueError("Pattern must be dots, grid or stripes.")
+        if v is not None and v not in THEME_PATTERNS:
+            raise ValueError("Pattern must be one of: " + ", ".join(THEME_PATTERNS) + ".")
         return v
 
     @field_validator("imageUrl")
@@ -119,6 +123,7 @@ class WorkspaceThemeDto(BaseModel):
     radius: Optional[str] = None
     buttonStyle: Optional[str] = None
     highlight: Optional[str] = None
+    selection: Optional[str] = None
 
     @field_validator("style")
     @classmethod

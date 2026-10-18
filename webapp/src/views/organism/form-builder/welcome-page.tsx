@@ -8,6 +8,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { LeafletContents, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { greetingCover } from '@app/views/molecules/theme/theme-artwork';
 import { canvasButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
@@ -23,6 +24,8 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     // writes nothing, and typing is one undo step (the setter coalesces).
     const description = formState?.welcomePage?.description ?? '';
     const setDescription = (value: string) => setFormDescription(value);
+    // Beside the theme's artwork the welcome page is its cover (theme-artwork.tsx).
+    const cover = greetingCover(theme, formState.welcomePage?.layout, formState.welcomePage?.imageUrl, { privateForm: !!form?.settings?.private });
 
     if (styleTokens(theme?.style).key === 'leaflet') {
         // WYSIWYG with the respondent's leaflet cover: the title edited on the
@@ -84,7 +87,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         aria-label="Form title"
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
                         // The theme's title face and width, as on the live page (theme-root.ts).
-                        className="form-title-face form-display-title w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
+                        className="form-title-face form-display-title form-greeting-title w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
                         value={formState.title}
                         onChange={(event) => {
                             setFormTitle(event.target.value);
@@ -94,7 +97,8 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         <>
                             <AutosizeTextarea
                                 placeholder="Add description"
-                                style={{ resize: 'none' }}
+                                // On the cover (theme-artwork.tsx) in the cover's ink.
+                                style={{ resize: 'none', ...(cover ? { color: cover.theme.primary } : {}) }}
                                 value={description}
                                 aria-label="Description"
                                 className="ring-none mt-4 w-full border-0 bg-transparent px-0 [text-align:inherit] text-base leading-relaxed text-black-700 outline-hidden"
