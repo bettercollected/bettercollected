@@ -807,6 +807,7 @@ class FormAIProposalService:
                 form_document,
                 form,
                 chosen_ops,
+                workspace_id=workspace_id,
                 atomic=True,
                 # the proposal's base, still: a save landing in between
                 # makes this a stale proposal, not a retry on that form

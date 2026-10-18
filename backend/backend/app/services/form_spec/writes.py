@@ -167,11 +167,16 @@ def _trust_patch(spec: FormSpec) -> Optional[UpdateFormSettingsOp]:
     return UpdateFormSettingsOp(patch=FormSettingsPatch(**values))
 
 
-async def _write_trust(form_id: str, spec: FormSpec) -> None:
+async def _write_trust(
+    workspace_id: PydanticObjectId, form_id: str, spec: FormSpec
+) -> None:
+    """The document's trust settings, on this workspace's association only."""
     op = _trust_patch(spec)
     if op is not None:
         result = OpResult(index=0, op=op.op, ok=True, message="")
-        await _persist_settings_ops(form_id, [op], [result])
+        await _persist_settings_ops(
+            form_id, [op], [result], workspace_id=workspace_id
+        )
 
 
 def _replacement(existing: StandardForm, settings: Any, spec: FormSpec) -> StandardForm:
@@ -281,7 +286,7 @@ class FormSpecWriter:
         created = await self._workspace_forms.create_form(
             workspace_id=workspace_id, form=form, user=user
         )
-        await _write_trust(created.form_id, spec)
+        await _write_trust(workspace_id, created.form_id, spec)
         document, etag = await self.read(workspace_id, created.form_id)
         return created.form_id, document, etag
 
@@ -315,7 +320,7 @@ class FormSpecWriter:
             if _is_form_changed(error):
                 raise precondition_failed() from error
             raise
-        await _write_trust(form_id, spec)
+        await _write_trust(workspace_id, form_id, spec)
         return await self.read(workspace_id, form_id)
 
     async def publish(
@@ -408,7 +413,12 @@ class FormSpecWriter:
             expected = document.updated_at or _EPOCH
         try:
             _, results, _ = await persist_ops_to_form(
-                document, form, ops, atomic=atomic, expected_updated_at=expected
+                document,
+                form,
+                ops,
+                workspace_id=workspace_id,
+                atomic=atomic,
+                expected_updated_at=expected,
             )
         except HTTPException as error:
             if _is_form_changed(error):

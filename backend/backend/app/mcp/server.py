@@ -399,7 +399,7 @@ async def update_form(
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
     _, results, updated_settings = await persist_ops_to_form(
-        form_document, form, parsed, atomic=atomic
+        form_document, form, parsed, workspace_id=key.workspace_id, atomic=atomic
     )
     payload = [r.model_dump(by_alias=True) for r in results]
     await _audit(
