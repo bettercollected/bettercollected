@@ -357,6 +357,17 @@ def test_public_app_has_no_admin_routes():
     assert not [p for p in paths if "admin-service" in p or p.startswith("/admin")]
 
 
+def test_public_app_serves_no_platform_metrics_route():
+    """Platform metrics live in the internal admin portal only: no route of the
+    public app (under any prefix) is called ``admin`` or ``metrics`` at the
+    platform level."""
+    from backend.app.asgi import get_application
+
+    paths = {getattr(r, "path", "") for r in get_application().routes}
+    assert not [p for p in paths if "/admin" in p], sorted(paths)
+    assert not [p for p in paths if p.endswith("/admin/metrics")]
+
+
 def _imports(path):
     for n in ast.walk(ast.parse(path.read_text())):
         if isinstance(n, ast.Import):

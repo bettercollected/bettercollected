@@ -61,8 +61,7 @@ from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 # Top-level paths the webapp serves itself; a workspace with one of these
-# handles would be shadowed by (or shadow) that route — `/admin/metrics` is the
-# platform admin dashboard.
+# handles would be shadowed by (or shadow) that route; "admin" stays reserved.
 RESERVED_WORKSPACE_NAMES = frozenset({"submissions", "forms", "templates", "admin"})
 
 

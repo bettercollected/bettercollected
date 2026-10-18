@@ -62,7 +62,7 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   `GET /stripe/plans`, `GET /stripe/session/create/checkout`, `GET /stripe/session/create/portal`,
   `POST /stripe/webhooks`.
 - **Platform admins** (`ADMIN` role, not workspace admins — and *every* platform-admin power behind the backend's
-  `get_logged_admin`, not only metrics): `PLATFORM_ADMIN_EMAILS` (comma-separated) adds ADMIN to those users' token
+  `get_logged_admin`: operator-only endpoints such as coupons, actions and plugin providers): `PLATFORM_ADMIN_EMAILS` (comma-separated) adds ADMIN to those users' token
   roles via `services/platform_admins.py:roles_for`, **only for sessions whose email was verified at sign-in**: OTP
   login, and Google when userinfo reports `verified_email`. Typeform's `/me` email never gets it; the `/callback` JWT
   exchange (import OAuth re-issuing the signed-in session's token, same email) gets it only when the backend passes
@@ -70,8 +70,7 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   on refresh the backend passes it to `GET /status?email_verified=`, which grants only when it is true. Never stored,
   so removing an email revokes it at the user's next token (access tokens already issued keep it until they
   expire, `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` on the backend, 15 minutes by default); an ADMIN stored on the user document still counts. Sessions from before this
-  claim existed count as unverified (sign in again). `GET /admin/metrics` (user counts for the backend's platform
-  metrics page) requires ADMIN.
+  claim existed count as unverified (sign in again).
 
 ## Internal-only API (#766)
 
@@ -84,7 +83,7 @@ auth server-to-server. Every route requires the shared key in the `X-Internal-Ke
 - `POST /stripe/webhooks` — authenticated by its Stripe signature (Stripe calls the backend, which forwards here
   with the key, but the route must keep working on the signature alone).
 
-`/admin/metrics` and `/notifications/*` need the key *and* their own Bearer checks. The auth, users and admin
+`/notifications/*` needs the key *and* its own Bearer check. The auth and users
 routers take the guard router-level (`@router(..., dependencies=INTERNAL_ONLY)`); notifications and
 `stripe_router.py` have it per route (a `Depends` parameter — classy-fastapi's route decorators can't take
 `dependencies=`), the latter to leave the webhook open. A new
