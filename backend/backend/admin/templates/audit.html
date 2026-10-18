@@ -1,0 +1,71 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Audit log") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Audit log") }}</h1>
+{% if error %}<p class="error" role="alert">{{ _("The filter was not understood:") }} {{ error }}.</p>{% endif %}
+
+<p class="chain">
+  {% if page and page.head_seq %}
+  {{ _("Chain head: entry") }} {{ page.head_seq }}, <code>{{ page.head_hash_prefix }}</code>, {{ page.head_at | ts }}.
+  {% else %}{{ _("Chain head: no entries yet.") }}{% endif %}
+  {{ _("The chain is verified from the server's command line, not in a request:") }} <code>{{ "python -m backend.admin audit-verify" }}</code>
+</p>
+
+<form method="get" action="/audit" class="filters">
+  <div class="field"><label for="actor">{{ _("Actor (email)") }}</label>
+    <input type="text" id="actor" name="actor" maxlength="254" value="{{ form.get('actor', '') }}"></div>
+  <div class="field"><label for="action">{{ _("Action") }}</label>
+    <input type="text" id="action" name="action" maxlength="64" value="{{ form.get('action', '') }}"></div>
+  <div class="field"><label for="outcome">{{ _("Outcome") }}</label>
+    <select id="outcome" name="outcome">
+      <option value="">{{ _("Any") }}</option>
+      {% for o in outcomes %}<option value="{{ o }}"{% if form.get('outcome') == o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+    </select></div>
+  <div class="field"><label for="from">{{ _("From (YYYY-MM-DD)") }}</label>
+    <input type="text" id="from" name="from" maxlength="40" value="{{ form.get('from', '') }}"></div>
+  <div class="field"><label for="to">{{ _("To (YYYY-MM-DD, inclusive)") }}</label>
+    <input type="text" id="to" name="to" maxlength="40" value="{{ form.get('to', '') }}"></div>
+  <div class="field"><label for="limit">{{ _("Rows per page (up to") }} {{ limit_max }})</label>
+    <input type="text" id="limit" name="limit" inputmode="numeric" maxlength="3" value="{{ form.get('limit', '') }}"></div>
+  <button type="submit">{{ _("Filter") }}</button>
+  <a href="/audit">{{ _("Clear") }}</a>
+</form>
+
+{% if page %}
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Audit entries') }}">
+<table class="audit">
+  <caption>{{ _("Newest first") }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("No.") }}</th><th scope="col">{{ _("Time") }}</th><th scope="col">{{ _("Actor") }}</th>
+    <th scope="col">{{ _("Action") }}</th><th scope="col">{{ _("Target") }}</th><th scope="col">{{ _("Outcome") }}</th>
+    <th scope="col">{{ _("Address") }}</th><th scope="col">{{ _("Details") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for i in page.items %}
+  <tr>
+    <th scope="row">{{ i.seq }}</th>
+    <td>{{ i.at | ts }}</td>
+    <td>{{ i.actor_email or "-" }} <span class="tag">{{ i.actor_kind }}</span></td>
+    <td><code>{{ i.action }}</code></td>
+    <td>{% if i.target_type %}{{ i.target_type }}{% if i.target_id %}: {{ i.target_id }}{% endif %}{% else %}-{% endif %}</td>
+    <td>{{ i.outcome }}</td>
+    <td>{{ i.ip or "-" }}</td>
+    <td>
+      {% if i.before is not none or i.after is not none or i.detail is not none %}
+      <details><summary>{{ _("Show") }}</summary>
+        {% if i.before is not none %}<p>{{ _("Before") }}</p><pre>{{ pretty(i.before) }}</pre>{% endif %}
+        {% if i.after is not none %}<p>{{ _("After") }}</p><pre>{{ pretty(i.after) }}</pre>{% endif %}
+        {% if i.detail is not none %}<p>{{ _("Detail") }}</p><pre>{{ pretty(i.detail) }}</pre>{% endif %}
+      </details>
+      {% else %}-{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8">{{ _("No entries match.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if older_url %}<p><a href="{{ older_url }}" rel="next">{{ _("Older entries") }}</a></p>{% endif %}
+{% endif %}
+{% endblock %}

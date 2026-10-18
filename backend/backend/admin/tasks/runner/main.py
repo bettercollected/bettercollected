@@ -2,7 +2,9 @@
 
 Environment (nothing else is read): ``TASKS_DATABASE_URL`` (the ``bc_tasks``
 role) and ``SETTINGS_MASTER_KEY`` (keys the request signatures and the audit
-chain). ``ADMIN_TASKS_SELFTEST=1`` adds the test tasks. The process imports no
+chain). Optional, for the responses data tasks: ``DATABASE_URL``, ``MONGO_URI``,
+``MONGO_DB`` and ``MASTER_ENCRYPTION_KEYSET`` (a task refuses when they are
+missing). ``ADMIN_TASKS_SELFTEST=1`` adds the test tasks. The process imports no
 public-application module and never the shared crypto service.
 """
 

@@ -1,0 +1,35 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Sessions") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Sessions") }}</h1>
+<p>{{ _("Your live sessions. The browser column is a short fingerprint of the browser's identification, not the identification itself.") }}</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Your sessions') }}">
+<table>
+  <caption>{{ _("Live sessions for") }} {{ email }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Session") }}</th><th scope="col">{{ _("Created") }}</th><th scope="col">{{ _("Last seen") }}</th>
+    <th scope="col">{{ _("Address") }}</th><th scope="col">{{ _("Browser") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for s in sessions %}
+  <tr>
+    <td>
+      {% if s.current %}<strong>{{ _("This session") }}</strong>
+      {% else %}
+      <form method="post" action="/account/sessions/{{ s.id }}/revoke" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="link">{{ _("Revoke") }}<span class="visually-hidden"> {{ _("session created") }} {{ s.created | ts }}</span></button>
+      </form>
+      {% endif %}
+    </td>
+    <td class="nowrap">{{ s.created | ts }}</td><td class="nowrap">{{ s.last_seen | ts }}</td><td>{{ s.ip }}</td><td><code>{{ s.browser }}</code></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<form method="post" action="/account/sessions/revoke-others">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit">{{ _("Sign out all other sessions") }}</button>
+</form>
+{% endblock %}

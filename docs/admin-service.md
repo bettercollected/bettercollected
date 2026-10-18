@@ -144,6 +144,40 @@ naming the missing settings (never their values); see "Enabling the portal"
 above for how the compose service receives them. Settings that are present
 but invalid stop startup.
 
+## Portal pages (read-only)
+
+After the second factor the portal shows a shell (navigation, the signed-in
+address, sign out, a notice area) and these pages. Every one is a `GET` at the
+`SECOND_FACTOR` level; none changes state. `Settings` and `Tasks` are listed in
+the navigation as not available yet.
+
+| Page | What it shows |
+|---|---|
+| `/` | Cards linking to the pages below |
+| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the admin schema's Alembic state (current against the expected head) and the `app`, `auth` and `google` schemas' revisions where this role can read them (otherwise "not available to this role": the role has no access to those schemas on purpose) |
+| `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS` |
+| `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts()` |
+| `/audit`, `GET /api/audit` | Newest first, keyset pagination (`before` is a `seq`), filters `actor`, `action` (exact or dot-separated prefix), `outcome`, `from`, `to` (a date or an ISO time; `to` as a date includes that day), `limit` up to 200; all validated (400 otherwise). Payloads are shown masked and escaped. The page shows the chain head and points to `python -m backend.admin audit-verify`; the chain is not verified inside a request. No export |
+| `/sessions` | Your live sessions (created, last seen, address, a short fingerprint of the browser identification) with the current one marked; revoke forms post, with the CSRF token, to the existing account routes |
+
+A notice area at the top of every page carries a permanent reminder to back up
+`SETTINGS_MASTER_KEY` (it cannot be recovered) and, when a service reports a
+pending restart, a restart notice.
+
+`admin.platform_counts()` is created by `postgres/ensure-admin-roles.sh`, not by
+an Alembic revision: the admin roles cannot read the `app` and `auth` schemas
+and the migration role owns nothing there, so the function is a SECURITY DEFINER
+owned by a dedicated role, `bc_admin_counts` (NOLOGIN, no superuser, no create
+rights anywhere, owns no objects). That role has `USAGE` on `app` and `auth` and
+column-level `SELECT` on only the columns the function reads; the script
+re-applies those grants on every deploy, so they appear once the application
+migrations have created the tables. The function takes no arguments, writes
+nothing, calls only `pg_catalog` functions (never an object another service's
+role owns, so those roles cannot make it run their code), pins `search_path`,
+and is executable by `bc_admin` alone. The counts follow the Postgres store, so they are complete
+once the application serves from Postgres; before the application migrations
+have run the page says they are not available.
+
 ## Settings store: what the database guards do and do not do
 
 Schema `settings` holds signed (and, for secrets, encrypted) rows, a signed
@@ -167,6 +201,31 @@ asks the step-up module to issue a token for, and passes the same
 `expected_version` to the service, which checks it inside the write transaction.
 A replayed token, or a form left open while someone else changed the setting,
 fails with `stale_version`.
+
+## Task runner: the responses data tasks
+
+The `task-runner` service (backend image, no published port, own database role)
+runs the tasks the portal will list. Two of them work on stored responses:
+
+| Task | Does | Refuses with |
+|---|---|---|
+| `responses.check_undecryptable` | read-only: counts stored values that carry the ciphertext prefix but do not decrypt, per store and field (no ids, no values) | `store_not_configured`, `keyset_missing`, `keyset_unreadable`, `store_unreachable`, `store_empty` |
+| `responses.backfill_workspaces` | stamps responses and deletion requests that predate `workspace_id`; a dry run first (required), resumable, idempotent; ambiguous records (a form linked to several workspaces with nothing to authenticate them) are never guessed and stay unstamped | the same codes |
+
+Both need the data stores and the keyset in the runner's environment. The
+compose service passes them from the root `.env`, and they are empty by default
+(the tasks then refuse; nothing else changes):
+
+| Variable | Meaning |
+|---|---|
+| `TASK_RUNNER_DATABASE_URL` | Postgres URL of a dedicated role with only the grants these tasks need (read `form_responses`, `responses_deletion_requests` and the workspace links; update the two response tables for the backfill), never the backend's role: that would give the runner the whole app schema next to the keyset |
+| `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
+| `TASK_RUNNER_KEYSET` | the response keyset (until the settings store provides it); it never goes to a file or a log |
+
+`stores: auto` covers every configured store; `mongo`, `postgres` or `both` name
+them and refuse if one is missing. The scripts `backend/scripts/check_undecryptable_values.py`
+and `backend/scripts/backfill_response_workspaces.py` stay as command-line
+tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
 
 ## Variables
 

@@ -75,6 +75,9 @@ def check_result(result: type[Result]) -> None:
         for ann in _unwrap(field.annotation):
             if ann is bool or ann is int:
                 continue
+            if isinstance(ann, type) and issubclass(ann, Result):
+                check_result(ann)  # a nested group of counters obeys the same rules
+                continue
             if isinstance(ann, type) and issubclass(ann, enum.Enum):
                 continue
             if ann is str and _has_id_pattern(field):
