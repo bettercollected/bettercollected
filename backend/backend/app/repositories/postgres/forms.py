@@ -608,11 +608,6 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
             WorkspaceFormRow.workspace_id == _oid(workspace_id),
         )
 
-    async def find_first_by_form_id(
-        self, form_id: str
-    ) -> Optional[WorkspaceFormDocument]:
-        return await self.one(WorkspaceFormRow.form_id == form_id)
-
     async def list_in_workspace(
         self, workspace_id: PydanticObjectId
     ) -> List[WorkspaceFormDocument]:

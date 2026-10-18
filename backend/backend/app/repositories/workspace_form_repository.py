@@ -33,12 +33,6 @@ class WorkspaceFormRepository:
             {"form_id": form_id, "workspace_id": workspace_id}
         )
 
-    async def find_first_by_form_id(
-        self, form_id: str
-    ) -> Optional[WorkspaceFormDocument]:
-        """Any workspace's row for this form (imported forms can live in several)."""
-        return await WorkspaceFormDocument.find_one({"form_id": form_id})
-
     async def list_in_workspace(
         self, workspace_id: PydanticObjectId
     ) -> List[WorkspaceFormDocument]:

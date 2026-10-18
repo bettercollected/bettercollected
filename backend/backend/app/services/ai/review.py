@@ -261,7 +261,7 @@ class FormAIReviewService:
             )
         form = StandardForm(**form_document.model_dump())
         new_form, results, updated_settings = await persist_ops_to_form(
-            form_document, form, ops
+            form_document, form, ops, workspace_id=workspace_id
         )
         return ApplyReviewFixResponse(
             results=results,

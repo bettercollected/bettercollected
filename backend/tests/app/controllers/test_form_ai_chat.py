@@ -174,10 +174,8 @@ class TestFormAIChat:
         # Persisted on the workspace-form association (where the Form tab reads).
         from backend.app.schemas.workspace_form import WorkspaceFormDocument
 
-        workspace_form_doc = (
-            await container.workspace_form_repo().find_first_by_form_id(
-                workspace_form.form_id
-            )
+        workspace_form_doc = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, workspace_form.form_id
         )
         assert workspace_form_doc.settings.purpose == "To schedule your appointment"
         assert workspace_form_doc.settings.retention_text == "kept for 90 days"
@@ -199,10 +197,8 @@ class TestFormAIChat:
         await _make_v2(form_doc)
         from backend.app.schemas.workspace_form import WorkspaceFormDocument
 
-        workspace_form_doc = (
-            await container.workspace_form_repo().find_first_by_form_id(
-                workspace_form.form_id
-            )
+        workspace_form_doc = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, workspace_form.form_id
         )
         workspace_form_doc.settings.purpose = "Old purpose"
         await container.workspace_form_repo().save(workspace_form_doc)
@@ -222,8 +218,8 @@ class TestFormAIChat:
             json={"message": "remove the purpose text"},
         )
         assert response.status_code == 200
-        refreshed = await container.workspace_form_repo().find_first_by_form_id(
-            workspace_form.form_id
+        refreshed = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, workspace_form.form_id
         )
         assert refreshed.settings.purpose is None
 
