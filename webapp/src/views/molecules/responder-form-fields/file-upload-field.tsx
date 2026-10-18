@@ -21,6 +21,7 @@ import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import { actionText } from '@app/utils/theme-contrast';
 import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -179,7 +180,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                                     />
                                 )}
                             </WithQuestionLabel>
-                            <div id={hintId} style={{ color: theme?.secondary }} className="flex w-full flex-col items-center space-y-2 text-sm ">
+                            <div id={hintId} style={{ color: actionText(theme) }} className="flex w-full flex-col items-center space-y-2 text-sm ">
                                 <span className="font-semibold leading-4">{isDragging ? t('FILE.RELEASE') : t('FILE.CHOOSE')}</span>
                                 <span className="text-center text-xs leading-5">
                                     <span className="block">{t('FILE.MAX_SIZE', { size: MAX_FILE_MB })}</span>
