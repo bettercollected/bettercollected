@@ -7,6 +7,7 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { calculatedAnswerValue, fieldTitleText, formatCalculatedValue, usesAnyAnswer } from '@app/utils/calculated-fields';
 
+import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 /**
@@ -36,19 +37,24 @@ export default function CalculatedField({ field, slides }: { field: StandardForm
 
     return (
         <QuestionWrapper field={field}>
-            <output
-                id={`calculated-${field.id}`}
-                aria-live="polite"
-                aria-atomic="true"
-                aria-labelledby={titled ? `q-title-${field.id} calculated-${field.id}` : undefined}
-                aria-label={titled ? undefined : t('FIELD.CALCULATION')}
-                data-testid="calculated-value"
-                className="mt-2 block text-2xl font-semibold tabular-nums"
-                style={{ color: theme?.primary }}
-                lang={language}
-            >
-                {text ? text : <span className="text-base font-normal text-black-700">{t('FIELD.CALCULATED_EMPTY')}</span>}
-            </output>
+            <WithQuestionLabel>
+                {({ label }) => (
+                    <output
+                        id={`calculated-${field.id}`}
+                        aria-live="polite"
+                        aria-atomic="true"
+                        aria-labelledby={titled ? label?.labelledBy : undefined}
+                        aria-label={titled && label?.labelledBy ? undefined : t('FIELD.CALCULATION')}
+                        aria-describedby={label?.describedBy}
+                        data-testid="calculated-value"
+                        className="mt-2 block text-2xl font-semibold tabular-nums"
+                        style={{ color: theme?.primary }}
+                        lang={language}
+                    >
+                        {text ? text : <span className="text-base font-normal text-black-700">{t('FIELD.CALCULATED_EMPTY')}</span>}
+                    </output>
+                )}
+            </WithQuestionLabel>
         </QuestionWrapper>
     );
 }

@@ -21,6 +21,7 @@ import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import { WithQuestionLabel, joinIds } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
@@ -42,6 +43,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
     const { currentSlide } = useResponderState();
 
     const [isDragging, setIsDragging] = useState(false);
+    const hintId = `file-hint-${field.id}`;
     const inputFileRef = useRef<HTMLInputElement | null>(null);
     const { addFile, resetFormFiles } = useFormAtom();
     const ans = formResponse.answers && formResponse.answers[field.id];
@@ -145,17 +147,19 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
             <div className="w-full space-y-3 md:max-w-[800px]">
                 {
                     <StyledLabel
-                        tabIndex={0}
                         onDragEnter={handleDragEnter}
                         onDragLeave={handleDragLeave}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                         $theme={theme}
                         style={{
-                            borderColor: isDragging ? theme?.secondary : theme?.tertiary
+                            borderColor: isDragging ? theme?.secondary : theme?.tertiary,
+                            ['--file-focus' as string]: theme?.secondary ?? '#1649E2'
                         }}
                         htmlFor={`${fileMetaData.id}-file-input`}
-                        className="flex cursor-pointer items-center justify-center space-x-2  rounded-md border border-dashed px-3  py-2 "
+                        // The file input inside is the control (focusable, named by the
+                        // question); the drop zone shows its focus.
+                        className="flex cursor-pointer items-center justify-center space-x-2 relative rounded-md border border-dashed px-3 py-2 focus-within:ring-2 focus-within:ring-(--file-focus) focus-within:ring-offset-2"
                     >
                         <div className={`flex w-full flex-col items-center justify-center space-y-3  py-10 `}>
                             <FolderUploadIcon
@@ -163,8 +167,20 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                                     color: theme?.secondary
                                 }}
                             />
-                            <input ref={inputFileRef} type="file" id={`${fileMetaData.id}-file-input`} className="hidden" onChange={handleFileInputChange} />
-                            <div style={{ color: theme?.secondary }} className="flex w-full flex-col items-center space-y-2 text-sm ">
+                            <WithQuestionLabel>
+                                {({ control }) => (
+                                    <input
+                                        ref={inputFileRef}
+                                        type="file"
+                                        id={`${fileMetaData.id}-file-input`}
+                                        className="sr-only"
+                                        onChange={handleFileInputChange}
+                                        {...control}
+                                        aria-describedby={joinIds(hintId, control['aria-describedby'])}
+                                    />
+                                )}
+                            </WithQuestionLabel>
+                            <div id={hintId} style={{ color: theme?.secondary }} className="flex w-full flex-col items-center space-y-2 text-sm ">
                                 <span className="font-semibold leading-4">{isDragging ? t('FILE.RELEASE') : t('FILE.CHOOSE')}</span>
                                 <span className="text-center text-xs leading-5">
                                     <span className="block">{t('FILE.MAX_SIZE', { size: MAX_FILE_MB })}</span>

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef } from 'react';
+import { useContext, useEffect, useMemo, useRef } from 'react';
 
 import parse from 'html-react-parser';
 import { AlertCircle } from 'lucide-react';
@@ -10,6 +10,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
+import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
@@ -22,9 +23,20 @@ import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headin
 import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 
+import { QuestionLabel, QuestionLabelContext } from './question-label-context';
 import { QuestionNumberContext } from './question-number-context';
 
-export default function QuestionWrapper({ field, children, errorMessage }: { field: StandardFormFieldDto; children?: React.ReactNode; errorMessage?: string }) {
+/**
+ * A question as respondents see it: title, "optional" or required mark,
+ * description, "why we ask this", the field's own controls (`children`) and
+ * the validation message.
+ *
+ * The controls are named by the title and described by the rest through
+ * QuestionLabelContext (useQuestionLabel), not by their placeholders. `group`
+ * makes the whole question a labelled group, for fields made of several
+ * controls with no group of their own (a matrix, a repeating group).
+ */
+export default function QuestionWrapper({ field, children, errorMessage, group = false }: { field: StandardFormFieldDto; children?: React.ReactNode; errorMessage?: string; group?: boolean }) {
     const { formResponse } = useFormResponse();
     const { theme } = useFormState();
     const tokens = styleTokens(theme?.style);
@@ -56,6 +68,9 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     // A text block is content, not a question: it reads as body text (its
     // own headings keep their sizes), not in the question-label style.
     const isTextBlock = field?.type === FieldTypes.TEXT;
+    // Fields with controls to name: the answerable ones, calculated values and
+    // repeating groups. Text blocks, images and videos have none.
+    const hasControls = !!field?.type && ![FieldTypes.TEXT, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT].includes(field.type);
 
     // Answer piping: swap pipe tokens for the responder's earlier answers (or
     // captured hidden-field values) before the title/description hit the DOM.
@@ -68,6 +83,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     const stringTitle = typeof field?.title === 'string' && field.title ? field.title : legacy;
     const title = stringTitle ? stringTitleToDoc(stringTitle, [{ type: 'bold' }]) : field?.title;
     const resolvedTitle = resolvePipesInTitle(title, pipeContext);
+    const titleHtml = getHtmlFromJson(resolvedTitle) ?? '';
     const resolvedDescription = resolvePipesInText(field?.description, pipeContext);
     // "Why we ask this": the creator's reason for an identifying question.
     const whyWeAsk = field?.properties?.whyWeAsk?.trim();
@@ -79,11 +95,28 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
     const numberColour = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
     // While the error shows, the field's own controls say so too: they are
-    // marked invalid and described by the message (the inputs are rendered
-    // by each field type, so they are reached here rather than threaded
-    // through every component), and their edge turns signal red.
+    // marked invalid and described by the message, and their edge turns
+    // signal red. The main control gets this through useQuestionLabel; this
+    // also reaches the secondary ones (an "Other" answer, table cells,
+    // matrix rows) without threading it through every component.
     const groupRef = useRef<HTMLDivElement>(null);
     const errorId = `q-error-${field.id}`;
+    const titleId = `q-title-${field.id}`;
+    const requiredId = `q-required-${field.id}`;
+
+    // The name the field's controls carry: the title as rendered (rich text
+    // and piped answers included) and, inside a repeating-group item, that
+    // item's heading ("Child 2"). An untitled question names nothing here, so
+    // a control falls back to its own label.
+    const itemScope = useGroupItemScope();
+    const hasTitle = !!titleHtml.replace(/<[^>]*>/g, '').trim();
+    const itemHeadingId = itemScope ? `group-item-${itemScope.groupId}-${itemScope.index}` : undefined;
+    const labelledBy = [hasTitle ? titleId : null, itemHeadingId].filter(Boolean).join(' ') || undefined;
+    const describedBy = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
+    const questionLabel: QuestionLabel = useMemo(
+        () => ({ labelledBy, describedBy, requiredId: isAnswerable && isRequired ? requiredId : undefined, required: isAnswerable && isRequired, invalid: hasError }),
+        [labelledBy, describedBy, requiredId, isAnswerable, isRequired, hasError]
+    );
     useEffect(() => {
         const controls = groupRef.current?.querySelectorAll<HTMLElement>('input:not([type=hidden]), textarea, select, [role=radiogroup], [role=combobox]');
         controls?.forEach((control) => {
@@ -107,15 +140,21 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 <div className="relative flex flex-wrap items-baseline gap-x-2.5">
                     {/* Labels: weight and contrast carry the hierarchy, not size
                         (ratified 2026-07-08 against the form-redesign mocks). */}
-                    <div id={`q-title-${field.id}`} className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
-                        {parse(getHtmlFromJson(resolvedTitle) ?? '')}
+                    <div className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
+                        {/* The title alone (no required mark): it is the controls' accessible name. */}
+                        <div id={titleId} className="contents">
+                            {parse(titleHtml)}
+                        </div>
                         {isAnswerable && isRequired && (
                             <>
                                 <span aria-hidden="true" style={{ color: requiredMarkColour(theme) }}>
                                     {' '}
                                     *
                                 </span>
-                                <span className="sr-only"> {t('FIELD.REQUIRED')}</span>
+                                <span id={requiredId} className="sr-only">
+                                    {' '}
+                                    {t('FIELD.REQUIRED')}
+                                </span>
                             </>
                         )}
                     </div>
@@ -143,7 +182,7 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
                 )}
             </div>
             <RenderImage field={field} />
-            {children}
+            <QuestionLabelContext.Provider value={hasControls ? questionLabel : null}>{children}</QuestionLabelContext.Provider>
             {/* Honest, non-alarmist validation: say what to do, not just that something is wrong,
                 and avoid alarm colours/urgency (DESIGN.md §5). The message is set in the
                 theme's ink (amber text fell under 4.5:1 on the tinted presets); the icon in
@@ -178,14 +217,15 @@ export default function QuestionWrapper({ field, children, errorMessage }: { fie
             data-question-wrapper
             data-invalid={hasError || undefined}
             id={field.id}
-            // Give assistive tech an accessible name/description for the field.
-            // Answerable fields become a labelled group so the question (and any
-            // description / validation message) is announced with the control.
-            {...(isAnswerable
+            // A question made of several controls with no group of their own is
+            // a group named by the title. Single controls, radio groups and the
+            // like carry the name themselves (useQuestionLabel); a group around
+            // them too would make screen readers say the question twice.
+            {...(hasControls && group
                 ? {
                       role: 'group',
-                      'aria-labelledby': `q-title-${field.id}`,
-                      'aria-describedby': [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, hasError ? `q-error-${field.id}` : null].filter(Boolean).join(' ') || undefined
+                      'aria-labelledby': labelledBy,
+                      'aria-describedby': [isAnswerable && isRequired ? requiredId : null, describedBy].filter(Boolean).join(' ') || undefined
                   }
                 : {})}
         >

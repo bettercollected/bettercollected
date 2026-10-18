@@ -104,7 +104,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             return <VideoField field={field} />;
         case FieldTypes.MATRIX:
             return (
-                <QuestionWrapper field={field}>
+                // Rows of radio groups (or checkboxes): one group named by the question.
+                <QuestionWrapper field={field} group>
                     <MatrixField field={field} />
                 </QuestionWrapper>
             );
@@ -428,6 +429,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     // Consent gets a calm, legible home of its own (DESIGN.md §2/§4):
                                     // 15px/1.5, high contrast, green-tinted container — and unchecked by
                                     // default, so sharing identity is a choice the person makes.
+                                    // Named by the consent statement; the hint (whose email) describes it.
                                     <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-[8px] border border-[#BFE0D2] bg-[#F2FAF6] p-4">
                                         {/* A real checkbox, not the text-field component: that one paints a
                                             solid white background, which hid the tick when checked. */}
@@ -440,12 +442,18 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                                 });
                                             }}
                                             type="checkbox"
+                                            aria-labelledby="share-email-consent-label"
+                                            aria-describedby="share-email-consent-hint"
                                             data-testid="share-email-consent"
                                             className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-[4px] border-2 border-control text-[#0E8A5F] checked:border-[#0E8A5F]"
                                         />
                                         <span className="flex flex-col gap-0.5">
-                                            <span className="text-[15px] leading-relaxed font-medium text-black-900">{t('CONSENT.SHARE_EMAIL')}</span>
-                                            <span className="text-[13px] text-black-700">{t('CONSENT.SHARE_EMAIL_HINT', { email: authState?.email })}</span>
+                                            <span id="share-email-consent-label" className="text-[15px] leading-relaxed font-medium text-black-900">
+                                                {t('CONSENT.SHARE_EMAIL')}
+                                            </span>
+                                            <span id="share-email-consent-hint" className="text-[13px] text-black-700">
+                                                {t('CONSENT.SHARE_EMAIL_HINT', { email: authState?.email })}
+                                            </span>
                                         </span>
                                     </label>
                                 )}

@@ -10,6 +10,7 @@ import { scrollToDivById } from '@app/utils/scroll-utils';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { cn } from '@app/shadcn/util/lib';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) => {
@@ -43,14 +44,18 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
             <div className="w-full space-y-2 p-0">
                 {/* A real radio group: one tab stop, arrow keys move between the
                     options, and each option is announced as a radio button. */}
-                <ChoiceRadioGroup
-                    labelledBy={`q-title-${field.id}`}
-                    theme={theme}
-                    value={getSelectedValue() ?? null}
-                    onChange={(value, { viaArrowKeys }) => handleClick(value, !viaArrowKeys)}
-                    className={cn(tokens.ruledChoices ? '' : 'space-y-2')}
-                    options={(field.properties?.choices ?? []).map((choice, index) => ({ key: choice.id ?? String(index), value: choice.id ?? '', label: choice.value ? choice.value : `Item ${index + 1}` }))}
-                />
+                <WithQuestionLabel>
+                    {({ control }) => (
+                        <ChoiceRadioGroup
+                            labelProps={control}
+                            theme={theme}
+                            value={getSelectedValue() ?? null}
+                            onChange={(value, { viaArrowKeys }) => handleClick(value, !viaArrowKeys)}
+                            className={cn(tokens.ruledChoices ? '' : 'space-y-2')}
+                            options={(field.properties?.choices ?? []).map((choice, index) => ({ key: choice.id ?? String(index), value: choice.id ?? '', label: choice.value ? choice.value : `Item ${index + 1}` }))}
+                        />
+                    )}
+                </WithQuestionLabel>
                 {field?.properties?.allowOtherChoice && (
                     <FieldInput
                         type="text"

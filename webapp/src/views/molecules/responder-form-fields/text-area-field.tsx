@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
@@ -48,6 +49,12 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
     };
 });
 
+/** The text area, named by the question it sits in (QuestionWrapper's label context). */
+function LabelledTextArea(props: React.ComponentProps<typeof StyledAutoSizeTextArea>) {
+    const { control } = useQuestionLabel();
+    return <StyledAutoSizeTextArea {...props} {...control} />;
+}
+
 export default function TextAreaField({ field }: { field: StandardFormFieldDto }) {
     const { formResponse, addFieldTextAnswer, addFieldEmailAnswer, addFieldNumberAnswer, addFieldURLAnswer, removeAnswer } = useFormResponse();
     const [inputVal, setInputVal] = useState((formResponse.answers && formResponse.answers[field.id]?.text) || '');
@@ -79,7 +86,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                     if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                 }}
             >
-                <StyledAutoSizeTextArea
+                <LabelledTextArea
                     $formTheme={theme}
                     rows={1}
                     value={inputVal}

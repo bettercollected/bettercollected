@@ -7,6 +7,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { WithQuestionLabel, joinIds } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
@@ -48,15 +49,20 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
             <div className="w-full space-y-2 p-0">
                 {/* A hint, not a heading: it tells the respondent this one
                     takes several answers (the controls are checkboxes too). */}
-                <p style={{ color: currentSlide?.properties?.theme?.primary || theme?.primary }} className="text-[13px] leading-snug opacity-90">
+                <p id={`choose-many-${field.id}`} style={{ color: currentSlide?.properties?.theme?.primary || theme?.primary }} className="text-[13px] leading-snug opacity-90">
                     {t('FIELD.CHOOSE_MANY')}
                 </p>
-                <div className={tokens.ruledChoices ? '' : 'space-y-2'}>
-                    {field.properties?.choices?.map((choice, index) => {
-                        const isSelected = selectedValues.includes(choice.id);
-                        return <Choice key={choice.id} kind="checkbox" isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} />;
-                    })}
-                </div>
+                {/* The checkboxes are a group named by the question. */}
+                <WithQuestionLabel>
+                    {({ group }) => (
+                        <div role="group" {...group} aria-describedby={joinIds(`choose-many-${field.id}`, group['aria-describedby'])} className={tokens.ruledChoices ? '' : 'space-y-2'}>
+                            {field.properties?.choices?.map((choice, index) => {
+                                const isSelected = selectedValues.includes(choice.id);
+                                return <Choice key={choice.id} kind="checkbox" isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} />;
+                            })}
+                        </div>
+                    )}
+                </WithQuestionLabel>
                 {field?.properties?.allowOtherChoice && (
                     <FieldInput
                         type="text"

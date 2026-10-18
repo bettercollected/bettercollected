@@ -28,6 +28,8 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     const bgColor = theme?.tertiary;
 
     const { updateRowTitle, updateColumnTitle, deleteColumn, deleteRow } = useBuilderActions();
+    const rowId = (index: number) => `matrix-${field.id}-row-${index}`;
+    const columnId = (index: number) => `matrix-${field.id}-col-${index}`;
     const activeField = useAtomValue(activeFieldAtom);
 
     return (
@@ -54,6 +56,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     field?.properties?.fields?.[0]?.properties?.choices?.length === index + 1 && 'rounded-tr-lg border-r-[2px]'
                                 )}
                                 key={choice?.id}
+                                id={columnId(index)}
                                 style={{
                                     borderColor: borderColor,
                                     background: bgColor + '55',
@@ -91,58 +94,59 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
             </div>
 
             {field?.properties?.fields?.map((row: StandardFormFieldDto, index) => {
-                return (
-                    <RadioGroup
-                        className="grid w-fit min-w-full"
-                        style={{
-                            gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))`
-                        }}
-                        onValueChange={(value) => {
-                            addFieldChoiceAnswer(row.id, value);
-                        }}
-                        value={formResponse?.answers[row.id]?.choice?.value}
-                        key={row?.id}
-                    >
-                        <div className="sticky left-0" style={{ background: theme?.accent }}>
-                            <div
-                                style={{
-                                    borderColor: borderColor,
-                                    background: bgColor + '55',
-                                    color: borderColor,
-                                    opacity: 1
-                                }}
-                                className={cn(
-                                    'relative z-10 flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border border-l-[2px] p-2',
-                                    index === 0 && 'rounded-tl-lg border-t-[2px]',
-                                    field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
-                                )}
-                            >
-                                {disabled ? (
-                                    <MatrixHeaderInput
-                                        disabled={!disabled}
-                                        value={row?.title?.toString() ?? `Row ${index + 1}`}
-                                        placeholder={`Row ${index + 1}`}
-                                        onChange={(value: string) => {
-                                            if (activeField?.id === field.id) updateRowTitle(index, value);
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="max-h-full max-w-full wrap-break-word text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
-                                )}
-                                {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
-                                    <button
-                                        type="button"
-                                        aria-label={`Remove row ${index + 1}`}
-                                        className="cross-top absolute left-1 h-6 w-6 rounded-full bg-white p-1 opacity-50 focus-visible:opacity-100"
-                                        onClick={() => {
-                                            deleteRow(index);
-                                        }}
-                                    >
-                                        <X className="h-4 w-4" aria-hidden="true" />
-                                    </button>
-                                )}
-                            </div>
+                // Each row is a group named by its row title (radio buttons, or
+                // checkboxes when several answers are allowed); each cell is
+                // named by its column title.
+                const rowProps = {
+                    className: 'grid w-fit min-w-full',
+                    style: { gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))` },
+                    'aria-labelledby': rowId(index)
+                };
+                const header = (
+                    <div className="sticky left-0" style={{ background: theme?.accent }}>
+                        <div
+                            id={rowId(index)}
+                            style={{
+                                borderColor: borderColor,
+                                background: bgColor + '55',
+                                color: borderColor,
+                                opacity: 1
+                            }}
+                            className={cn(
+                                'relative z-10 flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border border-l-[2px] p-2',
+                                index === 0 && 'rounded-tl-lg border-t-[2px]',
+                                field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
+                            )}
+                        >
+                            {disabled ? (
+                                <MatrixHeaderInput
+                                    disabled={!disabled}
+                                    value={row?.title?.toString() ?? `Row ${index + 1}`}
+                                    placeholder={`Row ${index + 1}`}
+                                    onChange={(value: string) => {
+                                        if (activeField?.id === field.id) updateRowTitle(index, value);
+                                    }}
+                                />
+                            ) : (
+                                <div className="max-h-full max-w-full wrap-break-word text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
+                            )}
+                            {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
+                                <button
+                                    type="button"
+                                    aria-label={`Remove row ${index + 1}`}
+                                    className="cross-top absolute left-1 h-6 w-6 rounded-full bg-white p-1 opacity-50 focus-visible:opacity-100"
+                                    onClick={() => {
+                                        deleteRow(index);
+                                    }}
+                                >
+                                    <X className="h-4 w-4" aria-hidden="true" />
+                                </button>
+                            )}
                         </div>
+                    </div>
+                );
+                const cells = (
+                    <>
                         {row?.properties?.choices?.map((choice: any, index: number) => {
                             return (
                                 <div
@@ -171,13 +175,32 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                             }}
                                             theme={theme}
                                             disabled={disabled}
+                                            aria-labelledby={columnId(index)}
                                         />
                                     ) : (
-                                        <RadioGroupItem value={choice.id} theme={theme} className="h-full" disabled={disabled} />
+                                        <RadioGroupItem value={choice.id} theme={theme} className="h-full" disabled={disabled} aria-labelledby={columnId(index)} />
                                     )}
                                 </div>
                             );
                         })}
+                    </>
+                );
+                return field.properties?.allowMultipleSelection ? (
+                    <div role="group" key={row?.id} {...rowProps}>
+                        {header}
+                        {cells}
+                    </div>
+                ) : (
+                    <RadioGroup
+                        key={row?.id}
+                        {...rowProps}
+                        onValueChange={(value) => {
+                            addFieldChoiceAnswer(row.id, value);
+                        }}
+                        value={formResponse?.answers[row.id]?.choice?.value}
+                    >
+                        {header}
+                        {cells}
                     </RadioGroup>
                 );
             })}
