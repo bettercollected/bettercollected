@@ -33,6 +33,9 @@ from tests.app.db.test_auto_migrate import _execute, _with_database, init_sql
 ROOT = Path(__file__).resolve().parents[3]
 ROLES_SCRIPT = ROOT / "postgres" / "ensure-admin-roles.sh"
 INIT_ROLES = ("app", "auth", "google", "jobs_exec")
+# the settings store's reader roles, see backend.admin.migration_support
+# (READER_SERVICES); "tasks" is the task runner's role, created by the roles script
+READER_ROLES = ("app", "auth", "google", "tasks")
 MASTER_KEY = base64.b64encode(bytes(range(48))).decode()
 
 needs_postgres = pytest.mark.skipif(
@@ -49,7 +52,7 @@ def roles_sql(
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
-    sql = re.sub(r"\bbc_tasks\b", f"bc_tasks_{suffix}", sql)
+    sql = re.sub(r"\bbc_(app|auth|google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return (
         sql.replace(":'admin_pw'", f"'{admin_pw}'")
         .replace(":'mig_pw'", f"'{mig_pw}'")
@@ -87,7 +90,7 @@ class Server:
     suffix: str
     admin_pw: str
     mig_pw: str
-    tasks_pw: str
+    reader_pw: str
     template: str  # bootstrapped and migrated
     boot: str  # bootstrapped only
 
@@ -96,21 +99,32 @@ class Server:
         return f"bc_admin_{self.suffix}"
 
     @property
-    def tasks_role(self) -> str:
-        return f"bc_tasks_{self.suffix}"
-
-    @property
     def owner_role(self) -> str:
         return f"bc_admin_mig_{self.suffix}"
 
+    @property
+    def tasks_role(self) -> str:
+        return self.reader_role("tasks")
+
+    @property
+    def tasks_pw(self) -> str:
+        # the runner role is also a settings reader: one password for all readers
+        return self.reader_pw
+
+    def reader_role(self, logical: str) -> str:
+        return f"bc_{logical}_{self.suffix}"
+
     def url(self, database: str, role: str = "superuser") -> str:
+        if role.startswith("reader:"):
+            return _with_database(
+                self.admin_url,
+                database,
+                self.reader_role(role.split(":", 1)[1]),
+                self.reader_pw,
+            )
         if role == "runtime":
             return _with_database(
                 self.admin_url, database, self.runtime_role, self.admin_pw
-            )
-        if role == "tasks":
-            return _with_database(
-                self.admin_url, database, self.tasks_role, self.tasks_pw
             )
         if role == "owner":
             return _with_database(
@@ -137,10 +151,16 @@ async def _bootstrap(server: Server, database: str) -> None:
     await _execute(
         server.url(database), init_sql(database, server.suffix, init_passwords)
     )
+    # bc_tasks is created by the roles script itself (the runner's login role)
     await _execute(
         server.url(database),
         roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw),
     )
+    for logical in READER_ROLES:
+        await _execute(
+            server.url(database),
+            f"ALTER ROLE \"{server.reader_role(logical)}\" PASSWORD '{server.reader_pw}'",
+        )
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
@@ -161,10 +181,12 @@ async def server():
         boot,
     )
     srv.created = [template, boot]
-    previous = os.environ.get("ADMIN_DB_RUNTIME_ROLE")
-    previous_tasks = os.environ.get("ADMIN_DB_ROLE_TASKS")
-    os.environ["ADMIN_DB_RUNTIME_ROLE"] = srv.runtime_role
-    os.environ["ADMIN_DB_ROLE_TASKS"] = srv.tasks_role
+    role_vars = {
+        "ADMIN_DB_RUNTIME_ROLE": srv.runtime_role,
+        **{f"ADMIN_DB_ROLE_{r.upper()}": srv.reader_role(r) for r in READER_ROLES},
+    }
+    previous = {k: os.environ.get(k) for k in role_vars}
+    os.environ.update(role_vars)
     postgres = _with_database(admin_url, "postgres")
     await _execute(postgres, f'CREATE DATABASE "{boot}"')
     try:
@@ -173,21 +195,17 @@ async def server():
         await upgrade_schema(srv.url(template, "owner"), MIGRATIONS)
         yield srv
     finally:
-        if previous is None:
-            os.environ.pop("ADMIN_DB_RUNTIME_ROLE", None)
-        else:
-            os.environ["ADMIN_DB_RUNTIME_ROLE"] = previous
-        if previous_tasks is None:
-            os.environ.pop("ADMIN_DB_ROLE_TASKS", None)
-        else:
-            os.environ["ADMIN_DB_ROLE_TASKS"] = previous_tasks
+        for name, old in previous.items():
+            if old is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = old
         for name in srv.created:
             await _execute(postgres, f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
         for role in (
             srv.runtime_role,
             srv.owner_role,
-            srv.tasks_role,
-            *(f"bc_{r}_{suffix}" for r in INIT_ROLES),
+            *(f"bc_{r}_{suffix}" for r in {*INIT_ROLES, *READER_ROLES}),
         ):
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
 
@@ -220,6 +238,6 @@ async def runtime_engine(server, migrated):
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def tasks_engine(server, migrated):
-    engine = create_async_engine(server.url(migrated, "tasks"), poolclass=NullPool)
+    engine = create_async_engine(server.url(migrated, "reader:tasks"), poolclass=NullPool)
     yield engine
     await engine.dispose()

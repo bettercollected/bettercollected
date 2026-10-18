@@ -1,7 +1,7 @@
 """data task runner schema: runs, run_events, checkpoints, locks
 
-Revision ID: 0004_tasks_schema
-Revises: 0003_audit_log
+Revision ID: 0007_tasks_schema
+Revises: 0006_notifications_outbox
 Create Date: 2026-10-18
 
 Schema ``tasks`` holds the task runner's state. Two roles touch it, each with
@@ -32,8 +32,8 @@ from sqlalchemy.dialects import postgresql
 from backend.admin.migration_support import grant
 from common.db.alembic_support import create_schema_if_missing_sql
 
-revision: str = "0004_tasks_schema"
-down_revision: Union[str, None] = "0003_audit_log"
+revision: str = "0007_tasks_schema"
+down_revision: Union[str, None] = "0006_notifications_outbox"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

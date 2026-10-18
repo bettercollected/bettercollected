@@ -28,7 +28,7 @@ pytestmark = needs_postgres
 
 BACKEND_ROOT = Path(admin_package.__file__).resolve().parents[2]
 INI = Path(admin_package.__file__).resolve().parent / "alembic.ini"
-HEAD = "0004_tasks_schema"
+HEAD = "0007_tasks_schema"
 TABLES = sorted([t.name for t in metadata.sorted_tables] + ["alembic_version"])
 
 
@@ -75,7 +75,10 @@ def test_the_chain_is_linear_with_hand_named_revisions():
         "0001_sessions_and_attempts",
         "0002_factors_and_recovery_codes",
         "0003_audit_log",
-        "0004_tasks_schema",
+        "0004_settings_tables",
+        "0005_settings_views",
+        "0006_notifications_outbox",
+        "0007_tasks_schema",
     ]
 
 
@@ -100,7 +103,10 @@ async def test_migrations_apply_from_empty_and_are_idempotent(server, unmigrated
         "0001_sessions_and_attempts",
         "0002_factors_and_recovery_codes",
         "0003_audit_log",
-        "0004_tasks_schema",
+        "0004_settings_tables",
+        "0005_settings_views",
+        "0006_notifications_outbox",
+        "0007_tasks_schema",
     ]
     assert await _tables(owner) == TABLES
     assert await upgrade_schema(owner, MIGRATIONS) == []

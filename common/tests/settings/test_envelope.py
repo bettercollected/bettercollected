@@ -2,8 +2,8 @@ import os
 
 import pytest
 
-from backend.admin.security import envelope
-from backend.admin.security.envelope import EnvelopeError, UnsupportedVersion
+from common.settings.crypto import envelope
+from common.settings.crypto.envelope import EnvelopeError, UnsupportedVersion
 
 KEY = bytes(range(32))
 AAD = b"factor-1|ann@example.org"
