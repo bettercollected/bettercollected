@@ -13,6 +13,19 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- **Complete-look theme presets, Kantlijn and Raster**: each sets colours,
+  faces, corners, button style, style, background and the welcome layout it
+  is made for in one pick. Kantlijn is a small-press book (Besley titles, a
+  cloth-green cover beside a marbled endpaper, a rose margin rule and notes);
+  Raster a Swiss poster (expanded Archivo titles on a visible column grid,
+  square edges, outlined buttons, the submission number as the ending's
+  headline). They are offered for new picks; stored forms do not change.
+  With them come a `selection` colour for the chosen answer, the `columns`
+  and `margin` background patterns, built-in `marble` artwork served by the
+  app itself, and an outlined button that fills on hover; all optional, with
+  absent meaning today's look, and accepted by the edit operations, the form
+  spec, whole-form saves and saved themes.
+
 - **Theme type and shape**: a form theme can set its title, text and data
   faces (Public Sans, Atkinson Hyperlegible Next, Archivo, Besley, Rubik,
   Atkinson Hyperlegible Mono; all self-hosted, OFL-1.1, loaded only by a form
