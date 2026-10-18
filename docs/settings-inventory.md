@@ -16,6 +16,15 @@ environment, whatever the tier.
 
 | Key | Section | Readers | Type | Secret | Reload | Tier | Default |
 |---|---|---|---|---|---|---|---|
+| `ADMIN_MAIL_PASSWORD` | admin_mail | admin | str | yes | R | T3 |  |
+| `ADMIN_MAIL_SENDER` | admin_mail | admin | str max 320 |  | R | T3 |  |
+| `ADMIN_MAIL_SMTP_PORT` | admin_mail | admin | int 1..65535 |  | R | T3 | `587` |
+| `ADMIN_MAIL_SMTP_SERVER` | admin_mail | admin | str host |  | R | T3 |  |
+| `ADMIN_MAIL_SSL_TLS` | admin_mail | admin | bool |  | R | T3 | `false` |
+| `ADMIN_MAIL_STARTTLS` | admin_mail | admin | bool |  | R | T3 | `true` |
+| `ADMIN_MAIL_USER` | admin_mail | admin | str max 320 |  | R | T3 |  |
+| `ADMIN_MAIL_USE_CREDENTIALS` | admin_mail | admin | bool |  | R | T3 | `true` |
+| `ADMIN_MAIL_VALIDATE_CERTS` | admin_mail | admin | bool |  | R | T3 | `true` |
 | `AI_CALL_TIMEOUT_SECONDS` | ai | backend | float 1..3600 |  | R | T1 | `120` |
 | `AI_CLIENT_MAX_RETRIES` | ai | backend | int 0..10 |  | R | T1 | `1` |
 | `AI_COMPAT_API_KEY` | ai | backend | str | yes | R | T2 |  |
