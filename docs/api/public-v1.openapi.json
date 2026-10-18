@@ -3720,6 +3720,19 @@
             ],
             "title": "Highlight",
             "description": "The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary."
+          },
+          "selection": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection",
+            "description": "The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary."
           }
         },
         "additionalProperties": false,
@@ -3802,6 +3815,19 @@
             ],
             "title": "Imageurl",
             "description": "Only images from our own storage or Unsplash are shown."
+          },
+          "artwork": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "marble"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artwork",
+            "description": "Built-in artwork served by the app (marble: a marbled endpaper). It fills the picture half of a welcome or ending page whose layout has one and no image of its own. Absent: none."
           }
         },
         "additionalProperties": false,

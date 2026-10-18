@@ -199,6 +199,14 @@ class ThemeBackground(_Spec):
     image_url: Optional[str] = Field(
         None, description="Only images from our own storage or Unsplash are shown."
     )
+    artwork: Optional[Literal["marble"]] = Field(
+        None,
+        description=(
+            "Built-in artwork served by the app (marble: a marbled endpaper). It "
+            "fills the picture half of a welcome or ending page whose layout has "
+            "one and no image of its own. Absent: none."
+        ),
+    )
 
 
 ThemeFont = Literal[
@@ -250,6 +258,11 @@ class Theme(_Spec):
         None,
         pattern=r"^#[0-9a-fA-F]{6}$",
         description="The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
+    )
+    selection: Optional[str] = Field(
+        None,
+        pattern=r"^#[0-9a-fA-F]{6}$",
+        description="The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
     )
 
 
