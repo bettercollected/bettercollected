@@ -33,6 +33,9 @@ from tests.app.db.test_auto_migrate import _execute, _with_database, init_sql
 ROOT = Path(__file__).resolve().parents[3]
 ROLES_SCRIPT = ROOT / "postgres" / "ensure-admin-roles.sh"
 INIT_ROLES = ("app", "auth", "google", "jobs_exec")
+# the settings store's reader roles, see backend.admin.migration_support
+# (READER_SERVICES); "tasks" does not exist in production yet, so it is created here
+READER_ROLES = ("app", "auth", "google", "tasks")
 MASTER_KEY = base64.b64encode(bytes(range(48))).decode()
 
 needs_postgres = pytest.mark.skipif(
@@ -47,6 +50,7 @@ def roles_sql(suffix: str, admin_pw: str, mig_pw: str) -> str:
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
+    sql = re.sub(r"\bbc_(app|auth|google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return sql.replace(":'admin_pw'", f"'{admin_pw}'").replace(
         ":'mig_pw'", f"'{mig_pw}'"
     )
@@ -82,6 +86,7 @@ class Server:
     suffix: str
     admin_pw: str
     mig_pw: str
+    reader_pw: str
     template: str  # bootstrapped and migrated
     boot: str  # bootstrapped only
 
@@ -93,7 +98,17 @@ class Server:
     def owner_role(self) -> str:
         return f"bc_admin_mig_{self.suffix}"
 
+    def reader_role(self, logical: str) -> str:
+        return f"bc_{logical}_{self.suffix}"
+
     def url(self, database: str, role: str = "superuser") -> str:
+        if role.startswith("reader:"):
+            return _with_database(
+                self.admin_url,
+                database,
+                self.reader_role(role.split(":", 1)[1]),
+                self.reader_pw,
+            )
         if role == "runtime":
             return _with_database(
                 self.admin_url, database, self.runtime_role, self.admin_pw
@@ -124,8 +139,17 @@ async def _bootstrap(server: Server, database: str) -> None:
         server.url(database), init_sql(database, server.suffix, init_passwords)
     )
     await _execute(
+        server.url(database),
+        f'CREATE ROLE "{server.reader_role("tasks")}" LOGIN NOSUPERUSER',
+    )
+    await _execute(
         server.url(database), roles_sql(server.suffix, server.admin_pw, server.mig_pw)
     )
+    for logical in READER_ROLES:
+        await _execute(
+            server.url(database),
+            f"ALTER ROLE \"{server.reader_role(logical)}\" PASSWORD '{server.reader_pw}'",
+        )
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
@@ -137,11 +161,21 @@ async def server():
     boot = f"bc_admin_test_boot_{uuid.uuid4().hex[:8]}"
     template = f"bc_admin_test_tpl_{uuid.uuid4().hex[:8]}"
     srv = Server(
-        admin_url, suffix, secrets.token_hex(12), secrets.token_hex(12), template, boot
+        admin_url,
+        suffix,
+        secrets.token_hex(12),
+        secrets.token_hex(12),
+        secrets.token_hex(12),
+        template,
+        boot,
     )
     srv.created = [template, boot]
-    previous = os.environ.get("ADMIN_DB_RUNTIME_ROLE")
-    os.environ["ADMIN_DB_RUNTIME_ROLE"] = srv.runtime_role
+    role_vars = {
+        "ADMIN_DB_RUNTIME_ROLE": srv.runtime_role,
+        **{f"ADMIN_DB_ROLE_{r.upper()}": srv.reader_role(r) for r in READER_ROLES},
+    }
+    previous = {k: os.environ.get(k) for k in role_vars}
+    os.environ.update(role_vars)
     postgres = _with_database(admin_url, "postgres")
     await _execute(postgres, f'CREATE DATABASE "{boot}"')
     try:
@@ -150,16 +184,17 @@ async def server():
         await upgrade_schema(srv.url(template, "owner"), MIGRATIONS)
         yield srv
     finally:
-        if previous is None:
-            os.environ.pop("ADMIN_DB_RUNTIME_ROLE", None)
-        else:
-            os.environ["ADMIN_DB_RUNTIME_ROLE"] = previous
+        for name, old in previous.items():
+            if old is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = old
         for name in srv.created:
             await _execute(postgres, f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
         for role in (
             srv.runtime_role,
             srv.owner_role,
-            *(f"bc_{r}_{suffix}" for r in INIT_ROLES),
+            *(f"bc_{r}_{suffix}" for r in {*INIT_ROLES, *READER_ROLES}),
         ):
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
 
