@@ -297,6 +297,30 @@ class SettingsRuntime:
         raise last or SourceUnavailable("unavailable")
 
     def start(self) -> None:
+        try:
+            self._start()
+        finally:
+            self._warn_unset_critical()
+
+    def _warn_unset_critical(self) -> None:
+        """Once, names only: secret and T3 settings with neither an environment
+        value nor a verified store row, so a misconfigured deployment is
+        visible without blocking the start."""
+        unset = sorted(
+            s.key
+            for s in self.registry.for_reader(self.service)
+            if (s.is_secret or s.tier is Tier.T3)
+            and not self._env_has(s.key)
+            and self.current.get(s.key) is None
+        )
+        if unset:
+            log.warning(
+                "settings with no value from the environment or the store (%d): %s",
+                len(unset),
+                ", ".join(unset),
+            )
+
+    def _start(self) -> None:
         cfg = self.config
         if cfg.mode == "required" and not cfg.configured:
             raise StoreError("SETTINGS_STORE=required needs DATABASE_URL and SETTINGS_MASTER_KEY")
@@ -411,7 +435,9 @@ class SettingsRuntime:
     def report(self) -> None:
         """Tell the store what this process applied. Raises ``SourceUnavailable``."""
         if self.source is not None:
-            self.source.report_state(instance_id(), self.state())
+            self.source.report_state(
+                instance_id(self.service, self.config.snapshot_dir), self.state()
+            )
 
     def poll_once(self) -> bool:
         """Check the manifest revision and apply a newer snapshot. True when the

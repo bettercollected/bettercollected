@@ -13,6 +13,7 @@ import asyncio
 import json
 import os
 import re
+import secrets
 import socket
 import threading
 from dataclasses import dataclass, field
@@ -64,10 +65,38 @@ class SnapshotSource(Protocol):
         ...
 
 
-def instance_id() -> str:
-    """Letters, digits and ``_.:-`` only, at most 64 characters."""
-    raw = f"{socket.gethostname()}-{os.getpid()}"
-    return re.sub(r"[^A-Za-z0-9_.:-]", "-", raw)[-64:] or "instance"
+def _clean(raw: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.:-]", "-", raw)
+
+
+def instance_id(service: str = "service", directory: Optional[str] = None) -> str:
+    """A stable id per container: ``service:hostname`` (the container hostname
+    lives as long as the container, so recreating containers cannot pile up
+    reported states). Without a usable hostname, a random id kept in
+    ``directory`` (mode 600); without that, a random id for this process.
+    Letters, digits and ``_.:-`` only, at most 64 characters."""
+    host = _clean(socket.gethostname() or "").strip("-")
+    if host and host.lower() not in ("localhost", "localhost.localdomain"):
+        return f"{service}:{host}"[:64]
+    if directory:
+        path = os.path.join(directory, f"instance-{service}")
+        try:
+            with open(path, "r", encoding="ascii") as handle:
+                saved = _clean(handle.read().strip())
+            if saved:
+                return f"{service}:{saved}"[:64]
+        except OSError:
+            pass
+        token = secrets.token_hex(8)
+        try:
+            os.makedirs(directory, mode=0o700, exist_ok=True)
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="ascii") as handle:
+                handle.write(token)
+        except OSError:
+            pass
+        return f"{service}:{token}"[:64]
+    return f"{service}:{secrets.token_hex(8)}"[:64]
 
 
 def libpq_url(url: str) -> str:
