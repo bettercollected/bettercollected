@@ -1,0 +1,70 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Configuration") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Configuration") }}</h1>
+<p>{{ _("Read-only. Secrets show only whether they are set and when they last changed; their values are never sent to this page.") }}</p>
+{% if error %}<p class="error" role="alert">{{ _("The filter was not understood:") }} {{ error }}.</p>{% endif %}
+
+<form method="get" action="/config" class="filters">
+  <div class="field">
+    <label for="section">{{ _("Section") }}</label>
+    <select id="section" name="section">
+      <option value="">{{ _("All sections") }}</option>
+      {% for s in config.sections %}<option value="{{ s }}"{% if s == section %} selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="tier">{{ _("Tier") }}</label>
+    <select id="tier" name="tier">
+      <option value="">{{ _("All tiers") }}</option>
+      {% for t in config.tiers %}<option value="{{ t }}"{% if t == tier %} selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit">{{ _("Filter") }}</button>
+  <a href="/config">{{ _("Clear") }}</a>
+</form>
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Settings') }}">
+<table class="config">
+  <caption>{{ rows | length }} {{ _("of") }} {{ config.total }} {{ _("settings") }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Key") }}</th><th scope="col">{{ _("Section") }}</th><th scope="col">{{ _("Tier") }}</th>
+    <th scope="col">{{ _("Type") }}</th><th scope="col">{{ _("Reload") }}</th><th scope="col">{{ _("Readers") }}</th>
+    <th scope="col">{{ _("Source") }}</th><th scope="col">{{ _("Value") }}</th>
+    <th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("Last changed") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <th scope="row"><code>{{ r.key }}</code>{% if r.secret %} <span class="tag">{{ _("secret") }}</span>{% endif %}</th>
+    <td>{{ r.section }}</td><td>{{ r.tier }}</td><td>{{ r.type }}</td><td>{{ r.reload }}</td><td>{{ r.readers }}</td>
+    <td>
+      {{ r.source }}
+      {% if r.overridden %}<span class="tag tag-warn">{{ _("overridden by environment") }}</span>{% endif %}
+      {% if r.restart %}<span class="tag tag-warn">{{ _("restart required") }}</span>{% endif %}
+    </td>
+    <td>
+      {% if r.source in ("environment only", "build argument") %}-
+      {% elif r.secret %}{% if r.is_set %}{{ _("set") }}{% else %}{{ _("not set") }}{% endif %}
+      {% elif r.overridden %}<em>{{ _("set by the environment") }}</em>
+      {% elif r.value is none %}<em>{{ _("not set") }}</em>
+      {% else %}<code>{{ r.value }}</code>{% endif %}
+    </td>
+    <td>{{ r.version if r.version is not none else "-" }}</td>
+    <td>{% if r.changed_at %}{{ r.changed_at | ts }}<br>{{ r.changed_by }}{% else %}-{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="10">{{ _("No settings match.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2>{{ _("Super admins") }}</h2>
+<p>{{ _("From PLATFORM_ADMIN_EMAILS (environment only; change it in the server's environment file).") }}</p>
+{% if admins %}
+<ul>{% for a in admins %}<li>{{ a }}</li>{% endfor %}</ul>
+{% else %}
+<p>{{ _("The list is empty.") }}</p>
+{% endif %}
+{% endblock %}

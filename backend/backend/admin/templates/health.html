@@ -1,0 +1,65 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Health") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Health") }}</h1>
+
+<h2>{{ _("Admin database") }}</h2>
+<p>
+  {% if health.database_ok %}<span class="ok">{{ _("Reachable") }}</span> ({{ health.database_ms }} {{ _("ms") }}).
+  {% else %}<span class="bad">{{ _("Not reachable") }}.</span>{% endif %}
+</p>
+
+<h2>{{ _("Schema migrations") }}</h2>
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Schema migrations') }}">
+<table>
+  <caption>{{ _("Alembic revision of each schema") }}</caption>
+  <thead><tr><th scope="col">{{ _("Schema") }}</th><th scope="col">{{ _("State") }}</th><th scope="col">{{ _("Current") }}</th><th scope="col">{{ _("Expected head") }}</th></tr></thead>
+  <tbody>
+  {% if health.admin_schema %}
+  {% set s = health.admin_schema %}
+  <tr><th scope="row">{{ s.schema }}</th>
+    <td>{% if s.state == "current" %}<span class="ok">{{ _("current") }}</span>{% else %}<span class="bad">{{ s.state }}</span>{% endif %}</td>
+    <td>{{ s.current }}</td><td>{{ s.expected }}</td></tr>
+  {% endif %}
+  {% for s in health.other_schemas %}
+  <tr><th scope="row">{{ s.schema }}</th>
+    {% if s.state == "unavailable" %}
+    <td colspan="3">{{ _("not available to this role") }}</td>
+    {% else %}
+    <td>{{ _("readable") }}</td><td>{{ s.current }}</td><td>-</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2>{{ _("Services") }}</h2>
+{% if health.heartbeats %}
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Services') }}">
+<table>
+  <caption>{{ _("Heartbeats reported by each service instance (store revision") }} {{ health.store_revision if health.store_revision is not none else "-" }})</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Service") }}</th><th scope="col">{{ _("Instance") }}</th><th scope="col">{{ _("State") }}</th>
+    <th scope="col">{{ _("Last report") }}</th><th scope="col">{{ _("Revision applied") }}</th><th scope="col">{{ _("Behind") }}</th>
+    <th scope="col">{{ _("Restart pending") }}</th><th scope="col">{{ _("Rejected keys") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for h in health.heartbeats %}
+  <tr>
+    <th scope="row">{{ h.service }}</th><td>{{ h.instance }}</td>
+    <td>{% if h.alive %}<span class="ok">{{ _("reporting") }}</span>{% else %}<span class="bad">{{ _("stopped") }}</span>{% endif %}</td>
+    <td>{{ h.age_seconds }} {{ _("s ago") }}</td>
+    <td>{{ h.revision_applied }}</td>
+    <td>{{ h.behind if h.behind is not none else "-" }}</td>
+    <td>{% if h.restart_pending %}<span class="warn">{{ _("yes") }}</span>{% else %}{{ _("no") }}{% endif %}</td>
+    <td>{{ h.rejected }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>{{ _("No service has reported yet.") }}</p>
+{% endif %}
+{% endblock %}

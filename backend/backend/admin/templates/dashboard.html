@@ -1,0 +1,41 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Dashboard") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Dashboard") }}</h1>
+<ul class="cards">
+  <li class="card">
+    <h2><a href="/health">{{ _("Health") }}</a></h2>
+    {% if not health.database_ok %}
+    <p class="bad">{{ _("The admin database is not reachable.") }}</p>
+    {% else %}
+    <p>{{ health.services_alive }} {{ _("services reporting") }}{% if health.services_stopped %}, <span class="bad">{{ health.services_stopped }} {{ _("stopped") }}</span>{% endif %}.</p>
+    {% if health.admin_schema %}<p>{{ _("Admin schema:") }} {{ health.admin_schema.state }}.</p>{% endif %}
+    {% endif %}
+  </li>
+  <li class="card">
+    <h2><a href="/config">{{ _("Configuration") }}</a></h2>
+    <p>{{ config.total }} {{ _("settings known") }}, {{ config.in_store }} {{ _("set in the store") }}, {{ config.overridden }} {{ _("overridden by the environment") }}.</p>
+    {% if config.restart_pending_services %}<p class="warn">{{ _("Restart required:") }} {{ config.restart_pending_services | join(", ") }}.</p>{% endif %}
+  </li>
+  <li class="card">
+    <h2><a href="/metrics">{{ _("Metrics") }}</a></h2>
+    <p>{{ _("Platform-wide counts: organisations, users, forms and responses.") }}</p>
+  </li>
+  <li class="card">
+    <h2><a href="/audit">{{ _("Audit log") }}</a></h2>
+    {% if audit.head_seq %}
+    <p>{{ _("Latest entry:") }} {{ audit.head_seq }}, {{ audit.head_at | ts }}.</p>
+    {% else %}
+    <p>{{ _("No entries yet.") }}</p>
+    {% endif %}
+  </li>
+  <li class="card">
+    <h2><a href="/sessions">{{ _("Sessions") }}</a></h2>
+    <p>{{ live_sessions }} {{ _("live sessions for your address.") }}</p>
+  </li>
+  <li class="card">
+    <h2><a href="/account">{{ _("Account") }}</a></h2>
+    <p>{{ _("Second factor and recovery codes.") }}</p>
+  </li>
+</ul>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Metrics") }}{% endblock %}
+{% macro stat(label, value) %}<tr><th scope="row">{{ label }}</th><td>{{ value }}</td></tr>{% endmacro %}
+{% block content %}
+<h1>{{ _("Metrics") }}</h1>
+{% if counts is none %}
+<p role="status">{{ _("Platform counts are not available right now") }} ({{ why }}). {{ _("They are read from the Postgres store through one read-only function; it needs the application migrations to have run.") }}</p>
+{% else %}
+<p>{{ _("Counts only, read from the Postgres store; they are complete once the application serves from Postgres. Nothing is decrypted and no person is identified.") }}</p>
+<div class="grid">
+<table>
+  <caption>{{ _("Organisations") }}</caption>
+  <tbody>
+    {{ stat(_("Total"), counts.organizations.total) }}
+    {{ stat(_("New in the last 30 days"), counts.organizations.new_last_30_days) }}
+    {{ stat(_("Disabled"), counts.organizations.disabled) }}
+  </tbody>
+</table>
+<table>
+  <caption>{{ _("Users") }}</caption>
+  <tbody>
+    {{ stat(_("Total"), counts.users.total) }}
+    {{ stat(_("New in the last 30 days"), counts.users.new_last_30_days) }}
+    {{ stat(_("Active in the last 30 days"), counts.users.active_last_30_days) }}
+    {% for plan, n in counts.users.by_plan.items() %}{{ stat(_("Plan") ~ " " ~ plan, n) }}{% endfor %}
+  </tbody>
+</table>
+<table>
+  <caption>{{ _("Forms") }}</caption>
+  <tbody>
+    {{ stat(_("Total"), counts.forms.total) }}
+    {{ stat(_("Published"), counts.forms.published) }}
+    {{ stat(_("New in the last 30 days"), counts.forms.new_last_30_days) }}
+    {{ stat(_("Creators"), counts.form_creators.total) }}
+    {{ stat(_("Creators active in the last 30 days"), counts.form_creators.active_last_30_days) }}
+    {% for provider, n in counts.forms.by_provider.items() %}{{ stat(_("Provider") ~ " " ~ provider, n) }}{% endfor %}
+  </tbody>
+</table>
+<table>
+  <caption>{{ _("Responses") }}</caption>
+  <tbody>
+    {{ stat(_("Total"), counts.responses.total) }}
+    {{ stat(_("Last 7 days"), counts.responses.last_7_days) }}
+    {{ stat(_("Last 30 days"), counts.responses.last_30_days) }}
+    {{ stat(_("From identified responders"), counts.form_responders.identified) }}
+    {{ stat(_("Anonymous responses"), counts.form_responders.anonymous_responses) }}
+  </tbody>
+</table>
+</div>
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Weekly counts') }}">
+<table>
+  <caption>{{ _("Weekly counts (weeks start on Monday, UTC)") }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Week starting") }}</th><th scope="col">{{ _("New users") }}</th><th scope="col">{{ _("New organisations") }}</th>
+    <th scope="col">{{ _("New forms") }}</th><th scope="col">{{ _("Responses") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for w in counts.weekly %}
+  <tr><th scope="row">{{ w.week_start }}</th><td>{{ w.new_users }}</td><td>{{ w.new_organizations }}</td><td>{{ w.new_forms }}</td><td>{{ w.responses }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}
