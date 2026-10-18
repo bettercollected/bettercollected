@@ -34,7 +34,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
-from common.services.crypto_service import crypto_service
+from common.services.crypto_service import UnreadableCiphertext, crypto_service
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
@@ -303,11 +303,16 @@ def project_responses(
     for index, response in enumerate(responses, start=1):
         answers = response.answers
         if isinstance(answers, (bytes, str)):
-            answers = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id, form_id=response.form_id, data=answers
+            try:
+                answers = json.loads(
+                    crypto_service.decrypt(
+                        workspace_id=workspace_id,
+                        form_id=response.form_id,
+                        data=answers,
+                    )
                 )
-            )
+            except UnreadableCiphertext:
+                continue  # left out, like a response with no answers
         if not isinstance(answers, dict):
             continue
         lines = []

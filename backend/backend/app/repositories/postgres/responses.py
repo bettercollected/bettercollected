@@ -67,7 +67,7 @@ from common.models.standard_form import (
     StandardFormResponseAnswer,
 )
 from common.models.user import User
-from common.services.crypto_service import crypto_service
+from common.services.crypto_service import UnreadableCiphertext, crypto_service
 from camel_converter import to_camel, to_snake
 
 
@@ -709,15 +709,22 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             )
         answers = response_document.answers
         if not isinstance(answers, dict):
-            answers = (
-                json.loads(
-                    crypto_service.decrypt(
-                        workspace_id=workspace_id, form_id=form_id, data=answers
+            try:
+                answers = (
+                    json.loads(
+                        crypto_service.decrypt(
+                            workspace_id=workspace_id, form_id=form_id, data=answers
+                        )
                     )
+                    if answers
+                    else {}
                 )
-                if answers
-                else {}
-            )
+            except UnreadableCiphertext:
+                # merging into nothing would drop the stored answers
+                raise HTTPException(
+                    status_code=HTTPStatus.CONFLICT,
+                    content="This submission can't be read, so it can't be edited.",
+                )
         for k, v in (response.answers or {}).items():
             answers[k] = (
                 v.model_dump(mode="json")
