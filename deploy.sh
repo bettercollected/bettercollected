@@ -24,6 +24,8 @@ fi
 # Extra precaution (docs/admin-service.md): create containers one at a time. The
 # compose file's explicit network priorities are what fix the occasional
 # one-network attach of containers on two networks (app-postgres, admin).
+# Note this also serialises `pull` and `up --build` for the whole stack, so a
+# deploy can take longer; set COMPOSE_PARALLEL_LIMIT yourself to change it.
 export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
 
 # The stack's own signing and encryption keys (AUTH_JWT_SECRET,
@@ -69,6 +71,20 @@ for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASS
     echo "Generated a new ${var} in .env (first run)."
   fi
 done
+
+# BC_ADMIN_PASSWORD and BC_ADMIN_MIG_PASSWORD go unencoded into database URLs
+# (compose ADMIN_DATABASE_URL, the migration URL below): only URL-safe characters
+# are accepted, because "@", "/", "#" or "?" would break the URL or point it
+# elsewhere. Generated values are hex; this guards values set by hand.
+for var in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD; do
+  value=$(grep -E "^${var}=" .env | tail -n 1 | cut -d= -f2-)
+  if ! printf '%s' "$value" | grep -Eq '^[A-Za-z0-9._~-]+$'; then
+    echo "${var} in .env must be non-empty and use only letters, digits, '.', '_', '~' and '-'" >&2
+    echo "(it is placed unencoded in a database URL). Remove the line to have a new one generated." >&2
+    exit 1
+  fi
+done
+unset value
 
 # The internal admin service (database foundations only so far): BC_ADMIN_PASSWORD
 # is its runtime role, BC_ADMIN_MIG_PASSWORD the migration role that owns schema

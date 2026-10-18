@@ -8,8 +8,8 @@
 #   scripts/admin-compose-check.sh
 #
 # Needs: bash, docker (with compose v2), curl, openssl. By default it builds the
-# backend image from this checkout (tag bc-admin-check:local, removed afterwards).
-# To test another image: ADMIN_CHECK_IMAGE=<image>. KEEP=1 leaves the project up.
+# backend image from this checkout (tag bc-admin-check:local, replaced if it exists, removed afterwards).
+# To test an existing image instead: ADMIN_CHECK_IMAGE=<image> (never removed). KEEP=1 leaves the project up.
 set -uo pipefail
 # same as deploy.sh: see the note there about containers on two networks
 export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
@@ -110,10 +110,15 @@ wait_health() { # wait_health <seconds>; prints the final status
 
 # --- image and throw-away settings ---------------------------------------------------
 echo "== setup (project $project)"
-if ! docker image inspect "$image" >/dev/null 2>&1; then
-  echo "  building $image from backend/Dockerfile (a few minutes the first time)"
+if [ -z "${ADMIN_CHECK_IMAGE:-}" ]; then
+  # always test this checkout: drop a leftover tag from an earlier run first
+  docker rmi "$image" >/dev/null 2>&1
+  echo "  building $image from backend/Dockerfile (a few minutes)"
   docker build -q -t "$image" -f backend/Dockerfile . >/dev/null || { echo "image build failed" >&2; exit 2; }
   built_image=1
+elif ! docker image inspect "$image" >/dev/null 2>&1; then
+  echo "ADMIN_CHECK_IMAGE $image does not exist" >&2
+  exit 2
 fi
 port="$(free_port)" || exit 2
 subnet="$(free_subnet)" || exit 2
