@@ -3,6 +3,7 @@ import { CSSProperties } from 'react';
 import { FormTheme, ThemeBackground, ThemePattern, ThemeStyle } from '@app/constants/theme';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { cn } from '@app/shadcn/util/lib';
+import { contrast } from '@app/utils/color-contrast';
 import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import ImageUrlField from '@app/views/molecules/theme/image-url-field';
 
@@ -108,21 +109,9 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
 
 export const Swatch = ({ color }: { color: string }) => <span className="border-black-300 h-3 w-3 rounded-full border" style={{ background: color }} aria-hidden="true" />;
 
-// Relative luminance + contrast ratio (WCAG 2.1). Native <input type="color">
-// always yields a 6-digit hex, so no short-hex handling is needed here.
-function luminance(hex: string): number {
-    const c = hex.replace('#', '');
-    const channels = [0, 2, 4]
-        .map((i) => parseInt(c.substring(i, i + 2), 16) / 255)
-        .map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
-}
-
-export function contrast(a: string, b: string): number {
-    const l1 = luminance(a);
-    const l2 = luminance(b);
-    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-}
+// WCAG contrast ratio (utils/color-contrast.ts), kept exported here for the
+// theme code that already reads it from this module.
+export { contrast };
 
 /**
  * Live legibility read for a custom palette — the same roles the presets are
