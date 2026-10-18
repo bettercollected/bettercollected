@@ -12,6 +12,7 @@ import FormCards from '@app/components/dashboard/form-cards';
 import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { workspaceConstant } from '@app/constants/locales/workspace';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
@@ -22,9 +23,12 @@ interface IWorkspaceFormsTabContentProps {
     /** Set when rendered outside the public portal (the admin dashboard's
      *  Public Workspace preview) so form links point at the real portal. */
     publicBaseUrl?: string;
+    /** The form search is in the respondent's language on the portal, in the
+     *  app's on the team's dashboard (`team`). */
+    audience?: 'respondent' | 'team';
 }
 
-export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false, publicBaseUrl }: IWorkspaceFormsTabContentProps) {
+export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false, publicBaseUrl, audience = 'respondent' }: IWorkspaceFormsTabContentProps) {
     const workspaceId = workspace.id;
     const query = {
         workspace_id: workspaceId,
@@ -44,6 +48,10 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     const [searchWorkspaceForms] = useLazySearchWorkspaceFormsQuery();
     const [allForms, setAllForms] = useState<any>([]);
     const { t } = useTranslation();
+    const respondent = useRespondentLanguage();
+    const team = useTranslation('respondent');
+    const searchText = audience === 'team' ? team : respondent;
+    const searchLanguage = audience === 'team' ? team.i18n.language : respondent.language;
 
     const handleSearch = async (event: any) => {
         const response: any = await searchWorkspaceForms({
@@ -87,8 +95,8 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
         <div className="flex w-full flex-col gap-6">
             {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} publicBaseUrl={publicBaseUrl} />}
             {pinnedForms?.items?.length !== 0 && <Divider />}
-            <div className={`w-full md:w-[282px]`}>
-                <SearchInput placeholder="Search forms" handleSearch={handleSearch} />
+            <div className={`w-full md:w-[282px]`} lang={searchLanguage}>
+                <SearchInput placeholder={searchText.t('PORTAL.SEARCH_FORMS')} handleSearch={handleSearch} />
             </div>
             {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} publicBaseUrl={publicBaseUrl} />}
         </div>

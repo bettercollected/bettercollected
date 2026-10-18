@@ -21,12 +21,11 @@ import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import SiretoFooter from '@app/components/layout/sireto-footer';
 import PoweredBy from '@app/components/ui/powered-by';
-import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 import SearchBySubmissionNumber from './search-by-submission-number';
 
@@ -38,6 +37,8 @@ export default function ResponderPortalLayoutClient({
     hasCustomDomain: boolean;
 }) {
     const { t } = useTranslation();
+    // The tab names are in the respondent's language (and marked so).
+    const { t: tRespondent, language } = useRespondentLanguage();
     const auth = useAppSelector(selectAuth);
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
@@ -53,12 +54,12 @@ export default function ResponderPortalLayoutClient({
     const tabs = [
         {
             icon: <FormIcon />,
-            title: t(localesCommon.forms),
+            title: tRespondent('PORTAL.FORMS'),
             path: 'forms'
         },
         {
             icon: <HistoryIcon className="w-5 h-5" />,
-            title: t(formConstant.submittedForms),
+            title: tRespondent('PORTAL.MY_SUBMISSIONS'),
             path: 'my-submissions'
         }
     ];
@@ -66,7 +67,7 @@ export default function ResponderPortalLayoutClient({
     if (auth.id) {
         tabs.push({
             icon: <TrashIcon className="w-5 h-5" />,
-            title: t(formConstant.deletionRequests),
+            title: tRespondent('PORTAL.DELETION_REQUESTS'),
             path: 'deletion-requests'
         });
     }
@@ -158,7 +159,7 @@ export default function ResponderPortalLayoutClient({
                 )}
             </div>
             <div className="flex flex-1 flex-col pb-4! md:min-h-0 md:min-w-0 md:pl-12">
-                <div className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0">
+                <div className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0" lang={language}>
                     {tabs.map((tab) => {
                         const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
                         return (
