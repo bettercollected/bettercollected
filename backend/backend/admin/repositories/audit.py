@@ -21,16 +21,21 @@ async def lock_chain(conn: AsyncConnection) -> None:
     await conn.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": CHAIN_LOCK_KEY})
 
 
-async def head_and_now(conn: AsyncConnection) -> tuple[Optional[bytes], datetime]:
+async def head_and_now(
+    conn: AsyncConnection,
+) -> tuple[Optional[bytes], Optional[int], datetime]:
+    """(latest row_hash, latest seq, database clock); the first two are ``None``
+    for an empty log."""
     row = (
         await conn.execute(
             text(
-                "SELECT (SELECT row_hash FROM admin.audit_log ORDER BY seq DESC LIMIT 1), "
-                "clock_timestamp()"
+                "SELECT h.row_hash, h.seq, clock_timestamp() "
+                "FROM (SELECT 1) one LEFT JOIN LATERAL "
+                "(SELECT row_hash, seq FROM admin.audit_log ORDER BY seq DESC LIMIT 1) h ON true"
             )
         )
     ).one()
-    return (bytes(row[0]) if row[0] is not None else None), row[1]
+    return (bytes(row[0]) if row[0] is not None else None), row[1], row[2]
 
 
 async def insert(conn: AsyncConnection, values: Mapping[str, Any]) -> int:
