@@ -4,6 +4,7 @@ volumes:
   settings-snapshots-backend:
   settings-snapshots-auth:
   settings-snapshots-google:
+  settings-snapshots-jobs:
   mongo-data:
   app-postgres-data:
   umami-db-data:
@@ -78,7 +79,10 @@ services:
 
   postgresql:
     environment:
-      POSTGRES_PASSWORD: temporal
+      # Internal only (no published port). deploy.sh generates the password into
+      # the root .env for a new volume; a volume created by an earlier release keeps
+      # its original password, which is the default here (docs/admin-service.md).
+      POSTGRES_PASSWORD: ${BC_TEMPORAL_DB_PASSWORD:-temporal}
       POSTGRES_USER: temporal
     # Pinned (not `postgres:latest`): an unpinned tag silently moves to new
     # major versions, which refuse to start against an old major version's
@@ -105,7 +109,7 @@ services:
       - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=temporal
-      - POSTGRES_PWD=temporal
+      - POSTGRES_PWD=${BC_TEMPORAL_DB_PASSWORD:-temporal}
       - POSTGRES_SEEDS=postgresql
       # Without this, auto-setup binds to the container's dynamic bridge IP
       # (logged as "TEMPORAL_ADDRESS is not set, setting it to <ip>:7233"),
@@ -114,8 +118,10 @@ services:
       # service name, which is also what worker/backend already use to reach it.
       - TEMPORAL_ADDRESS=temporal:7233
     image: temporalio/auto-setup
-    ports:
-      - "7234:7233"
+    # No published port: Temporal's frontend has no authentication, so anything
+    # that reaches 7233 can start, signal or terminate workflows. Only the
+    # compose network (backend, worker) talks to it. To inspect it from the
+    # host: `docker compose exec temporal temporal ...`.
     healthcheck:
       test: ['CMD', 'temporal', 'operator', 'cluster', 'health', '--address', 'temporal:7233']
       interval: 5s
@@ -170,10 +176,16 @@ services:
     image: bettercollected/temporal-worker:nightly
     environment:
       TEMPORAL_SERVER_URL: temporal:7233
-      # the backend's TEMPORAL_API_KEY: its internal job routes require it
-      API_KEY: ${TEMPORAL_API_KEY:?set by deploy.sh in the root .env}
-      # the stack's AUTH_AES_HEX_KEY (a Fernet key): preview tokens
-      AES_HEX_KEY: ${AUTH_AES_HEX_KEY:?set by deploy.sh in the root .env}
+      # The worker stays off the settings store and never gets the master key: it
+      # runs a browser on user-supplied URLs. It keeps two copies of keys the
+      # store holds, written to the root .env by deploy.sh (bootstrap-keys
+      # --export-worker): API_KEY is the backend's TEMPORAL_API_KEY (its internal
+      # job routes require it), AES_HEX_KEY the stack's AUTH_AES_HEX_KEY (a Fernet
+      # key: preview tokens). settings-drift compares both with the store.
+      # (`:-`, not `:?`: compose reads this file before the keys exist on a new
+      # stack, and deploy.sh writes both before it starts the worker)
+      API_KEY: ${API_KEY:-}
+      AES_HEX_KEY: ${AES_HEX_KEY:-}
 
     env_file:
       - .env.deployment
@@ -195,49 +207,45 @@ services:
     image: bettercollected/backend:nightly
     # image: bettercollected/backend:nightly
     environment:
+      # Settings come from the settings store (docs/settings-loader.md): the
+      # service refuses to start when it cannot read it. SETTINGS_STORE=off in
+      # the root .env is the rollback to the old environment-only behaviour.
+      SETTINGS_STORE: ${SETTINGS_STORE:-required}
+      SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
       # the signed settings snapshot (a rollback floor and a DB-down fallback) must
       # survive container recreation: keep it on a named volume
       SETTINGS_SNAPSHOT_DIR: /var/lib/bc-settings
-      # the internal API serves no /docs, /redoc or /openapi.json unless true
-      API_DOCS_ENABLED: "false"
-      # debug mode answers unhandled errors with an HTML traceback; keep it off
-      DEBUG: "false"
+      # DEBUG and API_DOCS_ENABLED are deliberately not set here: both default to
+      # off in the code, and a value pinned here would silently win over the
+      # portal.
       AUTH_BASE_URL: http://auth:8000/api/v1
-      AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
-      # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
-      # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
-      UMAMI_URL: http://umami:3000
       DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
-      # shared with auth and integrations-googleform: the auth service's API
-      # refuses every request without it (sign-in, users, billing, mails)
-      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
-      # shared with worker (and the actions-executor, as API_KEY): the internal
-      # job routes (imports, deletions, actions) answer 503 without it
-      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:?set by deploy.sh in the root .env}
-      # this stack's own signing and encryption keys, generated by deploy.sh
-      # into the root .env (deploy/generate-secrets.sh); the services refuse
-      # to start without them or with a value published in the repository
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set by deploy.sh in the root .env}
-      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:?set by deploy.sh in the root .env}
-      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:?set by deploy.sh in the root .env}
+      # Keys the store holds (generated by `bootstrap-keys` on a new stack,
+      # imported by deploy.sh on an upgrade). They are passed through from the
+      # root .env only so an upgrade can import them and so an operator can
+      # override the store in an emergency; an empty value means "read the
+      # store". `deploy.sh settings-prune` removes them from the files.
+      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:-}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
+      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
       # Schema migrations: deploy.sh runs them before the services roll. A stack
       # deployed without it (Docker Swarm / docker stack deploy, CI) can let each
       # service migrate its own schema at startup instead — replicas serialise on
       # a Postgres advisory lock — by setting, here or in .env.deployment:
       # DB_AUTO_MIGRATE: "true"
-      # PDF form import: documents are only opened by the isolated document-sandbox
       # Client addresses: the TCP peer is the client unless it is listed here.
-      # Set TRUSTED_PROXIES in the root .env to the address(es)/CIDR(s) your
-      # reverse proxy or load balancer connects from (comma-separated, IPv4
-      # and IPv6) so its X-Forwarded-For / CF-Connecting-IP are believed;
-      # left empty, every client looks like the proxy. API_TRUSTED_PROXIES
-      # is read too, from the root .env.
+      # TRUSTED_PROXIES (or API_TRUSTED_PROXIES) in the root .env imports into the
+      # store (the API_TRUSTED_PROXIES setting: comma-separated addresses/CIDRs
+      # of your reverse proxy, IPv4 and IPv6) and can then be changed in the portal.
       API_TRUSTED_PROXIES: ${TRUSTED_PROXIES:-${API_TRUSTED_PROXIES:-}}
+      # PDF form import: documents are only opened by the isolated document-sandbox
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
-      # Single sign-on (docs/sso.md): off unless SSO_ENABLED=true in the root
-      # .env; deploy.sh then adds docker-compose.sso-deployment.yml (Polis and
-      # its networks). All SSO_* values come from the root .env.
+      # Single sign-on (docs/sso.md) stays environment-driven in this release:
+      # deploy.sh reads SSO_ENABLED from the root .env to add the Polis overlay
+      # docker-compose.sso-deployment.yml. All SSO_* values come from the root .env.
       SSO_ENABLED: ${SSO_ENABLED:-false}
       SSO_POLIS_URL: ${SSO_POLIS_URL:-}
       SSO_POLIS_INTERNAL_URL: http://polis:5225
@@ -423,20 +431,18 @@ services:
     image: bettercollected/backend:nightly
     command: ["/api/backend/.venv/bin/python", "-m", "backend.jobs.worker"]
     environment:
+      # reads the same settings as the backend (same database role), with a
+      # snapshot volume of its own
+      SETTINGS_STORE: ${SETTINGS_STORE:-required}
+      SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
+      SETTINGS_SNAPSHOT_DIR: /var/lib/bc-settings
       AUTH_BASE_URL: http://auth:8000/api/v1
-      AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
-      # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
-      # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
-      UMAMI_URL: http://umami:3000
       DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
-      # delete_user removes the account from the auth service (see backend)
-      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
-      # this stack's own signing and encryption keys, generated by deploy.sh
-      # into the root .env (deploy/generate-secrets.sh); the services refuse
-      # to start without them or with a value published in the repository
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set by deploy.sh in the root .env}
-      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:?set by deploy.sh in the root .env}
-      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:?set by deploy.sh in the root .env}
+      # keys the store holds: see the backend service above
+      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:-}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
+      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
       # PDF form import: documents are only opened by the isolated document-sandbox
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
@@ -450,6 +456,7 @@ services:
       - .env.deployment
     volumes:
       - doc-sandbox:/run/doc-sandbox
+      - settings-snapshots-jobs:/var/lib/bc-settings
     depends_on:
       app-postgres:
         condition: service_healthy
@@ -460,27 +467,22 @@ services:
     image: bettercollected/auth:nightly
     # image: bettercollected/auth:nightly
     environment:
+      SETTINGS_STORE: ${SETTINGS_STORE:-required}
+      SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
       # the signed settings snapshot (a rollback floor and a DB-down fallback) must
       # survive container recreation: keep it on a named volume
       SETTINGS_SNAPSHOT_DIR: /var/lib/bc-settings
-      # the internal API serves no /docs, /redoc or /openapi.json unless true
-      API_DOCS_ENABLED: "false"
-      # debug mode answers unhandled errors with an HTML traceback; keep it off
-      DEBUG: "false"
-      TYPEFORM_REDIRECT_URI: "http://localhost:8000/api/v1/auth/typeform/basic/callback"
-      TYPEFORM_SCOPE: "accounts:read"
-      # Stripe
-      STRIPE_SUCCESS_URL: ${STRIPE_REDIRECT_URL}
-      STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL}
-      STRIPE_RETURN_URL: ${STRIPE_REDIRECT_URL}
+      # DEBUG and API_DOCS_ENABLED: not pinned, see the backend service
       DATABASE_URL: postgresql+asyncpg://bc_auth:${BC_AUTH_PASSWORD}@app-postgres:5432/bettercollected
-      # every route but /ready and POST /stripe/webhooks requires it
-      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
-      # this stack's own signing and encryption keys, generated by deploy.sh
-      # into the root .env (deploy/generate-secrets.sh); auth refuses to start
-      # without them or with a value published in the repository
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set by deploy.sh in the root .env}
-      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:?set by deploy.sh in the root .env}
+      # keys the store holds: see the backend service above
+      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:-}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
+      # Stripe: one root .env value expands to the three return URLs (imported
+      # once; empty means "read the store")
+      STRIPE_SUCCESS_URL: ${STRIPE_REDIRECT_URL:-}
+      STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL:-}
+      STRIPE_RETURN_URL: ${STRIPE_REDIRECT_URL:-}
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
       # Single sign-on (docs/sso.md): auth runs the OAuth code exchange with
       # Polis; it never needs the Polis admin API key.
@@ -505,37 +507,34 @@ services:
     env_file:
       - .env.deployment
 
+  # Not on the settings store: this image is not built from this repository, so
+  # it keeps reading its three keys from the environment (the root .env). Keep
+  # them there (`deploy.sh settings-prune` passes --keep for them).
   integrations-typeform:
     image: bettercollected/integrations-typeform:nightly
     # image: bettercollected/integrations-typeform:nightly
     environment:
-      # this stack's own signing and encryption keys, generated by deploy.sh
-      # into the root .env (deploy/generate-secrets.sh)
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set by deploy.sh in the root .env}
-      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:?set by deploy.sh in the root .env}
-      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:?set by deploy.sh in the root .env}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
+      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
     env_file:
       - .env.deployment
 
   integrations-googleform:
     image: bettercollected/integrations-google:nightly
     environment:
+      SETTINGS_STORE: ${SETTINGS_STORE:-required}
+      SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
       # the signed settings snapshot (a rollback floor and a DB-down fallback) must
       # survive container recreation: keep it on a named volume
       SETTINGS_SNAPSHOT_DIR: /var/lib/bc-settings
-      # the internal API serves no /docs, /redoc or /openapi.json unless true
-      API_DOCS_ENABLED: "false"
-      # debug mode answers unhandled errors with an HTML traceback; keep it off
-      DEBUG: "false"
+      # DEBUG and API_DOCS_ENABLED: not pinned, see the backend service
       DATABASE_URL: postgresql+asyncpg://bc_google:${BC_GOOGLE_PASSWORD}@app-postgres:5432/bettercollected
-      # calls the auth service's /users, which requires it
-      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}
-      # this stack's own signing and encryption keys, generated by deploy.sh
-      # into the root .env (deploy/generate-secrets.sh); the services refuse
-      # to start without them or with a value published in the repository
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set by deploy.sh in the root .env}
-      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:?set by deploy.sh in the root .env}
-      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:?set by deploy.sh in the root .env}
+      # keys the store holds: see the backend service above
+      AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:-}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
+      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
     env_file:
       - .env.deployment
@@ -547,27 +546,34 @@ services:
 
   # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
   # First-pass exposure: plain host port 3003, no TLS/reverse-proxy — put it
-  # behind nginx/TLS yourself for a production deployment.
+  # behind nginx/TLS yourself for a production deployment. The port has to stay
+  # reachable by respondents' browsers (the tracker script and its events), so
+  # Umami's own login is internet-facing: deploy.sh replaces its built-in
+  # admin/umami login with a generated password after the first start (and on
+  # an upgrade, when the built-in login still works) and stores it as the
+  # backend's UMAMI_PASSWORD setting. Its database is internal only.
   #
   # No manual website setup needed: the backend auto-provisions a website
   # named UMAMI_WEBSITE_NAME (default "BetterCollected") on first boot if
   # UMAMI_WEBSITE_ID is unset — see backend/AGENTS.md "Analytics (Umami)".
   # You only need to set UMAMI_SCRIPT_URL (webapp, browser-facing, e.g.
-  # http://<host>:3003/script.js) in .env.deployment; log into
-  # http://<host>:3003 as admin/umami just to change the default password.
+  # http://<host>:3003/script.js) in .env.deployment.
   #
-  # `deploy.sh` auto-generates UMAMI_APP_SECRET below into a root `.env` file
-  # on first run (docker compose's own var-substitution file — it's not read
-  # from .env.deployment, which only supplies container env). Running the
-  # compose file directly instead of via deploy.sh? Set it yourself first:
+  # `deploy.sh` auto-generates UMAMI_APP_SECRET and BC_UMAMI_DB_PASSWORD below
+  # into a root `.env` file on first run (docker compose's own var-substitution
+  # file — it's not read from .env.deployment, which only supplies container
+  # env). Running the compose file directly instead of via deploy.sh? Set
+  # UMAMI_APP_SECRET yourself first:
   #   echo "UMAMI_APP_SECRET=$(openssl rand -hex 32)" >> .env
+  # A database volume created by an earlier release keeps its original
+  # password (`umami`), which is what an unset BC_UMAMI_DB_PASSWORD means.
   umami-postgresql:
     image: postgres:15-alpine
     restart: always
     environment:
       POSTGRES_DB: umami
       POSTGRES_USER: umami
-      POSTGRES_PASSWORD: umami
+      POSTGRES_PASSWORD: ${BC_UMAMI_DB_PASSWORD:-umami}
     volumes:
       - umami-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -582,7 +588,7 @@ services:
     ports:
       - '3003:3000'
     environment:
-      DATABASE_URL: postgresql://umami:umami@umami-postgresql:5432/umami
+      DATABASE_URL: postgresql://umami:${BC_UMAMI_DB_PASSWORD:-umami}@umami-postgresql:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET}
     depends_on:
       umami-postgresql:
