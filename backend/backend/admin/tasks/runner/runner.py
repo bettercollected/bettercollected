@@ -59,6 +59,21 @@ HEARTBEAT_SECONDS = 10
 GRACE_SECONDS = 30
 POLL_SECONDS = 5
 DRY_RUN_MAX_AGE = timedelta(hours=24)
+MAX_REQUEST_AGE_CAP = timedelta(hours=24)
+MAX_AGE_ENV = "ADMIN_TASKS_MAX_REQUEST_AGE_HOURS"
+
+
+def max_request_age(env=None) -> timedelta:
+    """How old a queued request may be before it is refused as ``expired``:
+    ``ADMIN_TASKS_MAX_REQUEST_AGE_HOURS`` (whole hours), never above 24 h."""
+    import os
+
+    raw = (env if env is not None else os.environ).get(MAX_AGE_ENV, "")
+    try:
+        hours = int(raw) if raw.strip() else 24
+    except ValueError:
+        hours = 24
+    return min(timedelta(hours=max(1, hours)), MAX_REQUEST_AGE_CAP)
 
 _OUTCOME = {
     RunState.succeeded: "success",
@@ -91,6 +106,7 @@ class Runner:
         heartbeat_seconds: Optional[float] = HEARTBEAT_SECONDS,
         lease_seconds: float = LEASE_SECONDS,
         grace_seconds: float = GRACE_SECONDS,
+        max_request_age_seconds: Optional[float] = None,
     ) -> None:
         self.engine = engine
         self.registry = registry
@@ -99,6 +115,15 @@ class Runner:
         self.heartbeat_seconds = heartbeat_seconds
         self.lease_seconds = lease_seconds
         self.grace_seconds = grace_seconds
+        cap = MAX_REQUEST_AGE_CAP.total_seconds()
+        self.max_request_age = timedelta(
+            seconds=min(
+                cap,
+                max_request_age_seconds
+                if max_request_age_seconds is not None
+                else max_request_age().total_seconds(),
+            )
+        )
         self.stopping = False
         self._keys: dict[int, bytes] = {}
 
@@ -141,6 +166,10 @@ class Runner:
             return "bad_signature"
         if not signing.verify_request(row, key):
             return "bad_signature"
+        # the signed timestamp is the request's age: an old request (a stopped
+        # runner, a forgotten queue) is not run on a decision nobody remembers
+        if self.clock.now() - row["requested_at"] > self.max_request_age:
+            return "expired"
         registered = self.registry.get(row["task"])
         if registered is None:
             return "unknown_task"
@@ -243,6 +272,18 @@ class Runner:
                     )
                 ):
                     return "resume_mismatch"
+                if not meta.idempotent:
+                    again = (
+                        await conn.execute(
+                            text(
+                                "SELECT 1 FROM tasks.runs WHERE resumes_run_id = :id "
+                                "AND state = 'succeeded' AND id <> :me LIMIT 1"
+                            ),
+                            {"id": row["resumes_run_id"], "me": row["id"]},
+                        )
+                    ).first()
+                    if again is not None:
+                        return "already_resumed"
             if meta.requires_prior_dry_run and not row["dry_run"]:
                 since = self.clock.now() - DRY_RUN_MAX_AGE
                 found = (
@@ -250,13 +291,14 @@ class Runner:
                         text(
                             "SELECT 1 FROM tasks.runs WHERE task = :t AND version = :v "
                             "AND params_hash = :h AND dry_run AND state = 'succeeded' "
-                            "AND finished_at > :since LIMIT 1"
+                            "AND finished_at > :since AND finished_at < :requested_at LIMIT 1"
                         ),
                         {
                             "t": row["task"],
                             "v": row["version"],
                             "h": row["params_hash"],
                             "since": since,
+                            "requested_at": row["requested_at"],
                         },
                     )
                 ).first()
@@ -287,6 +329,18 @@ class Runner:
         """All of the task's locks or none (``False``)."""
         try:
             async with self.engine.begin() as conn:
+                # still ours? (a takeover would have ended the run)
+                owned = (
+                    await conn.execute(
+                        text(
+                            "SELECT 1 FROM tasks.runs WHERE id = :id AND state = 'running' "
+                            "AND runner_id = :rid FOR UPDATE"
+                        ),
+                        {"id": row["id"], "rid": self.runner_id},
+                    )
+                ).first()
+                if owned is None:
+                    raise LeaseLost()
                 await conn.execute(
                     text(
                         "DELETE FROM tasks.locks l USING tasks.runs r "
@@ -385,6 +439,10 @@ class Runner:
         )
         beat: Optional[asyncio.Task] = None
         try:
+            # the lease is renewed from the moment of the claim, so a slow
+            # precheck or gate cannot let another runner take the run over
+            if self.heartbeat_seconds:
+                beat = asyncio.create_task(self._heartbeat(ctx, row))
             params = meta.params.model_validate(row["params"])
             refusal = await self._gate(row, meta)
             if refusal is None:
@@ -400,8 +458,6 @@ class Runner:
                 await self._finish(ctx, row, RunState.refused, code=refusal)
                 return RunState.refused
 
-            if self.heartbeat_seconds:
-                beat = asyncio.create_task(self._heartbeat(ctx, row))
             try:
                 outcome = await impl.run(ctx, params)
                 result = meta.result.model_validate(outcome).model_dump(mode="json")

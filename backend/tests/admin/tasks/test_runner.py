@@ -434,30 +434,93 @@ async def test_resume_needs_the_same_keyset_fingerprint(world):
 
 
 # -- dry run requirement ---------------------------------------------------------------------
+async def _later(world, seconds=1):
+    """A request time after everything that has finished so far."""
+    world.clock.advance(seconds)
+    return world.clock.now()
+
+
 async def test_requires_prior_dry_run(world):
     params = {"items": 5, "batch_size": 5}
     real = await world.enqueue("selftest_guarded", params)
     await world.drain()
     assert (await world.run(real))["refusal_code"] == "dry_run_required"
 
-    dry = await world.enqueue("selftest_guarded", params, dry_run=True)
+    dry = await world.enqueue("selftest_guarded", params, dry_run=True, requested_at=await _later(world))
     await world.drain()
     assert (await world.run(dry))["state"] == "succeeded"
     assert slow_impl.WORLD == set()  # a dry run changes nothing
 
-    other_params = await world.enqueue("selftest_guarded", {"items": 6, "batch_size": 5})
+    other_params = await world.enqueue(
+        "selftest_guarded", {"items": 6, "batch_size": 5}, requested_at=await _later(world)
+    )
     await world.drain()
     assert (await world.run(other_params))["refusal_code"] == "dry_run_required"
 
-    allowed = await world.enqueue("selftest_guarded", params)
+    allowed = await world.enqueue("selftest_guarded", params, requested_at=await _later(world))
     await world.drain()
     assert (await world.run(allowed))["state"] == "succeeded"
     assert slow_impl.WORLD == set(range(5))
 
     world.clock.advance(24 * 3600 + 1)
-    stale = await world.enqueue("selftest_guarded", params)
+    stale = await world.enqueue("selftest_guarded", params, requested_at=await _later(world))
     await world.drain()
     assert (await world.run(stale))["refusal_code"] == "dry_run_required"
+
+
+async def test_a_dry_run_queued_back_to_back_with_the_apply_does_not_count(world):
+    """The apply must be requested after the dry run finished, so someone could
+    have seen its result. Both queued together (or double-submitted): refused."""
+    params = {"items": 5, "batch_size": 5}
+    t0 = world.clock.now()
+    dry = await world.enqueue("selftest_guarded", params, dry_run=True, requested_at=t0)
+    apply_ = await world.enqueue(
+        "selftest_guarded", params, requested_at=t0 + timedelta(seconds=1)
+    )
+    world.clock.advance(5)  # the runner gets to them a few seconds later
+    await world.drain()
+    assert (await world.run(dry))["state"] == "succeeded"
+    assert (await world.run(apply_))["refusal_code"] == "dry_run_required"
+    assert slow_impl.WORLD == set()
+
+
+async def test_a_dry_run_finished_before_the_request_counts_even_if_run_later(world):
+    params = {"items": 5, "batch_size": 5}
+    dry = await world.enqueue("selftest_guarded", params, dry_run=True)
+    await world.drain()
+    assert (await world.run(dry))["state"] == "succeeded"
+    apply_ = await world.enqueue("selftest_guarded", params, requested_at=await _later(world, 30))
+    world.clock.advance(2 * 3600)  # the runner was stopped for a while
+    await world.drain()
+    assert (await world.run(apply_))["state"] == "succeeded"
+    assert slow_impl.WORLD == set(range(5))
+
+
+async def test_a_stale_request_is_refused_as_expired(world):
+    old = await world.enqueue("selftest", {})
+    world.clock.advance(24 * 3600 + 1)
+    fresh = await world.enqueue("selftest", {}, requested_at=world.clock.now())
+    await world.drain()
+    assert (await world.run(old))["refusal_code"] == "expired"
+    assert (await world.run(old))["started_at"] is None
+    assert (await world.run(fresh))["state"] == "succeeded"
+    assert await world.audit_rows("task.run.started") != []
+    assert len(await world.audit_rows("task.run.started")) == 1
+
+
+async def test_the_maximum_request_age_is_configurable_but_capped(world, monkeypatch):
+    from backend.admin.tasks.runner.runner import max_request_age
+
+    assert world.runner(max_request_age_seconds=10 * 3600).max_request_age == timedelta(hours=10)
+    assert world.runner(max_request_age_seconds=1000 * 3600).max_request_age == timedelta(hours=24)
+    assert max_request_age({}) == timedelta(hours=24)
+    assert max_request_age({"ADMIN_TASKS_MAX_REQUEST_AGE_HOURS": "6"}) == timedelta(hours=6)
+    assert max_request_age({"ADMIN_TASKS_MAX_REQUEST_AGE_HOURS": "999"}) == timedelta(hours=24)
+    assert max_request_age({"ADMIN_TASKS_MAX_REQUEST_AGE_HOURS": "junk"}) == timedelta(hours=24)
+    run_id = await world.enqueue("selftest", {})
+    world.clock.advance(11 * 3600)
+    await world.drain(world.runner(max_request_age_seconds=10 * 3600))
+    assert (await world.run(run_id))["refusal_code"] == "expired"
 
 
 async def test_a_failed_or_refused_dry_run_does_not_count(world):
@@ -465,9 +528,93 @@ async def test_a_failed_or_refused_dry_run_does_not_count(world):
     dry = await world.enqueue("selftest_guarded", params, dry_run=True)
     await world.drain()
     assert (await world.run(dry))["state"] == "failed"
-    real = await world.enqueue("selftest_guarded", params)
+    real = await world.enqueue("selftest_guarded", params, requested_at=await _later(world))
     await world.drain()
     assert (await world.run(real))["refusal_code"] == "dry_run_required"
+
+
+async def test_a_dry_run_cannot_write_through_the_task_connection(world):
+    params = {"items": 5, "batch_size": 5, "write_probe": True}
+    dry = await world.enqueue("selftest_slow", params, dry_run=True)
+    await world.drain()
+    run = await world.run(dry)
+    assert run["state"] == "failed"
+    assert (await world.events(dry))[-1]["error_class"] != "TaskError"
+    assert await world.locks() == []
+    real = await world.enqueue("selftest_slow", params, requested_at=await _later(world))
+    await world.drain()
+    assert (await world.run(real))["state"] == "succeeded"  # a real run may write
+
+
+async def test_a_run_is_resumed_from_a_checkpoint_only_once(world):
+    import dataclasses
+
+    gate = Gate(at_batch=1)
+    install(gate)
+    base = await world.enqueue("selftest_slow", SLOW)
+    row, task = await start(world, world.runner())
+    await asyncio.wait_for(gate.reached.wait(), 60)
+    await world.cancel(base)
+    gate.release.set()
+    await task
+    slow_impl.HOOKS.__dict__.clear()
+
+    first = await world.enqueue("selftest_slow", SLOW, resumes=base)
+    await world.drain()
+    assert (await world.run(first))["state"] == "succeeded"
+    second = await world.enqueue("selftest_slow", SLOW, resumes=base)
+    await world.drain()
+    assert (await world.run(second))["refusal_code"] == "already_resumed"
+
+    # a task that says it can be replayed from the same checkpoint may
+    registry = Registry()
+    registry.register(dataclasses.replace(slow_impl.META, idempotent=True), slow_impl.SelfTestSlow())
+    runner = world.runner()
+    runner.registry = registry
+    third = await world.enqueue("selftest_slow", SLOW, resumes=base)
+    await world.drain(runner)
+    assert (await world.run(third))["state"] == "succeeded"
+
+
+async def test_the_lease_is_renewed_from_the_claim_not_from_the_start_of_run(world):
+    release = asyncio.Event()
+    reached = asyncio.Event()
+    run_id = await world.enqueue("selftest_slow", SLOW)
+    runner = world.runner(runner_id="runner-slow-precheck", heartbeat_seconds=0.05)
+    row, registered = await runner.claim()
+    impl = registered.impl
+
+    async def slow_precheck(ctx, params):
+        reached.set()
+        await release.wait()
+
+    impl.precheck = slow_precheck
+    try:
+        task = asyncio.create_task(runner.execute(row, registered))
+        await asyncio.wait_for(reached.wait(), 60)
+        before = (await world.run(run_id))["heartbeat_at"]
+        world.clock.advance(200)  # far past lease + grace
+        for _ in range(200):
+            await asyncio.sleep(0.1)
+            if (await world.run(run_id))["heartbeat_at"] > before:
+                break
+        assert await world.runner().takeover_stale() == 0
+        release.set()
+        assert await task == "succeeded"
+    finally:
+        del impl.precheck
+
+
+async def test_a_claimed_run_that_was_taken_over_never_takes_locks(world):
+    run_id = await world.enqueue("selftest_slow", SLOW)
+    runner = world.runner(runner_id="runner-late")
+    claimed = await runner.claim()
+    world.clock.advance(91)
+    assert await world.runner(runner_id="runner-taker").takeover_stale() == 1
+    assert await runner.execute(*claimed) == "interrupted"
+    assert await world.locks() == []
+    assert slow_impl.WORLD == set()
+    assert (await world.run(run_id))["state"] == "interrupted"
 
 
 # -- failure handling and caps -----------------------------------------------------------------

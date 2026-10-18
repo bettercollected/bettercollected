@@ -79,6 +79,7 @@ class ValueType(str, Enum):
 ENV_ONLY_KEYS = frozenset(
     {
         "DATABASE_URL",
+        "TASKS_DATABASE_URL",
         "SETTINGS_MASTER_KEY",
         "SETTINGS_MASTER_KEY_PREVIOUS",
         "SETTINGS_STORE",
