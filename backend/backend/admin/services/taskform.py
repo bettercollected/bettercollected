@@ -29,7 +29,7 @@ from backend.admin.tasks.spec import TaskMeta
 PREFIX = "p_"
 MAX_TEXT = 2000
 MAX_LINES_TEXT = 20_000
-KINDS = ("text", "int", "enum", "bool", "lines")
+KINDS = ("text", "int", "enum", "bool", "lines", "multi")
 UNSUPPORTED = "unsupported"
 MAX_INT_DIGITS = 12
 
@@ -59,6 +59,10 @@ class FormField:
     @property
     def supported(self) -> bool:
         return self.kind != UNSUPPORTED
+
+    def choice_name(self, choice: str) -> str:
+        """The checkbox name of one choice of a ``multi`` field."""
+        return f"{PREFIX}{self.name}__{choice}"
 
     @property
     def default_text(self) -> str:
@@ -124,6 +128,11 @@ def _build(name: str, spec: Mapping, defs: Mapping, required: bool) -> FormField
         )
     if kind == "array":
         items = _resolve(inner.get("items") or {}, defs)
+        if "enum" in items and all(isinstance(c, str) for c in items["enum"]):
+            return FormField(
+                kind="multi", choices=tuple(items["enum"]),
+                max_items=_int_or_none(inner.get("maxItems")), **base,
+            )
         if items.get("type") == "string" and "enum" not in items:
             return FormField(
                 kind="lines", min_items=_int_or_none(inner.get("minItems")),
@@ -167,6 +176,11 @@ def form_values(fields: list[FormField], params: Mapping[str, Any]) -> dict[str,
         if not f.supported:
             continue
         value = params.get(f.name, f.default)
+        if f.kind == "multi":
+            chosen = {getattr(v, "value", v) for v in (value or [])}
+            for c in f.choices:
+                out[f.choice_name(c)] = c in chosen
+            continue
         out[f.input_name] = bool(value) if f.kind == "bool" else field_text(f, value)
     return out
 
@@ -186,6 +200,11 @@ def read_form(fields: list[FormField], form: Mapping[str, Any]) -> tuple[dict, s
             continue
         if f.kind == "bool":
             raw[f.name] = _form_get(form, f.input_name, 8) is not None
+            continue
+        if f.kind == "multi":
+            chosen = [c for c in f.choices if form.get(f.choice_name(c)) is not None]
+            if chosen:
+                raw[f.name] = chosen
             continue
         if f.kind == "lines":
             text = _form_get(form, f.input_name, MAX_LINES_TEXT + 1)
@@ -256,8 +275,8 @@ def summary(fields: list[FormField], params: Mapping[str, Any]) -> list[tuple[st
         value = params.get(f.name)
         if f.kind == "bool":
             text = bool(value)
-        elif f.kind == "lines":
-            text = ", ".join(value) if value else "-"
+        elif f.kind in ("lines", "multi"):
+            text = ", ".join(getattr(v, "value", v) for v in value) if value else "-"
         else:
             text = field_text(f, value) or "-"
         rows.append((f.label, text))

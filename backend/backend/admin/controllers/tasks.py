@@ -110,6 +110,9 @@ def _posted_values(fields, form: Mapping[str, str], bad) -> dict:
             continue
         if f.kind == "bool":
             values[f.input_name] = f.input_name in form
+        elif f.kind == "multi":
+            for c in f.choices:
+                values[f.choice_name(c)] = f.choice_name(c) in form
         elif isinstance(form.get(f.input_name), str):
             values[f.input_name] = form[f.input_name][: taskform.MAX_LINES_TEXT]
     return values

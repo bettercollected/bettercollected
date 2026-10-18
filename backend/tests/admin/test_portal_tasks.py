@@ -228,7 +228,8 @@ async def test_backfill_form_renders_typed_fields(ctx):
 def test_form_fields_cover_every_registered_meta():
     for meta in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "1"}):
         fields = taskform.fields_for(meta)
-        assert fields and all(f.supported for f in fields), meta.name
+        assert all(f.supported for f in fields), meta.name
+        assert fields or meta.name == "keyset.add_key"
         assert taskform.can_submit(fields)
     kinds = {f.name: f.kind for f in taskform.fields_for(responses_backfill.META)}
     assert kinds == {"stores": "enum", "batch_size": "int", "workspace_id": "text", "form_ids": "lines"}
@@ -754,7 +755,7 @@ async def test_real_runs_and_their_cancel_enqueue_the_admin_notice_in_the_same_t
     run_id = final.headers["location"].split("?")[0].rsplit("/", 1)[1]
     prepared = await ctx.prepare("cancel", {"run_id": run_id})
     await ctx.post(f"/tasks/runs/{run_id}/cancel", {"stepup_token": TOKEN_FIELD.search(prepared.text).group(1)})
-    rows = await ctx.sql("SELECT kind, payload, audit_seq, dedupe_key FROM admin.notifications ORDER BY id")
+    rows = await ctx.sql("SELECT kind, payload, audit_seq, dedupe_key FROM admin.notifications ORDER BY audit_seq")
     assert [r["kind"] for r in rows] == ["tasks.run", "tasks.run"]
     assert rows[0]["payload"] == {"task": SLOW, "run_id": run_id, "state": "queued", "actor": ADMIN}
     assert rows[1]["payload"]["state"] == "cancel_requested"
@@ -762,3 +763,31 @@ async def test_real_runs_and_their_cancel_enqueue_the_admin_notice_in_the_same_t
     audited = {r["seq"] for r in await ctx.sql("SELECT seq FROM admin.audit_log")}
     assert {r["audit_seq"] for r in rows} <= audited
     assert len({r["dedupe_key"] for r in rows}) == 2
+
+
+def test_keyset_task_forms_cover_lists_of_enums_flags_and_bounded_ids():
+    from backend.admin.tasks.catalog import keyset
+
+    fields = {f.name: f for f in taskform.fields_for(keyset.REENCRYPT)}
+    assert fields["targets"].kind == "multi" and fields["targets"].choices == ("responses", "google_credentials")
+    assert fields["primary_id"].kind == "int" and fields["primary_id"].maximum == 4294967295
+    assert fields["google_in_use"].default is True and fields["typeform_acknowledged"].default is False
+    parsed = taskform.parse(
+        keyset.REENCRYPT, list(fields.values()),
+        {"p_primary_id": "7", "p_targets__responses": "on", "p_google_in_use": "on"},
+    )
+    assert parsed.params["targets"] == ["responses"] and parsed.params["google_in_use"] is True
+    assert parsed.params["typeform_acknowledged"] is False and parsed.params["primary_id"] == 7
+    assert taskform.parse(keyset.REENCRYPT, list(fields.values()), {"p_primary_id": "0"}).bad == {"primary_id"}
+    none = taskform.parse(keyset.REENCRYPT, list(fields.values()), {"p_primary_id": "7"})
+    assert none.params["targets"] == [] and none.params["google_in_use"] is False
+
+
+async def test_keyset_form_renders_checkboxes_and_promote_needs_a_dry_run_first(ctx):
+    html = (await ctx.b.get("/tasks/keyset.reencrypt")).text
+    assert 'name="p_targets__responses"' in html and 'name="p_targets__google_credentials"' in html
+    assert re.search(r'name="p_google_in_use" checked', html) and "Tick none to cover all" in html
+    refused = await ctx.prepare("apply", {"task": "keyset.promote", "p_new_primary_id": "5"})
+    assert refused.status_code == 409 and TOKEN_FIELD.search(refused.text) is None
+    empty = await ctx.dry_run("keyset.add_key")
+    assert (await ctx.runs("keyset.add_key"))[0]["params"] == {} and empty

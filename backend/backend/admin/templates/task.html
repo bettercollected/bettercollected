@@ -36,6 +36,14 @@
   {% set err = f.name in bad %}
   {% if not f.supported %}
   <p class="warn" role="note"><code>{{ f.name }}</code>: {{ _("this parameter's type cannot be edited here; the default is used.") }}</p>
+  {% elif f.kind == "multi" %}
+  <fieldset class="field">
+    <legend>{{ f.label }}</legend>
+    {% for c in f.choices %}
+    <label class="check" for="{{ f.input_name }}__{{ c }}"><input type="checkbox" id="{{ f.input_name }}__{{ c }}" name="{{ f.input_name }}__{{ c }}"{% if values[f.choice_name(c)] %} checked{% endif %}> {{ c }}</label>
+    {% endfor %}
+    <p class="hint">{{ _("Tick none to cover all.") }}</p>
+  </fieldset>
   {% elif f.kind == "bool" %}
   <div class="field">
     <label class="check" for="{{ f.input_name }}"><input type="checkbox" id="{{ f.input_name }}" name="{{ f.input_name }}"{% if values[f.input_name] %} checked{% endif %}{% if err %} aria-invalid="true"{% endif %}> {{ f.label }}</label>

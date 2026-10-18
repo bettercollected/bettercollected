@@ -35,7 +35,7 @@
     <p><a href="/tasks/runs/{{ r.id }}">{{ _("Refresh") }}</a></p>
   </div>
   {% if r.refusal_code %}
-  <p class="error" role="alert"><code>{{ r.refusal_code }}</code>{% if r.refusal_code in refusal_texts %}: {{ refusal_texts[r.refusal_code] }}{% else %}: {{ _("The task declined to run.") }}{% endif %}</p>
+  <p class="error" role="alert"><code>{{ r.refusal_code }}</code>{% if r.refusal_code in refusal_texts %}: {{ refusal_texts[r.refusal_code] }}{% else %}: {{ _("The task declined to run:") }} {{ r.refusal_code.replace("_", " ") }}{% endif %}</p>
   {% endif %}
   {% if r.state == "failed" %}<p class="error" role="alert">{{ _("The run failed. The recorded events below name the error class.") }}</p>{% endif %}
   <dl class="facts">
