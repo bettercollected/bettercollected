@@ -133,6 +133,58 @@ async def _rewrap() -> int:
     return 0
 
 
+async def _with_portal(action):
+    """Run ``action(portal)`` with the services the web app uses."""
+    from backend.admin.portal import Portal
+
+    engine = make_engine(AdminSettings.from_env())
+    try:
+        return await action(Portal.build(engine))
+    finally:
+        await engine.dispose()
+
+
+async def _unlock(email: str) -> int:
+    async def run(portal):
+        await portal.limiter.unlock(email)
+        async with portal.engine.begin() as conn:
+            await audit.write(
+                conn, "cli.unlock", "account", None, None, None, "success",
+                actor_kind="cli", detail={"account_len": len(email)},
+            )
+
+    await _with_portal(run)
+    print("unlocked")
+    return 0
+
+
+async def _resume() -> int:
+    async def run(portal):
+        await portal.limiter.resume_sign_in()
+        async with portal.engine.begin() as conn:
+            await audit.write(
+                conn, "cli.resume_sign_in", "service", None, None, None, "success",
+                actor_kind="cli",
+            )
+
+    await _with_portal(run)
+    print("sign-in resumed")
+    return 0
+
+
+async def _revoke_sessions(email: Optional[str]) -> int:
+    async def run(portal):
+        if email:
+            return await portal.sessions.revoke_all(
+                email, by="cli", reason="cli_revoke", actor_kind="cli"
+            )
+        return await portal.sessions.revoke_everyone()
+
+    count = await _with_portal(run)
+    print(f"revoked {count} session(s)")
+    return 0
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m backend.admin")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -159,15 +211,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help=f"re-wrap and re-sign settings under the current {MASTER_KEY_KEY} "
         f"(rotation: set {MASTER_KEY_PREVIOUS_KEY} to the old key first)",
     )
+    unlock = sub.add_parser("unlock", help="clear failures and the lockout of one admin email")
+    unlock.add_argument("email")
+    sub.add_parser("resume-sign-in", help="lift the global sign-in pause now")
+    revoke = sub.add_parser(
+        "revoke-sessions", help="revoke the live sessions of one email, or of everyone"
+    )
+    revoke.add_argument("email", nargs="?")
     args = parser.parse_args(argv)
     try:
-        if args.command == "audit-verify":
-            return asyncio.run(_audit_verify(args.checkpoint))
+        if args.command == "unlock":
+            return asyncio.run(_unlock(args.email))
+        if args.command == "resume-sign-in":
+            return asyncio.run(_resume())
+        if args.command == "revoke-sessions":
+            return asyncio.run(_revoke_sessions(args.email))
         if args.command == "settings-import":
             return asyncio.run(_settings_import(args.env_file))
         if args.command == "settings-verify":
             return asyncio.run(_settings_verify())
-        return asyncio.run(_rewrap())
+        if args.command == "rewrap":
+            return asyncio.run(_rewrap())
+        return asyncio.run(_audit_verify(args.checkpoint))
     except (AdminConfigError, MasterKeyError) as exc:
         print(f"configuration error: {exc}", file=sys.stderr)
         return 2

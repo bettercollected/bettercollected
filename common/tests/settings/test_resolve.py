@@ -1,11 +1,11 @@
 import pytest
 
-from common.settings.registry import default_registry
+from common.settings.registry import SEED_SPECS, Registry
 from common.settings.resolve import ResolveError, Source, resolve
 
 from settings_support import plain_row, secret_row
 
-REG = default_registry(secret_problems=lambda k, v: [])
+REG = Registry(SEED_SPECS, secret_problems=lambda k, v: [])
 PORT = REG.get("MAIL_SMTP_PORT")
 
 
