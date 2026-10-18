@@ -184,8 +184,8 @@ compose service passes them from the root `.env`, and they are empty by default
 
 | Variable | Meaning |
 |---|---|
-| `TASK_RUNNER_DATABASE_URL` | Postgres URL of a role that can read `form_responses`, `responses_deletion_requests` and the workspace links (and update the two response tables for the backfill) |
-| `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`) |
+| `TASK_RUNNER_DATABASE_URL` | Postgres URL of a dedicated role with only the grants these tasks need (read `form_responses`, `responses_deletion_requests` and the workspace links; update the two response tables for the backfill), never the backend's role: that would give the runner the whole app schema next to the keyset |
+| `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
 | `TASK_RUNNER_KEYSET` | the response keyset (until the settings store provides it); it never goes to a file or a log |
 
 `stores: auto` covers every configured store; `mongo`, `postgres` or `both` name

@@ -351,9 +351,10 @@ services:
       # stored responses, so they need the data stores and the keyset. All four
       # are empty unless set in the root .env; a task then refuses with
       # store_not_configured or keyset_missing, and nothing else is affected.
-      # Set TASK_RUNNER_DATABASE_URL to a role that may read (and, for the
-      # backfill, update) app.form_responses and app.responses_deletion_requests,
-      # for example the backend's: docs/admin-service.md.
+      # Set TASK_RUNNER_DATABASE_URL to a dedicated role with only the grants
+      # these tasks need, never the backend's: that would hand the runner the
+      # whole app schema next to the keyset. For Mongo, prefer a read-only user
+      # for the check and the dry runs.
       DATABASE_URL: ${TASK_RUNNER_DATABASE_URL:-}
       MONGO_URI: ${TASK_RUNNER_MONGO_URI:-}
       MONGO_DB: ${TASK_RUNNER_MONGO_DB:-}
