@@ -52,6 +52,10 @@ class PostgresFlowEventRepository(PostgresRepositoryBase):
     async def list_by_form_id(self, form_id: str) -> List[FlowEventDocument]:
         return await self.many(FormFlowEventRow.form_id == form_id)
 
+    async def delete_older_than(self, cutoff: dt.datetime) -> int:
+        """Events recorded before ``cutoff``; uses the created_at index."""
+        return await self.delete_where(FormFlowEventRow.created_at < cutoff)
+
 
 class PostgresFormAIInsightRepository(PostgresRepositoryBase):
     row = FormAiInsightRow

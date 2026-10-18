@@ -115,7 +115,11 @@ manual setup.
 Configuration lives in [`.env.deployment`](.env.deployment), which ships no
 secrets. The services refuse to start when `AUTH_JWT_SECRET` or
 `AUTH_AES_HEX_KEY` is empty or a value that was ever published in this
-repository. Put TLS or a reverse proxy in front of the stack yourself.
+repository. Put TLS or a reverse proxy in front of the stack yourself, and
+set `TRUSTED_PROXIES` in the root `.env` to the address(es) or CIDR(s) it
+connects to the backend from (comma-separated). The backend takes the client
+address from `X-Forwarded-For` only for requests from those proxies; without
+it every client looks like the proxy (and shares its rate limits).
 
 **Upgrading a stack that used the shipped keys:** earlier versions of
 `.env.deployment` contained concrete `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and

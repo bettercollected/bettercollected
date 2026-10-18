@@ -191,6 +191,13 @@ services:
       # a Postgres advisory lock — by setting, here or in .env.deployment:
       # DB_AUTO_MIGRATE: "true"
       # PDF form import: documents are only opened by the isolated document-sandbox
+      # Client addresses: the TCP peer is the client unless it is listed here.
+      # Set TRUSTED_PROXIES in the root .env to the address(es)/CIDR(s) your
+      # reverse proxy or load balancer connects from (comma-separated, IPv4
+      # and IPv6) so its X-Forwarded-For / CF-Connecting-IP are believed;
+      # left empty, every client looks like the proxy. API_TRUSTED_PROXIES
+      # is read too, from the root .env.
+      API_TRUSTED_PROXIES: ${TRUSTED_PROXIES:-${API_TRUSTED_PROXIES:-}}
       PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
       PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
       # Single sign-on (docs/sso.md): off unless SSO_ENABLED=true in the root
