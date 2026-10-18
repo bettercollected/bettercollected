@@ -21,6 +21,12 @@ else
   exit 1
 fi
 
+# Create containers one at a time. With Compose 2.24 and Docker Engine 27 we saw a
+# container that belongs to two networks (app-postgres and admin on admin-db)
+# occasionally come up attached to only one when created in parallel (about half
+# the time in a loop of up/down); serial creation did not reproduce it.
+export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
+
 # The stack's own signing and encryption keys (AUTH_JWT_SECRET,
 # AUTH_AES_HEX_KEY, MASTER_ENCRYPTION_KEYSET) also live in the root .env:
 # generated once, never overwritten, and refused by the services when empty or

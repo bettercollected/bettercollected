@@ -197,7 +197,7 @@ async def test_healthz_loopback_only(app):
 
 
 async def test_healthz_answers_the_edge_gateway_only_when_configured():
-    a = make_app({"ADMIN_EDGE_GATEWAY": "172.30.77.1"})
+    a = make_app({"ADMIN_EDGE_GATEWAY": "172.30.77.1"}, registry=make_registry())
     s, _, body = await call(a, path="/healthz", peer="172.30.77.1", host=HOST)
     assert (s, body) == (200, b"ok")
     # only that exact address, and only GET/HEAD: not its neighbours (siblings), not other networks

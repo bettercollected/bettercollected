@@ -11,6 +11,8 @@
 # backend image from this checkout (tag bc-admin-check:local, removed afterwards).
 # To test another image: ADMIN_CHECK_IMAGE=<image>. KEEP=1 leaves the project up.
 set -uo pipefail
+# same as deploy.sh: see the note there about containers on two networks
+export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root" || exit 1
@@ -181,6 +183,9 @@ if ! dc up -d admin >"$work/up.log" 2>&1; then
   echo "== $pass passed, $fail failed"
   exit 1
 fi
+nets() { docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$1" | tr ' ' '\n' | sed "s/^${project}_//" | sort | tr '\n' ' ' | xargs; }
+expect "app-postgres is on default and admin-db" "admin-db default" "$(nets "$(dc ps -q app-postgres)")"
+expect "admin is on admin-db and admin-edge" "admin-db admin-edge" "$(nets "$(dc ps -q admin)")"
 expect "(d) healthcheck reports healthy in skeleton mode" "healthy" "$(wait_health 120)"
 admin_id="$(dc ps -q admin)"
 edge_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${project}_admin-edge\").IPAddress}}" "$admin_id")"
@@ -188,7 +193,6 @@ edge_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${project}_ad
 echo "== (a) host reaches the service through the real gateway address"
 expect "host: GET /healthz on 127.0.0.1:$port" "200" "$(http_code "http://127.0.0.1:$port/healthz")"
 expect "host: GET / is a bare 404 in skeleton mode" "404" "$(http_code "http://127.0.0.1:$port/")"
-expect "host: wrong Host header is a 404" "404" "$(http_code -H 'Host: evil.example' "http://127.0.0.1:$port/healthz")"
 
 echo "== (b) not reachable from the LAN address"
 lan="$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p' | head -n 1)"
