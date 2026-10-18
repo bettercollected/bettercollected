@@ -182,3 +182,26 @@ notifications = Table(
     Index("ix_notifications_status_next_attempt_at", "status", "next_attempt_at"),
     Index("ix_notifications_dedupe_key", "dedupe_key"),
 )
+
+setup_tokens = Table(
+    "setup_tokens",
+    metadata,
+    _uuid_pk(),
+    Column("token_mac", LargeBinary, nullable=False),
+    Column("issued_by", Text, nullable=False),
+    _ts("created_at", nullable=False, server_default=text("now()")),
+    _ts("expires_at", nullable=False),
+    _ts("consumed_at"),
+    _ts("revoked_at"),
+    _ts("locked_at"),
+    Column("failed_attempts", Integer, nullable=False, server_default="0"),
+    CheckConstraint("length(token_mac) = 32", name="token_mac"),
+    Index(
+        "uq_setup_tokens_active",
+        text("(true)"),
+        unique=True,
+        postgresql_where=text(
+            "consumed_at IS NULL AND revoked_at IS NULL AND locked_at IS NULL"
+        ),
+    ),
+)

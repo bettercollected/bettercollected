@@ -110,6 +110,19 @@ class Problem:
 
 
 @dataclass(frozen=True)
+class StoredSettings:
+    """Plain values of the verified live rows. Never printed: ``repr`` hides them."""
+
+    values: dict
+    versions: dict
+    tombstones: frozenset
+    unverified: tuple
+
+    def __repr__(self) -> str:
+        return f"StoredSettings(keys={len(self.values)}, unverified={len(self.unverified)})"
+
+
+@dataclass(frozen=True)
 class RewrapResult:
     rewrapped: int
     resigned: int
@@ -224,6 +237,13 @@ class SettingsService:
             raise SettingsError("invalid_version", spec.key)
         if spec.tier not in TIERS_NEEDING_STEP_UP:
             return
+        if actor.kind == "cli":
+            # The host operator holds the master key and the database role: that
+            # is the authority, so there is no second factor to ask for. The typed
+            # confirmation of a T3 setting still applies.
+            if spec.tier is Tier.T3 and confirmation != spec.key:
+                raise SettingsError("confirmation_required", spec.key)
+            return
         if step_up is None:
             raise SettingsError("step_up_required", spec.key)
         if expected_version is None:
@@ -257,9 +277,14 @@ class SettingsService:
         step_up: Optional[StepUp] = None,
         confirmation: Optional[str] = None,
         expected_version: Optional[int] = None,
+        mail_verified: bool = False,
     ) -> Change:
+        """``mail_verified`` is the caller's statement that a test mail was
+        delivered with the settings being saved; the admin sign-in mail section
+        (``admin_mail``) is refused without it (``mail_test_required``)."""
         spec = self._spec(key)
         self._settable(spec)
+        _require_mail_test(spec, mail_verified)
         new = self._validate(spec, value)
         self._gate(spec, "set", new, actor, step_up, confirmation, expected_version)
         return await self._single(
@@ -336,7 +361,9 @@ class SettingsService:
             )
         return deleted
 
-    async def import_once(self, key: str, value: Any, actor: Actor) -> Optional[Change]:
+    async def import_once(
+        self, key: str, value: Any, actor: Actor, *, mail_verified: bool = False
+    ) -> Optional[Change]:
         """Write ``key`` only if the store has never held it (any tier except
         T5, T4 included): the CLI import and task paths. Returns None when the
         key exists, a tombstone included. Never needs a step-up."""
@@ -345,8 +372,56 @@ class SettingsService:
         spec = self._spec(key)
         if spec.tier is Tier.T5:
             raise SettingsError("env_only", key)
+        _require_mail_test(spec, mail_verified)
         new = self._validate(spec, value)
         return await self._single(spec, "import", new, actor, history="import", only_new=True)
+
+    # ------------------------------------------------------------ host reads
+
+    async def stored(self) -> "StoredSettings":
+        """Every live (not cleared) setting whose row verifies, as plain values
+        in memory, for the host commands that compare or export. Rows that fail
+        their signature or cannot be opened are listed in ``unverified``, never
+        trusted. Nothing here is logged or returned to a caller outside the
+        process."""
+        async with self._engine.connect() as conn:
+            rows = await repo.list_entries(conn)
+        values: dict[str, Any] = {}
+        versions: dict[str, int] = {}
+        tombstones: set[str] = set()
+        unverified: list[str] = []
+        for e in rows:
+            if e.cleared:
+                tombstones.add(e.key)
+                continue
+            if e.key not in self.registry:
+                unverified.append(e.key)
+                continue
+            try:
+                if not self.keys.verify_row(e.to_setting_row()):
+                    unverified.append(e.key)
+                    continue
+                spec = self.registry.get(e.key)
+                values[e.key] = (
+                    self.keys.open(e.section, e.key, e.version, e.blob or "")
+                    if spec.is_secret
+                    else e.value
+                )
+                versions[e.key] = e.version
+            except Exception:  # noqa: BLE001 - class only, never the cause
+                unverified.append(e.key)
+        return StoredSettings(values, versions, frozenset(tombstones), tuple(sorted(unverified)))
+
+    async def history(self, key: str) -> list[repo.HistoryRow]:
+        """Versions kept for ``key`` (their values stay in the database)."""
+        self._spec(key)
+        async with self._engine.connect() as conn:
+            return await repo.list_history(conn, key)
+
+    async def current_version(self, key: str) -> int:
+        async with self._engine.connect() as conn:
+            entry = await repo.get_entry(conn, key)
+        return entry.version if entry else 0
 
     # ------------------------------------------------------------ the writer
 
@@ -686,6 +761,17 @@ class SettingsService:
 
 
 # ------------------------------------------------------------------- helpers
+
+
+ADMIN_MAIL_SECTION = "admin_mail"
+
+
+def _require_mail_test(spec: SettingSpec, mail_verified: bool) -> None:
+    """Saving mail settings that were never proven to deliver can lock every
+    admin out of sign-in (the code arrives by mail). The caller that proved
+    delivery says so; the host command ``settings-mail-apply`` does it."""
+    if spec.section == ADMIN_MAIL_SECTION and not mail_verified:
+        raise SettingsError("mail_test_required", spec.key)
 
 
 def _check_version(current: Optional[repo.EntryRow], expected: Optional[int], key: str) -> None:
