@@ -127,7 +127,7 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
   `common.services.crypto_service` (tests enforce it). New admin tables need explicit grants in their revision: there
   are deliberately no default privileges. Sessions, email-code sign-in, CSRF and gate levels 2-4 live in
   `services/sessions.py`, `services/signin.py`, `gate/checkers.py`, `gate/csrf.py` and `controllers/portal.py` (pages are
-  Jinja2 templates with no inline script or style; details in `docs/admin-service.md`). Tests: `tests/admin/`.
+  Jinja2 templates with no inline script or style; details in `docs/admin-service.md`). The read-only pages (dashboard, health, configuration, metrics, audit log, sessions) are in `controllers/pages.py`, `services/pages.py` and `repositories/views.py`; they are GET-only at the second-factor level and never select secret values. Platform counts come from `admin.platform_counts()` (created by `postgres/ensure-admin-roles.sh`; the admin roles cannot read `app`/`auth`). Pages show a permanent reminder to back up `SETTINGS_MASTER_KEY`. Tests: `tests/admin/`.
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.

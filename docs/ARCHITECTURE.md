@@ -137,6 +137,15 @@ Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACK
 - **Redis** — caching (notably in `integrations/google`).
 - **S3 (AWS/Wasabi)** — media/file uploads (`aws_service.py`); public assets on Wasabi.
 
+## Admin portal
+
+A separate internal service (`backend/backend/admin/`, `docs/admin-service.md`): host-only, a gate (address and host
+allowlists), an email code plus an authenticator code, an append-only hash-chained audit log, and its own schema and
+database roles. Its server-rendered pages (strict CSP, no inline script or style) are read-only at this stage:
+dashboard, health, masked configuration, platform metrics, audit log and sessions. It never imports the public API.
+`SETTINGS_MASTER_KEY` keys the audit chain and encrypts second-factor secrets; it cannot be recovered, so the
+portal reminds the operator to back it up.
+
 ## Observability
 
 Sentry + Elastic APM are initialized across services (backend `asgi.py`, and the Python services generally). Product

@@ -144,6 +144,35 @@ naming the missing settings (never their values); see "Enabling the portal"
 above for how the compose service receives them. Settings that are present
 but invalid stop startup.
 
+## Portal pages (read-only)
+
+After the second factor the portal shows a shell (navigation, the signed-in
+address, sign out, a notice area) and these pages. Every one is a `GET` at the
+`SECOND_FACTOR` level; none changes state. `Settings` and `Tasks` are listed in
+the navigation as not available yet.
+
+| Page | What it shows |
+|---|---|
+| `/` | Cards linking to the pages below |
+| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the admin schema's Alembic state (current against the expected head) and the `app`, `auth` and `google` schemas' revisions where this role can read them (otherwise "not available to this role": the role has no access to those schemas on purpose) |
+| `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS` |
+| `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts()` |
+| `/audit`, `GET /api/audit` | Newest first, keyset pagination (`before` is a `seq`), filters `actor`, `action` (exact or dot-separated prefix), `outcome`, `from`, `to` (a date or an ISO time; `to` as a date includes that day), `limit` up to 200; all validated (400 otherwise). Payloads are shown masked and escaped. The page shows the chain head and points to `python -m backend.admin audit-verify`; the chain is not verified inside a request. No export |
+| `/sessions` | Your live sessions (created, last seen, address, a short fingerprint of the browser identification) with the current one marked; revoke forms post, with the CSRF token, to the existing account routes |
+
+A notice area at the top of every page carries a permanent reminder to back up
+`SETTINGS_MASTER_KEY` (it cannot be recovered) and, when a service reports a
+pending restart, a restart notice.
+
+`admin.platform_counts()` is created by `postgres/ensure-admin-roles.sh`, not by
+an Alembic revision: the admin roles cannot read the `app` and `auth` schemas
+and the migration role owns nothing there, so the function is owned by the
+role that runs the script (the database superuser), takes no arguments, writes
+nothing, names its tables explicitly, pins `search_path`, and is executable by
+`bc_admin` alone. The counts follow the Postgres store, so they are complete
+once the application serves from Postgres; before the application migrations
+have run the page says they are not available.
+
 ## Settings store: what the database guards do and do not do
 
 Schema `settings` holds signed (and, for secrets, encrypted) rows, a signed
