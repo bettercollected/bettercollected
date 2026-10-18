@@ -42,7 +42,13 @@ most three stay live per admin. A signed-in session whose second factor is still
 pending can reach only `/mfa` and `/logout`. Removing an address from
 `PLATFORM_ADMIN_EMAILS` ends its sessions at the next start or request.
 Every state-changing request needs a CSRF token and a same-origin
-`Origin` (`ADMIN_PUBLIC_ORIGINS`). Operator commands:
+`Origin` (`ADMIN_PUBLIC_ORIGINS`). The session's token is derived from its id
+and its current token hash, so it changes whenever the session token rotates.
+The sign-in forms, shown before a session exists, use a signed double-submit
+cookie; cookies do not separate ports on `localhost`, so another local service
+could plant that cookie, and what actually protects those forms is the `Origin`
+(scheme, host and port) and `Sec-Fetch-Site` check, which every state-changing
+request must pass. Operator commands:
 `python -m backend.admin unlock <email>`, `resume-sign-in`, `revoke-sessions [email]`.
 
 Without `ADMIN_DATABASE_URL`, `SETTINGS_MASTER_KEY` and `PLATFORM_ADMIN_EMAILS`

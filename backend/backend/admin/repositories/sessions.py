@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional, Sequence
 
-from sqlalchemy import and_, delete, func, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from backend.admin.repositories.tables import sessions, signin_challenges
@@ -22,6 +22,14 @@ from backend.admin.repositories.tables import sessions, signin_challenges
 async def insert_session(conn: AsyncConnection, **values: Any) -> uuid.UUID:
     result = await conn.execute(sessions.insert().values(**values).returning(sessions.c.id))
     return result.scalar_one()
+
+
+async def lock_email(conn: AsyncConnection, email: str) -> None:
+    """Take a transaction-scoped advisory lock keyed on ``email``."""
+    await conn.execute(
+        text("SELECT pg_advisory_xact_lock(hashtextextended(:email, 0))"),
+        {"email": email},
+    )
 
 
 async def get_by_token_hash(conn: AsyncConnection, token_hash: bytes):
