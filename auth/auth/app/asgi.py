@@ -24,6 +24,8 @@ from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from common.exceptions import NotFoundError
+from common.exceptions.validation import request_validation_error_handler
+from fastapi.exceptions import RequestValidationError
 
 log = logging.getLogger(__name__)
 
@@ -103,8 +105,9 @@ def get_application():
         title=settings.API_TITLE,
         debug=settings.DEBUG,
         version=settings.API_VERSION,
-        docs_url=settings.API_ROOT_PATH + "/docs",
-        openapi_url=settings.API_ROOT_PATH + "/openapi.json",
+        docs_url=settings.API_ROOT_PATH + "/docs" if settings.API_DOCS_ENABLED else None,
+        redoc_url=settings.API_ROOT_PATH + "/redoc" if settings.API_DOCS_ENABLED else None,
+        openapi_url=settings.API_ROOT_PATH + "/openapi.json" if settings.API_DOCS_ENABLED else None,
         on_startup=[on_startup],
         on_shutdown=[on_shutdown],
     )
@@ -113,6 +116,7 @@ def get_application():
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(NotFoundError, not_found_error_handler)
+    app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         app.add_middleware(ElasticAPM, client=apm)
     return app

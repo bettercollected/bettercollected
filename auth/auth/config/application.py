@@ -48,6 +48,8 @@ class Application(StoreBackedSettings):
     API_TITLE: Optional[str] = "auth"
     API_VERSION: Optional[str] = __version__
     API_ROOT_PATH: Optional[str] = "/api/v1"
+    # Interactive API docs and the OpenAPI document of this internal API.
+    API_DOCS_ENABLED: bool = False
     API_ENVIRONMENT: Optional[str] = "local"
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

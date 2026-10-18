@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Confirm it is you") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+<h1>{{ _("Confirm it is you") }}</h1>
+<p>{{ _("This action needs a fresh code. Enter the code from your authenticator app, or a recovery code.") }}</p>
+{% include "_factor_error.html" %}
+<form method="post" action="/mfa/stepup">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="next" value="{{ next }}">
+  <label for="code">{{ _("Authenticator or recovery code") }}</label>
+  <input id="code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required maxlength="24" autofocus>
+  <button type="submit">{{ _("Continue") }}</button>
+</form>
+<p><a href="/account">{{ _("Cancel") }}</a></p>
+{% endblock %}

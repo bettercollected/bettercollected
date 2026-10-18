@@ -75,7 +75,7 @@ jobs:
             - name: Configure schemathesis using action
               uses: schemathesis/action@v1
               with:
-                  schema: "https://bettercollected-admin.sireto.dev/api/v1/openapi.json"
+                  schema: "https://bettercollected-admin.sireto.dev/api/v1/public/v1/openapi.json"
                   max-examples: 30
                   version: "latest"
                   report: false

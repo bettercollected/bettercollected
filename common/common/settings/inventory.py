@@ -123,8 +123,11 @@ def _text(key, section, readers, description, default=None, tier=T1, **kw):
 # --------------------------------------------------------------- server
 
 SERVER: Tuple[SettingSpec, ...] = (
-    _bool("DEBUG", "server", (BACKEND, AUTH, GOOGLE), True,
-          "Debug mode of the API services (the code default is on).", tier=T2),
+    _bool("DEBUG", "server", (BACKEND, AUTH, GOOGLE), False,
+          "Debug mode of the API services (off unless explicitly enabled).", tier=T2),
+    _bool("API_DOCS_ENABLED", "server", (BACKEND, AUTH, GOOGLE), False,
+          "Serve the interactive API docs (/docs, /redoc) and /openapi.json of the internal APIs.",
+          tier=T2),
     _text("API_ENVIRONMENT", "server", (BACKEND, AUTH, GOOGLE),
           "Environment label shown in logs and error reports.", "local", max_length=64),
     _text("API_TITLE", "server", (BACKEND, AUTH), "Title of the generated API documentation.",
@@ -538,7 +541,8 @@ TODO_LIVE: Dict[str, str] = {
     "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/schemas/flow_event.py:14",
     "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py:90",
     "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
-    "API_ROOT_PATH": "backend/backend/app/asgi.py:191",
+    "API_ROOT_PATH": "backend/backend/app/asgi.py:193",
+    "API_DOCS_ENABLED": "backend/backend/app/asgi.py:193",
     "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:648",
     "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:649",
 }
@@ -606,6 +610,13 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     _text("ADMIN_TRUSTED_PROXIES", "admin", (ADMIN,), "Proxies trusted by the admin portal.", tier=T5),
     _text("ADMIN_DB_RUNTIME_ROLE", "admin", (ADMIN,), "Database role the admin portal runs as.",
           "bc_admin", tier=T5),
+    _secret("TASKS_DATABASE_URL", "admin", (ADMIN,),
+            "Postgres connection string of the data task runner (role bc_tasks).", tier=T5),
+    _bool("ADMIN_TASKS_SELFTEST", "admin", (ADMIN,), False,
+          "Registers the runner's test-only tasks (never in production).", tier=T5),
+    _int("ADMIN_TASKS_MAX_REQUEST_AGE_HOURS", "admin", (ADMIN,), 24, 1, 24,
+         "Hours after which the runner refuses a queued task request as expired (cap 24).",
+         tier=T5),
     _bool("PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX", "pdf_import", (BACKEND,), False,
           "Refuses imports unless the isolated sandbox is available.", tier=T5),
     _text("PDF_IMPORT_SANDBOX_SOCKET", "pdf_import", (BACKEND,),

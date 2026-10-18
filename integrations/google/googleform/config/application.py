@@ -59,6 +59,8 @@ class Application(StoreBackedSettings):
     VERSION: str = __version__
 
     API_ROOT_PATH: str = "/api/v1"
+    # Interactive API docs and the OpenAPI document of this internal API.
+    API_DOCS_ENABLED: bool = False
     API_VERSION: str = "1.0.0"
     API_ENVIRONMENT: str = "local"
     DOCS_URL: str = "/docs"

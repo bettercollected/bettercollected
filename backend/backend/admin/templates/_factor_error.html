@@ -1,0 +1,5 @@
+{% if locked_minutes %}
+<p class="error" role="alert">{{ _("Too many attempts. Sign-in is paused; try again later.") }} ({{ locked_minutes }} {{ _("min") }})</p>
+{% elif failed %}
+<p class="error" role="alert">{{ _("That code did not work. Check the code and try again.") }}</p>
+{% endif %}

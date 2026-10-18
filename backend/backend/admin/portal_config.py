@@ -57,6 +57,21 @@ def normalise_origin(value: str, name: str = "ADMIN_PUBLIC_ORIGINS") -> str:
     return f"{parts.scheme}://{host}" + (f":{port}" if port is not None else "")
 
 
+DEFAULT_STEPUP_SECONDS = 300
+MAX_STEPUP_SECONDS = 600
+
+
+def _stepup_seconds(env: Mapping[str, str]) -> int:
+    raw = (env.get("ADMIN_STEPUP_SECONDS") or "").strip()
+    if not raw:
+        return DEFAULT_STEPUP_SECONDS
+    if not raw.isascii() or not raw.isdigit() or not 0 < int(raw) <= MAX_STEPUP_SECONDS:
+        raise PortalConfigError(
+            f"ADMIN_STEPUP_SECONDS must be a whole number from 1 to {MAX_STEPUP_SECONDS}"
+        )
+    return int(raw)
+
+
 def _bounded(env: Mapping[str, str], name: str, default: int) -> int:
     raw = (env.get(name) or "").strip()
     if not raw:
@@ -76,6 +91,8 @@ class PortalSettings:
     absolute_hours: int = DEFAULT_ABSOLUTE_HOURS
     max_sessions: int = MAX_SESSIONS
     code_ttl_seconds: int = CODE_TTL_SECONDS
+    stepup_seconds: int = DEFAULT_STEPUP_SECONDS
+    totp_issuer: str = "BetterCollected Admin"
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "PortalSettings":
@@ -96,6 +113,7 @@ class PortalSettings:
             absolute_hours=_bounded(
                 source, "ADMIN_SESSION_ABSOLUTE_HOURS", DEFAULT_ABSOLUTE_HOURS
             ),
+            stepup_seconds=_stepup_seconds(source),
         )
 
     def is_admin(self, email: str) -> bool:

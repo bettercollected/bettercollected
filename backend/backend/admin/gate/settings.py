@@ -42,6 +42,9 @@ class GateSettings:
     allowed_hosts: Tuple[str, ...] = ()
     trusted_proxies: str = ""  # validated, comma-separated, for resolve_client_ip
     port: int = DEFAULT_PORT
+    # the admin network's gateway: what host-side traffic looks like after Docker's
+    # port publishing; /healthz answers it as well as loopback
+    edge_gateway: Optional[ipaddress.IPv4Address | ipaddress.IPv6Address] = None
 
     @classmethod
     def from_env(cls, environ: Optional[Mapping[str, str]] = None) -> "GateSettings":
@@ -55,12 +58,14 @@ class GateSettings:
             _networks("ADMIN_ALLOWED_IPS", env.get("ADMIN_ALLOWED_IPS") or "127.0.0.1/32")
         )
         gateway = (env.get("ADMIN_EDGE_GATEWAY") or "").strip()
+        edge_gateway = None
         if gateway:
             try:
                 addr = ipaddress.ip_address(gateway)
             except ValueError:
                 raise GateConfigError("ADMIN_EDGE_GATEWAY: not an address") from None
             ips.append(ipaddress.ip_network(addr))
+            edge_gateway = addr
         if not ips:
             raise GateConfigError("ADMIN_ALLOWED_IPS: empty")
 
@@ -77,4 +82,5 @@ class GateSettings:
             allowed_hosts=hosts,
             trusted_proxies=",".join(str(n) for n in proxies),
             port=port,
+            edge_gateway=edge_gateway,
         )

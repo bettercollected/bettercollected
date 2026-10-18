@@ -1,5 +1,5 @@
 #!/bin/bash
-# Creates (or repairs) the admin service's schema and its two roles. Idempotent:
+# Creates (or repairs) the admin service's schemas and its roles. Idempotent:
 # deploy.sh runs it as the database superuser on every deploy, before migrating.
 #
 #   bc_admin_mig  owns schema `admin` and its tables; used only to run the
@@ -9,29 +9,48 @@
 #                 INSERT and SELECT only on `audit_log` (plus USAGE on its
 #                 sequence) so the log is append-only for the service. It has no
 #                 access to the `app`, `auth`, `google` or `jobs` schemas.
+#   bc_tasks      the data task runner's role (TASKS_DATABASE_URL). Column-level
+#                 UPDATE on the runner-owned columns of tasks.runs, INSERT on
+#                 tasks.run_events / checkpoints, INSERT/DELETE on tasks.locks,
+#                 INSERT and SELECT on admin.audit_log; nothing else in `admin`
+#                 and nothing in the other services' schemas.
+#
+# Schema `tasks` (the runner's state) is created here, owned by bc_admin_mig,
+# like `admin`.
 #
 # The table grants are made by the migrations themselves (they know their
 # tables); this script re-applies them for tables that already exist, so running
 # it after a migration repairs drift. There are NO default privileges on
 # purpose: they would hand UPDATE/DELETE on audit_log to the runtime role.
 #
-# Passwords come from BC_ADMIN_PASSWORD and BC_ADMIN_MIG_PASSWORD and are never
+# Passwords come from BC_ADMIN_PASSWORD, BC_ADMIN_MIG_PASSWORD and BC_TASKS_PASSWORD and are never
 # printed. Run inside the postgres container (it reads POSTGRES_USER/DB):
 #   docker compose exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh
 set -euo pipefail
 
 : "${BC_ADMIN_PASSWORD:?BC_ADMIN_PASSWORD must be set}"
 : "${BC_ADMIN_MIG_PASSWORD:?BC_ADMIN_MIG_PASSWORD must be set}"
+: "${BC_TASKS_PASSWORD:?BC_TASKS_PASSWORD must be set}"
+# the passwords are placed unencoded in database URLs by the compose file and
+# deploy.sh: refuse characters that would break a URL (never print the value)
+for name in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD; do
+    if ! printf '%s' "${!name}" | grep -Eq '^[A-Za-z0-9._~-]+$'; then
+        echo "$name may only contain letters, digits, '.', '_', '~' and '-' (it is used unencoded in a database URL)." >&2
+        exit 1
+    fi
+done
 : "${POSTGRES_USER:?POSTGRES_USER must be set}"
 : "${POSTGRES_DB:?POSTGRES_DB must be set}"
 
 psql -v ON_ERROR_STOP=1 --quiet --output /dev/null --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
     -v admin_pw="$BC_ADMIN_PASSWORD" \
-    -v mig_pw="$BC_ADMIN_MIG_PASSWORD" <<'SQL'
+    -v mig_pw="$BC_ADMIN_MIG_PASSWORD" \
+    -v tasks_pw="$BC_TASKS_PASSWORD" <<'SQL'
 SET log_statement = 'none';
 SET log_min_error_statement = 'panic';
 SELECT count(set_config('bc.admin_pw', :'admin_pw', false));
 SELECT count(set_config('bc.mig_pw', :'mig_pw', false));
+SELECT count(set_config('bc.tasks_pw', :'tasks_pw', false));
 
 DO $do$
 DECLARE
@@ -41,7 +60,8 @@ DECLARE
     -- revision that creates the tables (migration_support.grant(..., role=...)).
     -- Never add a role to `admin`'s default privileges.
     runtime_roles text[][] := ARRAY[
-        ['bc_admin', 'bc.admin_pw']
+        ['bc_admin', 'bc.admin_pw'],
+        ['bc_tasks', 'bc.tasks_pw']
     ];
     r text[];
     t text;
@@ -63,6 +83,13 @@ BEGIN
     ALTER SCHEMA admin OWNER TO bc_admin_mig;
     REVOKE ALL ON SCHEMA admin FROM PUBLIC;
 
+    -- the task runner's schema, same owner, invisible to everyone else
+    IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'tasks') THEN
+        CREATE SCHEMA tasks AUTHORIZATION bc_admin_mig;
+    END IF;
+    ALTER SCHEMA tasks OWNER TO bc_admin_mig;
+    REVOKE ALL ON SCHEMA tasks FROM PUBLIC;
+
     -- schema `settings` (the settings store): same owner, invisible to everyone
     -- until a role is named below
     IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'settings') THEN
@@ -80,6 +107,7 @@ BEGIN
         EXECUTE format('ALTER ROLE %I SET search_path = admin', r[1]);
         EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), r[1]);
         EXECUTE format('GRANT USAGE ON SCHEMA admin TO %I', r[1]);
+        EXECUTE format('GRANT USAGE ON SCHEMA tasks TO %I', r[1]);
         EXECUTE format('GRANT USAGE ON SCHEMA settings TO %I', r[1]);
     END LOOP;
 
@@ -124,6 +152,24 @@ BEGIN
         REVOKE ALL ON admin.audit_log FROM bc_admin;
         GRANT SELECT, INSERT ON admin.audit_log TO bc_admin;
         GRANT USAGE ON SEQUENCE admin.audit_log_seq_seq TO bc_admin;
+        REVOKE ALL ON admin.audit_log FROM bc_tasks;
+        GRANT SELECT, INSERT ON admin.audit_log TO bc_tasks;
+        GRANT USAGE ON SEQUENCE admin.audit_log_seq_seq TO bc_tasks;
+    END IF;
+
+    -- the task runner's state (tables exist once the tasks revision has run)
+    IF to_regclass('tasks.runs') IS NOT NULL THEN
+        REVOKE ALL ON ALL TABLES IN SCHEMA tasks FROM bc_admin, bc_tasks;
+        REVOKE ALL ON ALL SEQUENCES IN SCHEMA tasks FROM bc_admin, bc_tasks;
+        GRANT SELECT, INSERT ON tasks.runs TO bc_admin;
+        GRANT UPDATE (cancel_requested_at) ON tasks.runs TO bc_admin;
+        GRANT SELECT ON tasks.run_events, tasks.checkpoints, tasks.locks TO bc_admin;
+        GRANT SELECT ON tasks.runs TO bc_tasks;
+        GRANT UPDATE (state, progress, heartbeat_at, result, refusal_code, runner_id,
+                      started_at, finished_at) ON tasks.runs TO bc_tasks;
+        GRANT SELECT, INSERT ON tasks.run_events, tasks.checkpoints TO bc_tasks;
+        GRANT USAGE ON SEQUENCE tasks.run_events_id_seq, tasks.checkpoints_id_seq TO bc_tasks;
+        GRANT SELECT, INSERT, DELETE ON tasks.locks TO bc_tasks;
     END IF;
     IF to_regclass('admin.notifications') IS NOT NULL THEN
         REVOKE ALL ON admin.notifications FROM bc_admin;
@@ -146,7 +192,7 @@ BEGIN
     -- Readers: their own two views and report_state, nothing else. Keep these
     -- {service, role} pairs equal to READER_SERVICES in
     -- backend/backend/admin/migration_support.py (a test compares them). A
-    -- role that does not exist yet (bc_tasks) is skipped until it does.
+    -- role that does not exist yet is skipped until it does.
     FOREACH r SLICE 1 IN ARRAY ARRAY[
         ['backend', 'bc_app'], ['auth', 'bc_auth'],
         ['google', 'bc_google'], ['tasks', 'bc_tasks']
@@ -166,5 +212,6 @@ $do$;
 
 RESET bc.admin_pw;
 RESET bc.mig_pw;
+RESET bc.tasks_pw;
 SQL
 echo "admin roles and schema are in place."

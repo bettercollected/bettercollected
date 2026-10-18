@@ -13,6 +13,8 @@ class ApiSettings(StoreBackedSettings):
     DESCRIPTION: str = "Rest endpoints for better-collected forms integrator API"
     VERSION: str = __version__
     ROOT_PATH: str = "/api/v1"
+    # Interactive API docs and the OpenAPI document of the internal API.
+    DOCS_ENABLED: bool = False
     HOST: str = ""
     DOMAIN: Optional[str] = ""
     ALLOWED_COLLABORATORS: int = 10
