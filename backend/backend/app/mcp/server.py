@@ -378,8 +378,9 @@ async def update_form(
     {"op":"set_theme_preset","name":str,"style"?:"classic"|"sheet"|"studio"|"leaflet"} (the
     look: a theme preset by name, any case: Leaflet (the default for new forms), Default, Paper,
     Ocean, Forest, Cherry, Mono, Sunset, Lavender, Slate, Blossom, Twilight, Honey, Mint, Sky,
-    Rose (Blue, Green, Red, Black, Orange, Purple mean the nearest of these); no style = the
-    preset's own (Leaflet) or the current one) ·
+    Rose (Blue, Green, Red, Black, Orange, Purple mean the nearest of these), and the complete
+    looks Kantlijn and Raster (faces, corners, buttons, background and the welcome layout too);
+    no style = the preset's own (Leaflet, Kantlijn, Raster) or the current one) ·
     {"op":"update_theme","theme":{"title":str,"primary":str,"secondary":str,"tertiary":str,
     "accent":str,"style"?:str,"background"?:{...}}} (exact colours of your own).
     References: add_page, add_field, add_group, duplicate_page and add_ending (and the fields inside
