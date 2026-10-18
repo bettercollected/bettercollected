@@ -128,9 +128,11 @@ async def _rewrap() -> int:
         await service._engine.dispose()
     print(
         f"rewrap: rewrapped={result.rewrapped} resigned={result.resigned} "
-        f"batches={result.batches}"
+        f"batches={result.batches} skipped={len(result.skipped)}"
     )
-    return 0
+    for key in result.skipped:
+        print(f"skipped {key} unknown_key")
+    return 0 if not result.skipped else 1
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
