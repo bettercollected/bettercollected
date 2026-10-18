@@ -11,6 +11,7 @@ and everything is dropped afterwards. Skipped when DATABASE_URL is unset.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import os
 import re
@@ -19,6 +20,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+import asyncpg
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -106,15 +108,31 @@ class Server:
 
     async def create_database(self, *, template: str | None = None) -> str:
         name = f"bc_admin_test_{uuid.uuid4().hex[:10]}"
-        source = f' TEMPLATE "{template}"' if template else ""
-        await _execute(
-            _with_database(self.admin_url, "postgres"),
-            f'CREATE DATABASE "{name}"{source}',
-        )
+        postgres = _with_database(self.admin_url, "postgres")
+        if template:
+            await _create_from_template(postgres, name, template)
+        else:
+            await _execute(postgres, f'CREATE DATABASE "{name}"')
         self.created.append(name)
         return name
 
     created: list = None  # set in the fixture
+
+
+async def _create_from_template(postgres_url: str, name: str, template: str) -> None:
+    """``CREATE DATABASE name TEMPLATE template``, retried while the template still
+    has a lingering connection (Postgres refuses to copy a database that is in
+    use; the previous connection's backend can take a moment to go away,
+    especially with several xdist workers sharing the server)."""
+    last = None
+    for _ in range(40):
+        try:
+            await _execute(postgres_url, f'CREATE DATABASE "{name}" TEMPLATE "{template}"')
+            return
+        except asyncpg.exceptions.ObjectInUseError as exc:
+            last = exc
+            await asyncio.sleep(0.25)
+    raise last
 
 
 async def _bootstrap(server: Server, database: str) -> None:
@@ -146,7 +164,7 @@ async def server():
     await _execute(postgres, f'CREATE DATABASE "{boot}"')
     try:
         await _bootstrap(srv, boot)
-        await _execute(postgres, f'CREATE DATABASE "{template}" TEMPLATE "{boot}"')
+        await _create_from_template(postgres, template, boot)
         await upgrade_schema(srv.url(template, "owner"), MIGRATIONS)
         yield srv
     finally:
