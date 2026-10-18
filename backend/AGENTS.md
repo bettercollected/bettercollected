@@ -119,6 +119,13 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
   it. They also run in one transaction, so no `CREATE INDEX CONCURRENTLY` / `autocommit_block` — ship that as a
   manual step. Tests: `common/tests/test_schema_guard.py`,
   `tests/app/db/test_auto_migrate.py` (real throw-away database initialised by `postgres/init`).
+- **`backend/admin/`** is a separate, internal admin service's package: its own schema `admin` and Alembic chain
+  (`backend/admin/alembic.ini`, revisions `0001_…`, run as the migration role `bc_admin_mig`, runtime role `bc_admin`
+  via `ADMIN_DATABASE_URL`; roles created by `postgres/ensure-admin-roles.sh`), keys derived from
+  `SETTINGS_MASTER_KEY`, and an append-only, HMAC-chained `audit_log` (`services/audit.py`; verify with
+  `python -m backend.admin audit-verify`). It must never import `backend.app.router/container/controllers` or
+  `common.services.crypto_service` (tests enforce it). New admin tables need explicit grants in their revision: there
+  are deliberately no default privileges. Tests: `tests/admin/`.
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.

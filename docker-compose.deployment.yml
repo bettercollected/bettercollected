@@ -135,6 +135,9 @@ services:
       BC_AUTH_PASSWORD: ${BC_AUTH_PASSWORD:?set by deploy.sh in the root .env}
       BC_GOOGLE_PASSWORD: ${BC_GOOGLE_PASSWORD:?set by deploy.sh in the root .env}
       BC_JOBS_EXEC_PASSWORD: ${BC_JOBS_EXEC_PASSWORD:?set by deploy.sh in the root .env}
+      # read by postgres/ensure-admin-roles.sh, which deploy.sh runs here on every deploy
+      BC_ADMIN_PASSWORD: ${BC_ADMIN_PASSWORD:?set by deploy.sh in the root .env}
+      BC_ADMIN_MIG_PASSWORD: ${BC_ADMIN_MIG_PASSWORD:?set by deploy.sh in the root .env}
     volumes:
       - app-postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
