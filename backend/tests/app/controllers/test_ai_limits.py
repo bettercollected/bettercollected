@@ -13,6 +13,7 @@ from backend.app.container import container
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.ai.usage import record_tokens
+from backend.app.services.pdf_import.storage import MemoryObjectStore
 from backend.config import settings
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from tests.app.controllers.data import testUser
@@ -46,6 +47,26 @@ def limits(monkeypatch):
             monkeypatch.setattr(settings.ai, key, value)
 
     return set_
+
+
+@pytest.fixture()
+async def offline_imports():
+    """Uploads are stored in memory and imports get no AI provider, so an
+    upload let through by mistake reaches neither object storage nor a
+    provider."""
+    service, pipeline = container.pdf_import_service(), container.pdf_import_pipeline()
+    previous = service._store, pipeline._store, pipeline._provider_resolver
+    service._store = pipeline._store = MemoryObjectStore()
+    pipeline._provider_resolver = None
+    yield
+    try:
+        await service.wait_for_background_imports()
+    finally:
+        service._store, pipeline._store, pipeline._provider_resolver = previous
+
+
+def _window_end(window_seconds: int, now: float) -> float:
+    return (now // window_seconds + 1) * window_seconds
 
 
 def _generate_url(workspace):
@@ -177,6 +198,7 @@ class TestRateLimits:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
         limits,
+        offline_imports,
     ):
         limits(RATE_LIMIT_PER_USER=1)
         await enable_ai(workspace)
@@ -213,6 +235,33 @@ class TestRateLimits:
         assert response.status_code == 200, response.text
         response = await client.post(url, cookies=test_user_cookies, json=body)
         assert _is_429(response, "ai_rate_limited"), response.text
+
+    async def test_limits_do_not_depend_on_the_wall_clock(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+        fake: FakeProvider,
+        limits,
+        rate_limit_clock,
+    ):
+        """The window is fixed and aligned to the epoch. Spent in its last
+        millisecond, the request that follows is still refused while the
+        limiter's clock is held; once the clock moves past the boundary the
+        next window admits again."""
+        limits(RATE_LIMIT_PER_USER=1, RATE_LIMIT_PER_WORKSPACE=0)
+        window = settings.ai.RATE_LIMIT_WINDOW_SECONDS
+        end = _window_end(window, rate_limit_clock["now"])
+        rate_limit_clock["now"] = end - 0.001
+        await enable_ai(workspace)
+        await container.ai_usage_guard().admit(workspace.id, testUser.id)
+        response = await _generate(client, workspace, test_user_cookies, fake)
+        assert _is_429(response, "ai_rate_limited"), response.text
+        assert int(response.headers["Retry-After"]) == 1
+        rate_limit_clock["now"] = end
+        response = await _generate(client, workspace, test_user_cookies, fake)
+        assert response.status_code == 200, response.text
+        assert len(fake.calls) == 1
 
 
 class TestDailyBudget:
