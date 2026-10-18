@@ -84,9 +84,15 @@ rotate() {
 
 Each command prints a JSON report with key ids and counts only, and logs record ids and counts.
 By default it covers both targets and the stores the services write, following `DB_WRITE_MODE`
-and its `__responses` / `__google` overrides. `--target` and `--store mongo|postgres|both` narrow
-or override that. If the stack never ran the Google Forms integration, add
-`--target responses` to `reencrypt` and `drop-old`.
+and its `__responses` / `__google` overrides. For `reencrypt`, `--target` and
+`--store mongo|postgres|both` narrow or override that. `drop-old` refuses both options: it always
+checks every target in every store the services write.
+
+**The script only writes with the deployed keyset.** `reencrypt` (other than `--dry-run`) and
+`drop-old` check that the primary key of `--keyset-file` is the primary of the
+`MASTER_ENCRYPTION_KEYSET` in the container's environment. If it isn't, they stop with an error and
+change nothing. `rotate` starts a new container each time, so after step 3 it already has the new
+keyset from the root `.env`.
 
 ## The rotation
 
@@ -156,10 +162,14 @@ same bytes, and writes it back only if the stored value has not changed since it
   so the two stores stay identical (`backend.migrate verify` stays clean). The mirror is then swept
   for rows that differed or exist only there.
 - `records_changed_concurrently`: the application changed a value meanwhile. Run again.
-- `records_unopenable`: no candidate context decrypts the record. Its workspace is unknown and
-  none of its form's workspaces opens it, for example a response whose form was removed from every
-  workspace. The ids are in the log. Such values stay under the old key. Either keep the old key
-  (stop before step 5) or delete those records.
+- Each value finds its own context. A response stored before responses carried their workspace is
+  tried against each workspace its form is linked to, value by value, so a record whose values
+  were encrypted for different workspaces is still re-encrypted whole.
+- `records_unopenable` / `values_unopenable`: no candidate context decrypts a value. Its
+  workspace is unknown and none of its form's workspaces opens it, for example a response whose
+  form was removed from every workspace. The record ids are in the log. Such values stay under the
+  old key, and step 5 refuses while they do. Either keep the old key (stop before step 5) or delete
+  those records.
 
 Repeat the dry run until it reports `values_stale` as 0 (or absent) for every target and store.
 
@@ -169,9 +179,19 @@ Repeat the dry run until it reports `values_stale` as 0 (or absent) for every ta
 rotate drop-old --keyset-file /rotation/rotated.keyset --out /rotation/final.keyset
 ```
 
-This scans everything again and **refuses**, writing nothing, while any value still uses a key
-other than the primary. The report shows the counts per key id. Otherwise it writes
-`keyset-rotation/final.keyset`, which holds the primary key only.
+This scans every target in every store the services write. It **refuses**, writing nothing, when:
+
+- any value still uses a key other than the primary (the report shows the counts per key id);
+- any target in any store holds **no records at all**. An empty store may mean the script is
+  reading the wrong database, for example a custom `MONGO_DB`, `GOOGLE_MONGO_DB` or
+  `GOOGLE_DATABASE_URL` that didn't reach the container. Dropping the old key then would make the
+  real data unreadable. The report's `records` lists each target's count per store. If a store
+  really is empty (for example, the stack never used the Google Forms integration), check that
+  count, then run again with `--allow-empty`;
+- the keyset file is not the deployed one (see above).
+
+Otherwise it writes `keyset-rotation/final.keyset`, which holds the primary key only. The report
+repeats the Typeform caveat (see "What the keyset encrypts"): the script cannot check that data.
 
 ### 6. Give every service the final keyset
 

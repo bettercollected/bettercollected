@@ -39,8 +39,16 @@ and left for the next run). Which stores it writes follows the write mode
 store's new ciphertext is copied unchanged to the mirror, so the two stores
 stay identical. ``--dry-run`` counts only.
 
-``drop-old`` scans the same stores and refuses, writing nothing, while any
-value still uses a key other than the primary; otherwise it writes a keyset
+``reencrypt`` (apart from ``--dry-run``) and ``drop-old`` only work with the
+keyset the services run with: the primary key of ``--keyset-file`` must be the
+primary of ``MASTER_ENCRYPTION_KEYSET`` in the environment, so nothing is ever
+re-encrypted under a key the services do not have.
+
+``drop-old`` always scans every target in every store the services write
+(``--target`` / ``--store`` are refused). It refuses, writing nothing, while
+any value still uses a key other than the primary, or while any store holds no
+records at all: a wrong or empty database would otherwise pass as clean
+(``--allow-empty`` when that is really so). Otherwise it writes a keyset
 holding the primary key only.
 """
 
@@ -352,30 +360,38 @@ class Rotation:
             plaintext, associated
         )
 
+    def _open(self, contexts, value: bytes):
+        """The first candidate context that decrypts ``value``, and the plaintext."""
+        for context in contexts:
+            try:
+                return context, self.cipher.decrypt(*context, value)
+            except Exception:  # tink: this context does not authenticate it
+                continue
+        return None, None
+
     def reencrypt(
         self, target: Target, record: Dict[str, Any], links: Dict[str, List[str]]
-    ) -> Optional[List[Update]]:
-        """The updates that put a record's stale values under the primary key;
-        [] when there are none, None when no candidate context opens them."""
-        stale = self.stale(target.values(record))
-        if not stale:
-            return []
-        for context in target.contexts(record, links):
-            try:
-                plaintexts = [self.cipher.decrypt(*context, v) for _, v in stale]
-            except Exception:  # tink: this context does not authenticate them
+    ) -> Tuple[List[Update], List[Path]]:
+        """The updates that put a record's stale values under the primary key,
+        and the paths of the stale values no candidate context opens. Each
+        value finds its own context: a record stored before responses carried
+        their workspace may hold values from more than one."""
+        contexts = target.contexts(record, links)
+        updates: List[Update] = []
+        unopenable: List[Path] = []
+        for path, old in self.stale(target.values(record)):
+            context, plaintext = self._open(contexts, old)
+            if context is None:
+                unopenable.append(path)
                 continue
-            updates = []
-            for (path, old), plaintext in zip(stale, plaintexts):
-                new = self._encrypt(context, plaintext)
-                if (
-                    ciphertext_key_id(new) != self.primary
-                    or self.cipher.decrypt(*context, new) != plaintext
-                ):
-                    raise RuntimeError("a re-encrypted value did not read back")
-                updates.append((path, old, new))
-            return updates
-        return None
+            new = self._encrypt(context, plaintext)
+            if (
+                ciphertext_key_id(new) != self.primary
+                or self.cipher.decrypt(*context, new) != plaintext
+            ):
+                raise RuntimeError("a re-encrypted value did not read back")
+            updates.append((path, old, new))
+        return updates, unopenable
 
 
 def _count_values(counts: Counter, rotation: Rotation, values) -> None:
@@ -389,7 +405,7 @@ def _count_values(counts: Counter, rotation: Rotation, values) -> None:
 
 async def scan(store, target: Target, rotation: Rotation, batch_size: int) -> Dict:
     """Counts only: records, values per key id, stale values."""
-    counts: Counter = Counter()
+    counts: Counter = Counter(records=0, values_stale=0)
     after = None
     while True:
         batch = await store.batch(after, batch_size)
@@ -426,18 +442,21 @@ async def reencrypt_store(
         for record in batch:
             after = record["id"]  # the last id walked, for --start-after
             counts["records"] += 1
-            updates = rotation.reencrypt(target, record, links)
-            if updates is None:
+            updates, unopenable = rotation.reencrypt(target, record, links)
+            if unopenable:
                 counts["records_unopenable"] += 1
+                counts["values_unopenable"] += len(unopenable)
                 logger.warning(
-                    "%s %s %s: no candidate context decrypts it; left as it is",
+                    "%s %s %s: no candidate context decrypts %d value(s); "
+                    "left as they are",
                     target.name,
                     store.name,
                     record["id"],
+                    len(unopenable),
                 )
-                continue
             if not updates:
-                counts["records_current"] += 1
+                if not unopenable:
+                    counts["records_current"] += 1
                 continue
             if not await store.write(record["id"], updates):
                 counts["records_changed_concurrently"] += 1
@@ -514,6 +533,39 @@ async def run_reencrypt(
 
 
 # ----------------------------------------------------------------------- CLI
+TYPEFORM_NOTE = (
+    "The Typeform integration (a separate image) also receives "
+    "MASTER_ENCRYPTION_KEYSET; this script cannot check or re-encrypt what it "
+    "stores. If you run it, keep the old key, or reconnect its accounts after "
+    "deploying the final keyset."
+)
+
+
+def deployed_keyset_problem(keyset, env=os.environ) -> Optional[str]:
+    """Why ``keyset`` must not be used to write: its primary key is not the
+    primary of the keyset the services run with (``MASTER_ENCRYPTION_KEYSET``
+    here, as in every service's environment). None when it is."""
+    value = env.get(KEYSET_ENV, "")
+    if not value.strip():
+        return (
+            f"{KEYSET_ENV} is not set here. Run this where the services' keyset "
+            "is set (a backend container), after deploying the new keyset."
+        )
+    try:
+        deployed = parse_keyset(value)
+    except KeysetError as error:
+        return f"{KEYSET_ENV} here is not usable: {error}"
+    if deployed.primary_key_id != keyset.primary_key_id:
+        return (
+            f"The keyset's primary key ({keyset.primary_key_id}) is not the primary "
+            f"of the deployed {KEYSET_ENV} ({deployed.primary_key_id}). Deploy the "
+            "keyset to every service first (docs/response-keyset-rotation.md, "
+            "step 3) and run this in a container started after that, so nothing "
+            "is re-encrypted under a key the services do not have."
+        )
+    return None
+
+
 def read_keyset_value(path: Optional[str], env=os.environ) -> str:
     if path:
         with open(path, encoding="utf-8") as handle:
@@ -593,6 +645,11 @@ def _parse(argv: List[str]) -> argparse.Namespace:
     keyset_option(drop_old)
     store_options(drop_old)
     drop_old.add_argument("--out", required=True, help="new file for the keyset")
+    drop_old.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="accept a store that holds no records (e.g. Google Forms never used)",
+    )
     return parser.parse_args(argv)
 
 
@@ -669,6 +726,19 @@ async def _main(argv: List[str]) -> int:
             file=sys.stderr,
         )
         return 2
+    if not dry_run:
+        problem = deployed_keyset_problem(keyset)
+        if problem:
+            print(problem, file=sys.stderr)
+            return 2
+    if args.command == "drop-old" and (args.target or args.store != "auto"):
+        print(
+            "drop-old always checks every target in every store the services "
+            "write: run it without --target and --store. Dropping a key after "
+            "checking only part of the data would make the rest unreadable.",
+            file=sys.stderr,
+        )
+        return 2
     targets = [TARGETS[name] for name in (args.target or sorted(TARGETS))]
     report: Dict[str, Any] = {
         "command": args.command,
@@ -702,17 +772,38 @@ async def _main(argv: List[str]) -> int:
             await close()
 
     if args.command == "drop-old":
+        report["note"] = TYPEFORM_NOTE
+        report["records"] = {
+            target: {store: counts["records"] for store, counts in stores.items()}
+            for target, stores in report["targets"].items()
+        }
         stale = sum(
-            counts.get("values_stale", 0)
+            counts["values_stale"]
             for stores in report["targets"].values()
             for counts in stores.values()
         )
         report["values_stale"] = stale
+        empty = [
+            f"{target} in {store}"
+            for target, stores in report["records"].items()
+            for store, records in stores.items()
+            if records == 0
+        ]
         if stale:
             report["refused"] = (
                 "values still use a key other than the primary: run reencrypt "
                 "until it reports none, then drop-old again"
             )
+        elif empty and not args.allow_empty:
+            report["refused"] = (
+                "no records at all in: "
+                + ", ".join(empty)
+                + ". If the script reads the wrong or an empty database (MONGO_DB, "
+                "GOOGLE_MONGO_DB, DATABASE_URL, GOOGLE_DATABASE_URL), dropping the "
+                "old key would make the real data unreadable. Pass --allow-empty "
+                "only if these really hold nothing (e.g. Google Forms never used)."
+            )
+        if "refused" in report:
             print(json.dumps(report, indent=2, sort_keys=True))
             return 1
         if len(keyset.key) == 1:

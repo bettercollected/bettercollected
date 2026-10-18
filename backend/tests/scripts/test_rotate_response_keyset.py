@@ -58,7 +58,12 @@ def _enc(workspace, form_id, plaintext: str) -> bytes:
 class Data:
     """The records, and what each encrypted value must decrypt to."""
 
-    def __init__(self, with_orphan: bool = False):
+    def __init__(
+        self,
+        with_orphan: bool = False,
+        with_mixed: bool = False,
+        with_credentials: bool = True,
+    ):
         self.expected = {}  # (target, record id, path) -> (context, plaintext)
         self.links = [
             WorkspaceFormDocument(
@@ -122,7 +127,28 @@ class Data:
         )
         if with_orphan:  # no workspace, no link: nothing can open it
             response("gone", WS_A, stamped=False, answers='{"q1": "an answer"}')
+        if with_mixed:
+            # unstamped, its form in two workspaces, its values encrypted for
+            # different ones: each value has to find its own context
+            mixed = FormResponseDocument(
+                id=PydanticObjectId(),
+                form_id="f2",
+                answers=_enc(WS_A, "f2", '{"q1": "an answer"}'),
+                hidden_fields=_enc(WS_B, "f2", '{"ref": "a hidden value"}'),
+            )
+            self.responses.append(mixed)
+            self.expected[("responses", str(mixed.id), ("answers",))] = (
+                (str(WS_A), "f2"),
+                b'{"q1": "an answer"}',
+            )
+            self.expected[("responses", str(mixed.id), ("hidden_fields",))] = (
+                (str(WS_B), "f2"),
+                b'{"ref": "a hidden value"}',
+            )
 
+        self.credentials = []
+        if not with_credentials:
+            return
         credential_id = ObjectId()
         self.credentials = [
             {
@@ -144,9 +170,10 @@ class Data:
         db = container.database_client()[TEST_MONGO_DB]
         for document in (*self.links, *self.responses):
             await document.save()
-        await db[GOOGLE_CREDENTIALS.collection].insert_many(
-            [dict(c) for c in self.credentials]
-        )
+        if self.credentials:
+            await db[GOOGLE_CREDENTIALS.collection].insert_many(
+                [dict(c) for c in self.credentials]
+            )
 
     async def to_postgres(self):
         sessions = container.pg_sessionmaker()
@@ -208,9 +235,18 @@ async def google_table():
                 await conn.execute(text("DROP SCHEMA google"))
 
 
+# the write mode the services would run with, per store choice
+WRITE_MODES = {
+    "mongo": ("mongo", "mongo"),
+    "postgres": ("postgres", "postgres"),
+    "both": ("dual", "mongo"),
+}
+
+
 @pytest.fixture(params=["mongo", "postgres", "both"])
 async def stores(request, google_table, monkeypatch):
-    """Seeds the chosen stores and points the script's settings at them."""
+    """Points the script's settings at the test stores, with the write mode
+    that makes ``auto`` (what drop-old always uses) pick the chosen ones."""
     if request.param != "mongo":
         if not _postgres_configured():
             pytest.skip("DATABASE_URL not set to a *_test database")
@@ -219,6 +255,12 @@ async def stores(request, google_table, monkeypatch):
     monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
     monkeypatch.setenv("GOOGLE_MONGO_DB", TEST_MONGO_DB)
     monkeypatch.setenv("GOOGLE_DATABASE_URL", os.environ.get("DATABASE_URL", ""))
+    for name in list(os.environ):
+        if name.startswith(("DB_WRITE_MODE__", "DB_READ_SOURCE__")):
+            monkeypatch.delenv(name)
+    write, read = WRITE_MODES[request.param]
+    monkeypatch.setenv("DB_WRITE_MODE", write)
+    monkeypatch.setenv("DB_READ_SOURCE", read)
     return request.param
 
 
@@ -229,13 +271,16 @@ async def seed(store_choice, data):
         await data.to_postgres()
 
 
-def store_objects(store_choice):
-    names = {
+def store_names(store_choice):
+    return {
         "mongo": ["mongo"],
         "postgres": ["postgres"],
         "both": ["mongo", "postgres"],
-    }
-    for name in names[store_choice]:
+    }[store_choice]
+
+
+def store_objects(store_choice):
+    for name in store_names(store_choice):
         for target in (RESPONSES, GOOGLE_CREDENTIALS):
             if name == "mongo":
                 yield MongoStore(container.database_client()[TEST_MONGO_DB], target)
@@ -263,8 +308,9 @@ async def postgres_checksums_agree():
 
 async def cli(capsys, *argv):
     code = await _main(list(argv))
-    out = capsys.readouterr().out
-    return code, (json.loads(out) if out.strip().startswith("{") else out)
+    captured = capsys.readouterr()
+    out = captured.out
+    return code, (json.loads(out) if out.strip().startswith("{") else captured.err)
 
 
 def assert_nothing_secret(text_out: str, *keysets: str):
@@ -273,12 +319,27 @@ def assert_nothing_secret(text_out: str, *keysets: str):
     assert str(WS_A) not in text_out
 
 
-async def test_rotation_end_to_end(stores, tmp_path, capsys):
+async def add_key_and_deploy(capsys, monkeypatch, tmp_path):
+    """add-key, then what step 3 of the runbook does: the services (here, the
+    environment the script runs in) get the new keyset."""
+    rotated_file = tmp_path / "rotated.keyset"
+    code, _ = await cli(capsys, "add-key", "--out", str(rotated_file))
+    assert code == 0
+    value = rotated_file.read_text().strip()
+    monkeypatch.setenv("MASTER_ENCRYPTION_KEYSET", value)
+    return rotated_file, value, parse_keyset(value).primary_key_id
+
+
+def primary_of(store_choice):
+    return "postgres" if store_choice == "postgres" else "mongo"
+
+
+async def test_rotation_end_to_end(stores, tmp_path, capsys, monkeypatch):
     data = Data()
     await seed(stores, data)
     old_keyset = os.environ["MASTER_ENCRYPTION_KEYSET"]
     rotated_file, final_file = tmp_path / "rotated.keyset", tmp_path / "final.keyset"
-    common = ["--store", stores, "--batch-size", "2"]
+    batches = ["--batch-size", "2"]
 
     # add-key: the current keys plus a new primary, to a file only its owner reads
     code, added = await cli(capsys, "add-key", "--out", str(rotated_file))
@@ -297,13 +358,13 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys):
     before = await stored_values(stores)
     assert before and all(ciphertext_key_id(v) == OLD_KEY for v in before.values())
 
-    # dry run: counts only
+    # dry run: counts only (allowed before the new keyset is deployed)
     code, report = await cli(
-        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--dry-run", *common
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--dry-run", *batches
     )
     assert code == 0 and report["mode"] == "dry-run"
     responses = report["targets"]["responses"]
-    for name in ("mongo", "postgres") if stores == "both" else (stores,):
+    for name in store_names(stores):
         assert responses[name] == {
             "records": 4,
             "records_stale": 3,
@@ -314,25 +375,20 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys):
         assert report["targets"]["google-credentials"][name]["values_stale"] == 1
     assert await stored_values(stores) == before
 
-    # drop-old refuses while the old key is in use, and writes nothing
+    # deploy the new keyset; then drop-old refuses while the old key is in use
+    monkeypatch.setenv("MASTER_ENCRYPTION_KEYSET", rotated_value)
     code, refused = await cli(
-        capsys,
-        "drop-old",
-        "--keyset-file",
-        str(rotated_file),
-        "--out",
-        str(final_file),
-        *common,
+        capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)
     )
     assert code == 1 and refused["values_stale"] > 0 and "refused" in refused
     assert not final_file.exists()
 
     # re-encrypt
     code, report = await cli(
-        capsys, "reencrypt", "--keyset-file", str(rotated_file), *common
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), *batches
     )
     assert code == 0 and report["mode"] == "apply"
-    primary = "postgres" if stores == "postgres" else "mongo"
+    primary = primary_of(stores)
     counts = report["targets"]["responses"][primary]
     assert counts["records_reencrypted"] == 3 and counts["values_reencrypted"] == 6
     assert counts["records_current"] == 1
@@ -364,24 +420,24 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys):
 
     # a rerun is a no-op
     code, again = await cli(
-        capsys, "reencrypt", "--keyset-file", str(rotated_file), *common
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), *batches
     )
     assert code == 0
     assert "records_reencrypted" not in again["targets"]["responses"][primary]
     assert await stored_values(stores) == after
 
-    # drop-old: the new key only
+    # drop-old: the new key only, with every store's record count and the
+    # Typeform caveat in the report
     code, dropped = await cli(
-        capsys,
-        "drop-old",
-        "--keyset-file",
-        str(rotated_file),
-        "--out",
-        str(final_file),
-        *common,
+        capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)
     )
     assert code == 0, dropped
     assert dropped["dropped_key_ids"] == [OLD_KEY]
+    assert dropped["records"] == {
+        "responses": {name: 4 for name in store_names(stores)},
+        "google-credentials": {name: 1 for name in store_names(stores)},
+    }
+    assert "Typeform" in dropped["note"]
     assert stat.S_IMODE(os.stat(final_file).st_mode) == 0o600
     final_value = final_file.read_text().strip()
     final = parse_keyset(final_value)
@@ -390,21 +446,137 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys):
     assert_nothing_secret(json.dumps(dropped), old_keyset, rotated_value, final_value)
 
 
-async def test_drop_old_refuses_while_a_record_cannot_be_reencrypted(
-    stores, tmp_path, capsys
+async def test_writes_only_with_the_deployed_keyset(
+    stores, tmp_path, capsys, monkeypatch
 ):
-    """A record no context opens stays under the old key, and so does the key."""
-    await seed(stores, Data(with_orphan=True))
+    """Until the services run the new keyset, nothing is re-encrypted under it
+    and no key is dropped."""
+    await seed(stores, Data())
+    before = await stored_values(stores)
     rotated_file = tmp_path / "rotated.keyset"
-    common = ["--store", stores]
     assert (await cli(capsys, "add-key", "--out", str(rotated_file)))[0] == 0
+    new_key = parse_keyset(rotated_file.read_text()).primary_key_id
 
-    code, report = await cli(
-        capsys, "reencrypt", "--keyset-file", str(rotated_file), *common
+    # the environment still has the old keyset (the services were not updated)
+    code, err = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 2
+    assert "is not the primary of the deployed MASTER_ENCRYPTION_KEYSET" in err
+    assert str(new_key) in err and str(OLD_KEY) in err
+    code, err = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(tmp_path / "final.keyset"),
+    )
+    assert code == 2 and "Deploy the keyset to every service first" in err
+    assert not (tmp_path / "final.keyset").exists()
+    # nothing at all in the environment
+    monkeypatch.delenv("MASTER_ENCRYPTION_KEYSET")
+    code, err = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 2 and "MASTER_ENCRYPTION_KEYSET is not set here" in err
+    assert await stored_values(stores) == before
+
+
+@pytest.mark.parametrize(
+    "narrowing", [["--target", "responses"], ["--store", "mongo"], ["--store", "both"]]
+)
+async def test_drop_old_refuses_a_narrowed_selection(
+    narrowing, tmp_path, capsys, monkeypatch
+):
+    rotated_file, _, _ = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+    final_file = tmp_path / "final.keyset"
+    code, err = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(final_file),
+        *narrowing,
+    )
+    assert code == 2
+    assert "always checks every target in every store" in err
+    assert not final_file.exists()
+
+
+async def test_drop_old_refuses_an_empty_store(stores, tmp_path, capsys, monkeypatch):
+    """A store with no records may be the wrong database: not clean by default."""
+    await seed(stores, Data(with_credentials=False))
+    rotated_file, _, new_key = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+    assert (await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file)))[0] == 0
+    final_file = tmp_path / "final.keyset"
+
+    code, refused = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)
+    )
+    assert code == 1 and refused["values_stale"] == 0
+    assert refused["records"] == {
+        "responses": {name: 4 for name in store_names(stores)},
+        "google-credentials": {name: 0 for name in store_names(stores)},
+    }
+    for name in store_names(stores):
+        assert f"google-credentials in {name}" in refused["refused"]
+    assert "--allow-empty" in refused["refused"]
+    assert not final_file.exists()
+
+    code, dropped = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(final_file),
+        "--allow-empty",
+    )
+    assert code == 0, dropped
+    assert [k.key_id for k in parse_keyset(final_file.read_text()).key] == [new_key]
+
+
+async def test_each_value_finds_its_own_context(stores, tmp_path, capsys, monkeypatch):
+    """A response stored before it carried its workspace, with values
+    encrypted for different workspaces of its form, is re-encrypted whole."""
+    data = Data(with_mixed=True)
+    await seed(stores, data)
+    rotated_file, rotated_value, new_key = await add_key_and_deploy(
+        capsys, monkeypatch, tmp_path
+    )
+
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 0
+    counts = report["targets"]["responses"][primary_of(stores)]
+    assert counts["records_reencrypted"] == 4 and counts["values_reencrypted"] == 8
+    assert "records_unopenable" not in counts
+
+    after = await stored_values(stores)
+    cipher = CryptoService(rotated_value)
+    for (_, target, rid, path), value in after.items():
+        assert ciphertext_key_id(value) == new_key
+        context, plaintext = data.expected[(target, rid, path)]
+        assert cipher.decrypt(*context, value) == plaintext
+    code, _ = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(tmp_path / "final.keyset"),
     )
     assert code == 0
-    primary = "postgres" if stores == "postgres" else "mongo"
-    assert report["targets"]["responses"][primary]["records_unopenable"] == 1
+
+
+async def test_drop_old_refuses_while_a_record_cannot_be_reencrypted(
+    stores, tmp_path, capsys, monkeypatch
+):
+    """A value no context opens stays under the old key, and so does the key."""
+    await seed(stores, Data(with_orphan=True))
+    rotated_file, _, _ = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 0
+    counts = report["targets"]["responses"][primary_of(stores)]
+    assert counts["records_unopenable"] == 1 and counts["values_unopenable"] == 1
 
     code, refused = await cli(
         capsys,
@@ -413,19 +585,16 @@ async def test_drop_old_refuses_while_a_record_cannot_be_reencrypted(
         str(rotated_file),
         "--out",
         str(tmp_path / "final.keyset"),
-        *common,
     )
     assert code == 1 and refused["values_stale"] >= 1
     assert not (tmp_path / "final.keyset").exists()
 
 
-async def test_an_interrupted_run_resumes(stores, tmp_path, capsys):
+async def test_an_interrupted_run_resumes(stores, tmp_path, capsys, monkeypatch):
     data = Data()
     await seed(stores, data)
-    rotated_file = tmp_path / "rotated.keyset"
-    common = ["--store", stores, "--target", "responses", "--batch-size", "1"]
-    assert (await cli(capsys, "add-key", "--out", str(rotated_file)))[0] == 0
-    new_key = parse_keyset(rotated_file.read_text()).primary_key_id
+    rotated_file, _, new_key = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+    common = ["--target", "responses", "--batch-size", "1"]
 
     # stops after one record, as if interrupted
     code, first = await cli(
@@ -437,7 +606,7 @@ async def test_an_interrupted_run_resumes(stores, tmp_path, capsys):
         "1",
         *common,
     )
-    primary = "postgres" if stores == "postgres" else "mongo"
+    primary = primary_of(stores)
     assert code == 0
     assert first["targets"]["responses"][primary]["records_reencrypted"] == 1
     keys = [ciphertext_key_id(v) for v in (await stored_values(stores)).values()]

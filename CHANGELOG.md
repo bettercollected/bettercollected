@@ -649,7 +649,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   decryption), `reencrypt` (answers, hidden fields, internal answers, feedback
   messages and Google credentials, in batches, in Mongo and/or Postgres as
   the write mode has it; idempotent, resumable, `--dry-run` counts only) and
-  `drop-old` (refuses while any value still uses an old key). Keysets are
+  `drop-old` (always checks every target and store, and refuses while any
+  value still uses an old key or a store holds no records unless
+  `--allow-empty`). Both write only with the keyset the services run with
+  (the primary must match `MASTER_ENCRYPTION_KEYSET`). Keysets are
   written only to new mode-600 files, never printed. Runbook, with the order
   across services, backups and rollback: `docs/response-keyset-rotation.md`.
 - AI features are bounded: form generation's tool loop stops after
