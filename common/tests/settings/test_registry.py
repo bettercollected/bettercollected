@@ -12,9 +12,14 @@ from common.settings.registry import (
     UnknownKeyError,
     ValidationError,
     ValueType,
-    default_registry,
     normalize_value,
 )
+
+
+def default_registry(secret_problems=None):
+    """The small fixed seed set these core tests are written against (the
+    full inventory is tested in test_inventory.py)."""
+    return Registry(SEED_SPECS, secret_problems=secret_problems)
 
 
 def strict(key, raw):

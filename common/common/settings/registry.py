@@ -74,7 +74,8 @@ class ValueType(str, Enum):
     ENUM = "enum"
 
 
-# Keys that may only ever come from the environment (tier T5).
+# Keys that may only ever come from the environment (tier T5). The prefixes
+# below cover the ADMIN_*, JOBS_* and DB_* families.
 ENV_ONLY_KEYS = frozenset(
     {
         "DATABASE_URL",
@@ -85,9 +86,58 @@ ENV_ONLY_KEYS = frozenset(
         "DB_READ_SOURCE",
         "DB_WRITE_MODE",
         "PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX",
+        "PDF_IMPORT_SANDBOX_SOCKET",
+        "DOC_SANDBOX_PARALLEL",
+        "DOC_SANDBOX_MAX_DOCUMENT_BYTES",
+        "DOTENV_PATH",
+        "PROJECT_NAME",
+        "DOCS_URL",
+        "VERSION",
+        "PORT",
+        "TEMPLATE_FOLDER",
+        "AUTH_BASE_URL",
+        "AUTH_SERVER_URL",
+        "TEMPORAL_SERVER_URI",
+        "TEMPORAL_NAMESPACE",
+        "TEMPORAL_TEMPLATE_PREVIEW_QUEUE",
+        "TEMPORAL_WORKER_QUEUE",
+        "TEMPORAL_ACTION_QUEUE",
+        "TEMPORAL_CSV_QUEUE",
+        "TEMPORAL_SERVER_URL",
+        "NAMESPACE",
+        "SERVER_URL",
+        "BACKEND_URL",
+        "FRONTEND_URL",
+        "API_KEY",
+        "AES_HEX_KEY",
+        "WORKER_QUEUE",
+        "WORKERS",
+        "COOKIE_DOMAIN",
+        "MAX_THREAD_POOL_EXECUTORS",
+        "ELASTIC_APM_SERVICE_NAME",
+        "ELASTIC_APM_SERVER_URL",
+        "ELASTIC_APM_API_KEY",
+        "ELASTIC_APM_SECRET_TOKEN",
+        "ELASTIC_APM_ENVIRONMENT",
+        "ELASTIC_APM_ENABLED",
+        "NEXT_PUBLIC_API_ENDPOINT_HOST",
+        "NEXT_PUBLIC_NODE_ENV",
+        "NEXT_PUBLIC_DASHBOARD_DOMAIN",
+        "NEXT_PUBLIC_APP_URL",
+        "BASE_DEPLOY_PATH",
+        "API_ENDPOINT_HOST",
+        "INTERNAL_DOCKER_API_ENDPOINT_HOST",
+        "HTTP_SCHEME",
+        "FORM_DOMAIN",
+        "DASHBOARD_DOMAIN",
+        "FORM_PRIVACY_POLICY_URL",
+        "GOOGLE_PICKER_API_KEY",
+        "UMAMI_SCRIPT_URL",
+        "CUSTOM_DOMAIN_ASSERTION_MODE",
+        "CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN",
     }
 )
-ENV_ONLY_PREFIXES = ("ADMIN_", "JOBS_")
+ENV_ONLY_PREFIXES = ("ADMIN_", "JOBS_", "DB_")
 
 
 class RegistryError(ValueError):
@@ -689,5 +739,8 @@ SEED_SPECS: Tuple[SettingSpec, ...] = (
 
 
 def default_registry(secret_problems: Optional[SecretCheck] = None) -> Registry:
-    """A registry of ``SEED_SPECS`` (the full inventory is added later)."""
-    return Registry(SEED_SPECS, secret_problems=secret_problems)
+    """The full registry (``inventory.INVENTORY``). ``SEED_SPECS`` stays as the
+    small fixed set the core library tests build their own registry from."""
+    from .inventory import full_registry
+
+    return full_registry(secret_problems)
