@@ -219,3 +219,15 @@ async def test_cleanup_removes_old_rows(portal, clock):
 async def test_session_ids_are_uuids(portal):
     _, session = await make(portal)
     assert isinstance(session.id, uuid.UUID)
+
+
+async def test_operator_revoke_everyone_is_audited_as_cli(portal, runtime_engine):
+    token, _ = await make(portal)
+    await make(portal, OTHER_ADMIN)
+    assert await portal.sessions.revoke_everyone() == 2
+    assert (await portal.sessions.authenticate(token, IP, UA)).reason == sess.REVOKED
+    found = await rows(
+        runtime_engine,
+        "SELECT actor_kind, detail->>'reason' FROM admin.audit_log WHERE action = 'session.revoked'",
+    )
+    assert {tuple(r) for r in found} == {("cli", "cli_revoke")}

@@ -406,6 +406,16 @@ class SessionService:
             stale = [r.id for r in live if r.email.strip().lower() not in keep]
             return await self._revoke_rows(conn, stale, "admin_removed", "system")
 
+    async def revoke_everyone(
+        self, *, by: str = "cli", reason: str = "cli_revoke", actor_kind: str = "cli"
+    ) -> int:
+        """Operator command: revoke every live session of every admin."""
+        async with self._engine.begin() as conn:
+            live = await repo.list_live_all(conn, self._clock.now())
+            return await self._revoke_rows(
+                conn, [r.id for r in live], reason, by, actor_kind=actor_kind
+            )
+
     async def list_live(self, email: str) -> list[Session]:
         async with self._engine.connect() as conn:
             rows = await repo.list_live(conn, email.strip().lower(), self._clock.now())

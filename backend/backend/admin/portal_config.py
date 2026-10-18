@@ -100,3 +100,21 @@ class PortalSettings:
 
     def is_admin(self, email: str) -> bool:
         return str(email).strip().lower() in self.admin_emails
+
+
+# Names only, never values: the settings the sign-in portal cannot run without.
+REQUIRED_FOR_PORTAL = ("ADMIN_DATABASE_URL", "SETTINGS_MASTER_KEY", ADMIN_EMAILS_KEY)
+
+
+def missing_portal_settings(env: Optional[Mapping[str, str]] = None) -> list:
+    """Names of the required settings that are unset or empty (an admin list
+    with no valid address counts as empty)."""
+    source = os.environ if env is None else env
+    missing = []
+    for name in REQUIRED_FOR_PORTAL:
+        value = (source.get(name) or "").strip()
+        if name == ADMIN_EMAILS_KEY and not parse_admin_emails(value):
+            value = ""
+        if not value:
+            missing.append(name)
+    return missing

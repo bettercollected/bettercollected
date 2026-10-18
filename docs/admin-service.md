@@ -45,9 +45,12 @@ Every state-changing request needs a CSRF token and a same-origin
 `Origin` (`ADMIN_PUBLIC_ORIGINS`). Operator commands:
 `python -m backend.admin unlock <email>`, `resume-sign-in`, `revoke-sessions [email]`.
 
-The `admin` compose service does not yet receive `ADMIN_DATABASE_URL`,
-`SETTINGS_MASTER_KEY`, `PLATFORM_ADMIN_EMAILS` or `MAIL_*`, nor a route to the
-database; that wiring and its acceptance checks come with the deployment stage.
+Without `ADMIN_DATABASE_URL`, `SETTINGS_MASTER_KEY` and `PLATFORM_ADMIN_EMAILS`
+the service starts as the bare gate: `/healthz` and 404s only, with one warning
+naming the missing settings (never their values). The `admin` compose service
+does not receive these yet (nor `MAIL_*`, nor a route to the database), so it
+runs in that mode until the deployment wiring lands. Settings that are present
+but invalid stop startup.
 
 ## Variables (no secrets)
 

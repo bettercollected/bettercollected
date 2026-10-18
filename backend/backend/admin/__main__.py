@@ -78,9 +78,9 @@ async def _revoke_sessions(email: Optional[str]) -> int:
     async def run(portal):
         if email:
             return await portal.sessions.revoke_all(
-                email, by="cli", reason="revoked_by_cli", actor_kind="cli"
+                email, by="cli", reason="cli_revoke", actor_kind="cli"
             )
-        return await portal.sessions.sweep_removed_admins(())
+        return await portal.sessions.revoke_everyone()
 
     count = await _with_portal(run)
     print(f"revoked {count} session(s)")
