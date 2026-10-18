@@ -62,11 +62,11 @@ class Application(StoreBackedSettings):
     still be used if the matching environment variable is not set.
 
     Attributes:
-        DEBUG (bool): FastAPI logging level. You should disable this for
-            production.
+        DEBUG (bool): FastAPI debug mode (HTML tracebacks for unhandled
+            errors). Off unless explicitly enabled; keep it off in production.
     """
 
-    DEBUG: bool = True
+    DEBUG: bool = False
     ENABLE_SUGGEST_PRICE: bool = False
     # Submitted answers are checked against the form (Required, answer rules,
     # types; services/answer_validation.py). False = "log only": problems are

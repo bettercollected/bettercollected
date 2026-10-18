@@ -114,6 +114,7 @@ class RewrapResult:
     rewrapped: int
     resigned: int
     batches: int
+    skipped: tuple = ()  # keys the registry no longer knows
 
 
 def shipped_secret_problems(key: str, value: str) -> list[str]:
@@ -178,11 +179,29 @@ class SettingsService:
         if spec.tier is Tier.T5:
             raise SettingsError("env_only", spec.key)
 
-    def action_hash(self, action: str, key: str, material: Any = None) -> str:
-        """What a step-up must be bound to: the action, the key and (for a
-        set) the new value, keyed so the hash does not reveal a secret."""
+    def action_hash(
+        self, action: str, key: str, material: Any = None, expected_version: int = 0
+    ) -> str:
+        """What a step-up must be bound to: the action, the key, (for a set)
+        the new value, and the version of the setting the admin saw
+        (``expected_version``: 0 when the key has never been written). Keyed,
+        so the hash does not reveal a secret. Because the version is bound and
+        checked inside the write transaction, a token cannot be replayed after
+        the setting changed, and a stale form cannot overwrite a newer value.
+
+        The portal's step-up module issues the token for exactly this hash:
+        the page that shows the setting carries its current ``version``; on
+        submit the portal computes ``action_hash(action, key, material,
+        version)``, asks for the second factor, and consumes a single-use
+        token bound to that hash (``stepup.issue(hash)`` / ``consume``)."""
         body = b"" if material is None else canonical_json(material).encode("utf-8")
-        message = lp(_ACTION_DOMAIN) + lp(action.encode()) + lp(key.encode()) + lp(body)
+        message = (
+            lp(_ACTION_DOMAIN)
+            + lp(action.encode())
+            + lp(key.encode())
+            + lp(body)
+            + u64(expected_version)
+        )
         return hmac.new(self.keys.signing_key(), message, hashlib.sha256).hexdigest()
 
     def _gate(
@@ -193,14 +212,23 @@ class SettingsService:
         actor: Actor,
         step_up: Optional[StepUp],
         confirmation: Optional[str],
+        expected_version: Optional[int],
     ) -> None:
         if actor.kind == "admin" and not actor.email:
             raise SettingsError("actor_required", spec.key)
+        if expected_version is not None and (
+            not isinstance(expected_version, int)
+            or isinstance(expected_version, bool)
+            or expected_version < 0
+        ):
+            raise SettingsError("invalid_version", spec.key)
         if spec.tier not in TIERS_NEEDING_STEP_UP:
             return
         if step_up is None:
             raise SettingsError("step_up_required", spec.key)
-        expected = self.action_hash(action, spec.key, material)
+        if expected_version is None:
+            raise SettingsError("expected_version_required", spec.key)
+        expected = self.action_hash(action, spec.key, material, expected_version)
         now = self._clock()
         if (
             not hmac.compare_digest(step_up.action_hash, expected)
@@ -228,12 +256,15 @@ class SettingsService:
         *,
         step_up: Optional[StepUp] = None,
         confirmation: Optional[str] = None,
+        expected_version: Optional[int] = None,
     ) -> Change:
         spec = self._spec(key)
         self._settable(spec)
         new = self._validate(spec, value)
-        self._gate(spec, "set", new, actor, step_up, confirmation)
-        return await self._single(spec, "set", new, actor, history="set")
+        self._gate(spec, "set", new, actor, step_up, confirmation, expected_version)
+        return await self._single(
+            spec, "set", new, actor, history="set", expected_version=expected_version
+        )
 
     async def clear(
         self,
@@ -242,11 +273,14 @@ class SettingsService:
         *,
         step_up: Optional[StepUp] = None,
         confirmation: Optional[str] = None,
+        expected_version: Optional[int] = None,
     ) -> Change:
         spec = self._spec(key)
         self._settable(spec)
-        self._gate(spec, "clear", None, actor, step_up, confirmation)
-        return await self._single(spec, "clear", None, actor, history="clear")
+        self._gate(spec, "clear", None, actor, step_up, confirmation, expected_version)
+        return await self._single(
+            spec, "clear", None, actor, history="clear", expected_version=expected_version
+        )
 
     async def restore(
         self,
@@ -256,28 +290,38 @@ class SettingsService:
         *,
         step_up: Optional[StepUp] = None,
         confirmation: Optional[str] = None,
+        expected_version: Optional[int] = None,
     ) -> Change:
         spec = self._spec(key)
         self._settable(spec)
         if not isinstance(version, int) or isinstance(version, bool) or version < 1:
             raise SettingsError("invalid_version", key)
-        self._gate(spec, "restore", version, actor, step_up, confirmation)
-        return await self._single(spec, "restore", version, actor, history="restore")
+        self._gate(spec, "restore", version, actor, step_up, confirmation, expected_version)
+        return await self._single(
+            spec, "restore", version, actor, history="restore", expected_version=expected_version
+        )
 
     async def purge_history(
-        self, key: str, actor: Actor, *, step_up: Optional[StepUp] = None, confirmation: Optional[str] = None
+        self,
+        key: str,
+        actor: Actor,
+        *,
+        step_up: Optional[StepUp] = None,
+        confirmation: Optional[str] = None,
+        expected_version: Optional[int] = None,
     ) -> int:
         """Delete every encrypted version of ``key`` except the current one."""
         spec = self._spec(key)
         self._settable(spec)
         if not spec.is_secret:
             raise SettingsError("not_secret", key)
-        self._gate(spec, "purge_history", None, actor, step_up, confirmation)
+        self._gate(spec, "purge_history", None, actor, step_up, confirmation, expected_version)
         async with self._engine.begin() as conn:
             revision = await repo.lock(conn)
             current = await repo.get_entry(conn, key, for_update=True)
             if current is None:
                 raise SettingsError("not_set", key)
+            _check_version(current, expected_version, key)
             deleted = await repo.prune_history(conn, key, current.version)
             await audit.write(
                 conn,
@@ -315,6 +359,7 @@ class SettingsService:
         *,
         history: str,
         only_new: bool = False,
+        expected_version: Optional[int] = None,
     ) -> Optional[Change]:
         key = spec.key
         async with self._engine.begin() as conn:
@@ -322,6 +367,7 @@ class SettingsService:
             current = await repo.get_entry(conn, key, for_update=True)
             if only_new and current is not None:
                 return None
+            _check_version(current, expected_version, key)
             plain: Any
             if action == "clear":
                 if current is None or current.cleared:
@@ -452,47 +498,65 @@ class SettingsService:
     # ---------------------------------------------------------------- rewrap
 
     async def rewrap(self, actor: Actor) -> RewrapResult:
-        """Re-wrap every data key under the current master key and re-sign every
-        row that the current key did not sign, in batches under the writer lock.
-        Values and versions do not change. Needs ``master_previous`` on the keys
-        while old material remains; with none to do it changes nothing."""
-        async with self._engine.connect() as conn:
-            keys = [e.key for e in await repo.list_entries(conn)]
+        """Re-wrap every data key (current and historical versions) under the
+        current master key and re-sign every row the current key did not sign,
+        in batches under the writer lock. Values and versions do not change.
+        Needs ``master_previous`` on the keys while old material remains; with
+        none to do it changes nothing. A key the registry no longer knows is
+        skipped and reported (``RewrapResult.skipped``), not fatal. Keys added
+        while the run is in progress are picked up by further passes."""
         rewrapped = resigned = batches = 0
-        for start in range(0, len(keys), REWRAP_BATCH):
-            chunk = keys[start : start + REWRAP_BATCH]
-            async with self._engine.begin() as conn:
-                revision = await repo.lock(conn)
-                touched = 0
-                for entry in await repo.list_entries(conn, chunk, for_update=True):
-                    did_wrap, did_sign = await self._rewrap_one(conn, entry, actor)
-                    rewrapped += did_wrap
-                    resigned += did_sign
-                    touched += did_wrap or did_sign
-                if not touched:
-                    continue
-                batches += 1
-                new_revision = await self._rebuild_manifest(conn, revision)
-                await audit.write(
-                    conn,
-                    "settings.rewrap",
-                    "settings_store",
-                    None,
-                    None,
-                    None,
-                    "success",
-                    detail={"revision": new_revision, "keys": touched},
-                    **_audit_actor(actor),
-                )
-        return RewrapResult(rewrapped, resigned, batches)
+        done: set[str] = set()
+        skipped: dict[str, str] = {}
+        while True:
+            async with self._engine.connect() as conn:
+                pending = [e.key for e in await repo.list_entries(conn) if e.key not in done]
+            if not pending:
+                break
+            for start in range(0, len(pending), REWRAP_BATCH):
+                chunk = pending[start : start + REWRAP_BATCH]
+                async with self._engine.begin() as conn:
+                    revision = await repo.lock(conn)
+                    touched = 0
+                    for entry in await repo.list_entries(conn, chunk, for_update=True):
+                        done.add(entry.key)
+                        try:
+                            did_wrap, did_sign = await self._rewrap_one(conn, entry, actor)
+                        except SettingsError as exc:
+                            if exc.code != "unknown_key":
+                                raise
+                            skipped[entry.key] = exc.code
+                            continue
+                        rewrapped += did_wrap
+                        resigned += did_sign
+                        touched += bool(did_wrap or did_sign)
+                    if not touched:
+                        continue
+                    batches += 1
+                    new_revision = await self._rebuild_manifest(conn, revision)
+                    await audit.write(
+                        conn,
+                        "settings.rewrap",
+                        "settings_store",
+                        None,
+                        None,
+                        None,
+                        "success",
+                        detail={"revision": new_revision, "keys": touched},
+                        **_audit_actor(actor),
+                    )
+        return RewrapResult(rewrapped, resigned, batches, tuple(sorted(skipped)))
 
-    async def _rewrap_one(self, conn: AsyncConnection, entry: repo.EntryRow, actor: Actor) -> tuple[int, int]:
+    async def _rewrap_one(
+        self, conn: AsyncConnection, entry: repo.EntryRow, actor: Actor
+    ) -> tuple[int, int]:
         try:
             spec = self.registry.get(entry.key)
         except ValidationError:
             raise SettingsError("unknown_key", entry.key) from None
         blob = entry.blob
         wrapped = 0
+        history_versions: list[int] = []
         try:
             if blob is not None and self.keys.needs_rewrap(entry.section, blob):
                 blob = self.keys.rewrap(entry.section, entry.key, entry.version, blob)
@@ -505,29 +569,34 @@ class SettingsService:
                         old.version,
                         self.keys.rewrap(old.section, entry.key, old.version, old.blob),
                     )
-            candidate = _with_blob(entry, blob)
-            sig = self.keys.sign_row(candidate.to_setting_row()).sig
+                    history_versions.append(old.version)
+            sig = self.keys.sign_row(_with_blob(entry, blob).to_setting_row()).sig
         except SettingsError:
             raise
         except Exception:  # noqa: BLE001 - class only, never the cause
             raise SettingsError("cannot_rewrap", entry.key) from None
-        if sig == entry.sig and not wrapped:
+        signed = sig != entry.sig
+        if not (wrapped or signed or history_versions):
             return 0, 0
-        await repo.update_blob_sig(conn, entry.key, blob, sig)
-        if spec.is_secret and not entry.cleared and blob is not None:
-            plain = self.keys.open(entry.section, entry.key, entry.version, blob)
-            digest = value_digest(self.keys, spec, entry.key, entry.version, plain)
+        if wrapped or signed:
+            await repo.update_blob_sig(conn, entry.key, blob, sig)
+        if spec.is_secret:
+            digest = None
+            if not entry.cleared and blob is not None:
+                plain = self.keys.open(entry.section, entry.key, entry.version, blob)
+                digest = value_digest(self.keys, spec, entry.key, entry.version, plain)
             await audit.write(
                 conn,
                 "settings.rewrap_key",
                 "setting",
                 entry.key,
                 None,
-                _state(spec, entry, current_digest=digest, present=True),
+                _state(spec, entry, current_digest=digest, present=not entry.cleared),
                 "success",
+                detail={"history_versions": history_versions},
                 **_audit_actor(actor),
             )
-        return wrapped, 1 if sig != entry.sig else 0
+        return wrapped + len(history_versions), 1 if signed else 0
 
     # ---------------------------------------------------------------- verify
 
@@ -555,13 +624,24 @@ class SettingsService:
                 continue
             problems.extend(self._cross_check(spec, e, audited.get(e.key)))
 
-        problems.extend(self._check_manifest(entries, stored, audited_revision))
+        # a key the audit trail says was set and not cleared must still have a row
+        have = {e.key for e in entries}
+        manifest_problems = self._check_manifest(entries, stored, audited_revision)
+        reported = {(p.key, p.reason) for p in manifest_problems}
+        for key, (_, _, action) in sorted(audited.items()):
+            if (
+                key not in have
+                and action != "settings.clear"
+                and (key, "row_missing") not in reported
+            ):
+                problems.append(Problem(key, "row_missing"))
+        problems.extend(manifest_problems)
         return problems
 
     def _cross_check(self, spec: SettingSpec, e: repo.EntryRow, record: Optional[tuple]) -> list[Problem]:
         if record is None:
             return [Problem(e.key, "no_audit_record")]
-        version, digest = record
+        version, digest, _ = record
         if version != e.version:
             return [Problem(e.key, "audit_version_mismatch")]
         try:
@@ -580,8 +660,13 @@ class SettingsService:
 
     def _check_manifest(self, entries: list, stored: Any, audited_revision: int) -> list[Problem]:
         out: list[Problem] = []
+        if stored is None:
+            return [Problem("*", "manifest_missing")]
         revision = stored["revision"]
         live = manifest_entries(entries)
+        # first, whatever the stored state: the audit trail says it got further
+        if revision < audited_revision:
+            out.append(Problem("*", "manifest_rollback"))
         if revision == 0:
             if live:
                 out.append(Problem("*", "manifest_missing"))
@@ -589,8 +674,6 @@ class SettingsService:
         manifest = Manifest(revision, stored["entries"], stored["sig"])
         if not self.keys.verify_manifest(manifest):
             out.append(Problem("*", "manifest_bad_signature"))
-        if revision < audited_revision:
-            out.append(Problem("*", "manifest_rollback"))
         signed = manifest.entries
         for key in sorted(set(signed) | set(live)):
             if key not in live:
@@ -603,6 +686,12 @@ class SettingsService:
 
 
 # ------------------------------------------------------------------- helpers
+
+
+def _check_version(current: Optional[repo.EntryRow], expected: Optional[int], key: str) -> None:
+    """Inside the write transaction: the admin acted on the version they saw."""
+    if expected is not None and expected != (current.version if current else 0):
+        raise SettingsError("stale_version", key)
 
 
 def _with_sig(e: repo.EntryRow, sig: str) -> repo.EntryRow:

@@ -37,11 +37,14 @@ load_snapshot(
 )
 
 
-
 class Application(StoreBackedSettings):
-    """Define application configuration model."""
+    """Define application configuration model.
 
-    DEBUG: Optional[bool] = True
+    DEBUG is off unless explicitly enabled (DEBUG=true): debug mode makes
+    unhandled errors answer with an HTML traceback.
+    """
+
+    DEBUG: Optional[bool] = False
     API_TITLE: Optional[str] = "auth"
     API_VERSION: Optional[str] = __version__
     API_ROOT_PATH: Optional[str] = "/api/v1"

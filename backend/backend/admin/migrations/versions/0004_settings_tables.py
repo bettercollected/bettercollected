@@ -15,7 +15,9 @@ Schema ``settings`` (created by the roles script, owned by the migration role):
 * ``service_state``: what each service reports about itself, written only by
   ``settings.report_state`` (revision 0005).
 
-Guards bind the owner too: no DELETE or TRUNCATE on ``entries`` and
+Guards stop mistakes and a compromised runtime role (they do not stop the
+migration role, which can DISABLE TRIGGER; detection of that comes from the
+row signatures, the signed manifest and the audit trail): no DELETE or TRUNCATE on ``entries`` and
 ``manifest``; versions and the manifest revision only go up by one;
 ``history`` changes only by pruning encrypted rows that are not current and by
 re-wrapping a blob.
@@ -166,7 +168,8 @@ def upgrade() -> None:
         """
     )
 
-    # ---- guards (they bind the owner as well as the writer)
+    # ---- guards (they stop the writer's mistakes; the owner could disable them,
+    # so detection rests on signatures, the manifest and the audit trail)
     op.execute(
         """
         CREATE FUNCTION settings.refuse_change() RETURNS trigger
@@ -224,6 +227,15 @@ def upgrade() -> None:
         DECLARE
             current_version integer;
         BEGIN
+            IF TG_OP = 'INSERT' THEN
+                -- a history row is the copy of the entry just written, never a future version
+                SELECT version INTO current_version FROM settings.entries WHERE key = NEW.key;
+                IF current_version IS NULL OR NEW.version <> current_version THEN
+                    RAISE EXCEPTION 'settings.history: a row must match the entry''s current version'
+                        USING ERRCODE = 'integrity_constraint_violation';
+                END IF;
+                RETURN NEW;
+            END IF;
             IF TG_OP = 'UPDATE' THEN
                 IF NOT OLD.is_secret
                    OR (NEW.key, NEW.version, NEW.section, NEW.is_secret, NEW.value,
@@ -246,7 +258,7 @@ def upgrade() -> None:
         """
     )
     op.execute(
-        "CREATE TRIGGER history_guard BEFORE UPDATE OR DELETE ON settings.history "
+        "CREATE TRIGGER history_guard BEFORE INSERT OR UPDATE OR DELETE ON settings.history "
         "FOR EACH ROW EXECUTE FUNCTION settings.history_guard()"
     )
     op.execute(

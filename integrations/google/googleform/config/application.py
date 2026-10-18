@@ -46,15 +46,15 @@ class Application(StoreBackedSettings):
         * FASTAPI_DOCS_URL
 
     Attributes:
-        DEBUG (bool): FastAPI logging level. You should disable this for
-            production.
+        DEBUG (bool): FastAPI debug mode (HTML tracebacks for unhandled
+            errors). Off unless explicitly enabled; keep it off in production.
         PROJECT_NAME (str): FastAPI project name.
         VERSION (str): Application version.
         DOCS_URL (str): Path where swagger ui will be served at.
 
     """
 
-    DEBUG: bool = True
+    DEBUG: bool = False
     PROJECT_NAME: str = "googleform"
     VERSION: str = __version__
 

@@ -276,12 +276,14 @@ async def update_history_blob(conn: AsyncConnection, key: str, version: int, blo
     )
 
 
-async def get_manifest(conn: AsyncConnection) -> Mapping[str, Any]:
+async def get_manifest(conn: AsyncConnection) -> Optional[Mapping[str, Any]]:
     row = (
         await conn.execute(
             text("SELECT revision, digest, entries::text AS entries, sig FROM settings.manifest WHERE id = 1")
         )
-    ).one()
+    ).first()
+    if row is None:
+        return None
     m = row._mapping
     return {
         "revision": m["revision"],
@@ -315,17 +317,17 @@ async def enqueue_notification(
     )
 
 
-async def latest_audited_versions(conn: AsyncConnection) -> dict[str, tuple[int, str]]:
-    """Per setting: the version and digest in the newest successful audit row."""
+async def latest_audited_versions(conn: AsyncConnection) -> dict[str, tuple[int, str, str]]:
+    """Per setting: version, digest and action of the newest successful audit row that records one."""
     rows = await conn.execute(
         text(
             "SELECT DISTINCT ON (target_id) target_id, after->>'version' AS version, "
-            "after->>'digest' AS digest FROM admin.audit_log "
+            "after->>'digest' AS digest, action FROM admin.audit_log "
             "WHERE target_type = 'setting' AND outcome = 'success' "
             "AND after->>'digest' IS NOT NULL ORDER BY target_id, seq DESC"
         )
     )
-    return {r.target_id: (int(r.version), r.digest) for r in rows}
+    return {r.target_id: (int(r.version), r.digest, r.action) for r in rows}
 
 
 async def max_audited_revision(conn: AsyncConnection) -> int:

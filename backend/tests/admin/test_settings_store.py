@@ -44,7 +44,8 @@ PLANT = "planted-secret-ZXCV-0123456789-abcdef"
 T1 = "API_FLOW_EVENTS_PER_WINDOW"
 T2 = "AI_DEFAULT_PROVIDER"
 T3 = "AI_COMPAT_BASE_URL"
-SECRET = "MAIL_PASSWORD"
+SECRET = "SSO_POLIS_API_KEY"  # secret, T3, read by backend
+AUTH_ONLY = "MAIL_PASSWORD"  # secret, T3, read by auth and admin
 T4 = "AUTH_JWT_SECRET"
 
 
@@ -71,19 +72,28 @@ async def superuser(server, migrated):
     await engine.dispose()
 
 
-def step_up(service: SettingsService, action: str, key: str, material=None, actor=ADMIN):
+def step_up(service: SettingsService, action: str, key: str, material=None, actor=ADMIN, version=0):
     return StepUp(
-        service.action_hash(action, key, material),
+        service.action_hash(action, key, material, version),
         actor.email,
         datetime.now(timezone.utc) + timedelta(seconds=60),
     )
 
 
+async def ver(service, key):
+    """The version the admin's page would show (0 when never written)."""
+    async with service._engine.connect() as conn:
+        v = (await conn.execute(text("SELECT version FROM settings.entries WHERE key = :k"), {"k": key})).scalar()
+    return v or 0
+
+
 async def put(service, key, value, actor=ADMIN):
     spec = service.registry.get(key)
-    kwargs = {}
+    v = await ver(service, key)
+    kwargs = {"expected_version": v}
     if spec.tier in (Tier.T2, Tier.T3):
-        kwargs["step_up"] = step_up(service, "set", key, service.registry.coerce(key, value) if not spec.is_secret else value)
+        material = service.registry.coerce(key, value) if not spec.is_secret else value
+        kwargs["step_up"] = step_up(service, "set", key, material, version=v)
     if spec.tier is Tier.T3:
         kwargs["confirmation"] = key
     return await service.set(key, value, actor, **kwargs)
@@ -216,16 +226,17 @@ async def test_guards_bind_the_owner_too(svc, server, migrated):
 
 async def test_readers_see_only_their_view_and_rows(svc, server, migrated):
     await put(svc, T1, 7)  # backend only
-    await put(svc, SECRET, PLANT)  # backend and auth
+    await put(svc, SECRET, PLANT)  # backend only
+    await put(svc, AUTH_ONLY, PLANT + "-auth")  # auth (and admin, which has no view)
     backend_rows, _ = await read_view(server, migrated, "backend")
     auth_rows, auth_manifest = await read_view(server, migrated, "auth")
     google_rows, _ = await read_view(server, migrated, "google")
     assert {r.key for r in backend_rows} == {T1, SECRET}
-    assert {r.key for r in auth_rows} == {SECRET}
+    assert {r.key for r in auth_rows} == {AUTH_ONLY}
     assert google_rows == []
-    # the manifest is whole: auth can see that a backend-only key exists, and that it may not read it
-    assert set(auth_manifest.entries) == {T1, SECRET}
-    assert auth_manifest.keys_for("auth") == (SECRET,)
+    # the manifest is whole: auth sees that backend's keys exist, and that it may not read them
+    assert set(auth_manifest.entries) == {T1, SECRET, AUTH_ONLY}
+    assert auth_manifest.keys_for("auth") == (AUTH_ONLY,)
     # no base table, no other view
     engine = create_async_engine(server.url(migrated, "reader:auth"), poolclass=NullPool)
     try:
@@ -327,7 +338,8 @@ async def test_secrets_are_sealed_and_restore_reseals_with_a_fresh_key(svc, serv
     assert stored.startswith("v2:") and PLANT not in stored
     spec = svc.registry.get(SECRET)
     result = await svc.restore(
-        SECRET, 1, ADMIN, step_up=step_up(svc, "restore", SECRET, 1), confirmation=SECRET
+        SECRET, 1, ADMIN, step_up=step_up(svc, "restore", SECRET, 1, version=2), confirmation=SECRET,
+        expected_version=2,
     )
     assert result.version == 3
     rows, manifest = await read_view(server, migrated)
@@ -345,7 +357,8 @@ async def test_history_keeps_five_secret_versions_and_purge_removes_the_rest(svc
     )
     assert versions == [4, 5, 6, 7, 8]
     deleted = await svc.purge_history(
-        SECRET, ADMIN, step_up=step_up(svc, "purge_history", SECRET), confirmation=SECRET
+        SECRET, ADMIN, step_up=step_up(svc, "purge_history", SECRET, version=8), confirmation=SECRET,
+        expected_version=8,
     )
     assert deleted == 4
     assert await scalar(superuser, "SELECT count(*) FROM settings.history WHERE key = :k", k=SECRET) == 1
@@ -383,7 +396,7 @@ async def test_a_deleted_row_and_a_tampered_row_are_detected(svc, server, migrat
 async def test_audit_rows_exist_and_hold_no_secret_values(svc, superuser):
     await put(svc, SECRET, PLANT)
     await put(svc, SECRET, PLANT + "-b")
-    await svc.restore(SECRET, 1, ADMIN, step_up=step_up(svc, "restore", SECRET, 1), confirmation=SECRET)
+    await svc.restore(SECRET, 1, ADMIN, step_up=step_up(svc, "restore", SECRET, 1, version=2), confirmation=SECRET, expected_version=2)
     await put(svc, T1, 5)
     async with superuser.connect() as conn:
         found = (
@@ -437,17 +450,17 @@ async def test_tier_and_key_rules(svc):
         await svc.set(T1, "not a number", ADMIN)
     assert err.value.code == "invalid_value"
     with pytest.raises(SettingsError) as err:
-        await svc.set(T3, "https://169.254.169.254/latest", ADMIN, step_up=step_up(svc, "set", T3, "https://169.254.169.254/latest"), confirmation=T3)
+        await svc.set(T3, "https://169.254.169.254/latest", ADMIN, step_up=step_up(svc, "set", T3, "https://169.254.169.254/latest"), confirmation=T3, expected_version=0)
     assert err.value.code == "invalid_value"
     with pytest.raises(SettingsError) as err:
-        await svc.set(SECRET, "  ", ADMIN, step_up=step_up(svc, "set", SECRET, "  "), confirmation=SECRET)
+        await svc.set(SECRET, "  ", ADMIN, step_up=step_up(svc, "set", SECRET, "  "), confirmation=SECRET, expected_version=0)
     assert err.value.code == "invalid_value"
 
 
 async def test_step_up_is_enforced(svc, superuser):
     value = "https://llm.example.org/v1"
     with pytest.raises(SettingsError) as err:
-        await svc.set(T3, value, ADMIN)
+        await svc.set(T3, value, ADMIN, expected_version=0)
     assert err.value.code == "step_up_required"
     good = step_up(svc, "set", T3, value)
     # bound to another value, another key, another action, another admin, expired, too long-lived
@@ -461,13 +474,13 @@ async def test_step_up_is_enforced(svc, superuser):
     ]
     for token in wrong:
         with pytest.raises(SettingsError) as err:
-            await svc.set(T3, value, ADMIN, step_up=token, confirmation=T3)
+            await svc.set(T3, value, ADMIN, step_up=token, confirmation=T3, expected_version=0)
         assert err.value.code == "step_up_invalid"
     with pytest.raises(SettingsError) as err:
-        await svc.set(T3, value, ADMIN, step_up=good)
+        await svc.set(T3, value, ADMIN, step_up=good, expected_version=0)
     assert err.value.code == "confirmation_required"
     assert await scalar(superuser, "SELECT count(*) FROM settings.entries") == 0
-    assert (await svc.set(T3, value, ADMIN, step_up=good, confirmation=T3)).version == 1
+    assert (await svc.set(T3, value, ADMIN, step_up=good, confirmation=T3, expected_version=0)).version == 1
 
 
 async def test_import_once_never_overwrites_and_takes_t4(svc):
@@ -518,7 +531,7 @@ async def test_rewrap_with_the_previous_key_leaves_rows_readable_with_the_new_ke
     rotating = SettingsService(svc._engine, store_registry(), make_keys(previous=MASTER_KEY, master=new_master))
     # the audit chain key follows the master key in this process
     result = await rotating.rewrap(CLI)
-    assert result.rewrapped == 1 and result.resigned == 2 and result.batches == 1
+    assert result.rewrapped == 3 and result.resigned == 2 and result.batches == 1  # 1 entry + 2 history blobs
     again = await rotating.rewrap(CLI)
     assert (again.rewrapped, again.resigned, again.batches) == (0, 0, 0)
 
@@ -560,11 +573,11 @@ async def test_settings_import_is_idempotent_never_overwrites_and_prints_no_valu
             [
                 f"{T1}=33",
                 f"{SECRET}={PLANT}",
-                "AI_PROMPT_MAX_LENGTH=",
+                "API_FLOW_EVENTS_WINDOW_SECONDS=",
                 "NOT_A_SETTING=x",
                 "DATABASE_URL=postgresql://u:p@h/db",
                 f"{T4}=jwt-shipped-looking-but-fine-{'q' * 30}",
-                "SSO_POLIS_API_KEY=changeme",
+                "OPENAI_API_KEY=changeme",
             ]
         )
     )
@@ -628,3 +641,99 @@ async def test_rewrap_cli(svc, server, migrated):
     done = run_cli(url, "rewrap", extra={"SETTINGS_MASTER_KEY_PREVIOUS": MASTER_KEY})
     assert done.returncode == 0 and "rewrapped=0 resigned=0" in done.stdout
     assert PLANT not in done.stdout + done.stderr
+
+
+# ----------------------------------------------------------------- review fixes
+
+
+async def test_a_wiped_store_is_not_reported_clean(svc, superuser):
+    await put(svc, T1, 1)
+    await put(svc, T1, 2)
+    assert await svc.verify() == []
+    for sql in (
+        "DELETE FROM settings.history",
+        "DELETE FROM settings.entries",
+        "UPDATE settings.manifest SET revision = 0, digest = repeat('0', 64), entries = '{}'::jsonb, sig = ''",
+    ):
+        await as_superuser_raw(superuser, sql)
+    problems = {(p.key, p.reason) for p in await svc.verify()}
+    assert ("*", "manifest_rollback") in problems
+    assert (T1, "row_missing") in problems
+
+
+async def test_a_cleared_key_without_a_row_is_not_reported_missing_but_a_set_one_is(svc, superuser):
+    await put(svc, T1, 1)
+    await svc.clear(T1, ADMIN, expected_version=1)
+    await as_superuser_raw(superuser, "DELETE FROM settings.history")
+    await as_superuser_raw(superuser, "DELETE FROM settings.entries")
+    await as_superuser_raw(superuser, "UPDATE settings.manifest SET entries = '{}'::jsonb")
+    assert (T1, "row_missing") not in {(p.key, p.reason) for p in await svc.verify()}
+
+
+async def test_a_missing_manifest_row_is_reported_not_raised(svc, superuser):
+    await put(svc, T1, 1)
+    await as_superuser_raw(superuser, "DELETE FROM settings.manifest")
+    assert ("*", "manifest_missing") in {(p.key, p.reason) for p in await svc.verify()}
+
+
+async def test_cli_verify_reports_a_missing_manifest(svc, server, migrated, superuser):
+    await put(svc, T1, 1)
+    await as_superuser_raw(superuser, "DELETE FROM settings.manifest")
+    result = run_cli(server.url(migrated, "runtime"), "settings-verify")
+    assert result.returncode == 1 and "* manifest_missing" in result.stdout
+
+
+async def test_a_step_up_cannot_be_replayed_and_stale_forms_are_refused(svc):
+    value_a, value_b = "https://a.example.org/v1", "https://b.example.org/v1"
+    first = step_up(svc, "set", T3, value_a, version=0)
+    await svc.set(T3, value_a, ADMIN, step_up=first, confirmation=T3, expected_version=0)
+    second = step_up(svc, "set", T3, value_b, version=1)
+    await svc.set(T3, value_b, ADMIN, step_up=second, confirmation=T3, expected_version=1)
+    with pytest.raises(SettingsError) as err:  # replay of the first token: bound to version 0
+        await svc.set(T3, value_a, ADMIN, step_up=first, confirmation=T3, expected_version=0)
+    assert err.value.code == "stale_version"
+    with pytest.raises(SettingsError) as err:  # the version is bound into the token
+        await svc.set(T3, value_a, ADMIN, step_up=first, confirmation=T3, expected_version=2)
+    assert err.value.code == "step_up_invalid"
+    with pytest.raises(SettingsError) as err:  # a step-up tier needs the version
+        await svc.set(T3, value_a, ADMIN, step_up=first, confirmation=T3)
+    assert err.value.code == "expected_version_required"
+    # a plain (T1) change with a stale version is refused too
+    await put(svc, T1, 1)
+    with pytest.raises(SettingsError) as err:
+        await svc.set(T1, 2, ADMIN, expected_version=0)
+    assert err.value.code == "stale_version"
+    assert await ver(svc, T3) == 2
+
+
+async def test_a_planted_future_history_row_is_refused(svc, server, migrated):
+    await put(svc, T1, 1)
+    owner = create_async_engine(server.url(migrated, "runtime"), poolclass=NullPool)
+    try:
+        async with owner.connect() as conn:
+            with pytest.raises(DBAPIError):
+                await conn.execute(
+                    text(
+                        "INSERT INTO settings.history (key, version, section, is_secret, value, cleared, "
+                        "action, source, actor, at) VALUES (:k, 5, 'rate_limits', false, '1'::jsonb, "
+                        "false, 'set', 'portal', 'x', now())"
+                    ),
+                    {"k": T1},
+                )
+    finally:
+        await owner.dispose()
+    # the next real write still works
+    assert (await put(svc, T1, 3)).version == 2
+
+
+async def test_rewrap_skips_and_reports_unknown_keys(svc, superuser):
+    from common.settings.registry import Registry
+
+    await put(svc, T1, 1)
+    await put(svc, SECRET, PLANT)
+    smaller = Registry(
+        [s for s in store_registry() if s.key != T1], secret_problems=lambda k, v: []
+    )
+    service = SettingsService(svc._engine, smaller, make_keys())
+    result = await service.rewrap(CLI)
+    assert result.skipped == (T1,)
