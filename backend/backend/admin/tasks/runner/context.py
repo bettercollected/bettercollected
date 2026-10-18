@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Callable, Mapping, Optional, Sequence
 
 from sqlalchemy import text
@@ -99,6 +100,14 @@ class RunContext:
             self.cancel_seen = True
             return True
         return False
+
+    @asynccontextmanager
+    async def connection(self):
+        async with self._engine.connect() as conn:
+            async with conn.begin():
+                if self.dry_run:
+                    await conn.execute(text("SET TRANSACTION READ ONLY"))
+                yield conn
 
     # -- reporting ----------------------------------------------------------------
     async def progress(self, done: int, total: Optional[int] = None) -> None:

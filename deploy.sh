@@ -21,6 +21,13 @@ else
   exit 1
 fi
 
+# Extra precaution (docs/admin-service.md): create containers one at a time. The
+# compose file's explicit network priorities are what fix the occasional
+# one-network attach of containers on two networks (app-postgres, admin).
+# Note this also serialises `pull` and `up --build` for the whole stack, so a
+# deploy can take longer; set COMPOSE_PARALLEL_LIMIT yourself to change it.
+export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
+
 # The stack's own signing and encryption keys (AUTH_JWT_SECRET,
 # AUTH_AES_HEX_KEY, MASTER_ENCRYPTION_KEYSET) also live in the root .env:
 # generated once, never overwritten, and refused by the services when empty or
@@ -65,6 +72,20 @@ for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASS
   fi
 done
 
+# BC_ADMIN_PASSWORD and BC_ADMIN_MIG_PASSWORD go unencoded into database URLs
+# (compose ADMIN_DATABASE_URL, the migration URL below): only URL-safe characters
+# are accepted, because "@", "/", "#" or "?" would break the URL or point it
+# elsewhere. Generated values are hex; this guards values set by hand.
+for var in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD; do
+  value=$(grep -E "^${var}=" .env | tail -n 1 | cut -d= -f2-)
+  if ! printf '%s' "$value" | grep -Eq '^[A-Za-z0-9._~-]+$'; then
+    echo "${var} in .env must be non-empty and use only letters, digits, '.', '_', '~' and '-'" >&2
+    echo "(it is placed unencoded in a database URL). Remove the line to have a new one generated." >&2
+    exit 1
+  fi
+done
+unset value
+
 # The internal admin service (database foundations only so far): BC_ADMIN_PASSWORD
 # is its runtime role, BC_ADMIN_MIG_PASSWORD the migration role that owns schema
 # `admin` (generated above; postgres/ensure-admin-roles.sh applies them).
@@ -82,6 +103,19 @@ echo "IMPORTANT: back up SETTINGS_MASTER_KEY from .env. If it is lost, the admin
 echo "second-factor (TOTP) secrets cannot be decrypted and the audit log can no longer be"
 echo "verified; neither is recoverable. Never change or regenerate it on a stack that has"
 echo "admin data."
+# The portal starts only when PLATFORM_ADMIN_EMAILS (the super admin list) is set
+# in the root .env, next to the keys above. Never written here: it is the
+# operator's decision who may sign in.
+if ! grep -q "^PLATFORM_ADMIN_EMAILS=." .env 2>/dev/null; then
+  echo ""
+  echo "ADMIN PORTAL IS OFF: PLATFORM_ADMIN_EMAILS is not set in .env."
+  echo "Add the super admins' email addresses (comma-separated) to enable it:"
+  echo "  PLATFORM_ADMIN_EMAILS=you@example.com"
+  echo "Sign-in codes are mailed, so set MAIL_SMTP_SERVER and MAIL_SENDER (and"
+  echo "MAIL_USER / MAIL_PASSWORD if your server needs them) in .env as well."
+  echo "See docs/admin-service.md."
+  echo ""
+fi
 
 # Single sign-on (docs/sso.md): off unless the root .env has SSO_ENABLED=true.
 # Then Polis and its own Postgres run from the overlay

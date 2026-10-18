@@ -96,14 +96,19 @@ async def test_email_ok_session_reaches_only_mfa_logout_and_static(
     b = Browser(app)
     await sign_in(b, transport)
     session = (await portal.sessions.list_live(ADMIN))[0]
-    token = csrf.session_token(portal.csrf_key, str(session.id))
+    token = csrf.session_token(portal.csrf_key, session.csrf_subject)
     method = sorted(route.methods)[0]
     kw = {"headers": {"x-csrf-token": token}}
     if route.path.startswith("/api/") and method == "POST":
         kw["json"] = {}
     response = await b.request(method, fill(route.path), **kw)
     reachable = level <= Level.ADMIN
-    if reachable:
+    if reachable and route.path.startswith("/mfa"):
+        # narrowed by state: no factor yet -> only /mfa/enrol*, others redirect there
+        assert response.status_code in (200, 303), route.path
+        if response.status_code == 303:
+            assert response.headers["location"].startswith("/mfa"), route.path
+    elif reachable:
         assert response.status_code == 200, route.path
     elif route.path.startswith("/api/"):
         assert response.status_code == 401
@@ -142,7 +147,7 @@ async def logged_in(app, portal, state="mfa_ok"):
     token, session = await portal.sessions.create(ADMIN, "127.0.0.1", UA, mfa_state=state)
     b = Browser(app)
     b.cookies[cookies.SESSION_COOKIE] = token
-    return b, csrf.session_token(portal.csrf_key, str(session.id)), session
+    return b, csrf.session_token(portal.csrf_key, session.csrf_subject), session
 
 
 @needs_postgres

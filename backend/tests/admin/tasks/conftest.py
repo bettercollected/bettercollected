@@ -58,6 +58,7 @@ class World:
         requested_by: str = "ops@example.org",
         tamper: Optional[dict] = None,
         sign_params: Optional[dict] = None,
+        requested_at: Optional[datetime] = None,
     ) -> uuid.UUID:
         """Insert a signed request as the admin role. ``tamper`` overrides stored
         columns after signing; ``sign_params`` signs different params than stored."""
@@ -68,7 +69,7 @@ class World:
             params=sign_params if sign_params is not None else params,
             dry_run=dry_run,
             requested_by=requested_by,
-            requested_at=AT,
+            requested_at=requested_at or AT,
             resumes_run_id=resumes,
         )
         values = {
@@ -151,6 +152,6 @@ async def world(server, migrated, runtime_engine, tasks_engine, owner_engine, mo
         admin=runtime_engine,
         tasks=tasks_engine,
         owner=owner_engine,
-        clock=FakeClock(),
+        clock=FakeClock(AT.timestamp() + 60),
         registry=build_registry(),
     )

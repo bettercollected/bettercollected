@@ -340,3 +340,24 @@ async def test_roles_script_is_idempotent_and_repairs_grants(server, migrated):
     await _execute(url, sql)
     await _execute(url, sql)
     assert await snapshot() == before
+
+
+async def test_the_runner_may_only_write_audit_rows_as_system(world):
+    for kind in ("admin", "cli", "anonymous"):
+        with pytest.raises(DBAPIError) as raised:
+            async with world.tasks.begin() as conn:
+                await audit.write(
+                    conn, "task.run.started", "task_run", "x", None, None, "success",
+                    actor_kind=kind, actor_email="ops@example.org",
+                )
+        assert "as system only" in str(raised.value.orig)
+    async with world.tasks.begin() as conn:
+        await audit.write(
+            conn, "task.run.started", "task_run", "x", None, None, "success", actor_kind="system"
+        )
+    # the admin role is unaffected
+    async with world.admin.begin() as conn:
+        await audit.write(
+            conn, "setting.update", "setting", "x", None, None, "success",
+            actor_kind="admin", actor_email="ops@example.org",
+        )

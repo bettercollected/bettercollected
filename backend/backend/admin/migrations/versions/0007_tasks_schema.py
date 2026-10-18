@@ -20,7 +20,7 @@ exactly what it needs and nothing by default:
 Triggers bind the table owner too: the request columns of a run are immutable
 and the state machine only moves forward. A lock's lease is its run's
 ``heartbeat_at`` (60 s, taken over after a 30 s grace), so locks need no UPDATE.
-Size CHECKs: an event row 2 KB, a result 8 KB, a cursor 2 KB.
+The runner's audit rows must carry actor_kind 'system' (trigger). Size CHECKs: an event row 2 KB, a result 8 KB, a cursor 2 KB.
 """
 
 from typing import Sequence, Union
@@ -29,7 +29,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-from backend.admin.migration_support import grant
+from backend.admin.migration_support import grant, role_name
 from common.db.alembic_support import create_schema_if_missing_sql
 
 revision: str = "0007_tasks_schema"
@@ -248,6 +248,31 @@ def upgrade() -> None:
             f"CREATE TRIGGER {table}_append_only BEFORE UPDATE ON tasks.{table} "
             f"FOR EACH ROW EXECUTE FUNCTION tasks.refuse_change()"
         )
+
+    # -- the runner may only write audit rows as itself ---------------------------
+    # bc_tasks holds INSERT on admin.audit_log; this trigger (which also binds a
+    # superuser connecting as that role) refuses any row it writes whose
+    # actor_kind is not 'system', so a compromised runner cannot forge entries
+    # that look like an admin's or the CLI's.
+    runner = role_name("tasks")
+    op.execute(
+        f"""
+        CREATE FUNCTION tasks.audit_actor_guard() RETURNS trigger
+        LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+        BEGIN
+            IF (session_user = '{runner}' OR current_user = '{runner}')
+               AND NEW.actor_kind IS DISTINCT FROM 'system' THEN
+                RAISE EXCEPTION 'the task runner writes audit rows as system only'
+                    USING ERRCODE = 'insufficient_privilege';
+            END IF;
+            RETURN NEW;
+        END $$
+        """
+    )
+    op.execute(
+        "CREATE TRIGGER audit_log_runner_actor BEFORE INSERT ON admin.audit_log "
+        "FOR EACH ROW EXECUTE FUNCTION tasks.audit_actor_guard()"
+    )
 
     # -- grants (explicit per table; no default privileges) -----------------------
     grant(op, "GRANT USAGE ON SCHEMA tasks TO {role}", "runtime")

@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 
 from backend.config import settings
 import common.exceptions.http
+from common.exceptions.validation import request_validation_error_handler
+from fastapi.exceptions import RequestValidationError
 import sentry_sdk
 from dependency_injector import providers
 from elasticapm.contrib.starlette import ElasticAPM, make_apm_client
@@ -188,8 +190,9 @@ def get_application(is_test_mode: bool = False):
         title=api_settings.TITLE,
         debug=settings.DEBUG,
         version=api_settings.VERSION,
-        docs_url=api_settings.ROOT_PATH + "/docs",
-        openapi_url=api_settings.ROOT_PATH + "/openapi.json",
+        docs_url=api_settings.ROOT_PATH + "/docs" if api_settings.DOCS_ENABLED else None,
+        redoc_url=api_settings.ROOT_PATH + "/redoc" if api_settings.DOCS_ENABLED else None,
+        openapi_url=api_settings.ROOT_PATH + "/openapi.json" if api_settings.DOCS_ENABLED else None,
         lifespan=lifespan,
     )
 
@@ -210,6 +213,7 @@ def get_application(is_test_mode: bool = False):
     )
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     app.add_exception_handler(
         common.exceptions.http.HTTPException,
         common.exceptions.http.http_exception_handler,

@@ -131,6 +131,9 @@ class TaskMeta:
     title: str = ""
     refusals: Optional[type[enum.Enum]] = None  # documented ``Refusal`` codes
     internal: bool = field(default=False, compare=False)  # test-only task
+    # A second resume of a run is refused once an earlier resume of it has
+    # succeeded, unless the task is safe to replay from the same checkpoint.
+    idempotent: bool = False
 
 
 @runtime_checkable
@@ -163,6 +166,12 @@ class TaskContext(Protocol):
 
     async def cancelled(self) -> bool:
         """True once cancel was requested or the lease was lost; check between batches."""
+
+    def connection(self) -> Any:
+        """``async with ctx.connection() as conn``: a database connection in its own
+        transaction. For a dry run the transaction is READ ONLY, so a buggy task
+        cannot write; the context's own bookkeeping (events, progress,
+        checkpoints) is unaffected."""
 
     def read_setting(self, name: str) -> Any:
         """Read a setting. Not available until the settings store lands."""

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Set up an authenticator") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+<h1>{{ _("Set up an authenticator") }}</h1>
+<p>{{ _("You are signed in as") }} <strong>{{ email }}</strong>. {{ _("A second factor is required. You need an authenticator app (any app that supports time-based one-time passwords).") }}</p>
+{% if replacing %}
+<p>{{ _("This replaces your current authenticator and your recovery codes.") }}</p>
+{% endif %}
+<form method="post" action="/mfa/enrol">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit">{{ _("Show the setup code") }}</button>
+</form>
+{% endblock %}

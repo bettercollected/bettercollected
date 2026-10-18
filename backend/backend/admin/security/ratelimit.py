@@ -183,6 +183,8 @@ CODE_REQUEST_PER_EMAIL = Rule("code_email", 3, 600)
 CODE_REQUEST_PER_IP = Rule("code_ip", 10, 600)
 CHALLENGE_ATTEMPTS = Rule("challenge", 5, 600)
 FACTOR_FAILURES = Rule("factor_fail", 5, 300)
+# guesses at the second factor, counted BEFORE the code is looked at
+FACTOR_ATTEMPTS = Rule("factor_try", 5, 300)
 GLOBAL_FAILURES = Rule("global_fail", 50, 600)
 # slow guessing: failures in any rolling 24 h, counted in 15-minute buckets
 LONG_FAILURE_LIMIT = 15
@@ -203,6 +205,7 @@ class Decision:
     count: int
     limit: int
     retry_after: int  # seconds until the window ends; 0 when allowed
+    blocked_by_ip: bool = False  # refused by the per-address limit (email not counted)
 
 
 @dataclass(frozen=True)
@@ -282,15 +285,30 @@ class Limiter:
 
     # sign-in code requests
     async def request_code(self, email: str, client: Optional[str]) -> Decision:
-        """Both code-request limits; the answer is the stricter. Both are
-        counted, so a refusal by one doesn't hide the other's tally."""
-        by_email = await self.hit(CODE_REQUEST_PER_EMAIL, self.email_key(email))
+        """Both code-request limits; the answer is the stricter.
+
+        The address limit is counted first. Once an address is over it, the
+        email is not counted at all, so an address (or botnet member) sending
+        many different emails can only ever create a bounded number of counter
+        rows: at most ``CODE_REQUEST_PER_IP.limit`` email rows per address
+        window. ``blocked_by_ip`` tells the caller which limit refused."""
         by_ip = await self.hit(CODE_REQUEST_PER_IP, self.ip_key(client))
-        if not by_email.allowed or not by_ip.allowed:
-            retry = max(by_email.retry_after, by_ip.retry_after)
-            first = by_email if not by_email.allowed else by_ip
-            return Decision(False, first.count, first.limit, retry)
+        if not by_ip.allowed:
+            return Decision(False, by_ip.count, by_ip.limit, by_ip.retry_after, True)
+        by_email = await self.hit(CODE_REQUEST_PER_EMAIL, self.email_key(email))
         return by_email
+
+    async def decoy_global_failure(self, client: Optional[str]) -> BreakerOutcome:
+        """The same two counter updates ``record_global_failure`` makes for an
+        identified admin, against throwaway keys, so a failed code for an
+        unknown challenge costs the same database work as one for an admin's.
+        Counts toward nothing."""
+        start, _ = self._window(GLOBAL_FAILURES)
+        await self._store.increment(self.ip_key(client) + ":gfail:decoy", start)
+        await self._store.increment(
+            hashed_key(self._pepper, "global", "decoy") + ":fail", start
+        )
+        return BreakerOutcome(False, False, 0)
 
     # code verification attempts
     async def challenge_attempt(
@@ -311,6 +329,19 @@ class Limiter:
     def _subject_keys(self, subject: str) -> Tuple[str, str, str]:
         base = hashed_key(self._pepper, "factor", normalise_email(subject))
         return base + ":fail", base + ":strikes", base + ":lock"
+
+    def _attempt_subject(self, subject: str) -> str:
+        return hashed_key(self._pepper, "factor", normalise_email(subject))
+
+    async def factor_attempt(self, subject: str) -> Decision:
+        """Reserve one guess at the second factor of ``subject``, atomically and
+        BEFORE the code is evaluated: at most five are evaluated per five
+        minutes, however many requests arrive at once (parallel guesses are
+        refused, not merely counted afterwards). A correct code resets the
+        reservations (``record_success``); wrong ones stay and feed
+        ``record_failure``'s lockout. A holder of a valid code gains nothing from
+        the reset, and the rolling 24 h failure tally is not reset by it."""
+        return await self.hit(FACTOR_ATTEMPTS, self._attempt_subject(subject))
 
     async def lock_status(self, subject: str) -> LockStatus:
         """Whether ``subject`` (an admin email) is locked out right now."""
@@ -372,12 +403,18 @@ class Limiter:
         fail_key, strike_key, _ = self._subject_keys(subject)
         await self._store.reset(fail_key)
         await self._store.reset(strike_key)
+        await self._store.reset(
+            f"{FACTOR_ATTEMPTS.name}:{self._attempt_subject(subject)}"
+        )
 
     async def unlock(self, subject: str) -> None:
         """Operator override: clear failures, escalation and any lockout."""
         for key in self._subject_keys(subject):
             await self._store.reset(key)
         await self._store.reset(self._subject_keys(subject)[0] + ":long")
+        await self._store.reset(
+            f"{FACTOR_ATTEMPTS.name}:{self._attempt_subject(subject)}"
+        )
 
     # global breaker
     def _global_keys(self) -> Tuple[str, str]:

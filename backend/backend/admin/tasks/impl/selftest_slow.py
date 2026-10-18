@@ -2,6 +2,10 @@
 run finds everything done (changed == 0): the idempotency contract in miniature.
 Tests hook ``HOOKS.before_batch`` to hold a run between batches."""
 
+import uuid
+
+from sqlalchemy import text
+
 from backend.admin.tasks.catalog.selftest_slow import (
     GUARDED_META,
     META,
@@ -33,6 +37,16 @@ class SelfTestSlow:
         cursor = await ctx.load_checkpoint()
         if cursor:
             start = int(cursor.get("next", 0))
+        if params.write_probe:
+            # a write through the task's own connection: refused in a dry run
+            async with ctx.connection() as conn:
+                await conn.execute(
+                    text(
+                        "INSERT INTO tasks.locks (name, run_id, runner_id) "
+                        "VALUES ('probe', :id, 'probe')"
+                    ),
+                    {"id": uuid.UUID(ctx.run_id)},
+                )
         changed = unchanged = batches = 0
         size = max(1, params.batch_size)
         for lo in range(start, params.items, size):

@@ -21,6 +21,7 @@ class SlowParams(Params):
     emit_events: int = 0
     fail_at: int = -1
     decline: bool = False
+    write_probe: bool = False
 
 
 class SlowResult(Result):

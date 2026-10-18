@@ -31,6 +31,14 @@ set -euo pipefail
 : "${BC_ADMIN_PASSWORD:?BC_ADMIN_PASSWORD must be set}"
 : "${BC_ADMIN_MIG_PASSWORD:?BC_ADMIN_MIG_PASSWORD must be set}"
 : "${BC_TASKS_PASSWORD:?BC_TASKS_PASSWORD must be set}"
+# the passwords are placed unencoded in database URLs by the compose file and
+# deploy.sh: refuse characters that would break a URL (never print the value)
+for name in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD; do
+    if ! printf '%s' "${!name}" | grep -Eq '^[A-Za-z0-9._~-]+$'; then
+        echo "$name may only contain letters, digits, '.', '_', '~' and '-' (it is used unencoded in a database URL)." >&2
+        exit 1
+    fi
+done
 : "${POSTGRES_USER:?POSTGRES_USER must be set}"
 : "${POSTGRES_DB:?POSTGRES_DB must be set}"
 

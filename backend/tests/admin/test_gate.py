@@ -196,6 +196,18 @@ async def test_healthz_loopback_only(app):
     assert (await call(app, path="/healthz", method="POST"))[0] == 404
 
 
+async def test_healthz_answers_the_edge_gateway_only_when_configured():
+    a = make_app({"ADMIN_EDGE_GATEWAY": "172.30.77.1"}, registry=make_registry())
+    s, _, body = await call(a, path="/healthz", peer="172.30.77.1", host=HOST)
+    assert (s, body) == (200, b"ok")
+    # only that exact address, and only GET/HEAD: not its neighbours (siblings), not other networks
+    for peer in ("172.30.77.2", "172.30.77.3", "172.17.0.1", "203.0.113.9"):
+        assert (await call(a, path="/healthz", peer=peer, host=HOST))[0] == 404
+    assert (await call(a, path="/healthz", peer="172.30.77.1", method="POST"))[0] == 404
+    # the gateway gets the same address allowlist as everything else
+    assert (await call(a, path="/ping", peer="172.30.77.1", host=HOST))[0] == 200
+
+
 def test_registry_requires_level():
     reg = RouteRegistry()
     with pytest.raises(TypeError):
@@ -391,14 +403,41 @@ def test_compose_admin_service():
     assert "no-new-privileges:true" in admin["security_opt"]
     assert str(admin["user"]).split(":")[0] not in ("0", "root")
     assert "/tmp" in json.dumps(admin["tmpfs"]) and "healthcheck" in admin
-    env = json.dumps(admin["environment"])
-    assert not any(k in env for k in ("MONGO", "SECRET", "KEYSET", "PASSWORD"))
-    attached = [
-        n for n, s in c["services"].items() if "admin-edge" in (s.get("networks") or [])
-    ]
-    assert attached == ["admin"]
-    assert list(admin["networks"]) == ["admin-edge"]
+    env = admin["environment"]
+    # no other service's secrets; its own database password, master key and mail
+    # password only as substitutions from the root .env, never literal values
+    assert not any(k in json.dumps(env) for k in ("MONGO", "KEYSET", "AUTH_", "JWT"))
+    for key in ("SETTINGS_MASTER_KEY", "MAIL_PASSWORD", "ADMIN_DATABASE_URL"):
+        assert "${" in env[key], key
+    assert "BC_ADMIN_MIG_PASSWORD" not in json.dumps(env)
+    assert "bc_admin:" in env["ADMIN_DATABASE_URL"] and "bc_admin_mig" not in env["ADMIN_DATABASE_URL"]
+    # the portal's optional settings default to empty (bare-gate mode), so
+    # `docker compose config` works for stacks that never ran the new deploy.sh
+    for key in ("SETTINGS_MASTER_KEY", "PLATFORM_ADMIN_EMAILS"):
+        assert env[key].startswith("${" + key + ":-"), key
+    for key in ("ADMIN_PUBLIC_ORIGINS", "ADMIN_ALLOWED_HOSTS", "ADMIN_EDGE_GATEWAY"):
+        assert key in env
+
+
+def test_compose_admin_networks():
+    c = _compose()
+    services = c["services"]
+
+    def on(net):
+        return sorted(n for n, s in services.items() if net in (s.get("networks") or []))
+
+    # the published port rides the pinned edge network, and only admin is on it
+    assert on("admin-edge") == ["admin"]
     assert "admin-edge" in c["networks"]
+    # the database path is a separate internal network shared by exactly two services
+    assert on("admin-db") == ["admin", "app-postgres"]
+    assert c["networks"]["admin-db"]["internal"] is True
+    # admin is not on the default network, so no sibling container can reach it
+    assert list(services["admin"]["networks"]) == ["admin-edge", "admin-db"]
+    assert "default" in services["app-postgres"]["networks"]
+    assert not services["app-postgres"].get("ports")
+    assert not any("admin" in str(s.get("networks", "")) for n, s in services.items()
+                   if n not in ("admin", "app-postgres"))
 
 
 def test_admin_not_in_nginx_conf():
