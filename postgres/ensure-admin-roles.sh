@@ -167,6 +167,8 @@ BEGIN
         GRANT SELECT, INSERT ON tasks.runs TO bc_admin;
         GRANT UPDATE (cancel_requested_at) ON tasks.runs TO bc_admin;
         GRANT SELECT ON tasks.run_events, tasks.checkpoints, tasks.locks TO bc_admin;
+        -- the retention loop (admin role): the runner itself can only append
+        GRANT DELETE ON tasks.run_events, tasks.checkpoints TO bc_admin;
         GRANT SELECT ON tasks.runs TO bc_tasks;
         GRANT UPDATE (state, progress, heartbeat_at, result, refusal_code, runner_id,
                       started_at, finished_at) ON tasks.runs TO bc_tasks;
@@ -178,11 +180,17 @@ BEGIN
         REVOKE ALL ON admin.notifications FROM bc_admin;
         GRANT SELECT, INSERT ON admin.notifications TO bc_admin;
         GRANT UPDATE (status, attempts, sent_at) ON admin.notifications TO bc_admin;
+        IF EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = 'admin' AND table_name = 'notifications'
+                     AND column_name = 'delivered_to') THEN
+            GRANT UPDATE (next_attempt_at, last_error_code, delivered_to)
+                ON admin.notifications TO bc_admin;
+        END IF;
     END IF;
 
     -- the settings store. The writer (bc_admin) holds exactly these; no DELETE
-    -- on entries or manifest, and service_state is written
-    -- only through settings.report_state.
+    -- on entries or manifest; service_state is written only through
+    -- settings.report_state, and the admin's retention loop may delete stale rows.
     IF to_regclass('settings.entries') IS NOT NULL THEN
         REVOKE ALL ON settings.entries, settings.history, settings.manifest,
             settings.service_state FROM bc_admin;
@@ -190,7 +198,7 @@ BEGIN
         GRANT SELECT, INSERT, DELETE ON settings.history TO bc_admin;
         GRANT UPDATE (blob) ON settings.history TO bc_admin;
         GRANT SELECT, INSERT, UPDATE ON settings.manifest TO bc_admin;
-        GRANT SELECT ON settings.service_state TO bc_admin;
+        GRANT SELECT, DELETE ON settings.service_state TO bc_admin;
     END IF;
     -- Readers: their own two views and report_state, nothing else. Keep these
     -- {service, role} pairs equal to READER_SERVICES in

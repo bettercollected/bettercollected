@@ -306,14 +306,23 @@ async def write_manifest(
 
 
 async def enqueue_notification(
-    conn: AsyncConnection, kind: str, payload: Mapping[str, Any], audit_seq: Optional[int]
+    conn: AsyncConnection,
+    kind: str,
+    payload: Mapping[str, Any],
+    audit_seq: Optional[int],
+    dedupe_key: Optional[str] = None,
 ) -> None:
     await conn.execute(
         text(
-            "INSERT INTO admin.notifications (kind, payload, audit_seq) "
-            "VALUES (:k, CAST(CAST(:p AS text) AS jsonb), :s)"
+            "INSERT INTO admin.notifications (kind, payload, audit_seq, dedupe_key) "
+            "VALUES (:k, CAST(CAST(:p AS text) AS jsonb), :s, :d)"
         ),
-        {"k": kind, "p": json.dumps(payload, allow_nan=False), "s": audit_seq},
+        {
+            "k": kind,
+            "p": json.dumps(payload, allow_nan=False),
+            "s": audit_seq,
+            "d": dedupe_key,
+        },
     )
 
 
