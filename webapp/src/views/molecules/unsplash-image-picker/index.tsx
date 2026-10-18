@@ -12,6 +12,16 @@ import PhotoList from './photo-list';
 import SearchBar from './photo-search';
 import UploadMediaComponent from './upload-media-comonent';
 
+// as app/api/unsplash allows
+const MAX_QUERY_LENGTH = 100;
+
+// what the picker says when a search fails, by the route's status (0: no answer)
+function searchErrorMessage(status: number): string {
+    if (status === 401) return 'Sign in again to search images. You can still upload an image.';
+    if (status === 429) return 'Too many image searches. Try again in a few minutes.';
+    return 'Image search is unavailable right now. You can still upload an image.';
+}
+
 interface IUnsplashImagePickerProps {
     initialPhotoSearchQuery?: string;
     onPhotoSelect?: (photo: any) => void;
@@ -27,6 +37,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
     const [initialLoading, setInitialLoading] = React.useState(false);
     const [isLoadingMore, setIsLoadingMore] = React.useState(false);
     const [page, setPage] = React.useState(1);
+    const [searchError, setSearchError] = React.useState<string | null>(null);
     const form = useAppSelector(selectForm);
 
     const { closeDialogModal } = useDialogModal();
@@ -47,6 +58,12 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         if (isLoading || isLoadingMore) {
             return;
         }
+        // the route refuses an empty or over-long query; an empty one is no search
+        const query = text.trim().slice(0, MAX_QUERY_LENGTH);
+        if (!query) {
+            setInitialLoading(false);
+            return;
+        }
         if (page === 1) {
             setIsLoading(true);
         } else {
@@ -54,29 +71,39 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         }
 
         setPage(page);
-        fetch(new URL('/api/unsplash', window.location.origin) + '?' + new URLSearchParams({ page: page.toString(), query: text })).then((response: any) => {
-            response.json().then((response: any) => {
-                const newPics = response?.results;
+        setSearchError(null);
+        fetch(new URL('/api/unsplash', window.location.origin) + '?' + new URLSearchParams({ page: page.toString(), query }))
+            .then(async (response: Response) => {
+                if (!response.ok) {
+                    setSearchError(searchErrorMessage(response.status));
+                    return;
+                }
+                const feed: any = await response.json();
+                const newPics = feed?.results;
                 if (newPics) {
                     let mergedPics = newPics;
                     if (!reset) {
                         mergedPics = [...existingSelectedPhotos, ...pics, ...newPics];
                     }
                     setPics(mergedPics);
-                    setTotal(response.total);
+                    setTotal(feed.total);
                 }
+            })
+            .catch(() => setSearchError(searchErrorMessage(0)))
+            .finally(() => {
                 setIsLoading(false);
                 setIsLoadingMore(false);
                 setInitialLoading(false);
             });
-        });
     };
 
     const triggerUnsplashDownloadEndpoint = (photo: any) => {
+        // only the id: the route needs nothing else, and refuses large bodies
         fetch('/api/unsplash/download', {
             method: 'POST',
-            body: JSON.stringify(photo)
-        });
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: photo?.id })
+        }).catch(() => { });
     };
 
     function setPhotoInLocalStorage(photo: any) {
@@ -125,12 +152,19 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                                         setQuery={setQuery}
                                     />
                                 </div>
+                                {searchError && (
+                                    <p role="alert" className="p4-new text-black-600 mb-4 mr-2">
+                                        {searchError}
+                                    </p>
+                                )}
                                 <PhotoList
                                     total={total}
                                     photoList={pics}
                                     isLoading={isLoading}
                                     isLoadingMore={isLoadingMore}
                                     loadMore={() => {
+                                        // a failed search waits for the next one instead of retrying on every scroll
+                                        if (searchError) return;
                                         query ? fetchPhotos(page + 1, query) : fetchPhotos(page + 1, 'forms');
                                     }}
                                     onPhotoSelect={async (photo: any) => {
