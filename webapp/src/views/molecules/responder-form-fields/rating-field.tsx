@@ -13,7 +13,18 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 
+import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
+
+/** The stars, as a group named by the question they answer. */
+function RatingGroup({ children }: { children: React.ReactNode }) {
+    const { group, label } = useQuestionLabel();
+    return (
+        <div className="relative mb-0! flex w-fit flex-wrap gap-1" {...(label ? { role: 'group', ...group } : {})}>
+            {children}
+        </div>
+    );
+}
 
 export default function RatingField({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) {
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
@@ -32,7 +43,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
     // is a new type on every render, so each hover remounted every star — the
     // click could land on a detached button and keyboard focus was lost.
     const ratingSection = (
-        <div className="relative mb-0! flex w-fit flex-wrap gap-1">
+        <RatingGroup>
             {_.range(steps).map((index) => {
                 return (
                     <button
@@ -65,7 +76,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                     </button>
                 );
             })}
-        </div>
+        </RatingGroup>
     );
     return <>{isBuilder ? ratingSection : <QuestionWrapper field={field}>{ratingSection}</QuestionWrapper>}</>;
 }

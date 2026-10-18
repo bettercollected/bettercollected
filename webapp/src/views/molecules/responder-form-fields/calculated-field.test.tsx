@@ -52,7 +52,8 @@ describe('a calculated field for respondents', () => {
         renderRespondent();
         const output = screen.getByTestId('calculated-value');
         expect(output.getAttribute('aria-live')).toBe('polite');
-        expect(output.getAttribute('aria-labelledby')).toContain('q-title-total');
+        expect(output.getAttribute('aria-labelledby')).toBe('q-title-total');
+        expect(screen.getByRole('status', { name: 'Total' })).toBe(output);
         expect(output.textContent).toBe('Not calculated yet');
         await act(async () => fireEvent.click(screen.getByText('three')));
         expect(output.textContent).toBe('€37.50');

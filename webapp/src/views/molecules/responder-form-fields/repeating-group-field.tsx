@@ -145,7 +145,8 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
     const removable = canRemoveItem(field, answers);
 
     return (
-        <QuestionWrapper field={field} errorMessage={errorMessage}>
+        // A group named by the question; each item is a section named by its heading.
+        <QuestionWrapper field={field} errorMessage={errorMessage} group>
             <div className="mt-2 flex flex-col gap-4">
                 {itemKeys.map((key, index) => (
                     <GroupItem key={key} group={field} index={index} header={getItemHeader(field, index, pipeContext, itemLabel)} removable={removable} onRemove={() => remove(index)} renderChild={renderChild} />

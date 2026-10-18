@@ -22,7 +22,7 @@ export default function getFormShareURL(form: StandardFormDto, workspace: Worksp
 export function getPlaceholderValueForField(fieldType?: FieldTypes) {
     switch (fieldType) {
         case FieldTypes.EMAIL:
-            return 'name@gmail.com';
+            return 'name@example.com';
         case FieldTypes.NUMBER:
             return '123';
         case FieldTypes.SHORT_TEXT:
