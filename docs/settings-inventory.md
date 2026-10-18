@@ -153,6 +153,7 @@ environment, whatever the tier.
 | `API_FLOW_EVENTS_RETENTION_DAYS` | retention | backend | int 0..3650 |  | R | T2 | `395` |
 | `API_CLIENT_URL` | server | backend, auth | url |  | R | T3 |  |
 | `API_DESCRIPTION` | server | backend | str max 500 |  | R | T1 |  |
+| `API_DOCS_ENABLED` | server | backend, auth, google | bool |  | R | T2 | `false` |
 | `API_DOMAIN` | server | backend | str max 253 |  | R | T2 |  |
 | `API_ENVIRONMENT` | server | backend, auth, google | str max 64 |  | R | T1 | `local` |
 | `API_HOST` | server | backend | str max 253 |  | R | T2 |  |
@@ -160,7 +161,7 @@ environment, whatever the tier.
 | `API_TITLE` | server | backend, auth | str max 200 |  | R | T1 |  |
 | `API_VERSION` | server | backend, auth, google | str max 64 |  | R | T1 |  |
 | `CLIENT_ADMIN_URL` | server | auth | url |  | R | T3 |  |
-| `DEBUG` | server | backend, auth, google | bool |  | R | T2 | `true` |
+| `DEBUG` | server | backend, auth, google | bool |  | R | T2 | `false` |
 | `ORGANIZATION_NAME` | server | auth | str max 100 |  | R | T1 | `Better Collected` |
 | `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` | session | backend | int 1..1440 |  | R | T2 | `15` |
 | `AUTH_REFRESH_REUSE_GRACE_SECONDS` | session | backend | int 0..3600 |  | R | T2 | `60` |
