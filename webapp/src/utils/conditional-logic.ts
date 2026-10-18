@@ -214,48 +214,70 @@ export interface FlowTraffic {
 }
 
 /**
+ * One submission's path through the flow: the pages it went through, the jump
+ * taken out of each (its index; absent = the linear "next"), and whether and
+ * where it ended. The server sends these for the flow view's insights
+ * (`GET .../submission-paths`, the twin of `submission_path` in the backend's
+ * answer_validation.py), so the builder never needs the answers themselves.
+ */
+export interface SubmissionPath {
+    steps: Array<{ pageId: string; jump?: number | null }>;
+    /** reached the end of the form: a jump to "submit" or past the last page */
+    ended: boolean;
+    /** the ending a jump to "submit" named; absent = the default ending */
+    endingId?: string | null;
+}
+
+/**
  * Replay the forward path a submission implies through the flow, using the SAME
  * jump resolution the responder ran. Approximation is explicit: we replay from
  * final answers, so mid-fill back-tracking isn't represented, and paths are
  * capped at 2×pages+2 hops in case persisted rules loop.
  */
-export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersList: Array<Record<string, any>>): FlowTraffic {
-    const traffic: FlowTraffic = { total: answersList.length, nodeVisits: new Map(), jumpTraversals: new Map(), nextTraversals: new Map(), endingVisits: new Map() };
+export function submissionPath(slides: Array<StandardFormFieldDto>, answers: Record<string, any>): SubmissionPath {
     const slideIds = new Set(slides.map((s) => s.id));
     const indexById = new Map(slides.map((s, i) => [s.id, i]));
-    const bump = (map: Map<string, number>, key: string) => map.set(key, (map.get(key) ?? 0) + 1);
+    const steps: SubmissionPath['steps'] = [];
     const maxHops = slides.length * 2 + 2;
-
-    answersList.forEach((answers) => {
-        bump(traffic.nextTraversals, '__welcome__'); // welcome → first page
-        let index = 0;
-        let ended = false;
-        for (let hop = 0; hop < maxHops && index >= 0 && index < slides.length; hop++) {
-            const slide = slides[index];
-            bump(traffic.nodeVisits, slide.id);
-
-            // Find the first matching jump (same order semantics as the responder).
-            const jumps = (slide.properties?.jumps as PageJump[] | undefined) ?? [];
-            const matchIdx = jumps.findIndex((j) => j?.conditions?.length && isJumpTargetValid(j.target, slideIds) && evaluateConditions(j.operator, j.conditions, answers ?? {}));
-            if (matchIdx >= 0) {
-                bump(traffic.jumpTraversals, `${slide.id}:${matchIdx}`);
-                const target = jumps[matchIdx].target;
-                if (target === JUMP_TARGET_SUBMIT) {
-                    bump(traffic.endingVisits, jumps[matchIdx].endingId ?? '');
-                    ended = true;
-                    break;
-                }
-                index = indexById.get(target) ?? -1;
-                continue;
-            }
-            bump(traffic.nextTraversals, slide.id);
+    let index = 0;
+    for (let hop = 0; hop < maxHops && index >= 0 && index < slides.length; hop++) {
+        const slide = slides[index];
+        // Find the first matching jump (same order semantics as the responder).
+        const jumps = (slide.properties?.jumps as PageJump[] | undefined) ?? [];
+        const matchIdx = jumps.findIndex((j) => j?.conditions?.length && isJumpTargetValid(j.target, slideIds) && evaluateConditions(j.operator, j.conditions, answers ?? {}));
+        if (matchIdx < 0) {
+            steps.push({ pageId: slide.id });
             index += 1;
+            continue;
         }
-        // Past the last page: a plain submit, the default ending.
-        if (!ended && index >= slides.length) bump(traffic.endingVisits, '');
-    });
+        steps.push({ pageId: slide.id, jump: matchIdx });
+        const target = jumps[matchIdx].target;
+        if (target === JUMP_TARGET_SUBMIT) return { steps, ended: true, endingId: jumps[matchIdx].endingId };
+        index = indexById.get(target) ?? -1;
+    }
+    // Past the last page: a plain submit, the default ending.
+    return { steps, ended: index >= slides.length };
+}
 
+/** Count submission paths onto the flow's nodes and edges. */
+export function flowTrafficFromPaths(paths: Array<SubmissionPath>): FlowTraffic {
+    const traffic: FlowTraffic = { total: paths.length, nodeVisits: new Map(), jumpTraversals: new Map(), nextTraversals: new Map(), endingVisits: new Map() };
+    const bump = (map: Map<string, number>, key: string) => map.set(key, (map.get(key) ?? 0) + 1);
+    paths.forEach((path) => {
+        bump(traffic.nextTraversals, '__welcome__'); // welcome → first page
+        (path?.steps ?? []).forEach(({ pageId, jump }) => {
+            bump(traffic.nodeVisits, pageId);
+            if (typeof jump === 'number') bump(traffic.jumpTraversals, `${pageId}:${jump}`);
+            else bump(traffic.nextTraversals, pageId);
+        });
+        if (path?.ended) bump(traffic.endingVisits, path.endingId ?? '');
+    });
     return traffic;
+}
+
+/** Replay answers here and count them (the flow view gets the paths from the server instead). */
+export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersList: Array<Record<string, any>>): FlowTraffic {
+    return flowTrafficFromPaths(answersList.map((answers) => submissionPath(slides, answers)));
 }
 
 /**

@@ -11,6 +11,7 @@ import { CreateSsoConnectionRequest, SsoConnectionDto, SsoOverviewDto, SsoSettin
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { SubmissionPath } from '@app/utils/conditional-logic';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -287,9 +288,12 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
         }),
-        getFormAllSubmissions: builder.query<Array<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
+        // The flow view's insights: each submission's path through the pages,
+        // no answers (response.read). `savedAt` only keys the cache, so the
+        // counts follow the rules as autosave stores them.
+        getFormSubmissionPaths: builder.query<Array<SubmissionPath>, { workspaceId: string; formId: string; savedAt?: number }>({
             query: (query) => ({
-                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/all-submissions`,
+                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/submission-paths`,
                 method: 'GET'
             })
         }),
@@ -901,8 +905,7 @@ export const {
     useGetWorkspaceSubmissionByUUIDQuery,
     useLazyGetWorkspaceSubmissionByUUIDQuery,
     useRequestWorkspaceSubmissionDeletionByUUIDMutation,
-    useGetFormAllSubmissionsQuery,
-    useLazyGetFormAllSubmissionsQuery,
+    useGetFormSubmissionPathsQuery,
     useLazyExportFormSubmissionsQuery,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,
