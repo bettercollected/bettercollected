@@ -39,3 +39,21 @@ class InternalAnswersResponse(CamelModel):
     internal_answers: Dict[str, Any]
     internal_answers_meta: Dict[str, InternalAnswerMeta]
     internal_answers_version: int = 0
+
+
+class SubmissionPathStep(CamelModel):
+    page_id: str
+    # The index of the page's jump taken out of it; None: the linear "next".
+    jump: Optional[int] = None
+
+
+class SubmissionPath(CamelModel):
+    """One submission's path through the form's pages, for the flow view's
+    insights: page ids, jump indexes and the ending reached. Never answers,
+    respondent identity, response ids or dates."""
+
+    steps: List[SubmissionPathStep]
+    # Reached the end of the form (a jump to "submit" or past the last page).
+    ended: bool
+    # The ending a jump to "submit" named; None: the default ending.
+    ending_id: Optional[str] = None

@@ -536,6 +536,52 @@ def _walk(slides: List[Any], answers: Dict[str, Any]) -> Tuple[List[Any], Any]:
     return visited, None
 
 
+def submission_path(
+    form: Any, answers: Any
+) -> Tuple[List[Tuple[str, Optional[int]]], bool, Optional[str]]:
+    """Twin of the webapp's ``submissionPath`` (the flow view's insights):
+    the path these answers take through the form's pages under its current
+    rules. Returns ``(steps, ended, ending_id)``: each step is a page id and
+    the index of the jump taken out of it (None: the linear "next");
+    ``ended`` when the path reached the end of the form (a jump to "submit",
+    or past the last page); ``ending_id`` the ending such a jump names.
+
+    Unlike ``_walk`` a page may come round again (rules that loop), up to
+    2 x pages + 2 hops, and a jump counts only when its target exists:
+    the flow view's counting."""
+    slides = _slides(form) or []
+    answers = _plain(answers)
+    slide_ids = {str(slide.id) for slide in slides}
+    index_by_id = {str(slide.id): i for i, slide in enumerate(slides)}
+    steps: List[Tuple[str, Optional[int]]] = []
+    index = 0
+    for _ in range(2 * len(slides) + 2):
+        if not 0 <= index < len(slides):
+            break
+        slide = slides[index]
+        jumps = getattr(_props(slide), "jumps", None) or []
+        taken = next(
+            (
+                i
+                for i, jump in enumerate(jumps)
+                if jump is not None
+                and jump.conditions
+                and (jump.target == JUMP_TARGET_SUBMIT or jump.target in slide_ids)
+                and evaluate_conditions(jump.operator, jump.conditions, answers)
+            ),
+            None,
+        )
+        steps.append((str(slide.id), taken))
+        if taken is None:
+            index += 1
+            continue
+        target = jumps[taken].target
+        if target == JUMP_TARGET_SUBMIT:
+            return steps, True, getattr(jumps[taken], "ending_id", None) or None
+        index = index_by_id[target]
+    return steps, index >= len(slides), None
+
+
 def visited_slides(slides: List[Any], answers: Dict[str, Any]) -> List[Any]:
     """The pages a respondent goes through with these answers, in order."""
     return _walk(slides, answers)[0]
