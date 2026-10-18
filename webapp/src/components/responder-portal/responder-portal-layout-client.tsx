@@ -78,8 +78,11 @@ export default function ResponderPortalLayoutClient({
     // (and a reload of it) is in the same language.
     const langQuery = respondentLangQuery(useSearchParams()?.get('lang'));
 
-    // On a narrow screen the tab bar scrolls sideways; a fade at the edge that
-    // has more tabs past it shows there is more to scroll to.
+    // The tabs wrap onto a second line instead of scrolling, so every tab,
+    // including deletion requests, is visible whatever the language's label
+    // lengths. Each tab carries its own bottom rule so a wrapped line keeps
+    // the underline. Should a single tab ever be wider than the bar, it
+    // scrolls, and a fade at the edge with more tabs past it says so.
     const tabBar = useRef<HTMLDivElement>(null);
     const [moreTabs, setMoreTabs] = useState({ before: false, after: false });
     useEffect(() => {
@@ -181,7 +184,7 @@ export default function ResponderPortalLayoutClient({
             </div>
             <div className="flex flex-1 flex-col pb-4! md:min-h-0 md:min-w-0 md:pl-12">
                 <div className="relative">
-                    <div ref={tabBar} className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0" lang={language}>
+                    <div ref={tabBar} className="flex flex-wrap gap-x-1 border-b border-black-400 overflow-x-auto pb-0" lang={language}>
                         {tabs.map((tab) => {
                             const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
                             return (
@@ -192,7 +195,7 @@ export default function ResponderPortalLayoutClient({
                                         'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-hidden',
                                         isActive
                                             ? 'text-black-900 border-b-2 border-brand-500'
-                                            : 'text-black-600 hover:text-black-900 hover:border-black-300'
+                                            : 'text-black-600 border-b border-black-400 hover:text-black-900 hover:border-black-300'
                                     )}
                                 >
                                     {tab.icon}
