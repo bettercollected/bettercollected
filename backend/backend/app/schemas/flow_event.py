@@ -1,6 +1,20 @@
 from pymongo import IndexModel
 
+from backend.config import settings
 from common.configs.mongo_document import MongoDocument
+
+
+def _retention_indexes():
+    """TTL index on ``created_at``: MongoDB deletes an event this long after it
+    was recorded (API_FLOW_EVENTS_RETENTION_DAYS, 13 months by default; 0 = no
+    index, events are kept). The Postgres twin is swept by
+    ``FlowEventService`` (``delete_older_than``). Changing the period on a
+    deployed database needs the old ``created_at_1`` index dropped (or
+    ``collMod``), as MongoDB will not recreate an index with other options."""
+    days = settings.api_settings.FLOW_EVENTS_RETENTION_DAYS
+    if days <= 0:
+        return []
+    return [IndexModel([("created_at", 1)], expireAfterSeconds=days * 86400)]
 
 
 class FlowEventDocument(MongoDocument):
@@ -21,4 +35,8 @@ class FlowEventDocument(MongoDocument):
 
     class Settings:
         name = "form_flow_events"
-        indexes = [IndexModel("form_id"), IndexModel("session_id")]
+        indexes = [
+            IndexModel("form_id"),
+            IndexModel("session_id"),
+            *_retention_indexes(),
+        ]
