@@ -61,6 +61,8 @@ codes are shown once. The secret is stored encrypted, bound to its row and the
 address. A code works once (a replayed or concurrent duplicate is refused), one
 step of clock drift either way is tolerated, and five wrong codes in five
 minutes (or fifteen in a day) lock the address with the same escalation as above.
+Guesses are reserved before a code is checked, so at most five are evaluated per
+five minutes however many requests arrive at once.
 A recovery code can be used instead of an authenticator code; every admin is
 mailed when one is used, when an address is locked, when a factor is set up,
 and when an admin signs in from an address not seen in their recent sessions.

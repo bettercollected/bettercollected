@@ -499,12 +499,26 @@ def test_every_declared_stepup_is_enforced_and_declarations_are_checked():
     # settings and tasks pages (later PRs) must declare one on every mutating route
     assert step.undeclared_mutating_routes(reg.router.routes, ("/settings", "/tasks")) == []
     fake = RouteRegistry()
+    # default deny: a mutating route under /settings or /tasks must say how it is protected
+    for path in ("/settings/x", "/tasks/run"):
+        with pytest.raises(ValueError):
+            fake.route(path, level=Level.SECOND_FACTOR, methods=["POST"])
+    with pytest.raises(ValueError):
+        fake.route("/settings/x", level=Level.SECOND_FACTOR, methods=["POST"], stepup_exempt=" ")
 
-    @fake.route("/settings/x", level=Level.SECOND_FACTOR, methods=["POST"])
-    async def x():
+    @fake.route("/settings/view", level=Level.SECOND_FACTOR)  # reading is free
+    async def view():
         return {}
 
-    assert step.undeclared_mutating_routes(fake.router.routes, ("/settings",)) == ["/settings/x"]
+    @fake.route("/settings/ok", level=Level.SECOND_FACTOR, methods=["POST"], stepup_exempt="echoes a preview only")
+    async def ok():
+        return {}
+
+    @fake.route("/tasks/run", level=Level.SECOND_FACTOR, methods=["POST"], stepup=step.StepUp())
+    async def run():
+        return {}
+
+    assert step.undeclared_mutating_routes(fake.router.routes, ("/settings", "/tasks")) == []
     with pytest.raises(ValueError):
         fake.route("/settings/y", level=Level.SECOND_FACTOR, stepup=step.ActionBound("y"))  # GET
     with pytest.raises(ValueError):
@@ -576,3 +590,131 @@ def test_cli_reset_factor_refuses_without_yes_or_for_unlisted_email(monkeypatch,
     assert cli_main(["reset-factor", "--email", "stranger@example.net", "--yes"]) == 2
     err = capsys.readouterr().err
     assert "--yes" in err and "PLATFORM_ADMIN_EMAILS" in err
+
+
+# -- limiter: guesses are reserved before they are evaluated ---------------------------------
+
+
+async def test_parallel_wrong_codes_are_not_all_evaluated(portal, clock, monkeypatch):
+    await enrol_direct(portal, clock)
+    pairs = [await new_session(portal) for _ in range(20)]
+    evaluated = []
+    original = fsvc.FactorService._match
+
+    async def counting(self, *args, **kwargs):
+        evaluated.append(1)
+        return await original(self, *args, **kwargs)
+
+    monkeypatch.setattr(fsvc.FactorService, "_match", counting)
+    results = await asyncio.gather(
+        *(portal.factors.verify_login(s, t, "000000", IP, UA, None) for t, s in pairs)
+    )
+    assert len(evaluated) <= 5
+    assert sum(1 for r in results if r.reason == fsvc.WRONG) == len(evaluated)
+    assert sum(1 for r in results if r.reason == fsvc.LOCKED) == 20 - len(evaluated)
+    assert (await portal.limiter.lock_status(ADMIN)).locked
+
+
+async def test_parallel_wrong_codes_at_enrolment_are_limited_too(portal, clock, monkeypatch):
+    token, session = await new_session(portal)
+    start = await portal.factors.start_enrol(session, IP, UA, None)
+    calls = []
+    original = fsvc.totp.verify
+
+    def counting(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(fsvc.totp, "verify", counting)
+    results = await asyncio.gather(
+        *(portal.factors.confirm_enrol(session, token, start.factor_id, "000000", IP, UA, None) for _ in range(20))
+    )
+    assert len(calls) <= 5 and not any(r.ok for r in results)
+
+
+async def test_correct_code_after_four_wrong_ones_works_and_resets(portal, clock):
+    secret, _, _, _ = await enrol_direct(portal, clock)
+    clock.advance(30)
+    token, session = await new_session(portal)
+    for _ in range(4):
+        assert (await portal.factors.verify_login(session, token, "000000", IP, UA, None)).reason == fsvc.WRONG
+    ok = await portal.factors.verify_login(
+        session, token, totp.code_at(secret, clock.time()), IP, UA, None
+    )
+    assert ok.ok
+    # the reservations and the failure counter were reset: four more wrong guesses
+    # are evaluated again (and the account is not locked)
+    token2, s2 = await new_session(portal)
+    for _ in range(4):
+        assert (await portal.factors.verify_login(s2, token2, "000000", IP, UA, None)).reason == fsvc.WRONG
+    assert not (await portal.limiter.lock_status(ADMIN)).locked
+
+
+async def test_a_recovery_code_after_wrong_guesses_also_works(portal, clock):
+    _, codes, _, _ = await enrol_direct(portal, clock)
+    token, session = await new_session(portal)
+    for _ in range(4):
+        await portal.factors.verify_login(session, token, "AAAA-AAAA-AAAA-AAAA", IP, UA, None)
+    assert (await portal.factors.verify_login(session, token, codes[0], IP, UA, None)).ok
+
+
+async def test_step_up_guesses_share_the_same_reservation(portal, clock, monkeypatch):
+    _, _, _, session = await mfa_session(portal, clock)
+    evaluated = []
+    original = fsvc.FactorService._match
+
+    async def counting(self, *a, **k):
+        evaluated.append(1)
+        return await original(self, *a, **k)
+
+    monkeypatch.setattr(fsvc.FactorService, "_match", counting)
+    await asyncio.gather(*(portal.factors.verify_stepup(session, "000000", IP, UA, None) for _ in range(20)))
+    assert len(evaluated) <= 5
+
+
+# -- unseen address: only verified sessions count -----------------------------------------------
+
+
+async def test_an_address_seen_only_in_an_unverified_session_is_still_new(portal, clock, transport):
+    secret, _, _, _ = await enrol_direct(portal, clock, ip="10.1.1.1")
+    await new_session(portal, ip="10.5.5.5")  # email step only, never passed the factor
+    clock.advance(30)
+    transport.sent.clear()
+    token, session = await new_session(portal, ip="10.5.5.5")
+    out = await portal.factors.verify_login(
+        session, token, totp.code_at(secret, clock.time()), "10.5.5.5", UA, None
+    )
+    assert out.ok
+    await run_after(out)
+    assert any("new address" in m.subject for m in transport.sent)
+
+
+# -- two factors confirmed at once ----------------------------------------------------------------
+
+
+async def test_two_concurrent_confirmations_leave_exactly_one_factor(portal, clock, runtime_engine):
+    from backend.admin.repositories import factors as repo
+
+    pairs = [await new_session(portal) for _ in range(2)]
+    first = await portal.factors.start_enrol(pairs[0][1], IP, UA, None)
+    # a second pending factor, as a race between two starts would leave
+    second_id, second_secret = uuid.uuid4(), totp.generate_secret()
+    async with portal.engine.begin() as conn:
+        await repo.insert_factor(
+            conn, second_id, ADMIN,
+            portal.factors._seal(second_secret, second_id, ADMIN), "totp1", portal.clock.now(),
+        )
+    secrets_ = [first.secret.replace(" ", ""), second_secret]
+    ids = [first.factor_id, second_id]
+    results = await asyncio.gather(
+        *(
+            portal.factors.confirm_enrol(
+                pairs[i][1], pairs[i][0], ids[i], totp.code_at(secrets_[i], clock.time()), IP, UA, None
+            )
+            for i in range(2)
+        )
+    )
+    assert sorted(r.ok for r in results) == [False, True]
+    confirmed = await rows(runtime_engine, "SELECT count(*) FROM admin.factors WHERE confirmed_at IS NOT NULL")
+    assert confirmed[0][0] == 1
+    assert (await rows(runtime_engine, "SELECT count(*) FROM admin.recovery_codes"))[0][0] == 10

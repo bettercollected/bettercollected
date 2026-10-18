@@ -28,6 +28,10 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response
 from backend.admin.services.stepup import action_hash
 
 STEPUP_ATTR = "admin_stepup"
+EXEMPT_ATTR = "admin_stepup_exempt"
+# Mutating routes under these prefixes are DENIED registration unless they declare
+# a step-up or an explicit, reasoned exemption (``stepup_exempt="why"``).
+STEPUP_REQUIRED_PREFIXES = ("/settings", "/tasks")
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 TOKEN_HEADER = "x-stepup-token"
 TOKEN_FIELD = "stepup_token"
@@ -99,6 +103,23 @@ def dependency_for(spec) -> Callable:
     return enforce
 
 
+def under_prefixes(path: str, prefixes: Sequence[str]) -> bool:
+    return any(path == p or path.startswith(p + "/") for p in prefixes)
+
+
+def check_default_deny(path: str, methods: Sequence[str], stepup, exempt) -> None:
+    """The registry's default for sensitive areas: a mutating route under
+    ``/settings`` or ``/tasks`` must say how it is protected."""
+    mutating = not set(m.upper() for m in methods) <= SAFE_METHODS
+    if not (mutating and under_prefixes(path, STEPUP_REQUIRED_PREFIXES)):
+        return
+    if stepup is None and not (isinstance(exempt, str) and exempt.strip()):
+        raise ValueError(
+            f"route {path}: a mutating route here needs stepup=StepUp(..)/ActionBound(..) "
+            "or stepup_exempt='<reason>'"
+        )
+
+
 def check_declaration(path: str, methods: Sequence[str], stepup) -> None:
     """Registration-time rules: a step-up spec is one of the two kinds, and an
     action-bound route changes state (a GET cannot burn a token)."""
@@ -115,10 +136,12 @@ def undeclared_mutating_routes(router_routes, prefixes: Sequence[str]) -> list:
     The portal's settings and task pages must all declare one."""
     missing = []
     for route in router_routes:
-        if not any(route.path == p or route.path.startswith(p + "/") for p in prefixes):
+        if not under_prefixes(route.path, prefixes):
             continue
         if set(route.methods) <= SAFE_METHODS:
             continue
-        if getattr(route.endpoint, STEPUP_ATTR, None) is None:
+        if getattr(route.endpoint, STEPUP_ATTR, None) is None and not getattr(
+            route.endpoint, EXEMPT_ATTR, None
+        ):
             missing.append(route.path)
     return missing

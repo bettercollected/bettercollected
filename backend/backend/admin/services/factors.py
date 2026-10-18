@@ -15,8 +15,10 @@
   email and, as an identified admin, for the global breaker, and a new lockout or
   breaker trip mails every admin once.
 * Every state change and its audit row share one transaction (fail closed).
-* A failure while a session still holds no confirmed factor never counts: there
-  is nothing to guess.
+* Guesses are reserved BEFORE the code is evaluated (``Limiter.factor_attempt``):
+  at most five are evaluated per five minutes however many arrive in parallel; a
+  correct code resets the reservation. A wrong code (in ``confirm_enrol`` too)
+  counts as a failure; a request with no confirmed factor to guess at does not.
 """
 
 from __future__ import annotations
@@ -158,14 +160,18 @@ class FactorService:
 
     # -- limiter wiring --------------------------------------------------------
     async def _refusal(self, email: str) -> Optional[tuple]:
-        """``(reason, minutes)`` while the breaker pauses sign-in or the email is
-        locked; such an attempt is refused before any code is looked at."""
+        """``(reason, minutes)`` while the breaker pauses sign-in, the email is
+        locked or its guesses for this window are used up; such an attempt is
+        refused before any code is looked at. Otherwise it reserves one guess."""
         pause = await self._limiter.sign_in_pause()
         if pause.paused:
             return PAUSED, max(1, pause.retry_after // 60)
         lock = await self._limiter.lock_status(email)
         if lock.locked:
             return LOCKED, max(1, lock.retry_after // 60)
+        attempt = await self._limiter.factor_attempt(email)  # reserves a guess, atomically
+        if not attempt.allowed:
+            return LOCKED, max(1, attempt.retry_after // 60)
         return None
 
     async def _refuse(self, reason, minutes, session, email, ip, ua, rid, action) -> Outcome:
@@ -219,6 +225,7 @@ class FactorService:
         email = session.email
         now = self._clock.now()
         async with self._engine.begin() as conn:
+            await repo.lock_for_update(conn, email)
             confirmed = await repo.get_confirmed(conn, email)
             reason = self._may_enrol(session, confirmed is not None)
             if reason:  # policy refusals write nothing (no unthrottled log growth)
@@ -245,6 +252,7 @@ class FactorService:
         now = self._clock.now()
         try:
             async with self._engine.begin() as conn:
+                await repo.lock_for_update(conn, email)
                 confirmed = await repo.get_confirmed(conn, email)
                 reason = self._may_enrol(session, confirmed is not None)
                 if reason:

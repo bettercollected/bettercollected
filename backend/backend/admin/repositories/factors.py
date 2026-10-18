@@ -30,6 +30,14 @@ async def insert_factor(
     )
 
 
+async def lock_for_update(conn: AsyncConnection, email: str) -> None:
+    """Serialise changes to one admin's factors: ``FOR UPDATE`` on their rows, so
+    two enrolments cannot both end up confirmed (the second then sees the first)."""
+    await conn.execute(
+        select(factors.c.id).where(factors.c.email == email).order_by(factors.c.id).with_for_update()
+    )
+
+
 async def get_by_id(conn: AsyncConnection, factor_id: uuid.UUID):
     return (await conn.execute(select(factors).where(factors.c.id == factor_id))).first()
 
@@ -183,7 +191,11 @@ async def recent_session_ips(
     (the sessions table is the only record; nothing new is stored)."""
     rows = await conn.execute(
         select(sessions.c.ip)
-        .where(sessions.c.email == email, sessions.c.id != exclude)
+        .where(
+            sessions.c.email == email,
+            sessions.c.id != exclude,
+            sessions.c.mfa_state == "mfa_ok",  # an address that never passed the factor proves nothing
+        )
         .order_by(sessions.c.created_at.desc())
         .limit(limit)
     )
