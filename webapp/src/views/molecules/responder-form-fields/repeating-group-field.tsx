@@ -27,6 +27,7 @@ import {
     removeGroupItem,
     scopedFieldId
 } from '@app/utils/repeating-groups';
+import { actionText } from '@app/utils/theme-contrast';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import QuestionWrapper from './question-wrapper';
@@ -161,7 +162,7 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
                         onClick={add}
                         disabled={!addable}
                         className="inline-flex w-fit items-center gap-2 rounded-[8px] border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ borderColor: theme?.secondary ?? '#1649E2', color: theme?.secondary ?? '#1649E2' }}
+                        style={{ borderColor: theme?.secondary ?? '#1649E2', color: actionText(theme) }}
                     >
                         <Plus className="h-4 w-4" aria-hidden="true" />
                         {count ? t('GROUP.ADD_ANOTHER', { item: itemLabel }) : t('GROUP.ADD', { item: itemLabel })}

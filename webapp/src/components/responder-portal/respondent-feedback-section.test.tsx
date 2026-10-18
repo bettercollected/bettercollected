@@ -1,7 +1,10 @@
+// Respondent text resolves through the app's i18n instance.
 import React from 'react';
 
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import '@app/shared/hocs/i18n-provider';
 
 import RespondentFeedbackSection from './respondent-feedback-section';
 
@@ -38,5 +41,23 @@ describe("RespondentFeedbackSection (the respondent's view)", () => {
         render(<RespondentFeedbackSection feedback={{ entries: [] }} workspaceTitle="Acme" />);
         expect(screen.getByText('Response from Acme')).toBeDefined();
         expect(screen.getByText(/No updates yet/)).toBeDefined();
+    });
+
+    describe('in Dutch', () => {
+        afterEach(() => window.history.replaceState(null, '', '/'));
+
+        it("says it in the respondent's language and leaves the team's words as written", async () => {
+            window.history.replaceState(null, '', '/acme/submissions/1?lang=nl');
+            render(<RespondentFeedbackSection feedback={{ author: 'Acme', entries: [{ status: 'Selected', message: 'See you Monday', createdAt: '2026-10-02T10:00:00Z' }] }} />);
+            expect(await screen.findByText('Reactie van Acme')).toHaveAttribute('lang', 'nl');
+            expect(screen.getByText('Status:')).toHaveAttribute('lang', 'nl');
+            expect(screen.getByText('See you Monday')).not.toHaveAttribute('lang');
+        });
+
+        it('says when there is nothing yet', async () => {
+            window.history.replaceState(null, '', '/acme/submissions/1?lang=nl');
+            render(<RespondentFeedbackSection feedback={{ entries: [] }} workspaceTitle="Acme" />);
+            expect(await screen.findByText('Nog geen updates. Kijk hier later nog eens.')).toBeDefined();
+        });
     });
 });

@@ -160,5 +160,18 @@
         "DAYS_other": "{{count}} days after you submit.",
         "UNTIL_DATE": "Until {{date}}.",
         "UNTIL_DELETED": "No fixed period. They are kept until they are deleted."
+    },
+    "FEEDBACK": {
+        "RESPONSE_FROM": "Response from {{author}}",
+        "NO_UPDATES": "No updates yet. Check back here later.",
+        "STATUS": "Status"
+    },
+    "LOOKUP": {
+        "TITLE": "Find a response by its number",
+        "HINT": "Every submission gets a receipt number — enter it to view (or request deletion of) that response.",
+        "LABEL": "Submission number",
+        "PLACEHOLDER": "Enter submission number",
+        "SEARCH": "Search",
+        "NOT_FOUND": "The submission number does not match with any form responses"
     }
 }
