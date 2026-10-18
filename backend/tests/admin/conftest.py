@@ -41,14 +41,19 @@ needs_postgres = pytest.mark.skipif(
 )
 
 
-def roles_sql(suffix: str, admin_pw: str, mig_pw: str) -> str:
+def roles_sql(
+    suffix: str, admin_pw: str, mig_pw: str, tasks_pw: str = "unused-tasks-pw"
+) -> str:
     """The roles script's SQL with psql variables bound and role names suffixed."""
     script = ROLES_SCRIPT.read_text()
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
-    return sql.replace(":'admin_pw'", f"'{admin_pw}'").replace(
-        ":'mig_pw'", f"'{mig_pw}'"
+    sql = re.sub(r"\bbc_tasks\b", f"bc_tasks_{suffix}", sql)
+    return (
+        sql.replace(":'admin_pw'", f"'{admin_pw}'")
+        .replace(":'mig_pw'", f"'{mig_pw}'")
+        .replace(":'tasks_pw'", f"'{tasks_pw}'")
     )
 
 
@@ -82,12 +87,17 @@ class Server:
     suffix: str
     admin_pw: str
     mig_pw: str
+    tasks_pw: str
     template: str  # bootstrapped and migrated
     boot: str  # bootstrapped only
 
     @property
     def runtime_role(self) -> str:
         return f"bc_admin_{self.suffix}"
+
+    @property
+    def tasks_role(self) -> str:
+        return f"bc_tasks_{self.suffix}"
 
     @property
     def owner_role(self) -> str:
@@ -97,6 +107,10 @@ class Server:
         if role == "runtime":
             return _with_database(
                 self.admin_url, database, self.runtime_role, self.admin_pw
+            )
+        if role == "tasks":
+            return _with_database(
+                self.admin_url, database, self.tasks_role, self.tasks_pw
             )
         if role == "owner":
             return _with_database(
@@ -124,7 +138,8 @@ async def _bootstrap(server: Server, database: str) -> None:
         server.url(database), init_sql(database, server.suffix, init_passwords)
     )
     await _execute(
-        server.url(database), roles_sql(server.suffix, server.admin_pw, server.mig_pw)
+        server.url(database),
+        roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw),
     )
 
 
@@ -137,11 +152,19 @@ async def server():
     boot = f"bc_admin_test_boot_{uuid.uuid4().hex[:8]}"
     template = f"bc_admin_test_tpl_{uuid.uuid4().hex[:8]}"
     srv = Server(
-        admin_url, suffix, secrets.token_hex(12), secrets.token_hex(12), template, boot
+        admin_url,
+        suffix,
+        secrets.token_hex(12),
+        secrets.token_hex(12),
+        secrets.token_hex(12),
+        template,
+        boot,
     )
     srv.created = [template, boot]
     previous = os.environ.get("ADMIN_DB_RUNTIME_ROLE")
+    previous_tasks = os.environ.get("ADMIN_DB_ROLE_TASKS")
     os.environ["ADMIN_DB_RUNTIME_ROLE"] = srv.runtime_role
+    os.environ["ADMIN_DB_ROLE_TASKS"] = srv.tasks_role
     postgres = _with_database(admin_url, "postgres")
     await _execute(postgres, f'CREATE DATABASE "{boot}"')
     try:
@@ -154,11 +177,16 @@ async def server():
             os.environ.pop("ADMIN_DB_RUNTIME_ROLE", None)
         else:
             os.environ["ADMIN_DB_RUNTIME_ROLE"] = previous
+        if previous_tasks is None:
+            os.environ.pop("ADMIN_DB_ROLE_TASKS", None)
+        else:
+            os.environ["ADMIN_DB_ROLE_TASKS"] = previous_tasks
         for name in srv.created:
             await _execute(postgres, f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
         for role in (
             srv.runtime_role,
             srv.owner_role,
+            srv.tasks_role,
             *(f"bc_{r}_{suffix}" for r in INIT_ROLES),
         ):
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
@@ -186,5 +214,12 @@ async def owner_engine(server, migrated):
 @pytest_asyncio.fixture(loop_scope="session")
 async def runtime_engine(server, migrated):
     engine = create_async_engine(server.url(migrated, "runtime"), poolclass=NullPool)
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def tasks_engine(server, migrated):
+    engine = create_async_engine(server.url(migrated, "tasks"), poolclass=NullPool)
     yield engine
     await engine.dispose()
