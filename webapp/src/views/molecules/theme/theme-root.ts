@@ -23,8 +23,11 @@ import { contrast } from '@app/utils/color-contrast';
  * - `--form-font-data` (dataFont): `font-mono` text such as the submission number;
  * - `--form-radius-field`, `--form-radius-card`, `--form-radius-button` (radius,
  *   buttonStyle pill);
- * - `--form-button-bg`, `--form-button-fg`, `--form-button-edge` (buttonStyle outlined);
- * - `--form-highlight-*` and `--focus-ring` (highlight, see highlightColours).
+ * - `--form-button-bg`, `--form-button-fg`, `--form-button-edge` (buttonStyle
+ *   outlined), and `--form-button-hover-bg`, `--form-button-hover-fg`: an
+ *   outlined button fills with its ink on hover (tailwind.css `.form-button`);
+ * - `--form-highlight-*` and `--focus-ring` (highlight and selection, see
+ *   highlightColours).
  */
 
 // Public Sans as the `font-form` utility sets it (tailwind.css --font-form).
@@ -51,10 +54,16 @@ const bestOn = (ground: string, a: string, b: string) => (ratio(a, ground) >= ra
 /**
  * The colours a highlight gives, each held to WCAG 2.1 AA on what it sits on
  * (`accent`, the page), else replaced by the theme's ink. Null without a
- * valid highlight: everything keeps the secondary, as before.
+ * valid highlight or selection: everything keeps the secondary, as before.
  *
- * - `edge`: the chosen option's edge and control, the "why we ask" rule
- *   (non-text, 3:1 on the page);
+ * The chosen answer (`edge`, `fill`, `fillInk`, `solid`, `solidInk`) wears
+ * the theme's `selection` when it sets one, else the highlight; the notes
+ * (`rule`, `text`) and the focus ring wear the highlight, else they keep
+ * what they drew before (null). So a theme can keep its chosen answers in
+ * the action colour and its rubric colour for the notes alone.
+ *
+ * - `edge`: the chosen option's edge and control (non-text, 3:1 on the page);
+ * - `rule`: the "why we ask" rule (non-text, 3:1 on the page);
  * - `text`: the "why we ask" and "optional" labels (4.5:1 on the page);
  * - `fill`/`fillInk`: the chosen option's ground and text. A highlight that
  *   reads on the page (a dark one) tints it, as the secondary does today; a
@@ -69,22 +78,29 @@ const bestOn = (ground: string, a: string, b: string) => (ratio(a, ground) >= ra
  * box, and semibold text, stay.
  */
 export function highlightColours(theme?: Partial<FormTheme> | null) {
-    if (!isHexColour(theme?.highlight)) return null;
-    const highlight = theme!.highlight!;
+    const highlight = isHexColour(theme?.highlight) ? theme!.highlight! : null;
+    const chosen = isHexColour(theme?.selection) ? theme!.selection! : highlight;
+    if (!chosen) return null;
     const page = pageOf(theme);
     const ink = inkOf(theme);
-    const onPage = ratio(highlight, page);
-    const readsOnPage = onPage >= 3;
-    const fill = readsOnPage ? `${highlight}1A` : highlight;
+    const chosenReads = ratio(chosen, page) >= 3;
+    const notes = highlight
+        ? {
+              rule: ratio(highlight, page) >= 3 ? highlight : ink,
+              text: ratio(highlight, page) >= 4.5 ? highlight : ink,
+              focus: ratio(highlight, page) >= 3 ? highlight : undefined
+          }
+        : null;
     return {
-        edge: readsOnPage ? highlight : ink,
-        text: onPage >= 4.5 ? highlight : ink,
-        fill,
+        edge: chosenReads ? chosen : ink,
+        rule: notes?.rule,
+        text: notes?.text,
+        fill: chosenReads ? `${chosen}1A` : chosen,
         // a 10% tint is about the page itself for contrast
-        fillInk: bestOn(readsOnPage ? page : highlight, ink, '#FFFFFF'),
-        solid: highlight,
-        solidInk: ratio('#FFFFFF', highlight) >= 4.5 ? '#FFFFFF' : bestOn(highlight, ink, '#FFFFFF'),
-        focus: readsOnPage ? highlight : undefined
+        fillInk: bestOn(chosenReads ? page : chosen, ink, '#FFFFFF'),
+        solid: chosen,
+        solidInk: ratio('#FFFFFF', chosen) >= 4.5 ? '#FFFFFF' : bestOn(chosen, ink, '#FFFFFF'),
+        focus: notes?.focus
     };
 }
 
@@ -149,19 +165,34 @@ export function themeRootProps(theme?: Partial<FormTheme> | null, { typeOnly = f
             style['--form-button-bg'] = pageOf(theme);
             style['--form-button-fg'] = ink;
             style['--form-button-edge'] = `inset 0 0 0 2px ${ink}`;
+            // Hover fills the button with its ink, the page colour on it (the
+            // same pair, so the same contrast).
+            style['--form-button-hover-bg'] = ink;
+            style['--form-button-hover-fg'] = pageOf(theme);
         }
         if (theme.buttonStyle === 'pill') style['--form-radius-button'] = '9999px';
     }
 
+    // A ground drawn behind the whole page (the column grid) stays out of the
+    // option cards: an option at rest takes the page colour (tailwind.css).
+    if (theme.background?.type === 'pattern' && theme.background.pattern === 'columns') {
+        attributes['data-form-ground'] = 'columns';
+        style['--form-ground-fill'] = pageOf(theme);
+    }
+
     const highlight = highlightColours(theme);
     if (highlight) {
-        attributes['data-form-highlight'] = '';
         style['--form-highlight-edge'] = highlight.edge;
-        style['--form-highlight-text'] = highlight.text;
         style['--form-highlight-fill'] = highlight.fill;
         style['--form-highlight-fill-ink'] = highlight.fillInk;
         style['--form-highlight-solid'] = highlight.solid;
         style['--form-highlight-solid-ink'] = highlight.solidInk;
+        // The notes only with a highlight (a selection alone leaves them as before).
+        if (highlight.text && highlight.rule) {
+            attributes['data-form-highlight'] = '';
+            style['--form-highlight-rule'] = highlight.rule;
+            style['--form-highlight-text'] = highlight.text;
+        }
         if (highlight.focus) style['--focus-ring'] = highlight.focus;
     }
     return { style: style as CSSProperties, attributes };

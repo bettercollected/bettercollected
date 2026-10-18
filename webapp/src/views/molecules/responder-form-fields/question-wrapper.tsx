@@ -191,7 +191,7 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                     <p
                         id={`q-why-${field.id}`}
                         className={cn('mt-2 max-w-[62ch] text-[14px]', leaflet ? 'border-l-[3px] pl-2.5 leading-normal' : 'border-l-2 pl-3 leading-relaxed text-black-700')}
-                        style={leaflet ? { borderColor: themed('--form-highlight-edge', theme?.secondary), color: softInk(theme) } : { borderColor: themed('--form-highlight-edge', theme?.tertiary ?? '#818CA0') }}
+                        style={leaflet ? { borderColor: themed('--form-highlight-rule', theme?.secondary), color: softInk(theme) } : { borderColor: themed('--form-highlight-rule', theme?.tertiary ?? '#818CA0') }}
                     >
                         <span className="font-semibold" style={{ color: themed('--form-highlight-text', theme?.primary) }} lang={language}>
                             {t('QUESTION.WHY_WE_ASK')}

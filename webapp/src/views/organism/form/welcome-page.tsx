@@ -120,7 +120,7 @@ export default function WelcomePage({
                         flat
                         // Filled with the action colour unless the theme's button style says otherwise (theme-root.ts).
                         style={formButtonStyle(formTheme?.secondary, leaflet ? '4px' : '8px')}
-                        className={cn('z-10 min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
+                        className={cn('form-button z-10 min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
                         // The welcome page's primary action: the privacy panel never opens over it.
                         data-primary-action
                         size="medium"
@@ -182,7 +182,7 @@ export default function WelcomePage({
                 {/* Title and introduction in the theme's ink (the introduction a
                     step lighter, still 7:1), on a measure that keeps long titles
                     to a few balanced lines. */}
-                <h1 className="max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: formTheme?.primary }} lang={contentLang}>
+                <h1 className="form-greeting-title max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: formTheme?.primary }} lang={contentLang}>
                     {standardForm?.title}
                 </h1>
                 {welcomePage?.description && (

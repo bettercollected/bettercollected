@@ -11,6 +11,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { endingToShow } from '@app/utils/endings';
+import { greetingCover, hasPictureSlot } from '@app/views/molecules/theme/theme-artwork';
 import { useBodyFormFace } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
@@ -64,6 +65,9 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const workspace = useAppSelector(selectWorkspace);
     const pathname = usePathname();
     const responderSignInUrl = isPreviewMode ? '' : `/login?type=responder&workspace_id=${workspace?.id}&redirect_to=${pathname}`;
+    // A welcome page set beside the theme's artwork is its cover (theme-artwork.tsx).
+    const cover = greetingCover(standardForm.theme, standardForm.welcomePage?.layout, standardForm.welcomePage?.imageUrl, { privateForm: !!standardForm?.settings?.private });
+    const ending = endingToShow(standardForm?.thankyouPage, endingId);
 
     const getProgressValue = () => {
         const totalSlides = (standardForm?.fields?.length || 0) + 2;
@@ -112,7 +116,9 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                         {currentSlide === -1 && (
                             <LayoutWrapper
                                 showDesktopLayout={showDesktopLayout}
-                                theme={standardForm.theme}
+                                theme={cover?.theme ?? standardForm.theme}
+                                artworkTheme={standardForm.theme}
+                                style={cover?.style}
                                 disabled
                                 layout={standardForm.welcomePage?.layout}
                                 imageUrl={standardForm?.welcomePage?.imageUrl}
@@ -121,7 +127,7 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                                 logoSize="cover"
                                 logoAction={logo ? <UserAvatarDropDown inline responderSignInUrl={responderSignInUrl} /> : undefined}
                             >
-                                <WelcomePage isPreviewMode={isPreviewMode} accountInStrip={!!logo} />
+                                <WelcomePage isPreviewMode={isPreviewMode} accountInStrip={!!logo} theme={cover?.theme} />
                             </LayoutWrapper>
                         )}
                         {currentSlide >= 0 && <FormSlide showDesktopLayout={showDesktopLayout} index={currentSlide} isPreviewMode={isPreviewMode} logo={logo} />}
@@ -130,9 +136,11 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                                 showDesktopLayout={showDesktopLayout}
                                 theme={standardForm.theme}
                                 disabled
-                                layout={endingToShow(standardForm?.thankyouPage, endingId)?.layout}
-                                imageUrl={endingToShow(standardForm?.thankyouPage, endingId)?.imageUrl}
+                                layout={ending?.layout}
+                                imageUrl={ending?.imageUrl}
                                 topAligned={topAligned}
+                                // The theme's artwork runs along the top of an ending without a picture half.
+                                artworkBand={!hasPictureSlot(ending?.layout)}
                                 logo={logo}
                                 logoAction={logo ? <UserAvatarDropDown inline disabled /> : undefined}
                             >

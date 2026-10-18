@@ -30,7 +30,10 @@ function resolve(value: unknown, vars: Record<string, string>): unknown {
     }
 }
 
-const STORED_WITHOUT_KEYS = (theme: FormTheme): FormTheme => ({ ...theme, titleFont: null, bodyFont: null, dataFont: null, titleWidth: null, radius: null, buttonStyle: null, highlight: null });
+const STORED_WITHOUT_KEYS = (theme: FormTheme): FormTheme => ({ ...theme, titleFont: null, bodyFont: null, dataFont: null, titleWidth: null, radius: null, buttonStyle: null, highlight: null, selection: null });
+
+// The colour presets; the complete looks (Kantlijn, Raster) set type and shape.
+const COLOUR_PRESETS = ThemeColors.filter((theme) => theme.titleFont == null);
 
 const wrap = (node: React.ReactNode) =>
     render(
@@ -42,7 +45,7 @@ const wrap = (node: React.ReactNode) =>
 const themeRoot = (container: HTMLElement) => container.firstElementChild as HTMLElement;
 
 describe('a theme without type, shape or highlight renders as before', () => {
-    const themes = [...ThemeColors, ...ThemeColors.map(STORED_WITHOUT_KEYS), ...THEME_STYLES.map((style) => ({ ...ThemeColors[0], style }))];
+    const themes = [...COLOUR_PRESETS, ...COLOUR_PRESETS.map(STORED_WITHOUT_KEYS), ...THEME_STYLES.map((style) => ({ ...ThemeColors[0], style }))];
 
     it.each(themes.map((theme, i) => [`${theme.title} #${i}`, theme]))('%s sets no variable and no attribute', (_name, theme) => {
         expect(themeRootProps(theme as FormTheme)).toEqual({ style: {}, attributes: {} });
@@ -143,6 +146,29 @@ describe('type and shape', () => {
         expect(highlightColours(ThemeColors[0])).toBeNull();
     });
 
+    it('keeps the chosen answer in the selection and the notes and focus ring in the highlight', () => {
+        const kantlijn = highlightColours({ ...ThemeColors[0], primary: '#16261F', accent: '#F8EEEC', highlight: '#A3305A', selection: '#1E4D3B' })!;
+        expect(kantlijn).toMatchObject({ edge: '#1E4D3B', fill: '#1E4D3B1A', solid: '#1E4D3B', solidInk: '#FFFFFF', rule: '#A3305A', text: '#A3305A', focus: '#A3305A' });
+        const props = themeRootProps({ ...ThemeColors[0], primary: '#16261F', accent: '#F8EEEC', highlight: '#A3305A', selection: '#1E4D3B' });
+        expect(props.style).toMatchObject({ '--form-highlight-edge': '#1E4D3B', '--form-highlight-rule': '#A3305A', '--form-highlight-text': '#A3305A', '--focus-ring': '#A3305A' });
+    });
+
+    it('leaves the notes and the focus ring as before for a selection alone', () => {
+        const props = themeRootProps({ ...ThemeColors[0], selection: '#1E4D3B' }) as { style: Record<string, string>; attributes: Record<string, string> };
+        expect(props.style['--form-highlight-edge']).toBe('#1E4D3B');
+        expect(props.style['--form-highlight-text']).toBeUndefined();
+        expect(props.style['--form-highlight-rule']).toBeUndefined();
+        expect(props.style['--focus-ring']).toBeUndefined();
+        expect(props.attributes['data-form-highlight']).toBeUndefined();
+    });
+
+    it('fills an outlined button with its ink on hover, the page colour on it', () => {
+        const { style } = themeRootProps({ ...ThemeColors[0], primary: '#0E0E14', secondary: '#2B2FD1', accent: '#FFFFFF', buttonStyle: 'outlined' }) as { style: Record<string, string> };
+        expect(style['--form-button-hover-bg']).toBe('#2B2FD1');
+        expect(style['--form-button-hover-fg']).toBe('#FFFFFF');
+        expect(contrast(style['--form-button-hover-fg'], style['--form-button-hover-bg'])).toBeGreaterThanOrEqual(4.5);
+    });
+
     it.each(ThemeColors.map((theme) => [theme.title, theme]))('%s: every highlight stays legible where it is used', (_title, theme) => {
         for (const highlight of ['#FFD84D', '#A3305A', '#2B2FD1', '#FFFFFF', '#000000', '#7F7F7F']) {
             const colours = highlightColours({ ...theme, highlight })!;
@@ -162,14 +188,14 @@ describe('the chosen option and rating number keep a visible edge with any highl
         const t = theme as FormTheme;
         const vars = themeRootProps(t).style as Record<string, string>;
         const tokens = styleTokens(t.style);
-        // The rating's chosen number: filled with the highlight, its edge at
+        // The rating's chosen number: filled with the selection (else the highlight), its edge at
         // 3:1 on the page (the ink for a light highlight), as option cards.
         const cell = scaleCellStyle(t, true, tokens.cardRadius) as Record<string, unknown>;
         const edge = resolve(cell['--scale-edge'], vars) as string;
         expect(edge).toBe(highlightColours(t)!.edge);
         if (contrast(t.primary, t.accent) >= 3) expect(contrast(edge, t.accent)).toBeGreaterThanOrEqual(3);
         expect(resolve(cell['--scale-edge-hover'], vars)).toBe(edge);
-        expect(resolve(cell.background, vars)).toBe(t.highlight);
+        expect(resolve(cell.background, vars)).toBe(t.selection ?? t.highlight);
         // A chosen option card (tinted, or solid in the studio style) has the same edge.
         if (!tokens.ruledChoices) expect(resolve((choiceRowStyle(t, true).style as Record<string, unknown>)['--choice-edge'], vars)).toBe(edge);
     });

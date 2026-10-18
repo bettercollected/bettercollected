@@ -23,8 +23,8 @@ import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
 import { actionText, actionTextOn } from '@app/utils/theme-contrast';
 import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
-import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
-import { leafletColours, mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { formButtonStyle, themeFontStack } from '@app/views/molecules/theme/theme-root';
+import { contrast, leafletColours, mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
 
@@ -133,7 +133,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
             {/* Same column, alignment and vertical placement as the welcome
                 page (form-column.ts, layout-wrapper.tsx). */}
             <div className={cn(FORM_COLUMN, columnPlacementClass(thankyouPage?.layout), 'flex flex-col bg-inherit pt-6', greetingAlignClass(thankyouPage?.layout))} data-testid="thankyou-column">
-                <h1 className="max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: theme?.primary }} lang={titleLang}>
+                <h1 className="form-greeting-title max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: theme?.primary }} lang={titleLang}>
                     {getThankYouTitle()}
                 </h1>
                 <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ color: softInk(theme) }} lang={messageLang}>
@@ -160,7 +160,7 @@ function EndingButtonLink({ href, label, lang, background, corner }: { href: str
     const { t } = useRespondentLanguage();
     return (
         // Filled with the action colour unless the theme's button style says otherwise (theme-root.ts).
-        <Link href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={formButtonStyle(background, corner)} className={buttonClassName({ flat: true, className: cn('mt-8 min-h-12 px-8 text-base font-semibold', corner === '4px' ? 'rounded-[4px]' : 'rounded-[8px]') })}>
+        <Link href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={formButtonStyle(background, corner)} className={buttonClassName({ flat: true, className: cn('form-button mt-8 min-h-12 px-8 text-base font-semibold', corner === '4px' ? 'rounded-[4px]' : 'rounded-[8px]') })}>
             <span lang={lang}>{label}</span> <span className="sr-only">{t('PRIVACY.OPENS_IN_NEW_TAB')}</span>
         </Link>
     );
@@ -175,8 +175,13 @@ export function SubmissionReceipt({ responderId, submissionUrl, onCopy, edge, cl
     const { t } = useRespondentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
     const theme = standardForm?.theme;
+    // The number as the headline: a Studio form with a data face of its own
+    // sets it large, in that face. Other forms keep today's receipt.
+    const headline = styleTokens(theme?.style).key === 'studio' && !!themeFontStack(theme?.dataFont);
+    // In the action colour, the respondent's own, where it reads at 4.5:1 on the white card.
+    const numberInk = theme?.secondary && /^#[0-9a-fA-F]{6}$/.test(theme.secondary) && contrast(theme.secondary, '#FFFFFF') >= 4.5 ? theme.secondary : theme?.primary;
     return (
-        <div className={cn('flex w-full max-w-[440px] flex-col gap-2 rounded-[8px] border bg-white p-4 text-left', className)} style={{ borderColor: edge }} data-testid="submission-receipt">
+        <div className={cn('flex w-full flex-col gap-2 rounded-[8px] border bg-white p-4 text-left', headline ? 'max-w-2xl' : 'max-w-[440px]', className)} style={{ borderColor: edge }} data-testid="submission-receipt">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <span className="text-[15px] font-semibold" style={{ color: theme?.primary }}>
                     {t('ENDING.SUBMISSION_NUMBER')}
@@ -187,7 +192,7 @@ export function SubmissionReceipt({ responderId, submissionUrl, onCopy, edge, cl
             </div>
             <span className="text-[14px] leading-relaxed text-black-700">{t('ENDING.SUBMISSION_NUMBER_HINT')}</span>
             <div className="mt-1 flex items-center justify-between gap-2 rounded-[6px] border pl-3" style={{ borderColor: edge }}>
-                <span className="font-mono text-[15px] tracking-wide break-all tabular-nums" style={{ color: theme?.primary }}>
+                <span className={cn('font-mono tracking-wide break-all tabular-nums', headline ? 'py-2 text-[28px] leading-tight font-semibold sm:text-[40px]' : 'text-[15px]')} style={{ color: headline ? numberInk : theme?.primary }} data-headline={headline || undefined}>
                     {responderId}
                 </span>
                 <button

@@ -1,0 +1,9 @@
+[project]
+name = "theme-marble"
+version = "0.1.0"
+description = "Procedural marbled endpaper, the built-in marble artwork of form themes"
+requires-python = ">=3.11"
+dependencies = ["numpy>=2.0", "pillow>=11.3"]
+
+[tool.uv]
+package = false

@@ -474,7 +474,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             // Filled with the action colour unless the theme's button style says otherwise (theme-root.ts).
                             style={formButtonStyle(standardForm.theme?.secondary, leaflet ? '4px' : '8px')}
                             isLoading={isLoading}
-                            className={cn('min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
+                            className={cn('form-button min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
                             onClick={onNext}
                             size="medium"
                         >
