@@ -11,6 +11,7 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -27,6 +28,7 @@ from backend.admin.security.keys import admin_key
 from backend.admin.security.mailer import AdminMailer
 from backend.admin.security.ratelimit import Limiter, SqlAttemptStore
 from backend.admin.services.factors import FactorService
+from backend.admin.services.pages import PageService
 from backend.admin.services.sessions import SessionService
 from backend.admin.services.signin import SignInService
 from backend.admin.services.stepup import StepUpService
@@ -36,6 +38,15 @@ log = logging.getLogger("backend.admin")
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
 CLEANUP_EVERY_SECONDS = 600
+
+
+def _timestamp(value: Optional[datetime]) -> str:
+    """A UTC moment as ``2026-10-18 09:30:00 UTC`` (``-`` for none)."""
+    if value is None:
+        return "-"
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc)
+    return value.strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
 def make_templates(directory: Path = TEMPLATE_DIR) -> Environment:
@@ -48,6 +59,7 @@ def make_templates(directory: Path = TEMPLATE_DIR) -> Environment:
         extensions=["jinja2.ext.i18n"],
     )
     env.install_null_translations(newstyle=True)
+    env.filters["ts"] = _timestamp
     return env
 
 
@@ -62,6 +74,7 @@ class Portal:
     signin: SignInService
     factors: FactorService
     stepup: StepUpService
+    pages: PageService
     csrf_key: bytes
     templates: Environment
 
@@ -97,7 +110,7 @@ class Portal:
         stepup = StepUpService(clock, sessions, store, stepup_key)
         return cls(
             settings, engine, clock, limiter, mailer, sessions, signin, factors,
-            stepup, csrf_key, make_templates(),
+            stepup, PageService(engine, clock), csrf_key, make_templates(),
         )
 
     def checkers(self) -> dict:

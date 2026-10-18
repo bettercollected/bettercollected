@@ -47,6 +47,25 @@ Out of scope:
   (see [`.github/dependabot.yml`](.github/dependabot.yml)).
 - The hosted cloud service infrastructure (report those directly to us).
 
+## Internal admin portal
+
+The repository includes an internal admin portal (`docs/admin-service.md`). A summary of its threat model:
+
+- It is reachable from the host only: the port is published on the loopback interface and the service checks the
+  client address and `Host` header against allowlists.
+- Signing in needs two factors: a code mailed to a listed administrator and a code from an authenticator (or a
+  recovery code). Sessions are bound to the address and browser, are short-lived and can be revoked.
+- State-changing requests need a CSRF token and a same-origin check; pages send a strict content security policy
+  and contain no inline script or style.
+- Every sign-in, change and refusal is written to an append-only audit log chained with a keyed hash;
+  `python -m backend.admin audit-verify` recomputes the chain. Secret values are never shown in pages or logs.
+- The database role it uses can read and write only its own schemas; it cannot read application data except
+  through one read-only function that returns counts.
+- The break-glass path is the host command line (`python -m backend.admin`): unlock an address, lift the sign-in
+  pause, revoke sessions, or remove a lost second factor. Each is audited, and a factor reset also mails every administrator. There is
+  no email-only reset.
+- `SETTINGS_MASTER_KEY` cannot be recovered. Keep a backup of it separate from the server.
+
 ## Secrets and Credentials
 
 Never commit real secrets (API keys, tokens, passwords, private keys) to this

@@ -40,10 +40,11 @@ def test_every_visible_string_goes_through_gettext(path: Path):
 def test_autoescape_is_on_and_undefined_is_strict():
     env = make_templates()
     assert env.autoescape is True
-    page = env.get_template("home.html").render(csrf_token="t", email="<b>x</b>")
+    source = '{% extends "shell.html" %}{% block content %}{{ email }}{% endblock %}'
+    page = env.from_string(source).render(csrf_token="t", email="<b>x</b>")
     assert "&lt;b&gt;x&lt;/b&gt;" in page and "<b>x" not in page
     with pytest.raises(Exception):
-        env.get_template("home.html").render(csrf_token="t")
+        env.from_string(source).render(csrf_token="t")
 
 
 def test_origin_settings():

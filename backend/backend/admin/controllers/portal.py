@@ -123,6 +123,10 @@ def build_registry() -> RouteRegistry:
 
     mfa.register(reg)
 
+    from backend.admin.controllers import pages
+
+    pages.register(reg)
+
     @reg.route("/logout", level=Level.ADMIN, methods=["POST"])
     async def logout(request: Request):
         portal = _portal(request)
@@ -133,13 +137,6 @@ def build_registry() -> RouteRegistry:
         return response
 
     # -- fully signed in -----------------------------------------------------------
-    @reg.route("/", level=Level.SECOND_FACTOR)
-    async def home(request: Request):
-        portal = _portal(request)
-        session = request.scope["state"]["session"]
-        token = csrf.session_token(portal.csrf_key, session.csrf_subject)
-        return portal.render("home.html", csrf_token=token, email=session.email)
-
     @reg.route("/api/me", level=Level.SECOND_FACTOR)
     async def me(request: Request):
         session = request.scope["state"]["session"]

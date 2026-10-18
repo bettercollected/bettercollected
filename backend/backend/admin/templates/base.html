@@ -13,7 +13,8 @@
   <span class="brand">{{ _("Admin") }}</span>
   {% block nav %}{% endblock %}
 </header>
-<main id="main" tabindex="-1">
+{% block banners %}{% endblock %}
+<main id="main" tabindex="-1" class="{% block mainclass %}{% endblock %}">
 {% block main %}{% endblock %}
 </main>
 </body>
