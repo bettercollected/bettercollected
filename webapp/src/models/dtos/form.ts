@@ -181,7 +181,12 @@ export interface StandardFormDto {
         isPublished?: boolean;
         roles?: Array<string>;
         privacyPolicyUrl?: string;
-        /** Declared form language, e.g. "nl" or "en-GB" (set by some imports; no picker yet). */
+        /**
+         * The language the form's own text is written in, e.g. "nl": one of
+         * FORM_LANGUAGES (lib/form-ops/languages.ts), set in the builder's
+         * Form tab or by the op set_form_language. Some imports set others
+         * ("en-GB").
+         */
         language?: string | null;
         /** Trust-layer content: why the data is collected (shown to responders). */
         purpose?: string;

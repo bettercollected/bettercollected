@@ -16,6 +16,7 @@ import { usePageIds } from '@app/store/jotai/entity-hooks';
 import { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
 import { resetFromServerAtom } from '@app/store/jotai/form-document';
+import { useFormLanguageSync } from '@app/store/jotai/form-language';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { withEndingIds } from '@app/utils/endings';
 import { deepCopy } from '@app/utils/object-utils';
@@ -40,6 +41,8 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const { formState } = useFormState();
     const resetFromServer = useSetAtom(resetFromServerAtom);
     const { setHydratedFormId } = useBuilderHydration();
+    // The respondent views and the plain-language tips read the form's language from Redux.
+    useFormLanguageSync();
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     // The AI tab's Preview: the canvas shows the proposal, read-only.

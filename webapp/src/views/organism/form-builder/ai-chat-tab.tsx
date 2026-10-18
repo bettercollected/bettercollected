@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { useSetAtom, useStore } from 'jotai';
 import { BookOpen, Check, Plus, Send, ShieldCheck, X } from 'lucide-react';
 
 import { AIDisclosure, AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
@@ -10,6 +11,8 @@ import { selectForm, setForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { formStateFromServerForm, useFormState } from '@app/store/jotai/form';
+import { dispatchAtom } from '@app/store/jotai/form-document';
+import { formLanguageAtom } from '@app/store/jotai/form-language';
 import { useOpenAIProposal } from '@app/store/jotai/ai-proposal';
 import { useAcceptAIProposalMutation, useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useRejectAIProposalMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
 import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery, useUpdateAIMemorySettingsMutation } from '@app/store/workspaces/api';
@@ -110,6 +113,8 @@ interface MemoryEntry {
  */
 export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memoryPollDelaysMs?: number[] }) {
     const dispatch = useAppDispatch();
+    const jotaiStore = useStore();
+    const dispatchOps = useSetAtom(dispatchAtom);
     const workspace = useAppSelector(selectWorkspace);
     const standardForm: StandardFormDto = useAppSelector(selectForm);
     const { formFields, setFormFields } = useFormFieldsAtom();
@@ -224,6 +229,10 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         // The one undo step of the turn (only fields are in undo history).
         setFormFields(deepCopy(form.fields ?? []));
         setFormState((prev) => formStateFromServerForm(prev, form));
+        // The form's own language (set_form_language), which autosave sends
+        // too: the document takes the server's, so no save writes it back.
+        const language = form.settings && 'language' in form.settings ? (form.settings.language ?? null) : undefined;
+        if (language !== undefined && language !== jotaiStore.get(formLanguageAtom)) dispatchOps({ ops: [{ op: 'set_form_language', language }], label: 'AI change' });
         dispatch(setForm({ ...standardForm, ...deepCopy(form), settings: standardForm?.settings }));
         // The server stored this edit: the next autosave builds on it.
         adoptAutosaveVersion(form.updatedAt);

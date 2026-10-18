@@ -110,6 +110,12 @@
     "JOINED_QUESTIONS": "“{{match}} …” begint een tweede vraag. Stel die apart.",
     "DISMISS": "Tip verbergen"
   },
+  "FORM_LANGUAGE": {
+    "TITLE": "Taal",
+    "LABEL": "Taal van het formulier",
+    "NOT_SET": "Niet ingesteld",
+    "HINT": "De taal waarin de vragen zijn geschreven. Zo weten schermlezers en browsers in welke taal ze de vragen lezen."
+  },
   "PDF_IMPORT": {
     "FAILED_TITLE": "Het importeren is gestopt",
     "WAITING_FOR_READER": "We wachten tot de documentlezer beschikbaar is. Het importeren gaat daarna vanzelf verder.",

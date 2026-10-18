@@ -110,6 +110,12 @@
     "JOINED_QUESTIONS": "“{{match}} …” starts a second question. Ask it separately.",
     "DISMISS": "Dismiss tip"
   },
+  "FORM_LANGUAGE": {
+    "TITLE": "Language",
+    "LABEL": "Form language",
+    "NOT_SET": "Not set",
+    "HINT": "The language the questions are written in. It tells screen readers and browsers which language to read them in."
+  },
   "PDF_IMPORT": {
     "FAILED_TITLE": "The import stopped",
     "WAITING_FOR_READER": "Waiting for the document reader to become available. The import continues by itself.",
