@@ -334,7 +334,7 @@ class WorkspaceMembersService:
             user, Permission.MEMBERS_MANAGE, workspace_id
         )
         await self.workspace_invitation_repository.delete_invitation_by_token_if_pending_state(
-            invitation_token
+            workspace_id=workspace_id, invitation_token=invitation_token
         )
         return {"message": "Invitation deleted successfully."}
 

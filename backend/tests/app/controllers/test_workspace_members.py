@@ -7,6 +7,7 @@ from httpx import AsyncClient
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
+from common.enums.workspace_invitation_status import InvitationStatus
 
 from backend.app.container import container
 from backend.app.models.invitation_request import InvitationRequest
@@ -520,6 +521,59 @@ class TestWorkspaceMember:
         actual_response_message = responded_invitation.json()
         assert responded_invitation.status_code == 404
         assert actual_response_message == expected_response_message
+
+    async def test_delete_invitation_removes_it_from_its_workspace(
+        self,
+        client: AsyncClient,
+        test_user_cookies: dict[str, str],
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_invitation_url: str,
+    ):
+        invitation = await create_invitation(
+            workspace.id, InvitationRequest(**invitation_request)
+        )
+
+        response = await client.delete(
+            f"{workspace_invitation_url}/{invitation.invitation_token}",
+            cookies=test_user_cookies,
+        )
+
+        assert response.status_code == 200
+        remaining = await client.get(
+            workspace_invitation_url, cookies=test_user_cookies
+        )
+        assert remaining.json().get("total") == 0
+
+    async def test_delete_invitation_of_another_workspace_is_not_found(
+        self,
+        client: AsyncClient,
+        test_user_cookies: dict[str, str],
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_1: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_invitation_url: str,
+    ):
+        # testUser manages `workspace`; the invitation belongs to workspace_1
+        other_invitation = await create_invitation(
+            workspace_1.id, InvitationRequest(**invitation_request)
+        )
+        unknown = await client.delete(
+            f"{workspace_invitation_url}/{secrets.token_hex(16)}",
+            cookies=test_user_cookies,
+        )
+
+        response = await client.delete(
+            f"{workspace_invitation_url}/{other_invitation.invitation_token}",
+            cookies=test_user_cookies,
+        )
+
+        # same answer as a token that does not exist anywhere
+        assert response.status_code == 404
+        assert response.json() == unknown.json() == "Invitation not found"
+        stored = await container.workspace_invitation_repo().get_workspace_invitation_by_token(
+            workspace_id=workspace_1.id,
+            invitation_token=other_invitation.invitation_token,
+        )
+        assert stored.invitation_status == InvitationStatus.PENDING
 
     async def test_delete_invitation_by_token_for_non_admin_fails(
         self,

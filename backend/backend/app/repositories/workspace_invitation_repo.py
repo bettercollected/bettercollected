@@ -81,9 +81,13 @@ class WorkspaceInvitationRepo:
         return invitation_request
 
     @write_op
-    async def delete_invitation_by_token_if_pending_state(self, invitation_token):
+    async def delete_invitation_by_token_if_pending_state(
+        self, workspace_id: PydanticObjectId, invitation_token: str
+    ):
+        # Scoped to the workspace: a token from another workspace reads as
+        # "not found", the same as a token that does not exist.
         invitation_request = await WorkspaceUserInvitesDocument.find_one(
-            {"invitation_token": invitation_token}
+            {"invitation_token": invitation_token, "workspace_id": workspace_id}
         )
         if not invitation_request:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Invitation not found")
