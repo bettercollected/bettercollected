@@ -30,7 +30,18 @@ def test_task_runner_service_is_locked_down():
 
 def test_task_runner_environment_is_limited_to_what_it_needs():
     env = COMPOSE["services"]["task-runner"]["environment"]
-    assert sorted(env) == ["SETTINGS_MASTER_KEY", "TASKS_DATABASE_URL"]
+    # the data-store settings are optional (empty: the responses tasks refuse
+    # with store_not_configured / keyset_missing)
+    assert sorted(env) == [
+        "DATABASE_URL",
+        "MASTER_ENCRYPTION_KEYSET",
+        "MONGO_DB",
+        "MONGO_URI",
+        "SETTINGS_MASTER_KEY",
+        "TASKS_DATABASE_URL",
+    ]
+    for name in ("DATABASE_URL", "MASTER_ENCRYPTION_KEYSET", "MONGO_DB", "MONGO_URI"):
+        assert env[name].startswith("${") and env[name].endswith(":-}")
     assert env["TASKS_DATABASE_URL"].startswith("postgresql+asyncpg://bc_tasks:")
     assert "@app-postgres:" in env["TASKS_DATABASE_URL"]
     assert "ADMIN_TASKS_SELFTEST" not in json.dumps(COMPOSE)

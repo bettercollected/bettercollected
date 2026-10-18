@@ -12,6 +12,11 @@ from backend.admin.tasks.registry import Registry
 
 def load(registry: Registry, env: Mapping[str, str] = os.environ) -> Registry:
     """Register every implementation this build offers."""
+    from backend.admin.tasks.impl.responses_backfill_task import BackfillWorkspaces
+    from backend.admin.tasks.impl.responses_check import CheckUndecryptable
+
+    for cls in (CheckUndecryptable, BackfillWorkspaces):
+        registry.register(cls.META, cls())
     if selftest_enabled(env):
         from backend.admin.tasks.impl.selftest import SelfTest
         from backend.admin.tasks.impl.selftest_slow import SelfTestGuarded, SelfTestSlow
