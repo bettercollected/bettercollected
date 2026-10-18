@@ -344,6 +344,7 @@ self-hosted [Umami](https://umami.is) instance via `services/umami_client.py`. I
 BetterCollected-hosted Umami; that's gone — see `plans/umami-self-hosted-form-analytics.md` for the full rationale
 and architecture.
 
+- **Debug mode:** `DEBUG` defaults to false (no HTML tracebacks on 500s). `backend/.env.example` sets `DEBUG="true"` for local development; deployments keep it off.
 - **Local dev:** `docker compose -f docker-compose.local.yml up` starts Umami at `http://localhost:3003` (default
   login `admin`/`umami` — change it). No need to create a website by hand — see auto-provisioning below.
 - **Config** (`config/UmamiSettings.py`, env prefix `UMAMI_`): `URL`, `USERNAME`, `PASSWORD` are required (`has_credentials`);
