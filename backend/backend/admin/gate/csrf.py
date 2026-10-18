@@ -112,7 +112,7 @@ class CsrfMiddleware:
         session = state.get("session")
         if level is not None and level > Level.ADDRESS:
             ok = session is not None and csrf.verify_session_token(
-                self.csrf_key, str(session.id), supplied
+                self.csrf_key, session.csrf_subject, supplied
             )
         else:
             ok = csrf.verify_form_token(
