@@ -150,3 +150,29 @@ describe('the portal tab bar on a narrow screen', () => {
         expect(screen.queryByTestId('more-tabs-before')).toBeNull();
     });
 });
+
+describe('the portal tab bar wraps instead of hiding tabs', () => {
+    afterEach(() => at('/'));
+
+    it('wraps onto a second line, with every tab keeping its own bottom rule', async () => {
+        at('/acme/forms?lang=nl');
+        renderPortal();
+        const bar = await tabBar();
+        expect(bar.className).toContain('flex-wrap');
+        const tabs = Array.from(bar.querySelectorAll('a'));
+        expect(tabs.length).toBeGreaterThan(1);
+        for (const tab of tabs) {
+            expect(tab.className).toMatch(/\bborder-b\b|\bborder-b-2\b/);
+            expect(tab.className).toContain('whitespace-nowrap');
+        }
+    });
+
+    it('keeps the active tab underline distinct from the inactive rule', async () => {
+        renderPortal();
+        const active = (await screen.findByRole('link', { name: /^Forms$/ })).className;
+        const inactive = screen.getByRole('link', { name: /^My submissions$/ }).className;
+        expect(active).toContain('border-b-2');
+        expect(inactive).not.toContain('border-b-2');
+        expect(inactive).toMatch(/\bborder-b\b/);
+    });
+});
