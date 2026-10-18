@@ -31,6 +31,10 @@ FORBIDDEN = (
 )
 
 
+# The loader reads the store with asyncpg (imported lazily, in one module).
+ALLOWED = {"loader/source.py": ("asyncpg",)}
+
+
 def _imports(path: Path):
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Import):
@@ -57,6 +61,10 @@ def test_no_module_imports_a_forbidden_package():
         for p in files
         for name in _imports(p)
         if _hits(name)
+        and not any(
+            name == ok or name.startswith(ok + ".")
+            for ok in ALLOWED.get(p.relative_to(PACKAGE).as_posix(), ())
+        )
     }
     assert not offenders
 
@@ -81,6 +89,8 @@ def test_importing_it_loads_none_of_them():
         "import common.settings, common.settings.registry, common.settings.canonical\n"
         "import common.settings.signing, common.settings.keys, common.settings.snapshot\n"
         "import common.settings.resolve, common.settings.crypto.envelope\n"
+        "import common.settings.loader\n"
+        "import common.settings.loader.disk, common.settings.loader.live\n"
         f"forbidden = {FORBIDDEN!r}\n"
         "bad = sorted(m for m in sys.modules if any(m == b or m.startswith(b + '.')"
         " for b in forbidden))\n"

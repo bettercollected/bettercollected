@@ -2,9 +2,10 @@ from typing import Dict, List
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class CustomDomainSettings(BaseSettings):
+class CustomDomainSettings(StoreBackedSettings):
     """The custom-domain service: hosted (customdomainapi.com) or self-hosted
     (github.com/sireto/custom-domain); both expose the same v1 API.
 

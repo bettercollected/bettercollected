@@ -2,11 +2,12 @@ from typing import Optional
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 from backend.version import __version__
 
 
-class ApiSettings(BaseSettings):
+class ApiSettings(StoreBackedSettings):
     ENVIRONMENT: str = "local"
     TITLE: str = "[BetterCollected] Forms Integrator Backend API"
     DESCRIPTION: str = "Rest endpoints for better-collected forms integrator API"

@@ -1,9 +1,10 @@
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class MailSettings(BaseSettings):
+class MailSettings(StoreBackedSettings):
     user: Optional[str] = ""
     password: Optional[str] = ""
     smtp_server: Optional[str] = ""

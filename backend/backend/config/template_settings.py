@@ -2,9 +2,10 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class DefaultResourcesWorkspaceSettings(BaseSettings):
+class DefaultResourcesWorkspaceSettings(StoreBackedSettings):
     WORKSPACE_ID: Optional[PydanticObjectId] = None
     SHOW_TEMPLATES: bool = False
     # Auto-seed the flow-native template gallery (scripts/seed_flow_templates.py)

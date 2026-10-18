@@ -1,8 +1,9 @@
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class PdfImportSettings(BaseSettings):
+class PdfImportSettings(StoreBackedSettings):
     """Limits and defaults for importing PDF (or photographed) forms.
 
     Available on every plan, so the limits are the abuse guard. The sandbox
