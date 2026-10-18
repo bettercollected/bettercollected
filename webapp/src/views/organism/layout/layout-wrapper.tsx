@@ -16,6 +16,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
+import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { FORM_GUTTER } from '@app/views/organism/layout/form-column';
 
@@ -52,6 +53,9 @@ interface ILayoutWrapper {
 const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false, topAligned = false, logo, logoSize = 'page', logoAction }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
+    // The theme's type, shape and highlight (theme-root.ts): nothing for a
+    // theme without them, so such a form renders as before.
+    const themeRoot = themeRootProps(theme);
 
     const handleGridClick = () => {
         setShowControls(!showControls);
@@ -135,11 +139,14 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
     return (
         <>
             <div
+                {...themeRoot.attributes}
                 style={{
                     backgroundColor: theme?.accent,
                     // Focus outlines inside a form wear the theme's action colour
-                    // (the global focus rule in tailwind.css reads --focus-ring).
+                    // (the global focus rule in tailwind.css reads --focus-ring),
+                    // or its highlight where that reads on the page.
                     ...(theme?.secondary ? { ['--focus-ring' as string]: theme.secondary } : {}),
+                    ...themeRoot.style,
                     ...style
                 }}
                 className={cn(

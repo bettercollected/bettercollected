@@ -9,6 +9,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { cn } from '@app/shadcn/util/lib';
+import { themed } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { useQuestionLabel } from './question-label-context';
@@ -42,11 +43,12 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                         aria-pressed={selected}
                         disabled={isBuilder}
                         style={{
-                            ['--scale-edge' as string]: selected ? colours?.secondary : colours?.tertiary,
-                            ['--scale-edge-hover' as string]: selected ? colours?.secondary : colours?.primary,
-                            background: selected ? colours?.secondary : '#ffffff',
-                            color: selected ? '#ffffff' : colours?.primary,
-                            borderRadius: tokens.inputRadius
+                            // The chosen number in the theme's highlight where it sets one (theme-root.ts).
+                            ['--scale-edge' as string]: selected ? themed('--form-highlight-solid', colours?.secondary) : colours?.tertiary,
+                            ['--scale-edge-hover' as string]: selected ? themed('--form-highlight-solid', colours?.secondary) : colours?.primary,
+                            background: selected ? themed('--form-highlight-solid', colours?.secondary) : '#ffffff',
+                            color: selected ? 'var(--form-highlight-solid-ink, #ffffff)' : colours?.primary,
+                            borderRadius: tokens.cardRadius
                         }}
                         key={index}
                         onClick={() => {

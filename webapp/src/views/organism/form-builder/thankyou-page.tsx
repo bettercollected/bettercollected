@@ -74,7 +74,8 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                         placeholder="Thank you"
                         aria-label="Ending title"
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
-                        className="w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
+                        // The theme's title face and width, as on the live page (theme-root.ts).
+                        className="form-title-face form-display-title w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
                         value={formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.title ?? ''}
                         onChange={(event: any) => setThankYouPageTitle(activeThankYouPageComponent?.index || 0, event.target.value)}
                     />

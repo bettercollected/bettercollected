@@ -21,6 +21,7 @@ import { legacyTitleText } from '@app/utils/legacy-title';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { isServerProblem, serverProblemMessage } from '@app/utils/server-answer-errors';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
+import { themed } from '@app/views/molecules/theme/theme-root';
 import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 
@@ -155,7 +156,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 <div className="relative flex flex-wrap items-baseline gap-x-2.5">
                     {/* Labels: weight and contrast carry the hierarchy, not size
                         (ratified 2026-07-08 against the form-redesign mocks). */}
-                    <div className={`${isTextBlock ? TEXT_BLOCK_BODY_CLASSES : `${tokens.labelClass} [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
+                    {/* A question label, and a text block's own headings, are set in
+                        the theme's title face when it has one (theme-root.ts). */}
+                    <div className={`${isTextBlock ? `${TEXT_BLOCK_BODY_CLASSES} form-text-block` : `${tokens.labelClass} form-title-face [&_p]:inline`} ${HEADING_CLASSES}`} style={{ color: theme?.primary }}>
                         {/* The title alone (no required mark): it is the controls' accessible name. */}
                         <div id={titleId} className="contents" lang={contentLang}>
                             {parse(titleHtml)}
@@ -173,7 +176,7 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                             </>
                         )}
                     </div>
-                    {isAnswerable && !isRequired && <span className="text-[13px] font-normal text-black-700">{t('FIELD.OPTIONAL')}</span>}
+                    {isAnswerable && !isRequired && <span className="form-note-accent text-[13px] font-normal text-black-700">{t('FIELD.OPTIONAL')}</span>}
                 </div>
                 {resolvedDescription && (
                     <div id={`q-desc-${field.id}`} className="mt-1.5 max-w-[62ch] text-[15px] leading-relaxed text-black-700" lang={contentLang}>
@@ -183,13 +186,14 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 {whyWeAsk && (
                     // The reason sits against a rule in the theme's border colour
                     // (Leaflet: a 3px margin-note rule in the action colour), so
-                    // it belongs to the form's palette, not the app's blue.
+                    // it belongs to the form's palette, not the app's blue. A
+                    // theme's highlight takes the rule and the label (theme-root.ts).
                     <p
                         id={`q-why-${field.id}`}
                         className={cn('mt-2 max-w-[62ch] text-[14px]', leaflet ? 'border-l-[3px] pl-2.5 leading-normal' : 'border-l-2 pl-3 leading-relaxed text-black-700')}
-                        style={leaflet ? { borderColor: theme?.secondary, color: softInk(theme) } : { borderColor: theme?.tertiary ?? '#818CA0' }}
+                        style={leaflet ? { borderColor: themed('--form-highlight-edge', theme?.secondary), color: softInk(theme) } : { borderColor: themed('--form-highlight-edge', theme?.tertiary ?? '#818CA0') }}
                     >
-                        <span className="font-semibold" style={{ color: theme?.primary }} lang={language}>
+                        <span className="font-semibold" style={{ color: themed('--form-highlight-text', theme?.primary) }} lang={language}>
                             {t('QUESTION.WHY_WE_ASK')}
                         </span>{' '}
                         <span lang={contentLang}>{whyWeAsk}</span>

@@ -59,7 +59,7 @@ const FieldInput = styled(ShadCNInput)<{
         // White field on the page surface gives the input real figure/ground —
         // the bordered box, not a wash, is what reads as "type here".
         background: '#ffffff',
-        borderRadius: tokens.inputRadius,
+        borderRadius: tokens.fieldRadius,
         // Three-step border affordance: the theme's border colour (tertiary) at
         // REST — every preset keeps it at 3:1 or more on its ground, so the
         // field's edge is visible (WCAG 1.4.11); the theme's ink on HOVER; the

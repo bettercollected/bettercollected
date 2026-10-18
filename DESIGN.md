@@ -102,6 +102,14 @@ trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
   Public Sans. It loads through `next/font/local` like the others
   (`webapp/src/assets/fonts/leaflet-serif.ts`, fallback Georgia), with
   `preload: false`, so only a page that draws a Leaflet glyph fetches it.
+- **Theme faces.** A form theme may pick its title, text and data faces
+  (§9): Atkinson Hyperlegible Next, Archivo (with its width axis), Besley
+  (with italic), Rubik and Atkinson Hyperlegible Mono, besides Public Sans.
+  Each is one variable latin file from its `@fontsource-variable` package
+  (OFL-1.1, `webapp/THIRD_PARTY_NOTICES.md`), loaded through
+  `next/font/local` (`webapp/src/assets/fonts/theme-faces.ts`) with
+  `preload: false`: a respondent page fetches only the faces its theme draws,
+  and a form without them fetches none.
 - **Utilities.** `font-sans` (the default), `font-mono` and `font-form`.
   `<code>`, `<kbd>`, `<pre>` and `<samp>` use the mono face automatically.
 - **Body.** 1rem on a 1.55 line, set on `<body>`. Paragraphs inherit, so a
@@ -309,7 +317,43 @@ These hold in every theme and every style; the colours are the form's own.
   button as one group. Default copy is plain and in the respondent's
   language: "Start", "Thank you", "Your answers have been sent."
 - **Type and buttons.** Public Sans throughout (§2); respondent buttons are
-  flat (§8).
+  flat (§8). A theme may set other faces and shapes (below).
+
+### Type and shape
+
+A theme may also set, each optional (`FormTheme` in
+`webapp/src/constants/theme.ts`, the same lists in the backend):
+
+| Key | Values | What it changes |
+|---|---|---|
+| `titleFont` | `public-sans`, `atkinson-next`, `archivo`, `besley`, `rubik`, `atkinson-mono` | Page titles (`h1`), question labels, a text block's headings |
+| `bodyFont` | the same | Everything else respondents read, the trust strip and the page's popovers included |
+| `dataFont` | the same | `font-mono` text, such as the submission number |
+| `titleWidth` | `normal`, `expanded` | Page titles at 125% width, on a face with a width axis (Archivo) |
+| `radius` | `sharp` (0), `soft` (6px), `round` (16px) | Fields, option cards and buttons |
+| `buttonStyle` | `filled`, `outlined`, `pill` | Start, Continue and Submit |
+| `highlight` | `#rrggbb` | The chosen answer, the "why we ask" and "optional" notes, the focus ring |
+
+- **Absent means today.** A key left out (or null, as stored forms send it)
+  sets nothing: a theme without these keys renders exactly as before, and so
+  do all current presets. Picking a colour preset keeps the form's own type
+  and shape, as it keeps its style; the highlight, a colour, comes from the
+  preset. A title font left out follows the text (or the style's own title
+  face, such as the Sheet serif).
+- **One place.** The element that wears the theme (the page's
+  `LayoutWrapper`, also the builder canvas and the previews) gets the keys
+  as CSS variables and `data-form-*` attributes
+  (`webapp/src/views/molecules/theme/theme-root.ts`); components read
+  `var(--form-…, <their old value>)`, and the face rules in `tailwind.css`
+  match only under their attribute.
+- **Outlined buttons** are the page colour with a 2px edge and text in the
+  secondary where it reads at 4.5:1 on the page, else the ink: text 4.5:1,
+  edge 3:1. Pill buttons are filled and fully rounded.
+- **The highlight** is held to the same rules where it is used: as an edge
+  or the focus ring only at 3:1 on the page, as note text only at 4.5:1,
+  else the ink takes its place. A light highlight (a lemon) fills the chosen
+  option, with the ink on it and an ink edge; a dark one tints it, as the
+  secondary does. The chosen state keeps its dot, tick and semibold text.
 
 ### Styles
 

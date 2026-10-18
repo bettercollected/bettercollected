@@ -28,7 +28,7 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
         // which fragmented the input language and had no focus indicator.
         background: '#ffffff',
         // The style's pinned radius (Classic 6px, Sheet and Leaflet 4px, Studio square).
-        borderRadius: styleTokens($formTheme?.style).inputRadius,
+        borderRadius: styleTokens($formTheme?.style).fieldRadius,
         // Rest on the theme's border colour (3:1 on its ground); hover steps to
         // ink; focus commits to the action colour (matches shadcn/ui/input.tsx).
         borderColor: themeColor || '#818CA0',

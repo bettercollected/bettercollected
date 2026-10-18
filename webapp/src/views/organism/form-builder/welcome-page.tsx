@@ -8,6 +8,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { LeafletContents, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { canvasButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout/form-column';
@@ -62,7 +63,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     )}
                     <div className={cn(FORM_COLUMN, columnPlacementClass(layout), 'flex flex-col items-start pt-8')}>
                         <LeafletContents pages={form?.fields} theme={theme} />
-                        <Button size={'medium'} className="z-10 mt-8 min-h-12 rounded-[4px] px-8 py-3 text-base font-semibold" style={{ background: theme?.secondary }}>
+                        <Button size={'medium'} className="z-10 mt-8 min-h-12 rounded-[4px] px-8 py-3 text-base font-semibold" style={canvasButtonStyle(theme, '4px')}>
                             {formState.welcomePage?.buttonText || 'Start'}
                         </Button>
                     </div>
@@ -82,7 +83,8 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         placeholder="Form Title"
                         aria-label="Form title"
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
-                        className="w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
+                        // The theme's title face and width, as on the live page (theme-root.ts).
+                        className="form-title-face form-display-title w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
                         value={formState.title}
                         onChange={(event) => {
                             setFormTitle(event.target.value);
@@ -102,7 +104,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     ) : (
                         <></>
                     )}
-                    <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={{ background: theme?.secondary }}>
+                    <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={canvasButtonStyle(theme, '8px')}>
                         {formState.welcomePage?.buttonText || 'Start'}
                     </Button>
                 </div>

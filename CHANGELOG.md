@@ -13,6 +13,18 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- **Theme type and shape**: a form theme can set its title, text and data
+  faces (Public Sans, Atkinson Hyperlegible Next, Archivo, Besley, Rubik,
+  Atkinson Hyperlegible Mono; all self-hosted, OFL-1.1, loaded only by a form
+  that uses them), wide titles (Archivo's width axis), the corners of fields,
+  options and buttons (sharp, soft, round), the button style (filled,
+  outlined, pill) and a highlight colour for the chosen answer, the notes
+  beside a question and, where it reads, the focus ring. Every key is
+  optional and additive: stored forms and the existing presets render as
+  before. The builder's Design tab and the Themes page edit them; the edit
+  operations, the form spec, whole-form saves and saved themes accept only
+  the listed values.
+
 - **Repeating groups**: a group of questions respondents fill several times
   (one block per applicant, family member, employer, item) between a minimum
   and maximum, with "Add another <item>" / "Remove" controls and required

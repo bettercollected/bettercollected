@@ -5,6 +5,7 @@ import { Check } from 'lucide-react';
 import { FormTheme } from '@app/constants/theme';
 import { FieldChoice } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
+import { themed } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 /** A radio (one answer) or a checkbox (several answers). */
@@ -17,8 +18,11 @@ export type ChoiceKind = 'radio' | 'checkbox';
  * tertiary, which every preset keeps at 3:1 or more on its ground.
  */
 export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; inverted?: boolean }) {
-    const on = inverted ? '#ffffff' : theme?.secondary;
-    const edge = selected ? on : inverted ? '#ffffff' : theme?.tertiary;
+    // The chosen control wears the theme's highlight where it sets one
+    // (theme-root.ts: an edge colour that reads on the page), else the secondary.
+    const onSolid = 'var(--form-highlight-solid-ink, #ffffff)';
+    const on = inverted ? onSolid : themed('--form-highlight-edge', theme?.secondary);
+    const edge = selected ? on : inverted ? onSolid : theme?.tertiary;
     if (kind === 'checkbox') {
         return (
             <span
@@ -27,7 +31,7 @@ export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { k
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border-2 border-(--choice-indicator) transition-colors duration-150 group-hover:border-(--choice-indicator-hover)"
                 style={{ ['--choice-indicator' as string]: edge, background: selected ? on : '#ffffff' }}
             >
-                {selected && <Check className="h-3.5 w-3.5" strokeWidth={3} style={{ color: inverted ? theme?.secondary : '#ffffff' }} />}
+                {selected && <Check className="h-3.5 w-3.5" strokeWidth={3} style={{ color: inverted ? themed('--form-highlight-solid', theme?.secondary) : '#ffffff' }} />}
             </span>
         );
     }
@@ -56,8 +60,11 @@ export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { k
 export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: boolean): { className: string; style: CSSProperties; solid: boolean } {
     const tokens = styleTokens(theme?.style);
     const solid = tokens.solidSelection && selected;
+    // The chosen option in the theme's highlight where it sets one
+    // (theme-root.ts highlightColours), else the secondary as before.
+    const chosenEdge = themed('--form-highlight-edge', theme?.secondary);
     const vars = {
-        ['--choice-indicator-hover' as string]: selected ? (solid ? '#ffffff' : theme?.secondary) : theme?.primary
+        ['--choice-indicator-hover' as string]: selected ? (solid ? 'var(--form-highlight-solid-ink, #ffffff)' : chosenEdge) : theme?.primary
     };
     if (tokens.ruledChoices) {
         // Leaflet: no box. A 1px rule under each row (a separator in a tint
@@ -79,11 +86,11 @@ export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: 
         className: cn('group flex min-h-12 w-full cursor-pointer items-center gap-3 border border-(--choice-edge) px-4 py-3 text-left text-base leading-snug transition-colors duration-150 hover:border-(--choice-edge-hover)', selected && 'font-semibold'),
         style: {
             ...vars,
-            ['--choice-edge-hover' as string]: selected ? theme?.secondary : theme?.primary,
-            background: solid ? theme?.secondary : selected ? theme?.secondary + '1A' : '',
-            ['--choice-edge' as string]: selected ? theme?.secondary : theme?.tertiary,
-            color: solid ? '#ffffff' : theme?.primary,
-            borderRadius: tokens.inputRadius
+            ['--choice-edge-hover' as string]: selected ? chosenEdge : theme?.primary,
+            background: solid ? themed('--form-highlight-solid', theme?.secondary) : selected ? themed('--form-highlight-fill', theme?.secondary + '1A') : '',
+            ['--choice-edge' as string]: selected ? chosenEdge : theme?.tertiary,
+            color: solid ? 'var(--form-highlight-solid-ink, #ffffff)' : selected ? themed('--form-highlight-fill-ink', theme?.primary) : theme?.primary,
+            borderRadius: tokens.cardRadius
         }
     };
 }
