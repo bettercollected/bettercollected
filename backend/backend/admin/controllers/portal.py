@@ -40,6 +40,16 @@ def _rid(request: Request):
     return request.scope["state"].get("request_id")
 
 
+def _schedule(background: BackgroundTasks, jobs) -> None:
+    """Run mail jobs after the response (each job returns an awaitable)."""
+    for job in jobs:
+
+        async def run(job=job):
+            await job()
+
+        background.add_task(run)
+
+
 async def _field(request: Request, name: str) -> str:
     form = await request.form()
     value = form.get(name, "")
@@ -75,8 +85,7 @@ def build_registry() -> RouteRegistry:
         portal = _portal(request)
         email = await _field(request, "email")
         result = await portal.signin.request_code(email, _ip(request), _ua(request), _rid(request))
-        for job in result.after:
-            background.add_task(job)
+        _schedule(background, result.after)
         # the same answer for every address
         response = RedirectResponse("/login/code", status_code=303)
         cookies.set_cookie(
@@ -98,8 +107,7 @@ def build_registry() -> RouteRegistry:
             cookies.read_cookie(request.scope, cookies.CHALLENGE_COOKIE),
             code, _ip(request), _ua(request), _rid(request),
         )
-        for job in result.after:
-            background.add_task(job)
+        _schedule(background, result.after)
         if not result.ok:
             response = _form_page(portal, "code.html", failed=True)
             response.background = background

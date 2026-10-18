@@ -55,7 +55,8 @@ async def test_levels_run_in_order_and_denials_are_401_or_303():
     async def thing():
         return {"ok": True}
 
-    def build(**fails):
+    def build(fails=None):
+        fails = fails or {}
         checkers = {
             lvl: checker(lvl, ok=lvl not in fails, reason=fails.get(lvl))
             for lvl in (Level.SESSION, Level.ADMIN, Level.SECOND_FACTOR)
@@ -70,14 +71,14 @@ async def test_levels_run_in_order_and_denials_are_401_or_303():
     ok = await call(build(), "/page")
     assert ok[0] == 200 and seen == [Level.SESSION, Level.ADMIN, Level.SECOND_FACTOR]
     seen.clear()
-    denied = await call(build(**{Level.ADMIN: "x"}), "/page")
+    denied = await call(build({Level.ADMIN: "x"}), "/page")
     assert denied[0] == 303 and seen == [Level.SESSION, Level.ADMIN]  # stops at the failure
     assert denied[1]["location"] == "/login"
     seen.clear()
-    api = await call(build(**{Level.SESSION: "x"}), "/api/thing")
+    api = await call(build({Level.SESSION: "x"}), "/api/thing")
     assert api[0] == 401 and seen == [Level.SESSION] and b"unauthenticated" in api[2]
     seen.clear()
-    mfa = await call(build(**{Level.SECOND_FACTOR: "mfa_required"}), "/page")
+    mfa = await call(build({Level.SECOND_FACTOR: "mfa_required"}), "/page")
     assert mfa[0] == 303 and mfa[1]["location"] == "/mfa"
 
 

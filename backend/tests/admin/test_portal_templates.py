@@ -33,7 +33,8 @@ def test_no_external_urls_or_inline_code(path: Path):
 def test_every_visible_string_goes_through_gettext(path: Path):
     source = path.read_text()
     body = re.sub(r"\{\{.*?\}\}|\{%.*?%\}|<[^>]+>", "", source, flags=re.S)
-    assert not body.strip(), f"untranslated text in {path.name}: {body.strip()[:60]!r}"
+    body = re.sub(r"[\s.,:;!?()-]+", "", body)  # punctuation between pieces is fine
+    assert not body, f"untranslated text in {path.name}: {body[:60]!r}"
 
 
 def test_autoescape_is_on_and_undefined_is_strict():

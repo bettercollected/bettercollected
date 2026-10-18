@@ -250,18 +250,28 @@ async def test_five_wrong_codes_lock_the_admin_and_notify_everyone_once(
     await fresh.aclose()
 
 
-async def test_breaker_pauses_sign_in_after_fifty_admin_failures(
-    app, transport, portal, runtime_engine, clock
+async def test_breaker_trips_on_the_fiftieth_admin_failure_and_pauses_sign_in(
+    app, transport, portal, runtime_engine
 ):
-    # spread the failures over addresses so no single source hits the per-address cap
-    for i in range(50):
-        b = Browser(app, peer=f"127.0.0.{i % 10 + 1}")
-        await b.request_code(ADMIN)
-        await b.submit_code("00000000" if last_code(transport) != "00000000" else "1")
-        await b.aclose()
-        clock.advance(31)  # keeps each request under the code-request limits
+    # 49 failures after an admin's email-code step, spread over many addresses
+    # (one address counts at most five); the service's own wrong code is the 50th
+    for i in range(49):
+        await portal.limiter.record_global_failure(f"10.0.{i // 5}.1", True)
+    b = Browser(app)
+    await b.request_code(ADMIN)
+    code = last_code(transport)
+    await b.submit_code("00000000" if code != "00000000" else "11111111")
     assert (await portal.limiter.sign_in_pause()).paused
     assert ("signin.breaker_tripped", "denied") in await actions(runtime_engine)
+    assert len([m for m in transport.sent if "locked" in m.subject]) == 2
+    # paused: even the right code on a fresh challenge is refused
+    fresh = Browser(app)
+    await fresh.request_code(ADMIN)  # same answer, but no code is issued
+    assert len(transport.sent) == 3  # the first code and two notices; nothing new
+    r = await b.submit_code(code)
+    assert r.status_code == 200 and "__Host-bcadmin" not in b.cookies
+    await b.aclose()
+    await fresh.aclose()
 
 
 async def test_audit_rows_for_each_step_and_chain_verifies(
