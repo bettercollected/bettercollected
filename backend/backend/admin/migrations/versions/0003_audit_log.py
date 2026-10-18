@@ -79,6 +79,11 @@ def upgrade() -> None:
     op.create_index(
         "uq_audit_log_row_hash", "audit_log", ["row_hash"], unique=True, schema=S
     )
+    # one successor per row: two writers on a stale snapshot cannot both extend
+    # the same head, whatever the trigger saw
+    op.create_index(
+        "uq_audit_log_prev_hash", "audit_log", ["prev_hash"], unique=True, schema=S
+    )
     op.create_index("ix_audit_log_at", "audit_log", ["at"], schema=S)
 
     op.execute(
@@ -111,8 +116,20 @@ def upgrade() -> None:
         LANGUAGE plpgsql SET search_path = pg_catalog, admin AS $$
         DECLARE
             head bytea;
+            issued bigint;
         BEGIN
             PERFORM pg_advisory_xact_lock({CHAIN_LOCK_KEY});
+            -- seq must be the value the identity just issued: INSERT ... OVERRIDING
+            -- SYSTEM VALUE with a chosen seq (INSERT is all it takes) is refused
+            BEGIN
+                issued := currval('admin.audit_log_seq_seq');
+            EXCEPTION WHEN object_not_in_prerequisite_state THEN
+                issued := NULL;
+            END;
+            IF NEW.seq IS DISTINCT FROM issued THEN
+                RAISE EXCEPTION 'admin.audit_log: seq must come from the identity'
+                    USING ERRCODE = 'integrity_constraint_violation';
+            END IF;
             SELECT row_hash INTO head FROM admin.audit_log ORDER BY seq DESC LIMIT 1;
             IF head IS NULL THEN
                 head := decode('{GENESIS_HASH_HEX}', 'hex');
