@@ -14,6 +14,17 @@ import re
 
 _ROLE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
+# The settings store's readers: service name (as used in the registry's
+# ``readers`` and in ``settings.v_<service>``) -> logical role name (``app`` is
+# the database role ``bc_app``). The one place the mapping is written down;
+# postgres/ensure-admin-roles.sh repeats the role names (a test keeps them equal).
+READER_SERVICES = {
+    "backend": "app",
+    "auth": "auth",
+    "google": "google",
+    "tasks": "tasks",
+}
+
 
 def role_name(logical: str = "runtime") -> str:
     """The database role behind a logical name.
