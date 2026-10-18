@@ -560,10 +560,35 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.12.tgz#afefe785949f16ac4cdd1e695935a321572dd56a"
   integrity sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==
 
+"@fontsource-variable/archivo@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/archivo/-/archivo-5.3.0.tgz#23048b3182b66023f52a36761795f79e13c6e284"
+  integrity sha512-HogK8FJelrD1o7TlZlkIVtHgc20bO5PZRWE7mUeUTdMN055alznQV6/00J00IBeu8FQAH4s3zW9UJNvKExXf+g==
+
+"@fontsource-variable/atkinson-hyperlegible-mono@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/atkinson-hyperlegible-mono/-/atkinson-hyperlegible-mono-5.3.0.tgz#b244e3688718afc95bbdf139ae3ebef840c0290f"
+  integrity sha512-0IbthhO18EEpLe69h+cmrsxCkl4yk80gMk+fAN3+9M5zQvoR1JlkzoJRR6U9/UXLYpVBGEXu+Md2LO8TIp30dw==
+
+"@fontsource-variable/atkinson-hyperlegible-next@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/atkinson-hyperlegible-next/-/atkinson-hyperlegible-next-5.3.0.tgz#defa6480f1e9e0591dc398e0ab66dcb41e754133"
+  integrity sha512-UnLzNUy1RWoLDfydAatP4NaRm99X/WbQEph7q/PymJnCFIOOwKOx3pBmp5ys8trO0dM+CKGuJgeZP9fAR4mQpA==
+
+"@fontsource-variable/besley@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/besley/-/besley-5.3.0.tgz#62dc74a71ebb93f17dacd094759286b630f24ddc"
+  integrity sha512-RTtCh7VsXhW+9PAX7EsEhXMYhLFZhFl2EkrVwgUYbgV27Doe7b3glhUCeNVP2XPUkaKre6LfTwLIXTzVbsfKnA==
+
 "@fontsource-variable/public-sans@5.3.0":
   version "5.3.0"
   resolved "https://registry.yarnpkg.com/@fontsource-variable/public-sans/-/public-sans-5.3.0.tgz#620e7ae83f43fe11a1a2130418c0ced882d72276"
   integrity sha512-AVfkmAt50BMXWpOO21FAntiJFKGX6xTc2dSL8dxtDteONe9IuRXJWGbs0EbG955vAMCq23ENeuopuW87cGWDSQ==
+
+"@fontsource-variable/rubik@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/rubik/-/rubik-5.3.0.tgz#de5e731145e7435d07f14f6efc083122d4e51dd0"
+  integrity sha512-yQUf8qle24MJYA+EuauyF+cqjjN6I715nGjitt3sGmwZA0XfA4fWJcLq1C/diREZl4Qzn1E80nLMc0ipC/a4Lg==
 
 "@fontsource/instrument-sans@5.3.0":
   version "5.3.0"
