@@ -26,6 +26,8 @@ def test_no_external_urls_or_inline_code(path: Path):
     source = path.read_text()
     assert not re.search(r"https?://|//[a-z0-9.-]+\.[a-z]{2,}|@import|url\(", source, re.I)
     if path.suffix == ".html":
+        # the one allowed script: a self-hosted file, no inline code
+        source = re.sub(r'<script src="/static/[a-z0-9._-]+\.js" defer></script>', "", source)
         assert not re.search(r"<script|<style|\sstyle=|\son\w+\s*=", source, re.I)
 
 

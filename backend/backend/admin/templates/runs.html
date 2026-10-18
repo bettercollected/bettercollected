@@ -1,0 +1,58 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Run history") }}{% endblock %}
+{% block content %}
+<p><a href="/tasks">{{ _("All tasks") }}</a></p>
+<h1>{{ _("Run history") }}</h1>
+{% if error %}<p class="error" role="alert">{{ _("The filter was not understood:") }} {{ error }}.</p>{% endif %}
+
+<form method="get" action="/tasks/runs" class="filters">
+  <div class="field">
+    <label for="task">{{ _("Task") }}</label>
+    <select id="task" name="task">
+      <option value="">{{ _("All tasks") }}</option>
+      {% for n in names %}<option value="{{ n }}"{% if n == task %} selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="state">{{ _("State") }}</label>
+    <select id="state" name="state">
+      <option value="">{{ _("All states") }}</option>
+      {% for s in states %}<option value="{{ s }}"{% if s == state %} selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit">{{ _("Filter") }}</button>
+  <a href="/tasks/runs">{{ _("Clear") }}</a>
+</form>
+
+{% if page %}
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Run history') }}">
+<table>
+  <caption>{{ _("Page") }} {{ page.page }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Run") }}</th><th scope="col">{{ _("Task") }}</th><th scope="col">{{ _("State") }}</th>
+    <th scope="col">{{ _("Progress") }}</th><th scope="col">{{ _("Requested by") }}</th>
+    <th scope="col">{{ _("Queued") }}</th><th scope="col">{{ _("Finished") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in page.runs %}
+  <tr>
+    <th scope="row"><a href="/tasks/runs/{{ r.id }}"><code>{{ r.id[:8] }}</code></a>{% if r.dry_run %} <span class="tag">{{ _("dry run") }}</span>{% endif %}{% if r.resumes_run_id %} <span class="tag">{{ _("resume") }}</span>{% endif %}</th>
+    <td><code>{{ r.task }}</code> {{ _("v") }}{{ r.version }}</td>
+    <td>{{ r.state }}{% if r.refusal_code %} (<code>{{ r.refusal_code }}</code>){% endif %}</td>
+    <td>{% if r.percent is not none %}{{ r.percent }}{{ "%" }}{% elif r.done is not none %}{{ r.done }}{% else %}-{% endif %}</td>
+    <td>{{ r.requested_by }}</td>
+    <td>{{ r.created_at | ts }}</td>
+    <td>{{ r.finished_at | ts }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7">{{ _("No runs match.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p>
+  {% if page.page > 1 %}<a href="/tasks/runs?page={{ page.page - 1 }}{% if task %}&amp;task={{ task }}{% endif %}{% if state %}&amp;state={{ state }}{% endif %}">{{ _("Newer") }}</a>{% endif %}
+  {% if page.has_more %}<a href="/tasks/runs?page={{ page.page + 1 }}{% if task %}&amp;task={{ task }}{% endif %}{% if state %}&amp;state={{ state }}{% endif %}">{{ _("Older") }}</a>{% endif %}
+</p>
+{% endif %}
+{% endblock %}

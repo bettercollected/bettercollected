@@ -8,6 +8,9 @@ CONTENT_SECURITY_POLICY = (
     "form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 )
 
+# ``same-origin``, not ``no-referrer``: with ``no-referrer`` a browser sends
+# ``Origin: null`` on a same-origin form post, which the CSRF check (rightly)
+# refuses, so no portal form could be submitted. Nothing is sent cross-origin.
 SECURITY_HEADERS: Tuple[Tuple[bytes, bytes], ...] = (
     (b"content-security-policy", CONTENT_SECURITY_POLICY.encode("ascii")),
     (b"referrer-policy", b"same-origin"),
