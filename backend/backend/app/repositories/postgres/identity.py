@@ -439,9 +439,14 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
             )
         return invitation_request
 
-    async def delete_invitation_by_token_if_pending_state(self, invitation_token):
+    async def delete_invitation_by_token_if_pending_state(
+        self, workspace_id: PydanticObjectId, invitation_token: str
+    ):
+        # Scoped to the workspace: a token from another workspace reads as
+        # "not found", the same as a token that does not exist.
         invitation_request = await self.one(
-            WorkspaceInviteRow.invitation_token == invitation_token
+            WorkspaceInviteRow.invitation_token == invitation_token,
+            WorkspaceInviteRow.workspace_id == _oid(workspace_id),
         )
         if not invitation_request:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Invitation not found")

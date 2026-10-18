@@ -334,16 +334,37 @@ async def test_invitations(sessions):
     )
     await both_raise(
         HTTPException,
-        lambda: mongo.delete_invitation_by_token_if_pending_state("tok-done"),
-        lambda: postgres.delete_invitation_by_token_if_pending_state("tok-done"),
+        lambda: mongo.delete_invitation_by_token_if_pending_state(ws_id, "tok-done"),
+        lambda: postgres.delete_invitation_by_token_if_pending_state(
+            ws_id, "tok-done"
+        ),
     )
     await both_raise(
         HTTPException,
-        lambda: mongo.delete_invitation_by_token_if_pending_state("nope"),
-        lambda: postgres.delete_invitation_by_token_if_pending_state("nope"),
+        lambda: mongo.delete_invitation_by_token_if_pending_state(ws_id, "nope"),
+        lambda: postgres.delete_invitation_by_token_if_pending_state(ws_id, "nope"),
     )
-    await mongo.delete_invitation_by_token_if_pending_state(m2.invitation_token)
-    await postgres.delete_invitation_by_token_if_pending_state(p2.invitation_token)
+    # a pending token is not found from another workspace, and stays put
+    other_ws = PydanticObjectId()
+    await both_raise(
+        HTTPException,
+        lambda: mongo.delete_invitation_by_token_if_pending_state(
+            other_ws, m2.invitation_token
+        ),
+        lambda: postgres.delete_invitation_by_token_if_pending_state(
+            other_ws, p2.invitation_token
+        ),
+    )
+    assert (
+        await mongo.get_workspace_invitation_by_token(ws_id, m2.invitation_token)
+    ).invitation_status == InvitationStatus.PENDING
+    assert (
+        await postgres.get_workspace_invitation_by_token(ws_id, p2.invitation_token)
+    ).invitation_status == InvitationStatus.PENDING
+    await mongo.delete_invitation_by_token_if_pending_state(ws_id, m2.invitation_token)
+    await postgres.delete_invitation_by_token_if_pending_state(
+        ws_id, p2.invitation_token
+    )
     await both_raise(
         HTTPException,
         lambda: mongo.get_workspace_invitation_by_token(ws_id, m2.invitation_token),
