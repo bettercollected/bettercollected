@@ -169,11 +169,8 @@ class FactorService:
         return None
 
     async def _refuse(self, reason, minutes, session, email, ip, ua, rid, action) -> Outcome:
-        async with self._engine.begin() as conn:
-            await self._audit(
-                conn, action, "denied", session, email, ip, ua, rid,
-                detail={"reason": reason},
-            )
+        # No audit row: the lock and the breaker are audited once when they start,
+        # and a refused attempt must not be a way to grow the log.
         return Outcome(False, reason, minutes)
 
     async def _after_failure(self, email: str, ip, rid) -> List[AfterResponse]:
@@ -224,11 +221,7 @@ class FactorService:
         async with self._engine.begin() as conn:
             confirmed = await repo.get_confirmed(conn, email)
             reason = self._may_enrol(session, confirmed is not None)
-            if reason:
-                await self._audit(
-                    conn, "mfa.enrol_started", "denied", session, email, ip, ua, rid,
-                    detail={"reason": reason},
-                )
+            if reason:  # policy refusals write nothing (no unthrottled log growth)
                 return Outcome(False, reason)
             secret = totp.generate_secret()
             factor_id = uuid.uuid4()
@@ -255,17 +248,9 @@ class FactorService:
                 confirmed = await repo.get_confirmed(conn, email)
                 reason = self._may_enrol(session, confirmed is not None)
                 if reason:
-                    await self._audit(
-                        conn, "mfa.enrol_confirmed", "denied", session, email, ip, ua, rid,
-                        detail={"reason": reason},
-                    )
                     return Outcome(False, reason)
                 pending = None if factor_id is None else await repo.get_pending(conn, factor_id, email)
                 if pending is None:
-                    await self._audit(
-                        conn, "mfa.enrol_confirmed", "failure", session, email, ip, ua, rid,
-                        detail={"reason": "unknown_factor"},
-                    )
                     return Outcome(False, STALE)
                 secret = self._open(pending.secret_blob, pending.id, email)
                 step = totp.verify(secret, raw_code, self._clock) if secret else None
@@ -335,10 +320,6 @@ class FactorService:
             async with self._engine.begin() as conn:
                 factor = await repo.get_confirmed(conn, email)
                 if factor is None:
-                    await self._audit(
-                        conn, action, "failure", session, email, ip, ua, rid,
-                        detail={"reason": NO_FACTOR},
-                    )
                     return Outcome(False, NO_FACTOR)
                 method = await self._match(conn, factor, raw, now)
                 if method is None:
@@ -410,11 +391,6 @@ class FactorService:
         step-up; the new codes are in ``codes`` once."""
         email = session.email
         if not self._sessions.stepup_fresh(session):
-            async with self._engine.begin() as conn:
-                await self._audit(
-                    conn, "mfa.recovery_regenerated", "denied", session, email, ip, ua, rid,
-                    detail={"reason": STEPUP_REQUIRED},
-                )
             return Outcome(False, STEPUP_REQUIRED)
         async with self._engine.begin() as conn:
             factor = await repo.get_confirmed(conn, email)

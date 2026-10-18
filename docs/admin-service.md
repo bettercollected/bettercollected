@@ -39,11 +39,38 @@ a random token; only its hash is stored. Sessions end after 30 minutes idle or
 8 hours in total (`ADMIN_SESSION_IDLE_MINUTES`, `ADMIN_SESSION_ABSOLUTE_HOURS`
 can only shorten these), are bound to the client address and browser, and at
 most three stay live per admin. A signed-in session whose second factor is still
-pending can reach only `/mfa` and `/logout`. Removing an address from
+pending can reach only `/mfa/enrol*` (no factor yet), `/mfa/verify` (factor set up)
+and `/logout`. Removing an address from
 `PLATFORM_ADMIN_EMAILS` ends its sessions at the next start or request.
 Every state-changing request needs a CSRF token and a same-origin
 `Origin` (`ADMIN_PUBLIC_ORIGINS`). Operator commands:
 `python -m backend.admin unlock <email>`, `resume-sign-in`, `revoke-sessions [email]`.
+
+## Second factor, recovery codes and step-up
+
+Every admin needs an authenticator app (TOTP, 6 digits, 30 s). The first
+sign-in leads to `/mfa/enrol`: scan the QR code (drawn by the service, nothing
+is fetched) or type the key, confirm with one code, and ten single-use recovery
+codes are shown once. The secret is stored encrypted, bound to its row and the
+address. A code works once (a replayed or concurrent duplicate is refused), one
+step of clock drift either way is tolerated, and five wrong codes in five
+minutes (or fifteen in a day) lock the address with the same escalation as above.
+A recovery code can be used instead of an authenticator code; every admin is
+mailed when one is used, when an address is locked, when a factor is set up,
+and when an admin signs in from an address not seen in their recent sessions.
+
+Sensitive actions (making new recovery codes, replacing the authenticator,
+ending another admin's session) need a fresh code within `ADMIN_STEPUP_SECONDS`
+(default 300, at most 600); the portal asks for it on a prompt page. Actions that
+must not ride on that window use a single-use token (120 s) bound to the exact
+action, from `POST /api/stepup`.
+
+If the authenticator and the recovery codes are both lost, only the operator on
+the host can reset the factor (there is no reset by another admin, and none by
+email). The reset is audited, revokes the admin's sessions, mails every admin and
+makes the next sign-in enrol again:
+`python -m backend.admin reset-factor --email <address> --yes`. On a
+single-admin installation this command is the only way back in.
 
 Without `ADMIN_DATABASE_URL`, `SETTINGS_MASTER_KEY` and `PLATFORM_ADMIN_EMAILS`
 the service starts as the bare gate: `/healthz` and 404s only, with one warning
@@ -64,3 +91,4 @@ but invalid stop startup.
 | `PLATFORM_ADMIN_EMAILS` | empty | addresses allowed to sign in |
 | `ADMIN_PUBLIC_ORIGINS` | `http://localhost:<port>,http://127.0.0.1:<port>` | origins state-changing requests may come from (scheme, host, port) |
 | `ADMIN_SESSION_IDLE_MINUTES` / `ADMIN_SESSION_ABSOLUTE_HOURS` | `30` / `8` | session lifetimes (shorter only) |
+| `ADMIN_STEPUP_SECONDS` | `300` | how long a verified code counts for sensitive actions (max 600) |
