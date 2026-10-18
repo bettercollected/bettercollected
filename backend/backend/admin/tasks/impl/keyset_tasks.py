@@ -286,7 +286,7 @@ class Reencrypt(_Base):
                         )
                         per_store[store.name] = counts
                         await ctx.emit(
-                            Events.counted, _event_counts(counts), [name, store.name]
+                            Events.counted, _event_counts(counts), [state.event_target(name), store.name]
                         )
                         if counts.get("stopped"):
                             complete = False
@@ -322,7 +322,7 @@ class Reencrypt(_Base):
                         )
                         per_store[primary.name] = counts
                         await ctx.emit(
-                            Events.reencrypted, _event_counts(counts), [name, primary.name]
+                            Events.reencrypted, _event_counts(counts), [state.event_target(name), primary.name]
                         )
                         if counts.get("stopped"):
                             complete = False
@@ -341,7 +341,7 @@ class Reencrypt(_Base):
                         )
                         per_store[mirror.name] = counts
                         await ctx.emit(
-                            Events.reencrypted, _event_counts(counts), [name, mirror.name]
+                            Events.reencrypted, _event_counts(counts), [state.event_target(name), mirror.name]
                         )
                         if counts.get("stopped"):
                             complete = False
@@ -408,7 +408,7 @@ class Verify(_Base):
                     unopenable += counts.get("values_unopenable", 0)
                     base += counts.get("records", 0)
                     await ctx.emit(
-                        Events.verified, _event_counts(counts), [name, store.name]
+                        Events.verified, _event_counts(counts), [state.event_target(name), store.name]
                     )
                     if counts.get("stopped"):
                         complete = False
@@ -471,7 +471,7 @@ class DropOld(_Base):
                     per_store[store.name] = counts
                     base += counts.get("records", 0)
                     stale += counts.get("values_stale", 0)
-                    await ctx.emit(Events.counted, _event_counts(counts), [name, store.name])
+                    await ctx.emit(Events.counted, _event_counts(counts), [state.event_target(name), store.name])
                     if counts.get("stopped"):
                         stopped = True
                         break

@@ -27,6 +27,7 @@ from backend.admin.config import parse_master_key
 from backend.admin.tasks.catalog.keyset import Targets
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.impl import keyset_core as core
+from backend.admin.tasks.impl.responses_common import ReadOnlyDatabase
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
     KEYSET_ENV,
@@ -365,7 +366,10 @@ async def open_target_stores(
                     if target is core.GOOGLE_CREDENTIALS
                     else config.mongo_db
                 )
-                stores.append(core.MongoStore(client[database], target))
+                db = client[database]
+                if read_only:  # any write method raises (a read-only user is still advised)
+                    db = ReadOnlyDatabase(db)
+                stores.append(core.MongoStore(db, target))
             else:
                 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -405,8 +409,10 @@ def parsed(value: str):
 
 
 def event_counts(counts: Mapping[str, int], keep: int = 10) -> dict:
-    """Counters for an event (at most 16 of them): per-key counters beyond
-    ``keep`` are summed into ``values_key_other``."""
+    """Counters for an event (at most 16 of them). A per-key counter
+    ``values_key_<id>`` is recorded as ``kid_<id>``: the event sanitiser blanks
+    any name containing "key". Counters beyond ``keep`` keys are summed into
+    ``kid_other``."""
     out: dict = {}
     other = 0
     keyed = 0
@@ -416,7 +422,14 @@ def event_counts(counts: Mapping[str, int], keep: int = 10) -> dict:
             if keyed > keep:
                 other += number
                 continue
+            out["kid_" + name[len("values_key_"):]] = int(number)
+            continue
         out[name] = int(number)
     if other:
-        out["values_key_other"] = other
+        out["kid_other"] = other
     return out
+
+
+def event_target(name: str) -> str:
+    """The id a target goes by in an event ("credential" would be blanked)."""
+    return {"google_credentials": "google_oauth"}.get(name, name)

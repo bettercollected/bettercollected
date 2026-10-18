@@ -153,9 +153,11 @@ async def all_readable(flow, keyset_value):
     found = await stored_values(flow.choice)
     assert found
     for (store, target, record, path), value in found.items():
+        seen.add(ciphertext_key_id(value))
+        if (target, record, path) not in flow.data.expected:
+            continue  # stored by the repository from plain data: no known context
         context, plaintext = flow.data.expected[(target, record, path)]
         assert cipher.decrypt(*context, value) == plaintext
-        seen.add(ciphertext_key_id(value))
     return seen
 
 
@@ -269,7 +271,7 @@ async def test_the_whole_rotation_ends_with_every_value_readable_and_the_old_key
     assert got.complete and got.values_unopenable == 0 and got.values_stale == 0
     events = await world.events(verify_id)
     assert {e["code"] for e in events} == {"verified"}
-    assert any(f"values_key_{new_id}" in e["counts"] for e in events)
+    assert any(f"kid_{new_id}" in e["counts"] for e in events), events
 
     # drop_old: only now
     drop_params = flow.params()
@@ -511,6 +513,7 @@ async def test_an_interrupted_run_resumes_and_finishes(world, flow, monkeypatch,
     new_id = await flow.rotate_to_new_primary()
     params = flow.params(primary_id=new_id, stores=flow.choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
+    real_walk = core.reencrypt_store
     await cancel_after_first_batch(monkeypatch, world)
     first_id, first = await flow.run("keyset.reencrypt", params)
     assert first["state"] == "cancelled", first  # cancel works between batches
@@ -519,8 +522,7 @@ async def test_an_interrupted_run_resumes_and_finishes(world, flow, monkeypatch,
     assert await all_readable(flow, stored.value) >= {new_id}  # never unreadable half way
     assert await world.locks() == []
 
-    monkeypatch.undo()
-    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.setattr(core, "reencrypt_store", real_walk)
     second_id, second = await flow.run("keyset.reencrypt", params, resumes=first_id)
     assert second["state"] == "succeeded", second
     assert second["result"]["complete"] is True
@@ -531,11 +533,11 @@ async def test_a_resume_with_another_keyset_is_refused(world, flow, monkeypatch,
     new_id = await flow.rotate_to_new_primary()
     params = flow.params(primary_id=new_id, stores=flow.choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
+    real_walk = core.reencrypt_store
     await cancel_after_first_batch(monkeypatch, world)
     first_id, first = await flow.run("keyset.reencrypt", params)
     assert first["state"] == "cancelled"
-    monkeypatch.undo()
-    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.setattr(core, "reencrypt_store", real_walk)
 
     # the keyset changes between the runs (another secondary), the consumers follow
     from tests.admin.tasks.test_keyset_store import write
@@ -556,6 +558,8 @@ async def test_a_value_changed_mid_run_is_left_for_the_next_run_and_reported(
     await flow.run("keyset.reencrypt", params, dry_run=True)
     old_cipher = CryptoService(OLD)
     hits = {"n": 0}
+
+    originals = {cls: cls.write for cls in (core.MongoStore, core.PostgresStore)}
 
     def hook(cls):
         real = cls.write
@@ -587,8 +591,8 @@ async def test_a_value_changed_mid_run_is_left_for_the_next_run_and_reported(
     # that record still has a value on the old key (the one the app wrote)
     assert await all_readable(flow, stored.value) >= {new_id}
 
-    monkeypatch.undo()
-    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    for cls, original in originals.items():
+        monkeypatch.setattr(cls, "write", original)
     _, again = await flow.run("keyset.reencrypt", params)
     assert again["state"] == "succeeded", again
     assert await all_readable(flow, stored.value) == {new_id}

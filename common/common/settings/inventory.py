@@ -704,6 +704,7 @@ ALIASES: Dict[str, str] = {
     "TASK_RUNNER_MONGO_URI": "MONGO_URI",
     "TASK_RUNNER_MONGO_DB": "MONGO_DB",
     "TASK_RUNNER_KEYSET": "MASTER_ENCRYPTION_KEYSET",
+    "TASK_RUNNER_GOOGLE_MONGO_DB": "GOOGLE_MONGO_DB",
 }
 
 # Names in env files, compose files or code that no service reads as a setting.
