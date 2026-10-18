@@ -22,6 +22,7 @@ from backend.app.repositories.workspace_form_repository import WorkspaceFormRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
+from common.services.crypto_service import crypto_service
 from common.services.http_client import HttpClient
 
 CACHE_SECONDS = 60
@@ -121,6 +122,7 @@ class PlatformMetricsService:
                 for i, week in enumerate(weeks)
             ],
             "errors": errors,
+            "response_keyset_published": crypto_service.published_key_in_keyset,
         }
 
     async def _organization_counts(

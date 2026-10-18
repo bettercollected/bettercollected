@@ -124,6 +124,28 @@ async def test_admin_gets_counts(
     assert testUser.sub not in response.text
 
 
+@pytest.mark.parametrize("published", [True, False])
+async def test_says_whether_the_response_keyset_was_published(
+    client: AsyncClient, test_user_cookies, auth_ok, monkeypatch, published
+):
+    """A flag only: never the keyset, its key ids or digests."""
+    from common.services import keyset as keysets
+    from common.services.crypto_service import crypto_service
+
+    keyset = keysets.only_primary(keysets.add_primary_key(crypto_service.keyset))
+    # stands in for a published key: the real ones are only known by digest
+    denied = {keysets.key_digest(keyset.key[0])} if published else set()
+    monkeypatch.setattr(keysets, "PUBLISHED_KEY_SHA256", frozenset(denied))
+    monkeypatch.setattr(crypto_service, "keyset", keyset)
+
+    response = await client.get(URL, cookies=test_user_cookies)
+
+    assert response.status_code == 200
+    assert response.json()["responseKeysetPublished"] is published
+    for key in crypto_service.keyset.key:
+        assert str(key.key_id) not in response.text
+
+
 class FakeStatusClient:
     """Stands in for the httpx client ``get_logged_user`` refreshes through."""
 

@@ -273,6 +273,17 @@ function MetricsGrid({ metrics }: { metrics: PlatformMetrics }) {
 
     return (
         <div className="flex flex-col gap-5">
+            {metrics.responseKeysetPublished && (
+                <div role="alert" className="flex items-start gap-3 rounded border border-[#F5C2C0] bg-[#FEF3F2] p-4 text-sm text-[#912018]">
+                    <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                        <p className="font-semibold">The response encryption keyset holds a published key</p>
+                        <p className="mt-1">
+                            MASTER_ENCRYPTION_KEYSET holds a key that was published in the bettercollected repository: responses encrypted with it are readable by anyone with a copy of the data. Rotate it as described in docs/response-keyset-rotation.md.
+                        </p>
+                    </div>
+                </div>
+            )}
             {metrics.errors.length > 0 && (
                 <div role="status" className="flex items-start gap-3 rounded border border-[#F2D7A6] bg-[#FFF8EB] p-4 text-sm text-[#7A4B00]">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
