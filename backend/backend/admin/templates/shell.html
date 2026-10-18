@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block mainclass %}{{ "wide" }}{% endblock %}
+{% block nav %}
+{% set items = [
+  ("dashboard", "/", _("Dashboard")),
+  ("health", "/health", _("Health")),
+  ("config", "/config", _("Configuration")),
+  ("metrics", "/metrics", _("Metrics")),
+  ("audit", "/audit", _("Audit log")),
+  ("sessions", "/sessions", _("Sessions")),
+  ("account", "/account", _("Account")),
+] %}
+<nav aria-label="{{ _('Main') }}">
+  <ul class="nav">
+  {% for key, href, label in items %}
+    <li><a href="{{ href }}"{% if active is defined and active == key %} aria-current="page"{% endif %}>{{ label }}</a></li>
+  {% endfor %}
+    <li><span class="nav-later">{{ _("Settings") }} <span class="visually-hidden">({{ _("not available yet") }})</span></span></li>
+    <li><span class="nav-later">{{ _("Tasks") }} <span class="visually-hidden">({{ _("not available yet") }})</span></span></li>
+  </ul>
+</nav>
+<div class="who">
+  <span class="email">{{ email }}</span>
+  {% include "_signout.html" %}
+</div>
+{% endblock %}
+{% block banners %}
+<section class="banners" aria-label="{{ _('Notices') }}">
+  <p class="banner banner-keep"><strong>{{ _("Back up SETTINGS_MASTER_KEY.") }}</strong> {{ _("Keep a copy somewhere separate from the server. It cannot be recovered: without it the stored secrets and the second-factor enrolments cannot be opened.") }}</p>
+  {% for b in banners | default([]) %}
+    {% if b.kind == "restart" %}
+    <p class="banner banner-warn" role="status">{{ _("Restart required for changed settings. Reported by:") }} {{ b.services }}.</p>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endblock %}
+{% block main %}{% block content %}{% endblock %}{% endblock %}

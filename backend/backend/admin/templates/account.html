@@ -1,7 +1,6 @@
-{% extends "base.html" %}
+{% extends "shell.html" %}
 {% block title %}{{ _("Your account") }}{% endblock %}
-{% block nav %}{% include "_signout.html" %}{% endblock %}
-{% block main %}
+{% block content %}
 <h1>{{ _("Your account") }}</h1>
 <p>{{ _("Signed in as") }} <strong>{{ email }}</strong>.</p>
 <h2>{{ _("Second factor") }}</h2>
@@ -28,5 +27,5 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <button type="submit">{{ _("Sign out all other sessions") }}</button>
 </form>
-<p><a href="/">{{ _("Back") }}</a></p>
+<p><a href="/sessions">{{ _("Sessions page") }}</a></p>
 {% endblock %}

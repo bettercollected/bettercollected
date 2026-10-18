@@ -289,7 +289,8 @@ def register(reg: RouteRegistry) -> None:
             for row in rows
         ]
         return portal.render(
-            "account.html", csrf_token=_csrf(portal, session), email=session.email,
+            "account.html", active="account", banners=[], csrf_token=_csrf(portal, session),
+            email=session.email,
             left=status.recovery_left, sessions=shown,
         )
 

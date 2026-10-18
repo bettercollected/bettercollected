@@ -66,6 +66,7 @@ class Session:
     abs_expires_at: datetime
     ip: Optional[str]
     token_hash: bytes = field(default=b"", repr=False)
+    ua_hash: bytes = field(default=b"", repr=False)
 
     @property
     def csrf_subject(self) -> str:
@@ -87,6 +88,7 @@ class Session:
             abs_expires_at=row.abs_expires_at,
             ip=str(row.ip) if row.ip is not None else None,
             token_hash=bytes(row.token_hash),
+            ua_hash=bytes(getattr(row, "ua_hash", None) or b""),
         )
 
 
