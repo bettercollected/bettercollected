@@ -6,15 +6,18 @@ secrets (a database password, the master key).
 
 from __future__ import annotations
 
-import base64
-import binascii
 import os
 from dataclasses import dataclass, field
 from typing import Mapping
 
+from common.settings.crypto.keys import (
+    MASTER_KEY_KEY,
+    MIN_MASTER_KEY_BYTES,
+    MasterKeyError,
+)
+from common.settings.crypto.keys import parse_master_key as _parse_master_key
+
 DATABASE_URL_KEY = "ADMIN_DATABASE_URL"
-MASTER_KEY_KEY = "SETTINGS_MASTER_KEY"
-MIN_MASTER_KEY_BYTES = 32
 ASYNC_SCHEME = "postgresql+asyncpg://"
 
 
@@ -24,31 +27,10 @@ class AdminConfigError(RuntimeError):
 
 def parse_master_key(raw: str | None) -> bytes:
     """Decode a base64 master key of at least 32 bytes, or raise without echoing it."""
-    value = (raw or "").strip()
-    if not value:
-        raise AdminConfigError(
-            f"{MASTER_KEY_KEY} is not set. Generate one with "
-            f"`openssl rand -base64 48` and keep it: without it the stored second-factor "
-            f"secrets and the audit chain cannot be recovered or verified."
-        )
-    padded = value + "=" * (-len(value) % 4)
-    key = None
-    for altchars in (None, b"-_"):  # standard, then URL-safe alphabet
-        try:
-            key = base64.b64decode(padded, altchars=altchars, validate=True)
-            break
-        except (binascii.Error, ValueError):
-            continue
-    if key is None:
-        raise AdminConfigError(
-            f"{MASTER_KEY_KEY} is not valid base64 (value not shown)."
-        )
-    if len(key) < MIN_MASTER_KEY_BYTES:
-        raise AdminConfigError(
-            f"{MASTER_KEY_KEY} must decode to at least {MIN_MASTER_KEY_BYTES} bytes "
-            f"(value not shown)."
-        )
-    return key
+    try:
+        return _parse_master_key(raw)
+    except MasterKeyError as exc:
+        raise AdminConfigError(str(exc)) from None
 
 
 def parse_database_url(raw: str | None) -> str:

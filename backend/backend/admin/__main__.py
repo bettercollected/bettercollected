@@ -11,6 +11,7 @@ import sys
 from typing import Optional, Sequence
 
 from backend.admin.config import AdminConfigError, AdminSettings
+from common.settings.crypto.keys import MasterKeyError
 from backend.admin.db import make_engine
 from backend.admin.services import audit
 
@@ -115,7 +116,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.command == "revoke-sessions":
             return asyncio.run(_revoke_sessions(args.email))
         return asyncio.run(_audit_verify(args.checkpoint))
-    except AdminConfigError as exc:
+    except (AdminConfigError, MasterKeyError) as exc:
         print(f"configuration error: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:  # noqa: BLE001 - class name only: messages may carry the DSN
