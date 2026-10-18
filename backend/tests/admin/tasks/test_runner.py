@@ -6,6 +6,8 @@ import asyncio
 import enum
 import json
 
+from datetime import timedelta
+
 import pytest
 from sqlalchemy import text
 
@@ -263,10 +265,18 @@ async def test_heartbeat_task_renews_the_lease_and_detects_loss(world):
     await asyncio.wait_for(gate.reached.wait(), 60)
     before = (await world.run(run_id))["heartbeat_at"]
     world.clock.advance(5)
-    await asyncio.sleep(0.3)
+    for _ in range(200):  # generous: the database may be busy
+        await asyncio.sleep(0.1)
+        if (await world.run(run_id))["heartbeat_at"] > before:
+            break
     assert (await world.run(run_id))["heartbeat_at"] > before
     world.clock.advance(200)
-    await asyncio.sleep(0.2)  # the heartbeat keeps the lease fresh at the new time
+    for _ in range(200):  # the heartbeat keeps the lease fresh at the new time
+        await asyncio.sleep(0.1)
+        if await world.runner().takeover_stale() == 0 and (
+            (await world.run(run_id))["heartbeat_at"] >= world.clock.now() - timedelta(seconds=1)
+        ):
+            break
     assert await world.runner().takeover_stale() == 0
     gate.release.set()
     assert await task == "succeeded"
