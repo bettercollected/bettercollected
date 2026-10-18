@@ -6,11 +6,17 @@ volumes:
   umami-db-data:
   temporal-postgres-data:
 networks:
+  # Carries the admin service's published port, and nothing else, so the peer
+  # address it sees for host traffic is this network's gateway.
   admin-edge:
     ipam:
       config:
         - subnet: ${ADMIN_EDGE_SUBNET:-172.30.77.0/29}
           gateway: ${ADMIN_EDGE_GATEWAY:-172.30.77.1}
+  # Private path between the admin service and app-postgres. internal: no
+  # gateway, no published ports, no route out; only those two attach.
+  admin-db:
+    internal: true
 services:
   mongodb:
     image: mongo:latest
@@ -138,6 +144,13 @@ services:
       # read by postgres/ensure-admin-roles.sh, which deploy.sh runs here on every deploy
       BC_ADMIN_PASSWORD: ${BC_ADMIN_PASSWORD:?set by deploy.sh in the root .env}
       BC_ADMIN_MIG_PASSWORD: ${BC_ADMIN_MIG_PASSWORD:?set by deploy.sh in the root .env}
+    # explicit priorities: without them Compose 2.24 / Engine 27 sometimes left
+    # this container on one network only (docs/admin-service.md)
+    networks:
+      default:
+        priority: 100
+      admin-db:
+        priority: 50
     volumes:
       - app-postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -245,11 +258,17 @@ services:
       start_period: 15s
 
   # Internal admin service (docs/admin-service.md). Published on the host's
-  # loopback only and never routed by nginx; reach it with `ssh -L`. It gets
-  # its own pinned network so that Docker's NAT shows it a known gateway
-  # address (allowed in ADMIN_ALLOWED_IPS) instead of any sibling container.
-  # No env_file and no database or other service's secrets. Attach `default`
-  # here only when it needs the database (later change).
+  # loopback only and never routed by nginx; reach it with `ssh -L`.
+  # Networks: `admin-edge` (pinned, only this service) carries the published
+  # port, so Docker's NAT shows the service a known gateway address that
+  # ADMIN_ALLOWED_IPS admits; `admin-db` (internal) is its private path to
+  # app-postgres. It is NOT on `default`, so no sibling container can reach it.
+  # No env_file: only the variables below. The portal starts only when
+  # ADMIN_DATABASE_URL, SETTINGS_MASTER_KEY and PLATFORM_ADMIN_EMAILS are all
+  # non-empty; otherwise the service runs as the bare gate (health check and
+  # 404s). The three default to empty so `docker compose config` and older
+  # deployments keep working; deploy.sh generates the first two, and
+  # PLATFORM_ADMIN_EMAILS (the super admin list) is set by the operator.
   admin:
     image: bettercollected/backend:nightly
     command: ["/api/backend/.venv/bin/python", "-m", "backend.admin.serve"]
@@ -268,12 +287,35 @@ services:
       ADMIN_PORT: ${ADMIN_PORT:-8100}
       ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-127.0.0.1/32}
       ADMIN_ALLOWED_HOSTS: ${ADMIN_ALLOWED_HOSTS:-localhost:${ADMIN_PORT:-8100},127.0.0.1:${ADMIN_PORT:-8100}}
+      ADMIN_PUBLIC_ORIGINS: ${ADMIN_PUBLIC_ORIGINS:-http://localhost:${ADMIN_PORT:-8100},http://127.0.0.1:${ADMIN_PORT:-8100}}
       ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-}
       ADMIN_EDGE_GATEWAY: ${ADMIN_EDGE_GATEWAY:-172.30.77.1}
+      # the bc_admin role sees only schema `admin` (postgres/ensure-admin-roles.sh);
+      # empty without the password, which keeps the service in bare-gate mode
+      ADMIN_DATABASE_URL: ${BC_ADMIN_PASSWORD:+postgresql+asyncpg://bc_admin:${BC_ADMIN_PASSWORD}@app-postgres:5432/bettercollected}
+      SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:-}
+      PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
+      # sign-in codes and notices go out through the same SMTP settings as the
+      # other services (root .env)
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_SERVER: ${MAIL_SMTP_SERVER:-}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-587}
+      MAIL_SENDER: ${MAIL_SENDER:-}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-}
+      MAIL_SSL_TLS: ${MAIL_SSL_TLS:-}
+      MAIL_USE_CREDENTIALS: ${MAIL_USE_CREDENTIALS:-}
+      MAIL_VALIDATE_CERTS: ${MAIL_VALIDATE_CERTS:-}
     ports:
       - "127.0.0.1:${ADMIN_PORT:-8100}:8000"
     networks:
-      - admin-edge
+      admin-edge:
+        priority: 100
+      admin-db:
+        priority: 50
+    depends_on:
+      app-postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "/api/backend/.venv/bin/python", "-I", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read() == b'ok' else 1)"]
       interval: 10s

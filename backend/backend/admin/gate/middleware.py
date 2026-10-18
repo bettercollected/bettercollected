@@ -1,7 +1,7 @@
 """The outermost layer of the admin service (pure ASGI).
 
 Order: request id and security headers on every response -> /healthz
-(loopback peers only) -> Host allowlist -> client address allowlist ->
+(loopback peers and the admin network's gateway only) -> Host allowlist -> client address allowlist ->
 body cap and content type -> route level (default deny) -> the application.
 A request that fails the first two gates gets a bare 404 and never reaches
 anything else: no routing, no application code, no database.
@@ -163,7 +163,7 @@ class GateMiddleware:
             if (
                 method in ("GET", "HEAD")
                 and peer_addr is not None
-                and peer_addr.is_loopback
+                and (peer_addr.is_loopback or peer_addr == self.settings.edge_gateway)
             ):
                 body = b"" if method == "HEAD" else b"ok"
                 await send(
