@@ -6,7 +6,7 @@
 2. Look into [Makefile](Makefile) to see if you might need any command. If you need additional commands, you can add it there.
 3. Run `make install`, this will install `poetry` by default if it's not installed.
 4. Copy [.env.example](.env.example) with the name `.env`, and add/update the environment variables there. <br/>
-   (**Note: Keep `AUTH_AEX_HEX_KEY` and `GOOGLE_AES_KEY` same through every project for bettercollected**)<br/>
+   (**Note: Keep `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` the same in every bettercollected service**)<br/>
 (**Note: Keep `AUTH_JWT_SECRET` values same through every project for bettercollected**)
 5. After configuring the environment variables, the application is ready to run
 6. Run `uvicorn googleform.app:get_application --reload --port 8003 --env-file .env`

@@ -8,7 +8,7 @@
 4. Check if virtualenv made by poetry is of python version `3.10` or not by using command `poetry run python --version`. 
 5. If it is not of python version `3.10` then  create a new virtualenv using command `poetry env use 3.10.8`.
 6. Copy [.env.example](.env.example) with the name `.env`, and add/update the environment variables there. <br/>
-   (**Note: Keep `AUTH_AEX_HEX_KEY` and `GOOGLE_AES_KEY` same through every project for bettercollected**)<br/>
+   (**Note: Keep `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` the same in every bettercollected service**)<br/>
    (**Note: Keep `AUTH_JWT_SECRET` values same through every project for bettercollected**)
 7. Then open virtualenv using command `poetry shell`.
 8. After configuring the environment variables, the application is ready to run

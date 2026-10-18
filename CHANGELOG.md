@@ -630,12 +630,31 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
     stops and asks for it instead of generating a new one. Copy the
     `MASTER_ENCRYPTION_KEYSET` line from your previous `.env.deployment` into
     the root `.env`. That keyset was public too: anyone with access to the
-    database could read those responses, so plan a key rotation.
+    database could read those responses, so rotate it
+    (`docs/response-keyset-rotation.md`).
   - Without `deploy.sh`: set your own `AUTH_JWT_SECRET` (`openssl rand -hex 32`)
     and `AUTH_AES_HEX_KEY` (a Fernet key) on the backend, jobs worker, auth and
     integrations, the same Fernet key as `AES_HEX_KEY` on the Temporal worker
     and the actions-executor, and keep your `MASTER_ENCRYPTION_KEYSET`. See
     `docs/DEVELOPERS_GUIDE.md`.
+- A published response encryption keyset is flagged, and can be rotated
+  without losing data. Every service that loads `MASTER_ENCRYPTION_KEYSET`
+  (backend, jobs worker, Google Forms integration) logs a warning at startup
+  when it holds a key that was published in this repository, naming the
+  variable only; the platform admin metrics page shows the same as a banner.
+  Keys are matched by the SHA-256 of their key material. The keyset is not
+  refused, because a new one could not read the stored responses. Instead,
+  `python -m scripts.rotate_response_keyset` (backend) rotates it with Tink's
+  keyset rotation: `add-key` (a new AES-256-GCM primary, the old keys kept for
+  decryption), `reencrypt` (answers, hidden fields, internal answers, feedback
+  messages and Google credentials, in batches, in Mongo and/or Postgres as
+  the write mode has it; idempotent, resumable, `--dry-run` counts only) and
+  `drop-old` (always checks every target and store, and refuses while any
+  value still uses an old key or a store holds no records unless
+  `--allow-empty`). Both write only with the keyset the services run with
+  (the primary must match `MASTER_ENCRYPTION_KEYSET`). Keysets are
+  written only to new mode-600 files, never printed. Runbook, with the order
+  across services, backups and rollback: `docs/response-keyset-rotation.md`.
 - AI features are bounded: form generation's tool loop stops after
   `AI_MAX_TOOL_ITERATIONS` round trips (default 10) or `AI_MAX_TOOL_CALLS`
   tool calls (30) with a clear error; every call has an output token cap per

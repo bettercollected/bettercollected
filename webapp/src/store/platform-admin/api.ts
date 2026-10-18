@@ -25,6 +25,8 @@ export interface PlatformMetrics {
     responses: { total: number; last7Days: number; last30Days: number };
     weekly: PlatformWeeklyMetrics[];
     errors: Array<{ source: string; message: string }>;
+    /** The response encryption keyset holds a key published in the repository. */
+    responseKeysetPublished?: boolean;
 }
 
 export const platformAdminApi = createApi({

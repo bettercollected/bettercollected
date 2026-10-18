@@ -70,6 +70,9 @@ class PlatformMetricsDto(CamelModel):
     responses: ResponseMetrics
     weekly: List[WeeklyMetrics]
     errors: List[MetricsError] = []
+    # MASTER_ENCRYPTION_KEYSET holds a key published in the repository
+    # (docs/response-keyset-rotation.md); a flag, never the keyset or its ids
+    response_keyset_published: bool = False
 
 
 class AuthUserWeek(BaseModel):

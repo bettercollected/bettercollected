@@ -8,3 +8,6 @@ webapp/.yarn
 /.run/
 # single sign-on local dev secrets (scripts/sso-dev-setup.sh)
 .sso-dev/
+# keyset rotation files (docs/response-keyset-rotation.md)
+/keyset-rotation/
+*.keyset

@@ -68,6 +68,18 @@ describe('PlatformMetricsView', () => {
         expect(screen.getByRole('tab', { name: 'New organizations' }).getAttribute('data-state')).toBe('active');
     });
 
+    it('warns when the response keyset holds a published key, and only then', () => {
+        auth.value = { id: 'u1', roles: ['ADMIN'], isLoading: false };
+        query.value = { ...query.value, data: metrics };
+        const { unmount } = render(<PlatformMetricsView />);
+        expect(screen.queryByText('The response encryption keyset holds a published key')).toBeNull();
+        unmount();
+
+        query.value = { ...query.value, data: { ...metrics, responseKeysetPublished: true } };
+        render(<PlatformMetricsView />);
+        expect(screen.getByRole('alert').textContent).toContain('The response encryption keyset holds a published key');
+    });
+
     it('shows the counts for a signed-in admin whose auth state still says loading', () => {
         // setAuth(user) after the status call leaves isLoading as it was (true)
         auth.value = { id: 'u1', roles: ['ADMIN'], isLoading: true };
