@@ -21,6 +21,24 @@ else
   exit 1
 fi
 
+# The stack's own signing and encryption keys (AUTH_JWT_SECRET,
+# AUTH_AES_HEX_KEY, MASTER_ENCRYPTION_KEYSET) also live in the root .env:
+# generated once, never overwritten, and refused by the services when empty or
+# a value published in the repository (deploy/generate-secrets.sh). It needs to
+# know whether this stack already holds data: an earlier deploy.sh run left its
+# generated values behind, or the data volumes exist.
+existing_stack=false
+if grep -qE "^(UMAMI_APP_SECRET|APP_POSTGRES_PASSWORD|AUTH_INTERNAL_NOTIFY_KEY|TEMPORAL_API_KEY)=" .env 2>/dev/null; then
+  existing_stack=true
+fi
+compose_project=$(printf '%s' "${COMPOSE_PROJECT_NAME:-$(basename "$PWD")}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')
+for volume in mongo-data app-postgres-data; do
+  if docker volume inspect "${compose_project}_${volume}" &>/dev/null; then
+    existing_stack=true
+  fi
+done
+BC_EXISTING_STACK="$existing_stack" bash deploy/generate-secrets.sh .env .env.deployment || exit 1
+
 # docker-compose.deployment.yml substitutes ${UMAMI_APP_SECRET} itself (it's not
 # read from .env.deployment, which only supplies container env, not compose
 # variable substitution) — generate one on first run and persist it to a root
