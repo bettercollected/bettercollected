@@ -179,21 +179,30 @@ def test_the_selftest_tasks_meet_every_rule():
         assert m.internal
 
 
+REAL = ["responses.backfill_workspaces", "responses.check_undecryptable"]
+
+
 def test_selftest_tasks_are_registered_only_when_flagged():
-    assert catalog.all_meta({}) == []
-    assert catalog.all_meta({"ADMIN_TASKS_SELFTEST": "0"}) == []
-    assert impl_package.build_registry({}).names() == []
+    assert [m.name for m in catalog.all_meta({})] == [
+        "responses.check_undecryptable",
+        "responses.backfill_workspaces",
+    ]
+    assert [m.name for m in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "0"})] == [
+        "responses.check_undecryptable",
+        "responses.backfill_workspaces",
+    ]
+    assert impl_package.build_registry({}).names() == REAL
     flagged = {"ADMIN_TASKS_SELFTEST": "1"}
     assert [m.name for m in catalog.all_meta(flagged)] == [
+        "responses.check_undecryptable",
+        "responses.backfill_workspaces",
         "selftest",
         "selftest_slow",
         "selftest_guarded",
     ]
-    assert impl_package.build_registry(flagged).names() == [
-        "selftest",
-        "selftest_guarded",
-        "selftest_slow",
-    ]
+    assert impl_package.build_registry(flagged).names() == sorted(
+        REAL + ["selftest", "selftest_guarded", "selftest_slow"]
+    )
 
 
 def test_selftest_is_read_only_and_the_slow_one_mutates():

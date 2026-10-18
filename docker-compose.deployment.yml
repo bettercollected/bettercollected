@@ -346,6 +346,18 @@ services:
     environment:
       TASKS_DATABASE_URL: postgresql+asyncpg://bc_tasks:${BC_TASKS_PASSWORD:?set by deploy.sh in the root .env}@app-postgres:5432/bettercollected
       SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
+      # The responses tasks (responses.check_undecryptable,
+      # responses.backfill_workspaces) read and, for the backfill, write the
+      # stored responses, so they need the data stores and the keyset. All four
+      # are empty unless set in the root .env; a task then refuses with
+      # store_not_configured or keyset_missing, and nothing else is affected.
+      # Set TASK_RUNNER_DATABASE_URL to a role that may read (and, for the
+      # backfill, update) app.form_responses and app.responses_deletion_requests,
+      # for example the backend's: docs/admin-service.md.
+      DATABASE_URL: ${TASK_RUNNER_DATABASE_URL:-}
+      MONGO_URI: ${TASK_RUNNER_MONGO_URI:-}
+      MONGO_DB: ${TASK_RUNNER_MONGO_DB:-}
+      MASTER_ENCRYPTION_KEYSET: ${TASK_RUNNER_KEYSET:-}
     depends_on:
       app-postgres:
         condition: service_healthy
