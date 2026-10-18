@@ -22,7 +22,7 @@ class BackfillParams(Params):
     # only records of forms linked to this workspace
     workspace_id: Optional[Id] = None
     # only records of these forms (together with workspace_id: both must hold)
-    form_ids: Optional[Annotated[list[Id], Field(max_length=100)]] = None
+    form_ids: Optional[Annotated[list[Id], Field(min_length=1, max_length=100)]] = None
 
 
 class Buckets(Result):
@@ -33,6 +33,8 @@ class Buckets(Result):
     ambiguous: int = 0
     orphaned: int = 0
     stamped: int = 0
+    # a copy of the record is already stamped with that workspace: skipped
+    conflict: int = 0
 
 
 class StoreBackfill(Result):

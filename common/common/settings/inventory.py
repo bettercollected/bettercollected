@@ -699,6 +699,11 @@ ALIASES: Dict[str, str] = {
     "CLIENT_URL": "API_CLIENT_URL",
     "TRUSTED_PROXIES": "API_TRUSTED_PROXIES",
     "VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS": "PLATFORM_ADMIN_EMAILS",
+    # the task-runner compose service's names for the data stores and the keyset
+    "TASK_RUNNER_DATABASE_URL": "DATABASE_URL",
+    "TASK_RUNNER_MONGO_URI": "MONGO_URI",
+    "TASK_RUNNER_MONGO_DB": "MONGO_DB",
+    "TASK_RUNNER_KEYSET": "MASTER_ENCRYPTION_KEYSET",
 }
 
 # Names in env files, compose files or code that no service reads as a setting.

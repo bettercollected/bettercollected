@@ -57,6 +57,11 @@ from backend.admin.tasks.impl.responses_common import (
 ENCRYPTED_FIELDS = ("answers", "hidden_fields", "internal_answers")
 PHASES = ("form_responses", "responses_deletion_requests")
 
+class StampConflict(Exception):
+    """The record cannot take the workspace: a copy of it (same provider
+    response id) is already stamped with it (unique index). Skipped, counted."""
+
+
 # called after each batch with (phase, last key of the batch, unstamped records
 # seen so far in the store); True stops the run (cancel)
 OnBatch = Callable[[str, Any, int], Awaitable[bool]]
@@ -117,10 +122,15 @@ def allowed_forms(
     """The forms a run is limited to, or None for all. ``workspace_id`` keeps the
     forms linked to that workspace; ``form_ids`` the listed ones; both, the
     forms satisfying both."""
+    # an empty filter never means "everything": it is refused
+    if (workspace_id is not None and not str(workspace_id).strip()) or (
+        form_ids is not None and len(form_ids) == 0
+    ):
+        raise ValueError("an empty workspace or form filter")
     allowed: Optional[Set[str]] = None
-    if workspace_id:
+    if workspace_id is not None:
         allowed = {f for f, workspaces in links.items() if workspace_id in workspaces}
-    if form_ids:
+    if form_ids is not None:
         listed = {str(f) for f in form_ids}
         allowed = listed if allowed is None else allowed & listed
     return allowed
@@ -151,10 +161,15 @@ class MongoStore(MongoBase):
     async def stamp(self, collection: str, key, workspace_id: str) -> int:
         from bson import ObjectId
 
-        result = await self.db[collection].update_one(
-            {"_id": key, "workspace_id": None},
-            {"$set": {"workspace_id": ObjectId(workspace_id)}},
-        )
+        from pymongo.errors import DuplicateKeyError
+
+        try:
+            result = await self.db[collection].update_one(
+                {"_id": key, "workspace_id": None},
+                {"$set": {"workspace_id": ObjectId(workspace_id)}},
+            )
+        except DuplicateKeyError:
+            raise StampConflict() from None
         return result.modified_count
 
 
@@ -216,6 +231,18 @@ class PostgresStore(PostgresBase):
             return {response_id: workspace for response_id, workspace in rows}
 
     async def stamp(self, collection: str, key, workspace_id: str) -> int:
+        from sqlalchemy.exc import IntegrityError
+
+        try:
+            return await self._stamp(collection, key, workspace_id)
+        except IntegrityError as e:
+            orig = e.orig
+            code = getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)
+            if code == "23505":  # unique violation
+                raise StampConflict() from None
+            raise
+
+    async def _stamp(self, collection: str, key, workspace_id: str) -> int:
         from sqlalchemy import select, update
 
         from common.db.canonical import checksum
@@ -245,6 +272,13 @@ STORE_CLASSES = {"mongo": MongoStore, "postgres": PostgresStore}
 
 
 # ------------------------------------------------------------------------ run
+async def _stamp(store, counts: Counter, collection: str, key, workspace: str) -> None:
+    try:
+        counts["stamped"] += await store.stamp(collection, key, workspace)
+    except StampConflict:
+        counts["conflict"] += 1
+
+
 async def backfill_store(
     store,
     apply: bool,
@@ -296,8 +330,8 @@ async def backfill_store(
                 if record.get("response_id"):
                     planned[str(record["response_id"])] = workspace
                 if apply:
-                    counts["stamped"] += await store.stamp(
-                        "form_responses", record["key"], workspace
+                    await _stamp(
+                        store, counts, "form_responses", record["key"], workspace
                     )
             if on_batch is not None and await on_batch(PHASES[0], after, seen):
                 stopped = True
@@ -327,8 +361,12 @@ async def backfill_store(
                     bucket, workspace = attributor.by_form(record.get("form_id"))
                 counts[bucket] += 1
                 if workspace is not None and apply:
-                    counts["stamped"] += await store.stamp(
-                        "responses_deletion_requests", record["key"], workspace
+                    await _stamp(
+                        store,
+                        counts,
+                        "responses_deletion_requests",
+                        record["key"],
+                        workspace,
                     )
             if on_batch is not None and await on_batch(PHASES[1], after, seen):
                 stopped = True

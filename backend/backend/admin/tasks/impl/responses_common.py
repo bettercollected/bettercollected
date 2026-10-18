@@ -109,6 +109,54 @@ class StoreConfig:
         return wanted
 
 
+class ReadOnlyViolation(Exception):
+    """A dry run or read-only task attempted a write."""
+
+
+_READ_METHODS = frozenset(
+    {
+        "find",
+        "find_one",
+        "count_documents",
+        "estimated_document_count",
+        "distinct",
+        "aggregate",
+        "list_collection_names",
+    }
+)
+
+
+class ReadOnlyCollection:
+    """Only the read methods of a Mongo collection; any other attribute (every
+    write method) raises, so a dry run cannot write by mistake."""
+
+    def __init__(self, collection):
+        self._collection = collection
+
+    def __getattr__(self, name: str):
+        if name not in _READ_METHODS:
+            raise ReadOnlyViolation(name)
+        return getattr(self._collection, name)
+
+
+class ReadOnlyDatabase:
+    def __init__(self, database):
+        self._database = database
+
+    def __getitem__(self, name: str) -> ReadOnlyCollection:
+        return ReadOnlyCollection(self._database[name])
+
+    async def command(self, command, *args, **kwargs):
+        if command != "ping":
+            raise ReadOnlyViolation("command")
+        return await self._database.command(command, *args, **kwargs)
+
+    def __getattr__(self, name: str):
+        if name not in _READ_METHODS:
+            raise ReadOnlyViolation(name)
+        return getattr(self._database, name)
+
+
 class MongoBase:
     name = "mongo"
 
@@ -200,7 +248,8 @@ async def open_stores(
 ):
     """Connect to the named stores; closed on exit. ``read_only`` makes every
     Postgres transaction read only at the session level, so a bug cannot write
-    (Mongo is only ever written by calls a read-only task does not make)."""
+    and wraps the Mongo database so any write method raises. A read-only Mongo
+    user is still the recommended deployment for the check and dry runs."""
     closers: list = []
     stores: list = []
     try:
@@ -210,7 +259,10 @@ async def open_stores(
 
                 client = AsyncMongoClient(config.mongo_uri, serverSelectionTimeoutMS=5000)
                 closers.append(client.close)
-                stores.append(classes["mongo"](client[config.mongo_db]))
+                database = client[config.mongo_db]
+                if read_only:
+                    database = ReadOnlyDatabase(database)
+                stores.append(classes["mongo"](database))
             else:
                 from sqlalchemy.ext.asyncio import create_async_engine
 

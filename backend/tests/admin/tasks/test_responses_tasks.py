@@ -660,3 +660,71 @@ def test_results_may_nest_counters_but_not_free_text():
     with pytest.raises(RegistryError):
         check_result(Bad)
     assert re.match(r"^[a-z]", "ok") and Id
+
+
+# ------------------------------------------------- empty filters, dry-run guard, conflicts
+def test_an_empty_filter_never_selects_everything():
+    params = backfill_meta.BackfillParams
+    for bad in ({"form_ids": []}, {"workspace_id": ""}):
+        with pytest.raises(Exception):
+            params(**bad)
+    from backend.admin.tasks.impl.responses_backfill import allowed_forms
+
+    for args in (("w", []), ("", None), (" ", None)):
+        with pytest.raises(ValueError):
+            allowed_forms({"f": ["w"]}, *args)
+    for argv in (["--workspace-id", ""], ["--form-id", ""], ["--form-id", " "]):
+        with pytest.raises(SystemExit):
+            _parse(argv)
+
+
+async def test_a_dry_run_cannot_write_to_mongo(seeded):
+    from backend.admin.tasks.impl.responses_common import ReadOnlyViolation
+
+    config = StoreConfig.from_env()
+    async with open_stores(
+        config, ["mongo"], {"mongo": BackfillMongo}, read_only=True
+    ) as (store,):
+        assert await store.count_responses() > 0  # reads work
+        (record,) = await store.unstamped("form_responses", None, 1)
+        with pytest.raises(ReadOnlyViolation):
+            await store.stamp("form_responses", record["key"], str(WS_A))
+        for method in ("update_one", "delete_many", "insert_one", "drop", "bulk_write"):
+            with pytest.raises(ReadOnlyViolation):
+                getattr(store.db["form_responses"], method)
+        with pytest.raises(ReadOnlyViolation):
+            await store.db.command("dropDatabase")
+    # a writable run does stamp
+    async with open_stores(
+        config, ["mongo"], {"mongo": BackfillMongo}, read_only=False
+    ) as (store,):
+        assert await store.stamp("form_responses", record["key"], str(WS_A)) == 1
+
+
+async def test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped(world):
+    await _reset()
+    links, responses, requests = _documents()
+    twin = FormResponseDocument(
+        id=PydanticObjectId(), response_id="dup", form_id="single", provider="google"
+    )
+    stamped_copy = FormResponseDocument(
+        id=PydanticObjectId(),
+        response_id="dup",
+        form_id="single",
+        provider="typeform",
+        workspace_id=WS_A,
+    )
+    await _seed(links, [*responses, twin, stamped_copy], requests)
+    params = {"stores": "postgres"}
+    await _run(world, "responses.backfill_workspaces", params, dry_run=True)
+    run_id, run = await _run(world, "responses.backfill_workspaces", params)
+
+    assert run["state"] == "succeeded", run  # the conflicting row does not fail the run
+    got = backfill_meta.BackfillResult.model_validate(run["result"]).postgres
+    assert got.responses.conflict == 1 and got.responses.stamped == 3
+    stamped = await _stamped(_stores()["postgres"])
+    assert stamped["dup"] == str(WS_A)  # the already-stamped copy; the other stays unstamped
+    # a second run finishes too, counting the same row again
+    _, again = await _run(world, "responses.backfill_workspaces", params)
+    assert again["state"] == "succeeded"
+    assert backfill_meta.BackfillResult.model_validate(again["result"]).postgres.responses.conflict == 1

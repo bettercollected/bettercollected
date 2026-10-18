@@ -60,6 +60,12 @@ from backend.admin.tasks.impl.responses_backfill import (  # noqa: F401 - the CL
 )
 
 
+def _non_empty(value: str) -> str:
+    if not value.strip():
+        raise argparse.ArgumentTypeError("must not be empty")
+    return value
+
+
 def _parse(argv: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="python -m scripts.backfill_response_workspaces",
@@ -77,12 +83,14 @@ def _parse(argv: List[str]) -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=500)
     parser.add_argument(
         "--workspace-id",
+        type=_non_empty,
         default=argparse.SUPPRESS,
         help="only records of forms linked to this workspace",
     )
     parser.add_argument(
         "--form-id",
         action="append",
+        type=_non_empty,
         dest="form_ids",
         default=argparse.SUPPRESS,
         help="only records of this form (repeatable)",
