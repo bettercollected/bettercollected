@@ -11,6 +11,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { Close } from '@app/components/icons/close';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useQuestionLabel } from '@app/views/molecules/responder-form-fields/question-label-context';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 
 interface TabularInputFieldProps {
   value: string[][];
@@ -46,6 +47,11 @@ export default function TabularInputField({
 
   const minRows = 2;
   const minCols = 2;
+  // Row and column titles the author wrote are marked with the form's
+  // language when it is not the page's (the "Row 1" fallbacks are not).
+  const contentLang = useFormContentLanguage();
+  const authorColumns = columnTitles?.length >= minCols;
+  const authorRows = rowTitles?.length >= minRows;
 
   const columns = useMemo(() => 
     columnTitles?.length >= minCols ? columnTitles : Array(minCols).fill('').map((_, i) => `Col ${i + 1}`),
@@ -143,7 +149,7 @@ export default function TabularInputField({
                       className="text-center font-semibold text-sm! bg-transparent border-none focus:ring-0 h-8"
                     />
                   ) : (
-                    <span className="text-sm">{col}</span>
+                    <span className="text-sm" lang={authorColumns && col ? contentLang : undefined}>{col}</span>
                   )}
                 </TableHead>
               ))}
@@ -178,7 +184,7 @@ export default function TabularInputField({
                       className="text-center font-semibold text-sm! bg-transparent border-none focus:ring-0 h-8"
                     />
                   ) : (
-                    <span className="text-sm">{localRowTitles[rowIdx]}</span>
+                    <span className="text-sm" lang={authorRows && localRowTitles[rowIdx] ? contentLang : undefined}>{localRowTitles[rowIdx]}</span>
                   )}
                 </TableCell>
 
