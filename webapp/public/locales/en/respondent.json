@@ -95,7 +95,7 @@
         "OTHER_CHOICE": "Other Choice",
         "SELECT_OPTION": "Select an option",
         "PLACEHOLDER_ANSWER": "Answer",
-        "PLACEHOLDER_EMAIL": "name@gmail.com",
+        "PLACEHOLDER_EMAIL": "name@example.com",
         "RATE": "Rate {{value}} of {{total}}",
         "CHOOSE_MANY": "Choose as many as you like."
     },
