@@ -11,13 +11,13 @@ from fastapi_pagination import Page
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.permission import Permission
 from backend.app.controllers.platform_metrics_router import forwarded_access_token
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
 from backend.app.models.dtos.flow_event_dto import FlowEventRequest
 from backend.app.models.dtos.form_response_dto import (
     InternalAnswersPatch,
     InternalAnswersResponse,
+    SubmissionPath,
 )
 from backend.app.models.dtos.respondent_feedback_dto import (
     RespondentFeedbackPost,
@@ -96,13 +96,29 @@ class WorkspaceResponsesRouter(CustomRoutable):
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
-        """Every response of the form, for the flow view (response.read)."""
-        responses = (
-            await self._form_response_service.get_workspace_form_all_submissions(
-                form_id, workspace_id, user
-            )
+        """Every response of the form, decrypted and unpaginated: a bulk
+        download, so response.export like ``.../export``. The flow view reads
+        ``.../submission-paths`` instead."""
+        return await self._form_response_service.get_workspace_form_all_submissions(
+            form_id, workspace_id, user
         )
-        return responses
+
+    @get(
+        "/forms/{form_id}/submission-paths",
+        response_model=List[SubmissionPath],
+    )
+    async def get_workspace_form_submission_paths(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        """Each submission's path through the form's pages (page ids, jumps
+        taken, ending reached), no answers: the flow view's insights
+        (response.read)."""
+        return await self._form_response_service.get_workspace_form_submission_paths(
+            form_id, workspace_id, user
+        )
 
     @get(
         "/forms/{form_id}/all-submissions/export",
@@ -116,7 +132,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     ):
         """Every response of the form for the CSV download (response.export)."""
         return await self._form_response_service.get_workspace_form_all_submissions(
-            form_id, workspace_id, user, permission=Permission.RESPONSE_EXPORT
+            form_id, workspace_id, user
         )
 
     @patch(

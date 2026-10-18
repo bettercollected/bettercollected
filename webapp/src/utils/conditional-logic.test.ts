@@ -6,6 +6,7 @@ import {
     areConditionsMet,
     computeFlowTraffic,
     evaluateConditions,
+    flowTrafficFromPaths,
     fieldHasLogic,
     getComparableAnswerValue,
     getHiddenFieldIds,
@@ -13,7 +14,8 @@ import {
     isJumpTargetValid,
     pruneOrphanedConditions,
     resolveJumpTargetId,
-    slideHasLogic
+    slideHasLogic,
+    submissionPath
 } from './conditional-logic';
 
 /* ------------------------------ test helpers ----------------------------- */
@@ -341,5 +343,48 @@ describe('computeFlowTraffic', () => {
         const t = computeFlowTraffic(pages, []);
         expect(t.total).toBe(0);
         expect(t.nodeVisits.size).toBe(0);
+    });
+});
+
+/* --------------------------- submission paths ---------------------------- */
+
+describe('submissionPath and flowTrafficFromPaths', () => {
+    const q = 'q1';
+    const pages = [
+        slide('p1', [field(q)], [{ operator: LogicalOperator.AND, conditions: [cond(q, Comparison.IS_EQUAL, 'skip')], target: JUMP_TARGET_SUBMIT, endingId: 'early' }]),
+        slide('p2', []),
+        slide('p3', [])
+    ];
+
+    it('names the pages, the jumps taken and the ending (the server twin sends the same)', () => {
+        expect(submissionPath(pages, { [q]: textAnswer('skip') })).toEqual({ steps: [{ pageId: 'p1', jump: 0 }], ended: true, endingId: 'early' });
+        expect(submissionPath(pages, { [q]: textAnswer('go') })).toEqual({ steps: [{ pageId: 'p1' }, { pageId: 'p2' }, { pageId: 'p3' }], ended: true });
+    });
+
+    it('a looping path is not ended', () => {
+        const loop = [
+            slide('a', [field(q)], [{ operator: LogicalOperator.AND, conditions: [cond(q, Comparison.IS_NOT_EMPTY)], target: 'b' }]),
+            slide('b', [], [{ operator: LogicalOperator.AND, conditions: [cond(q, Comparison.IS_NOT_EMPTY)], target: 'a' }])
+        ];
+        const path = submissionPath(loop, { [q]: textAnswer('x') });
+        expect(path.ended).toBe(false);
+        expect(path.steps).toHaveLength(loop.length * 2 + 2);
+        expect(flowTrafficFromPaths([path]).endingVisits.size).toBe(0);
+    });
+
+    it('counts server paths (nulls left out) as replaying the answers would', () => {
+        const answers = [{ [q]: textAnswer('skip') }, { [q]: textAnswer('a') }, { [q]: textAnswer('b') }];
+        const fromServer = [
+            { steps: [{ pageId: 'p1', jump: 0 }], ended: true, endingId: 'early' },
+            { steps: [{ pageId: 'p1', jump: null }, { pageId: 'p2' }, { pageId: 'p3' }], ended: true, endingId: null },
+            { steps: [{ pageId: 'p1' }, { pageId: 'p2' }, { pageId: 'p3' }], ended: true }
+        ];
+        expect(flowTrafficFromPaths(fromServer)).toEqual(computeFlowTraffic(pages, answers));
+        const t = flowTrafficFromPaths(fromServer);
+        expect(t.total).toBe(3);
+        expect(t.endingVisits.get('early')).toBe(1);
+        expect(t.endingVisits.get('')).toBe(2);
+        expect(t.nextTraversals.get('__welcome__')).toBe(3);
+        expect(t.nextTraversals.get('p3')).toBe(2);
     });
 });

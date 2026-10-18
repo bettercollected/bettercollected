@@ -769,7 +769,22 @@ CASES = [
         P.PRIVACY_MANAGE,
         lambda c: {"params": {"request_for_deletion": True}},
     ),
-    Case("responses.form.all", "GET", F + "/all-submissions", P.RESPONSE_READ),
+    # the decrypted bulk: an export, whichever of the two routes
+    Case(
+        "responses.form.all",
+        "GET",
+        F + "/all-submissions",
+        P.RESPONSE_EXPORT,
+        ok=200,
+    ),
+    # the flow view's insights: paths only, no answers
+    Case(
+        "responses.form.paths",
+        "GET",
+        F + "/submission-paths",
+        P.RESPONSE_READ,
+        ok=200,
+    ),
     Case(
         "responses.form.export",
         "GET",

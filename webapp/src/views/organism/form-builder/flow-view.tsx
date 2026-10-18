@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { skipToken } from '@reduxjs/toolkit/query/react';
+
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { JUMP_TARGET_SUBMIT, LogicalOperator, PageJump } from '@app/models/types/form-builder-shared';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
@@ -13,8 +17,8 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useGetFlowAnalyticsQuery } from '@app/store/redux/form-api';
-import { useGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
-import { computeFlowTraffic, fieldHasLogic, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
+import { useGetFormSubmissionPathsQuery } from '@app/store/workspaces/api';
+import { fieldHasLogic, flowTrafficFromPaths, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
 import { defaultEnding, endingById, endingLabel, isJumpEndingMissing, jumpEndingId, withEndingIds } from '@app/utils/endings';
 import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
@@ -251,22 +255,26 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         return endingLabel(endings[index], index, endings.length);
     };
 
-    // Insights: replay submitted answers through the SAME jump evaluator the
-    // responder uses, then paint traversal counts on nodes and edges.
+    // Insights: the server replays each submission through the SAME jump
+    // evaluator the responder uses and sends only its path (pages, jumps
+    // taken, ending reached), never the answers; we paint the counts on nodes
+    // and edges. Each autosave refetches, so the counts follow rule edits.
+    // Without response.read there are no counts; without analytics.read no
+    // drop-offs: those requests are not made rather than refused.
     const [showInsights, setShowInsights] = useState(false);
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
-    const { data: submissions, isFetching: insightsLoading } = useGetFormAllSubmissionsQuery({ workspaceId: workspace?.id, formId: standardForm?.formId } as any, {
-        skip: !showInsights || !workspace?.id || !standardForm?.formId
+    const { can } = useWorkspacePermissions();
+    const insightsTarget = !showInsights || !workspace?.id || !standardForm?.formId ? null : { workspaceId: workspace.id, formId: standardForm.formId };
+    const { data: paths, isFetching: pathsFetching } = useGetFormSubmissionPathsQuery(insightsTarget ? { ...insightsTarget, savedAt: autosaveStatus.savedAt } : skipToken, {
+        skip: !can(WorkspacePermission.RESPONSE_READ)
     });
-    const traffic: FlowTraffic | null = useMemo(() => {
-        if (!showInsights || !Array.isArray(submissions)) return null;
-        return computeFlowTraffic(slides, submissions.map((s: any) => s?.answers ?? {}));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showInsights, submissions, slides]);
+    // "Loading…" only before the first counts; a refetch after a save keeps them.
+    const insightsLoading = pathsFetching && !paths;
+    const traffic: FlowTraffic | null = useMemo(() => (showInsights && Array.isArray(paths) ? flowTrafficFromPaths(paths) : null), [showInsights, paths]);
     // Anonymous navigation events → where responders went dark (drop-off).
-    const { data: flowAnalytics } = useGetFlowAnalyticsQuery({ workspaceId: workspace?.id, formId: standardForm?.formId } as any, {
-        skip: !showInsights || !workspace?.id || !standardForm?.formId
+    const { data: flowAnalytics } = useGetFlowAnalyticsQuery(insightsTarget ?? skipToken, {
+        skip: !can(WorkspacePermission.ANALYTICS_READ)
     });
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
