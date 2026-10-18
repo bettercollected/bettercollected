@@ -11,6 +11,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { endingToShow } from '@app/utils/endings';
+import { useBodyFormFace } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 
@@ -54,6 +55,8 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const standardForm = useAppSelector(selectResponderForm);
     // Leaflet pages start with a full-width bar at the top edge.
     const topAligned = styleTokens(standardForm?.theme?.style).key === 'leaflet';
+    // Popovers and toasts on the respondent page wear the theme's body face too.
+    useBodyFormFace(standardForm?.theme?.bodyFont, !isPreviewMode);
     // The organisation logo strip on every page (DESIGN.md §9), larger on the cover.
     const logo = useResponderFormLogo();
     // With a logo strip, the account control moves into its row on the welcome

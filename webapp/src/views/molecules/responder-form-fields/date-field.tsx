@@ -108,7 +108,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         )}
                         style={{
                             ['--hover-border' as string]: theme?.primary ?? '#101828',
-                            borderRadius: styleTokens(theme?.style).inputRadius,
+                            borderRadius: styleTokens(theme?.style).fieldRadius,
                             borderColor: tertiaryColor ?? '#818CA0',
                             // Chosen date is content (ink); empty state a legible neutral.
                             color: date ? theme?.primary : '#667085'

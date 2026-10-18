@@ -108,6 +108,17 @@ class WorkspaceThemeDto(BaseModel):
     accent: str
     background: Optional[WorkspaceThemeBackgroundDto] = None
     style: Optional[str] = None
+    # Type, shape and highlight (common.models.standard_form THEME_FONTS and
+    # the lists beside it); absent keeps the look forms had before them.
+    # Checked by the theme-presets endpoint (services/form_themes.py), with
+    # the same 422 as a form save.
+    titleFont: Optional[str] = None
+    bodyFont: Optional[str] = None
+    dataFont: Optional[str] = None
+    titleWidth: Optional[str] = None
+    radius: Optional[str] = None
+    buttonStyle: Optional[str] = None
+    highlight: Optional[str] = None
 
     @field_validator("style")
     @classmethod

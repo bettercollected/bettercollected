@@ -49,6 +49,7 @@ from backend.app.services.ai.notice_token import stamp_response as stamp_ai_noti
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_images import check_form_images
+from backend.app.services.form_themes import ensure_valid_themes
 from backend.app.services.rich_text import sanitise_form_titles
 from backend.app.services.form_logo import (
     CheckedLogo,
@@ -640,6 +641,7 @@ class WorkspaceFormService:
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
         ensure_valid_calculations(form)
+        ensure_valid_themes(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
         # the others instead of refusing
@@ -736,6 +738,7 @@ class WorkspaceFormService:
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
         ensure_valid_calculations(form)
+        ensure_valid_themes(form)
         await self._check_ending_links_on_update(form, form_id)
         workspace_form = await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)

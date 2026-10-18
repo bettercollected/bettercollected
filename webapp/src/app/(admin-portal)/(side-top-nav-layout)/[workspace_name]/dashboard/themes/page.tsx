@@ -15,6 +15,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspaceThemesMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
 import { ContrastNotes, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
+import ThemeTypeShapeEditor from '@app/views/molecules/theme/theme-type-shape-editor';
 
 type Editing = { index: number | 'new'; draft: FormTheme } | null;
 
@@ -177,6 +178,8 @@ export default function ThemesPage() {
                             </div>
 
                             <ThemeStyleEditor value={editing.draft.style} onChange={(style) => setEditing({ ...editing, draft: { ...editing.draft, style } })} />
+
+                            <ThemeTypeShapeEditor theme={editing.draft} onChange={(draft) => setEditing({ ...editing, draft })} />
 
                             <ThemeBackgroundEditor theme={editing.draft} onChange={(background) => setEditing({ ...editing, draft: { ...editing.draft, background } })} />
 

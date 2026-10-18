@@ -4,6 +4,15 @@ import re
 from pathlib import Path
 
 import pytest
+from common.form_spec.models import Theme as SpecTheme
+from common.models.standard_form import (
+    THEME_BUTTON_STYLES,
+    THEME_FONTS,
+    THEME_RADII,
+    THEME_TITLE_WIDTHS,
+    THEME_TYPE_SHAPE_KEYS,
+    theme_problems,
+)
 from pydantic import ValidationError
 
 from backend.app.constants.themes import (
@@ -163,3 +172,94 @@ def test_new_forms_start_with_the_same_preset_as_the_webapp():
     source = WEBAPP_THEME_TS.read_text()
     webapp = re.search(r"NEW_FORM_THEME_TITLE = '(\w+)'", source).group(1)
     assert webapp == NEW_FORM_THEME
+
+
+@pytest.mark.parametrize(
+    "name, values",
+    [
+        ("THEME_FONTS", THEME_FONTS),
+        ("THEME_TITLE_WIDTHS", THEME_TITLE_WIDTHS),
+        ("THEME_RADII", THEME_RADII),
+        ("THEME_BUTTON_STYLES", THEME_BUTTON_STYLES),
+    ],
+)
+def test_type_and_shape_lists_match_the_webapp(name, values):
+    if not WEBAPP_THEME_TS.exists():  # backend checked out on its own
+        return
+    source = WEBAPP_THEME_TS.read_text()
+    block = re.search(
+        rf"export const {name}: ReadonlyArray<\w+> = \[(.*?)\]", source, re.S
+    ).group(1)
+    assert tuple(re.findall(r"'([\w-]+)'", block)) == values
+
+
+def test_the_spec_lists_the_same_values():
+    schema = SpecTheme.model_json_schema(by_alias=True)["properties"]
+
+    def listed(key):
+        return tuple(schema[key]["anyOf"][0]["enum"])
+
+    assert (
+        listed("titleFont") == listed("bodyFont") == listed("dataFont") == THEME_FONTS
+    )
+    assert listed("titleWidth") == THEME_TITLE_WIDTHS
+    assert listed("radius") == THEME_RADII
+    assert listed("buttonStyle") == THEME_BUTTON_STYLES
+
+
+def test_no_preset_sets_type_or_shape_yet():
+    # Today's presets are colours (and Leaflet's style) only: picking one
+    # keeps the form's own type and shape.
+    for preset in themes.values():
+        assert all(getattr(preset, key) is None for key in THEME_TYPE_SHAPE_KEYS)
+        assert preset.highlight is None
+
+
+def test_theme_problems_names_every_unlisted_key():
+    assert theme_problems(None) == []
+    assert (
+        theme_problems({**LEAFLET, "titleFont": "besley", "highlight": "#a3305a"}) == []
+    )
+    assert theme_problems(
+        {
+            "titleFont": "Besley",
+            "bodyFont": "",
+            "titleWidth": "125",
+            "radius": "6px",
+            "buttonStyle": "link",
+            "highlight": "#A3305AFF",
+        },
+        "page.theme",
+    ) == [
+        "page.theme.titleFont must be one of: public-sans, atkinson-next, archivo, besley, rubik, atkinson-mono.",
+        "page.theme.bodyFont must be one of: public-sans, atkinson-next, archivo, besley, rubik, atkinson-mono.",
+        "page.theme.titleWidth must be one of: normal, expanded.",
+        "page.theme.radius must be one of: sharp, soft, round.",
+        "page.theme.buttonStyle must be one of: filled, outlined, pill.",
+        "page.theme.highlight must be a 6-digit hex colour, e.g. #A3305A.",
+    ]
+
+
+def test_saved_themes_take_type_and_shape():
+    saved = WorkspaceThemeDto(
+        **LEAFLET,
+        titleFont="archivo",
+        titleWidth="expanded",
+        radius="sharp",
+        buttonStyle="outlined",
+        highlight="#2B2FD1",
+    )
+    assert (saved.titleFont, saved.titleWidth, saved.radius) == (
+        "archivo",
+        "expanded",
+        "sharp",
+    )
+    # Unlisted values are refused by the endpoint with the form save's 422
+    # (services/form_themes.py), not by the model.
+    assert theme_problems(
+        WorkspaceThemeDto(**LEAFLET, bodyFont="helvetica", highlight="red"),
+        "customThemes.0",
+    ) == [
+        "customThemes.0.bodyFont must be one of: public-sans, atkinson-next, archivo, besley, rubik, atkinson-mono.",
+        "customThemes.0.highlight must be a 6-digit hex colour, e.g. #A3305A.",
+    ]

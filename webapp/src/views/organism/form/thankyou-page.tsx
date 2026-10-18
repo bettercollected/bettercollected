@@ -23,6 +23,7 @@ import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
 import { actionText, actionTextOn } from '@app/utils/theme-contrast';
 import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
@@ -119,7 +120,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                         {receipt && <SubmissionReceipt className="mt-6" edge={rule} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
                     </section>
                     {thankyouPage?.buttonText && buttonHref !== null && (
-                        <EndingButtonLink href={isPreviewMode ? '' : buttonHref} label={thankyouPage.buttonText} lang={contentLang} background={theme?.secondary} className="rounded-[4px]" />
+                        <EndingButtonLink href={isPreviewMode ? '' : buttonHref} label={thankyouPage.buttonText} lang={contentLang} background={theme?.secondary} corner="4px" />
                     )}
                 </div>
             </>
@@ -139,7 +140,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                     {getThankYouMessage()}
                 </p>
                 {thankyouPage?.buttonText && buttonHref !== null && (
-                    <EndingButtonLink href={isPreviewMode ? '' : buttonHref} label={thankyouPage.buttonText} lang={contentLang} background={theme?.secondary} className="rounded-[8px]" />
+                    <EndingButtonLink href={isPreviewMode ? '' : buttonHref} label={thankyouPage.buttonText} lang={contentLang} background={theme?.secondary} corner="8px" />
                 )}
                 {receipt && <SubmissionReceipt className="mt-8" edge={cardEdge} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
                 {/* Attribution moved into the trust strip — the form's single
@@ -155,10 +156,11 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
  * used to be a link inside a <button>, two nested controls where the keyboard
  * stopped on a button that did nothing.
  */
-function EndingButtonLink({ href, label, lang, background, className }: { href: string; label: string; lang?: string; background?: string; className: string }) {
+function EndingButtonLink({ href, label, lang, background, corner }: { href: string; label: string; lang?: string; background?: string; corner: '4px' | '8px' }) {
     const { t } = useRespondentLanguage();
     return (
-        <Link href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={{ background }} className={buttonClassName({ flat: true, className: cn('mt-8 min-h-12 px-8 text-base font-semibold', className) })}>
+        // Filled with the action colour unless the theme's button style says otherwise (theme-root.ts).
+        <Link href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={formButtonStyle(background, corner)} className={buttonClassName({ flat: true, className: cn('mt-8 min-h-12 px-8 text-base font-semibold', corner === '4px' ? 'rounded-[4px]' : 'rounded-[8px]') })}>
             <span lang={lang}>{label}</span> <span className="sr-only">{t('PRIVACY.OPENS_IN_NEW_TAB')}</span>
         </Link>
     );

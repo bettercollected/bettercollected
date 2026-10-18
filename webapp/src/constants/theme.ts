@@ -51,6 +51,65 @@ export interface ThemeBackground {
 
 export const THEME_STYLES: ReadonlyArray<ThemeStyle> = ['classic', 'sheet', 'studio', 'leaflet'];
 
+// Type and shape. Every key is optional and its absence (or null, as stored
+// forms send it) means the look forms had before these keys existed: Public
+// Sans, the style's own corners, filled buttons, the secondary colour for the
+// chosen answer. The faces are self-hosted (assets/fonts/theme-faces.ts) and
+// load only when a form uses them. The backend keeps the same lists (common
+// models/standard_form.py); a backend test fails when they drift.
+export type ThemeFontId = 'public-sans' | 'atkinson-next' | 'archivo' | 'besley' | 'rubik' | 'atkinson-mono';
+export type ThemeTitleWidth = 'normal' | 'expanded';
+export type ThemeRadius = 'sharp' | 'soft' | 'round';
+export type ThemeButtonStyle = 'filled' | 'outlined' | 'pill';
+
+export const THEME_FONTS: ReadonlyArray<ThemeFontId> = ['public-sans', 'atkinson-next', 'archivo', 'besley', 'rubik', 'atkinson-mono'];
+// `expanded` sets display titles at 125% width on a face with a width axis (Archivo).
+export const THEME_TITLE_WIDTHS: ReadonlyArray<ThemeTitleWidth> = ['normal', 'expanded'];
+// Corners of fields, option cards and buttons: 0, 6px, 16px.
+export const THEME_RADII: ReadonlyArray<ThemeRadius> = ['sharp', 'soft', 'round'];
+export const THEME_BUTTON_STYLES: ReadonlyArray<ThemeButtonStyle> = ['filled', 'outlined', 'pill'];
+
+/** The theme keys that dress type and shape: a colour preset without them keeps the form's own. */
+export const THEME_TYPE_SHAPE_KEYS = ['titleFont', 'bodyFont', 'dataFont', 'titleWidth', 'radius', 'buttonStyle'] as const;
+
+const THEME_CHOICES: Array<[(typeof THEME_TYPE_SHAPE_KEYS)[number], ReadonlyArray<string>]> = [
+    ['titleFont', THEME_FONTS],
+    ['bodyFont', THEME_FONTS],
+    ['dataFont', THEME_FONTS],
+    ['titleWidth', THEME_TITLE_WIDTHS],
+    ['radius', THEME_RADII],
+    ['buttonStyle', THEME_BUTTON_STYLES]
+];
+
+/** A #rrggbb colour. */
+export const isHexColour = (value: unknown): value is string => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
+
+/**
+ * What is wrong with a theme's type, shape and highlight keys, word for word
+ * as the backend says it (common models/standard_form.py `theme_problems`):
+ * each is absent (or null) or one of its listed values, the highlight #rrggbb.
+ */
+export function themeProblems(theme: unknown, path = 'theme'): string[] {
+    if (theme == null || typeof theme !== 'object') return [];
+    const value = theme as Record<string, unknown>;
+    const problems: string[] = [];
+    for (const [key, allowed] of THEME_CHOICES) {
+        if (value[key] != null && !allowed.includes(value[key] as string)) problems.push(`${path}.${key} must be one of: ${allowed.join(', ')}.`);
+    }
+    if (value.highlight != null && !isHexColour(value.highlight)) problems.push(`${path}.highlight must be a 6-digit hex colour, e.g. #A3305A.`);
+    return problems;
+}
+
+/**
+ * The type, shape and highlight keys a theme sets (null and absent left out),
+ * for carrying them from one theme to the next in the editors.
+ */
+export function themeTypeShape(theme?: Partial<FormTheme> | null): Partial<FormTheme> {
+    const kept: Record<string, unknown> = {};
+    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight'] as const) if (theme?.[key] != null) kept[key] = theme[key];
+    return kept as Partial<FormTheme>;
+}
+
 export interface FormTheme {
     title: string;
     primary: string;
@@ -59,6 +118,17 @@ export interface FormTheme {
     accent: string;
     background?: ThemeBackground;
     style?: ThemeStyle;
+    /** Titles and question labels. */
+    titleFont?: ThemeFontId | null;
+    /** Everything else respondents read. */
+    bodyFont?: ThemeFontId | null;
+    /** Data such as the submission number (absent: the app's mono face). */
+    dataFont?: ThemeFontId | null;
+    titleWidth?: ThemeTitleWidth | null;
+    radius?: ThemeRadius | null;
+    buttonStyle?: ThemeButtonStyle | null;
+    /** #rrggbb: the chosen answer, the "why we ask" and "optional" notes, the focus ring where it reads. Absent: secondary. */
+    highlight?: string | null;
 }
 
 export const ThemeColors: Array<FormTheme> = [

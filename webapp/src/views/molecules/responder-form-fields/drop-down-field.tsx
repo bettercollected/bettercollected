@@ -85,7 +85,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                                 // Named by the question; the chosen answer (or "Select an option") describes it.
                                 aria-labelledby={label?.labelledBy}
                                 aria-describedby={group['aria-describedby']}
-                                style={{ ...getTextStyle(), borderRadius: tokens.inputRadius, ['--hover-border' as string]: theme?.primary ?? '#101828' }}
+                                style={{ ...getTextStyle(), borderRadius: tokens.fieldRadius, ['--hover-border' as string]: theme?.primary ?? '#101828' }}
                                 className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg"
                             >
                                 <span id={valueId} className="truncate" lang={choiceValue ? contentLang : undefined}>

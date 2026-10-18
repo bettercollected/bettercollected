@@ -6,7 +6,14 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from beanie import PydanticObjectId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    WithJsonSchema,
+    model_validator,
+)
 from pydantic.alias_generators import to_camel
 
 
@@ -25,6 +32,89 @@ class ThemeBackground(BaseModel):
     imageUrl: Optional[str] = None
 
 
+# Type and shape of a form theme. Every key is optional; a theme without it
+# renders exactly as before (Public Sans, the style's own corners, filled
+# buttons, the secondary colour for selection). Same lists as the webapp's
+# (webapp/src/constants/theme.ts); a backend test keeps them together.
+# The faces are self-hosted by the webapp: `public-sans` is today's face,
+# `atkinson-next` Atkinson Hyperlegible Next, `atkinson-mono` Atkinson
+# Hyperlegible Mono (for data such as submission numbers).
+THEME_FONTS = (
+    "public-sans",
+    "atkinson-next",
+    "archivo",
+    "besley",
+    "rubik",
+    "atkinson-mono",
+)
+# `expanded` sets display titles at 125% width on a face with a width axis
+# (Archivo); other faces have none and keep their normal width.
+THEME_TITLE_WIDTHS = ("normal", "expanded")
+# Corners of fields, option cards and buttons: 0, about 6px, 16px.
+THEME_RADII = ("sharp", "soft", "round")
+THEME_BUTTON_STYLES = ("filled", "outlined", "pill")
+THEME_HEX_COLOUR = re.compile(r"#[0-9a-fA-F]{6}")
+
+# The theme keys that dress type and shape rather than colour: picking a
+# colour preset that leaves one out keeps the form's own value, as it keeps
+# the form's style.
+THEME_TYPE_SHAPE_KEYS = (
+    "titleFont",
+    "bodyFont",
+    "dataFont",
+    "titleWidth",
+    "radius",
+    "buttonStyle",
+)
+
+_THEME_CHOICES = {
+    "titleFont": THEME_FONTS,
+    "bodyFont": THEME_FONTS,
+    "dataFont": THEME_FONTS,
+    "titleWidth": THEME_TITLE_WIDTHS,
+    "radius": THEME_RADII,
+    "buttonStyle": THEME_BUTTON_STYLES,
+}
+
+
+def _listed(values: tuple):
+    """A theme key from a fixed list: a plain string when read (stored forms
+    are never refused; ``theme_problems`` holds writes to the list), listed
+    in the JSON Schema."""
+    return Annotated[str, WithJsonSchema({"enum": list(values), "type": "string"})]
+
+
+ThemeFontId = _listed(THEME_FONTS)
+ThemeHexColour = Annotated[
+    str, WithJsonSchema({"pattern": "^#[0-9a-fA-F]{6}$", "type": "string"})
+]
+
+
+def theme_problems(theme: Any, path: str = "theme") -> List[str]:
+    """What is wrong with a theme's type, shape and highlight keys: each one
+    must be absent (or null) or one of its listed values, and ``highlight`` a
+    6-digit hex colour. Every writer checks a theme with this (the edit
+    operations, whole-form saves, saved workspace themes)."""
+    if theme is None:
+        return []
+    get = (
+        theme.get
+        if isinstance(theme, dict)
+        else (lambda key: getattr(theme, key, None))
+    )
+    problems: List[str] = []
+    for key, allowed in _THEME_CHOICES.items():
+        value = get(key)
+        if value is not None and value not in allowed:
+            problems.append(f"{path}.{key} must be one of: {', '.join(allowed)}.")
+    highlight = get("highlight")
+    if highlight is not None and not (
+        isinstance(highlight, str) and THEME_HEX_COLOUR.fullmatch(highlight)
+    ):
+        problems.append(f"{path}.highlight must be a 6-digit hex colour, e.g. #A3305A.")
+    return problems
+
+
 class Theme(BaseModel):
     title: str
     primary: str
@@ -35,6 +125,48 @@ class Theme(BaseModel):
     # How the form is dressed (classic/sheet/studio; open for future styles).
     # Lenient here — strict validation lives on the workspace theme endpoint.
     style: Optional[str] = None
+    # Type and shape (THEME_FONTS and the lists above). camelCase like
+    # ThemeBackground: the webapp sends the theme verbatim.
+    titleFont: Optional[ThemeFontId] = Field(
+        None,
+        description=(
+            "Face of titles and question labels. Absent: the text face "
+            "(or the style's own title face)."
+        ),
+    )
+    bodyFont: Optional[ThemeFontId] = Field(
+        None,
+        description="Face of everything else respondents read. Absent: public-sans.",
+    )
+    dataFont: Optional[ThemeFontId] = Field(
+        None,
+        description="Face of data such as the submission number. Absent: the app's mono face.",
+    )
+    titleWidth: Optional[_listed(THEME_TITLE_WIDTHS)] = Field(
+        None,
+        description="Width of display titles: expanded is 125% on a face with a width axis (archivo).",
+    )
+    radius: Optional[_listed(THEME_RADII)] = Field(
+        None,
+        description=(
+            "Corners of fields, option cards and buttons: sharp 0, soft 6px, "
+            "round 16px. Absent: the style's own."
+        ),
+    )
+    buttonStyle: Optional[_listed(THEME_BUTTON_STYLES)] = Field(
+        None,
+        description=(
+            "Absent: filled. outlined: the page colour with an edge and text that "
+            "pass contrast. pill: filled and fully rounded."
+        ),
+    )
+    highlight: Optional[ThemeHexColour] = Field(
+        None,
+        description=(
+            "The chosen answer, the 'why we ask' and 'optional' notes and, where "
+            "it reads at 3:1 on the page, the focus ring. Absent: secondary."
+        ),
+    )
 
 
 class EmbedProvider(str, enum.Enum):

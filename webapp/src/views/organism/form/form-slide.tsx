@@ -55,6 +55,7 @@ import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repe
 import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
 import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
 import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
+import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import ImageField from '../form-builder/fields/image-field';
@@ -470,10 +471,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         )}
                         <Button
                             flat
-                            style={{
-                                background: standardForm.theme?.secondary,
-                                color: 'white'
-                            }}
+                            // Filled with the action colour unless the theme's button style says otherwise (theme-root.ts).
+                            style={formButtonStyle(standardForm.theme?.secondary, leaflet ? '4px' : '8px')}
                             isLoading={isLoading}
                             className={cn('min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
                             onClick={onNext}

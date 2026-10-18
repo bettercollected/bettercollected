@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import Link from 'next/link';
 
-import { FormTheme, ThemeColors, findPreset } from '@app/constants/theme';
+import { FormTheme, THEME_TYPE_SHAPE_KEYS, ThemeColors, findPreset, themeTypeShape } from '@app/constants/theme';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 import { useAppSelector } from '@app/store/hooks';
@@ -10,6 +10,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import FormLogoSettings from '@app/views/molecules/form-builder/form-logo-settings';
 import { ContrastNotes, Swatch, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
+import ThemeTypeShapeEditor from '@app/views/molecules/theme/theme-type-shape-editor';
 
 const CUSTOM_TITLE = 'Custom';
 
@@ -28,7 +29,8 @@ export default function PageDesignTab() {
         tertiary: theme?.tertiary ?? ThemeColors[0].tertiary,
         accent: theme?.accent ?? ThemeColors[0].accent,
         background: theme?.background,
-        style: theme?.style
+        style: theme?.style,
+        ...themeTypeShape(theme)
     });
 
     const applyCustom = (next: FormTheme) => {
@@ -44,14 +46,21 @@ export default function PageDesignTab() {
 
     const handleSelect = (value: string) => {
         if (value === 'custom') {
-            applyCustom({ ...custom, title: CUSTOM_TITLE });
+            // The custom palette, in the type and shape (and highlight) the form wears now.
+            const { primary, secondary, tertiary, accent, background, style } = custom;
+            applyCustom({ title: CUSTOM_TITLE, primary, secondary, tertiary, accent, background, style, ...themeTypeShape(theme) });
             return;
         }
         const [group, ...rest] = value.split(':');
         const title = rest.join(':');
         const source = group === 'saved' ? savedThemes : ThemeColors;
         const picked = source.find((t) => t.title === title);
-        if (picked) updateFormTheme({ ...picked, style: picked.style ?? theme?.style });
+        if (!picked) return;
+        // Type and shape the picked theme leaves open keep the form's own, like
+        // the style (the set_theme_preset op does the same); its colours,
+        // highlight included, replace the form's.
+        const kept = Object.fromEntries(THEME_TYPE_SHAPE_KEYS.filter((key) => picked[key] == null && theme?.[key] != null).map((key) => [key, theme![key]]));
+        updateFormTheme({ ...picked, style: picked.style ?? theme?.style, ...kept });
     };
 
     // What the preview shows: the active theme, whatever its source — including
@@ -63,7 +72,8 @@ export default function PageDesignTab() {
         tertiary: theme?.tertiary ?? ThemeColors[0].tertiary,
         accent: theme?.accent ?? ThemeColors[0].accent,
         background: theme?.background,
-        style: theme?.style
+        style: theme?.style,
+        ...themeTypeShape(theme)
     };
 
     return (
@@ -117,6 +127,9 @@ export default function PageDesignTab() {
 
                     {/* Style dresses whatever theme is active — orthogonal to colours. */}
                     <ThemeStyleEditor value={theme?.style} onChange={(style) => updateFormTheme({ ...activeTheme, style })} />
+
+                    {/* Faces, corners, buttons and highlight dress whatever theme is active too. */}
+                    <ThemeTypeShapeEditor theme={isCustom ? custom : activeTheme} onChange={(next) => (isCustom ? applyCustom({ ...next, title: CUSTOM_TITLE }) : updateFormTheme(next))} />
 
                     {/* Only the selected theme is previewed — the dropdown is the
                         catalogue; this shows what the form actually wears. */}

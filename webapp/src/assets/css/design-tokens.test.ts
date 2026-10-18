@@ -77,9 +77,22 @@ describe('type', () => {
         // build. Fonts come from npm packages through next/font/local instead.
         expect(sources.filter(({ text }) => /next\/font\/google/.test(text)).map(({ path }) => path)).toEqual([]);
         const fontFiles = sources.flatMap(({ path, text }) => [...text.matchAll(/['"]((?:\.\.\/)+node_modules\/[^'"]+\.woff2)['"]/g)].map((m) => resolve(path, '..', m[1])));
-        // layout.tsx: 3 + 2 + 1; leaflet-serif.ts: 1.
-        expect(fontFiles).toHaveLength(7);
+        // layout.tsx: 3 + 2 + 1; leaflet-serif.ts: 1; theme-faces.ts: 1 + 1 + 2 + 1 + 1.
+        expect(fontFiles).toHaveLength(13);
         for (const file of fontFiles) expect(statSync(file).isFile(), file).toBe(true);
+    });
+
+    it('loads a theme face only on a form that uses it', () => {
+        // Every face a theme can pick is self-hosted and kept off the preload
+        // lists: a page fetches a face only when it draws a glyph in it, so a
+        // form on today's look fetches none of them.
+        const faces = readFileSync(resolve(SRC, 'assets/fonts/theme-faces.ts'), 'utf8');
+        const calls = faces.split('localFont(').slice(1);
+        expect(calls).toHaveLength(5);
+        for (const call of calls) {
+            expect(call).toContain('preload: false');
+            expect(call).toMatch(/@fontsource-variable\/[a-z-]+\/files\/[a-z-]+-latin-(wght|wdth)-(normal|italic)\.woff2/);
+        }
     });
 
     it('keeps Public Sans, self-hosted, for respondent forms', () => {

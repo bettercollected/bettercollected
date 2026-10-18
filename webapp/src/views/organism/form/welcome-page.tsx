@@ -16,6 +16,7 @@ import { useSendFlowEventMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { LeafletContents, LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
+import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { actionInk, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
@@ -117,7 +118,8 @@ export default function WelcomePage({
                 <div>
                     <Button
                         flat
-                        style={{ background: formTheme?.secondary }}
+                        // Filled with the action colour unless the theme's button style says otherwise (theme-root.ts).
+                        style={formButtonStyle(formTheme?.secondary, leaflet ? '4px' : '8px')}
                         className={cn('z-10 min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
                         // The welcome page's primary action: the privacy panel never opens over it.
                         data-primary-action

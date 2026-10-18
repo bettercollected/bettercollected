@@ -900,6 +900,36 @@ input[type='number']::-webkit-outer-spin-button {
     outline-offset: 3px !important;
 }
 
+/*
+ * Form theme type and shape (views/molecules/theme/theme-root.ts). The
+ * element wearing a form theme carries a data attribute and a variable only
+ * for the keys the theme sets, so these rules match nothing on a form without
+ * them. Unlayered, so a chosen face wins over a style's own (the sheet
+ * style's serif labels) but not over an inline face (the Leaflet serif).
+ * - titleFont: titles (a page's h1, `form-title-face`: question labels, the
+ *   headings in a text block);
+ * - titleWidth expanded: display titles (h1, `form-display-title`) at 125%,
+ *   on a face with a width axis (Archivo); others have none and stay normal;
+ * - dataFont: `font-mono` text (the submission number);
+ * - highlight: the "optional" note (`form-note-accent`).
+ * bodyFont sets --font-form itself, which the `font-form` utility reads.
+ */
+[data-form-title-font] :is(h1, .form-title-face, .form-text-block :is(h2, h3)) {
+    font-family: var(--form-font-title);
+}
+
+[data-form-title-width='expanded'] :is(h1, .form-display-title) {
+    font-stretch: 125%;
+}
+
+[data-form-data-font] .font-mono {
+    font-family: var(--form-font-data);
+}
+
+[data-form-highlight] .form-note-accent {
+    color: var(--form-highlight-text);
+}
+
 /* Hide spin button for input type number */
 input.spin-button-hidden::-webkit-outer-spin-button,
 input.spin-button-hidden::-webkit-inner-spin-button {

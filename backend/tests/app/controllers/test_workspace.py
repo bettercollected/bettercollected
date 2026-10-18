@@ -108,8 +108,20 @@ class TestWorkspaces:
             json=[theme],
         )
         assert response.status_code == 200
+        # Type, shape and highlight keys left out stay empty.
         assert response.json().get("customThemes") == [
-            {**theme, "background": None, "style": None}
+            {
+                **theme,
+                "background": None,
+                "style": None,
+                "titleFont": None,
+                "bodyFont": None,
+                "dataFont": None,
+                "titleWidth": None,
+                "radius": None,
+                "buttonStyle": None,
+                "highlight": None,
+            }
         ]
 
         # And it round-trips on the persisted document.

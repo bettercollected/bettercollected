@@ -1,5 +1,5 @@
 /** Form-level ops: title, settings, theme. */
-import { type FormTheme, THEME_STYLES, ThemeColors } from '@app/constants/theme';
+import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, themeProblems } from '@app/constants/theme';
 
 import { IMAGE_URL_ERROR, firstPartyImageUrl } from '../images';
 import { checkedFormLanguage, formLanguageName } from '../languages';
@@ -107,6 +107,9 @@ const THEME_KEYS = ['title', 'primary', 'secondary', 'tertiary', 'accent'] as co
 export const updateTheme: Handler<UpdateThemeOp> = (ctx, op) => {
     const theme = clone(op.theme) as FormTheme;
     for (const key of THEME_KEYS) if (typeof theme?.[key] !== 'string') throw new OpError(`theme.${key}: Field required`);
+    // type, shape and highlight on their lists (backend _check_theme)
+    const problems = themeProblems(theme, 'theme');
+    if (problems.length) throw new OpError(problems.join(' '));
     const background = theme.background;
     if (background != null && background.imageUrl != null) {
         // Respondent pages load it directly: our storage or Unsplash only
@@ -139,8 +142,8 @@ export const setThemePreset: Handler<SetThemePresetOp> = (ctx, op) => {
     checkMaxLength(op.style, 30);
     const preset = presetByName(op.name);
     if (!preset) throw new OpError(`There is no theme preset named '${op.name}'. Pick one of: ${ThemeColors.map((t) => t.title).join(', ')}.`);
-    const theme: FormTheme = { title: preset.title, primary: preset.primary, secondary: preset.secondary, tertiary: preset.tertiary, accent: preset.accent };
-    if (preset.style) theme.style = preset.style;
+    // The preset's own keys (colours, and type and shape once presets carry them).
+    const theme: FormTheme = clone(preset);
     if (op.style != null) {
         const style = op.style.trim().toLowerCase();
         if (!(THEME_STYLES as readonly string[]).includes(style)) throw new OpError(`There is no style named '${op.style}'. Pick one of: ${THEME_STYLES.join(', ')}.`);
@@ -148,6 +151,10 @@ export const setThemePreset: Handler<SetThemePresetOp> = (ctx, op) => {
     } else if (theme.style == null && ctx.state.theme != null && ctx.state.theme.style != null) {
         theme.style = ctx.state.theme.style;
     }
+    // Type and shape the preset leaves open keep the form's own, like the
+    // style; colours (the highlight among them) come from the preset.
+    const current = ctx.state.theme as FormTheme | null | undefined;
+    if (current != null) for (const key of THEME_TYPE_SHAPE_KEYS) if (theme[key] == null && current[key] != null) (theme as any)[key] = current[key];
     ctx.draft.theme = theme;
     return `Applied the '${theme.title}' theme${theme.style ? ` in the ${theme.style} style` : ''}`;
 };

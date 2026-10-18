@@ -251,6 +251,21 @@ describe('form-level ops', () => {
         expect(one({ op: 'set_theme_preset', name: 'Nope' }).result.message).toMatch(/^There is no theme preset named 'Nope'. Pick one of: Default, Paper, Leaflet, Ocean/);
         expect(one({ op: 'update_theme', theme: { title: 'Mine', primary: '#000', secondary: '#111', tertiary: '#222', accent: '#fff' } }).result.message).toBe("Applied theme 'Mine'");
     });
+
+    it('checks type, shape and highlight and keeps them across colour presets', () => {
+        const colours = { title: 'Mine', primary: '#16261F', secondary: '#1E4D3B', tertiary: '#7D8C84', accent: '#F8EEEC' };
+        const typed = run([
+            { op: 'update_theme', theme: { ...colours, titleFont: 'besley', bodyFont: 'atkinson-next', radius: 'soft', buttonStyle: 'pill', highlight: '#A3305A' } },
+            { op: 'set_theme_preset', name: 'Mint' }
+        ]);
+        expect(typed.results.every((r) => r.ok)).toBe(true);
+        expect(typed.doc.theme).toMatchObject({ title: 'Mint', titleFont: 'besley', bodyFont: 'atkinson-next', radius: 'soft', buttonStyle: 'pill' });
+        expect(typed.doc.theme!.highlight).toBeUndefined();
+        // null means absent, as stored forms send it
+        expect(one({ op: 'update_theme', theme: { ...colours, titleFont: null, highlight: null } as any }).result.ok).toBe(true);
+        expect(one({ op: 'update_theme', theme: { ...colours, titleFont: 'Comic Sans' } as any }).result.message).toBe('theme.titleFont must be one of: public-sans, atkinson-next, archivo, besley, rubik, atkinson-mono.');
+        expect(one({ op: 'update_theme', theme: { ...colours, highlight: '#a3305a80' } }).result.message).toBe('theme.highlight must be a 6-digit hex colour, e.g. #A3305A.');
+    });
 });
 
 describe('editor ops', () => {

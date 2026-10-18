@@ -239,6 +239,18 @@ def test_unknown_and_missing_keys_are_reported_with_paths():
     assert any(path == "/pages/0/fields/0/colSpan" for path, _ in found)
 
 
+def test_unlisted_theme_type_and_shape_are_reported_with_paths():
+    document = form_to_spec_dict(varied_form())
+    assert document["theme"]["titleFont"] == "besley"
+    document["theme"]["titleFont"] = "comic-sans"
+    document["theme"]["highlight"] = "rose"
+    document["pages"][0]["theme"]["radius"] = "huge"
+    with pytest.raises(ValidationError) as error:
+        FormSpec.model_validate(document)
+    paths = {e["path"] for e in validation_errors(error.value)}
+    assert {"/theme/titleFont", "/theme/highlight", "/pages/0/theme/radius"} <= paths
+
+
 def test_model_rules_are_reported_in_spec_terms():
     document = form_to_spec_dict(varied_form())
     group = document["pages"][1]["fields"][3]

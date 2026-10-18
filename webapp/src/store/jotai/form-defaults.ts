@@ -1,4 +1,4 @@
-import { ThemeBackground, ThemeColor, ThemeStyle } from '@app/constants/theme';
+import { FormTheme, ThemeBackground, ThemeColor, ThemeStyle } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { v4 } from 'uuid';
@@ -55,6 +55,14 @@ export interface IThemeState {
     accent: string;
     background?: ThemeBackground;
     style?: ThemeStyle;
+    // Type, shape and highlight (constants/theme.ts FormTheme); absent or null = as before.
+    titleFont?: FormTheme['titleFont'];
+    bodyFont?: FormTheme['bodyFont'];
+    dataFont?: FormTheme['dataFont'];
+    titleWidth?: FormTheme['titleWidth'];
+    radius?: FormTheme['radius'];
+    buttonStyle?: FormTheme['buttonStyle'];
+    highlight?: FormTheme['highlight'];
 }
 
 

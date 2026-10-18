@@ -13,6 +13,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { httpUrl } from '@app/utils/http-url';
 import { describeRetention, retentionExplanation } from '@app/utils/retention';
 import { measurePrimaryActionFit } from '@app/utils/panel-fit';
+import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, FORM_GUTTER, columnPlacementClass } from '@app/views/organism/layout/form-column';
 
@@ -71,6 +72,7 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     // ("How long they are kept:") and marks the chosen language in its navy.
     const { theme } = useFormState();
     const leaflet = styleTokens(theme?.style).key === 'leaflet';
+    const typeRoot = themeRootProps(theme, { typeOnly: true });
     // Keep closed until measured when the primary action is protected.
     const [actionFits, setActionFits] = useState(false);
     const openByDefault = defaultExpanded && (!protectPrimaryAction || actionFits);
@@ -209,7 +211,8 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     return (
         // The strip comes first in the DOM, so after the toggle the keyboard
         // moves into the panel; flex-col-reverse shows the panel above it.
-        <div className="flex w-full flex-col-reverse font-form" data-testid="privacy-panel">
+        // The form's faces, when its theme sets them (theme-root.ts).
+        <div className="flex w-full flex-col-reverse font-form" data-testid="privacy-panel" {...typeRoot.attributes} style={typeRoot.style}>
             {/* 13px legible strip: who is collecting, and the way into the panel. */}
             <div className={cn('backdrop-blur-sm w-full border-t border-t-black-400 bg-white/90 py-2 text-[13px]', FORM_GUTTER)} lang={language}>
                 {/* Items wrap freely on phones. The dividers only show from `sm`

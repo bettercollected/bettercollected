@@ -6,6 +6,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { contrast } from '@app/utils/color-contrast';
 import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import ImageUrlField from '@app/views/molecules/theme/image-url-field';
+import { formButtonStyle, themeRootProps } from '@app/views/molecules/theme/theme-root';
 
 // Each editable colour, labelled by what it actually controls on the responder
 // form (not by its internal role name), so the choice is legible to a creator.
@@ -90,17 +91,20 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
             </div>
         );
     }
+    // The theme's faces, corners, button style and highlight, as the form
+    // wears them (theme-root.ts); nothing for a theme without them.
+    const root = themeRootProps(color);
     return (
-        <div style={themeBackgroundStyle(color)} className="flex flex-col items-start gap-1.5 px-4 py-3">
-            <span style={{ color: primary }} className={cn('text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold')}>
+        <div {...root.attributes} style={{ ...themeBackgroundStyle(color), ...root.style, ...(color.bodyFont ? { fontFamily: 'var(--font-form)' } : {}) }} className="flex flex-col items-start gap-1.5 px-4 py-3">
+            <span style={{ color: primary }} className={cn('form-title-face text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold')}>
                 Question
             </span>
             {/* Answer text wears primary on a white input, exactly like the
                 runtime — so an illegible combination is visible right here. */}
-            <span style={{ borderColor: '#E3E3E3', color: primary, borderRadius: tokens.inputRadius }} className="w-full border bg-white px-2 py-1 text-[11px] leading-tight">
+            <span style={{ borderColor: '#E3E3E3', color: primary, borderRadius: tokens.fieldRadius }} className="w-full border bg-white px-2 py-1 text-[11px] leading-tight">
                 Answer
             </span>
-            <span style={{ background: secondary, borderRadius: tokens.inputRadius }} className="px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">
+            <span style={formButtonStyle(secondary, tokens.inputRadius)} className="px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">
                 Continue
             </span>
         </div>
@@ -162,6 +166,9 @@ export const ContrastNotes = ({ theme }: { theme: FormTheme }) => {
  * - `ruledChoices`: options sit on 1px rules instead of in bordered boxes.
  * - `numbered`: pages become numbered sections and questions carry n.m
  *   numbers in a margin column (see utils/question-numbers.ts).
+ * - `fieldRadius`/`cardRadius`: the corners fields and option cards draw:
+ *   the theme's radius when it sets one (theme-root.ts), else the style's
+ *   own `inputRadius`.
  */
 export function styleTokens(style?: ThemeStyle) {
     switch (style) {
@@ -170,6 +177,8 @@ export function styleTokens(style?: ThemeStyle) {
                 key: 'sheet' as const,
                 labelClass: 'font-serif text-[17px] font-medium leading-snug lg:text-lg lg:leading-7',
                 inputRadius: '4px',
+                fieldRadius: 'var(--form-radius-field, 4px)',
+                cardRadius: 'var(--form-radius-card, 4px)',
                 divider: true, // ruled rows, like a printed questionnaire
                 solidSelection: false,
                 ruledChoices: false,
@@ -180,6 +189,8 @@ export function styleTokens(style?: ThemeStyle) {
                 key: 'studio' as const,
                 labelClass: 'text-[19px] font-bold tracking-tight leading-snug lg:text-[21px]',
                 inputRadius: '0px',
+                fieldRadius: 'var(--form-radius-field, 0px)',
+                cardRadius: 'var(--form-radius-card, 0px)',
                 divider: false,
                 solidSelection: true, // chosen options fill solid with white text
                 ruledChoices: false,
@@ -190,6 +201,8 @@ export function styleTokens(style?: ThemeStyle) {
                 key: 'leaflet' as const,
                 labelClass: 'text-[18px] font-semibold leading-[1.4]',
                 inputRadius: '4px',
+                fieldRadius: 'var(--form-radius-field, 4px)',
+                cardRadius: 'var(--form-radius-card, 4px)',
                 divider: false,
                 solidSelection: false,
                 ruledChoices: true, // options on 1px rules, standard controls
@@ -200,6 +213,8 @@ export function styleTokens(style?: ThemeStyle) {
                 key: 'classic' as const,
                 labelClass: 'text-base font-semibold leading-snug lg:text-lg lg:leading-7',
                 inputRadius: '6px',
+                fieldRadius: 'var(--form-radius-field, 6px)',
+                cardRadius: 'var(--form-radius-card, 6px)',
                 divider: false,
                 solidSelection: false,
                 ruledChoices: false,
