@@ -66,3 +66,16 @@ def test_verify_ignores_burned_slots_and_garbage():
     for garbage in ("", "short", "!" * 16, "A" * 17, "0189-0189-0189-0189", None):
         assert recovery.verify(PEPPER, garbage, hashes) is None
     assert recovery.verify(PEPPER, codes[0], []) is None
+
+
+def test_short_peppers_are_refused_without_echoing_them():
+    from backend.admin.security.keycheck import WeakKeyError
+
+    for call in (
+        lambda: recovery.hash_code(b"tiny-pepper", "A" * 16),
+        lambda: recovery.issue(b"tiny-pepper"),
+        lambda: recovery.verify(b"tiny-pepper", "A" * 16, []),
+    ):
+        with pytest.raises(WeakKeyError) as raised:
+            call()
+        assert "tiny-pepper" not in str(raised.value)

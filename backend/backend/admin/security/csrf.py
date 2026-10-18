@@ -7,10 +7,11 @@ import base64
 import hashlib
 import hmac
 import secrets
-from typing import Collection, Mapping, Optional
+from typing import Collection, Mapping, Optional, Tuple
 from urllib.parse import urlsplit
 
 from backend.admin.security.clock import Clock
+from backend.admin.security.keycheck import require_key
 
 FORM_TOKEN_MAX_AGE = 3600
 _ALLOWED_FETCH_SITE = frozenset({"same-origin", "none"})
@@ -21,6 +22,7 @@ def _b64(raw: bytes) -> str:
 
 
 def _mac(key: bytes, label: str, value: str) -> str:
+    key = require_key(key, "CSRF key")
     message = f"{label}|{value}".encode("utf-8")
     return _b64(hmac.new(key, message, hashlib.sha256).digest())
 
@@ -33,6 +35,7 @@ def session_token(csrf_key: bytes, session_id: str) -> str:
 def verify_session_token(
     csrf_key: bytes, session_id: str, token: Optional[str]
 ) -> bool:
+    require_key(csrf_key, "CSRF key")
     if not isinstance(token, str) or not token:
         return False
     expected = session_token(csrf_key, session_id)
@@ -43,7 +46,12 @@ def verify_session_token(
 
 def issue_form_token(csrf_key: bytes, clock: Clock) -> str:
     """A double-submit token for a form shown before sign-in: set it as a
-    cookie and as a hidden field; ``verify_form_token`` compares the two."""
+    cookie and as a hidden field; ``verify_form_token`` compares the two.
+
+    The cookie must be a ``__Host-`` cookie (Secure, Path=/, no Domain) so a
+    sibling subdomain cannot plant a token of its own, and the check must
+    always be paired with ``origin_allowed``: a double-submit token alone
+    does not stop a request that carries its own matching pair."""
     issued = str(int(clock.time()))
     nonce = _b64(secrets.token_bytes(16))
     return f"{issued}.{nonce}.{_mac(csrf_key, 'form', f'{issued}.{nonce}')}"
@@ -58,6 +66,7 @@ def verify_form_token(
 ) -> bool:
     """Cookie and form field are equal, signed by us, and not older than
     ``max_age`` seconds."""
+    require_key(csrf_key, "CSRF key")
     if not isinstance(cookie_value, str) or not isinstance(form_value, str):
         return False
     if not cookie_value or not hmac.compare_digest(
@@ -77,21 +86,28 @@ def verify_form_token(
     return -60 <= age <= max_age
 
 
-def _host_of(url: str) -> Optional[str]:
-    """``host[:port]`` (lower case) of an http(s) URL without credentials."""
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+Origin = Tuple[str, str, int]
+
+
+def _origin_of(url: str) -> Optional[Origin]:
+    """``(scheme, host, port)`` of an http(s) URL without credentials, the
+    default port filled in; None for anything else."""
     try:
         parts = urlsplit(url.strip())
-        if parts.scheme not in ("http", "https") or not parts.hostname:
+        scheme = parts.scheme.lower()
+        if scheme not in _DEFAULT_PORTS or not parts.hostname:
             return None
         if parts.username is not None or parts.password is not None:
             return None
         port = parts.port
     except ValueError:
         return None
-    host = parts.hostname.lower()
-    if ":" in host:
-        host = f"[{host}]"
-    return f"{host}:{port}" if port is not None else host
+    return (
+        scheme,
+        parts.hostname.lower(),
+        port if port is not None else _DEFAULT_PORTS[scheme],
+    )
 
 
 def _lower(headers: Mapping[str, str]) -> Mapping[str, str]:
@@ -106,13 +122,18 @@ def _lower(headers: Mapping[str, str]) -> Mapping[str, str]:
     return out
 
 
-def origin_allowed(headers: Mapping[str, str], allowed_hosts: Collection[str]) -> bool:
+def origin_allowed(
+    headers: Mapping[str, str], allowed_origins: Collection[str]
+) -> bool:
     """Whether a state-changing request comes from one of our own pages.
 
-    ``Origin`` (``Referer`` when it is absent) must name an allowed host, and
+    ``allowed_origins`` are full origins (``https://admin.example.org``,
+    ``http://localhost:8100``). ``Origin`` (``Referer`` when it is absent)
+    must equal one of them in scheme, host and port (the scheme's default
+    port is implied), so ``http://`` never passes for an ``https://`` portal.
     ``Sec-Fetch-Site``, when sent, must be ``same-origin`` or ``none``. With
-    neither ``Origin`` nor ``Referer`` the answer is False. Hosts compare
-    case-insensitively, with the port when the allow-list entry has one."""
+    neither ``Origin`` nor ``Referer`` the answer is False. The Host
+    allow-list is the gate's business, not this function's."""
     try:
         h = _lower(headers)
         fetch_site = h.get("sec-fetch-site")
@@ -126,10 +147,10 @@ def origin_allowed(headers: Mapping[str, str], allowed_hosts: Collection[str]) -
             source = h.get("referer")
         if source is None:
             return False
-        host = _host_of(source)
-        if host is None:
+        origin = _origin_of(source)
+        if origin is None:
             return False
-        allowed = {str(a).strip().lower() for a in allowed_hosts if str(a).strip()}
-        return host in allowed
+        allowed = {o for o in (_origin_of(str(a)) for a in allowed_origins) if o}
+        return origin in allowed
     except Exception:  # never raise on garbage
         return False

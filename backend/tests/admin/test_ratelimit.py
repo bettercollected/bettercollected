@@ -117,9 +117,12 @@ async def test_challenge_allows_five_guesses_then_refuses():
 
 
 async def fail_times(limiter, who, n):
+    """The outcome that locked, else the last one."""
     out = None
     for _ in range(n):
         out = await limiter.record_failure(who)
+        if out.newly_locked:
+            return out
     return out
 
 
@@ -197,38 +200,190 @@ async def test_unlock_clears_everything():
 # --------------------------------------------------------- global breaker
 
 
+async def trip(limiter, n=50):
+    """n failures of identified admins from distinct addresses."""
+    out = None
+    for i in range(n):
+        out = await limiter.record_global_failure(
+            f"203.0.{i // 200}.{i % 200 + 1}", True
+        )
+    return out
+
+
 async def test_global_breaker_trips_at_fifty_pauses_ten_minutes_and_notifies_once():
     limiter, clock, _ = make()
-    outcomes = [await limiter.record_global_failure() for _ in range(49)]
+    outcomes = [
+        await limiter.record_global_failure(f"203.0.113.{i + 1}", True)
+        for i in range(49)
+    ]
     assert not any(o.paused for o in outcomes)
     assert not (await limiter.sign_in_pause()).paused
-    tripped = await limiter.record_global_failure()
+    tripped = await limiter.record_global_failure("203.0.114.1", True)
     assert tripped.paused and tripped.newly_tripped and tripped.retry_after == 600
-    again = await limiter.record_global_failure()
+    again = await limiter.record_global_failure("203.0.114.2", True)
     assert again.paused and not again.newly_tripped
     assert (await limiter.sign_in_pause()).paused
     clock.advance(599)
     assert (await limiter.sign_in_pause()).paused
     clock.advance(2)
+    assert not (await limiter.sign_in_pause()).paused  # lifts by itself
+
+
+async def test_one_address_cannot_trip_the_breaker():
+    limiter, _, _ = make()
+    for _ in range(5000):
+        out = await limiter.record_global_failure("198.51.100.7", True)
+    assert not out.paused and not (await limiter.sign_in_pause()).paused
+    # not even by rotating through its /64
+    for n in range(5000):
+        await limiter.record_global_failure(f"2001:db8:5:5::{n + 1}", True)
+    assert not (await limiter.sign_in_pause()).paused
+
+
+async def test_failures_of_non_admin_emails_never_count():
+    limiter, _, _ = make()
+    for i in range(5000):
+        out = await limiter.record_global_failure(
+            f"203.0.{i % 200}.{i % 250 + 1}", False
+        )
+    assert not out.paused and not (await limiter.sign_in_pause()).paused
+
+
+async def test_the_pause_is_not_extended_by_more_failures_and_ends_on_time():
+    limiter, clock, _ = make()
+    await trip(limiter)
+    for step in range(5):
+        clock.advance(100)
+        out = await limiter.record_global_failure(f"192.0.2.{step + 1}", True)
+        assert out.paused and not out.newly_tripped
+    clock.advance(101)  # 601 s after the trip
     assert not (await limiter.sign_in_pause()).paused
 
 
 async def test_global_breaker_failures_must_fall_in_one_window():
     limiter, clock, _ = make()
-    for _ in range(40):
-        await limiter.record_global_failure()
+    for i in range(40):
+        await limiter.record_global_failure(f"203.0.113.{i + 1}", True)
     clock.advance(600)
-    for _ in range(40):
-        out = await limiter.record_global_failure()
+    for i in range(40):
+        out = await limiter.record_global_failure(f"203.0.114.{i + 1}", True)
     assert not out.paused
 
 
 async def test_resume_sign_in_clears_the_pause():
     limiter, _, _ = make()
-    for _ in range(50):
-        await limiter.record_global_failure()
+    await trip(limiter)
+    assert (await limiter.sign_in_pause()).paused
     await limiter.resume_sign_in()
     assert not (await limiter.sign_in_pause()).paused
+
+
+async def test_operator_hooks_reach_the_same_rows():
+    limiter, clock, store = make()
+    await trip(limiter)
+    await fail_times(limiter, "ann@example.org", 5)
+    await rl.operator_resume(store, clock, PEPPER)
+    await rl.operator_unlock(store, clock, PEPPER, "Ann@Example.org")
+    assert not (await limiter.sign_in_pause()).paused
+    assert not (await limiter.lock_status("ann@example.org")).locked
+    out = await fail_times(limiter, "ann@example.org", 4)
+    assert not out.locked  # tallies are gone as well
+
+
+# --------------------------------------------- slow guessing (rolling 24 h)
+
+
+async def test_slow_guessing_under_the_short_rule_still_locks():
+    limiter, clock, _ = make()
+    who = "ann@example.org"
+    out = None
+    for round_ in range(4):  # 4 failures per 5-minute window: 16 in about 20 minutes
+        out = await fail_times(limiter, who, 4)
+        if out.locked:
+            break
+        clock.advance(300)
+    assert out.locked and out.newly_locked and out.level == 1
+
+
+async def test_four_guesses_every_five_minutes_around_the_clock_locks_within_a_day():
+    limiter, clock, _ = make()
+    who = "ann@example.org"
+    locked_after = None
+    for window in range(288):  # a day of 5-minute windows
+        out = await fail_times(limiter, who, 4)
+        if out.locked:
+            locked_after = window
+            break
+        clock.advance(300)
+    assert locked_after is not None and locked_after < 5
+
+
+async def test_the_long_window_is_rolling_not_aligned_to_midnight():
+    # start 10 minutes before a UTC midnight
+    midnight = (int(T0) // 86400 + 1) * 86400
+    limiter, clock, _ = make()
+    clock.set(midnight - 600)
+    who = "ann@example.org"
+    await fail_times(limiter, who, 4)
+    clock.advance(1200)  # now 10 minutes after midnight
+    await fail_times(limiter, who, 4)
+    clock.advance(1200)
+    await fail_times(limiter, who, 4)
+    clock.advance(1200)
+    out = await fail_times(limiter, who, 3)
+    assert out.locked  # 15 failures across midnight, in under 2 hours
+
+
+async def test_failures_older_than_a_day_stop_counting():
+    limiter, clock, _ = make()
+    who = "ann@example.org"
+    for _ in range(14 // 4):
+        await fail_times(limiter, who, 4)
+        clock.advance(300)
+    await fail_times(limiter, who, 2)  # 14 so far
+    clock.advance(86400 + 900)
+    out = await fail_times(limiter, who, 4)
+    assert not out.locked
+
+
+async def test_the_long_tally_restarts_after_it_locks_and_escalates():
+    limiter, clock, _ = make()
+    who = "ann@example.org"
+
+    async def burn():
+        for _ in range(4):
+            out = await fail_times(limiter, who, 4)
+            if out.locked:
+                return out
+            clock.advance(300)
+        return out
+
+    first = await burn()
+    assert first.level == 1
+    clock.advance(901)
+    second = await burn()
+    assert second.locked and second.level == 2 and second.retry_after == 3600
+
+
+async def test_success_does_not_wipe_the_rolling_tally_nor_an_active_lock():
+    limiter, clock, _ = make()
+    who = "ann@example.org"
+    for _ in range(3):
+        await fail_times(limiter, who, 4)
+        await limiter.record_success(who)  # short counter reset each time
+        clock.advance(300)
+    out = await fail_times(limiter, who, 4)
+    assert out.locked  # 16 failures in the day despite the successes
+    await limiter.record_success(who)
+    assert (await limiter.lock_status(who)).locked
+
+
+def test_short_limiter_keys_are_refused_without_echoing_them():
+    from backend.admin.security.keycheck import WeakKeyError
+
+    with pytest.raises(WeakKeyError) as raised:
+        Limiter(MemoryAttemptStore(), FakeClock(), b"short-pepper")
+    assert "short-pepper" not in str(raised.value)
 
 
 async def test_cleanup_removes_old_counters_only():
