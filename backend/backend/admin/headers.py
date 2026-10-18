@@ -10,7 +10,7 @@ CONTENT_SECURITY_POLICY = (
 
 SECURITY_HEADERS: Tuple[Tuple[bytes, bytes], ...] = (
     (b"content-security-policy", CONTENT_SECURITY_POLICY.encode("ascii")),
-    (b"referrer-policy", b"no-referrer"),
+    (b"referrer-policy", b"same-origin"),
     (b"x-content-type-options", b"nosniff"),
     (b"cache-control", b"no-store"),
     (b"cross-origin-opener-policy", b"same-origin"),

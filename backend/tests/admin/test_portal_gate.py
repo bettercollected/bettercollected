@@ -271,7 +271,7 @@ async def test_every_response_carries_the_security_headers(app, portal):
     for r in responses:
         assert r.headers["content-security-policy"] == CONTENT_SECURITY_POLICY
         assert r.headers["x-content-type-options"] == "nosniff"
-        assert r.headers["referrer-policy"] == "no-referrer"
+        assert r.headers["referrer-policy"] == "same-origin"
         assert r.headers["cache-control"] == "no-store"
         assert "access-control-allow-origin" not in r.headers
     await b.aclose()
