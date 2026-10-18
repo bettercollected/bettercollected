@@ -80,8 +80,8 @@ def test_the_chain_is_linear_with_hand_named_revisions():
         "0006_notifications_outbox",
         "0007_tasks_schema",
         "0008_report_state_prune",
+        "0009_task_keyset_write",  # follows 0010: it merged second
         "0010_background_loops",
-        "0009_task_keyset_write",
     ]
 
 
