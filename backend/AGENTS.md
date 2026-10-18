@@ -125,7 +125,9 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
   `SETTINGS_MASTER_KEY`, and an append-only, HMAC-chained `audit_log` (`services/audit.py`; verify with
   `python -m backend.admin audit-verify`). It must never import `backend.app.router/container/controllers` or
   `common.services.crypto_service` (tests enforce it). New admin tables need explicit grants in their revision: there
-  are deliberately no default privileges. Tests: `tests/admin/`.
+  are deliberately no default privileges. Sessions, email-code sign-in, CSRF and gate levels 2-4 live in
+  `services/sessions.py`, `services/signin.py`, `gate/checkers.py`, `gate/csrf.py` and `controllers/portal.py` (pages are
+  Jinja2 templates with no inline script or style; details in `docs/admin-service.md`). Tests: `tests/admin/`.
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.
