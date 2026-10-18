@@ -315,6 +315,35 @@ describe('form content language', () => {
         expect(screen.getByText('Optional').closest('[lang="nl"]')).toBeNull();
     });
 
+    it('matrix and table row and column titles are marked; translated Yes/No is not', async () => {
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+        open(
+            [
+                question('matrix', FieldTypes.MATRIX, 'Beoordeel elk onderdeel', {
+                    fields: [
+                        { id: 'row-1', index: 0, type: FieldTypes.MATRIX_ROW_INPUT, title: 'Kwaliteit', properties: { fields: [], choices: choices('Slecht', 'Goed') } },
+                        { id: 'row-2', index: 1, type: FieldTypes.MATRIX_ROW_INPUT, title: 'Snelheid', properties: { fields: [], choices: choices('Slecht', 'Goed') } }
+                    ]
+                }),
+                question('table', FieldTypes.TABULAR_INPUT, 'Uw uitgaven', { rowTitles: ['Reizen', 'Eten'], columnTitles: ['Bedrag', 'Notitie'] }),
+                question('yesno', FieldTypes.YES_NO, 'Akkoord?', { choices: choices('Yes', 'No') })
+            ],
+            { language: 'nl' }
+        );
+        const matrix = await screen.findByRole('group', { name: 'Beoordeel elk onderdeel' });
+        for (const label of ['Kwaliteit', 'Snelheid', 'Slecht', 'Goed']) {
+            expect(within(matrix).getByText(label)).toHaveAttribute('lang', 'nl');
+        }
+        const table = screen.getByRole('table', { name: 'Uw uitgaven' });
+        for (const label of ['Reizen', 'Eten', 'Bedrag', 'Notitie']) {
+            expect(within(table).getByText(label)).toHaveAttribute('lang', 'nl');
+        }
+        // Yes/No are interface labels in the respondent's language.
+        const yesNo = screen.getByRole('radiogroup', { name: 'Akkoord?' });
+        expect(within(yesNo).getByText('Yes').closest('[lang="nl"]')).toBeNull();
+        expect(within(yesNo).getByText('No').closest('[lang="nl"]')).toBeNull();
+    });
+
     it('a Dutch form under a Dutch interface needs no marks', async () => {
         window.history.replaceState(null, '', '/acme/forms/f1?lang=nl');
         open(NL_FIELDS, { language: 'nl-NL' });

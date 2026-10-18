@@ -46,6 +46,19 @@ def apply_form_update(form_document: FormDocument, form: StandardForm) -> None:
     form_document.settings = form.settings if form.settings else form_document.settings
 
 
+# The settings a form is returned with: the workspace association's, plus
+# the form's own declared language (``StandardFormSettings.language``), which
+# only the form document keeps. Mirrors ``_fold_settings`` in
+# repositories/postgres/forms.py.
+_SETTINGS_WITH_FORM_LANGUAGE = {
+    "$cond": [
+        {"$eq": [{"$type": "$workspace_form.settings"}, "object"]},
+        {"$mergeObjects": ["$workspace_form.settings", {"language": "$settings.language"}]},
+        "$workspace_form.settings",
+    ]
+}
+
+
 # Arrays the $lookups leave behind once their values are folded into the
 # document; nothing reads them and they can be large (every version of a form).
 _LOOKUP_SCAFFOLDING = [
@@ -141,7 +154,7 @@ class FormRepository:
             {"$match": {"workspace_form.workspace_id": workspace_id}},
             {
                 "$set": {
-                    "settings": "$workspace_form.settings",
+                    "settings": _SETTINGS_WITH_FORM_LANGUAGE,
                     "imported_by": "$workspace_form.user_id",
                 }
             },
@@ -258,7 +271,7 @@ class FormRepository:
             _COUNT_FORM_LINKS,
             {"$unwind": "$workspace_form"},
             {"$match": {"workspace_form.workspace_id": workspace_id}},
-            {"$set": {"settings": "$workspace_form.settings", "is_published": True}},
+            {"$set": {"settings": _SETTINGS_WITH_FORM_LANGUAGE, "is_published": True}},
             _scoped_lookup("form_responses", workspace_id, "responses"),
             {
                 "$set": {

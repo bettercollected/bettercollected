@@ -123,6 +123,18 @@ def _fold(target: dict, source: dict, mapping: Dict[str, str]) -> None:
             target.pop(target_key, None)
 
 
+def _fold_settings(form: dict, workspace_form: dict) -> None:
+    """``settings``: the workspace association's, plus the form's own declared
+    language (``StandardFormSettings.language``), which only the form
+    document keeps. Mirrors ``_SETTINGS_WITH_FORM_LANGUAGE`` in
+    repositories/form_repository.py."""
+    own = form.get("settings")
+    _fold(form, workspace_form, {"settings": "settings"})
+    settings = form.get("settings")
+    if isinstance(settings, dict) and isinstance(own, dict) and "language" in own:
+        form["settings"] = {**settings, "language": own["language"]}
+
+
 class PostgresFormRepository(PostgresRepositoryBase):
     row = FormRow
     document = FormDocument
@@ -198,9 +210,8 @@ class PostgresFormRepository(PostgresRepositoryBase):
         for form_doc, workspace_form_doc, published in rows:
             form = from_canonical_document(form_doc)
             workspace_form = from_canonical_document(workspace_form_doc)
-            _fold(
-                form, workspace_form, {"settings": "settings", "imported_by": "user_id"}
-            )
+            _fold_settings(form, workspace_form)
+            _fold(form, workspace_form, {"imported_by": "user_id"})
             if is_admin:
                 form["is_published"] = bool(published)
             forms.append(form)
@@ -276,11 +287,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         forms = []
         for version_doc, workspace_form_doc, form_doc in rows:
             form = from_canonical_document(version_doc)
-            _fold(
-                form,
-                from_canonical_document(workspace_form_doc),
-                {"settings": "settings"},
-            )
+            _fold_settings(form, from_canonical_document(workspace_form_doc))
             form["is_published"] = True
             if get_actions:
                 draft = from_canonical_document(form_doc)

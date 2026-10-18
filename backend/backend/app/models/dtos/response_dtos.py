@@ -41,11 +41,21 @@ class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
     is_published: Optional[bool] = None
 
 
+class FormSettingsCamelModel(WorkspaceFormSettingsCamelModal):
+    """The settings a form is read with: its workspace association's, plus
+    the form's declared language (``StandardFormSettings.language``, kept on
+    the form, not on the association), so the builder and the respondent
+    page see it. Responses about the association alone (a settings patch)
+    leave the language out rather than report it empty."""
+
+    language: Optional[str] = None
+
+
 class StandardFormCamelModel(StandardForm, CamelModel):
     model_config = {"extra": "allow"}
     # Action credentials: readable in-process, never serialized into a response.
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field(None, exclude=True)
-    settings: Optional[WorkspaceFormSettingsCamelModal] = None
+    settings: Optional[FormSettingsCamelModel] = None
     responses: Optional[int] = 0
     version: Optional[int] = None
 

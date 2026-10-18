@@ -1,4 +1,5 @@
 import { FormTheme } from '@app/constants/theme';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
@@ -31,6 +32,9 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     const rowId = (index: number) => `matrix-${field.id}-row-${index}`;
     const columnId = (index: number) => `matrix-${field.id}-col-${index}`;
     const activeField = useAtomValue(activeFieldAtom);
+    // Row and column titles are the author's text: marked with the form's
+    // language when it is not the page's (the "Row 1" fallbacks are not).
+    const contentLang = useFormContentLanguage();
 
     return (
         <div className="flex w-full flex-col overflow-x-auto pb-2">
@@ -73,7 +77,9 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                         }}
                                     />
                                 ) : (
-                                    <div className="max-h-full max-w-full wrap-break-word text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
+                                    <div className="max-h-full max-w-full wrap-break-word text-center text-sm" lang={choice?.value ? contentLang : undefined}>
+                                        {choice?.value || `Column ${index + 1}`}
+                                    </div>
                                 )}
 
                                 {disabled && activeField?.id === field.id && (
@@ -128,7 +134,9 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     }}
                                 />
                             ) : (
-                                <div className="max-h-full max-w-full wrap-break-word text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
+                                <div className="max-h-full max-w-full wrap-break-word text-center text-sm" lang={row?.title?.toString() ? contentLang : undefined}>
+                                    {row?.title?.toString() || `Row ${index + 1}`}
+                                </div>
                             )}
                             {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
                                 <button
