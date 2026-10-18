@@ -203,6 +203,7 @@ class Decision:
     count: int
     limit: int
     retry_after: int  # seconds until the window ends; 0 when allowed
+    blocked_by_ip: bool = False  # refused by the per-address limit (email not counted)
 
 
 @dataclass(frozen=True)
@@ -282,15 +283,30 @@ class Limiter:
 
     # sign-in code requests
     async def request_code(self, email: str, client: Optional[str]) -> Decision:
-        """Both code-request limits; the answer is the stricter. Both are
-        counted, so a refusal by one doesn't hide the other's tally."""
-        by_email = await self.hit(CODE_REQUEST_PER_EMAIL, self.email_key(email))
+        """Both code-request limits; the answer is the stricter.
+
+        The address limit is counted first. Once an address is over it, the
+        email is not counted at all, so an address (or botnet member) sending
+        many different emails can only ever create a bounded number of counter
+        rows: at most ``CODE_REQUEST_PER_IP.limit`` email rows per address
+        window. ``blocked_by_ip`` tells the caller which limit refused."""
         by_ip = await self.hit(CODE_REQUEST_PER_IP, self.ip_key(client))
-        if not by_email.allowed or not by_ip.allowed:
-            retry = max(by_email.retry_after, by_ip.retry_after)
-            first = by_email if not by_email.allowed else by_ip
-            return Decision(False, first.count, first.limit, retry)
+        if not by_ip.allowed:
+            return Decision(False, by_ip.count, by_ip.limit, by_ip.retry_after, True)
+        by_email = await self.hit(CODE_REQUEST_PER_EMAIL, self.email_key(email))
         return by_email
+
+    async def decoy_global_failure(self, client: Optional[str]) -> BreakerOutcome:
+        """The same two counter updates ``record_global_failure`` makes for an
+        identified admin, against throwaway keys, so a failed code for an
+        unknown challenge costs the same database work as one for an admin's.
+        Counts toward nothing."""
+        start, _ = self._window(GLOBAL_FAILURES)
+        await self._store.increment(self.ip_key(client) + ":gfail:decoy", start)
+        await self._store.increment(
+            hashed_key(self._pepper, "global", "decoy") + ":fail", start
+        )
+        return BreakerOutcome(False, False, 0)
 
     # code verification attempts
     async def challenge_attempt(

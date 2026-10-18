@@ -25,9 +25,10 @@ import logging
 import secrets
 import uuid
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable, List, Optional
 
+from common.utils.client_ip import rate_limit_key
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.admin.portal_config import PortalSettings
@@ -35,7 +36,7 @@ from backend.admin.repositories import sessions as repo
 from backend.admin.security.clock import Clock
 from backend.admin.security.keycheck import require_key
 from backend.admin.security.mailer import AdminMailer
-from backend.admin.security.ratelimit import Limiter, normalise_email
+from backend.admin.security.ratelimit import Limiter, Rule, normalise_email
 from backend.admin.services import audit
 from backend.admin.services.sessions import SessionService
 
@@ -43,6 +44,8 @@ log = logging.getLogger("backend.admin.signin")
 
 CODE_DIGITS = 8
 MAX_EMAIL = 320
+# one audit row per address window for requests refused by the address limit
+BLOCKED_AUDIT = Rule("blocked_audit", 1, 600)
 _DUMMY_SUBJECT = "nobody@invalid"
 _DUMMY_DIGEST = hashlib.sha256(b"bettercollected/admin/signin/dummy").digest()
 
@@ -109,25 +112,44 @@ class SignInService:
             self._pepper, b"email|" + normalise_email(email).encode(), hashlib.sha256
         ).hexdigest()
 
-    def _cookie_for(self, challenge_id: str) -> str:
-        mac = hmac.new(self._cookie_key, challenge_id.encode(), hashlib.sha256).digest()
-        return f"{challenge_id}.{_b64(mac)}"
+    def _cookie_for(self, challenge_id: str, issued: int) -> str:
+        """``<challenge id>.<issued at, epoch seconds>.<mac>``. The issue time is
+        signed into the cookie so every challenge, real or not, has one fixed
+        expiry the attempt counter is keyed on."""
+        label = f"{challenge_id}.{issued}"
+        mac = hmac.new(self._cookie_key, label.encode(), hashlib.sha256).digest()
+        return f"{label}.{_b64(mac)}"
 
-    def challenge_id_from_cookie(self, cookie: Optional[str]) -> Optional[uuid.UUID]:
-        """The challenge id in a cookie we signed, else None."""
-        if not isinstance(cookie, str) or len(cookie) > 128 or "." not in cookie:
+    def parse_cookie(self, cookie: Optional[str]) -> Optional[tuple]:
+        """``(challenge id, issued at)`` of a cookie we signed, else None."""
+        if not isinstance(cookie, str) or len(cookie) > 160:
             return None
-        raw_id, _, mac = cookie.partition(".")
+        parts = cookie.split(".")
+        if len(parts) != 3 or not parts[1].isascii() or not parts[1].isdigit():
+            return None
         try:
-            challenge_id = uuid.UUID(raw_id)
+            challenge_id = uuid.UUID(parts[0])
         except ValueError:
             return None
-        if str(challenge_id) != raw_id:
+        if str(challenge_id) != parts[0]:
             return None
-        expected = self._cookie_for(raw_id).partition(".")[2]
-        if not hmac.compare_digest(expected.encode(), mac.encode("utf-8", "replace")):
+        issued = int(parts[1])
+        expected = self._cookie_for(parts[0], issued).rpartition(".")[2]
+        if not hmac.compare_digest(expected.encode(), parts[2].encode("utf-8", "replace")):
             return None
-        return challenge_id
+        return challenge_id, issued
+
+    def _dead_cookie(self, ip: Optional[str]) -> str:
+        """One fixed cookie per address window for requests that get no
+        challenge because the address is over its limit: same shape as a real
+        one, but the same value each time, so the number of ids an address can
+        make us track stays bounded."""
+        ttl = self._settings.code_ttl_seconds
+        start = int(self._clock.time() // ttl) * ttl
+        raw = hmac.new(
+            self._cookie_key, f"dead|{rate_limit_key(ip)}|{start}".encode(), hashlib.sha256
+        ).digest()[:16]
+        return self._cookie_for(str(uuid.UUID(bytes=raw, version=4)), start)
 
     def _admin_list(self) -> List[str]:
         return sorted(self._settings.admin_emails)
@@ -150,8 +172,23 @@ class SignInService:
         challenge_id = uuid.uuid4()
         code = f"{secrets.randbelow(10**CODE_DIGITS):0{CODE_DIGITS}d}"
         digest = self._code_digest(str(challenge_id), code)  # same work for everyone
-        cookie = self._cookie_for(str(challenge_id))
+        cookie = self._cookie_for(str(challenge_id), int(self._clock.time()))
         after: List[AfterResponse] = []
+
+        if decision.blocked_by_ip:
+            # over the per-address limit: nothing is issued or counted per email, and
+            # only the first such request per window leaves an audit row, so a flood
+            # cannot grow the tables. The same for every email, admin or not.
+            cookie = self._dead_cookie(ip)
+            first = await self._limiter.hit(BLOCKED_AUDIT, self._limiter.ip_key(ip))
+            if first.allowed:
+                async with self._engine.begin() as conn:
+                    await audit.write(
+                        conn, "signin.code_requested", None, None, None, None,
+                        "denied", actor_kind="anonymous", ip=ip, ua=user_agent,
+                        request_id=request_id, detail={"reason": "address_limited"},
+                    )
+            return CodeRequest(cookie, after)
 
         async with self._engine.begin() as conn:
             if issue:
@@ -206,35 +243,44 @@ class SignInService:
         user_agent: Optional[str],
         request_id: Optional[str] = None,
     ) -> CodeCheck:
+        """Check a code. For a cookie we signed, an admin's challenge and one that
+        leads nowhere run the same sequence of database operations (selects,
+        counter updates, audit rows), so neither time nor query count tells them
+        apart; only mail and the success path differ, and a non-admin challenge
+        can never reach success."""
         code = normalise_code(raw_code)
-        challenge_id = self.challenge_id_from_cookie(cookie)
+        parsed = self.parse_cookie(cookie)
         guess = code or "00000000"
-        if challenge_id is None:  # not a cookie we issued: cheap refusal, nothing counted
+        if parsed is None:  # not a cookie we issued: cheap refusal, nothing counted
             self._code_digest("none", guess)
             return CodeCheck(None)
-
+        challenge_id, issued = parsed
         now = self._clock.now()
+        ttl = self._settings.code_ttl_seconds
+        if not issued - 60 <= self._clock.time() <= issued + ttl + 60:
+            self._code_digest("none", guess)  # long expired (or from the future): refuse cheaply
+            return CodeCheck(None)
         async with self._engine.connect() as conn:
             row = await repo.get_challenge(conn, challenge_id)
         listed = row is not None and row.email is not None and self._settings.is_admin(row.email)
-        subject = row.email if listed else _DUMMY_SUBJECT
-        expires_at = row.expires_at if row is not None else now + timedelta(
-            seconds=self._settings.code_ttl_seconds
-        )
+        # a throwaway lock/failure key per challenge for everything that is not an admin's
+        subject = row.email if listed else f"nobody-{challenge_id}@invalid"
+        counter_expiry = datetime.fromtimestamp(issued + ttl, timezone.utc)
+        email = row.email if listed else None
         after: List[AfterResponse] = []
 
         # limiter order: breaker pause, email lock, per-challenge attempts
         pause = await self._limiter.sign_in_pause()
         lock = await self._limiter.lock_status(subject)
-        attempt = await self._limiter.challenge_attempt(str(challenge_id), expires_at)
+        attempt = await self._limiter.challenge_attempt(str(challenge_id), counter_expiry)
         refused = pause.paused or lock.locked or not attempt.allowed
         if refused:
             async with self._engine.begin() as conn:
-                if not attempt.allowed and row is not None:
+                if not attempt.allowed:
                     await repo.burn_challenge(conn, challenge_id, now)
                 await self._audit_code(
-                    conn, "signin.code_failed", "denied", challenge_id,
-                    row.email if listed else None, ip, user_agent, request_id,
+                    conn, "signin.code_failed", "denied", challenge_id, email, ip,
+                    user_agent, request_id,
                     "paused" if pause.paused else "locked" if lock.locked else "attempts",
                 )
             return CodeCheck(None)
@@ -264,30 +310,33 @@ class SignInService:
                 await self._limiter.record_success(row.email)
                 return CodeCheck(token)
 
-        # wrong, expired, reused or unknown
+        # wrong, expired, reused or unknown: the same operations either way
         async with self._engine.begin() as conn:
-            if row is not None:
-                await repo.add_failed_attempt(conn, challenge_id)
+            await repo.add_failed_attempt(conn, challenge_id)  # no row: no effect
             await self._audit_code(
-                conn, "signin.code_failed", "failure", challenge_id,
-                row.email if listed else None, ip, user_agent, request_id,
-                "wrong_or_unusable",
+                conn, "signin.code_failed", "failure", challenge_id, email, ip,
+                user_agent, request_id, "wrong_or_unusable",
             )
-        failure = await self._limiter.record_failure(subject) if listed else None
-        breaker = await self._limiter.record_global_failure(ip, listed)
-        if failure is not None and failure.newly_locked:
+        failure = await self._limiter.record_failure(subject)
+        breaker = (
+            await self._limiter.record_global_failure(ip, True)
+            if listed
+            else await self._limiter.decoy_global_failure(ip)
+        )
+        if failure.newly_locked:
             minutes = max(1, failure.retry_after // 60)
             async with self._engine.begin() as conn:
                 await audit.write(
                     conn, "signin.locked", "account", None, None, None, "denied",
-                    actor_kind="system", actor_email=row.email, ip=ip,
+                    actor_kind="system", actor_email=email, ip=ip,
                     request_id=request_id, detail={"minutes": minutes},
                 )
-            after.append(
-                lambda: self._mailer.notify_lockout(
-                    self._admin_list(), row.email, ip or "unknown", minutes
+            if listed:
+                after.append(
+                    lambda: self._mailer.notify_lockout(
+                        self._admin_list(), row.email, ip or "unknown", minutes
+                    )
                 )
-            )
         if breaker.newly_tripped:
             minutes = max(1, breaker.retry_after // 60)
             async with self._engine.begin() as conn:
