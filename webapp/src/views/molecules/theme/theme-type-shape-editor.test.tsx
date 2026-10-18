@@ -53,6 +53,27 @@ describe('the type and shape editor', () => {
         expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add a highlight' }));
     });
 
+    it('sets and clears the chosen-answer colour, focus following the swap', () => {
+        const Editor = () => {
+            const [theme, setTheme] = useState<FormTheme>(base);
+            return <ThemeTypeShapeEditor theme={theme} onChange={setTheme} />;
+        };
+        render(<Editor />);
+        const add = screen.getByRole('button', { name: 'Set a colour' });
+        add.focus();
+        fireEvent.click(add);
+        const colour = screen.getByLabelText('Chosen answer');
+        expect(colour).toHaveAttribute('type', 'color');
+        expect(document.activeElement).toBe(colour);
+        fireEvent.click(screen.getByRole('button', { name: 'Remove chosen-answer colour' }));
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Set a colour' }));
+    });
+
+    it('labels the data face control', () => {
+        render(<ThemeTypeShapeEditor theme={{ ...base, dataFont: 'atkinson-mono' }} onChange={vi.fn()} />);
+        expect(screen.getByRole('combobox', { name: 'Data font' })).toHaveTextContent('Atkinson Hyperlegible Mono');
+    });
+
     it('keeps wide titles while the title face is Archivo, set or by the text face', () => {
         const onChange = vi.fn();
         render(<ThemeTypeShapeEditor theme={{ ...base, titleFont: 'archivo', titleWidth: 'expanded' }} onChange={onChange} />);

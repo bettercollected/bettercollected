@@ -190,6 +190,9 @@
     "TITLE_FONT_DEFAULT": "Default",
     "BODY_FONT": "Text font",
     "BODY_FONT_HINT": "Everything else respondents read.",
+    "DATA_FONT": "Data font",
+    "DATA_FONT_DEFAULT": "Default (monospace)",
+    "DATA_FONT_HINT": "The submission number and other values respondents may copy or read back.",
     "FONT_DEFAULT_SUFFIX": "(default)",
     "WIDE_TITLES": "Wide titles",
     "WIDE_TITLES_HINT": "Sets titles a quarter wider, in Archivo's wide cut.",
@@ -208,6 +211,11 @@
     "HIGHLIGHT_HINT": "The chosen answer and the notes beside a question. Where it is too light to read on the page, the text colour is used.",
     "HIGHLIGHT_NONE": "Uses the button colour.",
     "HIGHLIGHT_ADD": "Add a highlight",
-    "HIGHLIGHT_REMOVE": "Remove highlight"
+    "HIGHLIGHT_REMOVE": "Remove highlight",
+    "SELECTION": "Chosen answer",
+    "SELECTION_HINT": "The chosen answer only; the highlight keeps the notes. Where it is too light to read on the page, the text colour is used.",
+    "SELECTION_NONE": "Uses the highlight, else the button colour.",
+    "SELECTION_ADD": "Set a colour",
+    "SELECTION_REMOVE": "Remove chosen-answer colour"
   }
 }
