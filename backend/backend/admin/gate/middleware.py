@@ -99,15 +99,15 @@ class GateMiddleware:
                 message["headers"] = headers
             await send(message)
 
-        async def respond(status: int):
+        async def respond(status: int, headers=(), body: bytes = b""):
             await guarded_send(
                 {
                     "type": "http.response.start",
                     "status": status,
-                    "headers": [(b"content-length", b"0")],
+                    "headers": [(b"content-length", str(len(body)).encode()), *headers],
                 }
             )
-            await guarded_send({"type": "http.response.body", "body": b""})
+            await guarded_send({"type": "http.response.body", "body": body})
 
         try:
             await self._handle(scope, receive, guarded_send, respond, request_id)
@@ -137,6 +137,21 @@ class GateMiddleware:
             request_id,
             f" suppressed={dropped}" if dropped else "",
         )
+
+    async def _unauthenticated(self, scope, respond) -> None:
+        """401 JSON for ``/api/*``, else a 303 to the sign-in page (or the
+        second-factor page). The reason is internal: it is logged at debug
+        level by the checker, never sent."""
+        if scope["path"].startswith("/api/"):
+            await respond(
+                401,
+                [(b"content-type", b"application/json")],
+                b'{"error":"unauthenticated"}',
+            )
+            return
+        reason = scope["state"].get("deny_reason")
+        target = b"/mfa" if reason == "mfa_required" else b"/login"
+        await respond(303, [(b"location", target)])
 
     async def _handle(self, scope, receive, send, respond, request_id):
         method = scope["method"].upper()
@@ -182,6 +197,7 @@ class GateMiddleware:
             self.settings.trusted_proxies,
             None,
         )
+        scope["state"]["client_ip"] = client
         address = parse_address(client)
         if address is None or not any(
             address.version == n.version and address in n
@@ -218,11 +234,19 @@ class GateMiddleware:
         if level is None:
             await respond(404)
             return
+        scope["state"]["route_level"] = level
         if level > Level.ADDRESS:
-            checker = self.checkers.get(level)
-            if checker is None or not await checker(scope):
-                await respond(404)
-                return
+            # every level up to the route's, in order; the first failure ends it
+            for step in Level:
+                if step <= Level.ADDRESS or step > level:
+                    continue
+                checker = self.checkers.get(step)
+                if checker is None:
+                    await respond(404)
+                    return
+                if not await checker(scope):
+                    await self._unauthenticated(scope, respond)
+                    return
 
         received = 0
 

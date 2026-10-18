@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Sign in") }}{% endblock %}
+{% block main %}
+<h1>{{ _("Sign in") }}</h1>
+<p>{{ _("Enter your admin email address. If it is authorised, we send a one-time code to it.") }}</p>
+<form method="post" action="/login">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label for="email">{{ _("Email address") }}</label>
+  <input id="email" name="email" type="email" autocomplete="username" required maxlength="320" autofocus>
+  <button type="submit">{{ _("Send code") }}</button>
+</form>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Enter your code") }}{% endblock %}
+{% block main %}
+<h1>{{ _("Enter your code") }}</h1>
+{% if failed %}
+<p class="error" role="alert">{{ _("That code did not work or has expired. Check the code and try again, or request a new one.") }}</p>
+{% endif %}
+<p>{{ _("If the address you entered is authorised, a code is on its way. It is valid for 10 minutes and works once.") }}</p>
+<form method="post" action="/login/code">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label for="code">{{ _("Code from the email") }}</label>
+  <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 \-]*" required maxlength="16" autofocus>
+  <button type="submit">{{ _("Sign in") }}</button>
+</form>
+<p><a href="/login">{{ _("Request a new code") }}</a></p>
+{% endblock %}

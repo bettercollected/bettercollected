@@ -28,30 +28,9 @@ def make(store=None):
 # ------------------------------------------------------------------ keys
 
 
-def test_ip_bucket_matches_the_application_helper():
-    from backend.app.utils.client_ip import rate_limit_key
-
-    samples = [
-        "203.0.113.9",
-        "2001:db8:1:2:3:4:5:6",
-        "2001:db8:1:2:ffff::1",
-        "::ffff:203.0.113.9",
-        "not an ip",
-        "",
-        None,
-        "::1",
-        "fe80::1%eth0",
-    ]
-    for sample in samples:
-        expected = rate_limit_key(sample)
-        if sample == "fe80::1%eth0":
-            continue  # the application helper treats a zone id as unknown
-        assert rl.ip_bucket(sample) == expected, sample
-
-
 def test_ipv6_clients_share_a_bucket_per_64():
-    assert rl.ip_bucket("2001:db8:1:2:aaaa::1") == rl.ip_bucket("2001:db8:1:2:bbbb::2")
-    assert rl.ip_bucket("2001:db8:1:3::1") != rl.ip_bucket("2001:db8:1:2::1")
+    assert rl.rate_limit_key("2001:db8:1:2:aaaa::1") == rl.rate_limit_key("2001:db8:1:2:bbbb::2")
+    assert rl.rate_limit_key("2001:db8:1:3::1") != rl.rate_limit_key("2001:db8:1:2::1")
 
 
 def test_keys_hide_identifiers_and_depend_on_the_pepper():
