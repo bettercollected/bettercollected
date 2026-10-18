@@ -11,6 +11,18 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+### Removed
+
+- **The public app's platform metrics dashboard is gone.** Platform
+  administration moves into an internal admin portal, so the webapp no longer
+  serves `/admin/metrics` (page, "Platform metrics" menu entry and client) and
+  the backend and auth services no longer serve `GET /admin/metrics`.
+  **Upgrade note:** the platform metrics dashboard now lives in the internal
+  admin portal (reachable from the host only, behind a second factor).
+  `PLATFORM_ADMIN_EMAILS` now also lists the portal's super admins, so keep it
+  set on the portal's service. Other operator-only endpoints that check the
+  `ADMIN` role are unchanged.
+
 ### Security
 
 - **The internal APIs no longer serve API docs by default, and 422 answers no

@@ -240,6 +240,8 @@ DECLARE
                  || '0000000000000000';
     weekly jsonb;
     result jsonb;
+    active_users bigint := 0;
+    rec record;
 BEGIN
     SELECT jsonb_agg(jsonb_build_object(
         'week_start', (b.lo AT TIME ZONE 'UTC')::date,
@@ -259,6 +261,46 @@ BEGIN
                              first_week + (g.i + 1) * interval '1 week' AS hi) AS w
     ) AS b;
 
+    -- Users who signed in within 30 days. A malformed last_logged_in value must
+    -- count as inactive, never break the page: try the set-based count first and,
+    -- only when a value does not parse, count row by row with each cast guarded.
+    BEGIN
+        SELECT count(*) INTO active_users FROM auth.users u
+        WHERE CASE
+                WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'string'
+                    THEN (u.doc -> 'last_logged_in' ->> '$date')::timestamptz
+                WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'object'
+                    THEN to_timestamp(((u.doc -> 'last_logged_in' -> '$date' ->> '$numberLong')::bigint) / 1000.0)
+                WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'string'
+                     AND (u.doc ->> 'last_logged_in') ~ '(Z|[+-][0-9][0-9]:?[0-9][0-9])$'
+                    THEN (u.doc ->> 'last_logged_in')::timestamptz
+            END >= since30;
+    EXCEPTION WHEN others THEN
+        active_users := 0;
+        FOR rec IN SELECT doc FROM auth.users WHERE doc ? 'last_logged_in' LOOP
+            BEGIN
+                IF (SELECT CASE
+                WHEN jsonb_typeof(u2.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u2.doc -> 'last_logged_in' -> '$date') = 'string'
+                    THEN (u2.doc -> 'last_logged_in' ->> '$date')::timestamptz
+                WHEN jsonb_typeof(u2.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u2.doc -> 'last_logged_in' -> '$date') = 'object'
+                    THEN to_timestamp(((u2.doc -> 'last_logged_in' -> '$date' ->> '$numberLong')::bigint) / 1000.0)
+                WHEN jsonb_typeof(u2.doc -> 'last_logged_in') = 'string'
+                     AND (u2.doc ->> 'last_logged_in') ~ '(Z|[+-][0-9][0-9]:?[0-9][0-9])$'
+                    THEN (u2.doc ->> 'last_logged_in')::timestamptz
+            END >= since30
+                    FROM (SELECT rec.doc AS doc) AS u2) THEN
+                    active_users := active_users + 1;
+                END IF;
+            EXCEPTION WHEN others THEN
+                NULL;
+            END;
+        END LOOP;
+    END;
+
     SELECT jsonb_build_object(
         'generated_at', now(),
         'organizations', jsonb_build_object(
@@ -268,18 +310,7 @@ BEGIN
         'users', jsonb_build_object(
             'total', (SELECT count(*) FROM auth.users),
             'new_last_30_days', (SELECT count(*) FROM auth.users WHERE id >= id30),
-            'active_last_30_days', (SELECT count(*) FROM auth.users u
-                                    WHERE CASE
-                                        WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
-                                             AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'string'
-                                            THEN (u.doc -> 'last_logged_in' ->> '$date')::timestamptz
-                                        WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
-                                             AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'object'
-                                            THEN to_timestamp(((u.doc -> 'last_logged_in' -> '$date' ->> '$numberLong')::bigint) / 1000.0)
-                                        WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'string'
-                                             AND (u.doc ->> 'last_logged_in') ~ '(Z|[+-][0-9][0-9]:?[0-9][0-9])$'
-                                            THEN (u.doc ->> 'last_logged_in')::timestamptz
-                                    END >= since30),
+            'active_last_30_days', active_users,
             'by_plan', jsonb_build_object(
                 'FREE', (SELECT count(*) FROM auth.users WHERE coalesce(plan, 'FREE') = 'FREE'),
                 'PRO', (SELECT count(*) FROM auth.users WHERE plan = 'PRO'))),

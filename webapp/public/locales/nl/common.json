@@ -564,8 +564,7 @@
     "BILLING": "Facturatie",
     "LOGOUT": "Uitloggen",
     "MY_DASHBOARD": "Mijn dashboard",
-    "ACCOUNT_SETTINGS": "Accountinstellingen",
-    "PLATFORM_METRICS": "Platformstatistieken"
+    "ACCOUNT_SETTINGS": "Accountinstellingen"
   },
   "PUBLIC": "Openbaar",
   "READ_MORE": "Lees meer",

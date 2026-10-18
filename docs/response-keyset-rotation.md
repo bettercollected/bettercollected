@@ -20,8 +20,7 @@ the keyset logs a warning at startup. The warning names the variable and never i
 MASTER_ENCRYPTION_KEYSET is a keyset that was published in the bettercollected repository, ...
 ```
 
-The platform admin metrics page (`/admin/metrics`, for the addresses in `PLATFORM_ADMIN_EMAILS`)
-shows the same as a banner. Published keys are recognised by the SHA-256 of their key material
+Published keys are recognised by the SHA-256 of their key material
 (`PUBLISHED_KEY_SHA256` in `common/common/services/keyset.py`), so re-encoding or reordering the
 keyset does not hide one.
 
@@ -199,7 +198,7 @@ repeats the Typeform caveat (see "What the keyset encrypts"): the script cannot 
 ### 6. Give every service the final keyset
 
 As in step 3, with `keyset-rotation/final.keyset`. Then check that no service logs the
-`MASTER_ENCRYPTION_KEYSET` warning and that the banner is gone from `/admin/metrics`.
+`MASTER_ENCRYPTION_KEYSET` warning.
 
 ### 7. Clean up
 

@@ -11,7 +11,7 @@ from fastapi_pagination import Page
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
-from backend.app.controllers.platform_metrics_router import forwarded_access_token
+from backend.app.services.user_service import forwarded_access_token
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
 from backend.app.models.dtos.flow_event_dto import FlowEventRequest
 from backend.app.models.dtos.form_response_dto import (

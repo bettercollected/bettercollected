@@ -12,7 +12,6 @@ import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
 import { formsApi } from '@app/store/redux/form-api';
 import { importApi } from '@app/store/redux/import-api';
-import { platformAdminApi } from '@app/store/platform-admin/api';
 import { pdfImportApi } from '@app/store/redux/pdf-import-api';
 import { templatesApi } from '@app/store/redux/template-api';
 import { templateApi } from '@app/store/template/api';
@@ -44,8 +43,7 @@ const middlewares = [
     pdfImportApi.middleware,
     mediaLibraryApi.middleware,
     analyticsApi.middleware,
-    integrationApi.middleware,
-    platformAdminApi.middleware
+    integrationApi.middleware
 ];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
@@ -71,8 +69,7 @@ const reducers = {
     [pdfImportApi.reducerPath]: pdfImportApi.reducer,
     [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer,
     [analyticsApi.reducerPath]: analyticsApi.reducer,
-    [integrationApi.reducerPath]: integrationApi.reducer,
-    [platformAdminApi.reducerPath]: platformAdminApi.reducer
+    [integrationApi.reducerPath]: integrationApi.reducer
     // Add more reducers here
 };
 
