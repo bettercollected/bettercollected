@@ -100,7 +100,11 @@ a new `AUTH_JWT_SECRET` signs everyone out; data encrypted with the old
 SCIM webhook secrets) can no longer be read; and responses can only be read
 with the `MASTER_ENCRYPTION_KEYSET` they were stored with, so a stack that
 already holds responses must keep its keyset (`deploy.sh` stops rather than
-generate a new one for it).
+generate a new one for it). A keyset can be rotated without losing data (a new
+key, every stored value re-encrypted, then the old key dropped):
+`docs/response-keyset-rotation.md`. The services log a warning at startup while
+the keyset holds a key that was published in this repository, as the CI test
+keyset is.
 
 Other required backend fields: `UNSPLASH_ACCESS_KEY` (may be empty) and
 `AWS_PRE_SIGNED_URL_EXPIRY` (must be an integer, e.g. `3600`).
