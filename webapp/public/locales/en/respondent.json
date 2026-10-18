@@ -173,5 +173,11 @@
         "PLACEHOLDER": "Enter submission number",
         "SEARCH": "Search",
         "NOT_FOUND": "The submission number does not match with any form responses"
+    },
+    "PORTAL": {
+        "FORMS": "Forms",
+        "MY_SUBMISSIONS": "My submissions",
+        "DELETION_REQUESTS": "Deletion requests",
+        "SEARCH_FORMS": "Search forms"
     }
 }

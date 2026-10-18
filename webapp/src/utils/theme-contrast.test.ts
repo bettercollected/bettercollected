@@ -9,7 +9,7 @@ import { ThemeColors } from '@app/constants/theme';
 import { REQUIRED_RED, mixHex } from '@app/views/molecules/theme/theme-shared';
 
 import { AA_NON_TEXT, AA_TEXT, contrast, hexChannels, legibleOn } from './color-contrast';
-import { actionText, calendarColours, themeContrastChecks } from './theme-contrast';
+import { FOCUS_RING, actionText, calendarColours, themeContrastChecks } from './theme-contrast';
 
 describe('contrast', () => {
     it('follows the WCAG formula', () => {
@@ -68,7 +68,7 @@ describe('themeContrastChecks', () => {
 
     it('covers every place a theme colour is text, the border colour included', () => {
         const keys = themeContrastChecks(ThemeColors[0]).map((check) => check.key);
-        expect(keys).toEqual(expect.arrayContaining(['text', 'answer', 'button', 'action-text', 'action-text-on-white', 'calendar-day', 'calendar-weekday', 'calendar-outside', 'calendar-today', 'calendar-selected', 'calendar-nav']));
+        expect(keys).toEqual(expect.arrayContaining(['text', 'answer', 'button', 'action-text', 'action-text-on-white', 'calendar-day', 'calendar-weekday', 'calendar-today', 'calendar-selected', 'calendar-nav', 'calendar-focus']));
     });
 });
 
@@ -98,7 +98,26 @@ describe('the date picker keeps a theme that already passes as it was', () => {
         if (contrast(theme.tertiary, theme.accent) >= AA_TEXT) expect(colours.weekday).toBe(theme.tertiary);
         expect(colours.background).toBe(theme.accent);
         expect(colours.selectedBackground).toBe(theme.secondary);
+        expect(colours.focus).toBe(FOCUS_RING);
         expect(actionText(theme)).toBe(contrast(theme.secondary, theme.accent) >= AA_TEXT ? theme.secondary : colours.day);
+    });
+});
+
+describe('the date picker focus ring', () => {
+    it('keeps the app blue where it reaches 3:1 on the calendar', () => {
+        expect(calendarColours({ primary: '#101828', secondary: '#1649E2', tertiary: '#818CA0', accent: '#FFFFFF' }).focus).toBe(FOCUS_RING);
+    });
+
+    it.each([
+        ['a dark palette', { primary: '#F1F5F9', secondary: '#60A5FA', tertiary: '#94A3B8', accent: '#0F172A' }],
+        ['a dark page with no text colour', { secondary: '#60A5FA', accent: '#0F172A' }],
+        ['a navy page', { primary: '#FFFFFF', secondary: '#FFFFFF', tertiary: '#FFFFFF', accent: '#0B1F66' }]
+    ])('moves the blue towards the ink on %s until it reaches 3:1', (_name, theme) => {
+        expect(contrast(FOCUS_RING, theme.accent)).toBeLessThan(AA_NON_TEXT);
+        const { focus, background } = calendarColours(theme);
+        expect(background).toBe(theme.accent);
+        expect(focus).not.toBe(FOCUS_RING);
+        expect(contrast(focus, background)).toBeGreaterThanOrEqual(AA_NON_TEXT);
     });
 });
 

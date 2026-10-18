@@ -173,5 +173,11 @@
         "PLACEHOLDER": "Vul het inzendnummer in",
         "SEARCH": "Zoeken",
         "NOT_FOUND": "Er is geen inzending met dit nummer."
+    },
+    "PORTAL": {
+        "FORMS": "Formulieren",
+        "MY_SUBMISSIONS": "Mijn inzendingen",
+        "DELETION_REQUESTS": "Verwijderverzoeken",
+        "SEARCH_FORMS": "Formulieren zoeken"
     }
 }

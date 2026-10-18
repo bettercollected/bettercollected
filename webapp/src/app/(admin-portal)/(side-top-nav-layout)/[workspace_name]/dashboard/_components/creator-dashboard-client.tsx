@@ -154,7 +154,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                         })}
                     </div>
                     <div className="mt-4 min-w-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:scrollbar-gutter-stable">
-                        {activeTab === 'forms' && <WorkspaceFormsTabContent workspace={workspace} publicBaseUrl={publicUrl} />}
+                        {activeTab === 'forms' && <WorkspaceFormsTabContent workspace={workspace} publicBaseUrl={publicUrl} audience="team" />}
                         {activeTab === 'my-submissions' && <WorkspaceResponsesTabContent workspace={workspace} />}
                         {activeTab === 'deletion-requests' && <WorkspaceResponsesTabContent workspace={workspace} deletionRequests />}
                     </div>

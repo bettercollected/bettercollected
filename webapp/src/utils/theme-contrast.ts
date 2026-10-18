@@ -4,6 +4,9 @@ import { AA_NON_TEXT, AA_TEXT, contrast, hexChannels, legibleOn, mixColours } fr
 
 type ThemeColours = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent'>;
 
+/** The app's focus ring colour (tailwind.css --color-brand-500). */
+export const FOCUS_RING = '#123FC9';
+
 const hexOr = (value: string | undefined, fallback: string) => (value && hexChannels(value) ? value : fallback);
 
 /**
@@ -29,13 +32,12 @@ export function actionTextOn(theme: Partial<ThemeColours> | undefined, backgroun
  *
  * - `day`: the month name and its days (the button colour);
  * - `weekday`: the weekday labels (the border colour);
- * - `outside`: days of the previous and next month, the day colour faded
- *   halfway to the ground as before but no lower than 4.5:1 (a lighter weight
- *   keeps them apart from the month's own days);
  * - `today` on `todayBackground` (a 20% tint of the border colour);
  * - `selected` on `selectedBackground` (the page colour on the button colour,
  *   else white, else black);
- * - `nav`: the month arrows, faded like before but at least 3:1.
+ * - `nav`: the month arrows, faded like before but at least 3:1;
+ * - `focus`: the keyboard focus ring, the app's blue where it reaches 3:1 on
+ *   the ground (every preset), else a step of it towards the ink.
  */
 export function calendarColours(theme?: Partial<ThemeColours>) {
     const background = hexOr(theme?.accent, '#FFFFFF');
@@ -48,12 +50,12 @@ export function calendarColours(theme?: Partial<ThemeColours>) {
         background,
         day,
         weekday: legibleOn(tertiary, background, ink),
-        outside: legibleOn(mixColours(day, background, 0.5), background, day),
         todayBackground,
         today: legibleOn(secondary, todayBackground, ink),
         selectedBackground: secondary,
         selected: legibleOn(background, secondary, '#FFFFFF'),
-        nav: legibleOn(mixColours(day, background, 0.5), background, day, AA_NON_TEXT)
+        nav: legibleOn(mixColours(day, background, 0.5), background, day, AA_NON_TEXT),
+        focus: legibleOn(FOCUS_RING, background, ink, AA_NON_TEXT)
     };
 }
 
@@ -99,10 +101,10 @@ export function themeContrastChecks(theme: ThemeColours): ContrastCheck[] {
         { key: 'action-text-on-white', kind: 'derived', label: 'Links in the button colour on white cards', foreground: actionTextOn(theme, '#FFFFFF'), background: '#FFFFFF', minimum: AA_TEXT },
         { key: 'calendar-day', kind: 'derived', label: 'Date picker: month name and days', foreground: calendar.day, background: calendar.background, minimum: AA_TEXT },
         { key: 'calendar-weekday', kind: 'derived', label: 'Date picker: weekday labels', foreground: calendar.weekday, background: calendar.background, minimum: AA_TEXT },
-        { key: 'calendar-outside', kind: 'derived', label: 'Date picker: days of the next and previous month', foreground: calendar.outside, background: calendar.background, minimum: AA_TEXT },
         { key: 'calendar-today', kind: 'derived', label: 'Date picker: today', foreground: calendar.today, background: calendar.todayBackground, minimum: AA_TEXT },
         { key: 'calendar-selected', kind: 'derived', label: 'Date picker: the chosen day', foreground: calendar.selected, background: calendar.selectedBackground, minimum: AA_TEXT },
-        { key: 'calendar-nav', kind: 'derived', label: 'Date picker: month arrows', foreground: calendar.nav, background: calendar.background, minimum: AA_NON_TEXT }
+        { key: 'calendar-nav', kind: 'derived', label: 'Date picker: month arrows', foreground: calendar.nav, background: calendar.background, minimum: AA_NON_TEXT },
+        { key: 'calendar-focus', kind: 'derived', label: 'Date picker: keyboard focus ring', foreground: calendar.focus, background: calendar.background, minimum: AA_NON_TEXT }
     ];
     return pairs.map((pair) => {
         const ratio = contrast(pair.foreground, pair.background);
