@@ -100,6 +100,16 @@ export function themeProblems(theme: unknown, path = 'theme'): string[] {
     return problems;
 }
 
+/**
+ * The type, shape and highlight keys a theme sets (null and absent left out),
+ * for carrying them from one theme to the next in the editors.
+ */
+export function themeTypeShape(theme?: Partial<FormTheme> | null): Partial<FormTheme> {
+    const kept: Record<string, unknown> = {};
+    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight'] as const) if (theme?.[key] != null) kept[key] = theme[key];
+    return kept as Partial<FormTheme>;
+}
+
 export interface FormTheme {
     title: string;
     primary: string;

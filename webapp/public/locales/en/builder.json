@@ -176,5 +176,32 @@
       "empty": "This file is empty. Choose another file.",
       "upload_failed": "The upload failed. Please try again."
     }
+  },
+  "THEME": {
+    "HEADING": "Type and shape",
+    "TITLE_FONT": "Title font",
+    "TITLE_FONT_HINT": "Titles and question labels.",
+    "TITLE_FONT_DEFAULT": "Default",
+    "BODY_FONT": "Text font",
+    "BODY_FONT_HINT": "Everything else respondents read.",
+    "FONT_DEFAULT_SUFFIX": "(default)",
+    "WIDE_TITLES": "Wide titles",
+    "WIDE_TITLES_HINT": "Sets titles a quarter wider, in Archivo's wide cut.",
+    "RADIUS": "Corners",
+    "RADIUS_HINT": "Of fields, answer options and buttons.",
+    "RADIUS_DEFAULT": "Default",
+    "RADIUS_SHARP": "Sharp",
+    "RADIUS_SOFT": "Soft",
+    "RADIUS_ROUND": "Round",
+    "BUTTONS": "Buttons",
+    "BUTTON_FILLED": "Filled",
+    "BUTTON_OUTLINED": "Outlined",
+    "BUTTON_PILL": "Pill",
+    "BUTTONS_HINT_OUTLINED": "The button's edge and text take a colour that reads on the page.",
+    "HIGHLIGHT": "Highlight",
+    "HIGHLIGHT_HINT": "The chosen answer and the notes beside a question. Where it is too light to read on the page, the text colour is used.",
+    "HIGHLIGHT_NONE": "Uses the button colour.",
+    "HIGHLIGHT_ADD": "Add a highlight",
+    "HIGHLIGHT_REMOVE": "Remove highlight"
   }
 }

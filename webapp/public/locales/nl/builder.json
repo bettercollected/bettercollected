@@ -176,5 +176,32 @@
       "empty": "Dit bestand is leeg. Kies een ander bestand.",
       "upload_failed": "Het uploaden is mislukt. Probeer het opnieuw."
     }
+  },
+  "THEME": {
+    "HEADING": "Letter en vorm",
+    "TITLE_FONT": "Letter van titels",
+    "TITLE_FONT_HINT": "Titels en vragen.",
+    "TITLE_FONT_DEFAULT": "Standaard",
+    "BODY_FONT": "Letter van tekst",
+    "BODY_FONT_HINT": "Alle andere tekst die invullers lezen.",
+    "FONT_DEFAULT_SUFFIX": "(standaard)",
+    "WIDE_TITLES": "Brede titels",
+    "WIDE_TITLES_HINT": "Zet titels een kwart breder, in de brede snit van Archivo.",
+    "RADIUS": "Hoeken",
+    "RADIUS_HINT": "Van velden, antwoordopties en knoppen.",
+    "RADIUS_DEFAULT": "Standaard",
+    "RADIUS_SHARP": "Scherp",
+    "RADIUS_SOFT": "Zacht",
+    "RADIUS_ROUND": "Rond",
+    "BUTTONS": "Knoppen",
+    "BUTTON_FILLED": "Gevuld",
+    "BUTTON_OUTLINED": "Omlijnd",
+    "BUTTON_PILL": "Pil",
+    "BUTTONS_HINT_OUTLINED": "De rand en tekst van de knop krijgen een kleur die leesbaar is op de pagina.",
+    "HIGHLIGHT": "Accentkleur",
+    "HIGHLIGHT_HINT": "Het gekozen antwoord en de notities bij een vraag. Is de kleur te licht om op de pagina te lezen, dan wordt de tekstkleur gebruikt.",
+    "HIGHLIGHT_NONE": "Gebruikt de kleur van de knoppen.",
+    "HIGHLIGHT_ADD": "Accentkleur toevoegen",
+    "HIGHLIGHT_REMOVE": "Accentkleur verwijderen"
   }
 }
