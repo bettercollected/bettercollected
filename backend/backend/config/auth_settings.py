@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class AuthSettings(BaseSettings):
+class AuthSettings(StoreBackedSettings):
     AES_HEX_KEY: str = ""
     JWT_SECRET: str = ""
     # Access tokens are checked without a database read, so this is how long

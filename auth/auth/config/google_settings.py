@@ -1,9 +1,10 @@
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class GoogleSettings(BaseSettings):
+class GoogleSettings(StoreBackedSettings):
     client_id: Optional[str] = ""
     project_id: Optional[str] = ""
     auth_uri: Optional[str] = "https://accounts.google.com/o/oauth2/auth"

@@ -6,9 +6,10 @@ also needs the Polis admin API key, which only it holds.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class SSOSettings(BaseSettings):
+class SSOSettings(StoreBackedSettings):
     ENABLED: bool = False
     # Polis as the browser and the identity providers reach it: the service
     # provider values shown to admins (ACS URL, OIDC redirect URI) are on it.

@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 
 from common.configs.shipped_secrets import require_secrets
+from common.settings.loader import ensure_poller, load_snapshot
+from common.settings.loader.pydantic_source import StoreBackedSettings
 from dotenv import load_dotenv
 
 from googleform.config.apm_settings import APMSettings
@@ -20,8 +22,17 @@ default_dot_env_path = (
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
+# Settings may come from the signed settings store (SETTINGS_STORE=off|auto|
+# required; auto and unconfigured means environment and defaults only). One
+# snapshot is read here, before the settings classes below are built.
+load_snapshot(
+    "google",
+    required_env_keys=("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY"),
+)
 
-class Application(BaseSettings):
+
+
+class Application(StoreBackedSettings):
     """Define application configuration model.
 
     Constructor will attempt to determine the values of any fields not passed
@@ -108,6 +119,7 @@ class Application(BaseSettings):
 
 
 settings = Application()
+ensure_poller()  # no-op when the store is off
 
 # Tokens from the auth service are checked with AUTH_JWT_SECRET and Google
 # credentials are encrypted with AUTH_AES_HEX_KEY: never run with either unset

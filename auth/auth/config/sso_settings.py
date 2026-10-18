@@ -9,9 +9,10 @@ variables configure the backend.
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class SSOSettings(BaseSettings):
+class SSOSettings(StoreBackedSettings):
     ENABLED: bool = False
     # Polis as the browser reaches it (the authorize redirect).
     POLIS_URL: Optional[str] = ""

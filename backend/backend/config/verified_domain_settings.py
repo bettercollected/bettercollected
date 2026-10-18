@@ -1,8 +1,9 @@
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class VerifiedDomainSettings(BaseSettings):
+class VerifiedDomainSettings(StoreBackedSettings):
     """Email domains a workspace proves it owns with a DNS TXT record
     (``docs/verified-domains.md``)."""
 

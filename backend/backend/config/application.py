@@ -4,8 +4,15 @@ import os
 from pathlib import Path
 
 from common.configs.shipped_secrets import require_secrets
+from common.settings.loader import (
+    ensure_poller,
+    expose_live,
+    load_snapshot,
+    set_keyset_key_ids,
+)
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
@@ -37,8 +44,17 @@ default_dot_env_path = (
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
+# Settings may come from the signed settings store (SETTINGS_STORE=off|auto|
+# required; auto and unconfigured means environment and defaults only). One
+# snapshot is read here, before the settings classes below are built.
+load_snapshot(
+    "backend",
+    required_env_keys=("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY"),
+)
 
-class Application(BaseSettings):
+
+
+class Application(StoreBackedSettings):
     """Define application configuration model.
 
     Constructor will attempt to determine the values of any fields not passed
@@ -87,6 +103,22 @@ class Application(BaseSettings):
 
 
 settings = Application()
+
+# Hot (class H) settings are read through live(), for example live().ai.X
+expose_live("ai", settings.ai)
+expose_live("api", settings.api_settings)
+
+
+def _keyset_key_ids():
+    """Key ids (never key material) of MASTER_ENCRYPTION_KEYSET, for the
+    fingerprint this service reports to the settings store."""
+    from common.services.keyset import KEYSET_ENV, parse_keyset
+
+    return [key.key_id for key in parse_keyset(os.getenv(KEYSET_ENV)).key]
+
+
+set_keyset_key_ids(_keyset_key_ids)
+ensure_poller()  # no-op when the store is off
 
 # Session tokens are signed with AUTH_JWT_SECRET and OAuth/SSO state, action
 # and SCIM secrets are encrypted with AUTH_AES_HEX_KEY: never run with either

@@ -1,9 +1,10 @@
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class UmamiSettings(BaseSettings):
+class UmamiSettings(StoreBackedSettings):
 
     USERNAME: Optional[str] = ""
     PASSWORD: Optional[str] = ""

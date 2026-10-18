@@ -6,9 +6,10 @@ the same admin API key.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class SCIMSettings(BaseSettings):
+class SCIMSettings(StoreBackedSettings):
     # Where Polis delivers a directory's events: this backend's
     # /api/v1/scim/webhook, as Polis reaches it (in compose, over the internal
     # `sso` network: http://backend:8000/api/v1/scim/webhook). The directory's
