@@ -47,18 +47,23 @@ needs_postgres = pytest.mark.skipif(
 
 
 def roles_sql(
-    suffix: str, admin_pw: str, mig_pw: str, tasks_pw: str = "unused-tasks-pw"
+    suffix: str,
+    admin_pw: str,
+    mig_pw: str,
+    tasks_pw: str = "unused-tasks-pw",
+    tasks_data_pw: str = "unused-tasks-data-pw",
 ) -> str:
     """The roles script's SQL with psql variables bound and role names suffixed."""
     script = ROLES_SCRIPT.read_text()
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
-    sql = re.sub(r"\bbc_(app|auth|google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
+    sql = re.sub(r"\bbc_(app|auth|google|tasks_data|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return (
         sql.replace(":'admin_pw'", f"'{admin_pw}'")
         .replace(":'mig_pw'", f"'{mig_pw}'")
         .replace(":'tasks_pw'", f"'{tasks_pw}'")
+        .replace(":'tasks_data_pw'", f"'{tasks_data_pw}'")
     )
 
 
@@ -128,6 +133,8 @@ class Server:
             return _with_database(
                 self.admin_url, database, self.runtime_role, self.admin_pw
             )
+        if role == "data":
+            return _with_database(self.admin_url, database, self.data_role, self.data_pw)
         if role == "owner":
             return _with_database(
                 self.admin_url, database, self.owner_role, self.mig_pw
@@ -145,6 +152,11 @@ class Server:
         return name
 
     created: list = None  # set in the fixture
+    data_pw: str = ""  # the task runner's data role (bc_tasks_data), set in the fixture
+
+    @property
+    def data_role(self) -> str:
+        return f"bc_tasks_data_{self.suffix}"
 
 
 async def _create_from_template(postgres_url: str, name: str, template: str) -> None:
@@ -172,7 +184,13 @@ async def _bootstrap(server: Server, database: str) -> None:
     # bc_tasks is created by the roles script itself (the runner's login role)
     await _execute(
         server.url(database),
-        roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw),
+        roles_sql(
+            server.suffix,
+            server.admin_pw,
+            server.mig_pw,
+            server.tasks_pw,
+            server.data_pw,
+        ),
     )
     for logical in READER_ROLES:
         await _execute(
@@ -199,6 +217,7 @@ async def server():
         boot,
     )
     srv.created = [template, boot]
+    srv.data_pw = secrets.token_hex(12)
     role_vars = {
         "ADMIN_DB_RUNTIME_ROLE": srv.runtime_role,
         **{f"ADMIN_DB_ROLE_{r.upper()}": srv.reader_role(r) for r in READER_ROLES},
@@ -223,6 +242,7 @@ async def server():
         for role in (
             srv.runtime_role,
             srv.owner_role,
+            srv.data_role,
             *(f"bc_{r}_{suffix}" for r in {*INIT_ROLES, *READER_ROLES}),
         ):
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')

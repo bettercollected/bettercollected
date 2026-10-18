@@ -15,6 +15,21 @@
 #                 INSERT and SELECT on admin.audit_log; nothing else in `admin`
 #                 and nothing in the other services' schemas.
 #
+#   bc_tasks_data the task runner's DATA role (the runner's DATABASE_URL, apart
+#                 from bc_tasks, which holds its own state and the settings
+#                 store). It reads and re-encrypts the stored responses and the
+#                 Google credentials, and stamps responses with their workspace,
+#                 and nothing else: column-level SELECT on exactly the columns
+#                 the tasks read, column-level UPDATE on `doc` and
+#                 `_bc_checksum` of three tables, no INSERT or DELETE, no
+#                 TEMPORARY, no access to `admin`, `tasks`, `settings`, `auth`
+#                 or `jobs`. Never use bc_app or bc_google for this. These
+#                 grants live here, not in a migration: the tables belong to
+#                 other roles, and only the superuser may grant on them. This
+#                 script runs again after the other services' migrations
+#                 (deploy.sh), so the grants reach tables created on first
+#                 deploy.
+#
 # Schema `tasks` (the runner's state) is created here, owned by bc_admin_mig,
 # like `admin`.
 #
@@ -23,17 +38,18 @@
 # it after a migration repairs drift. There are NO default privileges on
 # purpose: they would hand UPDATE/DELETE on audit_log to the runtime role.
 #
-# Passwords come from BC_ADMIN_PASSWORD, BC_ADMIN_MIG_PASSWORD and BC_TASKS_PASSWORD and are never
-# printed. Run inside the postgres container (it reads POSTGRES_USER/DB):
+# Passwords come from BC_ADMIN_PASSWORD, BC_ADMIN_MIG_PASSWORD, BC_TASKS_PASSWORD and
+# BC_TASKS_DATA_PASSWORD and are never printed. Run inside the postgres container (it reads POSTGRES_USER/DB):
 #   docker compose exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh
 set -euo pipefail
 
 : "${BC_ADMIN_PASSWORD:?BC_ADMIN_PASSWORD must be set}"
 : "${BC_ADMIN_MIG_PASSWORD:?BC_ADMIN_MIG_PASSWORD must be set}"
 : "${BC_TASKS_PASSWORD:?BC_TASKS_PASSWORD must be set}"
+: "${BC_TASKS_DATA_PASSWORD:?BC_TASKS_DATA_PASSWORD must be set}"
 # the passwords are placed unencoded in database URLs by the compose file and
 # deploy.sh: refuse characters that would break a URL (never print the value)
-for name in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD; do
+for name in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_PASSWORD; do
     if ! printf '%s' "${!name}" | grep -Eq '^[A-Za-z0-9._~-]+$'; then
         echo "$name may only contain letters, digits, '.', '_', '~' and '-' (it is used unencoded in a database URL)." >&2
         exit 1
@@ -45,12 +61,14 @@ done
 psql -v ON_ERROR_STOP=1 --quiet --output /dev/null --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
     -v admin_pw="$BC_ADMIN_PASSWORD" \
     -v mig_pw="$BC_ADMIN_MIG_PASSWORD" \
-    -v tasks_pw="$BC_TASKS_PASSWORD" <<'SQL'
+    -v tasks_pw="$BC_TASKS_PASSWORD" \
+    -v tasks_data_pw="$BC_TASKS_DATA_PASSWORD" <<'SQL'
 SET log_statement = 'none';
 SET log_min_error_statement = 'panic';
 SELECT count(set_config('bc.admin_pw', :'admin_pw', false));
 SELECT count(set_config('bc.mig_pw', :'mig_pw', false));
 SELECT count(set_config('bc.tasks_pw', :'tasks_pw', false));
+SELECT count(set_config('bc.tasks_data_pw', :'tasks_data_pw', false));
 
 DO $do$
 DECLARE
@@ -111,6 +129,25 @@ BEGIN
         EXECUTE format('GRANT USAGE ON SCHEMA settings TO %I', r[1]);
     END LOOP;
 
+    -- the task runner's data role: a login role of its own, no search_path into
+    -- `admin`, no USAGE on admin, tasks or settings
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bc_tasks_data') THEN
+        CREATE ROLE bc_tasks_data LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+    END IF;
+    EXECUTE format('ALTER ROLE bc_tasks_data PASSWORD %L', current_setting('bc.tasks_data_pw'));
+    ALTER ROLE bc_tasks_data SET search_path = app;
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO bc_tasks_data', current_database());
+    REVOKE ALL ON SCHEMA admin, tasks, settings FROM bc_tasks_data;
+    IF to_regclass('admin.audit_log') IS NOT NULL THEN
+        REVOKE ALL ON ALL TABLES IN SCHEMA admin FROM bc_tasks_data;
+    END IF;
+    IF to_regclass('tasks.runs') IS NOT NULL THEN
+        REVOKE ALL ON ALL TABLES IN SCHEMA tasks FROM bc_tasks_data;
+    END IF;
+    IF to_regclass('settings.entries') IS NOT NULL THEN
+        REVOKE ALL ON ALL TABLES IN SCHEMA settings FROM bc_tasks_data;
+    END IF;
+
     -- no access to the other services' schemas, for any of them
     FOREACH s IN ARRAY ARRAY['app', 'auth', 'google', 'jobs'] LOOP
         IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = s) THEN
@@ -122,6 +159,10 @@ BEGIN
                 EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM %I', s, r[1]);
                 EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA %I FROM %I', s, r[1]);
             END LOOP;
+            -- the data role starts from nothing as well; its grants follow below
+            EXECUTE format('REVOKE ALL ON SCHEMA %I FROM bc_tasks_data', s);
+            EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM bc_tasks_data', s);
+            EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA %I FROM bc_tasks_data', s);
         END IF;
     END LOOP;
 
@@ -130,6 +171,7 @@ BEGIN
     -- service roles, whose access stays exactly as it was
     EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());
     EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM bc_admin_mig', current_database());
+    EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM bc_tasks_data', current_database());
     FOREACH r SLICE 1 IN ARRAY runtime_roles LOOP
         EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM %I', current_database(), r[1]);
     END LOOP;
@@ -177,6 +219,32 @@ BEGIN
         GRANT UPDATE (status, attempts, sent_at) ON admin.notifications TO bc_admin;
     END IF;
 
+    -- The data task runner's grants: exactly the columns the responses and
+    -- keyset tasks read and write, as column privileges. The generated columns
+    -- (form_id, workspace_id, user_id, ...) are read-only for everyone; `doc`
+    -- and `_bc_checksum` are what a re-encryption or a workspace stamp changes.
+    -- Functions in `app` and `google` (the generated columns' helpers) need the
+    -- schema's USAGE, nothing more.
+    IF to_regclass('app.form_responses') IS NOT NULL THEN
+        GRANT USAGE ON SCHEMA app TO bc_tasks_data;
+        GRANT SELECT (id, form_id, response_id, workspace_id, doc) ON app.form_responses TO bc_tasks_data;
+        GRANT UPDATE (doc, _bc_checksum) ON app.form_responses TO bc_tasks_data;
+    END IF;
+    IF to_regclass('app.responses_deletion_requests') IS NOT NULL THEN
+        GRANT USAGE ON SCHEMA app TO bc_tasks_data;
+        GRANT SELECT (id, form_id, response_id, workspace_id, doc) ON app.responses_deletion_requests TO bc_tasks_data;
+        GRANT UPDATE (doc, _bc_checksum) ON app.responses_deletion_requests TO bc_tasks_data;
+    END IF;
+    IF to_regclass('app.workspace_forms') IS NOT NULL THEN
+        GRANT USAGE ON SCHEMA app TO bc_tasks_data;
+        GRANT SELECT (id, form_id, workspace_id, doc) ON app.workspace_forms TO bc_tasks_data;
+    END IF;
+    IF to_regclass('google.oauth_credentials') IS NOT NULL THEN
+        GRANT USAGE ON SCHEMA google TO bc_tasks_data;
+        GRANT SELECT (id, user_id, doc) ON google.oauth_credentials TO bc_tasks_data;
+        GRANT UPDATE (doc, _bc_checksum) ON google.oauth_credentials TO bc_tasks_data;
+    END IF;
+
     -- the settings store. The writer (bc_admin) holds exactly these; no DELETE
     -- on entries or manifest, and service_state is written
     -- only through settings.report_state.
@@ -213,5 +281,6 @@ $do$;
 RESET bc.admin_pw;
 RESET bc.mig_pw;
 RESET bc.tasks_pw;
+RESET bc.tasks_data_pw;
 SQL
 echo "admin roles and schema are in place."

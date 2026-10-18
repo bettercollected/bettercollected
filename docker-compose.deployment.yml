@@ -145,6 +145,7 @@ services:
       BC_ADMIN_PASSWORD: ${BC_ADMIN_PASSWORD:?set by deploy.sh in the root .env}
       BC_ADMIN_MIG_PASSWORD: ${BC_ADMIN_MIG_PASSWORD:?set by deploy.sh in the root .env}
       BC_TASKS_PASSWORD: ${BC_TASKS_PASSWORD:?set by deploy.sh in the root .env}
+      BC_TASKS_DATA_PASSWORD: ${BC_TASKS_DATA_PASSWORD:?set by deploy.sh in the root .env}
     # explicit priorities: without them Compose 2.24 / Engine 27 sometimes left
     # this container on one network only (docs/admin-service.md)
     networks:
@@ -354,10 +355,16 @@ services:
       # Set TASK_RUNNER_DATABASE_URL to a role that may read (and, for the
       # backfill, update) app.form_responses and app.responses_deletion_requests,
       # for example the backend's: docs/admin-service.md.
-      DATABASE_URL: ${TASK_RUNNER_DATABASE_URL:-}
+      DATABASE_URL: ${TASK_RUNNER_DATABASE_URL:-postgresql+asyncpg://bc_tasks_data:${BC_TASKS_DATA_PASSWORD}@app-postgres:5432/bettercollected}
       MONGO_URI: ${TASK_RUNNER_MONGO_URI:-}
       MONGO_DB: ${TASK_RUNNER_MONGO_DB:-}
       MASTER_ENCRYPTION_KEYSET: ${TASK_RUNNER_KEYSET:-}
+      # keyset.* tasks: which stores the services write (as their DB_WRITE_MODE)
+      # and the Google integration's Mongo database
+      DB_WRITE_MODE: ${DB_WRITE_MODE:-}
+      DB_WRITE_MODE__RESPONSES: ${DB_WRITE_MODE__RESPONSES:-}
+      DB_WRITE_MODE__GOOGLE: ${DB_WRITE_MODE__GOOGLE:-}
+      GOOGLE_MONGO_DB: ${TASK_RUNNER_GOOGLE_MONGO_DB:-}
     depends_on:
       app-postgres:
         condition: service_healthy
