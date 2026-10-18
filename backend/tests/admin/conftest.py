@@ -189,3 +189,13 @@ def rate_limit_clock():
 @pytest.fixture(autouse=True)
 def no_silent_mirror_failures():
     yield
+
+
+from tests.admin.portal_fixtures import (  # noqa: E402,F401
+    app,
+    browser,
+    clock,
+    make_portal,
+    portal,
+    transport,
+)
