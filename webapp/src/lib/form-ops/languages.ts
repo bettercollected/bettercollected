@@ -23,11 +23,12 @@ export const FORM_LANGUAGES = [
 
 export type FormLanguage = (typeof FORM_LANGUAGES)[number]['code'];
 
-const NAMES: Record<string, string> = Object.fromEntries(FORM_LANGUAGES.map(({ code, name }) => [code, name]));
+// A Map, not an object: "constructor" or "__proto__" must not read as a language.
+const NAMES: ReadonlyMap<string, string> = new Map(FORM_LANGUAGES.map(({ code, name }) => [code, name]));
 
 /** The language's own name ("Nederlands"), or undefined when it is not one of FORM_LANGUAGES. */
 export function formLanguageName(code: string | null | undefined): string | undefined {
-    return code ? NAMES[code] : undefined;
+    return code ? NAMES.get(code) : undefined;
 }
 
 /**
@@ -38,7 +39,7 @@ export function formLanguageName(code: string | null | undefined): string | unde
 export function checkedFormLanguage(value: string | null | undefined): FormLanguage | null {
     if (value == null || !value.trim()) return null;
     const tag = value.trim().toLowerCase();
-    if (!(tag in NAMES)) {
+    if (!NAMES.has(tag)) {
         throw new OpError(`'${value.trim()}' is not a language a form can be set to. Use one of: ${FORM_LANGUAGES.map((l) => l.code).join(', ')} (or null to clear it).`);
     }
     return tag as FormLanguage;

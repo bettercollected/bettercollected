@@ -329,6 +329,27 @@ def checked_form_language(value: Optional[str]) -> Optional[str]:
     return tag
 
 
+# A well-formed language tag ("nl", "en-GB", "pt-BR"): what the respondent
+# page accepts for `lang` (webapp use-form-content-language.ts).
+_LANGUAGE_TAG = re.compile(r"^[a-z]{2,3}(-[a-z0-9]{2,8})*$", re.IGNORECASE)
+
+
+def normalised_form_language(value: Optional[str]) -> Optional[str]:
+    """The language a form brings when it is created from elsewhere (a
+    request body, a template, a copy, an import): a listed language as
+    ``checked_form_language`` gives it; another well-formed tag as it is
+    (imports set regional tags such as "en-GB", which the respondent page
+    can use), so that creating a form never fails on it; anything else
+    None (dropped)."""
+    if value is None or not value.strip():
+        return None
+    try:
+        return checked_form_language(value)
+    except ValueError:
+        tag = value.strip()
+        return tag if len(tag) <= 35 and _LANGUAGE_TAG.match(tag) else None
+
+
 class StandardFormSettings(BaseModel):
     """
     Data transfer object for standard form settings.

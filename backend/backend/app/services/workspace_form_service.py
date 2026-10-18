@@ -17,6 +17,7 @@ from common.models.standard_form import (
     StandardFormSettings,
     checked_form_language,
     date_rule_problems,
+    normalised_form_language,
 )
 from common.models.user import User
 from fastapi import UploadFile
@@ -39,6 +40,7 @@ from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.models.template import StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.actions_service import ActionService
@@ -171,6 +173,18 @@ def _retention_key(kind, value):
     kind = getattr(kind, "value", kind) or None
     value = value.strip() if isinstance(value, str) else value
     return kind, value or None
+
+
+def _saved_language(sent: str, stored: Optional[str]) -> Optional[str]:
+    """The language a whole-form save stores: ``sent`` when it is the stored
+    one or a language a form can be set to (``checked_form_language``),
+    else the stored one."""
+    if sent == stored:
+        return stored
+    try:
+        return checked_form_language(sent)
+    except ValueError:
+        return stored
 
 
 # The workspace's settings a whole-form save may change (update_form).
@@ -621,6 +635,11 @@ class WorkspaceFormService:
         # the others instead of refusing
         check_form_images(form, None, drop=drop_unusable_settings)
         _sanitise_titles(form)
+        # The language the new form brings (a body, a template, an import):
+        # a listed one normalised, another well-formed tag kept, anything
+        # else dropped; creating a form never fails on it.
+        if form.settings is not None and form.settings.language is not None:
+            form.settings.language = normalised_form_language(form.settings.language)
         settings = (
             form.settings
             if form.settings
@@ -728,13 +747,15 @@ class WorkspaceFormService:
         # the form's conditional write is what can still refuse the save.
         # The form's language: one a form can declare (FORM_LANGUAGES), as
         # the op set_form_language takes it; sending back the stored one (an
-        # import's "en-GB", say) is not a change.
+        # import's "en-GB", say) is not a change. Any other tag keeps the
+        # stored language rather than refusing the save: the builder's undo
+        # can put a tag back that the form has since stopped having, and
+        # every later save of the form must still go through.
         if form.settings is not None and form.settings.language is not None:
-            stored = existing_form.settings.language if existing_form.settings else None
-            if form.settings.language != stored:
-                form.settings.language = _unprocessable_unless(
-                    checked_form_language, form.settings.language
-                )
+            form.settings.language = _saved_language(
+                form.settings.language,
+                existing_form.settings.language if existing_form.settings else None,
+            )
         # (the builder's saves send the form's language alone: that is the
         # form's own setting, written with the form, not the workspace's)
         settings_changed = bool(form.settings) and any(
@@ -1336,6 +1357,14 @@ class WorkspaceFormService:
         )
         duplicated_form.description = form.description
         duplicated_form.button_text = form.button_text
+        # The language the questions are written in comes along; the form's
+        # other own settings do not (as before).
+        language = form.settings.language if form.settings else None
+        if language:
+            if is_template:
+                duplicated_form.settings = StandardTemplateSetting(language=language)
+            else:
+                duplicated_form.settings = StandardFormSettings(language=language)
         # A copy is a new form: first-party images only, as for a template copy
         # (Unsplash photos kept by their canonical address, others dropped); the source's grandfathered
         # addresses do not carry over (services/form_images.py).

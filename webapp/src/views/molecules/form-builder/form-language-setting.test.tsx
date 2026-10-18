@@ -74,6 +74,19 @@ describe('FormLanguageSetting', () => {
         expect(within(select()).getByRole('option', { name: 'en-GB' })).toBeInTheDocument();
     });
 
+    it('undo puts back a language set elsewhere exactly', () => {
+        // the op refuses "en-GB", so undo restores the document as it was
+        // (the server keeps the language it has for such a tag)
+        const store = renderWith({ language: 'en-GB' });
+        fireEvent.change(select(), { target: { value: 'nl' } });
+        expect(store.get(formLanguageAtom)).toBe('nl');
+        act(() => {
+            store.set(undoAtom);
+        });
+        expect(store.get(formLanguageAtom)).toBe('en-GB');
+        expect(select()).toHaveValue('en-GB');
+    });
+
     it('reads in Dutch', async () => {
         await act(() => i18n.changeLanguage('nl'));
         renderWith();

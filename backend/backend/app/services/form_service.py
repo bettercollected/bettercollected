@@ -55,12 +55,16 @@ from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
 
-def _stub_settings(workspace_form, form) -> FormSettingsCamelModel:
+def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
     """The settings of a private or unauthorised form's stub: the
     association's, plus the form's declared language, as the full read
     returns them."""
+    language = form.settings.language if form.settings else None
+    if workspace_form.settings is None:
+        # as the full read: the language alone, or no settings
+        return FormSettingsCamelModel(language=language) if language else None
     settings = FormSettingsCamelModel(**workspace_form.settings.model_dump())
-    settings.language = form.settings.language if form.settings else None
+    settings.language = language
     return settings
 
 

@@ -18,6 +18,9 @@ from backend.app.models.enum.template import TemplateCategory
 
 class StandardTemplateSetting(BaseModel):
     is_public: Optional[bool] = False
+    # The language the template's questions are written in (a form's
+    # settings.language), passed on to the forms made from it.
+    language: Optional[str] = None
 
 
 class StandardTemplateSettingsCamelModel(StandardTemplateSetting, CamelModel):

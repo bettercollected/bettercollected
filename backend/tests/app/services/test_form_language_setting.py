@@ -187,28 +187,118 @@ async def test_a_builder_save_sends_the_language_and_keeps_the_other_settings(
     assert stored.settings.embed_url == "https://embed.example/form"
 
 
-async def test_a_builder_save_takes_only_a_listed_language(
+async def _store_language(form_id, language):
+    document = await _draft(form_id)
+    document.settings.language = language
+    await container.form_repo().save_form(document)
+
+
+async def test_a_builder_save_stores_only_a_listed_language(
     client: AsyncClient, workspace, workspace_form, test_user_cookies
 ):
     form_id = workspace_form.form_id
-    refused = await client.patch(
-        _forms_url(workspace, form_id),
-        data={"form_body": json.dumps(_body({"language": "tlh"}))},
-        cookies=test_user_cookies,
-    )
-    assert refused.status_code == 422, refused.text
-    assert "is not a language a form can be set to" in refused.text
+    await _store_language(form_id, "fr")
+    # another tag keeps the stored language; the save itself goes through
+    await _save(client, workspace, form_id, test_user_cookies, {"language": "tlh"})
+    assert (await _draft(form_id)).settings.language == "fr"
 
     # a language an import set, sent back unchanged, is kept as it is
-    document = await _draft(form_id)
-    document.settings.language = "en-GB"
-    await container.form_repo().save_form(document)
+    await _store_language(form_id, "en-GB")
     await _save(client, workspace, form_id, test_user_cookies, {"language": "en-GB"})
     assert (await _draft(form_id)).settings.language == "en-GB"
 
     # a listed one in another case is stored as the op stores it
     await _save(client, workspace, form_id, test_user_cookies, {"language": "NL"})
     assert (await _draft(form_id)).settings.language == "nl"
+
+
+async def test_undo_back_to_an_imported_tag_never_blocks_later_saves(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies
+):
+    """Stored "en-GB" (an import's), changed to "nl", then undone in the
+    builder: its document holds "en-GB" again, which it sends with every
+    save from then on. The saves go through and keep "nl"."""
+    form_id = workspace_form.form_id
+    await _store_language(form_id, "en-GB")
+    await _save(client, workspace, form_id, test_user_cookies, {"language": "nl"})
+    assert (await _draft(form_id)).settings.language == "nl"
+
+    for title in ("Undone", "Edited after the undo"):
+        body = dict(_body({"language": "en-GB"}), title=title)
+        reply = await client.patch(
+            _forms_url(workspace, form_id),
+            data={"form_body": json.dumps(body)},
+            cookies=test_user_cookies,
+        )
+        assert reply.status_code == 200, reply.text
+        stored = await _draft(form_id)
+        assert stored.title == title
+        assert stored.settings.language == "nl"
+
+
+@pytest.mark.parametrize("settings", [{}, {"provider": "self"}])
+async def test_a_save_whose_settings_leave_the_language_out_keeps_it(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies, settings
+):
+    form_id = workspace_form.form_id
+    await _store_language(form_id, "da")
+    await _save(client, workspace, form_id, test_user_cookies, settings)
+    assert (await _draft(form_id)).settings.language == "da"
+
+
+async def test_the_language_is_read_when_the_workspace_has_no_settings_for_the_form(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies, user_details
+):
+    form_id = workspace_form.form_id
+    await _save(client, workspace, form_id, test_user_cookies, {"language": "pl"})
+    repo = container.workspace_form_repo()
+    association = await repo.find_workspace_form(workspace.id, form_id)
+    association.settings = None
+    await repo.save(association)
+
+    # the builder's read: it loads the language, so its saves keep it
+    draft = await client.get(_forms_url(workspace, form_id), cookies=test_user_cookies)
+    assert draft.status_code == 200, draft.text
+    assert draft.json()["settings"]["language"] == "pl"
+
+
+async def test_a_new_form_brings_its_language_without_failing(
+    client: AsyncClient, workspace, test_user_cookies
+):
+    """Created from a body (or a template, a copy, an import): a listed
+    language normalised, another well-formed tag kept as it is, anything
+    else dropped."""
+    for sent, stored in ((" NL ", "nl"), ("en-GB", "en-GB"), ("<b>", None)):
+        reply = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms",
+            data={"form_body": json.dumps(_body({"language": sent}))},
+            cookies=test_user_cookies,
+        )
+        assert reply.status_code == 200, reply.text
+        assert (await _draft(reply.json()["formId"])).settings.language == stored
+
+
+async def test_a_copy_and_a_template_keep_the_language(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies
+):
+    form_id = workspace_form.form_id
+    await _save(client, workspace, form_id, test_user_cookies, {"language": "it"})
+
+    copy_reply = await client.post(
+        f"{_forms_url(workspace, form_id)}/duplicate", cookies=test_user_cookies
+    )
+    assert copy_reply.status_code == 200, copy_reply.text
+    assert (await _draft(copy_reply.json()["formId"])).settings.language == "it"
+
+    service = container.workspace_form_service()
+    template = await service.duplicate_form(
+        workspace.id, form_id, testUser, is_template=True
+    )
+    assert template.settings.language == "it"
+    made = await container.form_template_service().create_form_from_template(
+        workspace.id, template.id, testUser
+    )
+    assert (await _draft(made.form_id)).settings.language == "it"
 
 
 async def test_a_builder_save_of_the_language_leaves_the_workspace_settings(
@@ -254,6 +344,34 @@ class TestTheFormSpec:
         assert cleared.status_code == 200, cleared.text
         assert "language" not in cleared.json()
         assert (await _draft(form_id)).settings.language is None
+
+    async def test_a_replacement_still_replaces_the_forms_policy_and_retention(
+        self, client: AsyncClient, workspace
+    ):
+        """The form's own copies of the policy link and the retention follow
+        the document (or the workspace's settings), as before."""
+        token = await _token(workspace.id)
+        created = await _create(client, token)
+        form_id, etag = created.json()["formId"], created.headers["ETag"]
+        document = await _draft(form_id)
+        document.settings.privacy_policy_url = "https://stale.example/policy"
+        document.settings.response_expiration_type = "days"
+        document.settings.response_expiration = "30"
+        await container.form_repo().save_form(document)
+        etag = (await client.get(f"{BASE}/forms/{form_id}", headers=_auth(token))).headers[
+            "ETag"
+        ]
+
+        replaced = await client.put(
+            f"{BASE}/forms/{form_id}",
+            json=copy.deepcopy(SPEC),
+            headers=_auth(token, **{"If-Match": etag}),
+        )
+        assert replaced.status_code == 200, replaced.text
+        own = (await _draft(form_id)).settings
+        assert own.privacy_policy_url is None
+        assert own.response_expiration_type is None
+        assert own.response_expiration is None
 
     async def test_a_language_off_the_list_is_refused(
         self, client: AsyncClient, workspace

@@ -43,6 +43,15 @@ describe('form languages', () => {
         expect(checkedFormLanguage(null)).toBeNull();
         expect(() => checkedFormLanguage('nl-NL')).toThrow(OpError);
     });
+
+    it('are not object keys: "constructor" and "__proto__" are no language', () => {
+        for (const tag of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+            expect(() => checkedFormLanguage(tag)).toThrow(OpError);
+            expect(formLanguageName(tag)).toBeUndefined();
+        }
+        const { results } = applyOps(form(), [{ op: 'set_form_language', language: 'constructor' }]);
+        expect(results[0].ok).toBe(false);
+    });
 });
 
 describe('set_form_language', () => {
