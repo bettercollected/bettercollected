@@ -4,7 +4,7 @@
 <h1>{% if kind == "apply" %}{{ _("Confirm: apply") }}{% elif kind == "cancel" %}{{ _("Confirm: cancel run") }}{% else %}{{ _("Confirm: resume run") }}{% endif %}</h1>
 <p><code>{{ title }}</code>{% if version %}, {{ _("version") }} {{ version }}{% endif %}</p>
 {% if summary %}
-<table>
+<table class="kv">
   <caption>{{ _("Parameters") }}</caption>
   <tbody>
   {% for label, value in summary %}

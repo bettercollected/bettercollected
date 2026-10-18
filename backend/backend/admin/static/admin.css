@@ -77,3 +77,4 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .actions { margin: 0.5rem 0; }
 progress { width: min(24rem, 70%); height: 1rem; vertical-align: middle; }
 [hidden] { display: none !important; }
+table.kv th { width: 14rem; max-width: 45%; }

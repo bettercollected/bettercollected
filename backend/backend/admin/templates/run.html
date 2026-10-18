@@ -35,7 +35,7 @@
     <p><a href="/tasks/runs/{{ r.id }}">{{ _("Refresh") }}</a></p>
   </div>
   {% if r.refusal_code %}
-  <p class="error" role="alert"><code>{{ r.refusal_code }}</code>{% if r.refusal_code in refusal_texts %}: {{ refusal_texts[r.refusal_code] }}{% else %}: {{ _("The task declined to run:") }} {{ r.refusal_code.replace("_", " ") }}{% endif %}</p>
+  <p class="error" role="alert"><code>{{ r.refusal_code }}</code>{% if r.state == "refused" and r.refusal_code in refusal_texts %}: {{ refusal_texts[r.refusal_code] }}{% elif r.state == "refused" %}: {{ _("The task declined to run:") }} {{ r.refusal_code.replace("_", " ") }}{% else %}: {{ _("The task reported:") }} {{ r.refusal_code.replace("_", " ") }}{% endif %}</p>
   {% endif %}
   {% if r.state == "failed" %}<p class="error" role="alert">{{ _("The run failed. The recorded events below name the error class.") }}</p>{% endif %}
   <dl class="facts">
@@ -76,7 +76,7 @@
 {% if d.params %}
 <section aria-labelledby="params">
   <h2 id="params">{{ _("Parameters") }}</h2>
-  <table>
+  <table class="kv">
     <tbody>
     {% for label, value in d.params %}
     <tr><th scope="row">{{ label }}</th><td>{% if value is sameas true %}{{ _("yes") }}{% elif value is sameas false %}{{ _("no") }}{% else %}{{ value }}{% endif %}</td></tr>
@@ -89,8 +89,8 @@
 {% if d.result is not none %}
 <section aria-labelledby="result">
   <h2 id="result">{{ _("Result") }}</h2>
-  <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Result') }}">
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Result table') }}">
+  <table class="kv">
     <tbody>
     {% for path, value in d.result %}
     <tr><th scope="row"><code>{{ path }}</code></th><td>{% if value is sameas true %}{{ _("yes") }}{% elif value is sameas false %}{{ _("no") }}{% elif value is none %}-{% else %}{{ value }}{% endif %}</td></tr>
@@ -105,7 +105,7 @@
 
 <section aria-labelledby="events">
   <h2 id="events">{{ _("Events") }} ({{ d.event_count }})</h2>
-  <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Events') }}">
+  <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Events table') }}">
   <table>
     <thead><tr>
       <th scope="col">{{ _("No.") }}</th><th scope="col">{{ _("Time") }}</th><th scope="col">{{ _("Code") }}</th>
@@ -120,7 +120,7 @@
       <td>{{ e.error_class or "-" }}</td>
     </tr>
     {% else %}
-    <tr id="no-events"><td colspan="6">{{ _("No events yet.") }}</td></tr>
+    <tr id="no-events"><td colspan="6">{{ _("No events recorded.") }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
