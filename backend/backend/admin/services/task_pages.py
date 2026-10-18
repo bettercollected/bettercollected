@@ -27,6 +27,7 @@ from typing import Any, Mapping, Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from backend.admin.repositories import settings as outbox
 from backend.admin.security.clock import Clock
 from backend.admin.services import audit, taskform
 from backend.admin.tasks import catalog, signing
@@ -488,6 +489,18 @@ class TaskPageService:
             ip=ip, ua=ua, request_id=rid,
         )
 
+    @staticmethod
+    async def _notify(conn, task: str, run_id, state: str, session, entry, dry_run: bool) -> None:
+        """The mail to every admin (``tasks.run``), in the same transaction as the
+        audit row. Dry runs and read-only runs are not mailed."""
+        if dry_run:
+            return
+        await outbox.enqueue_notification(
+            conn, "tasks.run",
+            {"task": task, "run_id": str(run_id), "state": state, "actor": session.email},
+            entry.seq, dedupe_key=f"tasks.run:{run_id}:{state}",
+        )
+
     async def _insert(self, conn, request: signing.RunRequest) -> None:
         import json
 
@@ -532,7 +545,7 @@ class TaskPageService:
                     requested_by=session.email, requested_at=self._clock.now(),
                 )
                 await self._insert(conn, request)
-                await audit.write(
+                entry = await audit.write(
                     conn, "task.run.requested", "task_run", str(request.id), None,
                     {"task": meta.name, "version": meta.version, "dry_run": dry_run,
                      "params": canonical},
@@ -543,6 +556,7 @@ class TaskPageService:
                             "params_digest": request.params_hash[:16]},
                     **self._actor(session, ip, ua, rid),
                 )
+                await self._notify(conn, meta.name, request.id, "queued", session, entry, dry_run)
         return Started(run_id=request.id)
 
     async def request_cancel(
@@ -567,13 +581,16 @@ class TaskPageService:
                 )
                 if updated.rowcount != 1:
                     return Started(run_id=run_id, already=True)
-                await audit.write(
+                entry = await audit.write(
                     conn, "task.run.cancel_requested", "task_run", str(run_id), None, None,
                     "success",
                     detail={"run_id": str(run_id), "task": row["task"],
                             "version": row["version"], "state": row["state"],
                             "dry_run": bool(row["dry_run"]), "requested_by": session.email},
                     **self._actor(session, ip, ua, rid),
+                )
+                await self._notify(
+                    conn, row["task"], run_id, "cancel_requested", session, entry, bool(row["dry_run"])
                 )
         return Started(run_id=run_id)
 
@@ -627,7 +644,7 @@ class TaskPageService:
                     resumes_run_id=run_id,
                 )
                 await self._insert(conn, request)
-                await audit.write(
+                entry = await audit.write(
                     conn, "task.run.requested", "task_run", str(request.id), None,
                     {"task": meta.name, "version": meta.version, "dry_run": dry_run,
                      "params": params},
@@ -638,4 +655,5 @@ class TaskPageService:
                             "params_digest": request.params_hash[:16]},
                     **self._actor(session, ip, ua, rid),
                 )
+                await self._notify(conn, meta.name, request.id, "queued", session, entry, dry_run)
         return Started(run_id=request.id)

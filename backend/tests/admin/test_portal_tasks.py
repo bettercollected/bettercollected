@@ -744,3 +744,21 @@ async def test_every_changing_action_is_audited_with_the_admin_and_masked_params
 def test_catalog_names_do_not_collide_with_literal_routes():
     for meta in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "1"}):
         assert meta.name not in ("runs", "prepare")
+
+
+async def test_real_runs_and_their_cancel_enqueue_the_admin_notice_in_the_same_transaction(ctx):
+    await ctx.dry_run(SLOW, {"items": "10"})
+    assert await ctx.sql("SELECT 1 FROM admin.notifications") == []  # a dry run is not mailed
+    _, final = await ctx.apply(SLOW, {"items": "10", "batch_size": "5"})
+    assert final.status_code == 303
+    run_id = final.headers["location"].split("?")[0].rsplit("/", 1)[1]
+    prepared = await ctx.prepare("cancel", {"run_id": run_id})
+    await ctx.post(f"/tasks/runs/{run_id}/cancel", {"stepup_token": TOKEN_FIELD.search(prepared.text).group(1)})
+    rows = await ctx.sql("SELECT kind, payload, audit_seq, dedupe_key FROM admin.notifications ORDER BY id")
+    assert [r["kind"] for r in rows] == ["tasks.run", "tasks.run"]
+    assert rows[0]["payload"] == {"task": SLOW, "run_id": run_id, "state": "queued", "actor": ADMIN}
+    assert rows[1]["payload"]["state"] == "cancel_requested"
+    assert all("params" not in json.dumps(r["payload"]) for r in rows)
+    audited = {r["seq"] for r in await ctx.sql("SELECT seq FROM admin.audit_log")}
+    assert {r["audit_seq"] for r in rows} <= audited
+    assert len({r["dedupe_key"] for r in rows}) == 2
