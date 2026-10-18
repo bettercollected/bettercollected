@@ -71,13 +71,10 @@ def test_every_second_factor_get_route_is_covered_here():
     assert set(PAGES + API) <= paths
 
 
-def test_no_route_under_settings_is_registered_yet_and_task_routes_are_all_guarded():
+def test_every_mutating_route_under_tasks_and_settings_declares_its_protection():
     from backend.admin.gate.stepup import STEPUP_REQUIRED_PREFIXES, undeclared_mutating_routes
 
-    routes = build_registry().router.routes
-    for r in routes:
-        assert not r.path.startswith("/settings"), r.path
-    assert undeclared_mutating_routes(routes, STEPUP_REQUIRED_PREFIXES) == []
+    assert undeclared_mutating_routes(build_registry().router.routes, STEPUP_REQUIRED_PREFIXES) == []
 
 
 @pytest.mark.parametrize("path", [r.path for r in page_routes()])

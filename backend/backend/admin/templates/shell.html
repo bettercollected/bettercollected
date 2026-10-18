@@ -5,6 +5,7 @@
   ("dashboard", "/", _("Dashboard")),
   ("health", "/health", _("Health")),
   ("config", "/config", _("Configuration")),
+  ("settings", "/settings", _("Settings")),
   ("metrics", "/metrics", _("Metrics")),
   ("audit", "/audit", _("Audit log")),
   ("sessions", "/sessions", _("Sessions")),
@@ -16,7 +17,6 @@
   {% for key, href, label in items %}
     <li><a href="{{ href }}"{% if active is defined and active == key %} aria-current="page"{% endif %}>{{ label }}</a></li>
   {% endfor %}
-    <li><span class="nav-later">{{ _("Settings") }} <span class="visually-hidden">({{ _("not available yet") }})</span></span></li>
   </ul>
 </nav>
 <div class="who">
@@ -30,6 +30,8 @@
   {% for b in banners | default([]) %}
     {% if b.kind == "restart" %}
     <p class="banner banner-warn" role="status">{{ _("Restart required for changed settings. Reported by:") }} {{ b.services }}.</p>
+    {% elif b.kind == "integrity" %}
+    <p class="banner banner-warn" role="status">{{ _("The last integrity check found") }} {{ b.count }} {{ _("problem(s).") }} <a href="/settings/integrity">{{ _("See details") }}</a></p>
     {% endif %}
   {% endfor %}
 </section>

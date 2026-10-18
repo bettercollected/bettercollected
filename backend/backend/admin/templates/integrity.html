@@ -1,0 +1,28 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Integrity check") }}{% endblock %}
+{% block content %}
+<p><a href="/settings">{{ _("All settings") }}</a></p>
+<h1>{{ _("Integrity check") }}</h1>
+<p>{{ _("Checks every stored setting's signature, the signed manifest and the audit trail. It reads secrets in memory only to compare digests and shows only setting names and reason codes.") }}</p>
+{% include "_notice.html" %}
+<form method="post" action="/settings/integrity/run">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit">{{ _("Run verification") }}</button>
+</form>
+<h2>{{ _("Last result") }}</h2>
+{% if result.ok is none %}
+<p>{{ _("Not run since this service started.") }}</p>
+{% else %}
+<p>{{ _("Run at") }} {{ result.last_run | ts }}: {% if result.ok %}<span class="ok">{{ _("no problems found") }}</span>{% else %}<span class="bad">{{ result.problems | length }} {{ _("problem(s)") }}</span>{% endif %}</p>
+{% if not result.ok %}
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Problems') }}">
+<table>
+  <caption>{{ _("Problems found") }}</caption>
+  <thead><tr><th scope="col">{{ _("Setting") }}</th><th scope="col">{{ _("Reason") }}</th></tr></thead>
+  <tbody>{% for key, reason in result.problems %}<tr><th scope="row"><code>{{ key }}</code></th><td><code>{{ reason }}</code></td></tr>{% endfor %}</tbody>
+</table>
+</div>
+<p class="muted">{{ _("A key shown as * is the manifest as a whole.") }}</p>
+{% endif %}
+{% endif %}
+{% endblock %}

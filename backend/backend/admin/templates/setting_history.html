@@ -1,0 +1,77 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("History") }} {{ detail.spec.key }}{% endblock %}
+{% block content %}
+<p><a href="/settings/{{ detail.spec.key }}">{{ _("Back to") }} <code>{{ detail.spec.key }}</code></a></p>
+<h1>{{ _("History of") }} <code>{{ detail.spec.key }}</code></h1>
+{% include "_notice.html" %}
+{% if detail.spec.is_secret %}<p>{{ _("Secret values are never shown. Only the last") }} {{ keep }} {{ _("sealed versions are kept; older ones are deleted automatically.") }}</p>{% endif %}
+
+{% if restore %}
+<h2>{{ _("Restore version") }} {{ restore.version }}</h2>
+<p>{{ _("This writes the old value again as a new version; the history is kept.") }}</p>
+<form method="post" action="/settings/{{ detail.spec.key }}/prepare" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="restore">
+  <input type="hidden" name="version" value="{{ restore.version }}">
+  <input type="hidden" name="expected_version" value="{{ detail.version }}">
+  {% if detail.spec.tier.value == "T3" %}
+  <div class="field">
+    <label for="confirmation">{{ _("Type the setting name to confirm") }}</label>
+    <input id="confirmation" name="confirmation" type="text" autocomplete="off" spellcheck="false" required>
+  </div>
+  {% endif %}
+  {% with id="code-restore" %}{% include "_code_field.html" %}{% endwith %}
+  <button type="submit">{{ _("Restore this version") }}</button> <a href="/settings/{{ detail.spec.key }}/history">{{ _("Cancel") }}</a>
+</form>
+{% endif %}
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Versions') }}">
+<table>
+  <caption>{{ items | length }} {{ _("versions shown, newest first") }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("Action") }}</th><th scope="col">{{ _("Source") }}</th>
+    <th scope="col">{{ _("Changed by") }}</th><th scope="col">{{ _("When") }}</th><th scope="col">{{ _("Value") }}</th>
+    <th scope="col">{{ _("Restore") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for i in items %}
+  <tr>
+    <th scope="row">{{ i.version }}{% if i.current %} <span class="tag">{{ _("current") }}</span>{% endif %}</th>
+    <td>{{ i.action }}</td><td>{{ i.source }}</td><td>{{ i.actor }}</td><td>{{ i.at | ts }}</td>
+    <td>
+      {% if i.cleared %}{{ _("cleared") }}
+      {% elif i.secret %}{{ _("set") }}
+      {% elif i.value is none %}-
+      {% else %}<code>{{ i.value }}</code>{% endif %}
+    </td>
+    <td>
+      {% if i.restorable and not detail.editable %}<a href="/settings/{{ detail.spec.key }}/history?restore={{ i.version }}">{{ _("Restore this version") }}<span class="visually-hidden"> {{ i.version }}</span></a>
+      {% else %}-{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7">{{ _("No history yet.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if detail.spec.is_secret and not detail.editable %}
+<h2>{{ _("Purge secret history") }}</h2>
+<p>{{ _("Deletes every sealed version except the current one. This cannot be undone.") }}</p>
+<form method="post" action="/settings/{{ detail.spec.key }}/prepare" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="purge_history">
+  <input type="hidden" name="expected_version" value="{{ detail.version }}">
+  <label class="check" for="confirm-purge"><input id="confirm-purge" type="checkbox" name="confirm_purge" value="yes" required> {{ _("I understand older versions will be deleted for good") }}</label>
+  {% if detail.spec.tier.value == "T3" %}
+  <div class="field">
+    <label for="confirmation-purge">{{ _("Type the setting name to confirm") }}</label>
+    <input id="confirmation-purge" name="confirmation" type="text" autocomplete="off" spellcheck="false" required>
+  </div>
+  {% endif %}
+  {% with id="code-purge" %}{% include "_code_field.html" %}{% endwith %}
+  <button type="submit" class="danger">{{ _("Purge history") }}</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -50,6 +50,9 @@ class StepUp:
 class ActionBound:
     name: str
     parts: Optional[Parts] = None  # values the token is bound to (default: none)
+    # for page forms: where to send the browser (303) when the token is missing or
+    # wrong, instead of the JSON 403 an API client gets
+    refused_to: Optional[Callable[[Request], str]] = None
 
     async def hash_for(self, request: Request) -> str:
         values = await self.parts(request) if self.parts else ()
@@ -69,6 +72,12 @@ class StepUpRefused(Exception):
 
 
 def _refusal(request: Request, spec) -> Response:
+    if (
+        isinstance(spec, ActionBound)
+        and spec.refused_to is not None
+        and not request.url.path.startswith("/api/")
+    ):
+        return RedirectResponse(spec.refused_to(request), status_code=303)
     if request.url.path.startswith("/api/") or not isinstance(spec, StepUp) or not spec.return_to:
         body = {"error": "stepup_required"}
         if isinstance(spec, ActionBound):
