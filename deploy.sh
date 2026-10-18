@@ -81,6 +81,19 @@ echo "IMPORTANT: back up SETTINGS_MASTER_KEY from .env. If it is lost, the admin
 echo "second-factor (TOTP) secrets cannot be decrypted and the audit log can no longer be"
 echo "verified; neither is recoverable. Never change or regenerate it on a stack that has"
 echo "admin data."
+# The portal starts only when PLATFORM_ADMIN_EMAILS (the super admin list) is set
+# in the root .env, next to the keys above. Never written here: it is the
+# operator's decision who may sign in.
+if ! grep -q "^PLATFORM_ADMIN_EMAILS=." .env 2>/dev/null; then
+  echo ""
+  echo "ADMIN PORTAL IS OFF: PLATFORM_ADMIN_EMAILS is not set in .env."
+  echo "Add the super admins' email addresses (comma-separated) to enable it:"
+  echo "  PLATFORM_ADMIN_EMAILS=you@example.com"
+  echo "Sign-in codes are mailed, so set MAIL_SMTP_SERVER and MAIL_SENDER (and"
+  echo "MAIL_USER / MAIL_PASSWORD if your server needs them) in .env as well."
+  echo "See docs/admin-service.md."
+  echo ""
+fi
 
 # Single sign-on (docs/sso.md): off unless the root .env has SSO_ENABLED=true.
 # Then Polis and its own Postgres run from the overlay
