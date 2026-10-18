@@ -14,7 +14,8 @@ import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from beanie import PydanticObjectId
-from common.services.crypto_service import crypto_service
+from common.services.crypto_service import UnreadableCiphertext, crypto_service
+from loguru import logger
 
 from backend.app.repositories.response_scope import (
     find_response_in_workspace,
@@ -49,11 +50,16 @@ def _status(value: Any) -> Optional[str]:
 
 def _decrypted(workspace_id: PydanticObjectId, form_id: str, data: Any) -> dict:
     if isinstance(data, (bytes, str)):
-        data = json.loads(
-            crypto_service.decrypt(
-                workspace_id=workspace_id, form_id=form_id, data=data
+        try:
+            data = json.loads(
+                crypto_service.decrypt(
+                    workspace_id=workspace_id, form_id=form_id, data=data
+                )
             )
-        )
+        except UnreadableCiphertext:
+            # a stored value that does not decrypt reads as empty, not a 500
+            logger.warning("a response of form {} does not decrypt", form_id)
+            return {}
     # JSON-safe (dates and the like as text)
     return json.loads(json.dumps(data if isinstance(data, dict) else {}, default=str))
 

@@ -6,6 +6,13 @@ import tink
 from tink import aead, cleartext_keyset_handle
 
 
+class UnreadableCiphertext(ValueError):
+    """A stored value carries the ciphertext prefix but does not decrypt:
+    corrupted, encrypted under another key or context, or plaintext that
+    happened to start with the prefix (stored before ``encrypt`` stopped
+    passing such values through). The message never includes the value."""
+
+
 class CryptoService:
     def __init__(self, keyset: str):
         super(CryptoService, self).__init__()
@@ -28,9 +35,9 @@ class CryptoService:
         data: Union[bytes, str],
         context: bytes = b"",
     ):
+        # Always encrypts: a plaintext that starts with the prefix ("v1:...")
+        # is still plaintext. Callers holding ciphertext must not call this.
         data = bytes(data, "utf-8") if isinstance(data, str) else data
-        if data.startswith(self.ciphertext_prefix):
-            return data
         full_context = self.compose_full_context(workspace_id, form_id, context)
         ciphertext = self.crypto.encrypt(data, full_context)
         return self.ciphertext_prefix + ciphertext
@@ -42,8 +49,10 @@ class CryptoService:
             return data
         ciphertext = data[len(self.ciphertext_prefix) :]
         full_context = self.compose_full_context(workspace_id, form_id, context)
-        plaintext = self.crypto.decrypt(ciphertext, full_context)
-        return plaintext
+        try:
+            return self.crypto.decrypt(ciphertext, full_context)
+        except tink.TinkError:
+            raise UnreadableCiphertext("stored value could not be decrypted") from None
 
     def compose_full_context(self, workspace_id: str, form_id: str, context: bytes):
         return bytes(f"{workspace_id}|{form_id}|", "utf-8") + context

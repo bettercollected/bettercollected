@@ -14,8 +14,9 @@ from common.models.standard_form import (
     StandardFormFieldType,
 )
 from common.models.user import User
-from common.services.crypto_service import crypto_service
+from common.services.crypto_service import UnreadableCiphertext, crypto_service
 from fastapi_pagination import Page
+from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.constants.consents import default_consent_responses
@@ -88,6 +89,16 @@ def is_plain_file_id(value) -> bool:
         isinstance(value, str)
         and _PLAIN_FILE_ID.fullmatch(value) is not None
         and value not in (".", "..")
+    )
+
+
+def _log_unreadable(response: Any, field: str) -> None:
+    # ids only: never the stored value
+    logger.warning(
+        "response {} of form {}: {} does not decrypt",
+        getattr(response, "response_id", None),
+        getattr(response, "form_id", None),
+        field,
     )
 
 
@@ -294,13 +305,17 @@ class FormResponseService:
                 continue
             answers = response.answers
             if not isinstance(answers, dict):
-                answers = json.loads(
-                    crypto_service.decrypt(
-                        workspace_id=workspace_id,
-                        form_id=response.form_id,
-                        data=answers,
+                try:
+                    answers = json.loads(
+                        crypto_service.decrypt(
+                            workspace_id=workspace_id,
+                            form_id=response.form_id,
+                            data=answers,
+                        )
                     )
-                )
+                except UnreadableCiphertext:
+                    _log_unreadable(response, "answers")
+                    continue
             steps, ended, ending_id = submission_path(form, answers)
             paths.append(
                 SubmissionPath(
@@ -603,30 +618,37 @@ class FormResponseService:
         workspace_id: PydanticObjectId,
         response: StandardFormResponseCamelModel,
     ):
-        if not isinstance(response.answers, dict):
-            response.answers = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id,
-                    form_id=response.form_id,
-                    data=response.answers,
+        # A stored value that does not decrypt is emptied rather than failing
+        # the whole read, and named in ``unreadable_fields`` where the payload
+        # has it (the workspace's submission views).
+        for field, encrypted, unreadable in (
+            ("answers", not isinstance(response.answers, dict), {}),
+            ("hidden_fields", isinstance(response.hidden_fields, (bytes, str)), None),
+            (
+                "internal_answers",
+                isinstance(getattr(response, "internal_answers", None), (bytes, str)),
+                None,
+            ),
+        ):
+            if not encrypted:
+                continue
+            try:
+                value = json.loads(
+                    crypto_service.decrypt(
+                        workspace_id=workspace_id,
+                        form_id=response.form_id,
+                        data=getattr(response, field),
+                    )
                 )
-            )
-        if isinstance(response.hidden_fields, (bytes, str)):
-            response.hidden_fields = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id,
-                    form_id=response.form_id,
-                    data=response.hidden_fields,
-                )
-            )
-        if isinstance(getattr(response, "internal_answers", None), (bytes, str)):
-            response.internal_answers = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id,
-                    form_id=response.form_id,
-                    data=response.internal_answers,
-                )
-            )
+            except UnreadableCiphertext:
+                _log_unreadable(response, field)
+                value = unreadable
+                if "unreadable_fields" in type(response).model_fields:
+                    response.unreadable_fields = [
+                        *(response.unreadable_fields or []),
+                        field,
+                    ]
+            setattr(response, field, value)
         if getattr(response, "respondent_feedback", None):
             response.respondent_feedback = decrypt_feedback(
                 workspace_id, response.form_id, response.respondent_feedback
@@ -881,7 +903,7 @@ class FormResponseService:
         if expected_version is not None and expected_version != stored_version:
             raise self._internal_answers_conflict(workspace_id, response)
 
-        current = self._decrypted_internal_answers(workspace_id, response)
+        current = self._decrypted_internal_answers(workspace_id, response, strict=True)
         meta = dict(response.internal_answers_meta or {})
         now = dt.datetime.now(dt.timezone.utc)
         for field_id, value in validated.items():
@@ -931,15 +953,31 @@ class FormResponseService:
         )
 
     def _decrypted_internal_answers(
-        self, workspace_id: PydanticObjectId, response: StandardFormResponse
+        self,
+        workspace_id: PydanticObjectId,
+        response: StandardFormResponse,
+        strict: bool = False,
     ) -> Dict[str, Any]:
+        """``strict``: refuse (409) when the stored values do not decrypt,
+        for a save that would otherwise replace them; else read them as
+        empty."""
         stored = response.internal_answers
         if isinstance(stored, (bytes, str)):
-            stored = json.loads(
-                crypto_service.decrypt(
-                    workspace_id=workspace_id, form_id=response.form_id, data=stored
+            try:
+                stored = json.loads(
+                    crypto_service.decrypt(
+                        workspace_id=workspace_id, form_id=response.form_id, data=stored
+                    )
                 )
-            )
+            except UnreadableCiphertext:
+                _log_unreadable(response, "internal_answers")
+                if strict:
+                    raise HTTPException(
+                        HTTPStatus.CONFLICT,
+                        content="The internal fields of this submission can't be "
+                        "read, so they can't be changed.",
+                    )
+                stored = {}
         return {
             key: (
                 value.model_dump(mode="json", exclude_none=True)

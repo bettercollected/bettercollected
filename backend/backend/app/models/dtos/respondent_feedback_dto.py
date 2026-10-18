@@ -31,6 +31,8 @@ class StaffFeedbackEntry(CamelModel):
     id: Optional[str] = None
     status: Optional[str] = None
     message: Optional[str] = None
+    # True when a message is stored but cannot be decrypted (message is None)
+    message_unreadable: Optional[bool] = None
     created_at: Optional[dt.datetime] = None
     created_by: Optional[str] = None
     created_by_email: Optional[str] = None
