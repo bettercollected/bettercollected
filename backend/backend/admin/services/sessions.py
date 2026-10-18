@@ -30,6 +30,10 @@ log = logging.getLogger("backend.admin.sessions")
 TOUCH_INTERVAL_SECONDS = 60
 STEPUP_MAX_AGE_SECONDS = 300
 FINISHED_KEEP_DAYS = 7
+# a session made by redeeming a setup token: short, and only for the setup pages
+SETUP_STATE = "setup"
+SETUP_IDLE_MINUTES = 15
+SETUP_ABSOLUTE_MINUTES = 60
 
 # internal reasons; never shown to the client
 OK = "ok"
@@ -111,8 +115,11 @@ class SessionService:
         self._settings = settings
 
     # -- helpers ---------------------------------------------------------------
-    def _idle(self, now: datetime, absolute: datetime) -> datetime:
-        return min(now + timedelta(minutes=self._settings.idle_minutes), absolute)
+    def _idle(self, now: datetime, absolute: datetime, state: str = "email_ok") -> datetime:
+        minutes = self._settings.idle_minutes
+        if state == SETUP_STATE:
+            minutes = min(minutes, SETUP_IDLE_MINUTES)
+        return min(now + timedelta(minutes=minutes), absolute)
 
     async def _audit(
         self,
@@ -212,6 +219,8 @@ class SessionService:
             )
         token = new_token()
         absolute = now + timedelta(hours=self._settings.absolute_hours)
+        if mfa_state == SETUP_STATE:
+            absolute = min(absolute, now + timedelta(minutes=SETUP_ABSOLUTE_MINUTES))
         session_id = await repo.insert_session(
             conn,
             token_hash=hash_token(token),
@@ -219,7 +228,7 @@ class SessionService:
             mfa_state=mfa_state,
             created_at=now,
             last_seen_at=now,
-            idle_expires_at=self._idle(now, absolute),
+            idle_expires_at=self._idle(now, absolute, mfa_state),
             abs_expires_at=absolute,
             ip=ip,
             ua_hash=hash_user_agent(user_agent),
@@ -279,7 +288,7 @@ class SessionService:
                 return AuthResult(None, BINDING)
             session = Session.from_row(row)
             if (now - row.last_seen_at).total_seconds() >= TOUCH_INTERVAL_SECONDS:
-                idle = self._idle(now, row.abs_expires_at)
+                idle = self._idle(now, row.abs_expires_at, row.mfa_state)
                 await repo.touch(conn, row.id, now, idle)
                 session = Session.from_row(await repo.get_by_id(conn, row.id))
             return AuthResult(session, OK)
@@ -306,13 +315,20 @@ class SessionService:
                 )
         now = self._clock.now()
         fresh = new_token()
+        absolute = session.abs_expires_at
+        if session.mfa_state == SETUP_STATE:
+            # the short setup lifetime ends with the setup step: a signed-in
+            # admin gets the normal one (mail may not work yet, so a quick
+            # expiry would lock the operator out)
+            absolute = now + timedelta(hours=self._settings.absolute_hours)
         changed = await repo.promote(
             conn,
             session.id,
             hash_token(token),
             hash_token(fresh),
             now,
-            self._idle(now, session.abs_expires_at),
+            self._idle(now, absolute),
+            absolute,
         )
         if changed is None:
             return None

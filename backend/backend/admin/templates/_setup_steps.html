@@ -1,0 +1,8 @@
+{% set steps = [_("Token"), _("Authenticator"), _("Mail"), _("Finish")] %}
+<nav aria-label="{{ _('Setup progress') }}">
+  <ol class="steps">
+  {% for label in steps %}
+    <li{% if loop.index == step %} aria-current="step"{% endif %}>{{ label }}</li>
+  {% endfor %}
+  </ol>
+</nav>

@@ -106,9 +106,19 @@ async def promote(
     new_hash: bytes,
     now: datetime,
     idle_expires: datetime,
+    abs_expires: Optional[datetime] = None,
 ):
     """Move a live session to ``mfa_ok`` under a new token hash, only while the
     old hash still matches (a replayed or stale call changes nothing)."""
+    values = dict(
+        token_hash=new_hash,
+        mfa_state="mfa_ok",
+        stepup_at=now,
+        last_seen_at=now,
+        idle_expires_at=idle_expires,
+    )
+    if abs_expires is not None:
+        values["abs_expires_at"] = abs_expires
     result = await conn.execute(
         update(sessions)
         .where(
@@ -116,13 +126,7 @@ async def promote(
             sessions.c.token_hash == old_hash,
             sessions.c.revoked_at.is_(None),
         )
-        .values(
-            token_hash=new_hash,
-            mfa_state="mfa_ok",
-            stepup_at=now,
-            last_seen_at=now,
-            idle_expires_at=idle_expires,
-        )
+        .values(**values)
         .returning(sessions.c.id)
     )
     return result.scalar_one_or_none()

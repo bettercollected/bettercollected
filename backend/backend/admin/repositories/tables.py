@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     Column,
     ForeignKey,
@@ -59,7 +60,7 @@ sessions = Table(
     _ts("revoked_at"),
     Column("revoked_reason", Text),
     Column("revoked_by", Text),
-    CheckConstraint("mfa_state IN ('email_ok', 'mfa_ok')", name="mfa_state"),
+    CheckConstraint("mfa_state IN ('email_ok', 'mfa_ok', 'setup')", name="mfa_state"),
     Index("uq_sessions_token_hash", "token_hash", unique=True),
     Index("ix_sessions_email", "email"),
 )
@@ -204,4 +205,20 @@ setup_tokens = Table(
             "consumed_at IS NULL AND revoked_at IS NULL AND locked_at IS NULL"
         ),
     ),
+)
+
+# At most one row: the first-run setup was started by ``started_by`` (a setup
+# token was redeemed) and is finished when ``completed_at`` is set.
+setup_state = Table(
+    "setup_state",
+    metadata,
+    Column("singleton", Boolean, primary_key=True, server_default=text("true")),
+    Column("started_by", Text, nullable=False),
+    _ts("started_at", nullable=False, server_default=text("now()")),
+    _ts("mail_step_at"),
+    Column("mail_step", Text),
+    _ts("completed_at"),
+    Column("completed_by", Text),
+    CheckConstraint("singleton", name="singleton"),
+    CheckConstraint("mail_step IS NULL OR mail_step IN ('saved', 'skipped')", name="mail_step"),
 )

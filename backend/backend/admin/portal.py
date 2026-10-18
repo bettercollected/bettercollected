@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.responses import HTMLResponse
 
 from backend.admin.config import MASTER_KEY_KEY, parse_master_key
-from backend.admin.gate.checkers import build_checkers
+from backend.admin.gate.checkers import build_checkers, build_setup_checker
 from backend.admin.loops.base import LoopRunner
 from backend.admin.loops.config import LoopSettings
 from backend.admin.loops.status import IntegrityStatus, LoopStatus, StatusBoard
@@ -30,13 +30,14 @@ from backend.admin.security.clock import Clock, SystemClock
 from backend.admin.security.keycheck import require_key
 from backend.admin.security.keys import MASTER_KEY_KEY, admin_key, parse_master_key
 from common.settings.keys import SectionKeys
-from backend.admin.security.mailer import AdminMailer
+from backend.admin.security.mailer import AdminMailer, LayeredMailConfigProvider
 from backend.admin.security.ratelimit import Limiter, SqlAttemptStore
 from backend.admin.services.factors import FactorService
 from backend.admin.services.pages import PageService
 from backend.admin.services.sessions import SessionService
 from backend.admin.services.settings_pages import SettingsPages
 from backend.admin.services.settings_store import SettingsService, store_registry
+from backend.admin.services.setup_wizard import SetupWizard
 from backend.admin.services.signin import SignInService
 from backend.admin.services.stepup import StepUpService
 
@@ -71,6 +72,24 @@ def make_templates(directory: Path = TEMPLATE_DIR) -> Environment:
     return env
 
 
+class _MailRefresher:
+    """Reloads the saved admin mail settings for the mailer, at most once a minute."""
+
+    EVERY_SECONDS = 60
+
+    def __init__(self, clock: Clock) -> None:
+        self._clock = clock
+        self._last = float("-inf")
+        self.wizard: Optional[SetupWizard] = None
+
+    async def __call__(self) -> None:
+        now = self._clock.time()
+        if self.wizard is None or now - self._last < self.EVERY_SECONDS:
+            return
+        self._last = now
+        await self.wizard.refresh_mail()
+
+
 @dataclass
 class Portal:
     settings: PortalSettings
@@ -87,6 +106,7 @@ class Portal:
     templates: Environment
     settings_pages: SettingsPages
     pending_key: bytes
+    setup: SetupWizard
     loop_settings: LoopSettings = field(default_factory=LoopSettings)
     board: StatusBoard = field(default_factory=StatusBoard)
     master_key: bytes = field(default=b"", repr=False)
@@ -114,7 +134,9 @@ class Portal:
         limiter = Limiter(store, clock, pepper)
         totp_key = require_key(admin_key("totp", env=source), "TOTP key")
         stepup_key = require_key(admin_key("stepup", env=source), "step-up key")
-        mailer = mailer or AdminMailer()
+        mail_provider = LayeredMailConfigProvider(None if env is None else source)
+        refresher = _MailRefresher(clock)
+        mailer = mailer or AdminMailer(mail_provider, refresh=refresher)
         sessions = SessionService(engine, clock, settings)
         signin = SignInService(
             engine, clock, settings, limiter, mailer, sessions, pepper, cookie_key
@@ -135,17 +157,25 @@ class Portal:
             master_previous=master_previous,
         )
         service = SettingsService(engine, registry, keys, clock=clock.now)
+        wizard = SetupWizard(
+            engine, clock, settings, limiter, mailer, sessions, service, mail_provider,
+            pending_key, master_key, keys.fingerprint,
+        )
+        refresher.wizard = wizard
         return cls(
             settings, engine, clock, limiter, mailer, sessions, signin, factors,
             stepup, pages, csrf_key, make_templates(),
-            SettingsPages(engine, service, pages, clock), pending_key,
+            SettingsPages(engine, service, pages, clock), pending_key, wizard,
             loop_settings=LoopSettings.from_env(source),
             master_key=master_key,
             master_previous=master_previous,
         )
 
     def checkers(self) -> dict:
-        return build_checkers(self.sessions, self.settings)
+        return build_checkers(self.sessions, self.settings, self.setup)
+
+    def setup_checker(self):
+        return build_setup_checker(self.setup)
 
     def render(self, name: str, status: int = 200, **context: Any) -> HTMLResponse:
         html = self.templates.get_template(name).render(**context)
@@ -155,6 +185,10 @@ class Portal:
         """Revoke sessions whose email left PLATFORM_ADMIN_EMAILS; returns how many."""
         revoked = await self.sessions.sweep_removed_admins(self.settings.admin_emails)
         log.info("admin sessions swept at start: %d revoked", revoked)
+        try:
+            await self.setup.refresh_mail()  # saved admin mail settings
+        except Exception as exc:  # noqa: BLE001 - class only; mail then uses the environment
+            log.warning("saved admin mail settings not loaded (%s)", type(exc).__name__)
         if not self.settings.admin_emails:
             log.warning("PLATFORM_ADMIN_EMAILS is empty: nobody can sign in")
         return revoked

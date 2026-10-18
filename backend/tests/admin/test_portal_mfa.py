@@ -193,6 +193,8 @@ async def test_gate_for_email_ok_sessions_over_the_registry(
     allowed = "/mfa/verify" if has_factor else "/mfa/enrol"
     if path == allowed:
         assert response.status_code == 200
+    elif path.startswith("/setup"):
+        assert response.status_code == 404 and response.content == b"", path  # the wizard's bare 404
     else:
         assert response.status_code in (303, 401), path
         if response.status_code == 303:

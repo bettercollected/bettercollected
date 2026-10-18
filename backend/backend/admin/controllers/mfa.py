@@ -33,7 +33,7 @@ from backend.admin.services.sessions import hash_token
 from backend.admin.services.stepup import TOKEN_SECONDS, action_hash
 
 # where the step-up prompt may send the browser back to (never a request value)
-STEPUP_RETURNS = ("/mfa/recovery-codes", "/mfa/enrol", "/account")
+STEPUP_RETURNS = ("/mfa/recovery-codes", "/mfa/enrol", "/account", "/setup/mail")
 RECOVERY_PAGE = "/mfa/recovery-codes"
 
 
@@ -270,7 +270,9 @@ def register(reg: RouteRegistry) -> None:
 
     @reg.route("/mfa/recovery-codes/saved", level=Level.SECOND_FACTOR, methods=["POST"])
     async def recovery_saved(request: Request):
-        return _see("/account")
+        # the first-run wizard carries on with the mail step; anyone else goes home
+        portal, session = _portal(request), _session(request)
+        return _see("/setup/mail" if await portal.setup.checklist_open(session) else "/account")
 
     # -- account ------------------------------------------------------------------------
     @reg.route("/account", level=Level.SECOND_FACTOR)

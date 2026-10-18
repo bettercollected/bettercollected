@@ -43,6 +43,8 @@ async def _shell(request: Request, active: str) -> dict:
     last = portal.integrity_status()
     if last is not None and last.problems:
         banners.append({"kind": "integrity", "count": len(last.problems)})
+    if await portal.setup.checklist_open(session):
+        banners.append({"kind": "setup"})
     return {
         "active": active,
         "email": session.email,

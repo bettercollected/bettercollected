@@ -15,7 +15,13 @@ from typing import Awaitable, Callable, Mapping, Optional
 
 from common.utils.client_ip import parse_address, resolve_client_ip
 
-from backend.admin.gate.levels import HEALTH_PATH, Level, level_for_scope
+from backend.admin.gate.levels import (
+    HEALTH_PATH,
+    Level,
+    SetupStage,
+    level_for_scope,
+    setup_stage_for_scope,
+)
 from backend.admin.gate.settings import GateSettings
 from backend.admin.headers import with_security_headers
 
@@ -26,6 +32,7 @@ ALLOWED_CONTENT_TYPES = ("application/x-www-form-urlencoded", "application/json"
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 Checker = Callable[[dict], Awaitable[bool]]
+SetupChecker = Callable[[dict, SetupStage], Awaitable[bool]]
 
 
 class _BodyTooLarge(BaseException):  # passes the application's own Exception handlers
@@ -69,10 +76,12 @@ class GateMiddleware:
         settings: GateSettings,
         checkers: Optional[Mapping[Level, Checker]] = None,
         routes=None,
+        setup_checker: Optional[SetupChecker] = None,
     ) -> None:
         self.app = app
         self.settings = settings
         self.checkers = dict(checkers or {})
+        self.setup_checker = setup_checker
         self._routes = routes  # a list of routes or a callable returning one
         self._limiter = _LogLimiter()
 
@@ -235,6 +244,7 @@ class GateMiddleware:
             await respond(404)
             return
         scope["state"]["route_level"] = level
+        stage = setup_stage_for_scope(routes, scope)  # None outside the wizard
         if level > Level.ADDRESS:
             # every level up to the route's, in order; the first failure ends it
             for step in Level:
@@ -245,8 +255,16 @@ class GateMiddleware:
                     await respond(404)
                     return
                 if not await checker(scope):
-                    await self._unauthenticated(scope, respond)
+                    if stage is not None:  # the wizard never says why or where to go
+                        await respond(404)
+                    else:
+                        await self._unauthenticated(scope, respond)
                     return
+        if stage is not None and not (
+            self.setup_checker is not None and await self.setup_checker(scope, stage)
+        ):
+            await respond(404)
+            return
 
         received = 0
 

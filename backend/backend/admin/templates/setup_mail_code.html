@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Confirm the test mail") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+{% set step = 3 %}{% include "_setup_steps.html" %}
+<h1>{{ _("Confirm the test mail") }}</h1>
+<p>{{ _("A mail with a six-digit code was sent to") }} <strong>{{ email }}</strong>. {{ _("Type the code to save the settings. They are saved only if it matches. The test is valid for 10 minutes.") }}</p>
+{% if notice %}<p class="notice notice-{{ notice.kind }}" role="{{ 'alert' if notice.kind == 'error' else 'status' }}">{{ notice.text }}</p>{% endif %}
+<form method="post" action="/setup/mail/confirm" class="stack" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="pending" value="{{ blob }}">
+  <div class="field">
+    <label for="mail_code">{{ _("Code from the test mail") }}</label>
+    <input id="mail_code" name="mail_code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" required maxlength="12" autofocus>
+  </div>
+  <div class="field">
+    <label for="code">{{ _("Authenticator code (only needed if more than 5 minutes passed since your last code)") }}</label>
+    <input id="code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="24">
+  </div>
+  <button type="submit">{{ _("Save mail settings") }}</button>
+</form>
+<p><a href="/setup/mail">{{ _("Start again") }}</a></p>
+{% endblock %}

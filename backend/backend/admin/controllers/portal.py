@@ -3,7 +3,7 @@
 Levels: pages shown before sign-in are ``ADDRESS``; ``/mfa/enrol``, ``/mfa/verify``
 and ``/logout`` are ``ADMIN`` (a session whose second factor is still pending can
 reach them, narrowed by ``controllers/mfa.py``); everything else is
-``SECOND_FACTOR``.
+``SECOND_FACTOR``. The first-run wizard under ``/setup`` is in ``controllers/setup.py``.
 """
 
 from __future__ import annotations
@@ -130,6 +130,10 @@ def build_registry() -> RouteRegistry:
     from backend.admin.controllers import settings as settings_pages
 
     settings_pages.register(reg)
+
+    from backend.admin.controllers import setup as setup_pages
+
+    setup_pages.register(reg)
 
     @reg.route("/logout", level=Level.ADMIN, methods=["POST"])
     async def logout(request: Request):
