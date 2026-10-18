@@ -1,9 +1,60 @@
-"""The security primitives need no application, database or mirror metrics:
-the suite-wide autouse fixtures are replaced with no-ops here."""
+"""Throw-away Postgres for the admin service's tests.
+
+A session-scoped template database is laid out like production: the init
+script's schemas and roles, then ``postgres/ensure-admin-roles.sh``'s SQL, then
+the admin migrations run as the migration role. Each test gets a copy
+(``CREATE DATABASE ... TEMPLATE``). Role names carry a random suffix because
+roles are server-global; the migrations learn the runtime role's name from
+``ADMIN_DB_RUNTIME_ROLE``. Database names contain "test" (the suite's guard),
+and everything is dropped afterwards. Skipped when DATABASE_URL is unset.
+"""
+
+from __future__ import annotations
+
+import base64
+import os
+import re
+import secrets
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
+
+from backend.admin.config import MASTER_KEY_KEY
+from backend.admin.db import MIGRATIONS
+from common.db.engine import normalise_url
+from common.db.schema_guard import upgrade_schema
+from tests.app.db.test_auto_migrate import _execute, _with_database, init_sql
+
+ROOT = Path(__file__).resolve().parents[3]
+ROLES_SCRIPT = ROOT / "postgres" / "ensure-admin-roles.sh"
+INIT_ROLES = ("app", "auth", "google", "jobs_exec")
+MASTER_KEY = base64.b64encode(bytes(range(48))).decode()
+
+needs_postgres = pytest.mark.skipif(
+    not os.environ.get("DATABASE_URL"),
+    reason="DATABASE_URL not set (start app-postgres from docker-compose.local.yml)",
+)
 
 
+def roles_sql(suffix: str, admin_pw: str, mig_pw: str) -> str:
+    """The roles script's SQL with psql variables bound and role names suffixed."""
+    script = ROLES_SCRIPT.read_text()
+    sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
+    sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
+    sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
+    return sql.replace(":'admin_pw'", f"'{admin_pw}'").replace(
+        ":'mig_pw'", f"'{mig_pw}'"
+    )
+
+
+# The suite-wide autouse fixtures (Mongo cleaning, the app's rate-limit clock,
+# mirror-failure checks) need the whole application. Nothing here does, so they
+# are replaced with no-ops for every test in this directory, database or not.
 @pytest.fixture(autouse=True)
 def _clean_db():
     yield
@@ -17,3 +68,123 @@ def rate_limit_clock():
 @pytest.fixture(autouse=True)
 def no_silent_mirror_failures():
     yield
+
+
+@pytest.fixture(autouse=True)
+def master_key(monkeypatch):
+    monkeypatch.setenv(MASTER_KEY_KEY, MASTER_KEY)
+    return MASTER_KEY
+
+
+@dataclass
+class Server:
+    admin_url: str  # the suite's superuser URL (any database)
+    suffix: str
+    admin_pw: str
+    mig_pw: str
+    template: str  # bootstrapped and migrated
+    boot: str  # bootstrapped only
+
+    @property
+    def runtime_role(self) -> str:
+        return f"bc_admin_{self.suffix}"
+
+    @property
+    def owner_role(self) -> str:
+        return f"bc_admin_mig_{self.suffix}"
+
+    def url(self, database: str, role: str = "superuser") -> str:
+        if role == "runtime":
+            return _with_database(
+                self.admin_url, database, self.runtime_role, self.admin_pw
+            )
+        if role == "owner":
+            return _with_database(
+                self.admin_url, database, self.owner_role, self.mig_pw
+            )
+        return _with_database(self.admin_url, database)
+
+    async def create_database(self, *, template: str | None = None) -> str:
+        name = f"bc_admin_test_{uuid.uuid4().hex[:10]}"
+        source = f' TEMPLATE "{template}"' if template else ""
+        await _execute(
+            _with_database(self.admin_url, "postgres"),
+            f'CREATE DATABASE "{name}"{source}',
+        )
+        self.created.append(name)
+        return name
+
+    created: list = None  # set in the fixture
+
+
+async def _bootstrap(server: Server, database: str) -> None:
+    """Init script + roles script SQL in ``database``."""
+    init_passwords = {role: secrets.token_hex(12) for role in INIT_ROLES}
+    await _execute(
+        server.url(database), init_sql(database, server.suffix, init_passwords)
+    )
+    await _execute(
+        server.url(database), roles_sql(server.suffix, server.admin_pw, server.mig_pw)
+    )
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def server():
+    if not os.environ.get("DATABASE_URL"):
+        pytest.skip("DATABASE_URL not set")
+    admin_url = normalise_url(os.environ["DATABASE_URL"])
+    suffix = f"t{uuid.uuid4().hex[:8]}"
+    boot = f"bc_admin_test_boot_{uuid.uuid4().hex[:8]}"
+    template = f"bc_admin_test_tpl_{uuid.uuid4().hex[:8]}"
+    srv = Server(
+        admin_url, suffix, secrets.token_hex(12), secrets.token_hex(12), template, boot
+    )
+    srv.created = [template, boot]
+    previous = os.environ.get("ADMIN_DB_RUNTIME_ROLE")
+    os.environ["ADMIN_DB_RUNTIME_ROLE"] = srv.runtime_role
+    postgres = _with_database(admin_url, "postgres")
+    await _execute(postgres, f'CREATE DATABASE "{boot}"')
+    try:
+        await _bootstrap(srv, boot)
+        await _execute(postgres, f'CREATE DATABASE "{template}" TEMPLATE "{boot}"')
+        await upgrade_schema(srv.url(template, "owner"), MIGRATIONS)
+        yield srv
+    finally:
+        if previous is None:
+            os.environ.pop("ADMIN_DB_RUNTIME_ROLE", None)
+        else:
+            os.environ["ADMIN_DB_RUNTIME_ROLE"] = previous
+        for name in srv.created:
+            await _execute(postgres, f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+        for role in (
+            srv.runtime_role,
+            srv.owner_role,
+            *(f"bc_{r}_{suffix}" for r in INIT_ROLES),
+        ):
+            await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def migrated(server):
+    """A fresh migrated copy of the template; yields its name."""
+    return await server.create_database(template=server.template)
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def unmigrated(server):
+    """A fresh database with the init and roles scripts applied, no migrations."""
+    return await server.create_database(template=server.boot)
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def owner_engine(server, migrated):
+    engine = create_async_engine(server.url(migrated, "owner"), poolclass=NullPool)
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def runtime_engine(server, migrated):
+    engine = create_async_engine(server.url(migrated, "runtime"), poolclass=NullPool)
+    yield engine
+    await engine.dispose()
