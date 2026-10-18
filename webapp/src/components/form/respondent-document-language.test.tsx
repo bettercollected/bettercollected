@@ -80,7 +80,12 @@ describe('formContentLanguage', () => {
         ['en-GB', 'nl', 'en-GB'],
         ['de', 'en', 'de'],
         ['not a tag', 'en', undefined],
-        ['"><script>', 'en', undefined]
+        ['"><script>', 'en', undefined],
+        // trimmed first; the pattern itself must match the whole tag
+        // (`$` without the m flag: no line ends inside)
+        ['nl\n', 'en', 'nl'],
+        ['en-GB\n', 'nl', 'en-GB'],
+        ['en\nde', 'nl', undefined]
     ])('declared %s under a %s interface: %s', (declared, ui, expected) => {
         expect(formContentLanguage(declared, ui)).toBe(expected);
     });

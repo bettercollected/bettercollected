@@ -71,7 +71,12 @@ describe('FormLanguageSetting', () => {
     it('keeps a language set elsewhere that is not on the list', () => {
         renderWith({ language: 'en-GB' });
         expect(select()).toHaveValue('en-GB');
-        expect(within(select()).getByRole('option', { name: 'en-GB' })).toBeInTheDocument();
+        expect(within(select()).getByRole('option', { name: 'en-GB' })).toHaveAttribute('lang', 'en-GB');
+    });
+
+    it('gives a malformed tag set elsewhere no lang', () => {
+        renderWith({ language: 'not a tag' });
+        expect(within(select()).getByRole('option', { name: 'not a tag' })).not.toHaveAttribute('lang');
     });
 
     it('undo puts back a language set elsewhere exactly', () => {

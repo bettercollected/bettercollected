@@ -8,6 +8,9 @@ import useRespondentLanguage from './use-respondent-language';
 // A plain language tag ("nl", "en-GB", "pt-BR"): what `lang` accepts.
 const LANGUAGE_TAG = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;
 
+/** Is `tag` a well-formed language tag, as `lang` takes it? */
+export const isLanguageTag = (tag: string | null | undefined): tag is string => !!tag && LANGUAGE_TAG.test(tag);
+
 /**
  * The `lang` for text the form's author wrote (question titles,
  * descriptions, options), when it differs from the respondent's interface
