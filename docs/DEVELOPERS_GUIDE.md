@@ -77,6 +77,31 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 uv run --project backend python -c "import io,base64,tink; from tink import aead, cleartext_keyset_handle; aead.register(); kh=tink.new_keyset_handle(aead.aead_key_templates.AES256_GCM); buf=io.StringIO(); cleartext_keyset_handle.write(tink.JsonKeysetWriter(buf), kh); print(base64.b64encode(buf.getvalue().encode()).decode())"
 ```
 
+The backend (and its jobs worker), auth, the Google Forms integration and the
+Temporal workers (whose `AES_HEX_KEY` is `AUTH_AES_HEX_KEY`) **refuse to
+start** when `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY` is empty, when the Fernet
+key is malformed, or when either is a value that was ever published in this
+repository (old `.env.deployment`, READMEs and compose files). The error names
+the variable and how to generate it, never the value. The published values are
+known only by their SHA-256 in `common/common/configs/shipped_secrets.py`
+(copied to `temporal/*/settings/` and `deploy/generate-secrets.sh`;
+`common/tests/test_shipped_secrets.py` keeps them identical). The test values in
+`.github/workflows/ci.yml` are accepted so tests and local development keep
+working, but they are public too: never deploy with them.
+
+**Self-hosted stacks** get their own values from `deploy.sh`: on its first run
+`deploy/generate-secrets.sh` writes `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and
+`MASTER_ENCRYPTION_KEYSET` into the gitignored root `.env` (mode 600), and
+`docker-compose.deployment.yml` passes them to the services. It never changes
+a value already there; a value still set in `.env.deployment` is copied over
+unless it is a published one. Keep that file. Rotating these keys has costs:
+a new `AUTH_JWT_SECRET` signs everyone out; data encrypted with the old
+`AUTH_AES_HEX_KEY` (Google Forms and Sheets connections, form-action secrets,
+SCIM webhook secrets) can no longer be read; and responses can only be read
+with the `MASTER_ENCRYPTION_KEYSET` they were stored with, so a stack that
+already holds responses must keep its keyset (`deploy.sh` stops rather than
+generate a new one for it).
+
 Other required backend fields: `UNSPLASH_ACCESS_KEY` (may be empty) and
 `AWS_PRE_SIGNED_URL_EXPIRY` (must be an integer, e.g. `3600`).
 
@@ -185,5 +210,8 @@ from the terminal so hook failures are visible.
 - **`common` is a path dependency:** changing a model/enum in `common/` affects
   backend, auth, and integrations — re-`uv sync` and test all consumers.
 - **Shared secrets:** if login or decryption fails across services, your
-  `AUTH_*` / `MASTER_ENCRYPTION_KEYSET` values differ between them.
+  `AUTH_*` / `MASTER_ENCRYPTION_KEYSET` values differ between them. A service
+  that will not start with "Refusing to start ...: AUTH_JWT_SECRET is not set"
+  (or "is a value that was published") needs its own value; see
+  [Shared secrets](#shared-secrets-must-match-across-services).
 - **CORS:** a new host must exist in the Mongo `allowed_origins` collection.

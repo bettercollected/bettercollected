@@ -105,15 +105,22 @@ checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
 auth, MongoDB (+ seed data), Temporal + workers, nginx (`:3001`/`:3002`), and
 [Umami](https://umami.is) analytics (`:3003`, default login `admin`/`umami` —
 change it). On first run it also generates a random `UMAMI_APP_SECRET`, the
-application database passwords and the keys the services use to call each
-other (`AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`) into a gitignored root
-`.env`; keep that file. The backend auto-provisions the Umami website on
-startup, so analytics needs no manual setup.
+application database passwords, the keys the services use to call each
+other (`AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`) and the stack's own
+signing and encryption keys (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`,
+`MASTER_ENCRYPTION_KEYSET`) into a gitignored root `.env`; keep that file. The
+backend auto-provisions the Umami website on startup, so analytics needs no
+manual setup.
 
-Configuration lives in [`.env.deployment`](.env.deployment). **The tracked
-defaults (including secrets) are for local evaluation only — generate fresh
-secrets before exposing an instance to the internet**, and put TLS or a
-reverse proxy in front of it yourself.
+Configuration lives in [`.env.deployment`](.env.deployment), which ships no
+secrets. The services refuse to start when `AUTH_JWT_SECRET` or
+`AUTH_AES_HEX_KEY` is empty or a value that was ever published in this
+repository. Put TLS or a reverse proxy in front of the stack yourself.
+
+**Upgrading a stack that used the shipped keys:** earlier versions of
+`.env.deployment` contained concrete `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and
+`MASTER_ENCRYPTION_KEYSET` values. See the upgrade note in
+[CHANGELOG.md](CHANGELOG.md) before re-running `./deploy.sh`.
 
 **Upgrading an existing instance:** the backend's internal job routes (used by
 the Temporal workers) no longer have a default key. Re-run `./deploy.sh`: it

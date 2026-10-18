@@ -2,7 +2,7 @@ from typing import Optional
 
 from cryptography.fernet import Fernet
 
-from settings.application import settings
+from settings.application import require_aes_hex_key, settings
 
 
 class Crypto(Fernet):
@@ -15,4 +15,5 @@ class Crypto(Fernet):
         return data.decode()
 
 
+require_aes_hex_key()
 crypto = Crypto(settings.aes_hex_key)

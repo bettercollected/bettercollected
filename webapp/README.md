@@ -44,11 +44,11 @@ The need for you to clone this repository is because you need it to seed the dat
 
 #### B. Configure common docker-compose environments that are same in all the services used
 
-1. Generate a Fernet key or use the provided one in the services environment example itself. The Fernet key must be a base64-encoded 32-byte key. [See how to generate fernet key](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/security/secrets/fernet.html). Or, install `cryptography` package in python and print out the `fernet_key` and use it where necessary. **Note:** The generated fernet key must be same in the entire service environment where applicable.
+1. Generate your own Fernet key; the services refuse to start without one or with a value that was ever published in this repository. The Fernet key must be a base64-encoded 32-byte key. [See how to generate fernet key](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/security/secrets/fernet.html). Or, install `cryptography` package in python and print out the `fernet_key` and use it where necessary. **Note:** The generated fernet key must be same in the entire service environment where applicable.
 
     - Environment name used in `backend` service: `AUTH_AES_HEX_KEY`
     - Environment name used in `auth` service: `AUTH_AES_HEX_KEY`
-    - Environment name used in `integrations-googleform` service: `GOOGLE_AES_KEY`
+    - Environment name used in `integrations-googleform` service: `AUTH_AES_HEX_KEY`
 
     ```py
     from cryptography.fernet import Fernet
@@ -57,7 +57,7 @@ The need for you to clone this repository is because you need it to seed the dat
     print(fernet_key.decode())  # your fernet_key, keep it in secured place!
     ```
 
-2. Generate a JWT secret. This can be any random value that is 32 characters, or you can use the provided one in the services environment example itself. [See how to get random keys, you can use 256-bit key from CodeIgnitor Encryption Keys section](https://randomkeygen.com/). **Note:** The JWT secret must be same in the entire service environment where applicable.
+2. Generate your own JWT secret, e.g. `openssl rand -hex 32`; as with the Fernet key, the services refuse an empty or published value. [See how to get random keys, you can use 256-bit key from CodeIgnitor Encryption Keys section](https://randomkeygen.com/). **Note:** The JWT secret must be same in the entire service environment where applicable.
 
     - Environment name used in `backend` service: `AUTH_JWT_SECRET`
     - Environment name used in `auth` service: `AUTH_JWT_SECRET`
@@ -231,8 +231,8 @@ Also put this environment variable in the same folder containing the docker-comp
 
 ```
     # Auth
-- AUTH_AES_HEX_KEY='UAW6iquPs8Q2ZdKqjgIWcBZ-H8kPsGyFzedSGis7ZTA='
-- AUTH_JWT_SECRET=qZ86c1g6Mm4J9cVSzx6zGeppUyqDpS31d
+- AUTH_AES_HEX_KEY=<your Fernet key>
+- AUTH_JWT_SECRET=<your JWT secret>
 
 # Mongo
 - MONGO_URI=mongodb://root:root@mongodb:27017
@@ -264,7 +264,7 @@ Also put this environment variable in the same folder containing the docker-comp
 - TYPEFORM_REDIRECT_URI=http://localhost:8000/api/v1/auth/typeform/oauth/callback
 
 # Encryption
--MASTER_ENCRYPTION_KEYSET='ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=='
+- MASTER_ENCRYPTION_KEYSET=<your base64 Tink keyset, see docs/DEVELOPERS_GUIDE.md>
 
 ```
 

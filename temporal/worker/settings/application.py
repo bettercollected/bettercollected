@@ -6,6 +6,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 from settings.apm_settings import APMSettings
+from settings.shipped_secrets import require_secrets
 
 load_dotenv()
 
@@ -48,3 +49,13 @@ def log_if_api_key_missing(current: Optional[ApplicationSettings] = None) -> boo
         "this worker's calls. Set it to the backend's TEMPORAL_API_KEY."
     )
     return False
+
+
+def require_aes_hex_key(current: Optional[ApplicationSettings] = None) -> None:
+    """Raise InsecureSecretError unless AES_HEX_KEY (the stack's
+    AUTH_AES_HEX_KEY, a Fernet key) is set, well-formed and not a value
+    published in the repository."""
+    require_secrets(
+        "the Temporal worker",
+        fernet_keys={"AES_HEX_KEY": (current or settings).aes_hex_key},
+    )
