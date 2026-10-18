@@ -264,16 +264,32 @@ async def server():
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
 
 
+async def _drop(server: Server, name: str) -> None:
+    try:
+        await _execute(
+            _with_database(server.admin_url, "postgres"),
+            f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)',
+        )
+        server.created.remove(name)
+    except Exception:  # noqa: BLE001 - the session teardown drops what is left
+        pass
+
+
 @pytest_asyncio.fixture(loop_scope="session")
 async def migrated(server):
-    """A fresh migrated copy of the template; yields its name."""
-    return await server.create_database(template=server.template)
+    """A fresh migrated copy of the template; yields its name and drops it
+    afterwards (a run would otherwise keep one copy per test until it ends)."""
+    name = await server.create_database(template=server.template)
+    yield name
+    await _drop(server, name)
 
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def unmigrated(server):
     """A fresh database with the init and roles scripts applied, no migrations."""
-    return await server.create_database(template=server.boot)
+    name = await server.create_database(template=server.boot)
+    yield name
+    await _drop(server, name)
 
 
 @pytest_asyncio.fixture(loop_scope="session")

@@ -363,6 +363,11 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
             await conn.execute(text("INSERT INTO auth.users (id, doc) VALUES (:i, CAST(:d AS jsonb))"),
                                {"i": oid(days), "d": json.dumps(doc)})
 
+        # malformed last_logged_in values count as inactive and never break the page
+        for days, value in [(300, {"$date": "not a date"}), (301, "2026-13-45T99:00:00Z")]:
+            await conn.execute(text("INSERT INTO auth.users (id, doc) VALUES (:i, CAST(:d AS jsonb))"),
+                               {"i": oid(days), "d": json.dumps({"email": f"bad{days}@x", "last_logged_in": value})})
+
     b = await signed_in(portal, app)
     counts, why = await portal.pages.metrics()
     assert why is None, why
@@ -375,9 +380,9 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
     assert counts["form_responders"] == {"identified": 2, "identified_responses": 3, "anonymous_responses": 1}
     assert (counts["form_responders"]["identified_responses"] + counts["form_responders"]["anonymous_responses"]
             == counts["responses"]["total"])
-    assert counts["users"]["total"] == 2 and counts["users"]["new_last_30_days"] == 1
+    assert counts["users"]["total"] == 4 and counts["users"]["new_last_30_days"] == 1
     assert counts["users"]["active_last_30_days"] == 1
-    assert counts["users"]["by_plan"] == {"FREE": 1, "PRO": 1}
+    assert counts["users"]["by_plan"] == {"FREE": 3, "PRO": 1}
     assert len(counts["weekly"]) == 12 and sum(w["responses"] for w in counts["weekly"]) == 4
     html = (await b.get("/metrics")).text
     assert "Platform counts are not available" not in html and "self" in html

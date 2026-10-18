@@ -1,7 +1,7 @@
 """the task runner's narrow path into the settings store
 
 Revision ID: 0009_task_keyset_write
-Revises: 0008_report_state_prune
+Revises: 0010_background_loops
 Create Date: 2026-10-18
 
 The keyset (``MASTER_ENCRYPTION_KEYSET``, tier T4) changes only through tasks,
@@ -44,7 +44,7 @@ from alembic import op
 from backend.admin.migration_support import grant
 
 revision: str = "0009_task_keyset_write"
-down_revision: Union[str, None] = "0008_report_state_prune"
+down_revision: Union[str, None] = "0010_background_loops"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

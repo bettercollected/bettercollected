@@ -9,21 +9,32 @@ from http import HTTPStatus
 from typing import Optional
 
 from classy_fastapi import Routable, post
-from fastapi import Depends
+from fastapi import Depends, Header
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.background import BackgroundTasks
 
 from auth.app.container import container
-from auth.app.controllers.admin_router import get_bearer_user
 from auth.app.controllers.internal_key import require_internal_key
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
+from auth.app.services.auth_service import AuthService
 from auth.app.services.notification_service import (
     NotificationService,
     is_allowed_submission_link,
     one_line,
 )
 from common.models.user import User
+
+
+def get_bearer_user(authorization: Optional[str] = Header(None)) -> User:
+    """The caller from a ``Bearer`` token; 401 without a valid one."""
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Authorization token is missing.")
+    try:
+        return AuthService.get_logged_user(token)
+    except Exception:  # noqa: BLE001 — expired, forged or malformed alike
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid authorization token.")
 
 
 class SubmissionUpdateNotice(BaseModel):

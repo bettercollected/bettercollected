@@ -544,8 +544,8 @@ TODO_LIVE: Dict[str, str] = {
     "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
     "API_ROOT_PATH": "backend/backend/app/asgi.py:193",
     "API_DOCS_ENABLED": "backend/backend/app/asgi.py:193",
-    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:648",
-    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:649",
+    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:647",
+    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:648",
 }
 
 # ------------------------------------------------------- environment only
@@ -618,6 +618,17 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     _int("ADMIN_TASKS_MAX_REQUEST_AGE_HOURS", "admin", (ADMIN,), 24, 1, 24,
          "Hours after which the runner refuses a queued task request as expired (cap 24).",
          tier=T5),
+    _bool("ADMIN_LOOPS_ENABLED", "admin", (ADMIN,), True,
+          "Runs the admin portal's background loops (notification mail, retention, integrity checks).",
+          tier=T5),
+    _int("ADMIN_NOTIFY_INTERVAL_SECONDS", "admin", (ADMIN,), 15, 1, 3600,
+         "Seconds between passes over the admin notification outbox.", tier=T5),
+    _int("ADMIN_NOTIFY_MAX_PER_MINUTE", "admin", (ADMIN,), 30, 1, 600,
+         "Most admin notification mails sent per minute.", tier=T5),
+    _int("ADMIN_RETENTION_INTERVAL_SECONDS", "admin", (ADMIN,), 3600, 10, 86400,
+         "Seconds between the admin portal's retention passes.", tier=T5),
+    _int("ADMIN_INTEGRITY_INTERVAL_SECONDS", "admin", (ADMIN,), 600, 10, 86400,
+         "Seconds between the admin portal's settings integrity checks.", tier=T5),
     _bool("PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX", "pdf_import", (BACKEND,), False,
           "Refuses imports unless the isolated sandbox is available.", tier=T5),
     _text("PDF_IMPORT_SANDBOX_SOCKET", "pdf_import", (BACKEND,),

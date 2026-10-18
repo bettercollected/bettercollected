@@ -230,6 +230,8 @@ BEGIN
         GRANT SELECT, INSERT ON tasks.runs TO bc_admin;
         GRANT UPDATE (cancel_requested_at) ON tasks.runs TO bc_admin;
         GRANT SELECT ON tasks.run_events, tasks.checkpoints, tasks.locks TO bc_admin;
+        -- the retention loop (admin role): the runner itself can only append
+        GRANT DELETE ON tasks.run_events, tasks.checkpoints TO bc_admin;
         GRANT SELECT ON tasks.runs TO bc_tasks;
         GRANT UPDATE (state, progress, heartbeat_at, result, refusal_code, runner_id,
                       started_at, finished_at) ON tasks.runs TO bc_tasks;
@@ -241,6 +243,12 @@ BEGIN
         REVOKE ALL ON admin.notifications FROM bc_admin;
         GRANT SELECT, INSERT ON admin.notifications TO bc_admin;
         GRANT UPDATE (status, attempts, sent_at) ON admin.notifications TO bc_admin;
+        IF EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = 'admin' AND table_name = 'notifications'
+                     AND column_name = 'delivered_to') THEN
+            GRANT UPDATE (next_attempt_at, last_error_code, delivered_to)
+                ON admin.notifications TO bc_admin;
+        END IF;
     END IF;
 
     -- The data task runner's grants: exactly the columns the responses and
@@ -270,8 +278,8 @@ BEGIN
     END IF;
 
     -- the settings store. The writer (bc_admin) holds exactly these; no DELETE
-    -- on entries or manifest, and service_state is written
-    -- only through settings.report_state.
+    -- on entries or manifest; service_state is written only through
+    -- settings.report_state, and the admin's retention loop may delete stale rows.
     IF to_regclass('settings.entries') IS NOT NULL THEN
         REVOKE ALL ON settings.entries, settings.history, settings.manifest,
             settings.service_state FROM bc_admin;
@@ -279,7 +287,7 @@ BEGIN
         GRANT SELECT, INSERT, DELETE ON settings.history TO bc_admin;
         GRANT UPDATE (blob) ON settings.history TO bc_admin;
         GRANT SELECT, INSERT, UPDATE ON settings.manifest TO bc_admin;
-        GRANT SELECT ON settings.service_state TO bc_admin;
+        GRANT SELECT, DELETE ON settings.service_state TO bc_admin;
     END IF;
     -- Readers: their own two views and report_state, nothing else. Keep these
     -- {service, role} pairs equal to READER_SERVICES in
@@ -321,6 +329,8 @@ DECLARE
                  || '0000000000000000';
     weekly jsonb;
     result jsonb;
+    active_users bigint := 0;
+    rec record;
 BEGIN
     SELECT jsonb_agg(jsonb_build_object(
         'week_start', (b.lo AT TIME ZONE 'UTC')::date,
@@ -340,6 +350,46 @@ BEGIN
                              first_week + (g.i + 1) * interval '1 week' AS hi) AS w
     ) AS b;
 
+    -- Users who signed in within 30 days. A malformed last_logged_in value must
+    -- count as inactive, never break the page: try the set-based count first and,
+    -- only when a value does not parse, count row by row with each cast guarded.
+    BEGIN
+        SELECT count(*) INTO active_users FROM auth.users u
+        WHERE CASE
+                WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'string'
+                    THEN (u.doc -> 'last_logged_in' ->> '$date')::timestamptz
+                WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'object'
+                    THEN to_timestamp(((u.doc -> 'last_logged_in' -> '$date' ->> '$numberLong')::bigint) / 1000.0)
+                WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'string'
+                     AND (u.doc ->> 'last_logged_in') ~ '(Z|[+-][0-9][0-9]:?[0-9][0-9])$'
+                    THEN (u.doc ->> 'last_logged_in')::timestamptz
+            END >= since30;
+    EXCEPTION WHEN others THEN
+        active_users := 0;
+        FOR rec IN SELECT doc FROM auth.users WHERE doc ? 'last_logged_in' LOOP
+            BEGIN
+                IF (SELECT CASE
+                WHEN jsonb_typeof(u2.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u2.doc -> 'last_logged_in' -> '$date') = 'string'
+                    THEN (u2.doc -> 'last_logged_in' ->> '$date')::timestamptz
+                WHEN jsonb_typeof(u2.doc -> 'last_logged_in') = 'object'
+                     AND jsonb_typeof(u2.doc -> 'last_logged_in' -> '$date') = 'object'
+                    THEN to_timestamp(((u2.doc -> 'last_logged_in' -> '$date' ->> '$numberLong')::bigint) / 1000.0)
+                WHEN jsonb_typeof(u2.doc -> 'last_logged_in') = 'string'
+                     AND (u2.doc ->> 'last_logged_in') ~ '(Z|[+-][0-9][0-9]:?[0-9][0-9])$'
+                    THEN (u2.doc ->> 'last_logged_in')::timestamptz
+            END >= since30
+                    FROM (SELECT rec.doc AS doc) AS u2) THEN
+                    active_users := active_users + 1;
+                END IF;
+            EXCEPTION WHEN others THEN
+                NULL;
+            END;
+        END LOOP;
+    END;
+
     SELECT jsonb_build_object(
         'generated_at', now(),
         'organizations', jsonb_build_object(
@@ -349,18 +399,7 @@ BEGIN
         'users', jsonb_build_object(
             'total', (SELECT count(*) FROM auth.users),
             'new_last_30_days', (SELECT count(*) FROM auth.users WHERE id >= id30),
-            'active_last_30_days', (SELECT count(*) FROM auth.users u
-                                    WHERE CASE
-                                        WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
-                                             AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'string'
-                                            THEN (u.doc -> 'last_logged_in' ->> '$date')::timestamptz
-                                        WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'object'
-                                             AND jsonb_typeof(u.doc -> 'last_logged_in' -> '$date') = 'object'
-                                            THEN to_timestamp(((u.doc -> 'last_logged_in' -> '$date' ->> '$numberLong')::bigint) / 1000.0)
-                                        WHEN jsonb_typeof(u.doc -> 'last_logged_in') = 'string'
-                                             AND (u.doc ->> 'last_logged_in') ~ '(Z|[+-][0-9][0-9]:?[0-9][0-9])$'
-                                            THEN (u.doc ->> 'last_logged_in')::timestamptz
-                                    END >= since30),
+            'active_last_30_days', active_users,
             'by_plan', jsonb_build_object(
                 'FREE', (SELECT count(*) FROM auth.users WHERE coalesce(plan, 'FREE') = 'FREE'),
                 'PRO', (SELECT count(*) FROM auth.users WHERE plan = 'PRO'))),

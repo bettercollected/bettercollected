@@ -35,13 +35,15 @@ async def lifespan(app: FastAPI):
 
         await ensure_schema(portal.engine)  # refuses to start on a stale schema
         await portal.startup()
-        cleanup = asyncio.create_task(portal.cleanup_loop())
+        if not await portal.start_loops():
+            cleanup = asyncio.create_task(portal.cleanup_loop())
     try:
         yield
     finally:
         if cleanup is not None:
             cleanup.cancel()
         if portal is not None:
+            await portal.stop_loops()
             await portal.engine.dispose()
 
 

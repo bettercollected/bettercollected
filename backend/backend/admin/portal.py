@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
@@ -19,7 +19,11 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.responses import HTMLResponse
 
+from backend.admin.config import MASTER_KEY_KEY, parse_master_key
 from backend.admin.gate.checkers import build_checkers
+from backend.admin.loops.base import LoopRunner
+from backend.admin.loops.config import LoopSettings
+from backend.admin.loops.status import IntegrityStatus, LoopStatus, StatusBoard
 from backend.admin.portal_config import PortalSettings
 from backend.admin.repositories.tables import attempts
 from backend.admin.security.clock import Clock, SystemClock
@@ -77,6 +81,11 @@ class Portal:
     pages: PageService
     csrf_key: bytes
     templates: Environment
+    loop_settings: LoopSettings = field(default_factory=LoopSettings)
+    board: StatusBoard = field(default_factory=StatusBoard)
+    master_key: bytes = field(default=b"", repr=False)
+    master_previous: Optional[bytes] = field(default=None, repr=False)
+    runner: Optional[LoopRunner] = None
 
     @classmethod
     def build(
@@ -108,9 +117,13 @@ class Portal:
             engine, clock, settings, limiter, mailer, sessions, pepper, totp_key
         )
         stepup = StepUpService(clock, sessions, store, stepup_key)
+        previous_raw = (source.get("SETTINGS_MASTER_KEY_PREVIOUS") or "").strip()
         return cls(
             settings, engine, clock, limiter, mailer, sessions, signin, factors,
             stepup, PageService(engine, clock), csrf_key, make_templates(),
+            loop_settings=LoopSettings.from_env(source),
+            master_key=parse_master_key(source.get(MASTER_KEY_KEY)),
+            master_previous=parse_master_key(previous_raw) if previous_raw else None,
         )
 
     def checkers(self) -> dict:
@@ -128,7 +141,38 @@ class Portal:
             log.warning("PLATFORM_ADMIN_EMAILS is empty: nobody can sign in")
         return revoked
 
+    # ------------------------------------------------------------- loops
+
+    def integrity_status(self) -> IntegrityStatus:
+        """The latest settings integrity result (for the shell banner)."""
+        return self.board.integrity
+
+    def loop_status(self) -> dict[str, LoopStatus]:
+        """Each background loop's state, a read-only copy (for the Health page)."""
+        return self.board.snapshot()
+
+    def mail_status(self) -> str:
+        """``ok``, ``mail not configured`` or ``unknown`` (sender not run yet)."""
+        return self.board.mail
+
+    async def start_loops(self) -> bool:
+        """Start the background loops (full portal mode only); False when they
+        are switched off with ``ADMIN_LOOPS_ENABLED=false``."""
+        if not self.loop_settings.enabled:
+            return False
+        from backend.admin.loops.build import build_runner
+
+        self.runner = build_runner(self)
+        await self.runner.start()
+        return True
+
+    async def stop_loops(self) -> None:
+        if self.runner is not None:
+            await self.runner.stop()
+            self.runner = None
+
     async def cleanup_loop(self) -> None:
+        """The plain cleanup, used only when the loops are switched off."""
         while True:
             await asyncio.sleep(CLEANUP_EVERY_SECONDS)
             try:
