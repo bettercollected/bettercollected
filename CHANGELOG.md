@@ -13,6 +13,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- **The internal APIs no longer serve API docs by default, and 422 answers no
+  longer echo the rejected input.** The backend, auth and Google services
+  served `/docs`, `/redoc` and `/openapi.json` on their public path. They now
+  serve them only when `API_DOCS_ENABLED=true` (off by default; the
+  `.env.example` files turn it on for local development, and
+  `.env.deployment` and `docker-compose.deployment.yml` set it to false). The
+  public REST API's `/openapi.json` is unchanged. Request validation errors
+  keep their `detail` list of `loc`, `msg` and `type` but drop `input` and
+  `ctx`, so a rejected password, token or answer is not sent back.
+  **Upgrade note:** self-hosters who used `/docs` on the internal APIs must set
+  `API_DOCS_ENABLED=true`. The backend health check in
+  `docker-compose.deployment.yml` now probes the public API document instead of
+  `/api/v1/docs`; custom orchestration that probed `/docs` needs the same change.
+
 - **The client address can no longer be forged.** The backend used to believe
   `X-Forwarded-For` and `CF-Connecting-IP` from any private-network peer, so a
   request arriving through Swarm ingress or from another container could claim

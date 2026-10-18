@@ -176,6 +176,8 @@ services:
     image: bettercollected/backend:nightly
     # image: bettercollected/backend:nightly
     environment:
+      # the internal API serves no /docs, /redoc or /openapi.json unless true
+      API_DOCS_ENABLED: "false"
       AUTH_BASE_URL: http://auth:8000/api/v1
       AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
       # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
@@ -234,7 +236,7 @@ services:
       umami:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/v1/docs']
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/v1/public/v1/openapi.json']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -353,6 +355,8 @@ services:
     image: bettercollected/auth:nightly
     # image: bettercollected/auth:nightly
     environment:
+      # the internal API serves no /docs, /redoc or /openapi.json unless true
+      API_DOCS_ENABLED: "false"
       TYPEFORM_REDIRECT_URI: "http://localhost:8000/api/v1/auth/typeform/basic/callback"
       TYPEFORM_SCOPE: "accounts:read"
       # Stripe
@@ -404,6 +408,8 @@ services:
   integrations-googleform:
     image: bettercollected/integrations-google:nightly
     environment:
+      # the internal API serves no /docs, /redoc or /openapi.json unless true
+      API_DOCS_ENABLED: "false"
       DATABASE_URL: postgresql+asyncpg://bc_google:${BC_GOOGLE_PASSWORD}@app-postgres:5432/bettercollected
       # calls the auth service's /users, which requires it
       AUTH_INTERNAL_NOTIFY_KEY: ${AUTH_INTERNAL_NOTIFY_KEY:?set by deploy.sh in the root .env}

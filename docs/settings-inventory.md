@@ -153,6 +153,7 @@ environment, whatever the tier.
 | `API_FLOW_EVENTS_RETENTION_DAYS` | retention | backend | int 0..3650 |  | R | T2 | `395` |
 | `API_CLIENT_URL` | server | backend, auth | url |  | R | T3 |  |
 | `API_DESCRIPTION` | server | backend | str max 500 |  | R | T1 |  |
+| `API_DOCS_ENABLED` | server | backend, auth, google | bool |  | R | T2 | `false` |
 | `API_DOMAIN` | server | backend | str max 253 |  | R | T2 |  |
 | `API_ENVIRONMENT` | server | backend, auth, google | str max 64 |  | R | T1 | `local` |
 | `API_HOST` | server | backend | str max 253 |  | R | T2 |  |
