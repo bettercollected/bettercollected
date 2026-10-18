@@ -6,8 +6,9 @@ Create Date: 2026-10-19
 
 * ``admin.setup_state`` holds at most one row: when the first-run setup was
   started (a setup token was redeemed), by which admin address, and when it was
-  finished. The runtime role can read it, insert the one row and update the
-  completion columns; it can never delete it.
+  finished. The runtime role can read it, insert the one row and update its
+  columns (a new token after a factor reset starts the setup over); it can never
+  delete it.
 * A session created by redeeming a setup token has ``mfa_state = 'setup'``: it
   may only reach the setup pages and second-factor enrolment. The check
   constraint is widened (expand-only: older code never writes the new value).
@@ -61,7 +62,7 @@ def upgrade() -> None:
     grant(op, "GRANT SELECT, INSERT ON admin.setup_state TO {role}")
     grant(
         op,
-        "GRANT UPDATE (mail_step, mail_step_at, completed_at, completed_by) "
+        "GRANT UPDATE (started_by, started_at, mail_step, mail_step_at, completed_at, completed_by) "
         "ON admin.setup_state TO {role}",
     )
 

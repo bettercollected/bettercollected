@@ -21,11 +21,17 @@ async def get(conn: AsyncConnection):
 
 
 async def start(conn: AsyncConnection, started_by: str, now: datetime) -> None:
-    """Record that the setup began (a second start keeps the first row)."""
+    """Record that the setup began. A later token (after a factor reset, or a
+    replaced token that was never finished) starts the setup over: the row is
+    reset to the new starter, with the mail step and completion cleared."""
+    values = dict(
+        started_by=started_by, started_at=now, mail_step=None, mail_step_at=None,
+        completed_at=None, completed_by=None,
+    )
     await conn.execute(
         insert(setup_state)
-        .values(started_by=started_by, started_at=now)
-        .on_conflict_do_nothing(index_elements=[setup_state.c.singleton])
+        .values(**values)
+        .on_conflict_do_update(index_elements=[setup_state.c.singleton], set_=values)
     )
 
 

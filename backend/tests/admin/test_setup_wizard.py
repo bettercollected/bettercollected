@@ -665,3 +665,23 @@ async def test_a_setup_session_cannot_reach_any_registered_route_but_enrolment(
             if r.status_code == 303:
                 assert r.headers["location"] in ("/login", "/mfa", "/mfa/enrol"), (method, path)
     await b.aclose()
+
+
+async def test_after_a_factor_reset_a_new_token_opens_the_wizard_again(
+    app, portal, runtime_engine, clock
+):
+    b, *_ = await to_enrolled(app, runtime_engine, clock)
+    page = await b.get("/setup/mail")
+    await b.post("/setup/mail/skip", data={"csrf_token": csrf_from(page)})
+    final = await b.get("/setup/finish")
+    await b.post("/setup/finish", data={"csrf_token": csrf_from(final), "ack": "yes"})
+    assert (await b.get("/setup/mail")).status_code == 404
+    # the operator resets the only factor on the host, then asks for a new token
+    outcome = await portal.factors.reset_factor(ADMIN, "operator")
+    assert outcome.ok
+    again, *_ = await to_enrolled(app, runtime_engine, clock)
+    state = (await rows(runtime_engine, "SELECT started_by, completed_at, mail_step FROM admin.setup_state"))[0]
+    assert tuple(state) == (ADMIN, None, None)
+    assert (await again.get("/setup/mail")).status_code == 200
+    await b.aclose()
+    await again.aclose()

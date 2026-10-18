@@ -16,8 +16,7 @@ async def test_setup_state_rules_for_the_runtime_role(runtime_engine):
     for sql in (
         "INSERT INTO admin.setup_state (started_by) VALUES ('b@example.org')",  # one row only
         "DELETE FROM admin.setup_state",  # never removed
-        "UPDATE admin.setup_state SET started_by = 'x'",  # who started it is fixed
-        "UPDATE admin.setup_state SET started_at = now()",
+        "UPDATE admin.setup_state SET singleton = false",
         "UPDATE admin.setup_state SET mail_step = 'bogus'",
     ):
         with pytest.raises(Exception):
