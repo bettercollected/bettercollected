@@ -29,6 +29,7 @@ from backend.app.models.dtos.action_dto import (
 )
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.response_dtos import FormSettingsCamelModel
 from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
@@ -52,6 +53,15 @@ from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
+
+
+def _stub_settings(workspace_form, form) -> FormSettingsCamelModel:
+    """The settings of a private or unauthorised form's stub: the
+    association's, plus the form's declared language, as the full read
+    returns them."""
+    settings = FormSettingsCamelModel(**workspace_form.settings.model_dump())
+    settings.language = form.settings.language if form.settings else None
+    return settings
 
 
 class FormService:
@@ -244,7 +254,7 @@ class FormService:
                     "builderVersion": form.builder_version,
                     "welcomePage": form.welcome_page,
                     "theme": form.theme,
-                    "settings": workspace_form.settings,
+                    "settings": _stub_settings(workspace_form, form),
                 }
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id,
@@ -285,7 +295,7 @@ class FormService:
                         "builderVersion": form.builder_version,
                         "welcomePage": form.welcome_page,
                         "theme": form.theme,
-                        "settings": workspace_form.settings,
+                        "settings": _stub_settings(workspace_form, form),
                         "unauthorized": True,
                     }
             else:

@@ -60,7 +60,11 @@ export const slice = createSlice({
             return { ...action.payload };
         },
         setFormSettings: (state, action) => {
-            return { ...state, settings: action.payload };
+            // A settings change answers with the workspace's settings for the
+            // form, which do not hold the form's own language: keep it.
+            const settings = action.payload;
+            const keepLanguage = settings && typeof settings === 'object' && !('language' in settings) && state.settings?.language != null;
+            return { ...state, settings: keepLanguage ? { ...settings, language: state.settings?.language } : settings };
         },
         /** The draft's organisation logo URL after an upload or removal (null: none). */
         setFormLogo: (state, action: { payload: string | null | undefined }) => {

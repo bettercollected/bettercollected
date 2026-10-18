@@ -16,7 +16,7 @@ from pydantic import Field
 
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.dtos.response_dtos import (
-    WorkspaceFormSettingsCamelModal,
+    FormSettingsCamelModel,
     StandardFormFieldCamelModel,
 )
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
@@ -36,7 +36,7 @@ class FormDtoCamelModel(CamelModel):
     description: Optional[str] = None
     type: Optional[str] = None
     button_text: Optional[str] = None
-    settings: Optional[WorkspaceFormSettingsCamelModal] = None
+    settings: Optional[FormSettingsCamelModel] = None
     is_published: Optional[bool] = None
     is_multi_page: Optional[bool] = None
     created_at: Optional[dt.datetime] = None
