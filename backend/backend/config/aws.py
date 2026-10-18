@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class AWSSettings(BaseSettings):
+class AWSSettings(StoreBackedSettings):
     ACCESS_KEY_ID: str = ""
     SECRET_ACCESS_KEY: str = ""
     PRE_SIGNED_URL_EXPIRY: int = 10

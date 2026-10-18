@@ -60,6 +60,7 @@ from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.utils.client_ip import rate_limit_key
 from backend.config import settings
+from common.settings.loader import live
 
 CACHE_FOLDER = "public/image-cache/unsplash"
 MEDIA_FOLDER = "public/media"
@@ -224,7 +225,7 @@ class ImageService:
             params = unsplash_route.clean_params(query)
         except unsplash_route.BadImageParams as bad:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content=str(bad))
-        api = settings.api_settings
+        api = live().api
         # an IPv6 client by its /64
         client_id = rate_limit_key(client)
         verdict = await self._limiter.hit(
@@ -270,7 +271,7 @@ class ImageService:
     async def _fetch_unsplash(
         self, photo_path: str, wanted: Dict[str, str], object_key: str, client: str
     ) -> str:
-        api = settings.api_settings
+        api = live().api
         verdict = await self._limiter.hit(
             PROXY_FETCH_SCOPE,
             client,
@@ -329,7 +330,7 @@ class ImageService:
         first_party = first_party_image_url(url)
         if first_party is not None:
             return first_party
-        api = settings.api_settings
+        api = live().api
         verdict = await self._limiter.hit(
             IMPORT_SCOPE,
             str(user.id),

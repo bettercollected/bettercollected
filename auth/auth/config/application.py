@@ -15,9 +15,11 @@ from auth.config.stripe import StripeSettings
 from auth.config.typeform_settings import TypeformSettings
 from auth.version import __version__
 from common.configs.shipped_secrets import require_secrets
+from common.settings.loader import ensure_poller, load_snapshot
 from dotenv import load_dotenv
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -26,8 +28,16 @@ default_dot_env_path = (
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
+# Settings may come from the signed settings store (SETTINGS_STORE=off|auto|
+# required; auto and unconfigured means environment and defaults only). One
+# snapshot is read here, before the settings classes below are built.
+load_snapshot(
+    "auth",
+    required_env_keys=("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY"),
+)
 
-class Application(BaseSettings):
+
+class Application(StoreBackedSettings):
     """Define application configuration model.
 
     DEBUG is off unless explicitly enabled (DEBUG=true): debug mode makes
@@ -87,6 +97,7 @@ class Application(BaseSettings):
 
 
 settings = Application()
+ensure_poller()  # no-op when the store is off
 
 # Session tokens are signed with AUTH_JWT_SECRET and OAuth/SSO state is
 # encrypted with AUTH_AES_HEX_KEY: never run with either unset or set to a

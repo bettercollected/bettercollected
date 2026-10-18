@@ -1,9 +1,10 @@
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class TypeformSettings(BaseSettings):
+class TypeformSettings(StoreBackedSettings):
     auth_uri: Optional[str] = (
         "https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}"
     )

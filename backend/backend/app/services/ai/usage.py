@@ -20,7 +20,8 @@ from loguru import logger
 
 from backend.app.services.ai.errors import ai_daily_limit, ai_rate_limited
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
-from backend.config import settings
+from backend.config import settings  # noqa: F401  (builds the settings and the live() groups)
+from common.settings.loader import live
 
 USER_SCOPE = "ai:user"
 WORKSPACE_SCOPE = "ai:workspace"
@@ -68,7 +69,7 @@ class AIUsageGuard:
         """One AI request of ``user_id`` (None for work without a person,
         such as an import job) in ``workspace_id``: 429 ``ai_rate_limited``
         over a window limit, 429 ``ai_daily_limit`` over the daily budget."""
-        config = settings.ai
+        config = live().ai
         window = config.RATE_LIMIT_WINDOW_SECONDS
         if user_id is not None and config.RATE_LIMIT_PER_USER > 0:
             verdict = await self._limiter.hit(
@@ -90,7 +91,7 @@ class AIUsageGuard:
     async def admit_fix(self, workspace_id: Any, user_id: Any) -> None:
         """Applying a review's fix: no provider call, so its own allowance
         per user and no budget."""
-        config = settings.ai
+        config = live().ai
         if config.RATE_LIMIT_FIX_PER_USER <= 0:
             return
         verdict = await self._limiter.hit(
@@ -103,7 +104,7 @@ class AIUsageGuard:
             raise ai_rate_limited(verdict.retry_after)
 
     async def _spend_request(self, workspace_id: str) -> None:
-        config = settings.ai
+        config = live().ai
         requests = await self._limiter.hit(
             BUDGET_REQUESTS_SCOPE, workspace_id, _UNCAPPED, DAY_SECONDS
         )

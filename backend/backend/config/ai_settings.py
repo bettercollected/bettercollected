@@ -1,9 +1,10 @@
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class AISettings(BaseSettings):
+class AISettings(StoreBackedSettings):
     """Cross-provider AI configuration.
 
     DEFAULT_PROVIDER picks which registered provider serves requests that
