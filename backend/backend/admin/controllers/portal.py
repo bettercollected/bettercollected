@@ -126,7 +126,7 @@ def build_registry() -> RouteRegistry:
         if session.mfa_state == "mfa_ok":
             return RedirectResponse("/", status_code=303)
         portal = _portal(request)
-        token = csrf.session_token(portal.csrf_key, str(session.id))
+        token = csrf.session_token(portal.csrf_key, session.csrf_subject)
         return portal.render("mfa_required.html", csrf_token=token, email=session.email)
 
     @reg.route("/logout", level=Level.ADMIN, methods=["POST"])
@@ -143,7 +143,7 @@ def build_registry() -> RouteRegistry:
     async def home(request: Request):
         portal = _portal(request)
         session = request.scope["state"]["session"]
-        token = csrf.session_token(portal.csrf_key, str(session.id))
+        token = csrf.session_token(portal.csrf_key, session.csrf_subject)
         return portal.render("home.html", csrf_token=token, email=session.email)
 
     @reg.route("/api/me", level=Level.SECOND_FACTOR)
