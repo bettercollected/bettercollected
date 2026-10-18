@@ -33,7 +33,7 @@ ROW_CANONICAL_HEX = (
 )
 ROW_SIG = "b86594dac85c96dc1e503ca2da15c5447992da166e4fccde588d0c4978e1ae43"
 SECRET_ROW_SIG = "c311e638b770d016a8c0487e635a23d527cf8d4d93cd819f4b26480e4ba39116"
-MANIFEST_SIG = "a9fa711127866699abb6064cbad23782bcabe4eff0dd827dddfbac2ad4992726"
+MANIFEST_SIG = "45bd89d8cbed68499d844da0dbfae006695b325deee2184134ffd919076eef58"
 
 
 def secret(**changes):
@@ -57,7 +57,7 @@ def test_frozen_vectors():
     assert canonical_row(plain_row()).hex() == ROW_CANONICAL_HEX
     assert sign_row(plain_row(), SIGN_KEY) == ROW_SIG
     assert sign_row(secret(), SIGN_KEY) == SECRET_ROW_SIG
-    manifest = sign_manifest(7, {"A": (1, "aa"), "B": (2, "bb")}, SIGN_KEY)
+    manifest = sign_manifest(7, {"A": (1, "aa", ("backend", "auth")), "B": (2, "bb", ("backend",))}, SIGN_KEY)
     assert manifest.sig == MANIFEST_SIG
 
 
@@ -150,23 +150,25 @@ def test_a_weak_signing_key_is_refused():
 
 
 def test_manifest_tamper():
-    entries = {"A": (1, "aa"), "B": (2, "bb")}
+    entries = {"A": (1, "aa", ("auth",)), "B": (2, "bb", ("auth", "backend"))}
     manifest = sign_manifest(7, entries, SIGN_KEY)
     assert verify_manifest(manifest, SIGN_KEY)
     for changed in (
         replace(manifest, revision=6),
-        replace(manifest, entries={"A": (1, "aa")}),  # key removed
-        replace(manifest, entries={**entries, "C": (1, "cc")}),
-        replace(manifest, entries={**entries, "B": (1, "bb")}),  # version rollback
-        replace(manifest, entries={**entries, "B": (2, "bc")}),
+        replace(manifest, entries={"A": (1, "aa", ("auth",))}),  # key removed
+        replace(manifest, entries={**entries, "C": (1, "cc", ("auth",))}),
+        replace(manifest, entries={**entries, "B": (1, "bb", ("auth", "backend"))}),  # version rollback
+        replace(manifest, entries={**entries, "B": (2, "bc", ("auth", "backend"))}),
+        replace(manifest, entries={**entries, "B": (2, "bb", ("auth", "backend", "google"))}),  # readers widened
+        replace(manifest, entries={**entries, "B": (2, "bb", ("auth",))}),
         replace(manifest, sig=""),
     ):
         assert not verify_manifest(changed, SIGN_KEY)
-    assert canonical_manifest(1, {"B": (1, "x"), "A": (1, "y")}) == canonical_manifest(
-        1, {"A": (1, "y"), "B": (1, "x")}
+    assert canonical_manifest(1, {"B": (1, "x", ("a",)), "A": (1, "y", ("b", "a"))}) == canonical_manifest(
+        1, {"A": (1, "y", ["a", "b"]), "B": (1, "x", ["a"])}
     )
     with pytest.raises(CanonicalError):
-        canonical_manifest(1, {"A:B": (1, "x")})
+        canonical_manifest(1, {"A:B": (1, "x", ("a",))})
 
 
 def test_row_and_manifest_domains_differ():
@@ -189,3 +191,37 @@ def test_monotonic_tracker():
 
 def test_repr_hides_the_value():
     assert "587" not in repr(plain_row())
+
+
+def test_enum_and_text_encode_the_same_value():
+    from common.settings.registry import Reload
+
+    as_text = canonical_row(plain_row(reload_class="R"))
+    assert canonical_row(plain_row(reload_class=Reload.R)) == as_text
+    assert b"Reload" not in as_text and b"\x00\x00\x00\x01R" in as_text
+    assert sign_row(plain_row(reload_class=Reload.R), SIGN_KEY) == ROW_SIG
+    with pytest.raises(CanonicalError):
+        canonical_row(plain_row(reload_class="X"))
+    with pytest.raises(CanonicalError):
+        canonical_row(plain_row(reload_class=1))
+    with pytest.raises(CanonicalError):
+        canonical_row(plain_row(is_secret=1))
+
+
+def test_manifest_survives_a_json_round_trip():
+    import json
+
+    from common.settings.signing import Manifest
+
+    manifest = sign_manifest(
+        7, {"A": (1, "aa", ("backend", "auth")), "B": (2, "bb", ("backend",))}, SIGN_KEY
+    )
+    again = Manifest.from_json(json.loads(json.dumps(manifest.to_json())))
+    assert again == manifest
+    assert all(isinstance(e, tuple) and isinstance(e[2], tuple) for e in again.entries.values())
+    assert verify_manifest(again, SIGN_KEY)
+    # lists inside entries are converted, and tampering after the trip is caught
+    raw = json.loads(json.dumps(manifest.to_json()))
+    raw["entries"]["A"][2].append("google")
+    assert not verify_manifest(Manifest.from_json(raw), SIGN_KEY)
+    assert manifest.keys_for("auth") == ("A",) and manifest.keys_for("backend") == ("A", "B")

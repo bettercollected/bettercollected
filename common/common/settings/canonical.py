@@ -3,7 +3,11 @@
 Length-prefixed fields under a domain tag, so no two different rows (or a row
 and a manifest) can encode to the same bytes. Signed: key, section, readers
 (sorted), is_secret, reload_class, the value (canonical JSON) or the encrypted
-blob, version and update time.
+blob, version and update time. Enums are encoded by their ``value``.
+
+Not signed: who made the change. ``SettingRow`` has no ``changed_by``; the
+store keeps it in its audit log (a tamper-evident chain). If the row model
+gains such a field it must be added here under a new domain tag.
 """
 
 from __future__ import annotations
@@ -11,8 +15,9 @@ from __future__ import annotations
 import json
 import struct
 from dataclasses import dataclass, replace
+from enum import Enum
 from datetime import datetime, timezone
-from typing import Any, Optional, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 ROW_DOMAIN = b"bc-settings-row-v1"
 MANIFEST_DOMAIN = b"bc-settings-manifest-v1"
@@ -43,6 +48,19 @@ class SettingRow:
 
     def __repr__(self) -> str:  # never show the value or blob
         return f"SettingRow(key={self.key!r}, version={self.version})"
+
+
+RELOAD_CLASSES = ("B", "H", "R")
+
+
+def text_of(value: Any, what: str) -> str:
+    """A plain string for ``value``: an Enum by its ``value``, a str as is.
+    Never ``str(enum)``, which would encode ``"Reload.R"``."""
+    if isinstance(value, Enum):
+        value = value.value
+    if not isinstance(value, str):
+        raise CanonicalError(f"{what} must be text")
+    return value
 
 
 def lp(data: bytes) -> bytes:
@@ -83,21 +101,26 @@ def canonical_row(row: SettingRow) -> bytes:
             raise CanonicalError("a secret row carries a blob and no value")
     elif row.blob is not None:
         raise CanonicalError("only a secret row carries a blob")
-    readers = tuple(row.readers)
+    readers = tuple(text_of(r, "reader") for r in row.readers)
     if len(set(readers)) != len(readers) or not readers:
         raise CanonicalError("readers must be non-empty and unique")
+    reload_class = text_of(row.reload_class, "reload class")
+    if reload_class not in RELOAD_CLASSES:
+        raise CanonicalError("unknown reload class")
+    if not isinstance(row.is_secret, bool):
+        raise CanonicalError("is_secret must be a boolean")
     if row.blob is not None:
         kind, payload = b"b", row.blob
     else:
         kind, payload = b"v", canonical_json(row.value)
     parts = [
         lp(ROW_DOMAIN),
-        lp(row.key.encode("utf-8")),
-        lp(row.section.encode("utf-8")),
+        lp(text_of(row.key, "key").encode("utf-8")),
+        lp(text_of(row.section, "section").encode("utf-8")),
         struct.pack(">I", len(readers)),
         *[lp(r.encode("utf-8")) for r in sorted(readers)],
         lp(b"1" if row.is_secret else b"0"),
-        lp(str(row.reload_class).encode("utf-8")),
+        lp(reload_class.encode("utf-8")),
         lp(kind),
         lp(payload.encode("utf-8")),
         u64(row.version),
@@ -106,16 +129,29 @@ def canonical_row(row: SettingRow) -> bytes:
     return b"".join(parts)
 
 
-def canonical_manifest(revision: int, entries: "dict[str, Tuple[int, str]]") -> bytes:
-    """``entries`` maps key to ``(version, sig_hex)``; encoded sorted by key as
-    ``key:version:sig_hex`` after the revision."""
+def normalize_entry(entry: Any) -> Tuple[int, str, Tuple[str, ...]]:
+    """``(version, sig, readers)`` from a tuple or a JSON list; readers sorted."""
+    try:
+        version, sig, readers = entry
+        readers = tuple(sorted(text_of(r, "reader") for r in readers))
+        sig = text_of(sig, "signature")
+    except (TypeError, ValueError):
+        raise CanonicalError("malformed manifest entry") from None
+    u64(version)
+    return version, sig, readers
+
+
+def canonical_manifest(revision: int, entries: Mapping[str, Any]) -> bytes:
+    """``entries`` maps key to ``(version, sig_hex, readers)``; encoded sorted
+    by key as ``key:version:sig_hex:reader,reader`` after the revision."""
     lines = []
     for key in sorted(entries):
-        version, sig = entries[key]
-        if ":" in key:
-            raise CanonicalError("key must not contain ':'")
-        u64(version)  # validates
-        lines.append(f"{key}:{version}:{sig}")
+        if ":" in key or "," in key:
+            raise CanonicalError("key must not contain ':' or ','")
+        version, sig, readers = normalize_entry(entries[key])
+        if any("," in r or ":" in r for r in readers):
+            raise CanonicalError("reader must not contain ':' or ','")
+        lines.append(f"{key}:{version}:{sig}:{','.join(readers)}")
     return b"".join(
         [lp(MANIFEST_DOMAIN), u64(revision), struct.pack(">I", len(lines))]
         + [lp(line.encode("utf-8")) for line in lines]

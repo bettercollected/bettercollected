@@ -8,7 +8,7 @@ import hmac
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, Mapping, Tuple
 
-from .canonical import SettingRow, canonical_manifest, canonical_row
+from .canonical import SettingRow, canonical_manifest, canonical_row, normalize_entry
 from .crypto.keycheck import require_key
 
 __all__ = [
@@ -45,17 +45,41 @@ def verify_row(row: SettingRow, signing_key: bytes) -> bool:
 
 @dataclass(frozen=True)
 class Manifest:
-    """The set of ``key -> (version, row sig)`` at one revision, signed."""
+    """The set of ``key -> (version, row sig, readers)`` at one revision,
+    signed. Entries are normalised to tuples, so a manifest that went through
+    JSON (lists) compares and verifies like the original. ``readers`` is
+    signed so a loader can tell which keys its service must see."""
 
     revision: int
-    entries: Mapping[str, Tuple[int, str]]
+    entries: Mapping[str, Tuple[int, str, Tuple[str, ...]]]
     sig: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "entries",
+            {k: normalize_entry(v) for k, v in dict(self.entries).items()},
+        )
+
+    def keys_for(self, service: str) -> Tuple[str, ...]:
+        """Keys the signed manifest says ``service`` may read."""
+        return tuple(sorted(k for k, e in self.entries.items() if service in e[2]))
+
+    def to_json(self) -> dict:
+        return {
+            "revision": self.revision,
+            "entries": {k: [v, s, list(r)] for k, (v, s, r) in self.entries.items()},
+            "sig": self.sig,
+        }
+
+    @classmethod
+    def from_json(cls, data: Mapping) -> "Manifest":
+        return cls(int(data["revision"]), dict(data["entries"]), str(data["sig"]))
 
 
 def sign_manifest(
-    revision: int, entries: Mapping[str, Tuple[int, str]], signing_key: bytes
+    revision: int, entries: Mapping[str, Tuple[int, str, Iterable[str]]], signing_key: bytes
 ) -> Manifest:
-    entries = dict(entries)
     sig = _mac(signing_key, canonical_manifest(revision, entries))
     return Manifest(revision, entries, sig)
 

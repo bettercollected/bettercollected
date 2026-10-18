@@ -3,7 +3,12 @@ then default.
 
 The environment counts only when set and non-empty after normalising (trim,
 one pair of quotes), so an empty ``KEY=`` line in an env file never shadows
-the store. Secrets are opened only when the store is the source.
+the store. Secrets are opened only when the store is the source, and a secret
+with no source at all raises instead of defaulting.
+
+A key whose store row was rejected keeps its last good value when the caller
+reads it through ``VerifiedSettings(verification, previous=...)``; ``resolve``
+just receives that row.
 """
 
 from __future__ import annotations
@@ -75,4 +80,6 @@ def resolve(
             except ValidationError as exc:
                 raise ResolveError(f"{key}: stored value is invalid ({exc.reason})") from None
         return Resolved(key, value, Source.STORE, False)
+    if spec.is_secret:  # fail closed: a secret never falls back to a default
+        raise ResolveError(f"{key}: a secret with no value from the environment or the store")
     return Resolved(key, default, Source.DEFAULT, False)

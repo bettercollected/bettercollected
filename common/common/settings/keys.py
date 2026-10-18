@@ -4,6 +4,14 @@ service reads.
 ``SectionKeys`` decodes the master key (and, during a rotation, the previous
 one) once, derives what it needs and keeps no reference to the master itself,
 so a service built for ``sections=["mail"]`` cannot open any other section.
+Rows are signed with a per-section key (``settings/sign`` with the section as
+context), so a service that holds only the ``mail`` section can neither forge
+nor even verify rows of another section. The manifest is signed with the
+section-less ``settings/sign`` key, which every reading service holds: a
+compromised reader can therefore forge a manifest (but no row of a section it
+does not hold), and the loader still checks each row's own signature and the
+version tracker. That is the residual risk of a symmetric MAC for the manifest.
+
 It always signs and seals with the current key; it verifies and opens with
 the current key first, then the previous one.
 """
@@ -62,6 +70,12 @@ class SectionKeys:
         self._sign: Tuple[bytes, ...] = tuple(
             derive_from_master(m, NAMESPACE, "sign") for m in masters
         )
+        self._row_sign: Dict[str, Tuple[bytes, ...]] = {
+            s: tuple(
+                derive_from_master(m, NAMESPACE, "sign", 1, s) for m in masters
+            )
+            for s in self._sections
+        }
         self._wrap: Dict[str, Tuple[bytes, ...]] = {
             s: tuple(
                 derive_from_master(m, NAMESPACE, "wrap", 1, s) for m in masters
@@ -90,16 +104,22 @@ class SectionKeys:
     # ---- signing
 
     def signing_key(self) -> bytes:
+        """The manifest signing key (not used for rows)."""
         return self._sign[0]
 
     def sign_row(self, row: SettingRow) -> SettingRow:
-        return row.with_sig(sign_row(row, self._sign[0]))
+        try:
+            key = self._row_sign[row.section][0]
+        except (KeyError, TypeError):
+            raise SectionNotAllowed("section is not available to this service") from None
+        return row.with_sig(sign_row(row, key))
 
     def verify_row(self, row: SettingRow) -> bool:
-        return any(verify_row(row, k) for k in self._sign)
+        keys = self._row_sign.get(row.section) if isinstance(row.section, str) else None
+        return bool(keys) and any(verify_row(row, k) for k in keys)
 
     def sign_manifest(self, revision: int, rows: Iterable[SettingRow]) -> Manifest:
-        entries = {r.key: (r.version, r.sig) for r in rows}
+        entries = {r.key: (r.version, r.sig, tuple(r.readers)) for r in rows}
         return sign_manifest(revision, entries, self._sign[0])
 
     def verify_manifest(self, manifest: Manifest) -> bool:

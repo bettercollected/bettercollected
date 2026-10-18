@@ -4,6 +4,26 @@ A ``Snapshot`` is what a loader reads: the rows visible to one service and the
 signed manifest. ``verify_snapshot`` accepts only rows whose signature, manifest
 entry, version and reader list check out and reports every other row as a
 ``Rejection``. Nothing here carries a value in a message or a report.
+
+A rejected key keeps its last good value: ``VerifiedSettings(verification,
+previous=...)`` serves the previously accepted row for any key that is
+rejected or missing now, and reports it in ``stale_keys``. Only a key that was
+never accepted falls back to the default (a secret fails closed in ``resolve``).
+
+Missing rows. Reader views show a service only its own rows, while the manifest
+covers every key. Each manifest entry therefore carries the signed ``readers``
+set, and ``verify_snapshot(..., service=...)`` computes the keys that service
+must see (``Manifest.keys_for``); a key in that set with no row in the view is
+rejected as ``row_missing``. The view/loader must therefore (1) hand over the
+complete signed manifest, unfiltered, together with the rows of the view, and
+(2) include in the view every row whose ``readers`` contains the service. A
+view that hides a row is then detected, not silently defaulted.
+
+NOT HERE (lands with the store): ``MonotonicTracker`` is in memory, so a restart
+forgets versions and a replayed older snapshot is accepted. The store side must
+(a) keep the highest manifest revision outside the settings tables (for example
+in the signed disk snapshot and the service heartbeat), (b) fail closed when
+rows exist but no trusted manifest does, and (c) seed the tracker from that.
 """
 
 from __future__ import annotations
@@ -47,6 +67,8 @@ class RejectionReason(str, Enum):
     VERSION_ROLLBACK = "version_rollback"
     UNKNOWN_KEY = "unknown_key"
     READER_NOT_ALLOWED = "reader_not_allowed"
+    SPEC_MISMATCH = "spec_mismatch"  # section, secret flag, reload class or readers
+    ROW_MISSING = "row_missing"  # the signed manifest lists it, the view does not
 
 
 @dataclass(frozen=True)
@@ -124,7 +146,7 @@ def verify_snapshot(
     registry and the row; present in the manifest with the same version and
     signature; own signature; version not lower than one already seen. A
     missing, badly signed or older manifest rejects every row
-    (``manifest_mismatch``): without it, deletions and rollbacks go unseen.
+    (``manifest_mismatch``, plus one with key ``*`` so an empty view still shows it): without it, deletions and rollbacks go unseen.
     """
     rows = list(rows)
     seen = seen_versions or MonotonicTracker()
@@ -142,6 +164,8 @@ def verify_snapshot(
     if not trusted:
         for row in rows:
             reject(row, RejectionReason.MANIFEST_MISMATCH)
+        # also when there are no rows: the loader must learn the manifest is untrusted
+        rejected.append(Rejection("*", 0, RejectionReason.MANIFEST_MISMATCH.value))
         return Verification(accepted, rejected, 0)
     assert manifest is not None
     for row in rows:
@@ -151,6 +175,15 @@ def verify_snapshot(
                 reject(row, RejectionReason.UNKNOWN_KEY)
                 continue
             spec = registry.get(row.key)
+            if (
+                row.section != spec.section
+                or row.is_secret != spec.is_secret
+                or str(getattr(row.reload_class, "value", row.reload_class))
+                != spec.reload_class.value
+                or not set(row.readers) <= set(spec.readers)
+            ):
+                reject(row, RejectionReason.SPEC_MISMATCH)
+                continue
         if service is not None and (
             service not in row.readers
             or (spec is not None and service not in spec.readers)
@@ -161,7 +194,7 @@ def verify_snapshot(
         if entry is None:
             reject(row, RejectionReason.MANIFEST_MISSING_KEY)
             continue
-        if entry != (row.version, row.sig):
+        if entry != (row.version, row.sig, tuple(sorted(row.readers))):
             reject(row, RejectionReason.MANIFEST_MISMATCH)
             continue
         if not keys.verify_row(row):
@@ -171,16 +204,44 @@ def verify_snapshot(
             reject(row, RejectionReason.VERSION_ROLLBACK)
             continue
         accepted[row.key] = row
+    if service is not None:
+        presented = {row.key for row in rows}
+        for key in manifest.keys_for(service):
+            if key in presented:
+                continue
+            if registry is not None and (
+                key not in registry or service not in registry.get(key).readers
+            ):
+                continue
+            rejected.append(
+                Rejection(key, manifest.entries[key][0], RejectionReason.ROW_MISSING.value)
+            )
     return Verification(accepted, rejected, manifest.revision)
 
 
 class VerifiedSettings:
-    """A ``SettingsReader`` over the rows ``verify_snapshot`` accepted."""
+    """A ``SettingsReader`` over the rows ``verify_snapshot`` accepted. With
+    ``previous`` (the reader built from the last good load), a key that is
+    rejected or missing now keeps its last good row."""
 
-    def __init__(self, verification: Verification):
+    def __init__(
+        self,
+        verification: Verification,
+        previous: Optional["VerifiedSettings"] = None,
+    ):
         self._rows = dict(verification.accepted)
         self._revision = verification.revision
         self.rejections: Tuple[Rejection, ...] = tuple(verification.rejections)
+        stale = []
+        if previous is not None:
+            for key, row in previous._rows.items():
+                if key not in self._rows and any(r.key == key for r in self.rejections):
+                    self._rows[key] = row
+                    stale.append(key)
+        self.stale_keys: Tuple[str, ...] = tuple(sorted(stale))
+
+    def is_stale(self, key: str) -> bool:
+        return key in self.stale_keys
 
     @property
     def revision(self) -> int:

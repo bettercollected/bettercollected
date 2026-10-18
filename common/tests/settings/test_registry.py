@@ -353,3 +353,185 @@ def test_internal_ok_allows_http_and_compose_hosts(reg, value):
 def test_internal_ok_still_refuses_loopback_metadata_and_userinfo(reg, value):
     with pytest.raises(ValidationError):
         reg.validate("SSO_POLIS_INTERNAL_URL", value)
+
+
+# ------------------------------------------------- non-global ranges, names
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "100.64.0.1",  # CGNAT
+        "100.127.255.254",
+        "192.0.0.8",  # IETF protocol assignments
+        "198.18.0.1",  # benchmarking
+        "198.19.255.255",
+        "192.0.2.1",  # documentation
+        "198.51.100.7",
+        "203.0.113.9",
+        "240.0.0.1",  # reserved
+        "255.255.255.255",
+        "[2001:db8::1]",  # documentation
+        "[100::1]",  # discard prefix
+        "127.0.0.1.nip.io",
+        "10.0.0.1.nip.io",
+        "app.127.0.0.1.sslip.io",
+        "169-254-169-254.example.org",
+        "127-0-0-1.example.org",
+        "192.168.1.5.example.org",
+        "foo.localtest.me",
+        "lvh.me",
+    ],
+)
+def test_non_public_addresses_and_wildcard_names_are_refused(reg, host):
+    with pytest.raises(ValidationError):
+        reg.validate("AI_COMPAT_BASE_URL", f"https://{host}/v1")
+    if host == "192.168.1.5.example.org":
+        return  # embeds a private address, which internal_ok admits
+    with pytest.raises(ValidationError):  # internal_ok does not admit the rest
+        reg.validate("SSO_POLIS_INTERNAL_URL", f"http://{host}/")
+
+
+def test_names_that_merely_contain_digits_are_fine(reg):
+    for host in ("api2.example.org", "v1-2-3.example.org", "8-8-8-8.example.org"):
+        assert reg.validate("AI_COMPAT_BASE_URL", f"https://{host}/")
+
+
+# ---------------------------------------------------------- trusted proxies
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "10.0.0.0/8",
+        "203.0.113.5",
+        "10.0.0.1, 192.168.0.0/16",
+        "2001:db8::/32",
+        "::1",
+        "172.18.0.0/16,fd12:3456::/32",
+        "",
+    ],
+)
+def test_trusted_proxies_accepts_addresses_and_cidrs(reg, raw):
+    assert reg.validate("API_TRUSTED_PROXIES", raw) == raw
+
+
+@pytest.mark.parametrize(
+    "raw,reason",
+    [
+        ("0.0.0.0/0", "too_wide"),
+        ("::/0", "too_wide"),
+        ("1.0.0.0/1", "too_wide"),
+        ("0.0.0.0/7", "too_wide"),
+        ("10.0.0.0/8,0.0.0.0/0", "too_wide"),
+        ("2000::/16", "too_wide"),
+        ("*", "bad_cidr_list"),
+        ("10.0.0.0/33", "bad_cidr_list"),
+        ("example.org", "bad_cidr_list"),
+        ("10.0.0.1,,10.0.0.2", "bad_cidr_list"),
+        ("10.0.0.1,", "bad_cidr_list"),
+        ("10.0.0.1 10.0.0.2", "bad_cidr_list"),
+        (",".join(["10.0.0.1"] * 65), "bad_cidr_list"),
+    ],
+)
+def test_trusted_proxies_refuses_everyone_and_garbage(reg, raw, reason):
+    with pytest.raises(ValidationError) as raised:
+        reg.validate("API_TRUSTED_PROXIES", raw)
+    assert raised.value.reason == reason
+
+
+def test_env_keeps_the_syntax_check_but_not_the_width_policy(reg):
+    assert reg.coerce("API_TRUSTED_PROXIES", "0.0.0.0/0") == "0.0.0.0/0"
+    with pytest.raises(ValidationError):
+        reg.coerce("API_TRUSTED_PROXIES", "not-an-address")
+
+
+# ---------------------------------------------------------------- mail host
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "smtp.example.org",
+        "mailhog",
+        "smtp-1.mail.example.org.",
+        "8.8.8.8",
+        "[2001:4860:4860::8888]",
+        "2001:4860:4860::8888",
+        "10.1.2.3",
+        "mail.internal",
+    ],
+)
+def test_mail_host_accepts_hosts_and_addresses(reg, raw):
+    assert reg.validate("MAIL_SMTP_SERVER", raw) == raw
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "smtps://smtp.example.org",
+        "user@smtp.example.org",
+        "smtp.example.org/path",
+        "smtp.example.org:587",
+        "smtp example.org",
+        "-bad.example.org",
+        "bad-.example.org",
+        "a..b",
+        "under_score.example.org",
+        "smtp.exämple.org",
+        "x" * 64 + ".org",
+        "localhost",
+        "127.0.0.1",
+        "[::1]",
+        "169.254.169.254",
+        "2130706433",
+        "0x7f000001",
+        "127.0.0.1.nip.io",
+        ".",
+        "a" * 260,
+    ],
+)
+def test_mail_host_refuses_urls_and_bad_hosts(reg, raw):
+    with pytest.raises(ValidationError):
+        reg.validate("MAIL_SMTP_SERVER", raw)
+
+
+# ------------------------------------------------------- numbers and controls
+
+
+@pytest.mark.parametrize(
+    "raw", ["1_000", "١٢٣", "１２３", "0x10", "1e3", "+ 5", "5 5", "--5", "٣"]
+)
+def test_integers_are_ascii_digits_only(reg, raw):
+    with pytest.raises(ValidationError):
+        reg.validate("MAIL_SMTP_PORT", raw)
+
+
+def test_integer_sign_and_space_are_still_fine(reg):
+    assert reg.validate("MAIL_SMTP_PORT", " +587 ") == 587
+
+
+def test_floats_reject_underscores_and_non_ascii():
+    registry = Registry(
+        [SettingSpec("RATIO", "misc", ("backend",), type=ValueType.FLOAT)]
+    )
+    for bad in ("1_0.5", "١.٥", "infinity", "0x1p3", "1,5"):
+        with pytest.raises(ValidationError):
+            registry.validate("RATIO", bad)
+    assert registry.validate("RATIO", ".5e1") == 5.0
+
+
+@pytest.mark.parametrize(
+    "char",
+    [
+        " ", " ", "‪", "‫", "‬", "‭", "‮",
+        "⁦", "⁧", "⁨", "⁩", "‎", "‏", "\x00",
+        "\x7f", "\x85", "\t",
+    ],
+)
+def test_control_and_bidi_characters_are_refused(char):
+    registry = Registry([SettingSpec("LABEL", "misc", ("backend",))])
+    with pytest.raises(ValidationError) as raised:
+        registry.validate("LABEL", f"ab{char}cd")
+    assert raised.value.reason == "control_characters"
+    assert registry.validate("LABEL", "plain é text") == "plain é text"

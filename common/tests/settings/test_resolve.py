@@ -76,8 +76,6 @@ def test_secrets_are_opened_lazily_and_only_from_the_store(keys):
         "MAIL_PASSWORD", {"MAIL_PASSWORD": "from-env"}, row, None, REG, open_secret=opener
     )
     assert (got.value, got.source, got.overridden_by_env) == ("from-env", Source.ENV, True)
-    got = resolve("MAIL_PASSWORD", {}, None, None, REG, open_secret=opener)
-    assert got.source is Source.DEFAULT
     assert calls == []  # never opened
 
 
@@ -98,3 +96,9 @@ def test_an_unopenable_secret_fails_without_leaking(keys):
 def test_repr_never_shows_the_value(keys):
     got = resolve("MAIL_PASSWORD", {"MAIL_PASSWORD": "super-secret-value"}, None, None, REG)
     assert "super-secret" not in repr(got)
+
+
+def test_a_secret_with_no_source_fails_closed(keys):
+    for env in ({}, {"MAIL_PASSWORD": ""}, {"MAIL_PASSWORD": "''"}):
+        with pytest.raises(ResolveError):
+            resolve("MAIL_PASSWORD", env, None, "a-default", REG)

@@ -5,6 +5,12 @@ A setting's store key is its environment variable name. Adding a key is one
 declarative ``SettingSpec`` in ``SEED_SPECS``; the registry refuses specs that
 contradict each other (see ``SettingSpec.__post_init__``) and validates values
 by type and policy. Error messages name the key and the rule, never the value.
+
+URL and host checks are text checks on what an administrator types. They do
+not see DNS: any client that connects to a configured URL (AI endpoint,
+webhook, SSO bridge, mail server) must re-check the resolved IP address at
+connect time (``not ip.is_global``, with the same ``internal_ok`` exception)
+and must not follow redirects blindly.
 """
 
 from __future__ import annotations
@@ -13,6 +19,7 @@ import ipaddress
 import json
 import math
 import re
+import unicodedata
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, Iterable, Iterator, Optional, Tuple
@@ -132,6 +139,7 @@ class SettingSpec:
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     max_length: Optional[int] = None
+    format: str = ""  # for strings: "cidr_list" or "host"
 
     def __post_init__(self) -> None:
         def bad(msg: str) -> None:
@@ -183,6 +191,10 @@ class SettingSpec:
             bad("empty range")
         if self.max_length is not None and self.type is not ValueType.STR:
             bad("max_length applies to strings only")
+        if self.format not in ("", "cidr_list", "host"):
+            bad("unknown format")
+        if self.format and (self.type is not ValueType.STR or self.is_secret):
+            bad("a format applies to plain strings only")
         if self.default is not None:
             try:
                 coerce_value(self, self.default)
@@ -198,12 +210,26 @@ class SettingSpec:
 
 # ------------------------------------------------------------ typed parsing
 
+_INT = re.compile(r"[+-]?[0-9]+", re.ASCII)
+_FLOAT = re.compile(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?", re.ASCII)
 _TRUE = frozenset({"true", "1", "yes", "on"})
 _FALSE = frozenset({"false", "0", "no", "off"})
 
 
 def _fail(spec: SettingSpec, reason: str, message: str = "") -> ValidationError:
     return ValidationError(spec.key, reason, message)
+
+
+_BIDI = frozenset(
+    list(range(0x202A, 0x202F)) + list(range(0x2066, 0x206A)) + [0x200E, 0x200F, 0x061C]
+)
+
+
+def _is_control(char: str) -> bool:
+    """C0/C1 controls, DEL, line and paragraph separators, bidi controls."""
+    return (
+        unicodedata.category(char) in ("Cc", "Zl", "Zp") or ord(char) in _BIDI
+    )
 
 
 def coerce_value(spec: SettingSpec, raw: Any) -> Any:
@@ -223,12 +249,17 @@ def coerce_value(spec: SettingSpec, raw: Any) -> Any:
         if isinstance(raw, bool):
             raise _fail(spec, "not_number", f"expected a {t.value}")
         try:
+            text = raw.strip() if isinstance(raw, str) else None
             if t is ValueType.INT:
                 if isinstance(raw, float) and not raw.is_integer():
                     raise ValueError
-                number: Any = int(raw.strip() if isinstance(raw, str) else raw)
+                if text is not None and not _INT.fullmatch(text):
+                    raise ValueError  # "1_000", non-ASCII digits, "0x10"
+                number: Any = int(text if text is not None else raw)
             else:
-                number = float(raw.strip() if isinstance(raw, str) else raw)
+                if text is not None and not _FLOAT.fullmatch(text):
+                    raise ValueError
+                number = float(text if text is not None else raw)
                 if not math.isfinite(number):
                     raise ValueError
         except (TypeError, ValueError, OverflowError):
@@ -262,8 +293,12 @@ def coerce_value(spec: SettingSpec, raw: Any) -> Any:
         limit = MAX_URL
     if len(raw) > limit:
         raise _fail(spec, "too_long")
-    if any(ord(c) < 32 or ord(c) == 127 for c in raw):
+    if any(_is_control(c) for c in raw):
         raise _fail(spec, "control_characters")
+    if spec.format == "cidr_list":
+        parse_cidr_list(spec, raw)
+    elif spec.format == "host":
+        check_host_syntax(spec, raw)
     return raw
 
 
@@ -287,6 +322,40 @@ METADATA_ADDRESSES = frozenset(
     for a in ("169.254.169.254", "100.100.100.200", "192.0.0.192", "fd00:ec2::254")
 )
 _NUMERIC_LABEL = re.compile(r"^(0[xX][0-9a-fA-F]*|[0-9]+)$")
+# Names that resolve to whatever address they spell (wildcard DNS).
+WILDCARD_DNS_SUFFIXES = (
+    "nip.io",
+    "sslip.io",
+    "xip.io",
+    "traefik.me",
+    "localtest.me",
+    "lvh.me",
+    "vcap.me",
+    "lacolhost.com",
+)
+_EMBEDDED_V4 = re.compile(r"(?<![0-9])([0-9]{1,3})[.-]([0-9]{1,3})[.-]([0-9]{1,3})[.-]([0-9]{1,3})(?![0-9])")
+# The only non-public ranges ``internal_ok`` admits: private networks.
+INTERNAL_NETWORKS = tuple(
+    ipaddress.ip_network(n)
+    for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
+)
+
+
+def _address_problem(address, internal_ok: bool) -> Optional[str]:
+    mapped = getattr(address, "ipv4_mapped", None)
+    if mapped is not None:
+        address = mapped
+    if address in METADATA_ADDRESSES:
+        return "refers to a cloud metadata service"
+    if address.is_loopback or address.is_unspecified or address.is_link_local:
+        return "refers to this machine or a link-local address"
+    if address.is_multicast:
+        return "is a multicast address"
+    if address.is_global:
+        return None
+    if internal_ok and any(address in net for net in INTERNAL_NETWORKS):
+        return None
+    return "is not a public address"
 
 
 def _host_problem(host: str, internal_ok: bool) -> Optional[str]:
@@ -301,19 +370,64 @@ def _host_problem(host: str, internal_ok: bool) -> Optional[str]:
     except ValueError:
         if numeric_like:  # 2130706433, 0x7f000001, 0177.0.0.1, 127.1
             return "uses an ambiguous IP address spelling"
+        if any(host == s or host.endswith("." + s) for s in WILDCARD_DNS_SUFFIXES):
+            return "uses a wildcard DNS name that can point anywhere"
+        for found in _EMBEDDED_V4.finditer(host):
+            try:
+                embedded = ipaddress.IPv4Address(".".join(found.groups()))
+            except ValueError:
+                continue
+            if _address_problem(embedded, internal_ok):
+                return "embeds a non-public IP address"
         return None
-    mapped = getattr(address, "ipv4_mapped", None)
-    if mapped is not None:
-        address = mapped
-    if address in METADATA_ADDRESSES:
-        return "refers to a cloud metadata service"
-    if address.is_loopback or address.is_unspecified or address.is_link_local:
-        return "refers to this machine or a link-local address"
-    if address.is_multicast or address.is_reserved:
-        return "is a reserved address"
-    if address.is_private and not internal_ok:
-        return "is a private address"
-    return None
+    return _address_problem(address, internal_ok)
+
+
+def check_host_syntax(spec: SettingSpec, value: str) -> None:
+    """A bare host name or IP address: no scheme, userinfo, port, path or spaces."""
+    text = value
+    if text.startswith("[") and text.endswith("]"):
+        text = text[1:-1]
+    try:
+        ipaddress.ip_address(text)
+        return
+    except ValueError:
+        pass
+    labels = text.rstrip(".").split(".")
+    ok = (
+        0 < len(text) <= 253
+        and all(re.fullmatch(r"[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?", l, re.ASCII) for l in labels)
+    )
+    if not ok:
+        raise _fail(spec, "bad_host", "must be a host name or IP address only")
+
+
+MAX_PROXIES = 64
+MIN_PREFIX = {4: 8, 6: 32}  # narrower than this is "everyone"
+
+
+def parse_cidr_list(spec: SettingSpec, value: str):
+    """Comma separated addresses and CIDRs; syntax only."""
+    if not value.strip():
+        return []
+    items = [part.strip() for part in value.split(",")]
+    if len(items) > MAX_PROXIES or any(not item for item in items):
+        raise _fail(spec, "bad_cidr_list", "expected comma separated addresses or CIDRs")
+    networks = []
+    for item in items:
+        try:
+            networks.append(ipaddress.ip_network(item, strict=False))
+        except ValueError:
+            raise _fail(spec, "bad_cidr_list", "contains an invalid address or CIDR") from None
+    return networks
+
+
+def check_policy_cidrs(spec: SettingSpec, value: str) -> None:
+    """Refuse a list that would trust (nearly) everyone: any /0, IPv4 wider
+    than /8 and IPv6 wider than /32."""
+    for net in parse_cidr_list(spec, value):
+        if net.prefixlen < MIN_PREFIX[net.version]:
+            raise _fail(spec, "too_wide", "trusts too wide a range of addresses")
 
 
 def check_policy_url(spec: SettingSpec, value: str) -> None:
@@ -413,6 +527,12 @@ class Registry:
                 raise _fail(spec, "weak_secret", "; ".join(problems))
         elif spec.type is ValueType.URL:
             check_policy_url(spec, value)
+        elif spec.format == "cidr_list":
+            check_policy_cidrs(spec, value)
+        elif spec.format == "host":
+            problem = _host_problem(value.strip("[]"), True)
+            if problem:
+                raise _fail(spec, "blocked_host", f"host {problem}")
         return value
 
 
@@ -503,6 +623,7 @@ SEED_SPECS: Tuple[SettingSpec, ...] = (
         section="network",
         readers=("backend", "auth"),
         tier=Tier.T3,
+        format="cidr_list",
         description="Comma separated proxy addresses whose forwarding headers are trusted.",
     ),
     SettingSpec(
@@ -527,6 +648,7 @@ SEED_SPECS: Tuple[SettingSpec, ...] = (
     ),
     SettingSpec(
         "MAIL_SMTP_SERVER",
+        format="host",
         description="Outgoing mail server host name.",
         **_MAIL,
     ),
