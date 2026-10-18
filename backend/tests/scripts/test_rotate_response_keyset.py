@@ -1,0 +1,483 @@
+"""Rotating MASTER_ENCRYPTION_KEYSET end to end, per store (Mongo, Postgres,
+and both as in a dual write mode): add a key, re-encrypt everything under it,
+drop the old key. Dry run changes nothing, a rerun is a no-op, drop-old
+refuses while an old key is in use, and nothing printed carries a keyset,
+an answer or a credential."""
+
+import json
+import os
+import stat
+
+import pytest
+from beanie import PydanticObjectId
+from bson import ObjectId
+from sqlalchemy import text
+
+from backend.app.container import container
+from backend.app.repositories.postgres.forms import PostgresWorkspaceFormRepository
+from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
+from backend.app.schemas.standard_form_response import FormResponseDocument
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from common.db.canonical import canonical_document, checksum
+from common.models.standard_form import RespondentFeedback
+from common.services.crypto_service import crypto_service
+from common.services.keyset import (
+    CryptoService,
+    ciphertext_key_id,
+    encode_keyset,
+    parse_keyset,
+)
+from scripts.rotate_response_keyset import (
+    GOOGLE_CREDENTIALS,
+    RESPONSES,
+    MongoStore,
+    PostgresStore,
+    _main,
+)
+from tests.conftest import (
+    TEST_MONGO_DB,
+    TEST_MONGO_URI,
+    _postgres_configured,
+    _truncate_postgres,
+)
+
+pytestmark = pytest.mark.asyncio
+
+WS_A = PydanticObjectId("65e5501d00000000000000a1")
+WS_B = PydanticObjectId("65e5501d00000000000000b2")
+OLD_KEY = crypto_service.primary_key_id
+SECRETS = ("an answer", "a hidden value", "an internal note", "a message", "refresh-me")
+
+
+def _enc(workspace, form_id, plaintext: str) -> bytes:
+    return crypto_service.encrypt(
+        workspace_id=workspace, form_id=form_id, data=plaintext
+    )
+
+
+class Data:
+    """The records, and what each encrypted value must decrypt to."""
+
+    def __init__(self, with_orphan: bool = False):
+        self.expected = {}  # (target, record id, path) -> (context, plaintext)
+        self.links = [
+            WorkspaceFormDocument(
+                id=PydanticObjectId(), workspace_id=WS_A, form_id="f1", user_id="u"
+            ),
+            WorkspaceFormDocument(
+                id=PydanticObjectId(), workspace_id=WS_A, form_id="f2", user_id="u"
+            ),
+            WorkspaceFormDocument(
+                id=PydanticObjectId(), workspace_id=WS_B, form_id="f2", user_id="u"
+            ),
+        ]
+        self.responses = []
+
+        def response(form_id, workspace, stamped=True, **values):
+            document = FormResponseDocument(
+                id=PydanticObjectId(),
+                form_id=form_id,
+                workspace_id=workspace if stamped else None,
+            )
+            rid = str(document.id)
+            for field, plaintext in values.items():
+                if field == "respondent_feedback":
+                    document.respondent_feedback = [
+                        RespondentFeedback(
+                            status="Selected",
+                            message=_enc(workspace, form_id, plaintext),
+                        ),
+                        RespondentFeedback(status="Closed", message=None),
+                    ]
+                    path = ("respondent_feedback", 0, "message")
+                else:
+                    setattr(document, field, _enc(workspace, form_id, plaintext))
+                    path = (field,)
+                self.expected[("responses", rid, path)] = (
+                    (str(workspace), form_id),
+                    plaintext.encode(),
+                )
+            self.responses.append(document)
+
+        # stamped with its workspace; every encrypted field
+        response(
+            "f1",
+            WS_A,
+            answers=json.dumps({"q1": {"text": "an answer"}}),
+            hidden_fields=json.dumps({"ref": "a hidden value"}),
+            internal_answers=json.dumps({"i1": {"text": "an internal note"}}),
+            respondent_feedback="a message",
+        )
+        # stored before responses carried their workspace: found by the links
+        response("f1", WS_A, stamped=False, answers='{"q1": "an answer"}')
+        response("f2", WS_B, stamped=False, answers='{"q1": "an answer"}')
+        # nothing encrypted
+        self.responses.append(
+            FormResponseDocument(
+                id=PydanticObjectId(),
+                form_id="f1",
+                workspace_id=WS_A,
+                answers={"q1": {"text": "plain"}},
+            )
+        )
+        if with_orphan:  # no workspace, no link: nothing can open it
+            response("gone", WS_A, stamped=False, answers='{"q1": "an answer"}')
+
+        credential_id = ObjectId()
+        self.credentials = [
+            {
+                "_id": credential_id,
+                "user_id": "user-1",
+                "email": "someone@example.com",
+                "provider": "google",
+                "credentials": crypto_service.encrypt(
+                    "personal", form_id="user-1", data='{"token": "refresh-me"}'
+                ),
+            }
+        ]
+        self.expected[("google-credentials", str(credential_id), ("credentials",))] = (
+            ("personal", "user-1"),
+            b'{"token": "refresh-me"}',
+        )
+
+    async def to_mongo(self):
+        db = container.database_client()[TEST_MONGO_DB]
+        for document in (*self.links, *self.responses):
+            await document.save()
+        await db[GOOGLE_CREDENTIALS.collection].insert_many(
+            [dict(c) for c in self.credentials]
+        )
+
+    async def to_postgres(self):
+        sessions = container.pg_sessionmaker()
+        links = PostgresWorkspaceFormRepository(sessions, None)
+        responses = PostgresFormResponseRepository(sessions, None, None)
+        for link in self.links:
+            await links.upsert(link)
+        for document in self.responses:
+            await responses.upsert(document)
+        async with container.pg_engine().begin() as conn:
+            for credential in self.credentials:
+                doc = canonical_document(credential)
+                await conn.execute(
+                    text(
+                        "INSERT INTO google.oauth_credentials (id, doc, _bc_checksum) "
+                        "VALUES (:id, CAST(:doc AS jsonb), :checksum)"
+                    ),
+                    {
+                        "id": str(credential["_id"]),
+                        "doc": json.dumps(doc),
+                        "checksum": checksum(doc),
+                    },
+                )
+
+
+@pytest.fixture
+async def google_table():
+    """google.oauth_credentials as the integration's migrations create it
+    (the columns the rotation touches), unless this database has it."""
+    if not _postgres_configured():
+        yield None
+        return
+    engine = container.pg_engine()
+    async with engine.begin() as conn:
+        exists = (
+            await conn.execute(text("SELECT to_regclass('google.oauth_credentials')"))
+        ).scalar()
+        schema_exists = (
+            await conn.execute(
+                text("SELECT 1 FROM pg_namespace WHERE nspname = 'google'")
+            )
+        ).scalar()
+        if not exists:
+            await conn.execute(text("CREATE SCHEMA IF NOT EXISTS google"))
+            await conn.execute(
+                text(
+                    "CREATE TABLE google.oauth_credentials (id text PRIMARY KEY, "
+                    "doc jsonb NOT NULL, _bc_checksum text NOT NULL)"
+                )
+            )
+        await conn.execute(text("DELETE FROM google.oauth_credentials"))
+    yield
+    async with engine.begin() as conn:
+        if exists:
+            await conn.execute(text("DELETE FROM google.oauth_credentials"))
+        else:
+            await conn.execute(text("DROP TABLE google.oauth_credentials"))
+            if not schema_exists:
+                await conn.execute(text("DROP SCHEMA google"))
+
+
+@pytest.fixture(params=["mongo", "postgres", "both"])
+async def stores(request, google_table, monkeypatch):
+    """Seeds the chosen stores and points the script's settings at them."""
+    if request.param != "mongo":
+        if not _postgres_configured():
+            pytest.skip("DATABASE_URL not set to a *_test database")
+        await _truncate_postgres()
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+    monkeypatch.setenv("GOOGLE_MONGO_DB", TEST_MONGO_DB)
+    monkeypatch.setenv("GOOGLE_DATABASE_URL", os.environ.get("DATABASE_URL", ""))
+    return request.param
+
+
+async def seed(store_choice, data):
+    if store_choice in ("mongo", "both"):
+        await data.to_mongo()
+    if store_choice in ("postgres", "both"):
+        await data.to_postgres()
+
+
+def store_objects(store_choice):
+    names = {
+        "mongo": ["mongo"],
+        "postgres": ["postgres"],
+        "both": ["mongo", "postgres"],
+    }
+    for name in names[store_choice]:
+        for target in (RESPONSES, GOOGLE_CREDENTIALS):
+            if name == "mongo":
+                yield MongoStore(container.database_client()[TEST_MONGO_DB], target)
+            else:
+                yield PostgresStore(container.pg_engine(), target)
+
+
+async def stored_values(store_choice):
+    """(store, target, record id, path) -> the stored ciphertext."""
+    found = {}
+    for store in store_objects(store_choice):
+        for record in await store.batch(None, 1000):
+            for path, value in store.target.values(record):
+                found[(store.name, store.target.name, record["id"], path)] = value
+    return found
+
+
+async def postgres_checksums_agree():
+    async with container.pg_engine().connect() as conn:
+        for table in ("app.form_responses", "google.oauth_credentials"):
+            rows = await conn.execute(text(f"SELECT doc, _bc_checksum FROM {table}"))
+            for doc, stored in rows:
+                assert stored == checksum(doc)
+
+
+async def cli(capsys, *argv):
+    code = await _main(list(argv))
+    out = capsys.readouterr().out
+    return code, (json.loads(out) if out.strip().startswith("{") else out)
+
+
+def assert_nothing_secret(text_out: str, *keysets: str):
+    for secret in (*SECRETS, *keysets):
+        assert secret not in text_out
+    assert str(WS_A) not in text_out
+
+
+async def test_rotation_end_to_end(stores, tmp_path, capsys):
+    data = Data()
+    await seed(stores, data)
+    old_keyset = os.environ["MASTER_ENCRYPTION_KEYSET"]
+    rotated_file, final_file = tmp_path / "rotated.keyset", tmp_path / "final.keyset"
+    common = ["--store", stores, "--batch-size", "2"]
+
+    # add-key: the current keys plus a new primary, to a file only its owner reads
+    code, added = await cli(capsys, "add-key", "--out", str(rotated_file))
+    assert code == 0
+    assert stat.S_IMODE(os.stat(rotated_file).st_mode) == 0o600
+    rotated_value = rotated_file.read_text().strip()
+    rotated = parse_keyset(rotated_value)
+    new_key = rotated.primary_key_id
+    assert new_key != OLD_KEY and added["primary_key_id"] == new_key
+    assert sorted(added["key_ids"]) == sorted([OLD_KEY, new_key])
+    assert_nothing_secret(json.dumps(added), old_keyset, rotated_value)
+    # it never overwrites a file
+    code, _ = await cli(capsys, "add-key", "--out", str(rotated_file))
+    assert code == 2 and rotated_file.read_text().strip() == rotated_value
+
+    before = await stored_values(stores)
+    assert before and all(ciphertext_key_id(v) == OLD_KEY for v in before.values())
+
+    # dry run: counts only
+    code, report = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--dry-run", *common
+    )
+    assert code == 0 and report["mode"] == "dry-run"
+    responses = report["targets"]["responses"]
+    for name in ("mongo", "postgres") if stores == "both" else (stores,):
+        assert responses[name] == {
+            "records": 4,
+            "records_stale": 3,
+            "values": 6,
+            "values_stale": 6,
+            f"values_key_{OLD_KEY}": 6,
+        }
+        assert report["targets"]["google-credentials"][name]["values_stale"] == 1
+    assert await stored_values(stores) == before
+
+    # drop-old refuses while the old key is in use, and writes nothing
+    code, refused = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(final_file),
+        *common,
+    )
+    assert code == 1 and refused["values_stale"] > 0 and "refused" in refused
+    assert not final_file.exists()
+
+    # re-encrypt
+    code, report = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), *common
+    )
+    assert code == 0 and report["mode"] == "apply"
+    primary = "postgres" if stores == "postgres" else "mongo"
+    counts = report["targets"]["responses"][primary]
+    assert counts["records_reencrypted"] == 3 and counts["values_reencrypted"] == 6
+    assert counts["records_current"] == 1
+    assert "records_unopenable" not in counts
+    assert report["targets"]["google-credentials"][primary]["values_reencrypted"] == 1
+    if stores == "both":
+        # the mirror got the primary's ciphertexts, nothing left to do there
+        assert counts["mirror_records_copied"] == 3
+        assert "records_reencrypted" not in report["targets"]["responses"]["postgres"]
+    assert_nothing_secret(json.dumps(report), old_keyset, rotated_value)
+
+    after = await stored_values(stores)
+    assert after.keys() == before.keys()
+    assert all(ciphertext_key_id(v) == new_key for v in after.values())
+    if stores == "both":  # the two stores hold the same bytes
+        for (store, target, rid, path), value in after.items():
+            if store == "mongo":
+                assert after[("postgres", target, rid, path)] == value
+    if stores != "mongo":
+        await postgres_checksums_agree()
+
+    # everything reads back, with the new key alone
+    def reads_back(cipher):
+        for (_, target, rid, path), value in after.items():
+            context, plaintext = data.expected[(target, rid, path)]
+            assert cipher.decrypt(*context, value) == plaintext
+
+    reads_back(CryptoService(rotated_value))
+
+    # a rerun is a no-op
+    code, again = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), *common
+    )
+    assert code == 0
+    assert "records_reencrypted" not in again["targets"]["responses"][primary]
+    assert await stored_values(stores) == after
+
+    # drop-old: the new key only
+    code, dropped = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(final_file),
+        *common,
+    )
+    assert code == 0, dropped
+    assert dropped["dropped_key_ids"] == [OLD_KEY]
+    assert stat.S_IMODE(os.stat(final_file).st_mode) == 0o600
+    final_value = final_file.read_text().strip()
+    final = parse_keyset(final_value)
+    assert [k.key_id for k in final.key] == [new_key]
+    reads_back(CryptoService(final_value))
+    assert_nothing_secret(json.dumps(dropped), old_keyset, rotated_value, final_value)
+
+
+async def test_drop_old_refuses_while_a_record_cannot_be_reencrypted(
+    stores, tmp_path, capsys
+):
+    """A record no context opens stays under the old key, and so does the key."""
+    await seed(stores, Data(with_orphan=True))
+    rotated_file = tmp_path / "rotated.keyset"
+    common = ["--store", stores]
+    assert (await cli(capsys, "add-key", "--out", str(rotated_file)))[0] == 0
+
+    code, report = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), *common
+    )
+    assert code == 0
+    primary = "postgres" if stores == "postgres" else "mongo"
+    assert report["targets"]["responses"][primary]["records_unopenable"] == 1
+
+    code, refused = await cli(
+        capsys,
+        "drop-old",
+        "--keyset-file",
+        str(rotated_file),
+        "--out",
+        str(tmp_path / "final.keyset"),
+        *common,
+    )
+    assert code == 1 and refused["values_stale"] >= 1
+    assert not (tmp_path / "final.keyset").exists()
+
+
+async def test_an_interrupted_run_resumes(stores, tmp_path, capsys):
+    data = Data()
+    await seed(stores, data)
+    rotated_file = tmp_path / "rotated.keyset"
+    common = ["--store", stores, "--target", "responses", "--batch-size", "1"]
+    assert (await cli(capsys, "add-key", "--out", str(rotated_file)))[0] == 0
+    new_key = parse_keyset(rotated_file.read_text()).primary_key_id
+
+    # stops after one record, as if interrupted
+    code, first = await cli(
+        capsys,
+        "reencrypt",
+        "--keyset-file",
+        str(rotated_file),
+        "--limit",
+        "1",
+        *common,
+    )
+    primary = "postgres" if stores == "postgres" else "mongo"
+    assert code == 0
+    assert first["targets"]["responses"][primary]["records_reencrypted"] == 1
+    keys = [ciphertext_key_id(v) for v in (await stored_values(stores)).values()]
+    assert new_key in keys and OLD_KEY in keys
+
+    code, second = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), *common
+    )
+    assert code == 0
+    assert second["targets"]["responses"][primary]["records_reencrypted"] == 2
+    values = await stored_values(stores)
+    responses = {k: v for k, v in values.items() if k[1] == "responses"}
+    assert all(ciphertext_key_id(v) == new_key for v in responses.values())
+
+
+async def test_a_value_changed_meanwhile_is_left_for_the_next_run():
+    """Compare-and-set: the store keeps what the application wrote."""
+    data = Data()
+    await data.to_mongo()
+    store = MongoStore(container.database_client()[TEST_MONGO_DB], RESPONSES)
+    record = (await store.batch(None, 1))[0]
+    (path, old), *_ = RESPONSES.values(record)
+    assert not await store.write(record["id"], [(path, b"v1:not-what-is-stored", b"x")])
+    assert (await store.batch(None, 1))[0][path[0]] == old
+
+
+async def test_refuses_to_reencrypt_under_a_published_primary(capsys, monkeypatch):
+    """Re-encrypting under the published key would change nothing: add a key first."""
+    if not crypto_service.published_key_in_keyset:
+        pytest.skip("the test keyset is not the published one (CI's is)")
+    code = await _main(["reencrypt", "--store", "mongo"])
+    assert code == 2
+    assert "run add-key first" in capsys.readouterr().err
+    # counting is still allowed: it is how to see what a rotation would do
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+    args = ["reencrypt", "--dry-run", "--store", "mongo", "--target", "responses"]
+    assert await _main(args) == 0
+
+
+async def test_a_written_keyset_reads_as_the_services_read_it():
+    value = encode_keyset(parse_keyset(os.environ["MASTER_ENCRYPTION_KEYSET"]))
+    assert CryptoService(value).primary_key_id == OLD_KEY
