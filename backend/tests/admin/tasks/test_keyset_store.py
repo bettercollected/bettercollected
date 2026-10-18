@@ -52,7 +52,7 @@ async def store(world):
     return keyset
 
 
-async def write(engine, new_value, *, keys=None, task="keyset.add_key"):
+async def write(engine, new_value, *, keys=None, task="keyset.add_key", extra=None, run_id=None):
     keys = keys or state.runner_keys()
     async with engine.begin() as conn:
         current = await state.read_stored(conn, keys)
@@ -62,9 +62,10 @@ async def write(engine, new_value, *, keys=None, task="keyset.add_key"):
             current,
             new_value,
             requested_by=REQUESTER,
-            run_id=str(uuid.uuid4()),
+            run_id=run_id or str(uuid.uuid4()),
             task=task,
             action="add_key",
+            extra=extra,
         )
 
 
@@ -93,7 +94,7 @@ def call(version: int = 1, revision: int = 1) -> str:
     return (
         f"SELECT settings.task_write_keyset(CAST(:k AS text), {version}, {revision}, "
         "'auth_keys', ARRAY['backend'], 'v2:x', 'u', now(), repeat('a', 64), 'a', "
-        "repeat('b', 64), CAST('{}' AS jsonb), repeat('c', 64), 'promote')"
+        "repeat('b', 64), CAST('{}' AS jsonb), repeat('c', 64), 'promote', 'r', CAST('{}' AS jsonb))"
     )
 
 
@@ -105,7 +106,8 @@ async def test_a_task_write_is_signed_audited_and_verifies(world, store):
     value = parse_keyset(store)
     new = encode_keyset(add_secondary_key(value))
     before, rev_before = await entry(world)
-    version, revision = await write(world.tasks, new)
+    run_id = str(uuid.uuid4())
+    version, revision = await write(world.tasks, new, extra={"added_key_id": 77}, run_id=run_id)
 
     assert (version, revision) == (before.version + 1, rev_before + 1)
     after, rev_after = await entry(world)
@@ -131,7 +133,8 @@ async def test_a_task_write_is_signed_audited_and_verifies(world, store):
     assert len(notices) == 1
     assert notices[0].status == "pending" and notices[0].audit_seq is not None
     assert notices[0].payload == {
-        "setting": KEY, "tier": "T4", "action": "add_key", "version": version, "actor": REQUESTER,
+        "setting": KEY, "tier": "T4", "action": "add_key", "version": version,
+        "actor": REQUESTER, "run_id": run_id, "added_key_id": 77,
     }
     assert new not in json.dumps(notices[0].payload)
 
@@ -159,6 +162,97 @@ async def test_a_task_write_is_signed_audited_and_verifies(world, store):
         assert fragment not in everything
 
 
+async def test_the_history_of_the_keyset_is_never_pruned(world, store, server, migrated):
+    """A key dropped from the keyset stays openable through the history, so a
+    database backup from before the re-encryption can still be read."""
+    value = parse_keyset(store)
+    for _ in range(7):  # more than the five versions other secrets keep
+        await write(world.tasks, encode_keyset(add_secondary_key(value)))
+    async with world.owner.connect() as conn:
+        versions = (
+            await conn.execute(
+                text("SELECT version FROM settings.history WHERE key = :k ORDER BY version"),
+                {"k": KEY},
+            )
+        ).scalars().all()
+    assert versions == list(range(1, 9))
+    # no role can prune it: not the migration role, not the portal's writer
+    for engine in (world.owner, world.admin):
+        code, message = await sqlstate(
+            engine, "DELETE FROM settings.history WHERE key = :k AND version = 1", k=KEY
+        )
+        assert code == "42501" and "never pruned" in message
+    # and the portal's own prune of other secrets still works
+    await settings_service(world.admin).import_once("TEMPORAL_API_KEY", "x" * 40, Actor("cli"))
+
+
+async def test_the_runner_cannot_widen_who_reads_the_keyset(world, store, monkeypatch):
+    from dataclasses import replace
+
+    import backend.admin.services.settings_store as module
+
+    real = module.store_registry()
+
+    class Wider:
+        def get(self, key):
+            spec = real.get(key)
+            return replace(spec, readers=(*spec.readers, "auth"))
+
+    monkeypatch.setattr(module, "store_registry", lambda: Wider())
+    new = encode_keyset(add_secondary_key(parse_keyset(store)))
+    before = await entry(world)
+    with pytest.raises(DBAPIError) as caught:
+        await write(world.tasks, new)
+    assert "invalid row" in str(caught.value.orig)
+    assert await entry(world) == before
+
+
+async def test_the_reencrypt_notice_only_for_an_apply_run_started_in_this_transaction(world, store):
+    run_id = str(uuid.uuid4())
+
+    async def notices():
+        async with world.owner.connect() as conn:
+            return (
+                await conn.execute(
+                    text("SELECT payload FROM admin.notifications WHERE kind = 'settings.keyset_reencrypt'")
+                )
+            ).scalars().all()
+
+    async def attempt(task="keyset.reencrypt", dry_run=False, started=True, run=run_id, repeat=1):
+        async with world.tasks.begin() as conn:
+            if started:
+                await audit.write(
+                    conn, "task.run.started", "task_run", run, None, None, "success",
+                    actor_kind="system",
+                    detail={"run_id": run, "task": task, "requested_by": REQUESTER, "dry_run": dry_run},
+                    request_id=run,
+                )
+            for _ in range(repeat):
+                await conn.execute(text("SELECT settings.task_notify_reencrypt(:r, 4242)"), {"r": run})
+
+    # nothing started, a dry run, another task: refused, nothing enqueued
+    for kwargs in ({"started": False}, {"dry_run": True}, {"task": "keyset.verify"}):
+        with pytest.raises(DBAPIError) as caught:
+            await attempt(**kwargs)
+        assert caught.value.orig.sqlstate == "42501"
+    assert await notices() == []
+    # an apply run: exactly one notice, however often it is asked
+    await attempt(repeat=2)
+    assert await notices() == [
+        {"setting": KEY, "tier": "T4", "action": "reencrypt", "run_id": run_id,
+         "primary_id": 4242, "actor": REQUESTER}
+    ]
+    # the audit row of another transaction does not count
+    other = str(uuid.uuid4())
+    await attempt(run=other)
+    with pytest.raises(DBAPIError):
+        async with world.tasks.begin() as conn:
+            await conn.execute(text("SELECT settings.task_notify_reencrypt(:r, 1)"), {"r": other})
+    # no other role may call it
+    code, _ = await sqlstate(world.admin, "SELECT settings.task_notify_reencrypt('x', 1)")
+    assert code == "42501"
+
+
 async def test_the_history_keeps_the_previous_versions_sealed(world, store):
     value = parse_keyset(store)
     await write(world.tasks, encode_keyset(add_secondary_key(value)))
@@ -182,7 +276,7 @@ async def test_the_runner_can_write_no_other_key(world, store):
     assert code == "42501" and "not task-writable" in message
     code, _ = await sqlstate(world.tasks, NULL_CALL, k="AI_DEFAULT_PROVIDER")
     assert code == "42501"
-    code, _ = await sqlstate(world.tasks, "SELECT settings.task_write_keyset(NULL, 1, 1, 's', ARRAY['a'], 'v2:x', 'u', now(), 'x', 'a', 'b', '{}', 'c', 'promote')")
+    code, _ = await sqlstate(world.tasks, "SELECT settings.task_write_keyset(NULL, 1, 1, 's', ARRAY['a'], 'v2:x', 'u', now(), 'x', 'a', 'b', '{}', 'c', 'promote', 'r', '{}')")
     assert code == "42501"
 
 
@@ -342,7 +436,7 @@ async def test_the_function_checks_who_calls_even_if_granted_wrongly(world, stor
             await conn.execute(
                 text(
                     "GRANT EXECUTE ON FUNCTION settings.task_write_keyset(text, integer, bigint, "
-                    "text, text[], text, text, timestamptz, text, text, text, jsonb, text, text) "
+                    "text, text[], text, text, timestamptz, text, text, text, jsonb, text, text, text, jsonb) "
                     f'TO "{server.reader_role("auth")}"'
                 )
             )

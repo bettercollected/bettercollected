@@ -145,7 +145,8 @@ services:
       BC_ADMIN_PASSWORD: ${BC_ADMIN_PASSWORD:?set by deploy.sh in the root .env}
       BC_ADMIN_MIG_PASSWORD: ${BC_ADMIN_MIG_PASSWORD:?set by deploy.sh in the root .env}
       BC_TASKS_PASSWORD: ${BC_TASKS_PASSWORD:?set by deploy.sh in the root .env}
-      BC_TASKS_DATA_PASSWORD: ${BC_TASKS_DATA_PASSWORD:?set by deploy.sh in the root .env}
+      BC_TASKS_DATA_APP_PASSWORD: ${BC_TASKS_DATA_APP_PASSWORD:?set by deploy.sh in the root .env}
+      BC_TASKS_DATA_GOOGLE_PASSWORD: ${BC_TASKS_DATA_GOOGLE_PASSWORD:?set by deploy.sh in the root .env}
     # explicit priorities: without them Compose 2.24 / Engine 27 sometimes left
     # this container on one network only (docs/admin-service.md)
     networks:
@@ -352,12 +353,16 @@ services:
       # stored responses, so they need the data stores and the keyset. All four
       # are empty unless set in the root .env; a task then refuses with
       # store_not_configured or keyset_missing, and nothing else is affected.
-      # Defaults to bc_tasks_data, a dedicated role with only the column grants
-      # these tasks need (postgres/ensure-admin-roles.sh). Set
+      # Defaults to bc_tasks_data_app, a dedicated role with only the column grants
+      # these tasks need on the app schema (postgres/ensure-admin-roles.sh); the Google
+      # credentials have a role of their own (bc_tasks_data_google), because one role
+      # over two owners' tables would let either owner plant code that runs with access
+      # to the other's. Set
       # TASK_RUNNER_DATABASE_URL to another dedicated role if you must, never the
       # backend's: that would hand the runner the whole app schema next to the
       # keyset. For Mongo, prefer a read-only user for the check and the dry runs.
-      DATABASE_URL: ${TASK_RUNNER_DATABASE_URL:-postgresql+asyncpg://bc_tasks_data:${BC_TASKS_DATA_PASSWORD}@app-postgres:5432/bettercollected}
+      DATABASE_URL: ${TASK_RUNNER_DATABASE_URL:-postgresql+asyncpg://bc_tasks_data_app:${BC_TASKS_DATA_APP_PASSWORD}@app-postgres:5432/bettercollected}
+      GOOGLE_DATABASE_URL: ${TASK_RUNNER_GOOGLE_DATABASE_URL:-postgresql+asyncpg://bc_tasks_data_google:${BC_TASKS_DATA_GOOGLE_PASSWORD}@app-postgres:5432/bettercollected}
       MONGO_URI: ${TASK_RUNNER_MONGO_URI:-}
       MONGO_DB: ${TASK_RUNNER_MONGO_DB:-}
       MASTER_ENCRYPTION_KEYSET: ${TASK_RUNNER_KEYSET:-}

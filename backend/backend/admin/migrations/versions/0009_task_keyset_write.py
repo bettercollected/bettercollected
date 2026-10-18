@@ -50,11 +50,100 @@ depends_on: Union[str, Sequence[str], None] = None
 
 SIGNATURE = (
     "text, integer, bigint, text, text[], text, text, timestamptz, text, text, "
-    "text, jsonb, text, text"
+    "text, jsonb, text, text, text, jsonb"
 )
+NOTIFY_SIGNATURE = "text, bigint"
+
+
+HISTORY_GUARD = r"""
+CREATE OR REPLACE FUNCTION settings.history_guard() RETURNS trigger
+LANGUAGE plpgsql SET search_path = pg_catalog, settings AS $$
+DECLARE
+    current_version integer;
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        SELECT version INTO current_version FROM settings.entries WHERE key = NEW.key;
+        IF current_version IS NULL OR NEW.version <> current_version THEN
+            RAISE EXCEPTION 'settings.history: a row must match the entry''s current version'
+                USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        RETURN NEW;
+    END IF;
+    IF TG_OP = 'UPDATE' THEN
+        IF NOT OLD.is_secret
+           OR (NEW.key, NEW.version, NEW.section, NEW.is_secret, NEW.value,
+               NEW.cleared, NEW.action, NEW.source, NEW.actor, NEW.at)
+              IS DISTINCT FROM
+              (OLD.key, OLD.version, OLD.section, OLD.is_secret, OLD.value,
+               OLD.cleared, OLD.action, OLD.source, OLD.actor, OLD.at) THEN
+            RAISE EXCEPTION 'settings.history: only an encrypted blob may be re-wrapped'
+                USING ERRCODE = 'insufficient_privilege';
+        END IF;
+        RETURN NEW;
+    END IF;
+    SELECT version INTO current_version FROM settings.entries WHERE key = OLD.key;
+    -- a key dropped from the keyset must stay readable in the history for backups
+    IF EXISTS (SELECT 1 FROM settings.entries WHERE key = OLD.key AND tier = 'T4') THEN
+        RAISE EXCEPTION 'settings.history: the history of a task-managed key is never pruned'
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF NOT OLD.is_secret OR current_version IS NULL OR OLD.version >= current_version THEN
+        RAISE EXCEPTION 'settings.history: only older encrypted versions can be pruned'
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    RETURN OLD;
+END $$
+"""
+
+NOTIFY = r"""
+CREATE FUNCTION settings.task_notify_reencrypt(p_run_id text, p_primary_id bigint)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, settings, admin AS $$
+DECLARE
+    started record;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM settings.reader_roles
+                   WHERE role = session_user AND service = 'tasks') THEN
+        RAISE EXCEPTION 'settings.task_notify_reencrypt: not the task runner'
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF p_run_id IS NULL OR p_run_id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+       OR p_primary_id IS NULL OR p_primary_id NOT BETWEEN 1 AND 4294967295 THEN
+        RAISE EXCEPTION 'settings.task_notify_reencrypt: invalid arguments'
+            USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+    -- only for an APPLY run of keyset.reencrypt whose start was audited in THIS
+    -- transaction, once per run
+    SELECT a.seq, a.detail ->> 'requested_by' AS requested_by INTO started
+        FROM admin.audit_log a
+        WHERE a.xmin = pg_current_xact_id()::xid
+          AND a.action = 'task.run.started' AND a.actor_kind = 'system'
+          AND a.target_type = 'task_run' AND a.target_id = p_run_id
+          AND a.detail ->> 'task' = 'keyset.reencrypt'
+          AND a.detail ->> 'dry_run' = 'false'
+        ORDER BY a.seq DESC LIMIT 1;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'settings.task_notify_reencrypt: no start of an apply run in this transaction'
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF EXISTS (SELECT 1 FROM admin.notifications
+               WHERE kind = 'settings.keyset_reencrypt' AND payload ->> 'run_id' = p_run_id) THEN
+        RETURN;
+    END IF;
+    INSERT INTO admin.notifications (kind, payload, audit_seq)
+    VALUES ('settings.keyset_reencrypt',
+            jsonb_build_object('setting', 'MASTER_ENCRYPTION_KEYSET', 'tier', 'T4',
+                               'action', 'reencrypt', 'run_id', p_run_id,
+                               'primary_id', p_primary_id,
+                               'actor', left(coalesce(started.requested_by, 'task'), 320)),
+            started.seq);
+END $$
+"""
 
 
 def upgrade() -> None:
+    op.execute(HISTORY_GUARD)
     op.execute(
         r"""
         CREATE FUNCTION settings.task_write_keyset(
@@ -71,7 +160,9 @@ def upgrade() -> None:
             p_manifest_digest text,
             p_manifest_entries jsonb,
             p_manifest_sig text,
-            p_action text
+            p_action text,
+            p_run_id text,
+            p_extra jsonb
         ) RETURNS bigint
         LANGUAGE plpgsql SECURITY DEFINER
         SET search_path = pg_catalog, settings, admin AS $$
@@ -120,8 +211,9 @@ def upgrade() -> None:
                OR p_history_actor IS NULL OR length(p_history_actor) NOT BETWEEN 1 AND 320
                OR p_action IS NULL OR NOT (p_action = ANY (ARRAY['add_key', 'promote', 'drop_old']))
                OR p_readers IS NULL OR cardinality(p_readers) NOT BETWEEN 1 AND 16
-               OR NOT (p_readers <@ ARRAY['backend', 'auth', 'google', 'tasks', 'webapp', 'admin'])
-               OR p_readers IS DISTINCT FROM (SELECT array_agg(r ORDER BY r) FROM unnest(p_readers) r)
+               OR p_readers IS DISTINCT FROM
+                  (SELECT array_agg(DISTINCT r ORDER BY r) FROM unnest(cur.readers || 'tasks'::text) r)
+               OR p_run_id IS NULL OR p_run_id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
                OR p_updated_at IS NULL
                OR abs(extract(epoch FROM (clock_timestamp() - p_updated_at))) > 120 THEN
                 RAISE EXCEPTION 'settings.task_write_keyset: invalid row'
@@ -159,8 +251,8 @@ def upgrade() -> None:
                 (key, version, section, is_secret, value, blob, cleared, action, source, actor, at)
             VALUES (p_key, new_version, p_section, true, NULL, p_blob, false, 'set', 'task',
                     p_history_actor, p_updated_at);
-            DELETE FROM settings.history
-                WHERE key = p_key AND is_secret AND version < new_version - 4;
+            -- no pruning: every version of the keyset stays in the history, so a
+            -- key dropped from the keyset can still open a backup (see the docs)
             UPDATE settings.manifest SET
                 revision = new_revision, digest = p_manifest_digest,
                 entries = p_manifest_entries, sig = p_manifest_sig
@@ -169,7 +261,11 @@ def upgrade() -> None:
             INSERT INTO admin.notifications (kind, payload, audit_seq)
             VALUES ('settings.keyset_changed',
                     jsonb_build_object('setting', p_key, 'tier', 'T4', 'action', p_action,
-                                       'version', new_version, 'actor', p_history_actor),
+                                       'version', new_version, 'actor', p_history_actor,
+                                       'run_id', p_run_id)
+                    || coalesce((SELECT jsonb_object_agg(k, v) FROM jsonb_each(p_extra) e(k, v)
+                                 WHERE k = ANY (ARRAY['added_key_id', 'primary_id', 'dropped_count'])
+                                   AND jsonb_typeof(v) = 'number'), '{}'::jsonb),
                     audit_seq);
             RETURN new_revision;
         END $$
@@ -178,6 +274,13 @@ def upgrade() -> None:
     op.execute(f"REVOKE ALL ON FUNCTION settings.task_write_keyset({SIGNATURE}) FROM PUBLIC")
     grant(op, f"GRANT EXECUTE ON FUNCTION settings.task_write_keyset({SIGNATURE}) TO {{role}}", "tasks")
     grant(op, "GRANT SELECT ON settings.service_state TO {role}", "tasks")
+    op.execute(NOTIFY)
+    op.execute(f"REVOKE ALL ON FUNCTION settings.task_notify_reencrypt({NOTIFY_SIGNATURE}) FROM PUBLIC")
+    grant(
+        op,
+        f"GRANT EXECUTE ON FUNCTION settings.task_notify_reencrypt({NOTIFY_SIGNATURE}) TO {{role}}",
+        "tasks",
+    )
 
 
 def downgrade() -> None:

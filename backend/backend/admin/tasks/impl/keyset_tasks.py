@@ -107,9 +107,15 @@ class _Base:
             )
 
     async def _ping_all(self, config, targets, choice) -> Dict[str, List[str]]:
+        """Plan the stores of each target (``choice`` is a StoreChoice, or
+        ``"every"``: both stores or refuse) and check each answers."""
         plans: Dict[str, List[str]] = {}
         for target in targets:
-            names = config.stores_for(target, choice)
+            names = (
+                config.every_store(target)
+                if choice == "every"
+                else config.stores_for(target, choice)
+            )
             plans[target.name] = names
             async with state.open_target_stores(
                 config, target, names, read_only=True
@@ -434,15 +440,23 @@ class DropOld(_Base):
 
     async def _gate(self, ctx, params):
         self._typeform(params)
+        if params.allow_empty_google and params.google_in_use:
+            raise Refusal("google_flags_conflict")  # empty credentials: not in use
         keys, stored, value, parsed = await self._keyset(ctx)
         if parsed.primary_key_id in published_key_ids(parsed):
             raise Refusal("published_primary")
         # every service must already encrypt with the primary: otherwise one
         # could still write a value under a key about to be dropped
         await self._ready(ctx, params, parsed, stored)
+        # the Typeform integration reports a heartbeat only if it runs a build
+        # that does; if it does, it may still need the old key
+        async with ctx.connection() as conn:
+            if await state.typeform_reporting(conn):
+                raise Refusal("typeform_reporting")
         config = state.DataConfig.from_env()
         targets = state.selected_targets([])  # always every target
-        plans = await self._ping_all(config, targets, StoreChoice.auto)
+        # EVERY store, whatever this runner's write mode says: both configured or refuse
+        plans = await self._ping_all(config, targets, "every")
         return keys, stored, value, parsed, config, targets, plans
 
     async def precheck(self, ctx, params) -> None:
@@ -450,10 +464,13 @@ class DropOld(_Base):
 
     async def run(self, ctx, params) -> catalog.DropOldResult:
         keys, stored, value, parsed, config, targets, plans = await self._gate(ctx, params)
-        rotation = core.Rotation(value)
+        # the scan can only use the primary key: a value it opens is a value the
+        # final keyset opens, and any value on another key shows as stale
+        rotation = core.Rotation(encode_keyset(only_primary(parsed)))
         out: dict = {}
         base = 0
         stale = 0
+        unreadable = 0
         empty: List[str] = []
         stopped = False
         for target in targets:
@@ -468,16 +485,23 @@ class DropOld(_Base):
                         await ctx.progress(base + records)
                         return await ctx.cancelled()
 
-                    counts = await core.scan(store, target, rotation, params.batch_size, stop)
+                    counts = await core.verify_store(
+                        store, target, rotation, params.batch_size, stop
+                    )
                     per_store[store.name] = counts
                     base += counts.get("records", 0)
                     stale += counts.get("values_stale", 0)
+                    unreadable += counts.get("values_unopenable", 0)
                     await ctx.emit(Events.counted, _event_counts(counts), [state.event_target(name), store.name])
                     if counts.get("stopped"):
                         stopped = True
                         break
-                    if counts.get("records", 0) == 0 and not (
-                        target is core.GOOGLE_CREDENTIALS and params.allow_empty_google
+                    # an empty PRIMARY store looks like a wrong or empty database; a
+                    # mirror may legitimately be behind
+                    if (
+                        counts.get("records", 0) == 0
+                        and store.name == config.primary_store(target)
+                        and not (target is core.GOOGLE_CREDENTIALS and params.allow_empty_google)
                     ):
                         empty.append(f"{name}.{store.name}")
             out[name] = catalog.StoreCounts(
@@ -489,6 +513,8 @@ class DropOld(_Base):
             raise Refusal("scan_incomplete")
         if stale:
             raise Refusal("values_on_old_key")
+        if unreadable:
+            raise Refusal("values_not_readable")
         if empty:
             raise Refusal("store_empty")
         old = [k for k in key_ids(parsed) if k != parsed.primary_key_id]

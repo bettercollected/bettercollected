@@ -207,7 +207,7 @@ async def write_stored(
             text(
                 "SELECT settings.task_write_keyset(:key, :ev, :er, :section, "
                 "CAST(:readers AS text[]), :blob, :by, :at, :sig, :actor, :digest, "
-                "CAST(CAST(:entries AS text) AS jsonb), :msig, :action)"
+                "CAST(CAST(:entries AS text) AS jsonb), :msig, :action, :run, CAST(CAST(:extra AS text) AS jsonb))"
             ),
             {
                 "key": KEY,
@@ -224,6 +224,11 @@ async def write_stored(
                 "entries": json.dumps(manifest.to_json()["entries"], allow_nan=False),
                 "msig": manifest.sig,
                 "action": action,
+                "run": run_id,
+                "extra": json.dumps(
+                    {k: v for k, v in (extra or {}).items() if isinstance(v, int)},
+                    allow_nan=False,
+                ),
             },
         )
     except DBAPIError as error:
@@ -271,6 +276,13 @@ async def consumers(conn, services: Sequence[str]) -> List[Consumer]:
     ]
 
 
+async def typeform_reporting(conn) -> bool:
+    """Whether a Typeform integration instance reports a heartbeat (seen within
+    the retirement window): it may still need the old key."""
+    found = await consumers(conn, ["typeform"])
+    return any(c.age_seconds <= RETIRED_AFTER_SECONDS for c in found)
+
+
 def required_services(google_in_use: bool) -> List[str]:
     return ["backend", "google"] if google_in_use else ["backend"]
 
@@ -288,7 +300,8 @@ async def check_consumers(
     after a promote it is the settings revision and ``restart_pending`` that
     show a service runs the promoted keyset."""
     expected = keyset_ids_fingerprint(ids)
-    found = await consumers(conn, required_services(google_in_use))
+    # a google instance that reports is checked whatever `google_in_use` says
+    found = await consumers(conn, ["backend", "google"])
     live = [c for c in found if c.age_seconds <= RETIRED_AFTER_SECONDS]
     for service in required_services(google_in_use):
         mine = [c for c in live if c.service == service]
@@ -320,6 +333,7 @@ class DataConfig:
     mongo_db: str
     google_mongo_db: str
     database_url: Optional[str]
+    google_database_url: Optional[str]
     env: Mapping[str, str]
 
     @classmethod
@@ -330,20 +344,54 @@ class DataConfig:
             mongo_db=env.get("MONGO_DB", "bettercollected_backend"),
             google_mongo_db=env.get("GOOGLE_MONGO_DB", "bettercollected_googleform"),
             database_url=env.get("DATABASE_URL"),
+            google_database_url=env.get("GOOGLE_DATABASE_URL"),
             env=env,
         )
 
-    def stores_for(self, target: core.Target, choice: StoreChoice) -> List[str]:
-        """Store names, primary first, as the services write the target; a store
-        that is needed and not configured refuses."""
+    def url_for(self, target: core.Target) -> Optional[str]:
+        """The Postgres URL of a target: one role per owning schema."""
+        return self.google_database_url if target is core.GOOGLE_CREDENTIALS else self.database_url
+
+    def configured(self, target: core.Target) -> List[str]:
+        return [
+            name
+            for name, ok in (("mongo", self.mongo_uri), ("postgres", self.url_for(target)))
+            if ok
+        ]
+
+    def primary_store(self, target: core.Target) -> str:
+        """The store the services write first (their write mode; Mongo by default)."""
         try:
-            names = core.plan_stores(target, choice.value, self.env)
+            return core.plan_stores(target, "auto", self.env)[0]
         except Exception:  # noqa: BLE001 - a bad DB_WRITE_MODE; never echo it
-            raise Refusal("store_not_configured") from None
-        configured = {"mongo": self.mongo_uri, "postgres": self.database_url}
-        if not names or any(not configured[n] for n in names):
+            return "mongo"
+
+    def stores_for(self, target: core.Target, choice: StoreChoice) -> List[str]:
+        """Store names, primary first. ``auto`` is EVERY configured store (what
+        the runner can reach, not what its own write mode says); the other
+        choices name stores and refuse when one is not configured."""
+        if choice is StoreChoice.auto:
+            names = self.configured(target)
+            primary = self.primary_store(target)
+            names.sort(key=lambda n: n != primary)
+        else:
+            try:
+                names = core.plan_stores(target, choice.value, self.env)
+            except Exception:  # noqa: BLE001
+                raise Refusal("store_not_configured") from None
+            if any(n not in self.configured(target) for n in names):
+                raise Refusal("store_not_configured")
+        if not names:
             raise Refusal("store_not_configured")
         return names
+
+    def every_store(self, target: core.Target) -> List[str]:
+        """For a step that makes a key unreadable: both stores, always, or refuse."""
+        names = self.configured(target)
+        if len(names) != 2:
+            raise Refusal("store_not_configured")
+        primary = self.primary_store(target)
+        return sorted(names, key=lambda n: n != primary)
 
 
 def selected_targets(chosen: Sequence[Targets]) -> List[core.Target]:
@@ -388,7 +436,7 @@ async def open_target_stores(
                 if read_only:
                     settings["default_transaction_read_only"] = "on"
                 engine = create_async_engine(
-                    config.database_url,
+                    config.url_for(target),
                     pool_size=2,
                     max_overflow=0,
                     connect_args={"server_settings": settings},

@@ -236,18 +236,21 @@ parameter, result, event, audit row or log: only key ids and counts.
 | 2 | (restart the services) | they pick up the new keyset and report its key ids in their heartbeat |
 | 3 | `keyset.promote` (`new_primary_id`) | makes that key the primary; refuses a key that was published |
 | 4 | (restart the services) | |
-| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; a dual write mode copies the primary's new ciphertext to the mirror; refuses a published primary |
+| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: auto` (the default) is every store the runner is configured for (`MONGO_URI`, `DATABASE_URL`, `GOOGLE_DATABASE_URL`), the primary first as the services' write mode says, and the primary's new ciphertext is copied to the other; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
 | 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`) |
-| 7 | `keyset.drop_old` | removes the other keys only when a full scan of every target in every store the services write finds no value on them, and no store is empty |
+| 7 | `keyset.drop_old` | removes the other keys only when a full scan of EVERY target in EVERY store finds no value on them. It needs `MONGO_URI`, `DATABASE_URL` and `GOOGLE_DATABASE_URL` all configured (else `store_not_configured`), whatever the runner's own write mode says. The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). Only the primary store (the services' write mode: give the runner the same `DB_WRITE_MODE`) must hold records |
 
 `drop_old` has no target or store parameters on purpose, and a scan that did not finish (cancelled)
 refuses. A Google credentials store that is empty because the integration was never used needs
-`allow_empty_google`; the responses store is never accepted empty. Values no candidate workspace
+`allow_empty_google` together with `google_in_use: false` (the combination `allow_empty_google` with
+`google_in_use: true` is refused); the responses store is never accepted empty. It also refuses
+while a Typeform integration instance reports a heartbeat (`typeform_reporting`). Values no candidate workspace
 opens stay where they are and are counted (`values_unopenable`); `drop_old` then refuses.
 
 **Readiness.** `promote`, `reencrypt` and `drop_old` first check the settings store's service
 heartbeats (`settings.service_state`) for the services that read the keyset (the backend, and the
-Google integration unless `google_in_use` is false): every instance reported in the last 2 minutes
+Google integration unless `google_in_use` is false; a Google instance that does report is always
+checked): every instance reported in the last 2 minutes
 (an instance seen within the last 15 minutes that has stopped reporting is treated as possibly
 still running and refuses; older ones are taken as gone), holds a keyset with exactly the stored
 key ids (the heartbeat's `keyset_fp`, a hash of the key ids), has restarted onto the current
@@ -258,7 +261,8 @@ refusals are `consumer_not_reporting`, `consumer_stale`, `consumer_missing_key`,
 `consumer_restart_pending`, `consumer_behind` and `consumer_env_override`.
 
 **Typeform.** The Typeform integration is a separate image that also receives the keyset from its
-environment. It reports no heartbeat and what it stores can be neither checked nor re-encrypted
+environment. It reports no heartbeat (if a build of it does, as service `typeform`, `drop_old`
+refuses while it is seen) and what it stores can be neither checked nor re-encrypted
 from here, so `promote`, `reencrypt` and `drop_old` need `typeform_acknowledged: true`: you confirm
 you kept the old key for it or will reconnect its accounts after the final keyset.
 
@@ -276,3 +280,16 @@ became a reader is hidden from the runner: the tasks refuse with `keyset_not_rea
 Its readers are part of the signed row, so only the admin service can fix it by re-writing the
 row with the runner among its readers; do not edit the table. Stacks whose services still take the
 keyset from the environment keep using the script above.
+
+**Old keys are kept for backups.** `settings.history` keeps every version of the keyset, never pruned
+(the history guard refuses deleting any row of a task-managed key, for the migration role and the
+portal's writer alike). After `drop_old` the dropped key therefore stays recoverable from the
+sealed history, so a database backup taken before the re-encryption can still be read: unseal the
+older version with the settings master key. Purging old keys is a deliberate database operation by
+the owner role (`ALTER TABLE settings.history DISABLE TRIGGER history_guard`, delete the versions,
+re-enable it), best done only after the last backup that needs them has expired. `SETTINGS_MASTER_KEY`
+must be kept as long as those backups are.
+
+**Notices.** Every keyset write (`add_key`, `promote`, `drop_old`) and the start of a `reencrypt`
+apply run enqueue one outbox row for all admins: setting name, tier, action, version, requester,
+run id and the key ids or counts involved (never a key).

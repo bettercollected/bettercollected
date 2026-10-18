@@ -242,7 +242,8 @@ async def test_runtime_role_cannot_run_ddl(server, migrated):
 async def test_the_roles_script_is_idempotent(server, migrated):
     url = server.url(migrated)
     sql = roles_sql(
-        server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw, server.data_pw
+        server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw,
+        server.data_app_pw, server.data_google_pw
     )
     for _ in range(2):
         await _execute(url, sql)

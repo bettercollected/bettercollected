@@ -63,6 +63,9 @@ class Refusals(str, enum.Enum):
     values_on_old_key = "values_on_old_key"
     scan_incomplete = "scan_incomplete"
     stale_version = "stale_version"
+    typeform_reporting = "typeform_reporting"
+    google_flags_conflict = "google_flags_conflict"
+    values_not_readable = "values_not_readable"
 
 
 class Events(str, enum.Enum):

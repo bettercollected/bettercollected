@@ -218,7 +218,8 @@ compose service passes them from the root `.env`, and they are empty by default
 
 | Variable | Meaning |
 |---|---|
-| `TASK_RUNNER_DATABASE_URL` | Postgres URL of the data role. It defaults to `bc_tasks_data` (below), built from `BC_TASKS_DATA_PASSWORD`; set it only to point at another dedicated role, never the backend's: that would give the runner the whole app schema next to the keyset |
+| `TASK_RUNNER_DATABASE_URL` | Postgres URL of the data role for the `app` schema. It defaults to `bc_tasks_data_app` (below), built from `BC_TASKS_DATA_APP_PASSWORD`; set it only to point at another dedicated role, never the backend's: that would give the runner the whole app schema next to the keyset |
+| `TASK_RUNNER_GOOGLE_DATABASE_URL` | the same for the Google credentials (`google` schema); defaults to `bc_tasks_data_google` from `BC_TASKS_DATA_GOOGLE_PASSWORD`, never the integration's role |
 | `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
 | `TASK_RUNNER_KEYSET` | the response keyset for the read-only `responses.*` tasks and `keyset.verify` when it is not in the settings store; it never goes to a file or a log. The `keyset.*` tasks that change or re-encrypt ignore it and use the settings store only |
 | `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES`, `DB_WRITE_MODE__GOOGLE` | the services' write mode (from the root `.env`), so `keyset.*` re-encrypts the stores the services write and copies the primary's new ciphertext to the mirror |
@@ -229,25 +230,30 @@ them and refuse if one is missing. The scripts `backend/scripts/check_undecrypta
 and `backend/scripts/backfill_response_workspaces.py` stay as command-line
 tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
 
-### The runner's data role: `bc_tasks_data`
+### The runner's data roles: `bc_tasks_data_app` and `bc_tasks_data_google`
 
 `postgres/ensure-admin-roles.sh` (run by `deploy.sh` before the migrations and again after
-them) creates the login role `bc_tasks_data` with the password `BC_TASKS_DATA_PASSWORD`
-(generated once into the root `.env`, URL-safe characters only, never printed). It is separate
-from `bc_tasks`, which holds the runner's own state and the settings store. It has column-level
-grants and nothing else:
+them) creates two login roles, one per owning schema, with the passwords
+`BC_TASKS_DATA_APP_PASSWORD` and `BC_TASKS_DATA_GOOGLE_PASSWORD` (generated once into the root
+`.env`, URL-safe characters only, never printed). They are separate from `bc_tasks`, which holds
+the runner's own state and the settings store. Why two: an UPDATE runs the table owner's triggers
+and generated-column helpers with the updater's privileges. One role over `bc_app`'s and
+`bc_google`'s tables would let either owner plant code that a re-encryption run executes with
+access to the other's table. Each role holds no more than the owner of its schema already has, has
+`search_path = pg_catalog`, and has USAGE on its own schema only. Column-level grants, nothing else:
 
-| Table | SELECT | UPDATE |
-|---|---|---|
-| `app.form_responses` | `id`, `form_id`, `response_id`, `workspace_id`, `doc` | `doc`, `_bc_checksum` |
-| `app.responses_deletion_requests` | the same columns | `doc`, `_bc_checksum` |
-| `app.workspace_forms` | `id`, `form_id`, `workspace_id`, `doc` | none |
-| `google.oauth_credentials` | `id`, `user_id`, `doc` | `doc`, `_bc_checksum` |
+| Role | Table | SELECT | UPDATE |
+|---|---|---|---|
+| `bc_tasks_data_app` | `app.form_responses` | `id`, `form_id`, `response_id`, `workspace_id`, `doc` | `doc`, `_bc_checksum` |
+| | `app.responses_deletion_requests` | the same columns | `doc`, `_bc_checksum` |
+| | `app.workspace_forms` | `id`, `form_id`, `workspace_id`, `doc` | none |
+| `bc_tasks_data_google` | `google.oauth_credentials` | `id`, `user_id`, `doc` | `doc`, `_bc_checksum` |
 
-No INSERT, DELETE, TRUNCATE or TEMPORARY; USAGE on the schemas `app` and `google` only; nothing in
-`admin`, `tasks`, `settings`, `auth` or `jobs`. The grants are in the roles script, not in a
-migration, because the tables belong to other roles. `tests/admin/tasks/test_data_role.py` pins the
-exact privilege set.
+No INSERT, DELETE, TRUNCATE or TEMPORARY; nothing in `admin`, `tasks`, `settings`, `auth` or `jobs`.
+The grants are in the roles script, not in a migration, because the tables belong to other roles.
+`tests/admin/tasks/test_data_role.py` pins the exact privilege set per role, that neither role can
+reach the other's schema or anything its owner owns, and that a hostile trigger of either owner
+gets nothing from the other.
 
 Mongo, while it still holds responses: give the runner a dedicated user. For the check, `verify`
 and dry runs a read-only user is enough (`read` on the responses database and the Google

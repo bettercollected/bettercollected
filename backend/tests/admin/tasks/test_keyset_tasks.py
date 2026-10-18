@@ -59,6 +59,7 @@ PLAIN = ("an answer", "a hidden value", "an internal note", "a message", "refres
 @pytest.fixture(autouse=True)
 def data_env(monkeypatch, _initialized_app):
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.setenv("GOOGLE_DATABASE_URL", TEST_DATABASE_URL)
 
 
 @pytest.fixture(autouse=True)
@@ -490,6 +491,15 @@ async def test_google_need_not_report_when_it_is_not_in_use(world, flow):
         "keyset.promote", flow.params(new_primary_id=new_id, google_in_use=False), dry_run=True
     )
     assert run["state"] == "succeeded", run
+    # but a google instance that DOES report is always checked
+    await heartbeat(
+        world.owner, "google", (await flow.stored()).value,
+        revision=(await flow.stored()).revision, fp="ks-000000000000",
+    )
+    _, run = await flow.run(
+        "keyset.promote", flow.params(new_primary_id=new_id, google_in_use=False), dry_run=True
+    )
+    assert run["refusal_code"] == "consumer_missing_key"
 
 
 @pytest.mark.parametrize(
@@ -725,7 +735,7 @@ async def test_drop_old_refuses_when_the_scan_did_not_finish(world, flow, monkey
     assert run["state"] == "succeeded"
     _, dry = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
     assert dry["state"] == "succeeded"
-    real = core.scan
+    real = core.verify_store
 
     async def cancelling(store, target, rotation, batch_size, on_batch=None):
         async def after(records):
@@ -737,7 +747,7 @@ async def test_drop_old_refuses_when_the_scan_did_not_finish(world, flow, monkey
 
         return await real(store, target, rotation, batch_size, after)
 
-    monkeypatch.setattr(core, "scan", cancelling)
+    monkeypatch.setattr(core, "verify_store", cancelling)
     _, run = await flow.run("keyset.drop_old", flow.params())
     # a partial scan is never enough to drop a key
     assert run["state"] == "refused" and run["refusal_code"] == "scan_incomplete", run
@@ -775,9 +785,18 @@ async def test_an_empty_google_target_is_accepted_only_when_said_so(world, store
     params = flow.params(primary_id=new_id, stores=stores)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     await flow.run("keyset.reencrypt", params)
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    _, run = await flow.run("keyset.drop_old", flow.params(google_in_use=False), dry_run=True)
     assert run["refusal_code"] == "store_empty"
-    _, run = await flow.both("keyset.drop_old", flow.params(allow_empty_google=True))
+    # "empty because never used" contradicts "in use"
+    _, run = await flow.run(
+        "keyset.drop_old", flow.params(allow_empty_google=True), dry_run=True
+    )
+    assert run["refusal_code"] == "google_flags_conflict"
+    async with world.owner.begin() as conn:
+        await conn.execute(text("DELETE FROM settings.service_state WHERE service = 'google'"))
+    _, run = await flow.both(
+        "keyset.drop_old", flow.params(allow_empty_google=True, google_in_use=False)
+    )
     assert run["state"] == "succeeded", run
     assert len(parse_keyset((await flow.stored()).value).key) == 1
 
@@ -827,3 +846,143 @@ def test_results_carry_ids_and_counters_only():
 
     for task in meta.ALL:
         check_result(task.result)
+
+
+# ------------------------------------------- every store, whatever the runner's mode
+async def prepare(world, choice, **kw):
+    """Promoted, consumers on it; the data as the choice has it."""
+    data = Data(**kw)
+    await seed(choice, data)
+    await import_keyset(world.admin, OLD)
+    flow = Flow(world, choice, data)
+    await flow.beat()
+    new_id = await flow.rotate_to_new_primary()
+    return flow, new_id
+
+
+async def test_drop_old_looks_at_every_store_not_the_runners_write_mode(world, stores, monkeypatch):
+    """Services on Postgres, a runner left on the default write mode (Mongo):
+    the values in Postgres must still stop the drop (they used to be skipped)."""
+    if stores != "postgres":
+        pytest.skip("the scenario is Postgres-only data")
+    flow, new_id = await prepare(world, "postgres")
+    monkeypatch.setenv("DB_WRITE_MODE", "mongo")
+    monkeypatch.setenv("DB_READ_SOURCE", "mongo")
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "values_on_old_key", run
+    # reencrypt's `auto` is every configured store, so it moves them too
+    params = flow.params(primary_id=new_id)  # stores defaults to auto
+    _, dry = await flow.run("keyset.reencrypt", params, dry_run=True)
+    assert dry["state"] == "succeeded" and dry["result"]["values_stale"] > 0
+    _, moved = await flow.run("keyset.reencrypt", params)
+    assert moved["state"] == "succeeded", moved
+    assert moved["result"]["responses"]["postgres"]["records_reencrypted"] > 0
+    stored = await flow.stored()
+    assert await all_readable(flow, stored.value) == {new_id}
+    # the primary store is the one the write mode names: Mongo is empty, so the
+    # drop refuses until the runner has the services' write mode
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["refusal_code"] == "store_empty"
+    monkeypatch.setenv("DB_WRITE_MODE", "postgres")
+    monkeypatch.setenv("DB_READ_SOURCE", "postgres")
+    _, run = await flow.both("keyset.drop_old", flow.params())
+    assert run["state"] == "succeeded", run
+
+
+async def test_a_mirror_that_is_empty_does_not_stop_the_drop(world, stores, monkeypatch):
+    if stores != "postgres":
+        pytest.skip("one populated store, the other empty")
+    flow, new_id = await prepare(world, "postgres")
+    params = flow.params(primary_id=new_id)
+    await flow.both("keyset.reencrypt", params)
+    _, run = await flow.both("keyset.drop_old", flow.params())  # mongo is the empty mirror
+    assert run["state"] == "succeeded", run
+
+
+@pytest.mark.parametrize("missing", ["MONGO_URI", "DATABASE_URL", "GOOGLE_DATABASE_URL"])
+async def test_drop_old_needs_every_store_configured(world, stores, monkeypatch, missing):
+    if stores != "both":
+        pytest.skip("one run per missing variable is enough")
+    flow, new_id = await prepare(world, "both")
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores="both"))
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["state"] == "succeeded", run
+    monkeypatch.setenv(missing, "")
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "store_not_configured"
+
+
+async def test_reencrypt_auto_is_every_configured_store(world, stores, monkeypatch):
+    if stores != "both":
+        pytest.skip("needs both stores populated")
+    flow, new_id = await prepare(world, "both")
+    monkeypatch.setenv("DB_WRITE_MODE", "mongo")  # the runner's mode would say Mongo only
+    monkeypatch.setenv("DB_READ_SOURCE", "mongo")
+    params = flow.params(primary_id=new_id)
+    await flow.run("keyset.reencrypt", params, dry_run=True)
+    _, run = await flow.run("keyset.reencrypt", params)
+    assert run["state"] == "succeeded", run
+    assert run["result"]["responses"]["mongo"] and run["result"]["responses"]["postgres"]
+    stored = await flow.stored()
+    assert await all_readable(flow, stored.value) == {new_id}
+
+
+# ------------------------------------------------------- the other drop guards
+async def test_drop_old_refuses_while_typeform_reports_in(world, flow):
+    new_id = await flow.rotate_to_new_primary()
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=flow.choice))
+    stored = await flow.stored()
+    await heartbeat(world.owner, "typeform", stored.value, instance="t1", revision=stored.revision)
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "typeform_reporting"
+    # a Typeform that stopped reporting long ago is taken as gone
+    await heartbeat(
+        world.owner, "typeform", stored.value, instance="t1", revision=stored.revision,
+        age_seconds=3600,
+    )
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["state"] == "succeeded", run
+
+
+async def test_drop_old_reads_with_the_primary_alone(world, flow):
+    """A value the primary key alone cannot open stops the drop, even though
+    the full keyset opens it."""
+    new_id = await flow.rotate_to_new_primary()
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=flow.choice))
+    stored = await flow.stored()
+    # on the primary key, but not for the context the record needs
+    wrong = CryptoService(stored.value).encrypt("x", "y", b"z")
+    assert ciphertext_key_id(wrong) == new_id
+    store = next(iter(store_objects(flow.choice)))
+    record = next(r for r in await store.batch(None, 10) if store.target.values(r))
+    path, old = store.target.values(record)[0]
+    assert await store.write(record["id"], [(path, old, wrong)])
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "values_not_readable", run
+
+
+async def test_the_reencrypt_apply_run_tells_the_admins_once_and_a_dry_run_no_one(world, flow):
+    new_id = await flow.rotate_to_new_primary()
+    params = flow.params(primary_id=new_id, stores=flow.choice)
+
+    async def notices():
+        async with world.owner.connect() as conn:
+            return (
+                await conn.execute(
+                    text("SELECT payload FROM admin.notifications "
+                         "WHERE kind = 'settings.keyset_reencrypt'")
+                )
+            ).scalars().all()
+
+    await flow.run("keyset.reencrypt", params, dry_run=True)
+    assert await notices() == []
+    run_id, run = await flow.run("keyset.reencrypt", params)
+    assert run["state"] == "succeeded"
+    found = await notices()
+    assert found == [
+        {"setting": KEY, "tier": "T4", "action": "reencrypt", "run_id": str(run_id),
+         "primary_id": new_id, "actor": "ops@example.org"}
+    ]
+    # a resume of the same work is a new run: its start tells them again
+    _, again = await flow.run("keyset.reencrypt", params)
+    assert len(await notices()) == 2

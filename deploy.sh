@@ -65,7 +65,7 @@ fi
 # TEMPORAL_API_KEY: shared by the backend (TEMPORAL_API_KEY) and the Temporal
 # worker / actions-executor (API_KEY); the backend's internal job routes refuse
 # requests without it and answer 503 while it is unset.
-for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
+for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_APP_PASSWORD BC_TASKS_DATA_GOOGLE_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
   if ! grep -q "^${var}=" .env 2>/dev/null; then
     echo "${var}=$(openssl rand -hex 24)" >> .env
     echo "Generated a new ${var} in .env (first run)."
@@ -76,7 +76,7 @@ done
 # (compose ADMIN_DATABASE_URL, the migration URL below): only URL-safe characters
 # are accepted, because "@", "/", "#" or "?" would break the URL or point it
 # elsewhere. Generated values are hex; this guards values set by hand.
-for var in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_PASSWORD; do
+for var in BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_APP_PASSWORD BC_TASKS_DATA_GOOGLE_PASSWORD; do
   value=$(grep -E "^${var}=" .env | tail -n 1 | cut -d= -f2-)
   if ! printf '%s' "$value" | grep -Eq '^[A-Za-z0-9._~-]+$'; then
     echo "${var} in .env must be non-empty and use only letters, digits, '.', '_', '~' and '-'" >&2
@@ -89,8 +89,9 @@ unset value
 # The internal admin service (database foundations only so far): BC_ADMIN_PASSWORD
 # is its runtime role, BC_ADMIN_MIG_PASSWORD the migration role that owns schema
 # `admin` (generated above; postgres/ensure-admin-roles.sh applies them).
-# BC_TASKS_PASSWORD is the task runner's own role and BC_TASKS_DATA_PASSWORD its
-# narrow data role (column-level grants on the response tables; generated above too).
+# BC_TASKS_PASSWORD is the task runner's own role and BC_TASKS_DATA_APP_PASSWORD /
+# BC_TASKS_DATA_GOOGLE_PASSWORD its two narrow data roles, one per owning schema
+# (column-level grants on the response tables / the Google credentials; generated above too).
 # SETTINGS_MASTER_KEY (base64, 48 random bytes) is generated once and never
 # overwritten: it encrypts the admin second-factor secrets and keys the audit
 # log's hash chain.

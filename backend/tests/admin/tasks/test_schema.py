@@ -337,7 +337,8 @@ async def test_roles_script_is_idempotent_and_repairs_grants(server, migrated):
     await _execute(url, f'GRANT UPDATE ON tasks.runs TO "{server.tasks_role}"')
     assert (await snapshot())["params"] is True
     sql = roles_sql(
-        server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw, server.data_pw
+        server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw,
+        server.data_app_pw, server.data_google_pw
     )
     await _execute(url, sql)
     await _execute(url, sql)
