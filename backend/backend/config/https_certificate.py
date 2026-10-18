@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class HttpsCertificateApiSettings(BaseSettings):
+class HttpsCertificateApiSettings(StoreBackedSettings):
     host: str = ""
     key: str = ""
     upstream: str = ""

@@ -25,6 +25,7 @@ from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.config import settings
+from common.settings.loader import live
 
 # pages the webapp names that are not pages of the form
 SENTINEL_PAGES = frozenset({"__welcome__", "__submit__", "__next__"})
@@ -82,8 +83,8 @@ class FlowEventService:
         verdict = await self._limiter.hit(
             RATE_LIMIT_SCOPE,
             f"{form.form_id}\n{rate_limit_key(client)}",
-            settings.api_settings.FLOW_EVENTS_PER_WINDOW,
-            settings.api_settings.FLOW_EVENTS_WINDOW_SECONDS,
+            live().api.FLOW_EVENTS_PER_WINDOW,
+            live().api.FLOW_EVENTS_WINDOW_SECONDS,
         )
         if not verdict.allowed:
             raise HTTPException(

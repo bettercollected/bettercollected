@@ -99,7 +99,7 @@ def settings_fields() -> Dict[str, str]:
         for tree in trees.values()
         for node in ast.walk(tree)
         if isinstance(node, ast.ClassDef)
-        and any(_dotted(b).endswith("BaseSettings") for b in node.bases)
+        and any(_dotted(b).endswith(("BaseSettings", "StoreBackedSettings")) for b in node.bases)
     }
     found: Dict[str, str] = {}
     for path, tree in trees.items():

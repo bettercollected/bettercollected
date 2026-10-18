@@ -1,9 +1,10 @@
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class MongoSettings(BaseSettings):
+class MongoSettings(StoreBackedSettings):
     DB: Optional[str] = "bettercollected_auth"
     URI: Optional[str] = "mongodb://localhost"
 

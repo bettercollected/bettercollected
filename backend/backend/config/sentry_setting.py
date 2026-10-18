@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
-class SentrySettings(BaseSettings):
+class SentrySettings(StoreBackedSettings):
     DSN: str = ""
     DEBUG: bool = False
 

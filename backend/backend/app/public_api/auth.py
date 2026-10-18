@@ -20,7 +20,8 @@ from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.api_access import acting_user, require_key_scope
-from backend.config import settings
+from backend.config import settings  # noqa: F401  (builds the settings and the live() groups)
+from common.settings.loader import live
 
 # where the wrapper in app.py finds what to audit: (key, operation)
 AUDIT_STATE = "public_api_audit"
@@ -62,7 +63,7 @@ async def _hit(scope: str, client: str, limit: int, who: str) -> None:
     verdict = (
         await _c()
         .rate_limiter()
-        .hit(scope, client, limit, settings.api_settings.PUBLIC_API_WINDOW_SECONDS)
+        .hit(scope, client, limit, live().api.PUBLIC_API_WINDOW_SECONDS)
     )
     if not verdict.allowed:
         raise HTTPException(
@@ -79,7 +80,7 @@ async def _hit(scope: str, client: str, limit: int, who: str) -> None:
 async def _rate_limit(key: WorkspaceAPIKeyDocument) -> None:
     """Per API key, and a ceiling for all the workspace's keys together
     (more keys never buy more requests). 0 turns either off."""
-    api = settings.api_settings
+    api = live().api
     await _hit(
         RATE_LIMIT_SCOPE,
         str(key.id),
