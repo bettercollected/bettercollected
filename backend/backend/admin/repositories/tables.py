@@ -149,3 +149,20 @@ audit_log = Table(
     Index("uq_audit_log_prev_hash", "prev_hash", unique=True),
     Index("ix_audit_log_at", "at"),
 )
+
+notifications = Table(
+    "notifications",
+    metadata,
+    _uuid_pk(),
+    _ts("created_at", nullable=False, server_default=text("now()")),
+    Column("kind", Text, nullable=False),
+    Column("payload", JSONB, nullable=False),
+    Column("audit_seq", BigInteger),
+    Column("status", Text, nullable=False, server_default="pending"),
+    Column("attempts", Integer, nullable=False, server_default="0"),
+    _ts("sent_at"),
+    CheckConstraint("kind ~ '^[a-z][a-z0-9_.]{0,63}$'", name="kind"),
+    CheckConstraint("status IN ('pending', 'sent', 'failed')", name="status"),
+    CheckConstraint("pg_column_size(payload) <= 4096", name="payload"),
+    Index("ix_notifications_status_created_at", "status", "created_at"),
+)

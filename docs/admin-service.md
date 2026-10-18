@@ -85,6 +85,30 @@ does not receive these yet (nor `MAIL_*`, nor a route to the database), so it
 runs in that mode until the deployment wiring lands. Settings that are present
 but invalid stop startup.
 
+## Settings store: what the database guards do and do not do
+
+Schema `settings` holds signed (and, for secrets, encrypted) rows, a signed
+manifest and per-service views. The triggers on its tables stop mistakes and a
+compromised runtime role (no deleting entries, versions and the manifest
+revision only go up by one, no future history rows). They do not stop the
+migration role, which can disable triggers. Tampering is detected instead:
+every row carries a signature, the manifest signs the full set of keys, versions
+and readers, and every change is in the audit trail; `settings-verify` checks
+all three against each other, including a wiped or rolled-back store.
+
+Each reader's manifest view lists every key, version and reader set, not only
+the rows that service may read: a service needs that to notice a row withheld
+from it. Key names are therefore visible to every reading service; values never
+are.
+
+A change to a step-up setting must carry the setting's current version in the
+step-up (`SettingsService.action_hash(action, key, value, expected_version)`).
+The portal reads the version when it renders the form, binds it into the hash it
+asks the step-up module to issue a token for, and passes the same
+`expected_version` to the service, which checks it inside the write transaction.
+A replayed token, or a form left open while someone else changed the setting,
+fails with `stale_version`.
+
 ## Variables (no secrets)
 
 | Variable | Default | Meaning |
