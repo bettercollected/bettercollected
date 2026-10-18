@@ -62,7 +62,7 @@ describe('ThankyouPage', () => {
         window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
         store.dispatch(setForm({ formId: 'form-typ-l', title: 'Links', fields: [], thankyouPage: [{ buttonText: 'Visit us', buttonLink: 'https://example.com/next' }] }));
         const { unmount } = page('');
-        expect(screen.getByRole('link', { name: 'Visit us' }).getAttribute('href')).toBe('https://example.com/next');
+        expect(screen.getByRole('link', { name: 'Visit us (opens in a new tab)' }).getAttribute('href')).toBe('https://example.com/next');
         unmount();
         store.dispatch(setForm({ formId: 'form-typ-x', title: 'Links', fields: [], thankyouPage: [{ buttonText: 'Visit us', buttonLink: 'javascript:alert(1)' }] }));
         page('');

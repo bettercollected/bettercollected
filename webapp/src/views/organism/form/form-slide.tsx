@@ -6,6 +6,7 @@ import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
 import { useCalculatedFields } from '@app/lib/hooks/use-calculated-fields';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
@@ -125,6 +126,7 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
 export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout, logo }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean; logo?: ResolvedFormLogo | null }) {
     const { toast } = useToast();
     const { t, language } = useRespondentLanguage();
+    const contentLang = useFormContentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
@@ -345,6 +347,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     return (
         <Controller>
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled topAligned={leaflet} logo={logo}>
+                {/* The page's top heading, for screen-reader users moving by
+                    headings: the form's title, which the welcome page shows. */}
+                {standardForm?.title && (
+                    <h1 className="sr-only" lang={contentLang}>
+                        {standardForm.title}
+                    </h1>
+                )}
                 {/* The bar sits over the scrolling questions: give it the page's
                     ground (translucent + blur, so it also works over gradient or image
                     backgrounds) or questions scroll through the header text. */}

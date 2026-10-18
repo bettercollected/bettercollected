@@ -53,16 +53,24 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     flat?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, icon, children, isLoading, postFixIcon, disabled, flat, ...props }, ref) => {
+/**
+ * A Button's classes, for a link that has to look like one: a link inside a
+ * <button> is two nested controls, and only the link part of it works.
+ */
+export function buttonClassName({ className, variant, size, flat, inactive = false }: VariantProps<typeof buttonVariants> & { className?: string; flat?: boolean; inactive?: boolean }) {
     const classes = buttonVariants({
         variant,
         size,
-        className: `${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'} ${className}`
+        className: `${inactive ? 'cursor-not-allowed' : 'cursor-pointer'} ${className}`
     });
+    return cn(flat ? classes.replace(/(^|\s)key-edge(?=\s|$)/g, ' ') : classes);
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, icon, children, isLoading, postFixIcon, disabled, flat, ...props }, ref) => {
     return (
         <button
             disabled={disabled || isLoading}
-            className={cn(flat ? classes.replace(/(^|\s)key-edge(?=\s|$)/g, ' ') : classes)}
+            className={buttonClassName({ className, variant, size, flat, inactive: !!(disabled || isLoading) })}
             ref={ref}
             {...props}
         >
