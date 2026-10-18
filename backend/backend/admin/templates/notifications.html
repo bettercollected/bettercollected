@@ -1,0 +1,28 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Pending notifications") }}{% endblock %}
+{% block content %}
+<p><a href="/settings">{{ _("All settings") }}</a></p>
+<h1>{{ _("Notifications") }}</h1>
+<p>{{ _("Changes to T2 and T3 settings queue a notice for every admin. This list is read-only and shows what will be, or was, mailed. It never contains values.") }}</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Notification outbox') }}">
+<table>
+  <caption>{{ items | length }} {{ _("most recent entries") }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Queued") }}</th><th scope="col">{{ _("Setting") }}</th><th scope="col">{{ _("Tier") }}</th>
+    <th scope="col">{{ _("Action") }}</th><th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("Status") }}</th>
+    <th scope="col">{{ _("Attempts") }}</th><th scope="col">{{ _("Sent") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for n in items %}
+  <tr>
+    <th scope="row">{{ n.created_at | ts }}</th>
+    <td><code>{{ n.setting }}</code></td><td>{{ n.tier }}</td><td>{{ n.action }}</td><td>{{ n.version }}</td>
+    <td>{{ n.status }}</td><td>{{ n.attempts }}</td><td>{{ n.sent_at | ts }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8">{{ _("Nothing queued.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

@@ -5,7 +5,7 @@ Every route is ``Level.SECOND_FACTOR`` and ``GET``: nothing here changes state.
 (The session forms on ``/sessions`` post to the account routes that already
 exist, with the session's CSRF token.) No route under ``/settings`` or
 ``/tasks`` is registered here; those prefixes are reserved for later pages whose
-mutating routes must declare a step-up.
+mutating routes must declare a step-up. (They live in ``controllers/settings.py``.)
 """
 
 from __future__ import annotations
@@ -40,6 +40,9 @@ async def _shell(request: Request, active: str) -> dict:
     banners = []
     if pending:
         banners.append({"kind": "restart", "services": ", ".join(pending)})
+    last = portal.integrity.last
+    if last is not None and last.problems:
+        banners.append({"kind": "integrity", "count": len(last.problems)})
     return {
         "active": active,
         "email": session.email,

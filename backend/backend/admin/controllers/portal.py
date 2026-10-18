@@ -127,6 +127,10 @@ def build_registry() -> RouteRegistry:
 
     pages.register(reg)
 
+    from backend.admin.controllers import settings as settings_pages
+
+    settings_pages.register(reg)
+
     @reg.route("/logout", level=Level.ADMIN, methods=["POST"])
     async def logout(request: Request):
         portal = _portal(request)

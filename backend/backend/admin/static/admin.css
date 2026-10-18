@@ -63,4 +63,19 @@ details summary { cursor: pointer; }
 .chain { overflow-wrap: anywhere; }
 .table-scroll:focus-visible { outline-offset: 0; }
 @media (max-width: 40rem) { .filters .field { flex: 1 1 100%; } .who { width: 100%; justify-content: space-between; } }
+/* settings pages */
+.muted { color: var(--muted); }
+.notice { margin: 1rem 0; padding: 0.6rem 0.8rem; border: 1px solid var(--line); border-left-width: 4px; border-radius: 4px; }
+.notice-ok { border-left-color: var(--ok); }
+.notice-error { border-left-color: var(--err); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1.5rem; margin: 0 0 1rem; }
+.facts dt { font-weight: 600; }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+form.stack { max-width: 36rem; }
+.field { margin: 0 0 0.5rem; }
+input[type="password"], input[type="number"], input[type="url"], textarea { width: 100%; padding: 0.6rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 4px; }
+textarea { font-family: ui-monospace, monospace; }
+button.danger { background: var(--err); }
+@media (prefers-color-scheme: dark) { button.danger { color: #000; } }
+@media (max-width: 40rem) { .facts { grid-template-columns: 1fr; } }
 .nowrap { white-space: nowrap; }

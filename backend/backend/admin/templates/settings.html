@@ -1,0 +1,69 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Settings") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Settings") }}</h1>
+<p>{{ _("Change settings stored for the services. Every change needs a fresh second-factor code and is written to the audit log. Secrets show only whether they are set; their values are never sent to this page.") }}</p>
+<p><a href="/settings/integrity">{{ _("Integrity check") }}</a> &middot; <a href="/settings/notifications">{{ _("Pending notifications") }}</a> &middot; <a href="/config">{{ _("Read-only configuration view") }}</a></p>
+{% include "_notice.html" %}
+{% if error %}<p class="error" role="alert">{{ _("The filter was not understood:") }} {{ error }}.</p>{% endif %}
+
+<form method="get" action="/settings" class="filters">
+  <div class="field">
+    <label for="section">{{ _("Section") }}</label>
+    <select id="section" name="section">
+      <option value="">{{ _("All sections") }}</option>
+      {% for s in config.sections %}<option value="{{ s }}"{% if s == section %} selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="tier">{{ _("Tier") }}</label>
+    <select id="tier" name="tier">
+      <option value="">{{ _("All tiers") }}</option>
+      {% for t in config.tiers %}<option value="{{ t }}"{% if t == tier %} selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit">{{ _("Filter") }}</button>
+  <a href="/settings">{{ _("Clear") }}</a>
+</form>
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Settings list') }}">
+<table class="config">
+  <caption>{{ rows | length }} {{ _("of") }} {{ config.total }} {{ _("settings") }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Key") }}</th><th scope="col">{{ _("Tier") }}</th><th scope="col">{{ _("Value") }}</th>
+    <th scope="col">{{ _("Status") }}</th><th scope="col">{{ _("Version") }}</th>
+    <th scope="col">{{ _("Last changed") }}</th><th scope="col">{{ _("Action") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <th scope="row"><code>{{ r.key }}</code>{% if r.secret %} <span class="tag">{{ _("secret") }}</span>{% endif %}<br><span class="muted">{{ r.section }}</span></th>
+    <td>{{ r.tier }}</td>
+    <td>
+      {% if r.source in ("environment only", "build argument") %}-
+      {% elif r.secret %}{% if r.is_set %}{{ _("set") }}{% else %}{{ _("not set") }}{% endif %}
+      {% elif r.overridden %}<em>{{ _("set by the environment") }}</em>
+      {% elif r.value is none %}<em>{{ _("not set") }}</em>
+      {% else %}<code>{{ r.value }}</code>{% endif %}
+    </td>
+    <td>
+      {{ r.source }}
+      {% if r.overridden %}<span class="tag tag-warn">{{ _("overridden by environment") }}</span>{% endif %}
+      {% if r.restart %}<span class="tag tag-warn">{{ _("restart required") }}</span>{% endif %}
+    </td>
+    <td>{{ r.version if r.version is not none else "-" }}</td>
+    <td>{% if r.changed_at %}{{ r.changed_at | ts }}<br>{{ r.changed_by }}{% else %}-{% endif %}</td>
+    <td>
+      {% if r.tier == "T5" %}<span class="muted">{{ _("environment only") }}</span>
+      {% elif r.tier == "T4" %}<span class="nav-later" aria-describedby="rotate-note">{{ _("Rotate…") }}</span> <span class="muted">{{ _("(task page not available yet)") }}</span>
+      {% else %}<a href="/settings/{{ r.key }}">{{ _("View or edit") }}<span class="visually-hidden"> {{ r.key }}</span></a>{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7">{{ _("No settings match.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p id="rotate-note" class="muted">{{ _("T4 settings are key material. They are rotated by a maintenance task, never edited here. T5 settings are read from the server's environment only.") }}</p>
+{% endblock %}

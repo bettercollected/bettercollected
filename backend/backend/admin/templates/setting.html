@@ -1,0 +1,110 @@
+{% extends "shell.html" %}
+{% block title %}{{ detail.spec.key }}{% endblock %}
+{% block content %}
+{% set r = detail.row %}
+<p><a href="/settings">{{ _("All settings") }}</a></p>
+<h1><code>{{ detail.spec.key }}</code></h1>
+{% if detail.spec.description %}<p>{{ detail.spec.description }}</p>{% endif %}
+{% include "_notice.html" %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+<h2>{{ _("Current state") }}</h2>
+<dl class="facts">
+  <dt>{{ _("Tier") }}</dt><dd><span class="tag">{{ detail.spec.tier.value }}</span></dd>
+  <dt>{{ _("Section") }}</dt><dd>{{ r.section }}</dd>
+  <dt>{{ _("Read by") }}</dt><dd>{{ r.readers }}</dd>
+  <dt>{{ _("Value") }}</dt>
+  <dd>
+    {% if r.source in ("environment only", "build argument") %}-
+    {% elif r.secret %}{% if r.is_set %}{{ _("set") }}{% else %}{{ _("not set") }}{% endif %}
+    {% elif r.overridden %}<em>{{ _("set by the environment") }}</em>
+    {% elif r.value is none %}<em>{{ _("not set") }}</em>
+    {% else %}<code>{{ r.value }}</code>{% endif %}
+    {% if r.overridden %}<span class="tag tag-warn">{{ _("overridden by environment") }}</span>{% endif %}
+    {% if r.restart %}<span class="tag tag-warn">{{ _("restart required") }}</span>{% endif %}
+  </dd>
+  <dt>{{ _("Source") }}</dt><dd>{{ r.source }}</dd>
+  <dt>{{ _("Version") }}</dt><dd>{{ detail.version }}{% if detail.cleared %} ({{ _("cleared") }}){% endif %}</dd>
+  <dt>{{ _("Last changed") }}</dt><dd>{% if r.changed_at %}{{ r.changed_at | ts }} {{ _("by") }} {{ r.changed_by }}{% else %}-{% endif %}</dd>
+  <dt>{{ _("When a change applies") }}</dt><dd>{{ detail.reload_text }}</dd>
+</dl>
+{% if r.overridden %}<p class="banner banner-warn">{{ _("A service reports this key set in its environment, which wins over the stored value. A stored change will not take effect there until the environment variable is removed.") }}</p>{% endif %}
+<p><a href="/settings/{{ detail.spec.key }}/history">{{ _("History") }}</a></p>
+
+{% if detail.editable == "managed_by_task" %}
+<p class="banner banner-keep">{{ _("This setting is key material. It is rotated by a maintenance task and cannot be edited here.") }}</p>
+{% elif detail.editable == "env_only" %}
+<p class="banner banner-keep">{{ _("This setting is read from the server's environment only and cannot be edited here.") }}</p>
+{% elif detail.editable %}
+<p class="banner banner-keep">{{ _("This setting cannot be edited here.") }}</p>
+{% elif confirm %}
+<h2>{{ _("Confirm the change") }}</h2>
+<p>{{ _("Your new value is held, sealed, for two minutes. Enter a code to continue.") }}</p>
+<form method="post" action="/settings/{{ detail.spec.key }}/prepare" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="set">
+  <input type="hidden" name="expected_version" value="{{ detail.version }}">
+  <input type="hidden" name="pending" value="{{ confirm.pending }}">
+  {% if detail.spec.tier.value == "T3" %}
+  <div class="field">
+    <label for="confirmation">{{ _("Type the setting name to confirm") }}</label>
+    <input id="confirmation" name="confirmation" type="text" autocomplete="off" spellcheck="false" required aria-describedby="confirmation-hint">
+    <p id="confirmation-hint" class="muted">{{ _("Type exactly:") }} <code>{{ detail.spec.key }}</code></p>
+  </div>
+  {% endif %}
+  {% with id="code-confirm" %}{% include "_code_field.html" %}{% endwith %}
+  <button type="submit">{{ _("Continue") }}</button>
+</form>
+{% else %}
+{% set kind = detail.kind %}
+<h2>{{ _("Change the value") }}</h2>
+{% if detail.spec.tier.value in ("T2", "T3") %}<p>{{ _("Changes to this setting also notify every admin by email.") }}</p>{% endif %}
+<form method="post" action="/settings/{{ detail.spec.key }}/prepare" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="set">
+  <input type="hidden" name="expected_version" value="{{ detail.version }}">
+  <div class="field">
+    <label for="value">{% if detail.spec.is_secret %}{{ _("New value (write-only, never shown)") }}{% else %}{{ _("New value") }}{% endif %}</label>
+    {% if kind.widget == "select" %}
+    <select id="value" name="value" required>
+      {% for o in kind.options %}<option value="{{ o }}"{% if o == form_value %} selected{% endif %}>{{ o }}</option>{% endfor %}
+    </select>
+    {% elif kind.widget == "textarea" %}
+    <textarea id="value" name="value" required{% for a, v in kind.attrs.items() %} {{ a }}="{{ v }}"{% endfor %} aria-describedby="value-hint">{{ form_value }}</textarea>
+    {% elif kind.widget == "password" %}
+    <input id="value" name="value" type="password" required{% for a, v in kind.attrs.items() %} {{ a }}="{{ v }}"{% endfor %}>
+    {% else %}
+    <input id="value" name="value" type="{{ kind.widget }}" value="{{ form_value }}" required{% for a, v in kind.attrs.items() %} {{ a }}="{{ v }}"{% endfor %} aria-describedby="value-hint">
+    {% endif %}
+    <p id="value-hint" class="muted">{{ kind.hint }}{% if kind.attrs.min is defined or kind.attrs.max is defined %} {{ _("Allowed range:") }} {{ kind.attrs.min | default("…") }} {{ _("to") }} {{ kind.attrs.max | default("…") }}.{% endif %}</p>
+  </div>
+  {% if detail.spec.tier.value == "T3" %}
+  <div class="field">
+    <label for="confirmation">{{ _("Type the setting name to confirm") }}</label>
+    <input id="confirmation" name="confirmation" type="text" autocomplete="off" spellcheck="false" required aria-describedby="confirmation-hint">
+    <p id="confirmation-hint" class="muted">{{ _("Type exactly:") }} <code>{{ detail.spec.key }}</code></p>
+  </div>
+  {% endif %}
+  {% with id="code-set" %}{% include "_code_field.html" %}{% endwith %}
+  <button type="submit">{% if detail.spec.is_secret %}{{ _("Replace") }}{% else %}{{ _("Save") }}{% endif %}</button>
+</form>
+
+{% if detail.version and not detail.cleared %}
+<h2>{{ _("Clear the setting") }}</h2>
+<p>{{ _("Clearing removes the stored value, so services fall back to their environment or default.") }}</p>
+<form method="post" action="/settings/{{ detail.spec.key }}/prepare" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="clear">
+  <input type="hidden" name="expected_version" value="{{ detail.version }}">
+  {% if detail.spec.tier.value == "T3" %}
+  <div class="field">
+    <label for="confirmation-clear">{{ _("Type the setting name to confirm") }}</label>
+    <input id="confirmation-clear" name="confirmation" type="text" autocomplete="off" spellcheck="false" required>
+  </div>
+  {% endif %}
+  {% with id="code-clear" %}{% include "_code_field.html" %}{% endwith %}
+  <button type="submit" class="danger">{{ _("Clear") }}</button>
+</form>
+{% endif %}
+{% endif %}
+{% endblock %}

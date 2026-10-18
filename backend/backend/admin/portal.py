@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
@@ -24,12 +24,15 @@ from backend.admin.portal_config import PortalSettings
 from backend.admin.repositories.tables import attempts
 from backend.admin.security.clock import Clock, SystemClock
 from backend.admin.security.keycheck import require_key
-from backend.admin.security.keys import admin_key
+from backend.admin.security.keys import MASTER_KEY_KEY, admin_key, parse_master_key
+from common.settings.keys import SectionKeys
 from backend.admin.security.mailer import AdminMailer
 from backend.admin.security.ratelimit import Limiter, SqlAttemptStore
 from backend.admin.services.factors import FactorService
 from backend.admin.services.pages import PageService
 from backend.admin.services.sessions import SessionService
+from backend.admin.services.settings_pages import IntegrityCache, SettingsPages
+from backend.admin.services.settings_store import SettingsService, store_registry
 from backend.admin.services.signin import SignInService
 from backend.admin.services.stepup import StepUpService
 
@@ -38,6 +41,7 @@ log = logging.getLogger("backend.admin")
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
 CLEANUP_EVERY_SECONDS = 600
+MASTER_KEY_PREVIOUS_KEY = "SETTINGS_MASTER_KEY_PREVIOUS"
 
 
 def _timestamp(value: Optional[datetime]) -> str:
@@ -77,6 +81,9 @@ class Portal:
     pages: PageService
     csrf_key: bytes
     templates: Environment
+    settings_pages: SettingsPages
+    pending_key: bytes
+    integrity: IntegrityCache = field(default_factory=IntegrityCache)
 
     @classmethod
     def build(
@@ -108,9 +115,20 @@ class Portal:
             engine, clock, settings, limiter, mailer, sessions, pepper, totp_key
         )
         stepup = StepUpService(clock, sessions, store, stepup_key)
+        pending_key = require_key(admin_key("pending", env=source), "pending-change key")
+        pages = PageService(engine, clock)
+        registry = store_registry()
+        previous = (source.get(MASTER_KEY_PREVIOUS_KEY) or "").strip()
+        keys = SectionKeys(
+            parse_master_key(source.get(MASTER_KEY_KEY)),
+            sections={s.section for s in registry},
+            master_previous=parse_master_key(previous) if previous else None,
+        )
+        service = SettingsService(engine, registry, keys, clock=clock.now)
         return cls(
             settings, engine, clock, limiter, mailer, sessions, signin, factors,
-            stepup, PageService(engine, clock), csrf_key, make_templates(),
+            stepup, pages, csrf_key, make_templates(),
+            SettingsPages(engine, service, pages, clock), pending_key,
         )
 
     def checkers(self) -> dict:
