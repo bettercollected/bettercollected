@@ -86,7 +86,8 @@ const open = () => {
     );
 };
 
-const describedBy = (title: string) => new RegExp(`About ${title.toLowerCase().replace(/[?]/g, '\\?')}`);
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const describedBy = (title: string) => new RegExp(`About ${escapeRegExp(title.toLowerCase())}`);
 
 describe('respondent controls are named by their question', () => {
     beforeEach(() => {

@@ -109,7 +109,8 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     // item's heading ("Child 2"). An untitled question names nothing here, so
     // a control falls back to its own label.
     const itemScope = useGroupItemScope();
-    const hasTitle = !!titleHtml.replace(/<[^>]*>/g, '').trim();
+    // Any visible character outside a tag means there is a title to name by.
+    const hasTitle = /(^|>)[^<]*\S/.test(titleHtml);
     const itemHeadingId = itemScope ? `group-item-${itemScope.groupId}-${itemScope.index}` : undefined;
     const labelledBy = [hasTitle ? titleId : null, itemHeadingId].filter(Boolean).join(' ') || undefined;
     const describedBy = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
