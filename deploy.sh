@@ -58,12 +58,27 @@ fi
 # TEMPORAL_API_KEY: shared by the backend (TEMPORAL_API_KEY) and the Temporal
 # worker / actions-executor (API_KEY); the backend's internal job routes refuse
 # requests without it and answer 503 while it is unset.
-for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
+for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY; do
   if ! grep -q "^${var}=" .env 2>/dev/null; then
     echo "${var}=$(openssl rand -hex 24)" >> .env
     echo "Generated a new ${var} in .env (first run)."
   fi
 done
+
+# The internal admin service (database foundations only so far): BC_ADMIN_PASSWORD
+# is its runtime role, BC_ADMIN_MIG_PASSWORD the migration role that owns schema
+# `admin` (generated above; postgres/ensure-admin-roles.sh applies them).
+# SETTINGS_MASTER_KEY (base64, 48 random bytes) is generated once and never
+# overwritten: it encrypts the admin second-factor secrets and keys the audit
+# log's hash chain.
+if ! grep -q "^SETTINGS_MASTER_KEY=." .env 2>/dev/null; then
+  echo "SETTINGS_MASTER_KEY=$(openssl rand -base64 48 | tr -d '\n')" >> .env
+  echo "Generated a new SETTINGS_MASTER_KEY in .env (first run)."
+fi
+echo "IMPORTANT: back up SETTINGS_MASTER_KEY from .env. If it is lost, the admin service's"
+echo "second-factor (TOTP) secrets cannot be decrypted and the audit log can no longer be"
+echo "verified; neither is recoverable. Never change or regenerate it on a stack that has"
+echo "admin data."
 
 # Single sign-on (docs/sso.md): off unless the root .env has SSO_ENABLED=true.
 # Then Polis and its own Postgres run from the overlay
@@ -122,6 +137,15 @@ function dockerup() {
   # finds nothing left to do after this step.
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" pull -q backend auth $([ "$googleform_flag" = true ] && echo integrations-googleform)
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" up -d --wait app-postgres
+  # The admin service's schema and roles (idempotent), as the database superuser
+  # inside the container, which already holds BC_ADMIN_*_PASSWORD. Then its own
+  # migration chain as the migration role; the password goes in through the
+  # environment, not the command line.
+  "$docker_compose_cmd" -f "docker-compose.deployment.yml" exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh || exit 1
+  admin_mig_password=$(grep -E "^BC_ADMIN_MIG_PASSWORD=" .env | tail -n 1 | cut -d= -f2-)
+  DATABASE_URL="postgresql+asyncpg://bc_admin_mig:${admin_mig_password}@app-postgres:5432/bettercollected" \
+    "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps -e DATABASE_URL backend /api/backend/.venv/bin/alembic -c /api/backend/backend/admin/alembic.ini upgrade head || exit 1
+  unset admin_mig_password
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head
   # procrastinate's queue tables (jobs schema), applied once; a no-op afterwards
   "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/python -m backend.jobs.schema
