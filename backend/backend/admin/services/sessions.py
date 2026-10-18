@@ -17,12 +17,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Collection, Iterable, Optional
 
+from common.utils.client_ip import rate_limit_key
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from backend.admin.portal_config import PortalSettings
 from backend.admin.repositories import sessions as repo
 from backend.admin.security.clock import Clock
-from backend.admin.security.ratelimit import ip_bucket
 from backend.admin.services import audit
 
 log = logging.getLogger("backend.admin.sessions")
@@ -249,7 +249,7 @@ class SessionService:
             if row.idle_expires_at <= now:
                 return AuthResult(None, IDLE)
             bound_ip = str(row.ip) if row.ip is not None else None
-            same_ip = ip_bucket(bound_ip) == ip_bucket(ip)
+            same_ip = rate_limit_key(bound_ip) == rate_limit_key(ip)
             same_ua = bytes(row.ua_hash or b"") == hash_user_agent(user_agent)
             if not (same_ip and same_ua):
                 await self._revoke_rows(

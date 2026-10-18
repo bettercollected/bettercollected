@@ -19,7 +19,6 @@ row, which keeps the whole state in the one table.
 
 import hashlib
 import hmac
-import ipaddress
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, Optional, Protocol, Tuple, runtime_checkable
@@ -37,6 +36,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine
+
+from common.utils.client_ip import rate_limit_key
 
 from backend.admin.security.clock import Clock
 from backend.admin.security.keycheck import require_key
@@ -234,25 +235,6 @@ def normalise_email(email: str) -> str:
     return str(email).strip().lower()
 
 
-def ip_bucket(client: Optional[str]) -> str:
-    """The address a client is limited under: IPv4 as is, IPv6 by its /64,
-    ``unknown`` when it can't be parsed.
-
-    Same behaviour as ``backend.app.utils.client_ip.rate_limit_key``. That
-    module can't be imported here: its package pulls in the whole public
-    application, which the admin service must never load. A test keeps the
-    two in step."""
-    try:
-        address = ipaddress.ip_address((client or "").strip().split("%", 1)[0])
-    except ValueError:
-        return "unknown"
-    mapped = getattr(address, "ipv4_mapped", None)
-    address = mapped or address
-    if address.version == 6:
-        return str(ipaddress.ip_network(f"{address}/64", strict=False))
-    return str(address)
-
-
 def hashed_key(pepper: bytes, kind: str, identifier: str) -> str:
     digest = hmac.new(
         pepper, f"{kind}\x00{identifier}".encode("utf-8"), hashlib.sha256
@@ -274,7 +256,7 @@ class Limiter:
         return hashed_key(self._pepper, "email", normalise_email(email))
 
     def ip_key(self, client: Optional[str]) -> str:
-        return hashed_key(self._pepper, "ip", ip_bucket(client))
+        return hashed_key(self._pepper, "ip", rate_limit_key(client))
 
     # helpers
     def _window(self, rule: Rule) -> Tuple[datetime, int]:
