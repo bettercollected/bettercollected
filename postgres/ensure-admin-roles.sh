@@ -297,6 +297,9 @@ BEGIN
             'last_30_days', (SELECT count(*) FROM app.form_responses
                              WHERE doc ? 'answers' AND created_at >= since30)),
         'form_responders', jsonb_build_object(
+            'identified_responses', (SELECT count(*) FROM app.form_responses
+                                     WHERE doc ? 'answers' AND data_owner_identifier IS NOT NULL
+                                           AND data_owner_identifier <> ''),
             'identified', (SELECT count(DISTINCT data_owner_identifier) FROM app.form_responses
                            WHERE doc ? 'answers' AND data_owner_identifier IS NOT NULL
                                  AND data_owner_identifier <> ''),

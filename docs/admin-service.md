@@ -166,10 +166,15 @@ pending restart, a restart notice.
 
 `admin.platform_counts()` is created by `postgres/ensure-admin-roles.sh`, not by
 an Alembic revision: the admin roles cannot read the `app` and `auth` schemas
-and the migration role owns nothing there, so the function is owned by the
-role that runs the script (the database superuser), takes no arguments, writes
-nothing, names its tables explicitly, pins `search_path`, and is executable by
-`bc_admin` alone. The counts follow the Postgres store, so they are complete
+and the migration role owns nothing there, so the function is a SECURITY DEFINER
+owned by a dedicated role, `bc_admin_counts` (NOLOGIN, no superuser, no create
+rights anywhere, owns no objects). That role has `USAGE` on `app` and `auth` and
+column-level `SELECT` on only the columns the function reads; the script
+re-applies those grants on every deploy, so they appear once the application
+migrations have created the tables. The function takes no arguments, writes
+nothing, calls only `pg_catalog` functions (never an object another service's
+role owns, so those roles cannot make it run their code), pins `search_path`,
+and is executable by `bc_admin` alone. The counts follow the Postgres store, so they are complete
 once the application serves from Postgres; before the application migrations
 have run the page says they are not available.
 

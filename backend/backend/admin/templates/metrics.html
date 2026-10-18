@@ -42,8 +42,9 @@
     {{ stat(_("Total"), counts.responses.total) }}
     {{ stat(_("Last 7 days"), counts.responses.last_7_days) }}
     {{ stat(_("Last 30 days"), counts.responses.last_30_days) }}
-    {{ stat(_("From identified responders"), counts.form_responders.identified) }}
-    {{ stat(_("Anonymous responses"), counts.form_responders.anonymous_responses) }}
+    {{ stat(_("With an identified responder"), counts.form_responders.identified_responses) }}
+    {{ stat(_("Anonymous"), counts.form_responders.anonymous_responses) }}
+    {{ stat(_("Distinct identified responders"), counts.form_responders.identified) }}
   </tbody>
 </table>
 </div>

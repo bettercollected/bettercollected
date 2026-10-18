@@ -372,7 +372,9 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
     assert counts["forms"]["new_last_30_days"] == 2
     assert counts["form_creators"] == {"total": 2, "active_last_30_days": 2}
     assert counts["responses"] == {"total": 4, "last_7_days": 2, "last_30_days": 3}
-    assert counts["form_responders"] == {"identified": 2, "anonymous_responses": 1}
+    assert counts["form_responders"] == {"identified": 2, "identified_responses": 3, "anonymous_responses": 1}
+    assert (counts["form_responders"]["identified_responses"] + counts["form_responders"]["anonymous_responses"]
+            == counts["responses"]["total"])
     assert counts["users"]["total"] == 2 and counts["users"]["new_last_30_days"] == 1
     assert counts["users"]["active_last_30_days"] == 1
     assert counts["users"]["by_plan"] == {"FREE": 1, "PRO": 1}

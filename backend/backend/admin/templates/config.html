@@ -29,15 +29,15 @@
   <caption>{{ rows | length }} {{ _("of") }} {{ config.total }} {{ _("settings") }}</caption>
   <thead><tr>
     <th scope="col">{{ _("Key") }}</th><th scope="col">{{ _("Section") }}</th><th scope="col">{{ _("Tier") }}</th>
-    <th scope="col">{{ _("Type") }}</th><th scope="col">{{ _("Reload") }}</th><th scope="col">{{ _("Readers") }}</th>
+    <th scope="col">{{ _("Type, reload") }}</th><th scope="col">{{ _("Readers") }}</th>
     <th scope="col">{{ _("Source") }}</th><th scope="col">{{ _("Value") }}</th>
-    <th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("Last changed") }}</th>
+    <th scope="col">{{ _("Last change") }}</th>
   </tr></thead>
   <tbody>
   {% for r in rows %}
   <tr>
     <th scope="row"><code>{{ r.key }}</code>{% if r.secret %} <span class="tag">{{ _("secret") }}</span>{% endif %}</th>
-    <td>{{ r.section }}</td><td>{{ r.tier }}</td><td>{{ r.type }}</td><td>{{ r.reload }}</td><td>{{ r.readers }}</td>
+    <td>{{ r.section }}</td><td>{{ r.tier }}</td><td>{{ r.type }}, {{ r.reload }}</td><td>{{ r.readers }}</td>
     <td>
       {{ r.source }}
       {% if r.overridden %}<span class="tag tag-warn">{{ _("overridden by environment") }}</span>{% endif %}
@@ -50,11 +50,10 @@
       {% elif r.value is none %}<em>{{ _("not set") }}</em>
       {% else %}<code>{{ r.value }}</code>{% endif %}
     </td>
-    <td>{{ r.version if r.version is not none else "-" }}</td>
-    <td>{% if r.changed_at %}{{ r.changed_at | ts }}<br>{{ r.changed_by }}{% else %}-{% endif %}</td>
+    <td>{% if r.changed_at %}{{ _("v") }}{{ r.version }}, {{ r.changed_at | ts }}<br>{{ r.changed_by }}{% else %}-{% endif %}</td>
   </tr>
   {% else %}
-  <tr><td colspan="10">{{ _("No settings match.") }}</td></tr>
+  <tr><td colspan="8">{{ _("No settings match.") }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
