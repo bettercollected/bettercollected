@@ -12,15 +12,22 @@ import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from common.models.standard_form import StandardForm
+from common.models.standard_form import (
+    _LANGUAGE_TAG,
+    StandardForm,
+    checked_form_language,
+    normalised_form_language,
+)
 from httpx import AsyncClient
 
 from backend.app.container import container
 from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import parse_ops
+from backend.app.services.ai.outline import FormOutline
 from backend.app.services.form_service import FormService
 from tests.app.controllers.data import testUser
 from tests.app.controllers.test_public_api import BASE, SPEC, _auth, _create, _token
+from tests.app.services.test_ai_outline import GOOD
 
 
 @pytest.fixture()
@@ -276,6 +283,41 @@ async def test_a_new_form_brings_its_language_without_failing(
         )
         assert reply.status_code == 200, reply.text
         assert (await _draft(reply.json()["formId"])).settings.language == stored
+        # the answer reads like the form's read: the language included
+        assert reply.json()["settings"].get("language") == stored
+
+
+@pytest.mark.parametrize(
+    "sent, expected",
+    [
+        ("nl\n", "nl"),
+        ("en-GB\n", "en-GB"),
+        ("en\nde", None),
+        ("en-GB\nx", None),
+        ("nl-NL", "nl-NL"),
+        ("ja", "ja"),
+    ],
+)
+def test_a_new_forms_language_is_matched_whole(sent, expected):
+    """Surrounding whitespace is trimmed; the tag itself must match as a
+    whole (no line end inside or after it)."""
+    assert normalised_form_language(sent) == expected
+
+
+def test_the_tag_pattern_matches_whole_values_only():
+    assert _LANGUAGE_TAG.fullmatch("en-GB")
+    assert _LANGUAGE_TAG.fullmatch("en-GB\n") is None
+    assert _LANGUAGE_TAG.fullmatch("nl\n") is None
+
+
+@pytest.mark.parametrize("sent", ["nl\n", "NL\n"])
+def test_a_listed_language_with_a_line_end_is_the_listed_one(sent):
+    assert checked_form_language(sent) == "nl"
+
+
+def test_an_outline_language_with_a_line_end_is_refused():
+    with pytest.raises(ValueError):
+        FormOutline.model_validate(dict(copy.deepcopy(GOOD), language="nl\n"))
 
 
 async def test_a_copy_and_a_template_keep_the_language(
@@ -289,6 +331,9 @@ async def test_a_copy_and_a_template_keep_the_language(
     )
     assert copy_reply.status_code == 200, copy_reply.text
     assert (await _draft(copy_reply.json()["formId"])).settings.language == "it"
+    # the answer carries it too, with the copy's own workspace settings
+    assert copy_reply.json()["settings"]["language"] == "it"
+    assert copy_reply.json()["settings"]["provider"] == "self"
 
     service = container.workspace_form_service()
     template = await service.duplicate_form(

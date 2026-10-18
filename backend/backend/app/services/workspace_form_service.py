@@ -31,6 +31,7 @@ from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionI
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.response_dtos import (
     FormFileResponse,
+    FormSettingsCamelModel,
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
 )
@@ -185,6 +186,15 @@ def _saved_language(sent: str, stored: Optional[str]) -> Optional[str]:
         return checked_form_language(sent)
     except ValueError:
         return stored
+
+
+def _settings_as_read(workspace_settings, form) -> FormSettingsCamelModel:
+    """The settings a new form is answered with, as a read returns them:
+    the workspace's, plus the form's own language."""
+    return FormSettingsCamelModel(
+        **workspace_settings.model_dump(),
+        language=form.settings.language if form.settings else None,
+    )
 
 
 # The workspace's settings a whole-form save may change (update_form).
@@ -700,7 +710,7 @@ class WorkspaceFormService:
             user_id=user.id,
             workspace_form_settings=workspace_form_settings,
         )
-        saved_form.settings = workspace_form_settings
+        saved_form.settings = _settings_as_read(workspace_form_settings, form)
         return saved_form
 
     async def update_form(
@@ -1399,7 +1409,9 @@ class WorkspaceFormService:
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)
             workspace_form = await self.workspace_form_repository.save(workspace_form)
-            duplicated_form.settings = workspace_form.settings
+            duplicated_form.settings = _settings_as_read(
+                workspace_form.settings, duplicated_form
+            )
         return duplicated_form
 
     async def add_action_to_form(
