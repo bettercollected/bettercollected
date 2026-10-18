@@ -372,6 +372,9 @@ async def update_form(
     "pattern"?:str,"preset"?:"digits"|"letters"|"alphanumeric"}} (absent = unchanged, null clears;
     lengths/pattern: text questions, values: number, choices: multiple choice with several answers) ·
     {"op":"set_question_numbering","pageId"?:str,"show":bool} (no pageId: every page) ·
+    {"op":"set_form_language","language":str|null} (the language the form's own text is
+    written in, so respondent pages mark it for screen readers: nl, en, de, fr, es, it, pt,
+    pl, da, sv, nb or fi; null clears) ·
     {"op":"set_theme_preset","name":str,"style"?:"classic"|"sheet"|"studio"|"leaflet"} (the
     look: a theme preset by name, any case: Leaflet (the default for new forms), Default, Paper,
     Ocean, Forest, Cherry, Mono, Sunset, Lavender, Slate, Blossom, Twilight, Honey, Mint, Sky,

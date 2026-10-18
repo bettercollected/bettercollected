@@ -171,6 +171,10 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   data is collected, "retentionText" how long it is kept — e.g. "kept for 90
   days". An empty string clears a text value. Visibility/distribution settings
   are not editable here.)
+- {"op":"set_form_language","language":"nl"|"en"|"de"|"fr"|"es"|"it"|"pt"|"pl"|"da"|"sv"|"nb"|"fi"|null}
+  (the language the form's text is written in; respondent pages mark the text with it so
+  screen readers read it right. Set it when you translate the form into another language,
+  or when the user asks for it. null clears it.)
 - {"op":"set_theme_preset","name":"<preset name>","style":"classic"|"sheet"|"studio"|"leaflet"?}
   (the form's look: one of the theme presets listed under "Looks" below, by name. Use it
   whenever the user asks for other colours, a mood or a different look ("a plainer look",

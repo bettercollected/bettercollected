@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 
 import pytest
 from common.models.standard_form import StandardForm
+from pydantic.alias_generators import to_camel
 
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.services.ai.ops import EDITOR_ONLY_OPS, apply_form_ops, parse_ops
@@ -60,9 +61,19 @@ def from_document(document: Any, forms: Dict[str, Any]) -> StandardForm:
 
 
 def to_document(form: StandardForm) -> Dict[str, Any]:
-    return FormDtoCamelModel(**form.model_dump(mode="json")).model_dump(
-        mode="json", by_alias=True, exclude_none=True
+    document = FormDtoCamelModel(
+        **form.model_dump(mode="json", exclude={"settings"})
+    ).model_dump(mode="json", by_alias=True, exclude_none=True)
+    # The form's own settings (its language), not the workspace's defaults
+    # a form read fills in.
+    own = (
+        form.settings.model_dump(mode="json", exclude_none=True)
+        if form.settings
+        else {}
     )
+    if own:
+        document["settings"] = {to_camel(key): value for key, value in own.items()}
+    return document
 
 
 def normalise_ids(document: Any) -> Any:

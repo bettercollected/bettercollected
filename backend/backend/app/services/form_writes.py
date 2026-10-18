@@ -11,7 +11,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Callable, Optional, Sequence
 
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, StandardFormSettings
 
 from backend.app.schemas.standard_form import FormDocument
 
@@ -29,7 +29,25 @@ FORM_PARTS = (
     "logo_position",
     "logo_alt",
     "use_workspace_logo",
+    # the form's declared language (``settings.language``, the op
+    # set_form_language): the one setting kept on the form itself
+    "language",
 )
+
+
+def _copy_part(target, source, part: str) -> None:
+    """``part`` of ``source`` onto ``target``. ``language`` is the
+    ``settings.language`` of each; the form's other settings stay."""
+    if part != "language":
+        setattr(target, part, getattr(source, part))
+        return
+    own = getattr(source, "settings", None)
+    language = own.language if own is not None else None
+    settings = getattr(target, "settings", None)
+    if settings is not None:
+        settings.language = language
+    elif language is not None:
+        target.settings = StandardFormSettings(language=language)
 
 
 async def persist_form(
@@ -62,7 +80,7 @@ async def persist_form(
             raise ValueError("guard and expected_updated_at do not combine")
         merged = form_document.model_copy(deep=True)
         for part in parts:
-            setattr(merged, part, getattr(new_form, part))
+            _copy_part(merged, new_form, part)
         stored = await repo.update_form_if_unchanged(
             form_id=form_document.form_id,
             form=StandardForm(**merged.model_dump()),
@@ -71,7 +89,7 @@ async def persist_form(
         if stored is None:
             return False
         for part in parts:
-            setattr(form_document, part, getattr(new_form, part))
+            _copy_part(form_document, new_form, part)
         form_document.updated_at = stored.updated_at
         return True
     if guard is not None:
@@ -80,6 +98,6 @@ async def persist_form(
             return False
         form_document = current
     for part in parts:
-        setattr(form_document, part, getattr(new_form, part))
+        _copy_part(form_document, new_form, part)
     await repo.save_form(form_document)
     return True

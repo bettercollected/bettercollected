@@ -42,6 +42,7 @@ from common.form_spec.models import (
 from common.expressions import validate_expression
 from common.models.standard_form import (
     DATE_RULES_MAX,
+    FORM_LANGUAGES,
     CalculationFormat,
     DateRule,
     FieldLogic,
@@ -59,8 +60,10 @@ from common.models.standard_form import (
     StandardForm,
     StandardFormField,
     StandardFormFieldType,
+    StandardFormSettings,
     Theme,
     ThankYouPageField,
+    checked_form_language,
     ENDING_NAME_MAX_LENGTH,
     ENDING_TITLE_MAX_LENGTH,
     ENDING_MESSAGE_MAX_LENGTH,
@@ -378,6 +381,27 @@ class SetQuestionNumberingOp(_CamelModel):
     op: Literal["set_question_numbering"] = "set_question_numbering"
     page_id: Optional[str] = None
     show: bool
+
+
+class SetFormLanguageOp(_CamelModel):
+    """The language the form's own text is written in (its title,
+    questions, choices): a short BCP 47 tag, one of FORM_LANGUAGES
+    (common/models/standard_form.py), any case. ``language`` null or ""
+    clears it. Respondent pages mark the form's text with it, so screen
+    readers and browsers read it in that language.
+
+    Kept on the form itself (``settings.language``), not on the workspace's
+    form settings that update_form_settings changes: it is part of the form,
+    shared by every workspace the form is in and copied into each published
+    version. The tag is checked when the op is applied, so an unknown one
+    fails alone instead of the whole turn."""
+
+    op: Literal["set_form_language"] = "set_form_language"
+    language: Optional[str] = Field(
+        ...,
+        max_length=35,
+        description="One of: " + ", ".join(FORM_LANGUAGES) + "; null clears it.",
+    )
 
 
 class RemovePageOp(_CamelModel):
@@ -775,6 +799,7 @@ FormOp = Annotated[
         MovePageOp,
         SetFieldValidationOp,
         SetQuestionNumberingOp,
+        SetFormLanguageOp,
         # endings
         AddEndingOp,
         UpdateEndingOp,
@@ -1869,6 +1894,21 @@ def _apply_set_question_numbering(form: StandardForm, op: SetQuestionNumberingOp
     return f"Turned question numbers {'on' if op.show else 'off'} for {where}"
 
 
+def _apply_set_form_language(form: StandardForm, op: SetFormLanguageOp) -> str:
+    try:
+        tag = checked_form_language(op.language)
+    except ValueError as error:
+        raise OpError(str(error))
+    if tag is None:
+        if form.settings is not None:
+            form.settings.language = None
+        return "Cleared the form's language"
+    if form.settings is None:
+        form.settings = StandardFormSettings()
+    form.settings.language = tag
+    return f"Set the form's language to {FORM_LANGUAGES[tag]} ({tag})"
+
+
 # --- endings ---------------------------------------------------------------
 
 
@@ -2799,6 +2839,7 @@ _HANDLERS = {
     "move_page": _apply_move_page,
     "set_field_validation": _apply_set_field_validation,
     "set_question_numbering": _apply_set_question_numbering,
+    "set_form_language": _apply_set_form_language,
     # endings
     "add_ending": _apply_add_ending,
     "update_ending": _apply_update_ending,

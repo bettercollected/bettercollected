@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { Provider } from 'jotai';
+import { Provider, useSetAtom } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +26,8 @@ import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { DispatchArgs, dispatchAtom } from '@app/store/jotai/form-document';
+import { useFormLanguageSync } from '@app/store/jotai/form-language';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
@@ -45,7 +47,7 @@ const page = (): StandardFormFieldDto[] => [
 ];
 
 // The builder's edit functions, captured from inside the Provider.
-const editor: { fields?: ReturnType<typeof useFormFieldsAtom>; status?: string } = {};
+const editor: { fields?: ReturnType<typeof useFormFieldsAtom>; status?: string; dispatch?: (args: DispatchArgs) => boolean } = {};
 
 /** Does what the editor page does: load the form into the builder state, then mark it hydrated. */
 function EditorPage({ hydrate = true }: { hydrate?: boolean }) {
@@ -55,6 +57,8 @@ function EditorPage({ hydrate = true }: { hydrate?: boolean }) {
     const { autosaveStatus } = useAutosaveStatus();
     editor.fields = fields;
     editor.status = autosaveStatus.state;
+    editor.dispatch = useSetAtom(dispatchAtom);
+    useFormLanguageSync();
     React.useEffect(() => {
         setFormState((prev) => ({ ...prev, title: 'Loaded form' }));
         fields.initFormFields(page());
@@ -251,6 +255,21 @@ describe('publishing from the editor', () => {
 
     it('with no editor open there is nothing to wait for', async () => {
         await expect(flushAutosave()).resolves.toBe('saved');
+    });
+
+    it("saves the form's language, its one setting, and the views follow it", async () => {
+        renderEditor();
+        await act(async () => editor.dispatch!({ ops: [{ op: 'set_form_language', language: 'nl' }] }));
+        await advance(1000);
+        expect(patchFormMock).toHaveBeenCalledTimes(1);
+        expect(lastBody().settings).toEqual({ language: 'nl' });
+        // the respondent views and the plain-language tips read it from Redux
+        expect(store.getState().form.settings?.language).toBe('nl');
+
+        await act(async () => editor.dispatch!({ ops: [{ op: 'set_form_language', language: null }] }));
+        await advance(1000);
+        expect(lastBody().settings).toEqual({ language: null });
+        expect(store.getState().form.settings?.language).toBeNull();
     });
 });
 

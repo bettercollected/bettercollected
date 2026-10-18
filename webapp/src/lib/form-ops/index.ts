@@ -10,6 +10,8 @@ export { entityDiff } from './entity-diff';
 export { EDITOR_ONLY_OPS, OP_NAMES } from './handlers';
 export { applySettingsPatch } from './handlers/form';
 export { buildInverse, touchedEntities } from './inverse';
+export { FORM_LANGUAGES, checkedFormLanguage, formLanguageName } from './languages';
+export type { FormLanguage } from './languages';
 export { MAX_FIELDS, MAX_OPS_PER_BATCH, MAX_PAGES, OpError } from './model';
 export { refDependencies } from './refs';
 export type * from './types';

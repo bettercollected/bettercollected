@@ -10,7 +10,7 @@
  *  - `replace_field` on the same question, `update_page` on the same page
  *    with covered keys, `set_field_logic` / `set_page_jumps` on the same
  *    target, and the whole-value form ops (`update_theme`,
- *    `set_hidden_fields`): the later one wins.
+ *    `set_hidden_fields`, `set_form_language`): the later one wins.
  */
 import type { FormOp } from './types';
 
@@ -39,6 +39,7 @@ function folds(earlier: FormOp, later: FormOp): boolean {
             return earlier.pageId === (later as typeof earlier).pageId;
         case 'update_theme':
         case 'set_hidden_fields':
+        case 'set_form_language':
             return true;
         default:
             return false;

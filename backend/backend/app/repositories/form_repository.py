@@ -43,18 +43,40 @@ def apply_form_update(form_document: FormDocument, form: StandardForm) -> None:
         if getattr(form, name, None) is not None:
             setattr(form_document, name, getattr(form, name))
     form_document.consent = form.consent if form.consent else form_document.consent
-    form_document.settings = form.settings if form.settings else form_document.settings
+    if form.settings:
+        _apply_settings_update(form_document, form.settings)
+
+
+def _apply_settings_update(form_document: FormDocument, sent) -> None:
+    """The settings a whole-form save sends, onto the form's own settings:
+    each setting the save gives (``model_fields_set``, null included, which
+    clears it); what it leaves out stays. The builder's save gives the
+    language alone; a spec replace gives the form's whole settings."""
+    if form_document.settings is None:
+        form_document.settings = sent
+        return
+    stored = form_document.settings
+    for key in sent.model_fields_set:
+        setattr(stored, key, getattr(sent, key))
 
 
 # The settings a form is returned with: the workspace association's, plus
 # the form's own declared language (``StandardFormSettings.language``), which
 # only the form document keeps. Mirrors ``_fold_settings`` in
 # repositories/postgres/forms.py.
+# When the association has no settings, the language alone: a builder that
+# loaded no language would clear it with its first save.
 _SETTINGS_WITH_FORM_LANGUAGE = {
     "$cond": [
         {"$eq": [{"$type": "$workspace_form.settings"}, "object"]},
         {"$mergeObjects": ["$workspace_form.settings", {"language": "$settings.language"}]},
-        "$workspace_form.settings",
+        {
+            "$cond": [
+                {"$eq": [{"$type": "$settings.language"}, "string"]},
+                {"language": "$settings.language"},
+                "$workspace_form.settings",
+            ]
+        },
     ]
 }
 
