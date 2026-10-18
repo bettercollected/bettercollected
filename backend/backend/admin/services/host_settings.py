@@ -183,8 +183,22 @@ def _candidates(
     return by_key, unknown, env_only, seen_any - seen_non_empty
 
 
+def _key_ids(value: str) -> Optional[set]:
+    try:
+        from common.services import keyset as keyset_module
+
+        return {k.key_id for k in keyset_module.parse_keyset(value).key}
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _same(service: SettingsService, key: str, raw: str, stored: Any) -> bool:
-    """Whether the env text ``raw`` means the stored value."""
+    """Whether the env text ``raw`` means the stored value. For the response
+    keyset the stored one must hold every key id of the environment's (a
+    superset is fine: a rotation adds keys); ids are compared, never values."""
+    if key == "MASTER_ENCRYPTION_KEYSET":
+        env_ids, stored_ids = _key_ids(raw), _key_ids(stored) if isinstance(stored, str) else None
+        return env_ids is not None and stored_ids is not None and env_ids <= stored_ids
     spec = service.registry.get(key)
     if spec.is_secret:
         return isinstance(stored, str) and secrets.compare_digest(
@@ -647,6 +661,74 @@ def generate_value(key: str) -> str:
 @dataclass
 class BootstrapResult:
     generated: list = field(default_factory=list)
+    keyset_fp: str = ""  # key-id fingerprint of the stored keyset (ids only), as services report it
+
+
+async def _pg_counts(service: SettingsService) -> dict:
+    from backend.admin.repositories import views
+
+    async with service._engine.connect() as conn:
+        return await views.platform_counts(conn)
+
+
+async def _mongo_has_data(uri: str) -> bool:
+    """Whether any non-system database on the Mongo server has a non-empty
+    ``users`` or ``form_responses`` collection. Read-only; nothing is printed."""
+    import asyncio
+
+    import pymongo
+
+    def work() -> bool:
+        client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=3000)
+        try:
+            for name in client.list_database_names():
+                if name in ("admin", "local", "config"):
+                    continue
+                database = client[name]
+                present = set(database.list_collection_names())
+                for collection in ("users", "form_responses"):
+                    if collection in present and database[collection].find_one({}, {"_id": 1}) is not None:
+                        return True
+            return False
+        finally:
+            client.close()
+
+    return await asyncio.to_thread(work)
+
+
+async def refuse_if_stack_has_data(
+    service: SettingsService,
+    *,
+    mongo_uri: Optional[str] = None,
+    counts: Optional[Callable[[], Any]] = None,
+    mongo_check: Optional[Callable[[str], Any]] = None,
+) -> None:
+    """Fail closed: a new response keyset cannot read data the old one wrote, so
+    refuse when users or responses exist, and when that cannot be established."""
+    hint = "run settings-import from the existing configuration instead"
+    try:
+        found = await (counts() if counts is not None else _pg_counts(service))
+        users = int(found["users"]["total"])
+        responses = int(found["responses"]["total"])
+    except Exception:  # noqa: BLE001 - class only: never the cause
+        raise HostError("stack_unknown", "the data counts could not be read; " + hint) from None
+    if users > 0 or responses > 0:
+        raise HostError("stack_has_data", hint)
+    if (mongo_uri or "").strip():
+        try:
+            has = await (mongo_check or _mongo_has_data)(mongo_uri.strip())
+        except Exception:  # noqa: BLE001
+            raise HostError("stack_unknown", "the document store could not be read; " + hint) from None
+        if has:
+            raise HostError("stack_has_data", hint)
+
+
+def keyset_fingerprint_of(value: str) -> str:
+    """The fingerprint services report for a keyset (``service_state.keyset_fp``)."""
+    from common.services import keyset as keyset_module
+    from common.settings.loader.runtime import keyset_fingerprint
+
+    return keyset_fingerprint(k.key_id for k in keyset_module.parse_keyset(value).key)
 
 
 async def bootstrap_keys(
@@ -656,19 +738,27 @@ async def bootstrap_keys(
     environ: Mapping[str, str],
     existing_stack: bool,
     fill_missing: bool = False,
+    counts: Optional[Callable[[], Any]] = None,
+    mongo_check: Optional[Callable[[str], Any]] = None,
 ) -> BootstrapResult:
     """Generate the stack's own keys into the store and print nothing of them.
 
-    Refused when the deploy says the stack already holds data
-    (``existing_stack``: a new response keyset could not read it), when the
-    environment already carries any of the keys (an upgrade: import them
-    instead), or when the store holds any of them, unless ``fill_missing``
-    (finishing an interrupted run: it only adds the missing ones)."""
+    Refused whatever the flags when the stack holds data (users or responses in
+    Postgres, or in the document store named by ``MONGO_URI``) or that cannot be
+    established: a new keyset could not read what the old one encrypted, and
+    import is the way for an existing stack. Also refused when the deploy says
+    the stack already holds data (``existing_stack``), when the environment
+    already carries any of the keys, or when the store holds any of them, unless
+    ``fill_missing`` (finishing an interrupted run: it only adds the missing
+    ones)."""
     if existing_stack:
         raise HostError("existing_stack", "import the current keys with settings-import instead")
     env_keys = sorted(k for k in GENERATED_KEYS if normalize_value(environ.get(k)))
     if env_keys:
         raise HostError("keys_in_environment", ",".join(env_keys))
+    await refuse_if_stack_has_data(
+        service, mongo_uri=environ.get("MONGO_URI"), counts=counts, mongo_check=mongo_check
+    )
     stored = await service.stored()
     present = sorted(k for k in GENERATED_KEYS if k in stored.values or k in stored.tombstones or k in stored.unverified)
     if present and not fill_missing:
@@ -680,6 +770,9 @@ async def bootstrap_keys(
         change = await service.import_once(key, generate_value(key), actor)
         if change is not None and change.changed:
             result.generated.append(key)
+    stored = await service.stored()
+    if "MASTER_ENCRYPTION_KEYSET" in stored.values:
+        result.keyset_fp = keyset_fingerprint_of(stored.values["MASTER_ENCRYPTION_KEYSET"])
     return result
 
 
