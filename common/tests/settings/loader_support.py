@@ -16,7 +16,7 @@ from common.settings.snapshot import FakeSnapshot, ServiceState
 
 JWT = "AUTH_JWT_SECRET"
 PLANTED = "PLANTED-SECRET-VALUE-0123456789"
-ALL_SECTIONS = ["mail", "auth_keys", "rate_limits", "ai", "sso"]
+ALL_SECTIONS = ["limits", "auth_keys", "rate_limits"]
 BACKEND_ENV = {JWT: "", "AUTH_AES_HEX_KEY": ""}
 
 

@@ -12,7 +12,6 @@ from common.settings.registry import default_registry
 from tests.admin.conftest import MASTER_KEY, needs_postgres
 from tests.admin.test_settings_store import (  # noqa: F401 - fixtures and helpers
     PLANT,
-    SECRET,
     T1,
     as_superuser_raw,
     put,
@@ -22,6 +21,8 @@ from tests.admin.test_settings_store import (  # noqa: F401 - fixtures and helpe
 )
 
 pytestmark = needs_postgres
+
+SECRET = "SSO_POLIS_API_KEY"  # a secret the backend and auth services both read
 
 
 def runtime_for(server, migrated, tmp_path, mode="required", service="backend", logical="app"):

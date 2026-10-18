@@ -22,31 +22,35 @@ MASTER = base64.b64encode(bytes(range(48))).decode()
 NOW = datetime(2026, 10, 18, tzinfo=timezone.utc)
 
 
-class MailLike(StoreBackedSettings):
-    SMTP_PORT: int = 587
-    SMTP_SERVER: str = "localhost"
-    PASSWORD: str = ""
-    model_config = SettingsConfigDict(env_prefix="MAIL_")
+class LimitsLike(StoreBackedSettings):
+    ALLOWED_WORKSPACES: int = 5
+    ALLOWED_COLLABORATORS: int = 3
+    model_config = SettingsConfigDict(env_prefix="API_")
+
+
+class KeysLike(StoreBackedSettings):
+    JWT_SECRET: str = ""
+    model_config = SettingsConfigDict(env_prefix="AUTH_")
 
 
 def rows(keys):
-    plain = SettingRow(
-        "MAIL_SMTP_PORT", "mail", ("backend", "auth"), False, "R", 1, NOW, value=2525
+    workspaces = SettingRow(
+        "API_ALLOWED_WORKSPACES", "limits", ("backend",), False, "R", 1, NOW, value=25
     )
-    server = SettingRow(
-        "MAIL_SMTP_SERVER", "mail", ("backend", "auth"), False, "R", 1, NOW, value="smtp.example.org"
+    collaborators = SettingRow(
+        "API_ALLOWED_COLLABORATORS", "limits", ("backend",), False, "R", 1, NOW, value=9
     )
     secret = SettingRow(
-        "MAIL_PASSWORD", "mail", ("backend", "auth"), True, "R", 1, NOW,
-        blob=keys.seal("mail", "MAIL_PASSWORD", 1, "store-password"),
+        "AUTH_JWT_SECRET", "auth_keys", ("backend", "auth", "google"), True, "R", 1, NOW,
+        blob=keys.seal("auth_keys", "AUTH_JWT_SECRET", 1, "store-jwt-secret"),
     )
-    snap = FakeSnapshot.build([plain, server, secret], keys, 1)
+    snap = FakeSnapshot.build([workspaces, collaborators, secret], keys, 1)
     return RawSnapshot(list(snap.row_list), snap.signed_manifest)
 
 
 @pytest.fixture
 def store(monkeypatch, tmp_path):
-    keys = SectionKeys(MASTER, sections=["mail"])
+    keys = SectionKeys(MASTER, sections=["limits", "auth_keys"])
     source = SimpleNamespace(
         fetch=lambda: rows(keys), fetch_revision=lambda: 1, report_state=lambda *a: None
     )
@@ -67,29 +71,29 @@ def test_the_loader_is_off_in_the_test_suite():
 
 
 def test_with_the_store_off_the_default_sources_apply(monkeypatch):
-    monkeypatch.delenv("MAIL_SMTP_PORT", raising=False)
-    assert MailLike().SMTP_PORT == 587
+    monkeypatch.delenv("API_ALLOWED_WORKSPACES", raising=False)
+    assert LimitsLike().ALLOWED_WORKSPACES == 5
     # exactly pydantic-settings' own source list, in its own order
-    assert MailLike.settings_customise_sources(MailLike, 1, 2, 3, 4) == (1, 2, 3, 4)
+    assert LimitsLike.settings_customise_sources(LimitsLike, 1, 2, 3, 4) == (1, 2, 3, 4)
 
 
 def test_environment_beats_store_and_store_beats_default(store, monkeypatch):
-    monkeypatch.delenv("MAIL_SMTP_PORT", raising=False)
-    monkeypatch.delenv("MAIL_PASSWORD", raising=False)
-    monkeypatch.setenv("MAIL_SMTP_SERVER", "env.example.org")
-    store.env = {"MAIL_SMTP_SERVER": "env.example.org"}
-    mail = MailLike()
-    assert mail.SMTP_SERVER == "env.example.org"
-    assert mail.SMTP_PORT == 2525
-    assert mail.PASSWORD == "store-password"
+    monkeypatch.delenv("API_ALLOWED_WORKSPACES", raising=False)
+    monkeypatch.delenv("AUTH_JWT_SECRET", raising=False)
+    monkeypatch.setenv("API_ALLOWED_COLLABORATORS", "4")
+    store.env = {"API_ALLOWED_COLLABORATORS": "4"}
+    limits = LimitsLike()
+    assert limits.ALLOWED_COLLABORATORS == 4
+    assert limits.ALLOWED_WORKSPACES == 25
+    assert KeysLike().JWT_SECRET == "store-jwt-secret"
 
 
 def test_an_empty_environment_value_does_not_shadow_the_store(store, monkeypatch):
-    monkeypatch.setenv("MAIL_SMTP_PORT", "")
-    monkeypatch.setenv("MAIL_PASSWORD", "  ")
-    store.env = {"MAIL_SMTP_PORT": "", "MAIL_PASSWORD": "  "}
-    mail = MailLike()
-    assert (mail.SMTP_PORT, mail.PASSWORD) == (2525, "store-password")
+    monkeypatch.setenv("API_ALLOWED_WORKSPACES", "")
+    monkeypatch.setenv("AUTH_JWT_SECRET", "  ")
+    store.env = {"API_ALLOWED_WORKSPACES": "", "AUTH_JWT_SECRET": "  "}
+    assert LimitsLike().ALLOWED_WORKSPACES == 25
+    assert KeysLike().JWT_SECRET == "store-jwt-secret"
 
 
 def test_a_setting_without_a_store_row_keeps_its_default_and_empty_env_semantics(store, monkeypatch):

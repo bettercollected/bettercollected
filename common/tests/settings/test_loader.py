@@ -35,7 +35,12 @@ from common.settings.loader import (
 )
 from common.settings.loader.disk import SnapshotError, read_snapshot, snapshot_path, write_snapshot
 
-PORT = "MAIL_SMTP_PORT"
+PORT = "API_ALLOWED_WORKSPACES"
+
+
+def port_row(value=2525, version=3):
+    return plain_row(key=PORT, section="limits", readers=("backend",), value=value, version=version)
+
 RATE = "API_FLOW_EVENTS_PER_WINDOW"
 
 
@@ -54,7 +59,7 @@ def _reset():
 def good(keys, revision=1, **kw):
     return raw_of(
         keys,
-        [jwt_row(keys, version=kw.get("jwt", 1)), plain_row(value=kw.get("port", 2525), version=revision + 2), rate_row(kw.get("rate", 5))],
+        [jwt_row(keys, version=kw.get("jwt", 1)), port_row(value=kw.get("port", 2525), version=revision + 2), rate_row(kw.get("rate", 5))],
         revision,
     )
 
@@ -129,7 +134,7 @@ def test_env_beats_store_beats_default(tmp_path, keys):
     assert rt.resolve_key(PORT).value == 2525
     rt.env = {PORT: '  ""  '}
     assert rt.resolve_key(PORT).value == 2525
-    assert rt.resolve_key("MAIL_SMTP_SERVER") is None  # no row: the default applies
+    assert rt.resolve_key("API_ALLOWED_COLLABORATORS") is None  # no row: the default applies
     assert rt.resolve_key("NOT_A_SETTING") is None
 
 
@@ -248,11 +253,11 @@ def test_rejected_or_deleted_row_keeps_the_last_good_value(tmp_path, keys):
     rt = runtime(tmp_path, source, mode="required", env={})
     rt.start()
     assert rt.resolve_key(PORT).value == 111
-    newer = raw_of(keys, [jwt_row(keys), plain_row(value=222, version=4), rate_row()], 2)
+    newer = raw_of(keys, [jwt_row(keys), port_row(value=222, version=4), rate_row()], 2)
     source.raw = tamper(newer, PORT)
     assert rt.poll_once() is True
     assert rt.resolve_key(PORT).value == 111 and rt.current.is_stale(PORT)
-    source.raw = hide(raw_of(keys, [jwt_row(keys), plain_row(value=222, version=4), rate_row()], 3), PORT)
+    source.raw = hide(raw_of(keys, [jwt_row(keys), port_row(value=222, version=4), rate_row()], 3), PORT)
     rt.poll_once()
     assert rt.resolve_key(PORT).value == 111  # row_missing: keep, never the default
     assert PORT in rt.state().rejected_keys
@@ -277,10 +282,10 @@ def test_rollback_after_restart_is_refused_through_the_snapshot_floor(tmp_path, 
 
 
 def test_a_lower_row_version_is_refused(tmp_path, keys):
-    source = FakeSource(raw_of(keys, [plain_row(value=2, version=7)], 4))
+    source = FakeSource(raw_of(keys, [port_row(value=2, version=7)], 4))
     rt = runtime(tmp_path, source, env={})
     rt.start()
-    source.raw = raw_of(keys, [plain_row(value=1, version=6)], 5)
+    source.raw = raw_of(keys, [port_row(value=1, version=6)], 5)
     rt.poll_once()
     assert rt.resolve_key(PORT).value == 2
 
@@ -389,7 +394,7 @@ def test_unwritable_snapshot_directory_does_not_stop_the_service(tmp_path, keys,
 def test_reload_swaps_atomically_and_reports_names_only(tmp_path, keys, caplog):
     caplog.set_level(logging.DEBUG)
     source = FakeSource(good(keys, revision=1, rate=5))
-    rt = runtime(tmp_path, source, env={PORT: "465", "MAIL_PASSWORD": PLANTED})
+    rt = runtime(tmp_path, source, env={PORT: "465", JWT: PLANTED})
     rt.start()
     assert rt.live_value(RATE) == (True, 5)
     before = rt.current
@@ -400,7 +405,7 @@ def test_reload_swaps_atomically_and_reports_names_only(tmp_path, keys, caplog):
     assert source.reports and source.reports[-1].revision_applied == 2
     assert rt.poll_once() is False  # same revision: nothing fetched again
     state = source.reports[-1].to_report()
-    assert state["env_overrides"] == [PORT, "MAIL_PASSWORD"] or set(state["env_overrides"]) == {PORT, "MAIL_PASSWORD"}
+    assert set(state["env_overrides"]) == {PORT, JWT}
     blob = json.dumps(state) + caplog.text
     assert PLANTED not in blob and "465" not in json.dumps(state)
     assert state["keyset_fp"] == keys.fingerprint
