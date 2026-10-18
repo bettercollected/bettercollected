@@ -304,7 +304,6 @@ environment, whatever the tier.
 |---|---|
 | `CLIENT_URL` | `API_CLIENT_URL` |
 | `TASK_RUNNER_DATABASE_URL` | `DATABASE_URL` |
-| `TASK_RUNNER_GOOGLE_MONGO_DB` | `GOOGLE_MONGO_DB` |
 | `TASK_RUNNER_KEYSET` | `MASTER_ENCRYPTION_KEYSET` |
 | `TASK_RUNNER_MONGO_DB` | `MONGO_DB` |
 | `TASK_RUNNER_MONGO_URI` | `MONGO_URI` |
@@ -320,6 +319,7 @@ environment, whatever the tier.
 | `ENABLE_COMMAND_FORM_BUILDERS` | listed in the deployment env file; no service reads it |
 | `ENABLE_FORM_BUILDER` | listed in the deployment env file; no service reads it |
 | `GOOGLE_ENABLED` | compose profile switch |
+| `GOOGLE_MONGO_DB` | the Google integration's Mongo database, read by the keyset rotation tasks and script |
 | `MOCK_SAML_IMAGE` | compose image selection for the development identity provider |
 | `NODE_ENV` | set by the Node.js tooling |
 | `OAUTHLIB_INSECURE_TRANSPORT` | read by the oauthlib library |
@@ -332,6 +332,7 @@ environment, whatever the tier.
 | `SANDBOX_UID` | compose build argument of the local sandbox |
 | `SCHEDULAR_INTERVAL_MINUTES` | listed in an env example; no service reads it |
 | `STRIPE_REDIRECT_URL` | compose interpolation expanded into the STRIPE_*_URL keys |
+| `TASK_RUNNER_GOOGLE_MONGO_DB` | the task-runner compose service's name for GOOGLE_MONGO_DB |
 | `TEMPLATE_PREDEFINED_WORKSPACE_ID` | listed in an env example; no service reads it |
 | `TYPEFORM_BASIC_REDIRECT_URI` | listed in the deployment env file; no service reads it |
 | `TYPEFORM_BASIC_SCOPE` | listed in the deployment env file; no service reads it |

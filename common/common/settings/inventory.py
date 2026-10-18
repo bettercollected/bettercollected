@@ -704,11 +704,12 @@ ALIASES: Dict[str, str] = {
     "TASK_RUNNER_MONGO_URI": "MONGO_URI",
     "TASK_RUNNER_MONGO_DB": "MONGO_DB",
     "TASK_RUNNER_KEYSET": "MASTER_ENCRYPTION_KEYSET",
-    "TASK_RUNNER_GOOGLE_MONGO_DB": "GOOGLE_MONGO_DB",
 }
 
 # Names in env files, compose files or code that no service reads as a setting.
 NOT_A_SETTING: Dict[str, str] = {
+    "GOOGLE_MONGO_DB": "the Google integration's Mongo database, read by the keyset rotation tasks and script",
+    "TASK_RUNNER_GOOGLE_MONGO_DB": "the task-runner compose service's name for GOOGLE_MONGO_DB",
     "NODE_ENV": "set by the Node.js tooling",
     "OAUTHLIB_INSECURE_TRANSPORT": "read by the oauthlib library",
     "OAUTHLIB_RELAX_TOKEN_SCOPE": "read by the oauthlib library",

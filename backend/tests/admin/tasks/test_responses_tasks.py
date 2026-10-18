@@ -617,6 +617,11 @@ def test_the_tasks_declare_what_the_portal_needs():
     assert backfill_meta.META.resumable and backfill_meta.META.requires_prior_dry_run
     assert check_meta.META.resumable is False
     assert {m.name for m in catalog.all_meta({})} == {
+        "keyset.add_key",
+        "keyset.promote",
+        "keyset.reencrypt",
+        "keyset.verify",
+        "keyset.drop_old",
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
     }
