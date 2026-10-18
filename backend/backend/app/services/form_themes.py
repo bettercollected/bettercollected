@@ -50,7 +50,18 @@ def form_theme_problems(form: Any) -> List[str]:
 
 def ensure_valid_themes(form: Any) -> None:
     """422 with every theme problem, before anything is stored."""
-    problems = form_theme_problems(form)
+    refuse_theme_problems(form_theme_problems(form))
+
+
+def ensure_valid_saved_themes(themes: List[Any]) -> None:
+    """The same 422 for a workspace's saved themes (``customThemes.<i>``)."""
+    problems: List[str] = []
+    for i, theme in enumerate(themes or []):
+        problems += theme_problems(theme, f"customThemes.{i}")
+    refuse_theme_problems(problems)
+
+
+def refuse_theme_problems(problems: List[str]) -> None:
     if problems:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,

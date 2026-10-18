@@ -57,6 +57,14 @@ async def stored(form) -> FormDocument:
     return await container.form_service().get_form_document_by_id(form.form_id)
 
 
+async def workspace_themes(workspace) -> list:
+    saved = await container.workspace_repo().get_or_404(workspace.id)
+    return [
+        theme if isinstance(theme, dict) else theme.model_dump()
+        for theme in saved.custom_themes or []
+    ]
+
+
 async def test_listed_type_and_shape_are_stored_and_returned(
     client: AsyncClient,
     workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -177,6 +185,14 @@ async def test_saved_workspace_themes_keep_type_and_shape_and_refuse_others(
     saved = response.json()["customThemes"][0]
     assert {key: saved[key] for key in TYPE_SHAPE} == TYPE_SHAPE
     response = await client.patch(
-        url, cookies=test_user_cookies, json=[{**COLOURS, "buttonStyle": "ghost"}]
+        url,
+        cookies=test_user_cookies,
+        json=[{**COLOURS, "title": "Other"}, {**COLOURS, "buttonStyle": "ghost"}],
     )
+    # the same 422 body as a form save
     assert response.status_code == 422, response.text
+    assert response.json()["code"] == "theme_not_allowed"
+    assert response.json()["message"] == (
+        "customThemes.1.buttonStyle must be one of: filled, outlined, pill."
+    )
+    assert [t["title"] for t in (await workspace_themes(workspace))] == ["Mine"]

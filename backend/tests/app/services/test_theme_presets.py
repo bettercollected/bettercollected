@@ -254,7 +254,12 @@ def test_saved_themes_take_type_and_shape():
         "expanded",
         "sharp",
     )
-    with pytest.raises(ValidationError):
-        WorkspaceThemeDto(**LEAFLET, bodyFont="helvetica")
-    with pytest.raises(ValidationError):
-        WorkspaceThemeDto(**LEAFLET, highlight="red")
+    # Unlisted values are refused by the endpoint with the form save's 422
+    # (services/form_themes.py), not by the model.
+    assert theme_problems(
+        WorkspaceThemeDto(**LEAFLET, bodyFont="helvetica", highlight="red"),
+        "customThemes.0",
+    ) == [
+        "customThemes.0.bodyFont must be one of: public-sans, atkinson-next, archivo, besley, rubik, atkinson-mono.",
+        "customThemes.0.highlight must be a 6-digit hex colour, e.g. #A3305A.",
+    ]

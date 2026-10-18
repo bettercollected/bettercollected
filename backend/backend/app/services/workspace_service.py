@@ -38,6 +38,7 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_images import first_party_or_kept
+from backend.app.services.form_themes import ensure_valid_saved_themes
 from backend.app.services.custom_domain_service import (
     CustomDomainService,
     cleared_fields,
@@ -353,6 +354,8 @@ class WorkspaceService:
                 HTTPStatus.BAD_REQUEST,
                 "A workspace can save at most 20 custom themes.",
             )
+        # type, shape and highlight on their lists: the same 422 as a form save
+        ensure_valid_saved_themes(custom_themes)
         titles = [theme.title.casefold() for theme in custom_themes]
         if len(set(titles)) != len(titles):
             raise HTTPException(HTTPStatus.BAD_REQUEST, "Theme names must be unique.")

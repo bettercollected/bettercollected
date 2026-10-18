@@ -1,6 +1,6 @@
 'use client';
 
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -56,8 +56,22 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
     const set = (patch: Partial<FormTheme>) => {
         const next: Record<string, unknown> = { ...theme, ...patch };
         for (const [key, value] of Object.entries(patch)) if (value == null) delete next[key];
+        // Wide titles only exist in Archivo: a title face that is not it drops the setting.
+        if ((next.titleFont ?? next.bodyFont) !== 'archivo') delete next.titleWidth;
         onChange(next as unknown as FormTheme);
     };
+    // Adding or removing the highlight swaps the control that was pressed for
+    // another: keyboard focus moves to it (the colour input after adding, the
+    // add button after removing) instead of falling back to the page.
+    const colourRef = useRef<HTMLInputElement>(null);
+    const addRef = useRef<HTMLButtonElement>(null);
+    const focusNext = useRef<'colour' | 'add' | null>(null);
+    useEffect(() => {
+        const target = focusNext.current === 'colour' ? colourRef.current : focusNext.current === 'add' ? addRef.current : null;
+        if (!target) return;
+        focusNext.current = null;
+        target.focus();
+    }, [theme.highlight]);
     const titleFace = theme.titleFont ?? theme.bodyFont;
     const radius = theme.radius ?? DEFAULT;
     const buttons = theme.buttonStyle ?? 'filled';
@@ -169,6 +183,7 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
                         <span className="flex items-center gap-2">
                             <span className="text-[11px] text-black-600 uppercase tabular-nums">{theme.highlight}</span>
                             <input
+                                ref={colourRef}
                                 type="color"
                                 aria-labelledby={`${ids}-highlight`}
                                 value={theme.highlight}
@@ -178,8 +193,12 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
                         </span>
                     ) : (
                         <button
+                            ref={addRef}
                             type="button"
-                            onClick={() => set({ highlight: (isHexColour(theme.secondary) ? theme.secondary : '#1649E2').toUpperCase() })}
+                            onClick={() => {
+                                focusNext.current = 'colour';
+                                set({ highlight: (isHexColour(theme.secondary) ? theme.secondary : '#1649E2').toUpperCase() });
+                            }}
                             className="text-[11px] font-medium text-brand-500 underline underline-offset-2 hover:text-brand-600"
                         >
                             {t('THEME.HIGHLIGHT_ADD')}
@@ -188,7 +207,14 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
                 </div>
                 <p className="text-[11px] leading-relaxed text-black-600">{theme.highlight ? t('THEME.HIGHLIGHT_HINT') : t('THEME.HIGHLIGHT_NONE')}</p>
                 {theme.highlight && (
-                    <button type="button" onClick={() => set({ highlight: null })} className="self-start text-[11px] font-medium text-black-700 underline underline-offset-2 hover:text-black-900">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            focusNext.current = 'add';
+                            set({ highlight: null });
+                        }}
+                        className="self-start text-[11px] font-medium text-black-700 underline underline-offset-2 hover:text-black-900"
+                    >
                         {t('THEME.HIGHLIGHT_REMOVE')}
                     </button>
                 )}

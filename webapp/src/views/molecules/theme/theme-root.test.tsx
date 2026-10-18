@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { FormTheme, THEME_STYLES, ThemeColors } from '@app/constants/theme';
 import { store } from '@app/store/store';
 import { choiceRowStyle } from '@app/views/atoms/choice';
+import { scaleCellStyle } from '@app/views/molecules/responder-form-fields/linear-rating';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
 import { formButtonStyle, highlightColours, outlinedButtonInk, themeRootProps } from './theme-root';
@@ -150,6 +151,34 @@ describe('type and shape', () => {
             if (colours.focus) expect(contrast(colours.focus, theme.accent)).toBeGreaterThanOrEqual(3);
             expect(contrast(colours.solidInk, colours.solid)).toBeGreaterThanOrEqual(Math.min(4.5, Math.max(contrast('#FFFFFF', highlight), contrast(theme.primary, highlight))));
         }
+    });
+});
+
+describe('the chosen option and rating number keep a visible edge with any highlight', () => {
+    const highlights = ['#FFD84D', '#A3305A', '#2B2FD1', '#FFFFFF'];
+    const cases = ThemeColors.flatMap((preset) => THEME_STYLES.flatMap((style) => highlights.map((highlight) => ({ ...preset, style, highlight }) as FormTheme)));
+
+    it.each(cases.map((theme) => [`${theme.title} ${theme.style} ${theme.highlight}`, theme]))('%s', (_name, theme) => {
+        const t = theme as FormTheme;
+        const vars = themeRootProps(t).style as Record<string, string>;
+        const tokens = styleTokens(t.style);
+        // The rating's chosen number: filled with the highlight, its edge at
+        // 3:1 on the page (the ink for a light highlight), as option cards.
+        const cell = scaleCellStyle(t, true, tokens.cardRadius) as Record<string, unknown>;
+        const edge = resolve(cell['--scale-edge'], vars) as string;
+        expect(edge).toBe(highlightColours(t)!.edge);
+        if (contrast(t.primary, t.accent) >= 3) expect(contrast(edge, t.accent)).toBeGreaterThanOrEqual(3);
+        expect(resolve(cell['--scale-edge-hover'], vars)).toBe(edge);
+        expect(resolve(cell.background, vars)).toBe(t.highlight);
+        // A chosen option card (tinted, or solid in the studio style) has the same edge.
+        if (!tokens.ruledChoices) expect(resolve((choiceRowStyle(t, true).style as Record<string, unknown>)['--choice-edge'], vars)).toBe(edge);
+    });
+
+    it('draws the rating as before without a highlight', () => {
+        const t = ThemeColors[0];
+        const cell = scaleCellStyle(t, true, '6px') as Record<string, unknown>;
+        const vars = themeRootProps(t).style as Record<string, string>;
+        expect([cell['--scale-edge'], cell['--scale-edge-hover'], cell.background, cell.color].map((v) => resolve(v, vars))).toEqual([t.secondary, t.secondary, t.secondary, '#ffffff']);
     });
 });
 

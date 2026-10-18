@@ -1,4 +1,8 @@
+import { CSSProperties } from 'react';
+
 import _ from 'lodash';
+
+import { FormTheme } from '@app/constants/theme';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
@@ -14,6 +18,22 @@ import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
+
+/**
+ * One number of the scale. The chosen one is filled with the theme's
+ * highlight where it sets one (theme-root.ts), else the action colour; its
+ * edge takes the highlight's edge colour, which keeps 3:1 on the page (the
+ * ink for a light highlight), as option cards do.
+ */
+export function scaleCellStyle(colours: Partial<FormTheme> | undefined, selected: boolean, radius: string): CSSProperties {
+    return {
+        ['--scale-edge' as string]: selected ? themed('--form-highlight-edge', colours?.secondary) : colours?.tertiary,
+        ['--scale-edge-hover' as string]: selected ? themed('--form-highlight-edge', colours?.secondary) : colours?.primary,
+        background: selected ? themed('--form-highlight-solid', colours?.secondary) : '#ffffff',
+        color: selected ? 'var(--form-highlight-solid-ink, #ffffff)' : colours?.primary,
+        borderRadius: radius
+    };
+}
 
 const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
     const { theme } = useFormState();
@@ -42,14 +62,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                         aria-label={`${index}`}
                         aria-pressed={selected}
                         disabled={isBuilder}
-                        style={{
-                            // The chosen number in the theme's highlight where it sets one (theme-root.ts).
-                            ['--scale-edge' as string]: selected ? themed('--form-highlight-solid', colours?.secondary) : colours?.tertiary,
-                            ['--scale-edge-hover' as string]: selected ? themed('--form-highlight-solid', colours?.secondary) : colours?.primary,
-                            background: selected ? themed('--form-highlight-solid', colours?.secondary) : '#ffffff',
-                            color: selected ? 'var(--form-highlight-solid-ink, #ffffff)' : colours?.primary,
-                            borderRadius: tokens.cardRadius
-                        }}
+                        style={scaleCellStyle(colours, selected, tokens.cardRadius)}
                         key={index}
                         onClick={() => {
                             if (!isBuilder) {
