@@ -79,6 +79,17 @@ button.danger { background: var(--err); }
 @media (prefers-color-scheme: dark) { button.danger { color: #000; } }
 @media (max-width: 40rem) { .facts { grid-template-columns: 1fr; } }
 .nowrap { white-space: nowrap; }
+/* task pages */
+.taskform { max-width: 40rem; }
+.taskform .field { margin-bottom: 0.75rem; }
+.taskform textarea { width: 100%; padding: 0.5rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 4px; }
+.taskform input[type="number"], input[type="number"] { width: 100%; padding: 0.5rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 4px; }
+.hint { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.req { font-weight: 400; color: var(--muted); }
+.actions { margin: 0.5rem 0; }
+progress { width: min(24rem, 70%); height: 1rem; vertical-align: middle; }
+[hidden] { display: none !important; }
+table.kv th { width: 14rem; max-width: 45%; }
 .inline-links { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; margin: 0 0 1rem; padding: 0; list-style: none; }
 ol.steps { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin: 0 0 1rem; padding: 0; list-style: none; counter-reset: step; color: var(--muted); }
 ol.steps li { counter-increment: step; }

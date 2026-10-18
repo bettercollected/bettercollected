@@ -40,6 +40,7 @@ from backend.admin.services.settings_store import SettingsService, store_registr
 from backend.admin.services.setup_wizard import SetupWizard
 from backend.admin.services.signin import SignInService
 from backend.admin.services.stepup import StepUpService
+from backend.admin.services.task_pages import TaskPageService
 
 log = logging.getLogger("backend.admin")
 
@@ -102,6 +103,7 @@ class Portal:
     factors: FactorService
     stepup: StepUpService
     pages: PageService
+    tasks: TaskPageService
     csrf_key: bytes
     templates: Environment
     settings_pages: SettingsPages
@@ -164,7 +166,7 @@ class Portal:
         refresher.wizard = wizard
         return cls(
             settings, engine, clock, limiter, mailer, sessions, signin, factors,
-            stepup, pages, csrf_key, make_templates(),
+            stepup, pages, TaskPageService(engine, clock), csrf_key, make_templates(),
             SettingsPages(engine, service, pages, clock), pending_key, wizard,
             loop_settings=LoopSettings.from_env(source),
             master_key=master_key,
