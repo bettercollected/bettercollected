@@ -7,7 +7,7 @@ import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import { Button } from '@app/shadcn/components/ui/button';
+import { buttonClassName } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -118,11 +118,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                         {receipt && <SubmissionReceipt className="mt-6" edge={rule} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
                     </section>
                     {thankyouPage?.buttonText && buttonHref !== null && (
-                        <Button flat style={{ background: theme?.secondary }} className="mt-8 min-h-12 rounded-[4px] px-8 text-base font-semibold">
-                            <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" lang={contentLang}>
-                                {thankyouPage.buttonText}
-                            </Link>
-                        </Button>
+                        <EndingButtonLink href={isPreviewMode ? '' : buttonHref} label={thankyouPage.buttonText} lang={contentLang} background={theme?.secondary} className="rounded-[4px]" />
                     )}
                 </div>
             </>
@@ -142,11 +138,7 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                     {getThankYouMessage()}
                 </p>
                 {thankyouPage?.buttonText && buttonHref !== null && (
-                    <Button flat style={{ background: theme?.secondary }} className="mt-8 min-h-12 rounded-[8px] px-8 text-base font-semibold">
-                        <Link href={isPreviewMode ? '' : buttonHref} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" lang={contentLang}>
-                            {thankyouPage.buttonText}
-                        </Link>
-                    </Button>
+                    <EndingButtonLink href={isPreviewMode ? '' : buttonHref} label={thankyouPage.buttonText} lang={contentLang} background={theme?.secondary} className="rounded-[8px]" />
                 )}
                 {receipt && <SubmissionReceipt className="mt-8" edge={cardEdge} responderId={responderId} submissionUrl={isPreviewMode ? '' : submissionUrl} onCopy={handleOnCopy} />}
                 {/* Attribution moved into the trust strip — the form's single
@@ -154,6 +146,20 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                     the fixed strip and the two overlapped. */}
             </div>
         </>
+    );
+}
+
+/**
+ * The author's button on the ending: a link dressed as the form's button. It
+ * used to be a link inside a <button>, two nested controls where the keyboard
+ * stopped on a button that did nothing.
+ */
+function EndingButtonLink({ href, label, lang, background, className }: { href: string; label: string; lang?: string; background?: string; className: string }) {
+    const { t } = useRespondentLanguage();
+    return (
+        <Link href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={{ background }} className={buttonClassName({ flat: true, className: cn('mt-8 min-h-12 px-8 text-base font-semibold', className) })}>
+            <span lang={lang}>{label}</span> <span className="sr-only">{t('PRIVACY.OPENS_IN_NEW_TAB')}</span>
+        </Link>
     );
 }
 
