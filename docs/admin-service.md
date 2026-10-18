@@ -23,6 +23,59 @@ anything unregistered is a 404. `/healthz` answers `ok` to loopback peers only.
 Responses carry a strict CSP and related security headers. Bodies are capped
 at 64 KB and only form or JSON content types are accepted.
 
+## Sign-in and sessions
+
+Sign-in is by an 8-digit code mailed to an address listed in
+`PLATFORM_ADMIN_EMAILS` (read once at start). The sign-in form
+answers every address the same way, so it does not reveal who is an
+admin. A code lasts 10 minutes, works once and allows five attempts; asking
+for a new one cancels the old one. Wrong codes lock the address (15 minutes,
+then 1 hour, then 4 hours) and many wrong codes across the service pause
+sign-in for 10 minutes; admins are mailed once when either happens. The
+sign-in mail uses the platform's `MAIL_*` settings.
+
+A session cookie (`__Host-bcadmin`, `Secure`, `HttpOnly`, `SameSite=Strict`) holds
+a random token; only its hash is stored. Sessions end after 30 minutes idle or
+8 hours in total (`ADMIN_SESSION_IDLE_MINUTES`, `ADMIN_SESSION_ABSOLUTE_HOURS`
+can only shorten these), are bound to the client address and browser, and at
+most three stay live per admin. A signed-in session whose second factor is still
+pending can reach only `/mfa` and `/logout`. Removing an address from
+`PLATFORM_ADMIN_EMAILS` ends its sessions at the next start or request.
+Every state-changing request needs a CSRF token and a same-origin
+`Origin` (`ADMIN_PUBLIC_ORIGINS`). Operator commands:
+`python -m backend.admin unlock <email>`, `resume-sign-in`, `revoke-sessions [email]`.
+
+Without `ADMIN_DATABASE_URL`, `SETTINGS_MASTER_KEY` and `PLATFORM_ADMIN_EMAILS`
+the service starts as the bare gate: `/healthz` and 404s only, with one warning
+naming the missing settings (never their values). The `admin` compose service
+does not receive these yet (nor `MAIL_*`, nor a route to the database), so it
+runs in that mode until the deployment wiring lands. Settings that are present
+but invalid stop startup.
+
+## Settings store: what the database guards do and do not do
+
+Schema `settings` holds signed (and, for secrets, encrypted) rows, a signed
+manifest and per-service views. The triggers on its tables stop mistakes and a
+compromised runtime role (no deleting entries, versions and the manifest
+revision only go up by one, no future history rows). They do not stop the
+migration role, which can disable triggers. Tampering is detected instead:
+every row carries a signature, the manifest signs the full set of keys, versions
+and readers, and every change is in the audit trail; `settings-verify` checks
+all three against each other, including a wiped or rolled-back store.
+
+Each reader's manifest view lists every key, version and reader set, not only
+the rows that service may read: a service needs that to notice a row withheld
+from it. Key names are therefore visible to every reading service; values never
+are.
+
+A change to a step-up setting must carry the setting's current version in the
+step-up (`SettingsService.action_hash(action, key, value, expected_version)`).
+The portal reads the version when it renders the form, binds it into the hash it
+asks the step-up module to issue a token for, and passes the same
+`expected_version` to the service, which checks it inside the write transaction.
+A replayed token, or a form left open while someone else changed the setting,
+fails with `stale_version`.
+
 ## Variables (no secrets)
 
 | Variable | Default | Meaning |
@@ -32,3 +85,6 @@ at 64 KB and only form or JSON content types are accepted.
 | `ADMIN_ALLOWED_HOSTS` | `localhost:<port>,127.0.0.1:<port>` | allowed `Host` values |
 | `ADMIN_TRUSTED_PROXIES` | empty | proxies whose `X-Forwarded-For` is believed |
 | `ADMIN_EDGE_SUBNET` / `ADMIN_EDGE_GATEWAY` | `172.30.77.0/29` / `172.30.77.1` | the admin network |
+| `PLATFORM_ADMIN_EMAILS` | empty | addresses allowed to sign in |
+| `ADMIN_PUBLIC_ORIGINS` | `http://localhost:<port>,http://127.0.0.1:<port>` | origins state-changing requests may come from (scheme, host, port) |
+| `ADMIN_SESSION_IDLE_MINUTES` / `ADMIN_SESSION_ABSOLUTE_HOURS` | `30` / `8` | session lifetimes (shorter only) |

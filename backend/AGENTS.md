@@ -125,7 +125,9 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
   `SETTINGS_MASTER_KEY`, and an append-only, HMAC-chained `audit_log` (`services/audit.py`; verify with
   `python -m backend.admin audit-verify`). It must never import `backend.app.router/container/controllers` or
   `common.services.crypto_service` (tests enforce it). New admin tables need explicit grants in their revision: there
-  are deliberately no default privileges. Tests: `tests/admin/`.
+  are deliberately no default privileges. Sessions, email-code sign-in, CSRF and gate levels 2-4 live in
+  `services/sessions.py`, `services/signin.py`, `gate/checkers.py`, `gate/csrf.py` and `controllers/portal.py` (pages are
+  Jinja2 templates with no inline script or style; details in `docs/admin-service.md`). Tests: `tests/admin/`.
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.
@@ -342,6 +344,7 @@ self-hosted [Umami](https://umami.is) instance via `services/umami_client.py`. I
 BetterCollected-hosted Umami; that's gone — see `plans/umami-self-hosted-form-analytics.md` for the full rationale
 and architecture.
 
+- **Debug mode:** `DEBUG` defaults to false (no HTML tracebacks on 500s). `backend/.env.example` sets `DEBUG="true"` for local development; deployments keep it off.
 - **Local dev:** `docker compose -f docker-compose.local.yml up` starts Umami at `http://localhost:3003` (default
   login `admin`/`umami` — change it). No need to create a website by hand — see auto-provisioning below.
 - **Config** (`config/UmamiSettings.py`, env prefix `UMAMI_`): `URL`, `USERNAME`, `PASSWORD` are required (`has_credentials`);
