@@ -179,23 +179,33 @@ def test_the_selftest_tasks_meet_every_rule():
         assert m.internal
 
 
-REAL = ["responses.backfill_workspaces", "responses.check_undecryptable"]
+KEYSET = [
+    "keyset.add_key",
+    "keyset.promote",
+    "keyset.reencrypt",
+    "keyset.verify",
+    "keyset.drop_old",
+]
+REAL = sorted(["responses.backfill_workspaces", "responses.check_undecryptable", *KEYSET])
 
 
 def test_selftest_tasks_are_registered_only_when_flagged():
     assert [m.name for m in catalog.all_meta({})] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
+        *KEYSET,
     ]
     assert [m.name for m in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "0"})] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
+        *KEYSET,
     ]
     assert impl_package.build_registry({}).names() == REAL
     flagged = {"ADMIN_TASKS_SELFTEST": "1"}
     assert [m.name for m in catalog.all_meta(flagged)] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
+        *KEYSET,
         "selftest",
         "selftest_slow",
         "selftest_guarded",

@@ -219,7 +219,29 @@ class Runner:
                         {"rid": self.runner_id, "now": now, "id": row["id"]},
                     )
                     await self._audit(conn, "task.run.started", row, "success")
+                    await self._announce_apply(conn, row)
                     return row, self.registry.get(row["task"])
+
+    async def _announce_apply(self, conn, row: Mapping[str, Any]) -> None:
+        """A re-encryption rewrites every stored response and credential: when an
+        APPLY run of it starts, every admin is told, in the transaction that
+        records the start (the database function checks that audit row is there).
+        Dry runs tell no one."""
+        if row["task"] != "keyset.reencrypt" or row["dry_run"]:
+            return
+        params = row["params"]
+        if isinstance(params, str):
+            try:
+                params = json.loads(params)
+            except ValueError:
+                return
+        primary = params.get("primary_id") if isinstance(params, dict) else None
+        if not isinstance(primary, int) or isinstance(primary, bool):
+            return  # the parameters will not validate: the run is refused anyway
+        await conn.execute(
+            text("SELECT settings.task_notify_reencrypt(:run, :primary)"),
+            {"run": str(row["id"]), "primary": primary},
+        )
 
     async def _end_unclaimed(
         self, conn, row: Mapping[str, Any], state: RunState, code: Optional[str], now

@@ -218,14 +218,55 @@ compose service passes them from the root `.env`, and they are empty by default
 
 | Variable | Meaning |
 |---|---|
-| `TASK_RUNNER_DATABASE_URL` | Postgres URL of a dedicated role with only the grants these tasks need (read `form_responses`, `responses_deletion_requests` and the workspace links; update the two response tables for the backfill), never the backend's role: that would give the runner the whole app schema next to the keyset |
+| `TASK_RUNNER_DATABASE_URL` | Postgres URL of the data role for the `app` schema. It defaults to `bc_tasks_data_app` (below), built from `BC_TASKS_DATA_APP_PASSWORD`; set it only to point at another dedicated role, never the backend's: that would give the runner the whole app schema next to the keyset |
+| `TASK_RUNNER_GOOGLE_DATABASE_URL` | the same for the Google credentials (`google` schema); defaults to `bc_tasks_data_google` from `BC_TASKS_DATA_GOOGLE_PASSWORD`, never the integration's role |
 | `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
-| `TASK_RUNNER_KEYSET` | the response keyset (until the settings store provides it); it never goes to a file or a log |
+| `TASK_RUNNER_KEYSET` | the response keyset for the read-only `responses.*` tasks and `keyset.verify` when it is not in the settings store; it never goes to a file or a log. The `keyset.*` tasks that change or re-encrypt ignore it and use the settings store only |
+| `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES`, `DB_WRITE_MODE__GOOGLE` | the services' write mode (from the root `.env`), so `keyset.*` re-encrypts the stores the services write and copies the primary's new ciphertext to the mirror |
+| `TASK_RUNNER_GOOGLE_MONGO_DB` | the Google Forms integration's Mongo database (default `bettercollected_googleform`) |
 
 `stores: auto` covers every configured store; `mongo`, `postgres` or `both` name
 them and refuse if one is missing. The scripts `backend/scripts/check_undecryptable_values.py`
 and `backend/scripts/backfill_response_workspaces.py` stay as command-line
 tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
+
+### The runner's data roles: `bc_tasks_data_app` and `bc_tasks_data_google`
+
+`postgres/ensure-admin-roles.sh` (run by `deploy.sh` before the migrations and again after
+them) creates two login roles, one per owning schema, with the passwords
+`BC_TASKS_DATA_APP_PASSWORD` and `BC_TASKS_DATA_GOOGLE_PASSWORD` (generated once into the root
+`.env`, URL-safe characters only, never printed). They are separate from `bc_tasks`, which holds
+the runner's own state and the settings store. Why two: an UPDATE runs the table owner's triggers
+and generated-column helpers with the updater's privileges. One role over `bc_app`'s and
+`bc_google`'s tables would let either owner plant code that a re-encryption run executes with
+access to the other's table. Each role holds no more than the owner of its schema already has, has
+`search_path = pg_catalog`, and has USAGE on its own schema only. Column-level grants, nothing else:
+
+| Role | Table | SELECT | UPDATE |
+|---|---|---|---|
+| `bc_tasks_data_app` | `app.form_responses` | `id`, `form_id`, `response_id`, `workspace_id`, `doc` | `doc`, `_bc_checksum` |
+| | `app.responses_deletion_requests` | the same columns | `doc`, `_bc_checksum` |
+| | `app.workspace_forms` | `id`, `form_id`, `workspace_id`, `doc` | none |
+| `bc_tasks_data_google` | `google.oauth_credentials` | `id`, `user_id`, `doc` | `doc`, `_bc_checksum` |
+
+No INSERT, DELETE, TRUNCATE or TEMPORARY; nothing in `admin`, `tasks`, `settings`, `auth` or `jobs`.
+The grants are in the roles script, not in a migration, because the tables belong to other roles.
+`tests/admin/tasks/test_data_role.py` pins the exact privilege set per role, that neither role can
+reach the other's schema or anything its owner owns, and that a hostile trigger of either owner
+gets nothing from the other.
+
+Mongo, while it still holds responses: give the runner a dedicated user. For the check, `verify`
+and dry runs a read-only user is enough (`read` on the responses database and the Google
+integration's database). `responses.backfill_workspaces`, `keyset.reencrypt` and the other writing
+tasks need `readWrite` on exactly `form_responses` and `Oauth2CredentialDocument` (the
+credentials), and `read` on `workspace_forms`. Put its URI in `TASK_RUNNER_MONGO_URI`.
+
+### Keyset tasks
+
+`keyset.add_key`, `keyset.promote`, `keyset.reencrypt`, `keyset.verify` and `keyset.drop_old`
+rotate `MASTER_ENCRYPTION_KEYSET`; the order and every guard are in
+[response-keyset-rotation.md](response-keyset-rotation.md). They hold the locks `keyset` and
+`responses.encryption`, so only one of them runs at a time.
 
 ## Task pages
 

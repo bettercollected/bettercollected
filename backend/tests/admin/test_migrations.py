@@ -28,7 +28,7 @@ pytestmark = needs_postgres
 
 BACKEND_ROOT = Path(admin_package.__file__).resolve().parents[2]
 INI = Path(admin_package.__file__).resolve().parent / "alembic.ini"
-HEAD = "0010_background_loops"
+HEAD = "0009_task_keyset_write"
 TABLES = sorted([t.name for t in metadata.sorted_tables] + ["alembic_version"])
 
 
@@ -80,6 +80,7 @@ def test_the_chain_is_linear_with_hand_named_revisions():
         "0006_notifications_outbox",
         "0007_tasks_schema",
         "0008_report_state_prune",
+        "0009_task_keyset_write",  # follows 0010: it merged second
         "0010_background_loops",
     ]
 
@@ -111,6 +112,7 @@ async def test_migrations_apply_from_empty_and_are_idempotent(server, unmigrated
         "0007_tasks_schema",
         "0008_report_state_prune",
         "0010_background_loops",
+        "0009_task_keyset_write",
     ]
     assert await _tables(owner) == TABLES
     assert await upgrade_schema(owner, MIGRATIONS) == []
@@ -241,7 +243,10 @@ async def test_runtime_role_cannot_run_ddl(server, migrated):
 
 async def test_the_roles_script_is_idempotent(server, migrated):
     url = server.url(migrated)
-    sql = roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw)
+    sql = roles_sql(
+        server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw,
+        server.data_app_pw, server.data_google_pw
+    )
     for _ in range(2):
         await _execute(url, sql)
     # still works as the runtime role, still no UPDATE on the log
