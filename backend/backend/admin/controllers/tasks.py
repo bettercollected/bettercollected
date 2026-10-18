@@ -23,6 +23,7 @@ Every refusal is one of a fixed set of sentences.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping, Optional
 
 from fastapi import BackgroundTasks, Request
@@ -44,6 +45,9 @@ DRY_RUN_RULE = Rule("task_dry_run", 10, 300)  # per admin
 INVALID = "invalid"  # a binding no issued token can match
 MAX_CODE = 40
 NOTICES_OK = frozenset({"started", "cancel_requested", "cancel_again", "resume_started"})
+NOTICES_REFUSED = NOTICES_OK | {"step_up_required"}
+_SAFE_NAME = re.compile(r"^[a-z][a-z0-9_.]{0,63}$")
+_SAFE_UUID = re.compile(r"^[0-9a-fA-F-]{36}$")
 PAGE_MAX = 1000
 
 APPLY_ACTION = "tasks.apply"
@@ -94,9 +98,22 @@ async def _resume_parts(request: Request) -> list:
     return [str(run_id), target[1]] if run_id and target else [INVALID]
 
 
-APPLY = ActionBound(APPLY_ACTION, _apply_parts)
-CANCEL = ActionBound(CANCEL_ACTION, _cancel_parts)
-RESUME = ActionBound(RESUME_ACTION, _resume_parts)
+def _refused_task(request: Request) -> str:
+    """Where a browser goes when an action's token is missing, used, expired or for
+    something else (a fixed notice; the same shape the settings pages use)."""
+    name = request.path_params.get("name", "")
+    return f"/tasks/{name}?notice=step_up_required" if _SAFE_NAME.match(name) else "/tasks"
+
+
+def _refused_run(request: Request) -> str:
+    run_id = request.path_params.get("run_id", "")
+    ok = _SAFE_UUID.match(run_id)
+    return f"/tasks/runs/{run_id}?notice=step_up_required" if ok else "/tasks/runs"
+
+
+APPLY = ActionBound(APPLY_ACTION, _apply_parts, _refused_task)
+CANCEL = ActionBound(CANCEL_ACTION, _cancel_parts, _refused_run)
+RESUME = ActionBound(RESUME_ACTION, _resume_parts, _refused_run)
 
 
 def _posted_values(fields, form: Mapping[str, str], bad) -> dict:
@@ -183,7 +200,7 @@ def register(reg: RouteRegistry) -> None:
         if parsed is None:
             return Response(status_code=404)
         notice = request.query_params.get("notice")
-        return await run_page(request, parsed, notice=notice if notice in NOTICES_OK else None)
+        return await run_page(request, parsed, notice=notice if notice in NOTICES_REFUSED else None)
 
     @reg.route("/api/tasks/runs/{run_id}", level=Level.SECOND_FACTOR)
     async def run_progress(request: Request, run_id: str):
@@ -202,7 +219,8 @@ def register(reg: RouteRegistry) -> None:
         meta = _portal(request).tasks.meta(name)
         if meta is None:
             return Response(status_code=404)
-        return await task_page(request, meta)
+        notice = request.query_params.get("notice")
+        return await task_page(request, meta, notice="step_up_required" if notice == "step_up_required" else None)
 
     # -- starting ------------------------------------------------------------------------
     async def parsed_or_page(request: Request, meta):

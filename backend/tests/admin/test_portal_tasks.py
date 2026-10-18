@@ -108,6 +108,11 @@ async def ctx(portal, app, clock, monkeypatch, tasks_engine, owner_engine):
     await b.aclose()
 
 
+def refused(response) -> bool:
+    """A bound route's refusal: a redirect back to the page with a fixed notice."""
+    return response.status_code == 303 and response.headers["location"].endswith("notice=step_up_required")
+
+
 # -- gate -----------------------------------------------------------------------------------
 def task_routes():
     out = []
@@ -158,8 +163,8 @@ async def test_mutating_routes_need_csrf_and_a_valid_action_bound_token(ctx):
         assert (await ctx.b.post(path, data=bare)).status_code == 403, path
     # no / junk step-up token on the bound routes
     for path in (f"/tasks/{selftest_task}/apply", f"/tasks/runs/{RUN_ID}/cancel", f"/tasks/runs/{RUN_ID}/resume"):
-        assert (await ctx.post(path, bare)).status_code == 403, path
-        assert (await ctx.post(path, {**bare, "stepup_token": "junk"})).status_code == 403, path
+        assert refused(await ctx.post(path, bare)), path
+        assert refused(await ctx.post(path, {**bare, "stepup_token": "junk"})), path
     assert await ctx.runs() == []
     assert await ctx.audit_rows("task.run.requested") == []
 
@@ -174,25 +179,25 @@ async def test_a_token_bound_to_other_params_or_another_run_is_refused_and_token
     fields = {"stepup_token": None, "p_items": "10", "p_batch_size": "5", "p_emit_events": "0", "p_fail_at": "-1"}
     # token for items=11 used with items=10
     tok = issue({**good, "items": 11})
-    assert (await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": tok})).status_code == 403
+    assert refused(await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": tok}))
     # token for another task name
     other = ctx.portal.stepup.issue(ctx.session, action_hash(APPLY_ACTION, *apply_binding(selftest_slow.GUARDED_META, good)))
-    assert (await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": other})).status_code == 403
+    assert refused(await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": other}))
     # a cancel token cannot start a run, nor an apply token cancel a run
     cancel_tok = ctx.portal.stepup.issue(ctx.session, action_hash("tasks.cancel", RUN_ID))
-    assert (await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": cancel_tok})).status_code == 403
-    assert (await ctx.post(f"/tasks/runs/{RUN_ID}/cancel", {"stepup_token": issue(good)})).status_code == 403
+    assert refused(await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": cancel_tok}))
+    assert refused(await ctx.post(f"/tasks/runs/{RUN_ID}/cancel", {"stepup_token": issue(good)}))
     # the right token works once, then never again
     tok = issue(good)
     first = await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": tok})
     assert first.status_code == 303, first.text[:200]
     replay = await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": tok})
-    assert replay.status_code == 403
+    assert refused(replay)
     assert len(await ctx.runs(SLOW)) == 1
     # an expired token
     stale = issue(good)
     ctx.clock.advance(200)
-    assert (await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": stale})).status_code == 403
+    assert refused(await ctx.post(f"/tasks/{SLOW}/apply", {**fields, "stepup_token": stale}))
 
 
 # -- list and forms ---------------------------------------------------------------------------
@@ -522,7 +527,7 @@ async def test_resume_creates_a_signed_request_with_resumes_run_id_and_the_runne
     assert again.status_code == 409 and "already queued or running" in again.text
     # a token for another run id does not work
     tok = ctx.portal.stepup.issue(ctx.session, action_hash("tasks.resume", uuid.uuid4(), failed["params_hash"]))
-    assert (await ctx.post(f"/tasks/runs/{run_id}/resume", {"stepup_token": tok})).status_code == 403
+    assert refused(await ctx.post(f"/tasks/runs/{run_id}/resume", {"stepup_token": tok}))
 
 
 async def test_resume_refusals_from_the_portal_and_the_runners_codes_are_shown(ctx):
@@ -791,3 +796,14 @@ async def test_keyset_form_renders_checkboxes_and_promote_needs_a_dry_run_first(
     assert refused.status_code == 409 and TOKEN_FIELD.search(refused.text) is None
     empty = await ctx.dry_run("keyset.add_key")
     assert (await ctx.runs("keyset.add_key"))[0]["params"] == {} and empty
+
+
+async def test_refused_confirmation_comes_back_with_one_fixed_notice(ctx):
+    page = await ctx.b.get(f"/tasks/{SLOW}?notice=step_up_required")
+    assert "confirmation did not work" in page.text
+    assert "confirmation did not work" not in (await ctx.b.get(f"/tasks/{SLOW}?notice=<script>")).text
+    run_id = await ctx.dry_run(SLOW, {"items": "10"})
+    shown = await ctx.b.get(f"/tasks/runs/{run_id}?notice=step_up_required")
+    assert "confirmation did not work" in shown.text
+    other = await ctx.b.get(f"/tasks/runs/{run_id}?notice=anything-else")
+    assert "confirmation did not work" not in other.text and "anything-else" not in other.text

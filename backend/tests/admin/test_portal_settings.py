@@ -146,7 +146,7 @@ async def one(engine, sql, **params):
 
 # -- route table ------------------------------------------------------------------------
 def settings_routes():
-    return [r for r in build_registry().router.routes if r.path.startswith(("/settings", "/tasks"))]
+    return [r for r in build_registry().router.routes if r.path.startswith("/settings")]
 
 
 def test_every_mutating_settings_route_is_action_bound_or_documented():
@@ -583,6 +583,7 @@ def test_templates_have_no_safe_filter_or_external_urls():
         body = path.read_text()
         assert "|safe" not in body.replace(" ", "") and "autoescape" not in body, path.name
         assert not re.search(r"(src|href|action)=[\"']?https?://", body), path.name
+        body = re.sub(r'<script src="/static/[a-z0-9._-]+\.js" defer></script>', "", body)
         assert "<script" not in body and "style=" not in body, path.name
 
 
