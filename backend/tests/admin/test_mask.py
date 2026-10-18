@@ -3,7 +3,13 @@ import random
 
 import pytest
 
+import uuid
+from datetime import datetime, timezone
+
+from pydantic import BaseModel
+
 from backend.admin.services.audit import (
+    UnmaskableValue,
     MAX_STRING,
     REDACTED,
     canonical_json,
@@ -27,6 +33,19 @@ DENIED = [
     "Authorization",
     "Set-Cookie",
     "private_key",
+    "pass",
+    "db_pass",
+    "pwd",
+    "dsn",
+    "callback_url",
+    "redirectUrl",
+    "credentials",
+    "Bearer",
+    "jwt",
+    "auth",
+    "session",
+    "signature",
+    "salt",
 ]
 
 
@@ -55,7 +74,7 @@ def test_long_strings_are_truncated_and_nul_removed():
 
 
 def test_output_survives_a_json_round_trip():
-    out = mask({"f": 1.5, "t": (1, 2), "s": {3}, "o": object(), 7: "int key"})
+    out = mask({"f": 1.5, "t": (1, 2), "s": {3}, 7: "int key"})
     assert json.loads(canonical_json(out)) == out
     assert out["f"] == "1.5"  # floats become strings so jsonb cannot change them
 
@@ -138,3 +157,47 @@ def test_setting_payloads_never_leak_secret_values(seed):
         "detail": {"changed": [name], "value": {"api_token": planted}},
     }
     assert planted not in canonical_json(mask(payload)).decode()
+
+
+def test_audit_detail_fields_are_not_blanked_by_the_wider_deny_list():
+    detail = {
+        "request_id": "r1",
+        "session_id": "s1",
+        "requested_by": "ops",
+        "author": "a",
+        "passed": True,
+        "target_id": "t",
+        "setting": "smtp.host",
+        "value": "mail.example.org",
+        "secret": "set",
+    }
+    assert mask(detail) == detail
+
+
+class Login(BaseModel):
+    user: str
+    password: str
+
+
+def test_unknown_types_raise_instead_of_being_stringified():
+    model = Login(user="u", password="hunter2")
+    for bad in (
+        model,
+        {"detail": model},
+        [object()],
+        {("a", "b"): 1},
+        RuntimeError("dsn=x"),
+    ):
+        with pytest.raises(UnmaskableValue) as raised:
+            mask(bad)
+        assert "hunter2" not in str(raised.value)
+    stamp = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    assert mask({"at": stamp, "id": uuid.UUID(int=1)}) == {
+        "at": stamp.isoformat(),
+        "id": str(uuid.UUID(int=1)),
+    }
+
+
+def test_a_model_dumped_by_the_caller_is_masked_by_field_name():
+    dumped = Login(user="u", password="hunter2").model_dump()
+    assert mask(dumped) == {"user": "u", "password": REDACTED}

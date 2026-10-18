@@ -145,5 +145,7 @@ audit_log = Table(
     ),
     Index("uq_audit_log_id", "id", unique=True),
     Index("uq_audit_log_row_hash", "row_hash", unique=True),
+    # one successor per row: a fork (two rows claiming the same head) cannot commit
+    Index("uq_audit_log_prev_hash", "prev_hash", unique=True),
     Index("ix_audit_log_at", "at"),
 )

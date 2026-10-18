@@ -75,6 +75,8 @@ if ! grep -q "^SETTINGS_MASTER_KEY=." .env 2>/dev/null; then
   echo "SETTINGS_MASTER_KEY=$(openssl rand -base64 48 | tr -d '\n')" >> .env
   echo "Generated a new SETTINGS_MASTER_KEY in .env (first run)."
 fi
+# .env holds every generated secret: owner-only, whatever the umask was
+[ -f .env ] && chmod 600 .env
 echo "IMPORTANT: back up SETTINGS_MASTER_KEY from .env. If it is lost, the admin service's"
 echo "second-factor (TOTP) secrets cannot be decrypted and the audit log can no longer be"
 echo "verified; neither is recoverable. Never change or regenerate it on a stack that has"
@@ -109,6 +111,8 @@ if grep -q "^SSO_ENABLED=true" .env 2>/dev/null; then
   compose_files+=(-f "docker-compose.sso-deployment.yml")
   services_to_start+=("polis-postgres" "polis")
 fi
+
+[ -f .env ] && chmod 600 .env
 
 # Common docker function
 function dockerup() {
