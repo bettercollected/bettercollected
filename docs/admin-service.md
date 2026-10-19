@@ -695,9 +695,10 @@ window: the deploy recreates every service and runs migrations.
    ```
 
    `git status` no longer lists `.env.deployment`. If the file is gone and you have no copy,
-   take it from the backup of step 1 (`.env.deployment.before-4.0`). Do not commit your
-   values: if you did, on a local branch, the merge can carry them into the tracked
-   `.env.deployment.example`; check `git status` and `git diff` after the pull.
+   take it from the backup of step 1 (`.env.deployment.before-4.0`). If you committed your
+   values on a local branch, the pull stops with a modify/delete conflict on
+   `.env.deployment` and leaves your version in place: keep it and stop tracking it with
+   `git rm --cached .env.deployment` and `git commit`.
 
 ### Steps
 
