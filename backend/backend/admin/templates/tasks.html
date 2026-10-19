@@ -1,0 +1,37 @@
+{% extends "shell.html" %}
+{% block title %}{{ _("Tasks") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Tasks") }}</h1>
+<p>{{ _("Data tasks run in a separate runner, never in this portal. A request is signed here and only then picked up. Changing data needs a successful dry run first where a task says so, and a fresh authenticator code.") }}</p>
+<p><a href="/tasks/runs">{{ _("Run history") }}</a></p>
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Tasks') }}">
+<table>
+  <caption>{{ rows | length }} {{ _("tasks") }}</caption>
+  <thead><tr>
+    <th scope="col">{{ _("Task") }}</th><th scope="col">{{ _("Version") }}</th><th scope="col">{{ _("Kind") }}</th>
+    <th scope="col">{{ _("Resumable") }}</th><th scope="col">{{ _("Needs a dry run first") }}</th>
+    <th scope="col">{{ _("Locks") }}</th><th scope="col">{{ _("Latest run") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <th scope="row"><a href="/tasks/{{ r.meta.name }}">{{ r.meta.title or r.meta.name }}</a><br><code>{{ r.meta.name }}</code>{% if r.meta.internal %} <span class="tag">{{ _("test only") }}</span>{% endif %}</th>
+    <td>{{ r.meta.version }}</td>
+    <td>{% if r.meta.mutating %}<span class="tag tag-warn">{{ _("changes data") }}</span>{% else %}<span class="tag">{{ _("read-only") }}</span>{% endif %}</td>
+    <td>{% if r.meta.resumable %}{{ _("yes") }}{% else %}{{ _("no") }}{% endif %}</td>
+    <td>{% if r.meta.requires_prior_dry_run %}{{ _("yes") }}{% else %}{{ _("no") }}{% endif %}</td>
+    <td>{% if r.meta.resources %}{% for res in r.meta.resources %}<code>{{ res }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</td>
+    <td>
+      {% if r.last_run_id %}
+        <a href="/tasks/runs/{{ r.last_run_id }}">{{ r.last_state }}</a>{% if r.last_dry_run %} <span class="tag">{{ _("dry run") }}</span>{% endif %}<br>{{ r.last_at | ts }}
+      {% else %}{{ _("never run") }}{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7">{{ _("No tasks are registered.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

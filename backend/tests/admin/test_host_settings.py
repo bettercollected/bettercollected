@@ -40,6 +40,10 @@ STRONG = "stable-strong-secret-value-0123456789abcdef"
 JWT_OTHER = "another-strong-secret-value-fedcba9876543210"
 
 
+async def empty_counts():
+    return {"users": {"total": 0}, "responses": {"total": 0}}
+
+
 def compose(**services: dict) -> str:
     return json.dumps({"services": {name: {"environment": env} for name, env in services.items()}})
 
@@ -183,6 +187,27 @@ async def test_drift_reports_equal_differs_env_only_and_store_only_by_name(svc):
     assert report.store_only == ["API_FLOW_EVENTS_WINDOW_SECONDS"]
     assert not report.clean
     assert PLANT not in repr(report) and PLANT not in repr(stored)
+
+
+async def test_drift_flags_a_keyset_that_lacks_a_key_id_of_the_environment(svc):
+    from common.services import keyset as keyset_module
+    from tink.proto import tink_pb2
+
+    one = keyset_module.add_primary_key(tink_pb2.Keyset())
+    two = keyset_module.add_primary_key(one)  # a rotation: one's key plus a new primary
+    other = keyset_module.add_primary_key(tink_pb2.Keyset())
+    await svc.import_once("MASTER_ENCRYPTION_KEYSET", keyset_module.encode_keyset(two), CLI)
+
+    def drift(env_keyset):
+        return host.plan_drift(svc, host.parse_compose_config(compose(backend={"MASTER_ENCRYPTION_KEYSET": env_keyset})))
+
+    same = await drift(keyset_module.encode_keyset(two))
+    older = await drift(keyset_module.encode_keyset(one))  # the store has every id of the older env keyset
+    assert same.equal == older.equal == ["MASTER_ENCRYPTION_KEYSET"]
+    stale = await drift(keyset_module.encode_keyset(other))
+    assert stale.differs == {"MASTER_ENCRYPTION_KEYSET": ["backend"]} and not stale.clean
+    garbage = await drift("not-a-keyset")
+    assert garbage.differs == {"MASTER_ENCRYPTION_KEYSET": ["backend"]}
 
 
 async def test_an_empty_env_value_is_not_drift(svc):
@@ -350,13 +375,14 @@ async def test_env_export_cli_prints_no_value(svc, server, migrated, tmp_path):
 # ------------------------------------------------------------- bootstrap
 
 
-async def test_bootstrap_generates_every_key_valid_and_prints_nothing(svc, server, migrated, tmp_path):
+async def test_bootstrap_generates_every_key_valid_and_prints_nothing(svc, server, migrated, superuser, tmp_path):
+    await seed_stack(server, migrated, superuser)
     from common.configs import shipped_secrets
     from common.services import keyset
 
     url = server.url(migrated, "runtime")
     worker = tmp_path / ".env"
-    result = run_cli(url, "bootstrap-keys", "--export-worker", str(worker), extra={k: "" for k in host.GENERATED_KEYS})
+    result = run_cli(url, "bootstrap-keys", "--export-worker", str(worker), extra={**{k: "" for k in host.GENERATED_KEYS}, "MONGO_URI": ""})
     assert result.returncode == 0, result.stdout + result.stderr
     stored = (await svc.stored()).values
     assert set(host.GENERATED_KEYS) <= set(stored)
@@ -365,38 +391,122 @@ async def test_bootstrap_generates_every_key_valid_and_prints_nothing(svc, serve
     assert shipped_secrets.is_fernet_key(stored["AUTH_AES_HEX_KEY"])
     assert len(keyset.parse_keyset(stored["MASTER_ENCRYPTION_KEYSET"]).key) == 1
     assert "generated=5" in result.stdout and "master_key_fingerprint " in result.stdout
+    from common.settings.loader.runtime import keyset_fingerprint
+
+    ids = [k.key_id for k in keyset.parse_keyset(stored["MASTER_ENCRYPTION_KEYSET"]).key]
+    assert f"keyset_fingerprint {keyset_fingerprint(ids)}" in result.stdout
     assert private(worker)
     assert worker.read_text() == f"API_KEY={stored['TEMPORAL_API_KEY']}\nAES_HEX_KEY={stored['AUTH_AES_HEX_KEY']}\n"
     assert await svc.verify() == []
     assert {kind for _, kind in await audit_actions(svc)} == {"cli"}
 
 
+async def seed_stack(server, migrated, superuser, *, users=0, responses=0):
+    """The application tables behind ``admin.platform_counts()``, with some rows."""
+    from backend.db.startup import MIGRATIONS as APP
+    from common.db.ddl import helper_function_ddl
+    from common.db.schema_guard import upgrade_schema
+    from tests.admin.conftest import roles_sql
+    from tests.app.db.test_auto_migrate import _execute
+
+    await upgrade_schema(server.url(migrated), APP)
+    async with superuser.begin() as conn:
+        for statement in helper_function_ddl("auth"):
+            await conn.execute(text(statement))
+        await conn.execute(text(
+            "CREATE TABLE auth.users (id text PRIMARY KEY, doc jsonb NOT NULL, "
+            "plan text GENERATED ALWAYS AS (auth.bc_text(doc -> 'plan')) STORED)"))
+        for n in range(users):
+            await conn.execute(text("INSERT INTO auth.users (id, doc) VALUES (:i, CAST('{}' AS jsonb))"), {"i": f"u{n}"})
+        for n in range(responses):
+            await conn.execute(
+                text("INSERT INTO app.form_responses (id, doc, created_at, _bc_checksum) "
+                     "VALUES (:i, CAST('{\"answers\": {}}' AS jsonb), now(), 'x')"),
+                {"i": str(__import__("bson").ObjectId())},
+            )
+    await _execute(server.url(migrated), roles_sql(server.suffix, server.admin_pw, server.mig_pw, server.tasks_pw))
+
+
+@pytest.mark.parametrize("users,responses", [(0, 1), (1, 0)])
+async def test_bootstrap_refuses_a_stack_that_holds_data_whatever_the_flags(
+    svc, server, migrated, superuser, users, responses
+):
+    await seed_stack(server, migrated, superuser, users=users, responses=responses)
+    url = server.url(migrated, "runtime")
+    clean = {k: "" for k in host.GENERATED_KEYS}
+    for flags in ((), ("--fill-missing",)):
+        result = run_cli(url, "bootstrap-keys", *flags, extra=clean)
+        assert result.returncode == 1 and "stack_has_data" in result.stderr and "settings-import" in result.stderr
+    assert (await svc.stored()).values == {}
+
+
+async def test_bootstrap_fails_closed_when_the_counts_cannot_be_read(svc, server, migrated):
+    # no application tables in this database: platform_counts() fails
+    result = run_cli(server.url(migrated, "runtime"), "bootstrap-keys", extra={**{k: "" for k in host.GENERATED_KEYS}, "MONGO_URI": ""})
+    assert result.returncode == 1 and "stack_unknown" in result.stderr
+    assert (await svc.stored()).values == {}
+
+    async def broken():
+        raise RuntimeError("password=hunter2")
+
+    with pytest.raises(host.HostError) as err:
+        await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=broken)
+    assert err.value.code == "stack_unknown" and "hunter2" not in str(err.value)
+    assert (await svc.stored()).values == {}
+
+
+async def test_bootstrap_checks_the_document_store_when_one_is_configured(svc):
+    seen = []
+
+    async def full(uri):
+        seen.append(uri)
+        return True
+
+    async def down(uri):
+        raise ConnectionError(uri)
+
+    env = {"MONGO_URI": "mongodb://u:pw@db/"}
+    with pytest.raises(host.HostError) as err:
+        await host.bootstrap_keys(svc, CLI, environ=env, existing_stack=False, counts=empty_counts, mongo_check=full)
+    assert err.value.code == "stack_has_data" and seen
+    with pytest.raises(host.HostError) as err:
+        await host.bootstrap_keys(svc, CLI, environ=env, existing_stack=False, counts=empty_counts, mongo_check=down)
+    assert err.value.code == "stack_unknown" and "pw" not in str(err.value)
+    assert (await svc.stored()).values == {}
+
+    async def empty(uri):
+        return False
+
+    done = await host.bootstrap_keys(svc, CLI, environ=env, existing_stack=False, counts=empty_counts, mongo_check=empty)
+    assert len(done.generated) == 5 and done.keyset_fp.startswith("ks-")
+
+
 async def test_bootstrap_refuses_an_existing_stack_existing_keys_and_env_keys(svc):
     with pytest.raises(host.HostError) as err:
-        await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=True)
+        await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=True, counts=empty_counts)
     assert err.value.code == "existing_stack"
     with pytest.raises(host.HostError) as err:
-        await host.bootstrap_keys(svc, CLI, environ={"MASTER_ENCRYPTION_KEYSET": "x"}, existing_stack=False)
+        await host.bootstrap_keys(svc, CLI, environ={"MASTER_ENCRYPTION_KEYSET": "x"}, existing_stack=False, counts=empty_counts)
     assert err.value.code == "keys_in_environment"
     assert (await svc.stored()).values == {}
-    first = await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False)
+    first = await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=empty_counts)
     assert first.generated == list(host.GENERATED_KEYS)
     before = (await svc.stored()).values
     with pytest.raises(host.HostError) as err:
-        await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False)
+        await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=empty_counts)
     assert err.value.code == "keys_exist"
     assert (await svc.stored()).values == before
 
 
 async def test_bootstrap_fill_missing_adds_only_the_missing_keys(svc):
     await svc.import_once("AUTH_JWT_SECRET", STRONG, CLI)
-    done = await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, fill_missing=True)
+    done = await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=empty_counts, fill_missing=True)
     assert "AUTH_JWT_SECRET" not in done.generated and len(done.generated) == 4
     assert (await svc.stored()).values["AUTH_JWT_SECRET"] == STRONG
 
 
 async def test_worker_export_appends_to_a_private_env_file_but_not_twice(svc, tmp_path):
-    await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False)
+    await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=empty_counts)
     env = tmp_path / ".env"
     env.write_text("EXISTING=1")
     os.chmod(env, 0o600)
@@ -746,7 +856,7 @@ async def test_mail_apply_cli_refuses_when_the_test_mail_cannot_be_sent(svc, ser
 
 
 async def test_no_host_command_leaves_a_secret_in_the_audit_log_or_the_outbox(svc, tmp_path):
-    await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False)
+    await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=empty_counts)
     await svc.set(SECRET, PLANT, CLI, confirmation=SECRET)
     await host.export_env(svc, [SECRET, T4], str(tmp_path / "x.env"), CLI)
     await host.export_worker(svc, str(tmp_path / "w.env"), CLI)
