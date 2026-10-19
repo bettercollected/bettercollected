@@ -13,13 +13,15 @@ user_preference="$1"
 # without it) and the task runner. The optional ones are added further down.
 services_to_start=("mongodb" "mongo-seed" "webapp" "nginx" "backend" "auth" "postgresql" "temporal" "worker" "umami-postgresql" "umami" "admin" "jobs-worker" "document-sandbox" "task-runner")
 
-# Determine the appropriate Docker Compose command
+# Determine the appropriate Docker Compose command. An array: "docker compose" (the
+# plugin) is two words, and a quoted string of it would be looked up as one command
+# name, which fails on a host that has only the plugin.
 if command -v docker-compose &>/dev/null; then
-  docker_compose_cmd="docker-compose"
+  docker_compose_cmd=(docker-compose)
 elif command -v docker &>/dev/null; then
   # Check if 'docker compose' is available
   if docker compose --help &>/dev/null; then
-    docker_compose_cmd="docker compose"
+    docker_compose_cmd=(docker compose)
   else
     echo "Neither 'docker-compose' nor 'docker compose' is available. Please install Docker Compose."
     exit 1
@@ -196,11 +198,11 @@ service_env_file() {
 # `docker compose run` options go in the admin_cli_opts array.
 admin_cli_opts=()
 admin_cli() {
-  "$docker_compose_cmd" "${compose_files[@]}" run --rm --no-deps -T "${admin_cli_opts[@]}" admin /api/backend/.venv/bin/python -m backend.admin "$@"
+  "${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps -T "${admin_cli_opts[@]}" admin /api/backend/.venv/bin/python -m backend.admin "$@"
 }
 
 compose_config_json() {
-  "$docker_compose_cmd" "${compose_files[@]}" config --format json
+  "${docker_compose_cmd[@]}" "${compose_files[@]}" config --format json
 }
 
 # A private directory the one-off container (running as the calling user) can
@@ -316,7 +318,7 @@ umami_credentials() {
   local js="deploy/umami-rotate.js"
   local i
   for i in $(seq 1 30); do
-    state=$("$docker_compose_cmd" "${compose_files[@]}" exec -T umami node - < "$js" 2>/dev/null)
+    state=$("${docker_compose_cmd[@]}" "${compose_files[@]}" exec -T umami node - < "$js" 2>/dev/null)
     case "$state" in default_login=*) break ;; esac
     sleep 2
   done
@@ -336,7 +338,7 @@ umami_credentials() {
   fi
   # a few tries: Umami may still be settling right after its first start
   for attempt in 1 2 3; do
-    if UMAMI_NEW_PASSWORD="$password" "$docker_compose_cmd" "${compose_files[@]}" exec -T -e UMAMI_NEW_PASSWORD umami node - < "$js" >/dev/null 2>&1; then
+    if UMAMI_NEW_PASSWORD="$password" "${docker_compose_cmd[@]}" "${compose_files[@]}" exec -T -e UMAMI_NEW_PASSWORD umami node - < "$js" >/dev/null 2>&1; then
       break
     fi
     if [ "$attempt" -eq 3 ]; then
@@ -359,7 +361,7 @@ umami_credentials() {
   fi
   echo "Replaced Umami's built-in admin/umami login with a generated password (the UMAMI_PASSWORD setting; not shown)."
   echo "To sign in to Umami yourself: ./deploy.sh settings-env-export --keys UMAMI_USERNAME,UMAMI_PASSWORD --out FILE"
-  "$docker_compose_cmd" "${compose_files[@]}" up -d --force-recreate --no-deps backend jobs-worker >/dev/null \
+  "${docker_compose_cmd[@]}" "${compose_files[@]}" up -d --force-recreate --no-deps backend jobs-worker >/dev/null \
     || echo "WARNING: could not restart the backend and the jobs worker to read the new Umami password; run ./deploy.sh again." >&2
   return 0
 }
@@ -378,7 +380,7 @@ settings_prune() {
   done
   if [ "$typeform" = auto ]; then
     typeform=no
-    if [ -n "$("$docker_compose_cmd" "${compose_files[@]}" ps -aq integrations-typeform 2>/dev/null)" ]; then
+    if [ -n "$("${docker_compose_cmd[@]}" "${compose_files[@]}" ps -aq integrations-typeform 2>/dev/null)" ]; then
       typeform=yes
     fi
   fi
@@ -459,7 +461,7 @@ setup_token() {
     echo "The setup token is shown on a terminal only. Run ./deploy.sh setup-token from one." >&2
     return 1
   fi
-  "$docker_compose_cmd" "${compose_files[@]}" run --rm --no-deps admin /api/backend/.venv/bin/python -m backend.admin setup-token "$@"
+  "${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps admin /api/backend/.venv/bin/python -m backend.admin setup-token "$@"
 }
 
 # The services `up` is asked to start for a preference (both, googleform, typeform or
@@ -912,38 +914,38 @@ function dockerup() {
   # finds nothing left to do after this step.
   # Pull every first-party image the stack runs, so no service keeps a stale cached
   # one. A failed pull (offline, a local build) is a warning: the cached images are used.
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" pull -q backend auth webapp worker \
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" pull -q backend auth webapp worker \
     $([ "$googleform_flag" = true ] && echo integrations-googleform) \
     $([ "$typeform_flag" = true ] && echo integrations-typeform) \
     || echo "WARNING: could not pull all images; the images already on this host are used." >&2
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" up -d --wait app-postgres || exit 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" up -d --wait app-postgres || exit 1
   # The admin service's schema and roles (idempotent), as the database superuser
   # inside the container, which already holds BC_ADMIN_*_PASSWORD. Then its own
   # migration chain as the migration role; the password goes in through the
   # environment, not the command line.
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh || exit 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh || exit 1
   admin_mig_password=$(dotenv_value .env BC_ADMIN_MIG_PASSWORD)
   DATABASE_URL="postgresql+asyncpg://bc_admin_mig:${admin_mig_password}@app-postgres:5432/bettercollected" \
-    "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps -e DATABASE_URL backend /api/backend/.venv/bin/alembic -c /api/backend/backend/admin/alembic.ini upgrade head || exit 1
+    "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps -e DATABASE_URL backend /api/backend/.venv/bin/alembic -c /api/backend/backend/admin/alembic.ini upgrade head || exit 1
   unset admin_mig_password
   # a failed migration stops the deploy: the services would refuse the stale schema
   # anyway, and what follows (keys, the start) should not run against it
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head || exit 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head || exit 1
   # procrastinate's queue tables (jobs schema), applied once; a no-op afterwards
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/python -m backend.jobs.schema || exit 1
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps auth /api/auth/.venv/bin/alembic -c /api/auth/alembic.ini upgrade head || exit 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/python -m backend.jobs.schema || exit 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps auth /api/auth/.venv/bin/alembic -c /api/auth/alembic.ini upgrade head || exit 1
   if [ "$googleform_flag" = true ]; then
-    "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps integrations-googleform alembic -c /api/integrations/google/alembic.ini upgrade head || exit 1
+    "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps integrations-googleform alembic -c /api/integrations/google/alembic.ini upgrade head || exit 1
   fi
   # again, now that the other services' tables exist: the task runner's data
   # role is granted on them (a no-op when nothing changed)
-  "$docker_compose_cmd" -f "docker-compose.deployment.yml" exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh || exit 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh || exit 1
 
   # The settings store exists now: the stack's keys go into it (new stack) or
   # are imported from the old files (upgrade), before the services need them.
   stack_keys || exit 1
 
-  GOOGLE_ENABLED="$googleform_flag" TYPEFORM_ENABLED="$typeform_flag" "$docker_compose_cmd" "${compose_files[@]}" up --build -d "$@" || {
+  GOOGLE_ENABLED="$googleform_flag" TYPEFORM_ENABLED="$typeform_flag" "${docker_compose_cmd[@]}" "${compose_files[@]}" up --build -d "$@" || {
     echo "docker compose could not start the stack (see above). Fix the cause and run ./deploy.sh again: it continues where it stopped." >&2
     exit 1
   }
@@ -992,7 +994,7 @@ function dockerup() {
 wait_admin_healthy() {
   local deadline=$((SECONDS + ${BC_DEPLOY_ADMIN_WAIT_SECONDS:-120})) id status
   while :; do
-    id=$("$docker_compose_cmd" "${compose_files[@]}" ps -q admin 2>/dev/null)
+    id=$("${docker_compose_cmd[@]}" "${compose_files[@]}" ps -q admin 2>/dev/null)
     if [ -n "$id" ]; then
       status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null)
       [ "$status" = healthy ] && return 0
@@ -1003,7 +1005,7 @@ wait_admin_healthy() {
 }
 
 function dockerdown() {
-  "$docker_compose_cmd" "${compose_files[@]}" down
+  "${docker_compose_cmd[@]}" "${compose_files[@]}" down
 }
 
 if [ "$user_preference" == down ]; then
