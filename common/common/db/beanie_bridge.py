@@ -53,6 +53,22 @@ def to_bson_dict(document: Document) -> dict[str, Any]:
     return Encoder(custom_encoders=encoders).encode(document)
 
 
+def is_beanie_document(value: Any) -> bool:
+    return isinstance(value, Document)
+
+
+async def store_exactly(document: Document) -> Document:
+    """Write ``document`` to its Mongo collection exactly as encoded here: a
+    full replace by id (upserting), with no re-stamped ``updated_at`` and no
+    fields left over from the stored copy. The reverse mirror stores a
+    Postgres-primary write this way, so both stores hold the same bytes."""
+    ensure_id(document)
+    await type(document).get_pymongo_collection().replace_one(
+        {"_id": document.id}, to_bson_dict(document), upsert=True
+    )
+    return document
+
+
 def _timestamp(value: Any) -> Optional[datetime]:
     """created_at/updated_at as stored: a datetime, or the ISO string bson_encoders produce."""
     if value is None:

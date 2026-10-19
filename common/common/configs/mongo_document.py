@@ -19,7 +19,9 @@ from common.exceptions import NotFoundError
 
 from pymongo.client_session import ClientSession
 from pymongo.collection import Collection
-from datetime import datetime as dt, timezone
+from datetime import datetime as dt
+
+from common.clock import utcnow
 
 IntStr = Union[int, str]
 AbstractSetIntStr = AbstractSet[IntStr]
@@ -39,8 +41,10 @@ class MongoDocument(Document):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.created_at = self.created_at if self.created_at else dt.now(timezone.utc)
-        self.updated_at = self.updated_at if self.updated_at else dt.now(timezone.utc)
+        # utcnow(): within a routed write both stores stamp the same instant
+        now = utcnow()
+        self.created_at = self.created_at if self.created_at else now
+        self.updated_at = self.updated_at if self.updated_at else now
 
     @classmethod
     def pretty_class_name(cls) -> str:
@@ -217,5 +221,5 @@ class MongoDocument(Document):
         link_rule: WriteRules = WriteRules.DO_NOTHING,
         **kwargs,
     ) -> DocType:
-        self.updated_at = dt.now(timezone.utc)
+        self.updated_at = utcnow()
         return await super().save(session, link_rule, **kwargs)
