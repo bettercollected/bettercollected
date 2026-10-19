@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -113,3 +113,28 @@ def test_document_checksum_equals_checksum_of_the_stored_doc():
 def test_values_bson_cannot_represent_fail_loudly(bad):
     with pytest.raises(TypeError):
         canonical_document({"v": bad})
+
+
+LOCAL = datetime(2026, 3, 4, 5, 6, 7, 891000, tzinfo=timezone(timedelta(hours=2)))
+
+
+def test_an_aware_datetime_encodes_as_the_utc_instant_mongo_stores():
+    """json_util keeps a non-UTC offset in the $date string; Mongo stores the
+    UTC instant and hands it back as UTC. Both must give the same bytes, or a
+    row the application wrote never matches its Mongo document's checksum."""
+    utc = datetime(2026, 3, 4, 3, 6, 7, 891000, tzinfo=timezone.utc)
+    naive_utc = utc.replace(tzinfo=None)  # what pymongo returns by default
+    for value in (LOCAL, utc, naive_utc):
+        doc = canonical_document({"at": value, "nested": {"list": [value]}})
+        assert doc == {
+            "at": {"$date": "2026-03-04T03:06:07.891Z"},
+            "nested": {"list": [{"$date": "2026-03-04T03:06:07.891Z"}]},
+        }
+    assert document_checksum({"at": LOCAL}) == document_checksum({"at": naive_utc})
+    assert from_canonical_document(canonical_document({"at": LOCAL}))["at"] == LOCAL
+
+
+def test_canonicalising_does_not_modify_the_input():
+    original = {"at": LOCAL, "list": [LOCAL], "keep": {"x": 1}}
+    canonical_document(original)
+    assert original["at"] is LOCAL and original["list"][0] is LOCAL
