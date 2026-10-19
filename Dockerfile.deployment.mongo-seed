@@ -2,6 +2,8 @@ FROM mongo:latest
 
 COPY ./seed-data-deployment.js .
 
-# This should run only when rnning your app through docker-compose
+# This should run only when running your app through docker-compose.
 # MONGO_ROOT_PASSWORD comes from the compose service (default: the original "root")
-CMD mongosh "mongodb://root:${MONGO_ROOT_PASSWORD:-root}@mongodb:27017/bettercollected_backend" --authenticationDatabase admin ./seed-data-deployment.js
+# and is read by the script from the environment: --nodb keeps it out of the
+# command line (and so out of the process list).
+CMD ["mongosh", "--nodb", "--quiet", "./seed-data-deployment.js"]

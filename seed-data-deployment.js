@@ -1,10 +1,19 @@
-db.dropAllUsers();
+// Run by mongosh --nodb (Dockerfile.deployment.mongo-seed): the root password comes
+// from the environment, never from a command line, where other users of the host
+// could read it in the process list.
+const rootPassword = process.env.MONGO_ROOT_PASSWORD || 'root';
+const connection = new Mongo('mongodb://mongodb:27017');
+connection.getDB('admin').auth('root', rootPassword);
+db = connection.getDB('bettercollected_backend');
 
-db.createUser({
-    user: 'seeduser',
-    pwd: 'seeduser',
-    roles: [{role: 'readWrite', db: 'bettercollected_backend'}]
-});
+// Earlier releases created a `seeduser` (password "seeduser") with readWrite on
+// this database on every deploy. Nothing uses it: remove it from volumes that
+// still have it, and never create it again.
+try {
+    db.dropUser('seeduser');
+} catch (error) {
+    // not there: nothing to remove
+}
 
 // Check if the collection exists
 const collectionNames = db.getCollectionNames();

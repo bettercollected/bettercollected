@@ -20,11 +20,16 @@ set -euo pipefail
 : "${BC_GOOGLE_PASSWORD:=bc_google}"
 : "${BC_JOBS_EXEC_PASSWORD:=bc_jobs_exec}"
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
-    -v app_pw="$BC_APP_PASSWORD" \
-    -v auth_pw="$BC_AUTH_PASSWORD" \
-    -v google_pw="$BC_GOOGLE_PASSWORD" \
-    -v jobs_pw="$BC_JOBS_EXEC_PASSWORD" <<'SQL'
+# The passwords reach psql through its environment (\getenv below), never as
+# `-v name=value` arguments, which any user of the host can read in the process
+# list while the command runs.
+export BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'SQL'
+\getenv app_pw BC_APP_PASSWORD
+\getenv auth_pw BC_AUTH_PASSWORD
+\getenv google_pw BC_GOOGLE_PASSWORD
+\getenv jobs_pw BC_JOBS_EXEC_PASSWORD
 CREATE ROLE bc_app       LOGIN PASSWORD :'app_pw';
 CREATE ROLE bc_auth      LOGIN PASSWORD :'auth_pw';
 CREATE ROLE bc_google    LOGIN PASSWORD :'google_pw';

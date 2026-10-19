@@ -1,10 +1,10 @@
-db.dropAllUsers();
-
-db.createUser({
-	user: "seeduser",
-	pwd: "seeduser",
-	roles: [{ role: "readWrite", db: "bettercollected_backend" }],
-});
+// Local development only. Earlier versions created a `seeduser` here; nothing
+// uses it, so it is removed instead.
+try {
+	db.dropUser("seeduser");
+} catch (error) {
+	// not there
+}
 
 // Check if the collection exists
 const collectionNames = db.getCollectionNames();
