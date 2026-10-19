@@ -55,6 +55,24 @@ OPTIONAL_KEYS = (
 )
 
 
+def test_postgres_health_checks_use_tcp_not_the_init_socket():
+    """The image's first-run initialisation runs a temporary server that listens on the
+    unix socket only and has not created POSTGRES_DB yet. A socket `pg_isready` passes
+    during it, so `up --wait` returned early and the next step of deploy.sh failed with
+    'database "bettercollected" does not exist' on a slow disk. Over TCP the check passes
+    only for the real server."""
+    sso = yaml.safe_load((ROOT / "docker-compose.sso-deployment.yml").read_text())["services"]
+    checked = 0
+    for compose in (SERVICES, sso):
+        for name, service in compose.items():
+            test = (service.get("healthcheck") or {}).get("test") or []
+            command = " ".join(test)
+            if "pg_isready" in command:
+                checked += 1
+                assert "-h 127.0.0.1" in command, f"{name}: {command}"
+    assert checked >= 4  # temporal's, the application's, Umami's and Polis's databases
+
+
 def _env(service: str) -> dict:
     env = SERVICES[service].get("environment") or {}
     if isinstance(env, list):

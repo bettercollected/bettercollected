@@ -105,10 +105,11 @@ services:
     volumes:
       - temporal-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U temporal']
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U temporal']
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 30s
   temporal:
     depends_on:
       postgresql:
@@ -179,10 +180,16 @@ services:
       - app-postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U bettercollected -d bettercollected']
+      # Over TCP (-h): while the image first initialises a volume it runs a temporary
+      # server that listens on the unix socket only and has not created the database
+      # yet. A socket check passes then, `deploy.sh` goes on to the next step
+      # ("database bettercollected does not exist"), and a slow disk makes that
+      # window long. The temporary server never listens on TCP.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U bettercollected -d bettercollected']
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
   worker:
     image: bettercollected/temporal-worker:nightly
@@ -617,10 +624,11 @@ services:
     volumes:
       - umami-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U umami -d umami']
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U umami -d umami']
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
