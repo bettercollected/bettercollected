@@ -101,6 +101,10 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned
   document instead of re-running the call. Return the *document* from such writes, not a DTO (`WriteResult` when the
   return value must differ from what was stored). Relation documents get `derived_object_id` so both stores agree.
+  Timestamps in a write come from `common.clock.utcnow()` (one reading per routed write, shared by primary and
+  mirror), never `datetime.now()`; where the Mongo method persists with `doc.save()` (which moves `updated_at`), the
+  twin uses `self.save_document(...)`, and `self.upsert(...)` where Mongo inserts or updates fields.
+  `tests/app/migrate/test_mirror_verify.py` checks that `verify` is clean right after a routed write.
 - **Joins:** SQL joins only within a group; a `$lookup` into another group's collection is *composed* through that
   group's routed repository (see `postgres/forms.py`). Never query Mongo or Postgres from a service or controller.
 - **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
