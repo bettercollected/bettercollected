@@ -10,6 +10,7 @@ short transaction, every run is idempotent and resumable.
 """
 
 from common.db.migrate.engine import Runner, Target
+from common.db.marker import StoreMigrationMixin
 from common.db.migrate.progress import MigrationProgressMixin
 
-__all__ = ["Runner", "Target", "MigrationProgressMixin"]
+__all__ = ["Runner", "Target", "MigrationProgressMixin", "StoreMigrationMixin"]
