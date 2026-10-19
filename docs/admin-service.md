@@ -88,7 +88,7 @@ mode instead of failing.
 
 ## Acceptance check
 
-`scripts/admin-compose-check.sh` needs docker (compose v2), curl and openssl. It
+`scripts/admin-compose-check.sh` needs docker (Compose 2.24.4 or newer), curl and openssl. It
 builds the backend image from the checkout unless `ADMIN_CHECK_IMAGE` names
 one, then starts its own throw-away compose project on a random free loopback
 port and an unused subnet, with new secrets, and removes everything on exit
@@ -97,7 +97,10 @@ host reaches `/healthz` and the sign-in page through the real gateway address;
 the LAN address is refused; a container on the default network cannot reach
 the service; the health check is healthy in bare-gate mode and with a database,
 master key and admin list; `docker compose config` parses with and without the
-optional variables; the container is read-only, non-root and capability-free;
+optional variables, and on a fresh checkout without `.env.deployment` or the
+per-service env files (the services that read `.env.deployment` get a copy of
+`.env.deployment.example`, never your own file); the container is read-only,
+non-root and capability-free;
 and `bc_admin` can read only its own schema and cannot update the audit log. It
 also checks the deployment around the service: a `.env` holding only what
 `deploy.sh` generates plus the operator's values renders; only the intended
@@ -574,7 +577,7 @@ So a bundled install needs one value from you, `PLATFORM_ADMIN_EMAILS`, plus `AD
 
 **A database that already holds data is never bootstrapped.** The two stores are checked in two places. The Postgres side (users, responses) is counted by `bootstrap-keys` itself. The Mongo side is **not** counted by `bootstrap-keys` in a `deploy.sh` run (its one-off container holds the admin database role and nothing else, never the Mongo root credentials, so the command's own Mongo check does not run there); `deploy.sh` decides it explicitly instead: a Mongo volume of this stack (found under the project name compose uses: the shell's or the root `.env`'s `COMPOSE_PROJECT_NAME`, else the directory name) or a `MONGO_URI` in `.env` or `.env.deployment` (an external Mongo it cannot look into) means the stack may hold data, and it never generates keys. In every such case `deploy.sh` stops before any service starts, stores no keys and says so: a new keyset could not read what the old one encrypted. Put the keys the stack has used in `.env` (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, `MASTER_ENCRYPTION_KEYSET`) and run `./deploy.sh` again; it imports them (see `settings-import`). Volumes found under a project name other than the one compose will use (say `COMPOSE_PROJECT_NAME` added to `.env` after the stack was created under the directory's name) are refused with the name to set, and no database password is generated while any volume of the stack exists, because those passwords are read only when a volume is created.
 
-**Which services read which env file.** Only the four services that read the settings store (`backend`, `jobs-worker`, `auth`, `integrations-googleform`; they hold the master key, so they can read every stored value anyway) get `.env.deployment` as their `env_file`. The Temporal worker (it drives a browser on user-supplied URLs), the public webapp and the Typeform service each get an env file of their own (`.env.worker`, `.env.webapp`, `.env.typeform`, mode 600, git-ignored) holding only what that service reads, so a bug in the browser or the webapp cannot expose Stripe, Google or mail secrets, the Mongo credentials or any key. `deploy.sh` creates each file once from the lines of `.env.deployment` that service reads (empty values left out) and never changes it afterwards: edit those files for those services, not `.env.deployment`. Running `docker compose` without `deploy.sh`? The files are optional for rendering; create them yourself. The lists live in `deploy.sh` (`webapp_env_keys`, `worker_env_keys`, `typeform_env_keys`) and a test compares them with `docs/settings-inventory.md`. The Typeform service is a separate image whose source is not in this repository: its list is what its last released source read (plus the generated Mongo URI for a new stack).
+**Which services read which env file.** Only the four services that read the settings store (`backend`, `jobs-worker`, `auth`, `integrations-googleform`; they hold the master key, so they can read every stored value anyway) get `.env.deployment` as their `env_file`. The Temporal worker (it drives a browser on user-supplied URLs), the public webapp and the Typeform service each get an env file of their own (`.env.worker`, `.env.webapp`, `.env.typeform`, mode 600, git-ignored) holding only what that service reads, so a bug in the browser or the webapp cannot expose Stripe, Google or mail secrets, the Mongo credentials or any key. `deploy.sh` creates each file once from the lines of `.env.deployment` that service reads (empty values left out) and never changes it afterwards: edit those files for those services, not `.env.deployment`. `.env.deployment` itself is your own file and is not tracked: `deploy.sh` creates it from the template `.env.deployment.example` (mode 600) when it is missing, says so, and never overwrites an existing one. Running `docker compose` without `deploy.sh`? All four env files are optional for rendering (Compose 2.24 or newer); create them yourself (`(umask 077; cp .env.deployment.example .env.deployment)`). The lists live in `deploy.sh` (`webapp_env_keys`, `worker_env_keys`, `typeform_env_keys`) and a test compares them with `docs/settings-inventory.md`. The Typeform service is a separate image whose source is not in this repository: its list is what its last released source read (plus the generated Mongo URI for a new stack).
 
 **Services `deploy.sh` starts.** Every deployment starts the webapp, backend, auth, the Temporal worker, MongoDB and its seed, Temporal and its database, Umami and its database, nginx, **the admin service, the jobs worker (it consumes the `default` queue: `delete_user` and `delete_response`), the document sandbox and the task runner**, plus the Google and Typeform integrations when asked for (`./deploy.sh [both|googleform|typeform]`) and Polis with single sign-on. `./deploy.sh print-services [preference]` prints the list; a test runs it through `docker compose up --dry-run`. The first-sign-in notice and the setup token are shown only once the admin service reports healthy. If a first run stops after the keys were stored (a failed start, a closed terminal), the next run still shows the master key fingerprint and the notice (`BC_FIRST_RUN_PENDING` in `.env` marks it until shown).
 
@@ -668,10 +671,38 @@ window: the deploy recreates every service and runs migrations.
 5. **Images.** `docker-compose.deployment.yml` runs the `bettercollected/<service>:nightly`
    images and `deploy.sh` pulls them on every run. Check out the release tag so the compose
    file, `deploy.sh` and the scripts are the release's.
+6. **Keep `.env.deployment` across the update.** From 4.0 the repository no longer tracks
+   `.env.deployment`. It ships the template `.env.deployment.example` instead, and
+   `.env.deployment` is git-ignored: `deploy.sh` creates it from the template (mode 600)
+   only when it is missing, and never overwrites it. Because the tracked file is deleted
+   upstream, updating a 3.x checkout (`git pull`, or `git checkout` of the release tag)
+   does this to your copy:
+   - **unchanged since you cloned:** git deletes it, without a warning. That copy holds the
+     values the 3.x repository shipped, including the published response keyset; a stack
+     whose responses are encrypted with it needs it for the import (without it `deploy.sh`
+     recreates the file from the template and then stops, asking for
+     `MASTER_ENCRYPTION_KEYSET`).
+   - **changed (your values in it):** git refuses and changes nothing ("Your local changes
+     to the following files would be overwritten by merge", or "by checkout").
+
+   So, in both cases, before you update:
+
+   ```bash
+   cp -p .env.deployment .env.deployment.mine   # your copy; git ignores it
+   git checkout -- .env.deployment              # undo your edits, so git can remove the file
+   git pull                                     # or: git fetch --tags && git checkout <release tag>
+   mv .env.deployment.mine .env.deployment      # your file again, now ignored by git
+   ```
+
+   `git status` no longer lists `.env.deployment`. If the file is gone and you have no copy,
+   take it from the backup of step 1 (`.env.deployment.before-4.0`). Do not commit your
+   values: if you did, on a local branch, the merge can carry them into the tracked
+   `.env.deployment.example`; check `git status` and `git diff` after the pull.
 
 ### Steps
 
-1. **Check out the release** and run `./deploy.sh` with the same preference as before
+1. **Check out the release** (keeping your `.env.deployment`, step 6 above) and run
+   `./deploy.sh` with the same preference as before
    (`./deploy.sh`, `googleform`, `typeform` or `both`). In order, it:
    - generates what is missing in the root `.env`, once and never overwriting: the database
      role passwords, `UMAMI_APP_SECRET`, `SETTINGS_MASTER_KEY` and the Temporal worker's
@@ -792,8 +823,15 @@ window: the deploy recreates every service and runs migrations.
   395; 0 keeps them).
 - **Single sign-on (`SSO_*`) and the admin sign-in mail (`MAIL_*`)** stay environment-driven
   in this release, and are kept in the files by `settings-prune`.
-- **The deploy workflow** deploys release tags only (`vMAJOR.MINOR.PATCH`, optionally with a
-  pre-release suffix) and pins its actions by commit.
+- **`.env.deployment` is no longer tracked.** The repository ships `.env.deployment.example`;
+  `deploy.sh` creates `.env.deployment` from it (mode 600) when it is missing and never
+  overwrites it, and git ignores it. Keep your copy across the update ("Before you start",
+  step 6). The four services that read it treat it as optional (Compose 2.24 or newer), so
+  `docker compose config` works on a fresh checkout before `deploy.sh` ran.
+- **The deploy workflow** still deploys `develop` and `master` to the development and staging
+  stacks; only production is deployed from release tags (`vMAJOR.MINOR.PATCH`, optionally
+  with a pre-release suffix), and a tag that is not a version tag is refused. Its actions are
+  pinned by commit.
 
 ### Migrations
 
@@ -826,6 +864,11 @@ release's migrations create, and the old signatures are dropped.
   need), then set `off`.
 - **Back to 3.x images:** a release that predates the store does not use it at all. Check out
   the old tag, restore the pre-prune backups so the old files hold their values, and redeploy.
+  A 3.x tag tracks `.env.deployment` again, and git replaces an ignored file of that name
+  without asking: checking out the old tag overwrites your `.env.deployment` with the file
+  that release shipped. Copy it first and put it back afterwards
+  (`cp -p .env.deployment .env.deployment.mine`, check out, `cp .env.deployment.mine
+  .env.deployment`); going forward again is the update in "Before you start", step 6.
   Migrations are expand-only, so the old images run on the migrated schema. Data written under
   keys that changed during the upgrade (a Google connection you reconnected, a form-action
   secret you re-entered) is not readable with the old key.

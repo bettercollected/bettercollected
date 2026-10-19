@@ -75,8 +75,10 @@ Python services double-nest the package: the FastAPI code for `backend` lives at
 
 - **Prereqs:** Python **3.11** (see `.python-version`; services require `>=3.10`), **uv**, **Node 22** (see `.nvmrc`), **Yarn 1.x**, Docker.
 - **One-shot setup:** `./install.sh` (`uv sync` for the Python services + `yarn` for the webapp; skips missing dirs).
-- **Env file:** copy/fill `.env.deployment` (keys: `MONGO_URI`, Stripe, Google/Typeform OAuth,
-  `TEMPORAL_SERVER_URL`, mail). It ships no secrets: `deploy.sh` generates `AUTH_JWT_SECRET`,
+- **Env file:** `.env.deployment` is the operator's own, untracked file: `deploy.sh` creates it (mode 600)
+  from the tracked template `.env.deployment.example` when it is missing (keys: Stripe, Google/Typeform
+  OAuth, `TEMPORAL_SERVER_URL`, mail). Never commit `.env.deployment`; change defaults in the template.
+  The template ships no secrets: `deploy.sh` generates `AUTH_JWT_SECRET`,
   `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` into the root `.env`, and the services refuse to start
   with an empty or published value (`common/common/configs/shipped_secrets.py`). Each service also reads
   its own `.env`.

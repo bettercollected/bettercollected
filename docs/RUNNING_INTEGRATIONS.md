@@ -2,9 +2,9 @@
 
 ### Google
 
-**Note**: This can be disabled by setting `ENABLE_GOOGLE` to `false` in `.env.deployent`
+**Note**: This can be disabled by setting `ENABLE_GOOGLE` to `false` in `.env.deployment`
 
-Users have to fill out some of the env variables themselves on `.env.deployment` before running the docker file.
+Users have to fill out some of the env variables themselves in `.env.deployment` before running the docker file (`deploy.sh` creates it from the template `.env.deployment.example` on the first run; to create it yourself: `(umask 077; cp .env.deployment.example .env.deployment)`).
 For using `Google forms` you need to set up certain environment variables, for that create a project
 in `Google Cloud Platform` and fill the following environment variables.
 
@@ -44,7 +44,7 @@ GOOGLE_CLIENT_SECRET=
 
 ### Typeform (Optional)
 
-**Note**: This can be disabled by setting `ENABLE_TYPEFORM` to `false` in `.env.deployent`
+**Note**: This can be disabled by setting `ENABLE_TYPEFORM` to `false` in `.env.deployment`
 
 Similarly for using `Typeform` you need to set up certain environment variables and for that create a `Typeform` account
 and add your app in `Developer apps` to get the value for following environment variables.

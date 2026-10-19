@@ -19,7 +19,8 @@ webapp/.yarn
 # the shipped examples/templates: the pruned exports (.env.pruned,
 # .env.deployment.pruned), per-service env files (.env.webapp, .env.worker,
 # .env.typeform), backups and the temp files a crashed run can leave behind
-# (.env.XXXXXX). .env.deployment is tracked; keep secrets out of commits.
+# (.env.XXXXXX), and .env.deployment itself (deploy.sh creates it from the tracked
+# .env.deployment.example; operators fill it with their own values).
 .env.*
 !.env.example
-!.env.deployment
+!.env.deployment.example

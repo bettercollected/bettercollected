@@ -54,7 +54,17 @@ first, and back up before you start.** The changes that need your attention:
   `127.0.0.1:3004` and its built-in login is replaced.
 - The webapp, the Temporal worker and the Typeform service read their own env files
   (`.env.webapp`, `.env.worker`, `.env.typeform`) instead of `.env.deployment`.
-- The deploy workflow deploys release tags (`vX.Y.Z`) only.
+- `.env.deployment` is no longer tracked: the repository ships `.env.deployment.example`,
+  and `deploy.sh` creates `.env.deployment` from it (mode 600) only when it is missing.
+  **Copy your `.env.deployment` before you pull** (`cp -p .env.deployment .env.deployment.mine`):
+  the pull deletes an unchanged copy without a warning (it holds the values 3.x shipped,
+  including the published keyset, which a stack whose responses are encrypted with it needs
+  for the import) and refuses to run while the file has local changes. Undo those
+  (`git checkout -- .env.deployment`), pull, then put your copy back
+  (`mv .env.deployment.mine .env.deployment`); git ignores it from now on. Details:
+  [Upgrading to 4.0](docs/admin-service.md#upgrading-to-40), "Before you start".
+- The deploy workflow still deploys `develop` and `master` to the development and staging
+  stacks; only production is deployed from release tags (`vX.Y.Z`).
 - Database migrations: application schema `0013` to `0016`, the new admin schema chain
   (`0001` to `0017`); the roles script runs before and after them.
 
@@ -287,8 +297,13 @@ first, and back up before you start.** The changes that need your attention:
   First-party services run with `no-new-privileges`, and the webapp, worker and Typeform
   service drop all capabilities. The Mongo seed no longer creates a `seeduser` account
   (and removes it from existing volumes) and passes no password on a command line.
-  `OAUTHLIB_INSECURE_TRANSPORT` is no longer set in the shipped `.env.deployment`. The
-  deploy workflow pins its actions by commit and deploys release tags (`vX.Y.Z`) only.
+  `OAUTHLIB_INSECURE_TRANSPORT` is no longer set in the shipped env template. The deploy
+  workflow pins its actions by commit; `develop` and `master` still deploy to the
+  development and staging stacks, and only production is deployed from release tags
+  (`vX.Y.Z`), refusing any other tag name. `.env.deployment` is no longer tracked: the
+  repository ships `.env.deployment.example`, from which `deploy.sh` creates a missing
+  `.env.deployment` (mode 600, never overwriting one), and the compose file treats it as
+  optional, so `docker compose config` works on a fresh checkout.
   **Not changed:** the Temporal worker still starts Chromium with `--no-sandbox` as root;
   it holds no secrets and drops all capabilities.
 - **Temporal is no longer published on the host, and Umami's built-in login is replaced.**
