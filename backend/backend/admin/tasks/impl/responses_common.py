@@ -38,6 +38,22 @@ def load_keyset(env: Optional[Mapping[str, str]] = None) -> Optional[str]:
     return value if value and value.strip() else None
 
 
+async def load_task_keyset(ctx) -> Optional[str]:
+    """The keyset a responses task uses: the settings store's verified row (where
+    the keyset of a 4.0 stack lives, and the source the keyset tasks use), else the
+    runner's environment (``TASK_RUNNER_KEYSET``), else None."""
+    from backend.admin.config import AdminConfigError
+    from backend.admin.tasks.impl import keyset_state
+
+    try:
+        keys = keyset_state.runner_keys()
+    except AdminConfigError:
+        return load_keyset()
+    async with ctx.connection() as conn:
+        stored = await keyset_state.read_stored(conn, keys)
+    return stored.value if stored is not None else load_keyset()
+
+
 def make_opener(keyset: str, *, lenient: bool = False) -> Opener:
     """``opens(workspace_id, form_id, value)``: whether ``value`` decrypts under
     that context. The plaintext is dropped here, never kept or printed.
@@ -299,14 +315,17 @@ async def preflight(
     *,
     read_only: bool,
     env: Optional[Mapping[str, str]] = None,
+    keyset: Optional[str] = None,
 ):
     """The checks both tasks share, in order; each failure is a ``Refusal``.
 
-    Returns ``(config, store names, keyset)``. A wrong or empty database must
-    not look clean, so a store with no responses at all is refused."""
+    Returns ``(config, store names, keyset)``. ``keyset`` is the one the caller
+    resolved (:func:`load_task_keyset`); without one the environment is read.
+    A wrong or empty database must not look clean, so a store with no responses
+    at all is refused."""
     config = StoreConfig.from_env(env)
     names = config.resolve(choice)
-    keyset = load_keyset(env)
+    keyset = keyset or load_keyset(env)
     if keyset is None:
         raise Refusal("keyset_missing")
     try:

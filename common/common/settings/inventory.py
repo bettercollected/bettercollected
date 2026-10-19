@@ -498,7 +498,7 @@ SERVICES: Tuple[SettingSpec, ...] = (
     _secret("SENTRY_DSN", "monitoring", (BACKEND, AUTH, GOOGLE), "Error report destination."),
     _bool("SENTRY_DEBUG", "monitoring", (BACKEND, AUTH, GOOGLE), False, "Verbose error reporter."),
     _secret("UNSPLASH_ACCESS_KEY", "integrations", (BACKEND, WEBAPP),
-            "Photo library access key (required: the backend does not start without it)."),
+            "Photo library access key (read by the webapp's photo picker; the backend does not use it and starts without it)."),
     _url("UNSPLASH_BASE_URL", "integrations", (BACKEND,), "Photo library API address.",
          "https://api.unsplash.com"),
     _int("UNSPLASH_PER_PAGE", "integrations", (BACKEND,), 10, 1, 100, "Photos per search page."),

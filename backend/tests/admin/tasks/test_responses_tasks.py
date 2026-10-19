@@ -468,6 +468,36 @@ async def test_refusals(world, seeded, monkeypatch, task, params):
 
 
 @pytest.mark.parametrize(
+    "task,params",
+    [
+        ("responses.backfill_workspaces", {"stores": "mongo"}),
+        ("responses.check_undecryptable", {"stores": "mongo"}),
+    ],
+)
+async def test_the_keyset_comes_from_the_settings_store_when_the_runner_has_none(
+    world, seeded, monkeypatch, task, params
+):
+    """On a 4.0 stack the keyset lives in the settings store and nowhere else (a new
+    stack generates it there; an upgrade imports it): the tasks read it from there,
+    as the keyset tasks do. They read only the runner's environment, so every such
+    stack refused with keyset_missing until the operator also put the keyset in the
+    runner's environment."""
+    from tests.admin.tasks.keyset_support import import_keyset
+
+    keyset = os.environ["MASTER_ENCRYPTION_KEYSET"]
+    monkeypatch.delenv("MASTER_ENCRYPTION_KEYSET")
+    _, run = await _run(world, task, params, dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "keyset_missing"
+    await import_keyset(world.admin, keyset)
+    _, run = await _run(world, task, params, dry_run=True)
+    assert run["state"] == "succeeded", run
+    # the store wins over the environment (as for the keyset tasks)
+    monkeypatch.setenv("MASTER_ENCRYPTION_KEYSET", "definitely-not-a-keyset")
+    _, run = await _run(world, task, params, dry_run=True)
+    assert run["state"] == "succeeded", run
+
+
+@pytest.mark.parametrize(
     "task", ["responses.backfill_workspaces", "responses.check_undecryptable"]
 )
 async def test_an_empty_store_is_refused_not_reported_clean(world, task, monkeypatch):

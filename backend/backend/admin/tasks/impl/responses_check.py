@@ -12,7 +12,7 @@ from backend.admin.tasks.catalog.responses_check import (
 )
 from backend.admin.tasks.impl.responses_common import (
     StoreConfig,
-    load_keyset,
+    load_task_keyset,
     make_opener,
     open_stores,
     preflight,
@@ -33,12 +33,14 @@ class CheckUndecryptable:
     META = META
 
     async def precheck(self, ctx, params: CheckParams) -> None:
-        await preflight(params.stores, STORE_CLASSES, read_only=True)
+        await preflight(
+            params.stores, STORE_CLASSES, read_only=True, keyset=await load_task_keyset(ctx)
+        )
 
     async def run(self, ctx, params: CheckParams) -> CheckResult:
         config = StoreConfig.from_env()
         names = config.resolve(params.stores)
-        keyset = load_keyset()
+        keyset = await load_task_keyset(ctx)
         if keyset is None:
             raise Refusal("keyset_missing")
         opens = make_opener(keyset)

@@ -114,6 +114,55 @@ a service outside the four store readers (and that the worker's whole environmen
 its handful of variables), checks with real containers that the Mongo seed leaves no
 `seeduser`, and that the nginx rules for Umami pass only the tracker.
 
+## Release acceptance
+
+`scripts/v4-compose-check.sh` is the end-to-end check to run before a release
+(it complements the component check above, which stops at the admin service's
+own wiring). It runs the real `./deploy.sh` in a throw-away copy of the
+deployment files (`deploy.sh`, the compose files, `postgres/`, `deploy/`,
+`nginx-deployment.conf`), against images built from the checkout, and removes
+everything when it exits. Each stack gets its own compose project name (the
+copy's directory name, as for a real install), host ports from 8100 up that are
+free (all on `127.0.0.1`) and an unused subnet for the admin edge network; it
+never uses the default project name or a fixed host port, so a stack running on
+the same machine is left alone. Mail goes to a local mail sink (mailpit).
+
+| Part | Flag | What it runs and asserts |
+|---|---|---|
+| 1 fresh | `--fresh` | `deploy.sh` on a terminal with empty volumes: every service healthy (the admin service, task runner, jobs worker and document sandbox included), every schema at its head, `bootstrap-keys` before the first service starts, the fingerprint notice and the setup token printed once, no secret value in the output, the process list, `docker inspect`/`docker top` or any container log, the webapp and the Temporal worker without secrets, no internal port published, Umami's built-in login refused, the public Umami port passing only the tracker. A second `deploy.sh` changes nothing and shows nothing again. Then the portal as a scripted browser: a wrong token and a wrong address look the same, the right token starts the setup session, an authenticator is enrolled (codes from an RFC 6238 helper), the mail test goes to the sink and the settings are saved only with its code, the wizard is finished and is a bare 404 afterwards, sign-in with the mailed code and the authenticator, the pages (`/health` with every service reporting, `/config`, `/audit`, `/settings`, `/tasks`) answer, and a read-only task is run through the portal and executed by the task runner |
+| 2 upgrade | `--upgrade` | the previous release's files and published images (`v3.4.0`, `V4_CHECK_OLD_TAG`) started with their own `deploy.sh`, seeded with fake workspaces, forms, encrypted responses and users, then taken over by the new `deploy.sh`: the import path (no bootstrap), conflicts reported and never chosen, `settings-drift` clean, documents intact, the stored keyset and keys equal to the old ones, `bootstrap-keys` refused (`stack_has_data`), a `settings-prune` dry run that changes nothing, and `responses.check_undecryptable` through the portal finding no undecryptable value |
+| 3 rollback | `--rollback` (runs on the stack of part 2) | `SETTINGS_STORE=off` and a redeploy: the stack serves from the files, data and store untouched; the store back on; then the previous release's files and images over the upgraded stack, and forward again |
+| 4 negatives | `--negatives` | the portal is not reachable from a sibling container (by name, through the host, by its edge address) or with a foreign `Host`; the admin port is on `127.0.0.1` only; the master key is held by the four store readers, the admin service and the task runner and by nothing else (rendered and `docker inspect`); a minimal `.env` renders and four variables alone are refused |
+
+With no flag all four parts run, about 12 minutes with the images in place (the
+first run adds the image pulls and builds); `--parts 1,4` and the other flags pick
+parts, and `--rollback` runs on the upgraded stack of part 2. `--keep` leaves the
+stacks up for inspection. Needs docker with compose v2, `script` (the setup token
+is shown on a terminal only), `uv` (it runs the portal client,
+`scripts/v4_check_client.py`, which uses the standard library only), curl and
+openssl; a part does not start when less than `V4_CHECK_MIN_FREE_MB` (default 2500)
+of disk is free.
+
+Images: the backend (which is also the admin service, task runner, jobs worker and
+document sandbox), auth and the Temporal worker are built from the checkout as
+`bc-v4check-*:local`; they and the images the run pulled are removed afterwards
+(`V4_CHECK_KEEP_IMAGES=1` keeps them) and `V4_CHECK_REUSE_IMAGES=1` reuses images
+with those tags. `V4_CHECK_WEBAPP=nightly|build|<image>` picks the webapp
+(default: the published `nightly`, because a webapp build takes long, so the webapp
+is not tested from the checkout by default). `V4_CHECK_GOOGLE=1` builds the Google
+integration and deploys it too (`./deploy.sh googleform`). `V4_CHECK_OLD_TAG` and
+`V4_CHECK_OLD_WEBAPP` choose the previous release for part 2 (default `v3.4.0` and
+its published images). Only the `image:` lines and the host side of the published
+ports differ from the files that ship. For part 2 the previous release's own
+`deploy.sh` starts the old stack (with a one-line `docker-compose` shim when the host
+has only the plugin), the keys of its shipped `.env.deployment`, which the new
+`deploy.sh` refuses by design, are replaced by generated ones as an operator would
+have done, and the dummy data is written by that release's own models and encryption.
+
+Not covered: Polis single sign-on, the Typeform service (its separately built image
+is checked as rendered), TLS and DNS in front of the stack, mail through a real SMTP
+server.
+
 ## Gate
 
 Every request must pass, in order: the `Host` allowlist, then the client

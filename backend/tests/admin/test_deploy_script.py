@@ -692,3 +692,46 @@ def test_volumes_under_both_names_are_not_a_mismatch(site):
     done, _ = _run(site, volumes=volumes, drop=("COMPOSE_PROJECT_NAME",))
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
     assert "Volumes of a stack named" not in done.stderr
+
+
+PLUGIN_PREFIX = textwrap.dedent(
+    '''\
+    import os, sys
+    if sys.argv[1:2] == ["compose"]:
+        # `docker compose` (the plugin): the same stand-in as `docker-compose`
+        if sys.argv[2:3] == ["--help"]:
+            sys.exit(0)
+        os.execv(sys.executable, [sys.executable, os.environ["STUB_COMPOSE"], *sys.argv[2:]])
+    '''
+)
+HOST_TOOLS = (
+    "bash", "sh", "openssl", "grep", "egrep", "sed", "awk", "tail", "head", "tr", "cat", "cp", "chmod", "mv", "rm",
+    "mktemp", "date", "seq", "sleep", "id", "basename", "dirname", "wc", "sort", "uniq", "env", "stat", "cut", "ls",
+    "tee", "readlink", "mkdir", "touch", "printf", "true", "false", "test", "expr", "xargs", "find", "ln",
+)
+
+
+def test_a_host_with_only_the_compose_plugin_deploys(site, tmp_path):
+    """`docker compose` is two words: a quoted "$cmd" of it is one command name and was
+    never found, so deploy.sh did nothing on a host without the standalone `docker-compose`
+    binary. Here that binary does not exist and the plugin is a stand-in for it."""
+    work, state, env = site
+    bin_dir = Path(env["PATH"].split(os.pathsep)[0])
+    plugin = tmp_path / "compose-stub"
+    (bin_dir / "docker-compose").rename(plugin)
+    docker = bin_dir / "docker"
+    head, _, rest = docker.read_text().partition("\n")
+    docker.write_text(head + "\n" + PLUGIN_PREFIX + rest)
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    for name in HOST_TOOLS:
+        found = shutil.which(name)
+        if found:
+            (tools / name).symlink_to(found)
+    assert not shutil.which("docker-compose", path=f"{bin_dir}{os.pathsep}{tools}")
+    env = {**env, "PATH": f"{bin_dir}{os.pathsep}{tools}", "STUB_COMPOSE": str(plugin)}
+    done, calls = _run((work, state, env))
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "command not found" not in done.stderr
+    assert any("bootstrap-keys" in c for c in calls)
+    assert any("up --build" in c for c in calls)
