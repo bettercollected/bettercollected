@@ -94,7 +94,12 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
     ) -> bool:
         """The Mongo original's targeted update: the row is locked, so a
         chat turn saved at the same time waits and then keeps this change
-        only if it read the row afterwards (as with Mongo)."""
+        only if it read the row afterwards (as with Mongo).
+
+        Like the array-filtered ``$set``, every proposal record with this id
+        that passes the status filter is updated, and the answer is whether
+        anything changed (Mongo's ``modified_count``): setting values that are
+        already there is not an update."""
         locked = (
             select(FormAiSessionRow.doc)
             .where(FormAiSessionRow.id == str(session_id))
@@ -105,16 +110,20 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
             if doc is None:
                 return False
             document = from_row_doc(FormAISessionDocument, doc)
+            changed = False
             for message in document.messages or []:
                 record = message.get("proposal")
                 if not isinstance(record, dict) or record.get("id") != proposal_id:
                     continue
                 if only_if_status is not None and record.get("status") != only_if_status:
-                    return False
-                record.update(fields)
+                    continue
+                for key, value in fields.items():
+                    if key not in record or record[key] != value:
+                        record[key] = value
+                        changed = True
+            if changed:
                 await session.execute(self._upsert_statement(row_values(document)))
-                return True
-        return False
+        return changed
 
 
 class PostgresWorkspaceAIProfileRepository(PostgresRepositoryBase):

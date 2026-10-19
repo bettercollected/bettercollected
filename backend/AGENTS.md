@@ -150,6 +150,12 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   (`tests/app/repositories/test_*_parity.py`) run each method on both stores; test fixtures must go through
   `container.<repo>()`, never Beanie directly, or the Postgres-served mode fails. The permission matrix
   (authorization, not storage) is skipped in the dual mode; it runs in the other two.
+- **The `doc` codec is pinned** (`common/db/codec_golden.py`): golden fixtures in each service's
+  `tests/fixtures/codec_golden/` hold the exact `doc` JSON and `_bc_checksum` of synthetic instances of every
+  mirrored document class (plus raw BSON documents in `common`). A new class shows up as unpinned cases, a new
+  field as changed cases of its class; regenerate on purpose with `scripts/regenerate-codec-golden.sh` and review
+  the diff. Any other change to an existing case means stored rows would encode differently: that needs a
+  migration plan, not a fixture update.
 
 Beanie Documents are registered in [backend/app/handlers/database.py](backend/app/handlers/database.py) `init_db`'s
 `document_models` list — **a new collection must be added there or it won't be initialized** (and needs a row +

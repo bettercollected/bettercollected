@@ -2,6 +2,7 @@ from typing import List
 
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
+from common.models.standard_form import ParameterValue
 from common.models.user import User
 
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
@@ -123,7 +124,9 @@ class ActionRepository:
         )
         secrets = None
         if credentials:
-            secrets = [{"name": "Credentials", "value": credentials}]
+            # a model, not a dict: what is stored is what save() hands back
+            # (Beanie re-reads the document) and what a replayed mirror writes
+            secrets = [ParameterValue(name="Credentials", value=credentials)]
         if workspace_action is None:
             workspace_action = WorkspaceActionsDocument(
                 workspace_id=workspace_id,
