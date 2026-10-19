@@ -139,7 +139,12 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,
   adaptive batches, `--max-minutes`, advisory lock) and never overwrites a row the application wrote
   (`_bc_source = 'app'`); `verify` compares counts, per-row checksums and a sampled round-trip; `reconcile` fixes
-  drift with Mongo authoritative (`--direction postgres->mongo` for the fallback) and drains the outboxes.
+  drift with Mongo authoritative (`--direction postgres->mongo` for the fallback) and drains the outboxes (full runs
+  only); deletes are never propagated. `--group <g>` limits preflight/backfill/verify/reconcile/status to a
+  repository group (`backend/db/groups.py` `COLLECTION_GROUPS`; a test keeps it in step with the container's
+  `group=`). A clean full `verify` writes the "migration verified" marker into `<schema>.store_migration`
+  (`common/db/marker.py`, read with `migration_verified(conn, service)`); `status --json` is the operators'
+  machine-readable view.
 - **Tests run three ways in CI** (Mongo · everything mirrored · everything served from Postgres). Parity tests
   (`tests/app/repositories/test_*_parity.py`) run each method on both stores; test fixtures must go through
   `container.<repo>()`, never Beanie directly, or the Postgres-served mode fails. The permission matrix

@@ -32,6 +32,15 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from common.db.base import SOURCE_APP, SOURCE_BACKFILL
 from common.db.canonical import canonical_document, checksum, from_canonical_document
 from common.db.engine import DatabaseSettings, make_engine
+from common.db.groups import SERVICE_GROUPS
+from common.db.marker import (
+    COMBINE_WINDOW,
+    MARKER_TABLE,
+    SCOPE_GROUP,
+    SCOPE_SERVICE,
+    MarkerInfo,
+    migration_verified,
+)
 from common.db.migrate.progress import (
     STATE_DONE,
     STATE_ERROR,
@@ -60,6 +69,32 @@ class Target:
     database_url: str
     application_name: str = "bettercollected-migrate"
     extras: Mapping[str, Callable[..., Any]] = field(default_factory=dict)
+    service: str = ""  # backend | auth | google (common.db.groups.SERVICE_GROUPS)
+    # mongo collection -> repository group; a collection not listed belongs to
+    # a group named after the service (auth and google have one group each)
+    groups: Mapping[str, str] = field(default_factory=dict)
+    marker: Optional[Table] = None  # <schema>.store_migration
+    code_version: str = ""
+
+    def group_of(self, collection: str) -> str:
+        return self.groups.get(collection) or self.service or self.schema
+
+    def group_names(self) -> list[str]:
+        """The groups that have collections: in the service's declared order
+        (``SERVICE_GROUPS``), then any other in the order collections are listed."""
+        names: list[str] = []
+        for collection in self.tables:
+            group = self.group_of(collection)
+            if group not in names:
+                names.append(group)
+        declared = list(SERVICE_GROUPS.get(self.service, ()))
+        return sorted(
+            names,
+            key=lambda g: declared.index(g) if g in declared else len(declared),
+        )
+
+    def collections_of(self, group: str) -> list[str]:
+        return [c for c in self.tables if self.group_of(c) == group]
 
 
 @dataclass
@@ -155,6 +190,13 @@ def unique_key_paths(table: Table) -> list[list[list[str]]]:
         if cols and all(c in paths for c in cols):
             keys.append([paths[c] for c in cols])
     return keys
+
+
+def id_range(table: Table, after: Optional[str], upto: str):
+    """Rows of one Mongo batch: ids in ``(after, upto]`` (``after`` None: from the start)."""
+    if after is None:
+        return table.c.id <= upto
+    return and_(table.c.id > after, table.c.id <= upto)
 
 
 def adapt_batch(size: int, seconds: float) -> int:
@@ -526,7 +568,9 @@ class Runner:
                 ]
                 if not ids:
                     break
-                last_id = ids[-1]
+                # the batch owns every id after the previous batch's last one, so a
+                # Postgres row between two Mongo batches (or before the first) is seen
+                lower, last_id = last_id, ids[-1]
                 if (batch_no - 1) % sample_every:
                     continue
                 mongo_side = {
@@ -538,7 +582,7 @@ class Runner:
                     rows = (
                         await conn.execute(
                             select(table.c.id, table.c._bc_checksum, table.c.doc).where(
-                                and_(table.c.id >= ids[0], table.c.id <= ids[-1])
+                                id_range(table, lower, last_id)
                             )
                         )
                     ).all()
@@ -598,9 +642,20 @@ class Runner:
         """Fix what ``verify`` finds. ``mongo->postgres`` (Phase 1, Mongo is
         authoritative): copy missing/mismatched documents, overwriting even
         ``app`` rows when the Mongo document is at least as new.
-        ``postgres->mongo``: replace Mongo documents from rows (R2/R3 fallback)."""
+        ``postgres->mongo``: replace Mongo documents from rows (R2/R3 fallback).
+
+        Deletes are never propagated, in either direction: a row present on
+        one side only is reported by ``verify`` and left in place, except that
+        ``postgres->mongo`` (re)inserts a Postgres row Mongo lacks and
+        ``mongo->postgres`` (re)inserts a Mongo document Postgres lacks. So a
+        row deleted in the primary store whose mirror delete failed stays in
+        the mirror, and reconciling in the opposite direction resurrects it.
+        The outboxes are drained only when every collection was reconciled
+        (no ``--group``/``--collections`` subset): their entries name a
+        repository, not a collection."""
+        selected = self.tables_for(collections)
         results = {}
-        for name, table in self.tables_for(collections).items():
+        for name, table in selected.items():
             report = (await self.verify([name]))[0]
             fixed = 0
             ids = report.samples["missing_in_postgres"] + report.samples["mismatched"]
@@ -615,7 +670,13 @@ class Runner:
                 "direction": direction,
             }
             del ids
-        await self._drain_outbox(direction, dry_run)
+        if set(selected) == set(self.target.tables):
+            await self._drain_outbox(direction, dry_run)
+        else:
+            logger.info(
+                "outbox not drained: only part of the collections was reconciled; "
+                "run reconcile without --group/--collections to drain it"
+            )
         return results
 
     async def _reconcile_collection(self, name, table, direction, dry_run) -> int:
@@ -627,7 +688,7 @@ class Runner:
             documents = [d for d in documents if isinstance(d["_id"], ObjectId)]
             if not documents:
                 break
-            last_id = str(documents[-1]["_id"])
+            lower, last_id = last_id, str(documents[-1]["_id"])
             async with self.engine.connect() as conn:
                 rows = (
                     await conn.execute(
@@ -637,12 +698,7 @@ class Runner:
                             table.c.updated_at,
                             table.c.doc,
                             table.c._bc_source,
-                        ).where(
-                            and_(
-                                table.c.id >= str(documents[0]["_id"]),
-                                table.c.id <= last_id,
-                            )
-                        )
+                        ).where(id_range(table, lower, last_id))
                     )
                 ).all()
             pg = {r[0]: r for r in rows}
@@ -772,4 +828,337 @@ class Runner:
             "schema": self.target.schema,
             "collections": progress,
             "outbox": outbox,
+        }
+
+    # -- the "migration verified" marker (common.db.marker) ---------------------
+    @staticmethod
+    def _backfill_running(row: Optional[dict], now: datetime) -> bool:
+        if not row or row.get("state") != STATE_RUNNING:
+            return False
+        heartbeat = row.get("heartbeat_at")
+        return bool(heartbeat and (now - heartbeat).total_seconds() < STALLED_AFTER_S)
+
+    def _marker_values(
+        self,
+        scope: str,
+        groups: list[str],
+        collections: dict,
+        verified_at: datetime,
+        based_on: Optional[list] = None,
+    ) -> dict:
+        return {
+            "service": self.target.service,
+            "scope": scope,
+            "groups": groups,
+            "collections": collections,
+            "verified_at": verified_at,
+            "code_version": self.target.code_version,
+            "run_id": self.run_id,
+            "based_on": based_on,
+        }
+
+    async def record_verify(
+        self,
+        reports: list[CollectionReport],
+        *,
+        sample_every: int = 1,
+        subset: bool = False,
+    ) -> dict:
+        """Record what a ``verify`` run proved (see :mod:`common.db.marker`):
+        a ``group`` row per repository group whose collections were all
+        verified clean with equal counts, and the service marker when every
+        group was, in this run or by combining the latest group rows.
+        ``subset``: the run was limited by ``--collections`` (never recorded)."""
+        outcome: dict[str, Any] = {"groups": [], "marker": None, "reason": None}
+        marker = self.target.marker
+        if marker is None:
+            outcome["reason"] = "this service has no marker table"
+            return outcome
+        if sample_every != 1:
+            outcome["reason"] = "a sampled verify (--sample-every > 1) is not recorded"
+            return outcome
+        if subset:
+            outcome["reason"] = "a --collections verify is not recorded; use --group"
+            return outcome
+        by_name = {r.collection: r for r in reports}
+        progress = await self._progress_rows()
+        now = datetime.now(timezone.utc)
+        busy = sorted(
+            c for c in by_name if self._backfill_running(progress.get(c), now)
+        )
+        if busy:
+            outcome["reason"] = f"a backfill is running for: {', '.join(busy)}"
+            return outcome
+
+        def counts(name: str) -> dict:
+            report = by_name[name]
+            return {
+                "group": self.target.group_of(name),
+                "mongo": report.mongo,
+                "postgres": report.postgres,
+            }
+
+        def verified(name: str) -> bool:
+            report = by_name.get(name)
+            return bool(report and report.clean and report.mongo == report.postgres)
+
+        all_groups = self.target.group_names()
+        clean_groups = [
+            g
+            for g in all_groups
+            if all(verified(n) for n in self.target.collections_of(g))
+        ]
+        values = [
+            self._marker_values(
+                SCOPE_GROUP,
+                [group],
+                {n: counts(n) for n in self.target.collections_of(group)},
+                now,
+            )
+            for group in clean_groups
+        ]
+        full = clean_groups == all_groups
+        if full:
+            values.append(
+                self._marker_values(
+                    SCOPE_SERVICE,
+                    all_groups,
+                    {n: counts(n) for n in self.target.tables},
+                    now,
+                )
+            )
+        if values:
+            async with self.engine.begin() as conn:
+                await conn.execute(marker.insert(), values)
+        outcome["groups"] = clean_groups
+        if full:
+            outcome["marker"] = "written"
+        elif not clean_groups:
+            outcome["reason"] = "no group was verified clean in full"
+        else:
+            combined, reason = await self._combine_group_rows(now, progress)
+            outcome["marker"] = "combined" if combined else None
+            outcome["reason"] = reason
+        logger.info(
+            "verify recorded: groups=%s marker=%s%s",
+            ",".join(clean_groups) or "-",
+            outcome["marker"] or "none",
+            f" ({outcome['reason']})" if outcome["reason"] else "",
+        )
+        return outcome
+
+    async def _combine_group_rows(
+        self, now: datetime, progress: dict[str, dict]
+    ) -> tuple[bool, Optional[str]]:
+        """Write the service marker from the latest clean row of every group,
+        when each covers its group's current collections, is at most
+        COMBINE_WINDOW old and was not followed by a backfill of them."""
+        marker = self.target.marker
+        assert marker is not None
+        based_on: list[dict] = []
+        collections: dict[str, dict] = {}
+        oldest = now
+        async with self.engine.begin() as conn:
+            for group in self.target.group_names():
+                row = (
+                    (
+                        await conn.execute(
+                            select(marker)
+                            .where(
+                                marker.c.scope == SCOPE_GROUP,
+                                marker.c.groups.contains([group]),
+                            )
+                            .order_by(marker.c.id.desc())
+                            .limit(1)
+                        )
+                    )
+                    .mappings()
+                    .first()
+                )
+                if row is None:
+                    return False, f"group {group} has no clean verify yet"
+                names = self.target.collections_of(group)
+                missing = [n for n in names if n not in (row["collections"] or {})]
+                if missing:
+                    return False, (
+                        f"group {group}: its last clean verify does not cover "
+                        f"{', '.join(missing)}"
+                    )
+                if row["verified_at"] < now - COMBINE_WINDOW:
+                    return False, (
+                        f"group {group}: its last clean verify is older than "
+                        f"{COMBINE_WINDOW.days} days"
+                    )
+                touched = [
+                    progress[n]["updated_at"]
+                    for n in names
+                    if progress.get(n) and progress[n].get("updated_at")
+                ]
+                if touched and max(touched) >= row["verified_at"]:
+                    return (
+                        False,
+                        f"group {group} was backfilled after its last clean verify",
+                    )
+                based_on.append(
+                    {
+                        "group": group,
+                        "run_id": row["run_id"],
+                        "verified_at": row["verified_at"].isoformat(),
+                    }
+                )
+                collections.update({n: row["collections"][n] for n in names})
+                oldest = min(oldest, row["verified_at"])
+            await conn.execute(
+                marker.insert(),
+                self._marker_values(
+                    SCOPE_SERVICE,
+                    self.target.group_names(),
+                    collections,
+                    oldest,
+                    based_on,
+                ),
+            )
+        return True, None
+
+    async def _marker_table_exists(self, conn) -> bool:
+        return (
+            await conn.scalar(
+                text("SELECT to_regclass(:t)"),
+                {"t": f'"{self.target.schema}".{MARKER_TABLE}'},
+            )
+            is not None
+        )
+
+    async def _last_verifies(self) -> tuple[dict[str, Optional[dict]], Optional[dict]]:
+        """(group -> its latest clean verify, the latest clean verify of any scope)."""
+        marker = self.target.marker
+        groups: dict[str, Optional[dict]] = {g: None for g in self.target.group_names()}
+        if marker is None:
+            return groups, None
+        async with self.engine.connect() as conn:
+            if not await self._marker_table_exists(conn):
+                return groups, None
+            rows = (
+                (await conn.execute(select(marker).order_by(marker.c.id.desc())))
+                .mappings()
+                .all()
+            )
+
+        def brief(row) -> dict:
+            return {
+                "scope": row["scope"],
+                "groups": row["groups"],
+                "verified_at": row["verified_at"].isoformat(),
+                "run_id": row["run_id"],
+                "code_version": row["code_version"],
+            }
+
+        for row in rows:
+            if row["scope"] != SCOPE_GROUP:
+                continue
+            for group in row["groups"]:
+                if group in groups and groups[group] is None:
+                    groups[group] = brief(row)
+        return groups, (brief(rows[0]) if rows else None)
+
+    async def _mirror_failures(self) -> dict:
+        """Mirror-write failures per store: total, unresolved (the outbox
+        depth) and the unresolved ones per repository method. Counts only."""
+        coll = self.collection("mirror_write_failures")
+        by_method = await (
+            await coll.aggregate(
+                [
+                    {"$match": {"resolved_at": None}},
+                    {
+                        "$group": {
+                            "_id": {"t": "$table_name", "op": "$op"},
+                            "n": {"$sum": 1},
+                        }
+                    },
+                ]
+            )
+        ).to_list()
+        out: dict[str, Any] = {
+            "mongo": {
+                "total": await coll.count_documents({}),
+                "unresolved": sum(d["n"] for d in by_method),
+                "unresolved_by_method": {
+                    f"{d['_id'].get('t')}.{d['_id'].get('op')}": d["n"]
+                    for d in by_method
+                },
+            }
+        }
+        table = f'"{self.target.schema}"."mirror_write_failures"'
+        async with self.engine.connect() as conn:
+            exists = (
+                await conn.execute(text(f"SELECT to_regclass('{table}')"))
+            ).scalar()
+            if exists is None:
+                out["postgres"] = None
+                return out
+            total = (await conn.execute(text(f"SELECT count(*) FROM {table}"))).scalar()
+            rows = (
+                await conn.execute(
+                    text(
+                        f"SELECT table_name, op, count(*) FROM {table} "
+                        "WHERE resolved_at IS NULL GROUP BY table_name, op"
+                    )
+                )
+            ).all()
+        out["postgres"] = {
+            "total": total,
+            "unresolved": sum(r[2] for r in rows),
+            "unresolved_by_method": {f"{r[0]}.{r[1]}": r[2] for r in rows},
+        }
+        return out
+
+    async def status_report(self, collections: Optional[Iterable[str]] = None) -> dict:
+        """``status --json``: one machine-readable document for operators:
+        counts per collection in both stores, backfill checkpoints, outbox
+        depth, mirror failures, the last clean verify (per group and overall)
+        and the marker. Names and counts only, never document contents."""
+        tables = self.tables_for(collections)
+        base = await self.status()
+        per_collection: dict[str, dict] = {}
+        for name, table in tables.items():
+            async with self.engine.connect() as conn:
+                postgres = (
+                    await conn.execute(select(func.count()).select_from(table))
+                ).scalar_one()
+            per_collection[name] = {
+                "group": self.target.group_of(name),
+                "mongo": await self.collection(name).count_documents({}),
+                "postgres": postgres,
+                "backfill": base["collections"].get(name),
+            }
+        last_by_group, last = await self._last_verifies()
+        selected = {self.target.group_of(n) for n in tables}
+        async with self.engine.connect() as conn:
+            marker: Optional[MarkerInfo] = await migration_verified(
+                conn,
+                self.target.service,
+                schema=self.target.schema,
+                collections=list(self.target.tables),
+            )
+        return {
+            "format": 1,
+            "service": self.target.service,
+            "schema": self.target.schema,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "code_version": self.target.code_version,
+            "collections": per_collection,
+            "groups": {
+                g: {
+                    "collections": [
+                        n for n in self.target.collections_of(g) if n in tables
+                    ],
+                    "last_verify": last_by_group.get(g),
+                }
+                for g in self.target.group_names()
+                if g in selected
+            },
+            "outbox": base["outbox"],
+            "mirror_failures": await self._mirror_failures(),
+            "last_verify": last,
+            "marker": marker.as_dict() if marker else None,
         }

@@ -63,6 +63,8 @@ from common.db.schema_guard import (
     ensure_schema_ready,
 )
 from common.db.spine import SpineColumns
+from common.db.groups import SERVICE_GROUPS, SERVICE_SCHEMAS
+from common.db.marker import MarkerInfo, StoreMigrationMixin, migration_verified
 from common.db.pg_repository import PostgresNotConfigured, PostgresRepositoryBase
 from common.db.outbox import (
     MIRROR_OPS,
@@ -98,4 +100,9 @@ __all__ = [
     "MIRROR_OPS",
     "MirrorWriteFailureDocument",
     "MirrorWriteFailureMixin",
+    "SERVICE_GROUPS",
+    "SERVICE_SCHEMAS",
+    "MarkerInfo",
+    "StoreMigrationMixin",
+    "migration_verified",
 ]
