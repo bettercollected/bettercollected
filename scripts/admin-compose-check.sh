@@ -136,7 +136,7 @@ temporal_pw="$(openssl rand -hex 16)"
 umami_pw="$(openssl rand -hex 16)"
 mongo_pw="$(openssl rand -hex 16)"
 
-printf 'services:\n  admin:\n    image: %s\n' "$image" > "$work/override.yml"
+printf 'services:\n  admin:\n    image: %s\n  backend:\n    image: %s\n' "$image" "$image" > "$work/override.yml"
 skeleton_env="$work/skeleton.env"
 full_env="$work/full.env"
 (
@@ -333,6 +333,18 @@ case "$out" in *"permission denied"*) ok "bc_admin cannot update the audit log" 
 super "drop table if exists app.admin_check_probe" >/dev/null
 
 echo "== (h) host commands through compose, as deploy.sh runs them"
+# bootstrap-keys refuses a database whose data it cannot count (fail closed), so
+# the application tables have to exist, as they do when deploy.sh gets this far:
+# the real app migrations, and a minimal auth.users (the auth image is not built
+# here), then the roles script again for the counting function's grants.
+if dc run --rm --no-deps -T backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head >"$work/app-migrate.log" 2>&1; then
+  ok "application migrations applied"
+else
+  bad "application migrations"
+  tail -n 5 "$work/app-migrate.log"
+fi
+super "create table if not exists auth.users(id text primary key, doc jsonb, plan text)" >/dev/null
+dc exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh >/dev/null 2>&1
 cli_opts=()
 cli() { dc run --rm --no-deps -T "${cli_opts[@]}" admin /api/backend/.venv/bin/python -m backend.admin "$@"; }
 cli_out="$work/cli.out"
@@ -347,7 +359,7 @@ cli bootstrap-keys --export-worker /out/worker.env >"$cli_out" 2>&1
 expect "bootstrap-keys succeeds" "0" "$?"
 cli_opts=()
 expect "bootstrap-keys prints only counts, names and the fingerprint" "0" \
-  "$(grep -cvE '^(generated[ =]|master_key_fingerprint |worker_keys_written |back up SETTINGS_MASTER_KEY)' "$cli_out")"
+  "$(grep -cvE '^(generated[ =]|keyset_fingerprint |master_key_fingerprint |worker_keys_written |back up SETTINGS_MASTER_KEY)' "$cli_out")"
 expect "the worker key file is private" "600" "$(stat -c %a "$outdir/worker.env" 2>/dev/null)"
 expect "the worker key file holds API_KEY and AES_HEX_KEY" "2" "$(grep -cE '^(API_KEY|AES_HEX_KEY)=.' "$outdir/worker.env" 2>/dev/null)"
 leaked=0
@@ -358,6 +370,12 @@ expect "no generated key value appears in the command's output" "0" "$leaked"
 expect "the store holds AUTH_JWT_SECRET afterwards" "1" "$(cli settings-history AUTH_JWT_SECRET 2>/dev/null | sed -n 's/^versions=//p')"
 cli bootstrap-keys >/dev/null 2>&1
 expect "a second bootstrap-keys is refused" "1" "$?"
+super "insert into auth.users(id, doc) values ('0', '{}')" >/dev/null
+cli bootstrap-keys --fill-missing >"$cli_out" 2>&1
+rc=$?
+super "delete from auth.users where id = '0'" >/dev/null
+expect "bootstrap-keys refuses a database that holds a user, even with --fill-missing" "1" "$rc"
+check "the refusal names stack_has_data and points at the import" grep -q 'stack_has_data.*settings-import' "$cli_out"
 dc config --format json 2>/dev/null | cli settings-import --from-compose-config --dry-run >"$cli_out" 2>&1
 rc=$?
 # The shipped .env.deployment has http://localhost URLs, which the registry
