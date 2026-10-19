@@ -179,8 +179,17 @@ class Rule:
     window_seconds: int
 
 
-CODE_REQUEST_PER_EMAIL = Rule("code_email", 3, 600)
+# code requests: per (email, client address), per address, and a higher ceiling per
+# email alone so one noisy client cannot exhaust the genuine admin's requests
+CODE_REQUEST_PER_EMAIL = Rule("code_email_ip", 3, 600)
+CODE_REQUEST_EMAIL_CEILING = Rule("code_email", 12, 600)
 CODE_REQUEST_PER_IP = Rule("code_ip", 10, 600)
+# behind the shared edge-gateway address one address stands for every client, so the
+# per-address bucket only caps total work (a flood guard), not individual clients
+CODE_REQUEST_SHARED_FLOOD = Rule("code_shared", 120, 600)
+# failed email codes: per (email, address) lock for addresses that tell clients apart,
+# and an alert-only ceiling per email (never a lock: see ``Limiter.email_ceiling``)
+SIGNIN_EMAIL_CEILING = Rule("signin_email_fail", 30, 3600)
 CHALLENGE_ATTEMPTS = Rule("challenge", 5, 600)
 FACTOR_FAILURES = Rule("factor_fail", 5, 300)
 # guesses at the second factor, counted BEFORE the code is looked at
@@ -249,10 +258,21 @@ def hashed_key(pepper: bytes, kind: str, identifier: str) -> str:
 
 
 class Limiter:
-    def __init__(self, store: AttemptStore, clock: Clock, pepper: bytes) -> None:
+    def __init__(
+        self, store: AttemptStore, clock: Clock, pepper: bytes, shared_clients=()
+    ) -> None:
         self._store = store
         self._clock = clock
         self._pepper = require_key(pepper, "rate limit key")
+        self._shared = frozenset(rate_limit_key(c) for c in shared_clients)
+
+    def set_shared_clients(self, clients) -> None:
+        """Addresses behind which every client looks alike (the Docker edge
+        gateway when no trusted proxy reports the real client)."""
+        self._shared = frozenset(rate_limit_key(c) for c in clients if c)
+
+    def is_shared(self, client: Optional[str]) -> bool:
+        return bool(self._shared) and rate_limit_key(client) in self._shared
 
     # keys
     def email_key(self, email: str) -> str:
@@ -260,6 +280,15 @@ class Limiter:
 
     def ip_key(self, client: Optional[str]) -> str:
         return hashed_key(self._pepper, "ip", rate_limit_key(client))
+
+    def client_key(self, client: Optional[str], user_agent: Optional[str]) -> str:
+        """A bucket for one client of an address: the address plus a digest of
+        its User-Agent. A script can change its User-Agent, so this only keeps a
+        noisy client from using up an honest one's tries; an address-level
+        limit must sit above it."""
+        return hashed_key(
+            self._pepper, "client", f"{rate_limit_key(client)}\x00{(user_agent or '')[:200]}"
+        )
 
     # helpers
     def _window(self, rule: Rule) -> Tuple[datetime, int]:
@@ -285,18 +314,57 @@ class Limiter:
 
     # sign-in code requests
     async def request_code(self, email: str, client: Optional[str]) -> Decision:
-        """Both code-request limits; the answer is the stricter.
+        """The code-request limits; the answer is the strictest.
 
-        The address limit is counted first. Once an address is over it, the
-        email is not counted at all, so an address (or botnet member) sending
-        many different emails can only ever create a bounded number of counter
-        rows: at most ``CODE_REQUEST_PER_IP.limit`` email rows per address
-        window. ``blocked_by_ip`` tells the caller which limit refused."""
-        by_ip = await self.hit(CODE_REQUEST_PER_IP, self.ip_key(client))
+        1. The address: 10 per window, or, for a shared address (every client
+           looks alike), a high flood cap only. ``blocked_by_ip`` tells the
+           caller this one refused; once over it, nothing else is counted, so
+           an address can only ever create a bounded number of counter rows.
+        2. The pair (email, address): 3 per window. A client that is not the
+           admin cannot use up another address's requests.
+        3. The email alone, at a higher ceiling (12 per window): it bounds mail
+           to the admin from many addresses without letting one address block
+           the genuine request from another."""
+        if self.is_shared(client):
+            by_ip = await self.hit(CODE_REQUEST_SHARED_FLOOD, self.ip_key(client))
+        else:
+            by_ip = await self.hit(CODE_REQUEST_PER_IP, self.ip_key(client))
         if not by_ip.allowed:
             return Decision(False, by_ip.count, by_ip.limit, by_ip.retry_after, True)
-        by_email = await self.hit(CODE_REQUEST_PER_EMAIL, self.email_key(email))
-        return by_email
+        by_pair = await self.hit(CODE_REQUEST_PER_EMAIL, self._pair_key(email, client))
+        by_email = await self.hit(
+            CODE_REQUEST_EMAIL_CEILING, self.email_key(email)
+        )
+        return by_pair if not by_pair.allowed else by_email
+
+    @staticmethod
+    def pair_subject(email: str, client: Optional[str]) -> str:
+        """The subject of the email-code step's failure counter and lock
+        (use with ``scope="signin"``)."""
+        return f"{normalise_email(email)}|{rate_limit_key(client)}"
+
+    def _pair_key(self, email: str, client: Optional[str]) -> str:
+        return hashed_key(
+            self._pepper, "pair", f"{normalise_email(email)}|{rate_limit_key(client)}"
+        )
+
+    async def email_ceiling(self, email: str) -> Decision:
+        """Count one failed email code against the per-email ceiling (30 per
+        hour, any address). Crossing it is an ALERT for the caller (the 30th
+        sets ``count == limit``), never a lock: an attacker who can reach the
+        sign-in page must not be able to lock the genuine admin out."""
+        return await self.hit(SIGNIN_EMAIL_CEILING, self.email_key(email))
+
+    async def first_for_challenge(self, name: str, challenge_id: str, seconds: int) -> bool:
+        """True for the first call per challenge and window (``name`` keeps the
+        counters of different purposes apart): one aggregated record per
+        challenge instead of one per request."""
+        key = hashed_key(self._pepper, "challenge", challenge_id)
+        return (await self.hit(Rule(name, 1, seconds), key)).allowed
+
+    async def lock_notice(self, email: str) -> Decision:
+        """At most one lockout mail per email per hour."""
+        return await self.hit(Rule("lock_notice", 1, 3600), self.email_key(email))
 
     async def decoy_global_failure(self, client: Optional[str]) -> BreakerOutcome:
         """The same two counter updates ``record_global_failure`` makes for an
@@ -326,8 +394,8 @@ class Limiter:
         return Decision(allowed, count, CHALLENGE_ATTEMPTS.limit, retry)
 
     # second factor failures and lockout
-    def _subject_keys(self, subject: str) -> Tuple[str, str, str]:
-        base = hashed_key(self._pepper, "factor", normalise_email(subject))
+    def _subject_keys(self, subject: str, scope: str = "factor") -> Tuple[str, str, str]:
+        base = hashed_key(self._pepper, scope, normalise_email(subject))
         return base + ":fail", base + ":strikes", base + ":lock"
 
     def _attempt_subject(self, subject: str) -> str:
@@ -343,18 +411,20 @@ class Limiter:
         the reset, and the rolling 24 h failure tally is not reset by it."""
         return await self.hit(FACTOR_ATTEMPTS, self._attempt_subject(subject))
 
-    async def lock_status(self, subject: str) -> LockStatus:
-        """Whether ``subject`` (an admin email) is locked out right now."""
-        _, _, lock_key = self._subject_keys(subject)
+    async def lock_status(self, subject: str, scope: str = "factor") -> LockStatus:
+        """Whether ``subject`` (an admin email for the second factor, an
+        ``email|address`` pair for the email-code step: ``scope="signin"``) is
+        locked out right now."""
+        _, _, lock_key = self._subject_keys(subject, scope)
         until = await self._store.latest_window(lock_key)
         if until is not None and until.timestamp() > self._clock.time():
             return LockStatus(True, until, self._retry(until))
         return LockStatus(False, None, 0)
 
-    async def _trip(self, subject: str) -> FailureOutcome:
+    async def _trip(self, subject: str, scope: str = "factor") -> FailureOutcome:
         """Lock ``subject``: 15 min, then 1 h, then 4 h for each further
         lockout within a day."""
-        _, strike_key, lock_key = self._subject_keys(subject)
+        _, strike_key, lock_key = self._subject_keys(subject, scope)
         strike_start, _ = self._window(Rule("strikes", 1, STRIKE_WINDOW_SECONDS))
         strikes = await self._store.increment(strike_key, strike_start)
         level = min(strikes, len(LOCKOUT_SECONDS))
@@ -362,16 +432,16 @@ class Limiter:
         await self._store.increment(lock_key, until)
         return FailureOutcome(True, True, level, until, self._retry(until))
 
-    async def record_failure(self, subject: str) -> FailureOutcome:
+    async def record_failure(self, subject: str, scope: str = "factor") -> FailureOutcome:
         """Count a wrong TOTP / recovery code. Two rules lock the subject
         (and share the escalation): five failures in five minutes, and
         fifteen in any rolling 24 hours (which catches slow guessing that
         stays under the short rule). A failure while already locked is not
         counted and reports the lock."""
-        status = await self.lock_status(subject)
+        status = await self.lock_status(subject, scope)
         if status.locked:
             return FailureOutcome(True, False, 0, status.until, status.retry_after)
-        fail_key, _, _ = self._subject_keys(subject)
+        fail_key, _, _ = self._subject_keys(subject, scope)
         long_key = fail_key + ":long"
         start, _ = self._window(FACTOR_FAILURES)
         short = await self._store.increment(fail_key, start)
@@ -386,26 +456,27 @@ class Limiter:
         if short == FACTOR_FAILURES.limit or long_total >= LONG_FAILURE_LIMIT:
             if long_total >= LONG_FAILURE_LIMIT:
                 await self._store.reset(long_key)  # start over after the lockout
-            return await self._trip(subject)
+            return await self._trip(subject, scope)
         if short > FACTOR_FAILURES.limit:  # concurrent overshoot
-            again = await self.lock_status(subject)
+            again = await self.lock_status(subject, scope)
             return FailureOutcome(
                 again.locked, False, 0, again.until, again.retry_after
             )
         return FailureOutcome(False, False, 0, None, 0)
 
-    async def record_success(self, subject: str) -> None:
+    async def record_success(self, subject: str, scope: str = "factor") -> None:
         """A correct code: the five-minute failure counter and the escalation
         reset. It does not clear an active lockout (callers check
         ``lock_status`` before verifying, so a locked subject never gets
         here) and it does not clear the rolling 24 h tally, so slow guessing
         cannot be wiped by a legitimate sign-in."""
-        fail_key, strike_key, _ = self._subject_keys(subject)
+        fail_key, strike_key, _ = self._subject_keys(subject, scope)
         await self._store.reset(fail_key)
         await self._store.reset(strike_key)
-        await self._store.reset(
-            f"{FACTOR_ATTEMPTS.name}:{self._attempt_subject(subject)}"
-        )
+        if scope == "factor":  # an email-code success never resets the factor's guesses
+            await self._store.reset(
+                f"{FACTOR_ATTEMPTS.name}:{self._attempt_subject(subject)}"
+            )
 
     async def unlock(self, subject: str) -> None:
         """Operator override: clear failures, escalation and any lockout."""

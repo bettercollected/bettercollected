@@ -362,11 +362,12 @@ async def test_revoke_other_admin_needs_a_fresh_stepup(portal, clock):
     assert await portal.sessions.revoke_other_admin(session, other.id) is True
 
 
-async def test_stepup_by_totp_or_recovery_code_and_regeneration(portal, clock, runtime_engine):
+async def test_stepup_by_totp_or_recovery_code_and_regeneration(portal, clock, runtime_engine, transport):
     secret, codes, _, session = await mfa_session(portal, clock)
     clock.advance(400)
     session = await portal.sessions.reload(session)
-    assert (await portal.factors.regenerate_codes(session, IP, UA, None)).reason == fsvc.STEPUP_REQUIRED
+    # no fresh code in the request: refused, even inside a step-up window
+    assert (await portal.factors.regenerate_codes(session, None, IP, UA, None)).reason == fsvc.WRONG
     # a recovery code counts as a factor for step-up
     out = await portal.factors.verify_stepup(session, codes[0], IP, UA, None)
     assert out.ok and out.method == "recovery"
@@ -374,8 +375,12 @@ async def test_stepup_by_totp_or_recovery_code_and_regeneration(portal, clock, r
     assert portal.sessions.stepup_fresh(session)
     _, other = await new_session(portal, OTHER_ADMIN)
     assert await portal.sessions.revoke_other_admin(session, other.id) is True
-    new = await portal.factors.regenerate_codes(session, IP, UA, None)
+    new = await portal.factors.regenerate_codes(session, codes[2], IP, UA, None)
     assert new.ok and len(new.codes) == 10 and not set(new.codes) & set(codes)
+    for job in new.after:  # every admin is told
+        await job()
+    assert sorted(transport.recipients[-2:]) == sorted([ADMIN, OTHER_ADMIN])
+    assert "recovery codes" in transport.sent[-1].subject
     # the old set is dead, the new one works
     token, s2 = await new_session(portal)
     assert not (await portal.factors.verify_login(s2, token, codes[1], IP, UA, None)).ok
@@ -393,20 +398,27 @@ async def test_stepup_pages_through_the_browser(app, portal, transport, clock, r
         "/mfa/enrol/confirm",
         data={"csrf_token": token, "factor_id": factor_id, "code": totp.code_at(secret, clock.time())},
     )
-    clock.advance(301)
     page = await b.get("/mfa/recovery-codes")
     t = TOKEN_RE.search(page.text).group(1)
+    assert 'name="code"' in page.text  # the form asks for a fresh code
+    # inside the window that sign-in opened, a request without a code is still refused
     refused = await b.post("/mfa/recovery-codes", data={"csrf_token": t})
-    assert refused.status_code == 303 and refused.headers["location"] == "/mfa/stepup?next=/mfa/recovery-codes"
-    prompt = await b.get(refused.headers["location"])
+    assert refused.status_code == 200 and "did not work" in refused.text
+    assert not CODES_RE.findall(refused.text)
+    clock.advance(301)
+    prompt = await b.get("/mfa/stepup?next=/mfa/recovery-codes")
     assert 'autocomplete="one-time-code"' in prompt.text
     bad_next = await b.post(
         "/mfa/stepup",
         data={"csrf_token": t, "next": "https://evil.example/", "code": totp.code_at(secret, clock.time())},
     )
     assert bad_next.status_code == 303 and bad_next.headers["location"] == "/account"  # never an open redirect
-    again = await b.post("/mfa/recovery-codes", data={"csrf_token": t})
+    clock.advance(30)  # the next code (a used one is not accepted twice)
+    again = await b.post(
+        "/mfa/recovery-codes", data={"csrf_token": t, "code": totp.code_at(secret, clock.time())}
+    )
     assert again.status_code == 200 and len(CODES_RE.findall(again.text)) == 10
+    assert "recovery codes" in transport.sent[-1].subject  # every admin is told
     await b.aclose()
 
 
@@ -415,7 +427,19 @@ async def test_adding_or_replacing_a_factor_needs_stepup(app, portal, transport,
     clock.advance(400)
     session = await portal.sessions.reload(session)
     out = await portal.factors.start_enrol(session, IP, UA, None)
-    assert isinstance(out, fsvc.Outcome) and out.reason == fsvc.STEPUP_REQUIRED
+    assert isinstance(out, fsvc.Outcome) and out.reason == fsvc.WRONG
+
+
+async def test_replacing_a_factor_needs_a_fresh_code_even_inside_the_window(portal, clock):
+    secret, _, _, session = await mfa_session(portal, clock)
+    assert portal.sessions.stepup_fresh(session)  # sign-in just opened the window
+    out = await portal.factors.start_enrol(session, IP, UA, None)  # a stolen cookie alone
+    assert isinstance(out, fsvc.Outcome) and out.reason == fsvc.WRONG
+    clock.advance(30)
+    started = await portal.factors.start_enrol(
+        session, IP, UA, None, code=totp.code_at(secret, clock.time())
+    )
+    assert not isinstance(started, fsvc.Outcome)
 
 
 # -- action-bound tokens and the route attribute -------------------------------------
@@ -495,7 +519,7 @@ async def test_api_stepup_issues_a_token_for_a_registered_action(portal, clock):
 def test_every_declared_stepup_is_enforced_and_declarations_are_checked():
     reg = build_registry()
     declared = [r for r in reg.router.routes if getattr(r.endpoint, step.STEPUP_ATTR, None)]
-    assert declared  # at least regenerate-recovery-codes
+    assert declared  # the settings and tasks routes
     for route in declared:
         assert route.dependencies, route.path  # enforced by a dependency, not by the handler
     # settings and tasks pages (later PRs) must declare one on every mutating route

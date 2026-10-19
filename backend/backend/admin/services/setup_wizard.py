@@ -59,8 +59,15 @@ log = logging.getLogger("backend.admin.setup")
 
 AfterResponse = Callable[[], Awaitable[object]]
 
-# five tries per address and 15 minutes; the token itself locks after 20 in all
+# Wrong tries that may count against the token: five per client (address plus
+# User-Agent) and 15 minutes, and eight per address and hour (fewer than the 20
+# that lock the token, even across a window boundary). Past either limit a wrong
+# try is refused without being counted or audited, and the right token still
+# works, so nobody who merely reaches the page can burn the token. A third,
+# higher cap bounds the work an address can cause at all.
 TOKEN_TRIES = Rule("setup_try", 5, 15 * 60)
+TOKEN_TRIES_HOUR = Rule("setup_try_hour", 8, 60 * 60)
+TOKEN_FLOOD = Rule("setup_flood", 60, 10 * 60)
 MAIL_SENDS = Rule("setup_mail_send", 3, 10 * 60)
 MAIL_CODE_TRIES = Rule("setup_mail_code", 5, 10 * 60)
 CHECKLIST_WINDOW = timedelta(hours=2)
@@ -102,6 +109,21 @@ DEFAULT_PORT = 587
 _SERVER, _PORT, _USER, _PASSWORD = (
     "ADMIN_MAIL_SMTP_SERVER", "ADMIN_MAIL_SMTP_PORT", "ADMIN_MAIL_USER", "ADMIN_MAIL_PASSWORD",
 )
+
+
+def _transport(values: Mapping[str, Any]) -> tuple:
+    """STARTTLS, TLS from the start and certificate checking, with the defaults."""
+    return (
+        bool(values.get("ADMIN_MAIL_STARTTLS", True)),
+        bool(values.get("ADMIN_MAIL_SSL_TLS", False)),
+        bool(values.get("ADMIN_MAIL_VALIDATE_CERTS", True)),
+    )
+
+
+def _protected(values: Mapping[str, Any]) -> bool:
+    """Encrypted (STARTTLS or TLS) with the server certificate verified."""
+    starttls, ssl_tls, validate = _transport(values)
+    return (starttls or ssl_tls) and validate
 
 
 @dataclass
@@ -211,9 +233,12 @@ class SetupWizard:
         expired, locked, setup over)."""
         email = str(raw_email or "").strip().lower()[:320]
         token = str(raw_token or "")[:MAX_TOKEN_FIELD]
-        decision = await self._limiter.hit(TOKEN_TRIES, self._limiter.ip_key(ip))
-        if not decision.allowed:
+        flood = await self._limiter.hit(TOKEN_FLOOD, self._limiter.ip_key(ip))
+        if not flood.allowed:
             return RedeemResult(False)  # not audited: a refused try must not grow the log
+        per_client = await self._limiter.hit(TOKEN_TRIES, self._limiter.client_key(ip, ua))
+        per_address = await self._limiter.hit(TOKEN_TRIES_HOUR, self._limiter.ip_key(ip))
+        counting = per_client.allowed and per_address.allowed
         # Every refusal runs the same statements: the token is looked up whether or
         # not the address is listed or setup is over (a stand-in value is checked
         # then), and a refused try always writes the same audit row.
@@ -224,9 +249,12 @@ class SetupWizard:
             before = await setup_token.active(conn)
             real = listed and not complete
             ok = await setup_token.redeem(
-                conn, self._master_key, token if real else _STAND_IN
+                conn, self._master_key, token if real else _STAND_IN,
+                count_failures=counting,
             )
             if not ok:
+                if not counting:  # over the limits: nothing counted, nothing written
+                    return RedeemResult(False)
                 if before is None:  # same statement count as a counted wrong try
                     await conn.execute(_NO_OP_UPDATE)
                 await self._audit_refused(conn, ip, ua, rid)
@@ -326,6 +354,12 @@ class SetupWizard:
                 and candidate.get(_PORT, DEFAULT_PORT) == saved.get(_PORT, DEFAULT_PORT)
                 and candidate.get(_USER) == saved.get(_USER)
             )
+            # Transport security: the saved password goes out only over a
+            # protected, verified connection, or over exactly the (already
+            # insecure) settings it was saved with. Any other change of the TLS
+            # modes or of certificate checking needs the password typed again.
+            if same and not (_protected(candidate) or _transport(candidate) == _transport(saved)):
+                same = False
             if not same:
                 problems["password"] = "password_retype"
         return problems

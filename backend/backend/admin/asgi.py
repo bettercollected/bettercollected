@@ -25,10 +25,27 @@ log = logging.getLogger("backend.admin")
 registry = RouteRegistry()
 
 
+def warn_shared_gateway(settings: Optional[GateSettings]) -> bool:
+    """Log a startup WARNING when every client will arrive as the edge gateway
+    address (no trusted proxy reports the real one). Returns whether it warned."""
+    if settings is None or settings.edge_gateway is None or settings.trusted_proxies:
+        return False
+    log.warning(
+        "admin gate: clients are seen as the edge gateway address %s (ADMIN_TRUSTED_PROXIES "
+        "is empty), so ADMIN_ALLOWED_IPS, session address binding and per-address limits "
+        "cannot tell clients apart. The real boundary is the host port binding (keep it on "
+        "127.0.0.1) and who can log in to the host: any local process or reverse proxy on "
+        "the host passes the address gate. Do not put a proxy in front of this port.",
+        settings.edge_gateway,
+    )
+    return True
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("admin service starting")
     portal = getattr(app.state, "portal", None)
+    warn_shared_gateway(getattr(app.state, "gate_settings", None))
     cleanup = None
     if portal is not None:
         from backend.admin.db import ensure_schema
@@ -96,8 +113,11 @@ def get_admin_application(
     inner.add_exception_handler(RequestValidationError, _invalid)
     inner.add_exception_handler(Exception, _failure)
     app = inner
+    inner.state.gate_settings = settings
     if portal is not None:
         inner.state.portal = portal
+        if settings.edge_gateway is not None:
+            portal.limiter.set_shared_clients([str(settings.edge_gateway)])
         app = CsrfMiddleware(
             inner, portal.settings.public_origins, portal.csrf_key, portal.clock
         )

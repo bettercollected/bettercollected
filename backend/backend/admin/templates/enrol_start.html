@@ -7,8 +7,16 @@
 {% if replacing %}
 <p>{{ _("This replaces your current authenticator and your recovery codes.") }}</p>
 {% endif %}
+{% if needs_code %}
+<p>{{ _("Enter a fresh code from your current authenticator app (or a recovery code) to continue.") }}</p>
+{% include "_factor_error.html" %}
+{% endif %}
 <form method="post" action="/mfa/enrol">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% if needs_code %}
+  <label for="code">{{ _("Authenticator or recovery code") }}</label>
+  <input id="code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required maxlength="24" autofocus>
+  {% endif %}
   <button type="submit">{{ _("Show the setup code") }}</button>
 </form>
 {% endblock %}
