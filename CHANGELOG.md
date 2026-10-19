@@ -25,6 +25,30 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   sign-in mail gets its own `admin_mail` settings section, which can only be saved
   after a test mail was delivered (`settings-mail-apply`).
 
+### Changed
+
+- **`deploy.sh` needs one value from you and keeps the stack's keys in the
+  settings store.** A new install generates `SETTINGS_MASTER_KEY`, the database
+  passwords and the Umami secret into the root `.env`, creates the stack's own
+  keys (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`,
+  `TEMPORAL_API_KEY`, the response keyset) straight into the settings store before
+  any service starts (nothing is printed), and shows a one-time setup token on
+  the console. The backend, jobs worker, auth and the Google integration read
+  their settings from the store (`SETTINGS_STORE=required`; set `off` in the root
+  `.env` to roll back). The Temporal worker stays off the store with two keys in
+  its environment (`API_KEY`, `AES_HEX_KEY`) and never gets the master key.
+  `DEBUG` and `API_DOCS_ENABLED` are no longer pinned in the compose file (a
+  pinned value would win over the portal); both stay off by default.
+  **Upgrade note:** re-run `deploy.sh`: it imports the keys and settings your
+  files carry into the store (never overwriting) and compares them. An
+  environment value still wins over the store, so afterwards run
+  `./deploy.sh settings-prune` (see "Upgrading to 4.0" in
+  `docs/admin-service.md`). Back up `SETTINGS_MASTER_KEY`: it is now required by
+  every service that reads the store, and without it the store cannot be read.
+  New subcommands: `settings-import`, `settings-drift`, `settings-prune`,
+  `settings-env-export`, `settings-set`, `settings-restore`, `settings-history`,
+  `settings-verify`, `master-key-fingerprint`, `setup-token`.
+
 ### Removed
 
 - **The public app's platform metrics dashboard is gone.** Platform
@@ -38,6 +62,21 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `ADMIN` role are unchanged.
 
 ### Security
+
+- **Temporal is no longer published on the host, and Umami's built-in login is
+  replaced.** `docker-compose.deployment.yml` published Temporal's unauthenticated
+  frontend on host port 7234; it is reachable on the compose network only now
+  (`docker compose exec temporal temporal ...` from the host). Umami's admin login
+  was the well-known `admin`/`umami` on a port the respondents' browsers have to
+  reach: `deploy.sh` replaces it with a generated password after the first start
+  (and on an upgrade when the built-in login still works), stored as the
+  `UMAMI_PASSWORD` setting. The Temporal, Umami and Mongo databases take
+  generated passwords on a new volume (the `MONGO_URI` setting is stored to match); a volume created by an earlier release keeps its
+  password. The remaining internal-only credentials and ports are listed in
+  `docs/admin-service.md`.
+  **Upgrade note:** anything that used port 7234 must join the compose network.
+  To sign in to Umami yourself: `./deploy.sh settings-env-export --keys
+  UMAMI_USERNAME,UMAMI_PASSWORD --out FILE`.
 
 - **The internal APIs no longer serve API docs by default, and 422 answers no
   longer echo the rejected input.** The backend, auth and Google services

@@ -89,18 +89,22 @@ known only by their SHA-256 in `common/common/configs/shipped_secrets.py`
 `.github/workflows/ci.yml` are accepted so tests and local development keep
 working, but they are public too: never deploy with them.
 
-**Self-hosted stacks** get their own values from `deploy.sh`: on its first run
-`deploy/generate-secrets.sh` writes `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and
-`MASTER_ENCRYPTION_KEYSET` into the gitignored root `.env` (mode 600), and
-`docker-compose.deployment.yml` passes them to the services. It never changes
-a value already there; a value still set in `.env.deployment` is copied over
-unless it is a published one. Keep that file. Rotating these keys has costs:
+**Self-hosted stacks** get their own values from `deploy.sh`: on a new stack
+`python -m backend.admin bootstrap-keys` generates `AUTH_JWT_SECRET`,
+`AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY` and
+`MASTER_ENCRYPTION_KEYSET` straight into the settings store (docs/admin-service.md);
+the root `.env` (gitignored, mode 600) keeps `SETTINGS_MASTER_KEY`, the database
+passwords and the Temporal worker's two copies (`API_KEY`, `AES_HEX_KEY`). An
+upgrade imports the values an older release kept in `.env` or `.env.deployment`
+(`deploy/generate-secrets.sh` copies and checks them first) and never overwrites
+the store. Keep the master key backed up. Local development sets
+`SETTINGS_STORE=off` and keeps using plain environment values. Rotating these keys has costs:
 a new `AUTH_JWT_SECRET` signs everyone out; data encrypted with the old
 `AUTH_AES_HEX_KEY` (Google Forms and Sheets connections, form-action secrets,
 SCIM webhook secrets) can no longer be read; and responses can only be read
 with the `MASTER_ENCRYPTION_KEYSET` they were stored with, so a stack that
-already holds responses must keep its keyset (`deploy.sh` stops rather than
-generate a new one for it). A keyset can be rotated without losing data (a new
+already holds responses must keep its keyset (`deploy.sh` imports it and stops
+rather than generate a new one for it). A keyset can be rotated without losing data (a new
 key, every stored value re-encrypted, then the old key dropped):
 `docs/response-keyset-rotation.md`. The services log a warning at startup while
 the keyset holds a key that was published in this repository, as the CI test

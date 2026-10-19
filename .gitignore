@@ -11,3 +11,7 @@ webapp/.yarn
 # keyset rotation files (docs/response-keyset-rotation.md)
 /keyset-rotation/
 *.keyset
+.env.pre-v4.*
+.env.deployment.pre-v4.*
+.env.*.pruned
+.env.deployment.pre-umami.*

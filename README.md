@@ -104,36 +104,43 @@ third-party service ever sees responder data:
 [`docker-compose.deployment.yml`](docker-compose.deployment.yml) with health
 checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
 auth, MongoDB (+ seed data), Temporal + workers, nginx (`:3001`/`:3002`), and
-[Umami](https://umami.is) analytics (`:3003`, default login `admin`/`umami` —
-change it). On first run it also generates a random `UMAMI_APP_SECRET`, the
-application database passwords, the keys the services use to call each
-other (`AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`) and the stack's own
-signing and encryption keys (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`,
-`MASTER_ENCRYPTION_KEYSET`) into a gitignored root `.env`; keep that file. The
-backend auto-provisions the Umami website on startup, so analytics needs no
-manual setup.
+[Umami](https://umami.is) analytics (`:3003`; the built-in `admin`/`umami`
+login is replaced by a generated password on the first run). Temporal and the
+databases are reachable on the compose network only.
 
-Configuration lives in [`.env.deployment`](.env.deployment), which ships no
-secrets. The services refuse to start when `AUTH_JWT_SECRET` or
-`AUTH_AES_HEX_KEY` is empty or a value that was ever published in this
-repository. Put TLS or a reverse proxy in front of the stack yourself, and
-set `TRUSTED_PROXIES` in the root `.env` to the address(es) or CIDR(s) it
-connects to the backend from (comma-separated). The backend takes the client
-address from `X-Forwarded-For` only for requests from those proxies; without
-it every client looks like the proxy (and shares its rate limits).
+**What you provide:** one value, `PLATFORM_ADMIN_EMAILS` (who may sign in to
+the internal admin portal), in the gitignored root `.env`; optionally
+`ADMIN_ALLOWED_IPS` if you reach the portal from another address than the host.
+**What `deploy.sh` generates, once, and never overwrites:** the database
+passwords, `UMAMI_APP_SECRET` and `SETTINGS_MASTER_KEY` into the root `.env`
+(keep that file, and back up `SETTINGS_MASTER_KEY` separately: without it the
+settings store cannot be read), and the stack's own keys (`AUTH_JWT_SECRET`,
+`AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`,
+`MASTER_ENCRYPTION_KEYSET`) straight into the settings store, where nothing
+prints them. On a new stack it ends by showing a one-time setup token on the
+console. Everything else is a setting in the store. Details, the host commands
+and the upgrade path: [docs/admin-service.md](docs/admin-service.md).
 
-**Upgrading a stack that used the shipped keys:** earlier versions of
-`.env.deployment` contained concrete `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and
-`MASTER_ENCRYPTION_KEYSET` values. See the upgrade note in
-[CHANGELOG.md](CHANGELOG.md) before re-running `./deploy.sh`.
+[`.env.deployment`](.env.deployment) ships no secrets and is only needed for
+values you want to set from a file. The services refuse to start when
+`AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY` is empty or a value that was ever
+published in this repository. Put TLS or a reverse proxy in front of the stack
+yourself, and set `TRUSTED_PROXIES` in the root `.env` (or the setting in the
+portal) to the address(es) or CIDR(s) it connects to the backend from
+(comma-separated). The backend takes the client address from `X-Forwarded-For`
+only for requests from those proxies; without it every client looks like the
+proxy (and shares its rate limits).
 
-**Upgrading an existing instance:** the backend's internal job routes (used by
-the Temporal workers) no longer have a default key. Re-run `./deploy.sh`: it
-adds `TEMPORAL_API_KEY` to the root `.env` and passes it to the backend and the
-worker. If you deploy without `deploy.sh`, set the same random value as
-`TEMPORAL_API_KEY` on the backend and as `API_KEY` on the Temporal worker and
-the actions-executor; until then imports, scheduled deletions and form actions
-fail with 503 and the services log an error at startup.
+**Upgrading an existing instance:** re-run `./deploy.sh`. It imports the keys and
+settings your root `.env` and `.env.deployment` hold into the settings store
+(never overwriting), compares them, and tells you when to remove the old values
+with `./deploy.sh settings-prune`. Read "Upgrading to 4.0" in
+[docs/admin-service.md](docs/admin-service.md) first, and back up the root
+`.env` and the database. If you deploy without `deploy.sh`, set the same random
+value as `TEMPORAL_API_KEY` in the settings store and as `API_KEY` on the
+Temporal worker and the actions-executor; until then imports, scheduled
+deletions and form actions fail with 503 and the services log an error at
+startup.
 
 ### CI deployments
 

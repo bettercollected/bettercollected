@@ -13,10 +13,12 @@ def _service_block(compose: str, name: str) -> str:
     return match.group(1)
 
 
-def test_deployment_compose_sets_debug_false_for_each_service():
+def test_deployment_compose_does_not_pin_debug():
+    """A value pinned in compose silently wins over the portal (an environment
+    value beats the settings store). The code default is off."""
     compose = (REPO / "docker-compose.deployment.yml").read_text()
     for name in SERVICES:
-        assert re.search(r'^\s+DEBUG: "false"$', _service_block(compose, name), re.M), name
+        assert not re.search(r"^\s+DEBUG\s*:", _service_block(compose, name), re.M), name
 
 
 def test_no_shipped_deployment_file_enables_debug():
@@ -28,4 +30,4 @@ def test_no_shipped_deployment_file_enables_debug():
         text = (REPO / name).read_text()
         assert not re.search(r"^\s*DEBUG\s*[:=]\s*[\"']?(true|1|yes|on)", text, re.M | re.I), name
     env = (REPO / ".env.deployment").read_text()
-    assert re.search(r"^DEBUG=false$", env, re.M)
+    assert not re.search(r"^DEBUG=", env, re.M)
