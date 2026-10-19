@@ -45,7 +45,26 @@ def build_app(env: Optional[Mapping[str, str]] = None):
     return get_admin_application(settings, portal=portal)
 
 
+def configure_logging() -> None:
+    """Send the service's own log lines (INFO and up) to standard error, the
+    container log. The ``backend`` package carries a ``NullHandler``, so without a
+    handler here the bare-gate notice, gate refusals, mail that could not be sent
+    and loop failures were dropped. The lines name settings, reasons and counts,
+    never values (see the call sites). Only the ``backend`` loggers get the handler:
+    third-party libraries keep Python's default (warnings and up), so no library's
+    INFO lines (mail headers, addresses) reach the log."""
+    target = logging.getLogger("backend")
+    if any(getattr(h, "_bc_admin_log", False) for h in target.handlers):
+        return
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+    handler._bc_admin_log = True  # type: ignore[attr-defined]
+    target.addHandler(handler)
+    target.setLevel(logging.INFO)
+
+
 def main() -> None:
+    configure_logging()
     settings = GateSettings.from_env()
     app = build_app()
     uvicorn.run(
