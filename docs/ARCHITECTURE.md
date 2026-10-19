@@ -101,7 +101,7 @@ creates **Schedules** on the Temporal server (PostgreSQL-backed). Three worker s
 Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACKEND__<job>=postgres`, tables in the
 `jobs` schema): the backend's `jobs-worker` consumes `delete_user` / `delete_response`, the actions-executor consumes
 `run_action` (`JOBS_BACKEND=postgres` in its entrypoint). Temporal stays the default until the cutover
-(plan: [plans/postgres-consolidation.md](../plans/postgres-consolidation.md) §7).
+(see [postgres-cutover-runbook.md](postgres-cutover-runbook.md)).
 
 ## Example end-to-end flows
 
@@ -125,7 +125,7 @@ Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACK
   registered in [backend/app/handlers/database.py](../backend/backend/app/handlers/database.py) `init_db`; core
   models come from `common/`.
 - **PostgreSQL (`app-postgres`)** — the application database that is replacing MongoDB and Temporal
-  (plan: [plans/postgres-consolidation.md](../plans/postgres-consolidation.md)). One database, one schema per
+  (see [postgres-cutover-runbook.md](postgres-cutover-runbook.md)). One database, one schema per
   service (`app`, `auth`, `google`, `jobs`), one least-privilege role each — the actions-executor's role can reach
   `jobs` only, because it runs user-authored code. Every repository in backend, auth and the google integration has
   a Postgres twin behind a `RoutingRepository`; per-group flags (`DB_READ_SOURCE__<g>`, `DB_WRITE_MODE__<g>`) move
@@ -141,10 +141,14 @@ Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACK
 
 A separate internal service (`backend/backend/admin/`, `docs/admin-service.md`): host-only, a gate (address and host
 allowlists), an email code plus an authenticator code, an append-only hash-chained audit log, and its own schema and
-database roles. Its server-rendered pages (strict CSP, no inline script or style) are read-only at this stage:
-dashboard, health, masked configuration, platform metrics, audit log and sessions. It never imports the public API.
-`SETTINGS_MASTER_KEY` keys the audit chain and encrypts second-factor secrets; it cannot be recovered, so the
-portal reminds the operator to back it up.
+database roles. Its server-rendered pages (strict CSP, no inline script or style) are the dashboard, health, masked
+configuration, platform metrics, audit log, sessions, the settings pages (edit, history, restore, integrity) and the
+task pages (start, cancel, resume and follow runs of the separate task runner service). A first-run setup wizard
+signs in the first admin without mail. It never imports the public API. The stack's keys and settings live in a
+signed, encrypted settings store (schema `settings`) that the backend, jobs worker, auth and the Google integration
+read. `SETTINGS_MASTER_KEY` keys the store and the audit chain and encrypts second-factor secrets; it cannot be
+recovered, so the portal reminds the operator to back it up. Upgrading from 3.x: "Upgrading to 4.0" in
+`docs/admin-service.md`.
 
 ## Observability
 
@@ -152,13 +156,14 @@ Sentry + Elastic APM are initialized across services (backend `asgi.py`, and the
 analytics use **Umami**, self-hosted as its own compose service (`umami_client.py` + `analytics_service.py` query it;
 the webapp loads its tracker script directly from `UMAMI_SCRIPT_URL` and calls `umami.track()` to attribute public
 form views to a canonical `/{workspace_name}/forms/{slug}` path regardless of client-host vs. custom-domain routing —
-see `backend/AGENTS.md` "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`). Transactional email
+see `backend/AGENTS.md` "Analytics (Umami)"). Transactional email
 and events go through **Brevo** / SMTP (`brevo_service.py`, `mail_service.py`).
 
 ## Deployment
 
 - Images built per service (`.github/workflows/build-images.yml`), tagged `bettercollected/<service>:nightly`.
 - `docker-compose.deployment.yml` runs the full stack (webapp, backend, auth, both integrations, temporal + workers,
-  mongo + seed, postgres, nginx, **umami + its own postgres**). `deploy.sh` / `Dockerfile.*.mongo-seed` handle seeding.
+  mongo + seed, the application postgres, nginx, **umami + its own postgres**, the admin service, the jobs worker, the
+  document sandbox and the task runner). `deploy.sh` / `Dockerfile.*.mongo-seed` handle seeding.
 - nginx (`nginx-deployment.conf`) fronts the admin/client/custom-domain hosts. Umami's tracker script and event endpoint are
   served by nginx on port `3003`; its dashboard is published on `127.0.0.1:3004` only (no TLS routing yet).

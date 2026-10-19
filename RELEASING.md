@@ -50,11 +50,11 @@ us automate release notes later.
    git push origin vX.Y.Z
    ```
 
-5. **Publish GitHub release notes.** Create a release from the tag; use the
-   changelog section as the body. GitHub's "Generate release notes" can seed it
-   from the Conventional-Commit history.
-6. **Verify deploys.** Confirm the deployment workflow(s) picked up the release
-   as expected.
+5. **Publish GitHub release notes (optional).** Pushing the tag is what ships a release;
+   a GitHub release is only needed for a large set of changes or when someone asks for
+   one. If you create it, use the changelog section as the body.
+6. **Verify deploys.** The deployment workflow runs only for `vMAJOR.MINOR.PATCH` tags
+   (optionally with a pre-release suffix). Confirm it picked up the release as expected.
 
 ## Keeping the changelog current
 

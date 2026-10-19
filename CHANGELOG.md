@@ -7,865 +7,702 @@ and the project aims to follow [Semantic Versioning](https://semver.org/spec/v2.
 See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 > This file was introduced partway through the project's life, so history before
-> `2.2.0` is captured by git tags and release notes rather than here.
+> `2.2.0` is captured by git tags and release notes rather than here. The sections
+> for `2.3.0` to `3.4.0` were assembled afterwards from the tags and the merged
+> changes between them.
 
 ## [Unreleased]
+
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [4.0.0] - 2026-10-19
+
+4.0.0 moves platform administration out of the public app into an internal admin
+portal, and moves the stack's keys and settings into a signed, encrypted settings
+store. A `deploy.sh` install now needs one value from you (`PLATFORM_ADMIN_EMAILS`).
+The release also adds a public REST API with clients for forms as code, calculated
+fields, answer rules and multiple endings in the builder, outline-first AI form
+generation with proposals you accept or reject, new form looks (Kantlijn, Raster,
+Leaflet), a form language setting and organisation logos, and a long list of
+hardening changes to the deployment files and the internal APIs.
+
+**Upgrading from 3.x: read [Upgrading to 4.0](docs/admin-service.md#upgrading-to-40)
+first, and back up before you start.** The changes that need your attention:
+
+- `deploy.sh` imports the keys and settings your files hold into the settings store.
+  `SETTINGS_MASTER_KEY` (generated once into the root `.env`) is now required by every
+  service that reads the store: back it up, it cannot be recovered. `SETTINGS_STORE=off`
+  is the rollback.
+- The shipped signing and encryption keys are gone. Published `AUTH_JWT_SECRET` and
+  `AUTH_AES_HEX_KEY` values are replaced (everyone is signed out once, Google
+  connections and form-action secrets need re-entering), and a weak or malformed legacy
+  secret is refused on import until you replace it.
+- Behind a reverse proxy or load balancer, set `TRUSTED_PROXIES`.
+- `DEBUG` and the internal APIs' `/docs` are off unless you turn them on.
+- The public app's `/admin/metrics` page is gone; the metrics live in the admin portal,
+  which you reach through an SSH tunnel and never through a proxy.
+- `GET .../forms/{form_id}/all-submissions` needs the export permission.
+- Temporal's host port 7234 is no longer published; Umami's dashboard moved to
+  `127.0.0.1:3004` and its built-in login is replaced.
+- The webapp, the Temporal worker and the Typeform service read their own env files
+  (`.env.webapp`, `.env.worker`, `.env.typeform`) instead of `.env.deployment`.
+- The deploy workflow deploys release tags (`vX.Y.Z`) only.
+- Database migrations: application schema `0013` to `0016`, the new admin schema chain
+  (`0001` to `0017`); the roles script runs before and after them.
+
+### Added
+
+- **Internal admin portal.** A separate service (`python -m backend.admin.serve`),
+  published on the host's loopback only (`127.0.0.1:8100`) and reached through an SSH
+  tunnel. Every request passes a host and address gate; sign-in is a mailed code plus an
+  authenticator code (TOTP), with single-use recovery codes, fresh-code confirmation for
+  sensitive actions, sessions bound to address and browser, CSRF and same-origin checks,
+  and a strict content security policy. Every sign-in, change and refusal goes to an
+  append-only, hash-chained audit log. Pages: health (services, schemas, integrity),
+  configuration (every setting with its source, secrets never shown), platform metrics
+  (counts only), audit log, sessions, **settings** (edit, clear, restore, history, integrity
+  check) and **tasks** (start, cancel, resume, history and live progress). Background loops
+  mail the admins about changes, remove old rows and check the store's integrity. The
+  portal follows the interface's design system. Details: `docs/admin-service.md`.
+- **First-run setup wizard.** A fresh install can be set up without any mail working:
+  the host prints a one-time token (`setup-token`, valid 60 minutes, shown on the console
+  only and stored hashed), the operator redeems it at `/setup`, enrols an authenticator,
+  optionally saves the admin sign-in mail settings after a delivered test mail, and notes
+  the master key fingerprint. The wizard exists only while no admin has a second factor
+  and a valid token waits, and closes for good when finished.
+- **Settings store.** A signed (and, for secrets, encrypted) store with a registry of
+  every setting, versions and history, a loader that services read through with a signed
+  disk snapshot and hot reload, and an inventory of all settings
+  (`docs/settings-inventory.md`). The backend, jobs worker, auth and the Google
+  integration read their settings from it (`SETTINGS_STORE=required` in the deployment).
+- **Host commands for the settings store.** `python -m backend.admin` gains `bootstrap-keys` (generates a fresh
+  install's own keys into the store without printing them), `settings-import
+  --from-compose-config [--dry-run]` (imports the compose configuration once, reporting
+  conflicts between services instead of choosing), `settings-drift`, `settings-prune`
+  (removes the settings the store already holds from env files, so a stale environment
+  value cannot override the store), `settings-env-export`, `settings-set`,
+  `settings-restore`, `settings-history`, `settings-verify`, `setup-token`,
+  `master-key-fingerprint` and `settings-mail-apply` (and, for the portal's sign-in,
+  `reset-factor`, `unlock`, `resume-sign-in`, `revoke-sessions` and `audit-verify`);
+  `deploy.sh` runs the settings ones in a one-off container under the same names.
+  Every change is audited. The
+  admin sign-in mail has its own `admin_mail` settings section, which can only be saved
+  after a test mail was delivered.
+- **Task runner.** A separate service with its own narrow database roles runs the tasks
+  the portal lists: read-only checks (`responses.check_undecryptable`), a backfill that
+  stamps responses and deletion requests with their workspace
+  (`responses.backfill_workspaces`) and the response keyset rotation (`keyset.add_key`,
+  `keyset.promote`, `keyset.reencrypt`, `keyset.verify`, `keyset.drop_old`). Dry runs come
+  first, runs are signed, resumable and cancellable.
+- **Public REST API for forms as code**, at `/api/v1/public/v1` with workspace API keys:
+  list, create from a whole spec document, read as a document with an ETag, replace
+  (`If-Match` required), replace preview, validate, publish, edit operations, and response
+  summaries. It has a per-key rate limit, `Idempotency-Key` on create, operations and
+  publish, and one error shape. The OpenAPI document is committed in `docs/api`. A
+  TypeScript client and a Python client with a `bettercollected` command (`pull`, `diff`,
+  `push`, `validate`) live in `sdk/` (not published to a package registry).
+- **Form spec v1**: the public document shape of a form (pages, fields, logic, jumps,
+  endings, theme, hidden fields, logo and trust settings) as a versioned JSON Schema in
+  `docs/spec`, with id-addressed edit operations (client refs, atomic batches), size
+  limits, and the operations' own JSON Schema. The AI, the MCP server and the public API
+  share them.
+- **Answer rules and calculated fields.** A question's validations (length, format,
+  value, number of choices, with presets such as Dutch postcode, IBAN and phone number)
+  are now enforced for respondents and on the server. Calculated fields compute a value
+  from earlier answers with a formula (expressions v1), can be shown or hidden from
+  respondents and used in logic and piping; the server recomputes them and never trusts
+  the browser's result.
+- **Multiple endings.** A form can have several endings, one of them the default; a jump
+  can choose the ending to show, the submission records the ending reached, and the flow
+  view shows each ending as a node.
+- **AI form generation starts from an outline.** The AI proposes an outline you review
+  and edit before the form is built; the model fills only what is missing, and quality
+  checks run on generated and edited forms. In the chat, proposals can be accepted or
+  rejected (all or chosen changes) instead of being applied at once. The AI keeps a form
+  in one language, can change a form's look by preset, name a page's section and set the
+  form's language.
+- **Form language.** A form declares the language its questions are written in
+  (Nederlands, English, Deutsch, Français, Español, Italiano, Português, Polski, Dansk,
+  Svenska, Norsk bokmål, Suomi), set under Form → Language in the builder, by the edit
+  operation `set_form_language` (AI chat, MCP, public API) or by `language` in the form
+  spec. Respondent pages mark the form's text with it for screen readers and browsers,
+  and it goes live with the next publish. Forms generated from an outline get the
+  outline's language.
+- **Theme presets and theme shape.** Complete-look presets **Kantlijn** (a small-press
+  book: Besley titles, a cloth-green cover beside a marbled endpaper, a rose margin rule
+  and notes) and **Raster** (a Swiss poster: expanded Archivo titles on a visible column
+  grid, square edges, outlined buttons, the submission number as the ending's headline),
+  and the **Leaflet** style and preset (each page a numbered section, like a plain-language
+  information leaflet; new forms start with it). A form theme can also set its title, text
+  and data faces (Public Sans, Atkinson Hyperlegible Next, Archivo, Besley, Rubik, Atkinson
+  Hyperlegible Mono; self-hosted, loaded only by a form that uses them),
+  wide titles, the corners of fields, options and buttons (sharp, soft, round), the button
+  style (filled, outlined, pill) and a highlight colour for the chosen answer, plus the
+  `columns` and `margin` background patterns and built-in `marble` artwork served by the
+  app itself. Every key is optional: stored forms and the existing presets render as
+  before. The builder's Design tab and the Themes page edit them.
+- **Organisation logo on every respondent page.** Upload, replace or remove a form's logo
+  (PNG, JPEG or WebP, at most 1 MB and 3000 px per side, checked and re-encoded, stored in
+  your own storage), choose its position and alternative text, or use the workspace logo.
+- **First-party images.** Photos from Unsplash are served through your own server and
+  cached once in your storage, and an image address pasted into a form is copied into your
+  storage, so respondents' browsers contact no third-party image host. Only first-party
+  addresses are accepted when forms and themes are saved.
+- **Builder.** A form outline in the left panel, an inspector with breadcrumb, answer
+  rules and numbering, a searchable insert menu with canvas insert commands and keyboard
+  authoring, question numbers shown to respondents, and a form document store with undo
+  and redo per action (one step per action and per run of typing, with Undo offered after
+  deleting a question or page). Publishing is held for untitled questions. A save based on
+  an older draft is refused instead of overwriting newer work.
+- **Respondent forms and portal in Dutch and English** (texts, the submission-number
+  search, the portal's tabs and form search, the feedback view), clearer states and touch
+  targets for form controls, and a shared reading order and landmarks.
+- Emails use the Sireto design tokens, a system font stack and the Sireto footer.
+
+### Changed
+
+- **`deploy.sh` needs one value from you and keeps the stack's keys in the settings
+  store.** A new install generates `SETTINGS_MASTER_KEY`, the database passwords and the
+  Umami secret into the root `.env`, creates the stack's own keys (`AUTH_JWT_SECRET`,
+  `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`, the response keyset)
+  straight into the settings store before any service starts (nothing is printed), and
+  shows a one-time setup token on the console. An upgrade imports what your files hold
+  (never overwriting) and compares it with the store. The Temporal worker stays off the
+  store with two keys in its environment (`API_KEY`, `AES_HEX_KEY`) and never gets the
+  master key. `DEBUG` and `API_DOCS_ENABLED` are no longer pinned in the compose file (a
+  pinned value would win over the portal); both stay off by default.
+  **Upgrade note:** re-run `deploy.sh`, then, once the stack runs well,
+  `./deploy.sh settings-prune` (an environment value still wins over the store until
+  you do). See "Upgrading to 4.0" in `docs/admin-service.md`. Back up
+  `SETTINGS_MASTER_KEY`: without it the store cannot be read.
+- **`GET /workspaces/{id}/forms/{form_id}/all-submissions` needs `response.export`,** like
+  `.../all-submissions/export`. It returns every response of a form decrypted and
+  unpaginated, but used to ask only for `response.read`; it now asks for the export
+  permission like the export route. Owners, Admins and Editors are unaffected; Viewers,
+  Reviewers and Privacy officers are refused. The builder's flow view no longer
+  needs the answers: it reads the new `.../submission-paths` (`response.read`), which
+  returns each submission's pages, jumps taken and ending reached, and no answer values,
+  identities, response ids or dates.
+  **Upgrade note:** API clients and scripts that called `.../all-submissions` with a
+  read-only role need the export permission, or should use the paths route if they only
+  need traffic counts.
+- **Flow events are limited per /64 for IPv6** (IPv4 stays per address) and **deleted after
+  13 months** (`API_FLOW_EVENTS_RETENTION_DAYS`, default 395, 0 keeps them): a MongoDB TTL
+  index on `created_at`, and for PostgreSQL a sweep on the write path. Flow events are
+  accepted only for published forms' pages and are rate limited per client, also behind
+  Cloudflare.
+- **The webapp adopts the Sireto design system** (see `DESIGN.md`): one blue ramp around
+  Sireto blue `#123FC9` with a `#1649E2` primary button face, one neutral ramp, Instrument
+  Sans and JetBrains Mono self-hosted through `next/font` (no page contacts Google's font
+  servers, and `next build` no longer downloads fonts), a 6px radius, hairlines instead of
+  decorative shadows, a 2px Sireto-blue focus outline on every interactive element, the
+  "key edge" on buttons, and mono type for IDs, slugs, URLs and keys. Tailwind CSS is now
+  version 4. The Default form theme is retuned (`#1649E2` / `#101828` / `#F5F7FB`) and
+  the backend's Default theme for AI-created forms uses the same values; forms keep the
+  theme colours stored on them. Public and auth pages carry the Sireto trademark line.
+  **Respondent forms** keep Public Sans, their radii and button shapes; in every theme
+  field borders are more visible (the theme's border colour at 3:1 or more), the focus
+  outline wears the theme's action colour and the "Back" link uses the theme's ink.
+- **AI insights analyse only responses whose page showed the AI notice,** and the notice
+  appears in the privacy strip of the form; AI edits never add the notice stamp.
+- **Mail.** Sign-in codes no longer fail silently, mails are sent in the product's name
+  instead of a workspace's, and avatars load only from known hosts.
+- **PDF import** limits refuse a start that would wait too long, a failed import says why
+  (in English and Dutch) and leaves no empty draft, and an import whose job died is
+  expired as interrupted and frees its slot.
+- The flow view's insights count submission paths, not answers; the required star follows
+  the question title; dialogs have labelled close buttons, opaque surfaces and one
+  stacking scale.
+
+### Removed
+
+- **The public app's platform metrics dashboard is gone.** The webapp no longer serves
+  `/admin/metrics` (page, "Platform metrics" menu entry and client) and the backend and
+  auth services no longer serve `GET /admin/metrics`.
+  **Upgrade note:** the platform metrics dashboard now lives in the internal admin portal
+  (reachable from the host only, behind a second factor). `PLATFORM_ADMIN_EMAILS` also
+  lists the portal's super admins, so keep it set. The `ADMIN` role it grants after a
+  verified sign-in, and the operator-only endpoints that check it (coupons, actions,
+  plugin providers, user tags, `GET /persistence/status`), are unchanged.
+- The broken `export-csv` route; the CSV download uses `.../all-submissions/export`.
+- The unused `GOOGLE_AES_KEY` setting.
+
+### Fixed
+
+- Builder: edits are never lost or published stale; leaving the editor never saves an
+  emptied builder; the title editor saves its last keystrokes; the canvas toolbar acts on
+  the question by id; deleting an ending or an outline question is one undo step.
+- Respondent forms: a required question needs an answer with a value; typing that ends
+  where it started leaves no undo step; the date picker shows only the month's days, its
+  month arrows work and its text reads at 4.5:1 in every theme; the question page header
+  is opaque over patterned pages; the privacy panel opens by default only when Start stays
+  in view; only http(s) links open from the ending page's button; the share-my-email
+  checkbox shows when it is checked; a page that is invalid scrolls to the question only
+  where the page can scroll; videos load from YouTube or Vimeo only when the respondent
+  presses play.
+- A form's declared language survives undo, partial saves and bare reads and reaches the
+  builder and the respondent page; new forms and copies answer with their language.
+- A form saved at the same moment as another no longer loses the second save; a
+  duplicated form's images are checked like a template copy; a page's question numbering
+  is kept on save.
+- Responses are written to a workspace's own copy by id, and scoped to the workspace they
+  belong to.
+- Action secrets and configuration are kept out of every response, and changing one
+  action's credentials keeps the other actions' secrets.
+- Local development: `API_PUBLIC_URL` unset no longer stops the stack from starting; the
+  dev compose files bind every port to the loopback.
+- Upgrading from 3.4.0: the first run of the admin roles script no longer fails (it grants
+  only the columns that exist before the application migrations; the second run adds the
+  rest), and a service whose response keyset is only in the settings store reads it from
+  there instead of failing at start (an environment value still wins).
 
 ### Security
 
 - **Deployment hardening.** The public webapp, the Temporal worker (which drives a browser
   on user-supplied URLs) and the Typeform service no longer receive the contents of
-  `.env.deployment`; each reads an env file of its own that `deploy.sh` creates once from
-  the lines it reads. `deploy.sh` now starts the admin service, jobs worker, document
-  sandbox and task runner, shows the setup token only once the admin service is healthy,
-  keeps all generated and exported files owner-only, refuses a stack found under another
-  compose project name instead of giving it new passwords, and decides the Mongo half of
-  "does this stack hold data" itself. The Mongo seed no longer creates a `seeduser`
-  account (and removes it from existing volumes) and passes no password on a command line.
-  Umami's dashboard is published on `127.0.0.1:3004` only; port `3003` is nginx and serves
-  its tracker only. `OAUTHLIB_INSECURE_TRANSPORT` is no longer set in the shipped
-  `.env.deployment`. The dev compose binds every port to the loopback. The deploy workflow
-  pins its actions by commit and deploys release tags (`vX.Y.Z`) only.
-
-### Added
-
-- **Host commands for the settings store.** The admin CLI gains `bootstrap-keys`
-  (generates a fresh install's own keys into the store without printing them),
-  `settings-import --from-compose-config [--dry-run]` (imports the compose
-  configuration once, reporting conflicts between services instead of choosing),
-  `settings-drift`, `settings-prune` (removes the settings the store already
-  holds from env files, so a stale environment value cannot override the store),
-  `settings-env-export`, `settings-set`, `settings-restore`, `settings-history`,
-  `setup-token` (a one-time, 60-minute first-run token shown on the console only,
-  stored hashed) and `master-key-fingerprint`. Every change is audited. The admin
-  sign-in mail gets its own `admin_mail` settings section, which can only be saved
-  after a test mail was delivered (`settings-mail-apply`).
-- **First-run setup wizard in the admin portal.** A fresh install can now be set up
-  without any mail working: the host prints a one-time token (`setup-token`), the
-  operator redeems it at `/setup`, enrols an authenticator, optionally saves the
-  admin sign-in mail settings after a delivered test mail, and notes the master key
-  fingerprint. The wizard exists only while no admin has a second factor and a valid
-  token waits, and closes for good when finished.
-
-### Changed
-
-- **`deploy.sh` needs one value from you and keeps the stack's keys in the
-  settings store.** A new install generates `SETTINGS_MASTER_KEY`, the database
-  passwords and the Umami secret into the root `.env`, creates the stack's own
-  keys (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`,
-  `TEMPORAL_API_KEY`, the response keyset) straight into the settings store before
-  any service starts (nothing is printed), and shows a one-time setup token on
-  the console. The backend, jobs worker, auth and the Google integration read
-  their settings from the store (`SETTINGS_STORE=required`; set `off` in the root
-  `.env` to roll back). The Temporal worker stays off the store with two keys in
-  its environment (`API_KEY`, `AES_HEX_KEY`) and never gets the master key.
-  `DEBUG` and `API_DOCS_ENABLED` are no longer pinned in the compose file (a
-  pinned value would win over the portal); both stay off by default.
-  **Upgrade note:** re-run `deploy.sh`: it imports the keys and settings your
-  files carry into the store (never overwriting) and compares them. An
-  environment value still wins over the store, so afterwards run
-  `./deploy.sh settings-prune` (see "Upgrading to 4.0" in
-  `docs/admin-service.md`). Back up `SETTINGS_MASTER_KEY`: it is now required by
-  every service that reads the store, and without it the store cannot be read.
-  New subcommands: `settings-import`, `settings-drift`, `settings-prune`,
-  `settings-env-export`, `settings-set`, `settings-restore`, `settings-history`,
-  `settings-verify`, `master-key-fingerprint`, `setup-token`.
-
-### Removed
-
-- **The public app's platform metrics dashboard is gone.** Platform
-  administration moves into an internal admin portal, so the webapp no longer
-  serves `/admin/metrics` (page, "Platform metrics" menu entry and client) and
-  the backend and auth services no longer serve `GET /admin/metrics`.
-  **Upgrade note:** the platform metrics dashboard now lives in the internal
-  admin portal (reachable from the host only, behind a second factor).
-  `PLATFORM_ADMIN_EMAILS` now also lists the portal's super admins, so keep it
-  set on the portal's service. Other operator-only endpoints that check the
-  `ADMIN` role are unchanged.
-
-### Security
-
-- **Admin portal hardening from a security review.** Wrong email codes no longer
-  lock the genuine admin out (they count per email and address; the second factor
-  keeps its own lock), a flood against one sign-in cookie costs no database work and
-  no audit rows, and the code-request limits no longer collapse into one bucket behind
-  the Docker gateway address (which now also logs a startup warning). Replacing the
-  authenticator and making new recovery codes need a fresh code in the request, and
-  new recovery codes mail every admin. The setup token cannot be burned by a flood,
-  and a saved mail password is pinned to its TLS settings. Responses add HSTS (over
-  TLS) and a deny-all `Permissions-Policy`.
+  `.env.deployment`; each reads an env file of its own (`.env.webapp`, `.env.worker`,
+  `.env.typeform`) that `deploy.sh` creates once from the lines it reads. `deploy.sh` now
+  starts the admin service, jobs worker, document sandbox and task runner, shows the setup
+  token only once the admin service is healthy, keeps all generated and exported files
+  owner-only, refuses a stack found under another compose project name instead of giving
+  it new passwords, and decides the Mongo half of "does this stack hold data" itself.
+  First-party services run with `no-new-privileges`, and the webapp, worker and Typeform
+  service drop all capabilities. The Mongo seed no longer creates a `seeduser` account
+  (and removes it from existing volumes) and passes no password on a command line.
+  `OAUTHLIB_INSECURE_TRANSPORT` is no longer set in the shipped `.env.deployment`. The
+  deploy workflow pins its actions by commit and deploys release tags (`vX.Y.Z`) only.
+  **Not changed:** the Temporal worker still starts Chromium with `--no-sandbox` as root;
+  it holds no secrets and drops all capabilities.
+- **Temporal is no longer published on the host, and Umami's built-in login is replaced.**
+  `docker-compose.deployment.yml` published Temporal's unauthenticated frontend on host
+  port 7234; it is reachable on the compose network only now (`docker compose exec
+  temporal temporal ...` from the host). Umami's admin login was the well-known
+  `admin`/`umami` on a port the respondents' browsers have to reach: its dashboard is now
+  published on `127.0.0.1:3004` only, port `3003` is nginx and serves the tracker only,
+  and `deploy.sh` replaces the built-in login with a generated password after the first
+  start (and on an upgrade when the built-in login still works), stored as the
+  `UMAMI_PASSWORD` setting. The Temporal, Umami and Mongo databases take generated
+  passwords on a new volume (the `MONGO_URI` setting is stored to match); a volume created
+  by an earlier release keeps its password. The remaining internal-only credentials and
+  ports are listed in `docs/admin-service.md`.
+  **Upgrade note:** anything that used port 7234 must join the compose network; a reverse
+  proxy that pointed at 3003 for the Umami dashboard must point at 3004. To sign in to
+  Umami yourself: `./deploy.sh settings-env-export --keys UMAMI_USERNAME,UMAMI_PASSWORD
+  --out FILE`.
+- **Admin portal sign-in and store hardening.** Wrong email codes no longer lock the
+  genuine admin out (they count per email and address; the second factor keeps its own
+  lock), a flood against one sign-in cookie costs no database work and no audit rows, and
+  the code-request limits no longer collapse into one bucket behind the Docker gateway
+  address (which also logs a startup warning). Replacing the authenticator and making new
+  recovery codes need a fresh code in the request, and new recovery codes mail every
+  admin. The setup token cannot be burned by a flood, and a saved mail password is pinned
+  to its TLS settings. Responses add HSTS (over TLS) and a deny-all `Permissions-Policy`.
+  The portal's database roles are narrow (the admin role cannot read application data
+  except through two functions that return counts; the task runner has its own roles per
+  owning schema), and the integrity loop checks the audit chain incrementally.
 - **The settings store checks key material when it is written.** Weak or malformed
-  `AUTH_JWT_SECRET`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`,
-  `AUTH_AES_HEX_KEY`, `MASTER_ENCRYPTION_KEYSET` and custom-domain keys are refused
-  on `settings-set`, `settings-import`, `bootstrap-keys` and in the portal (a legacy
-  short JWT secret must be replaced before it can be imported). With
-  `SETTINGS_STORE=required` a service refuses to start on a store older than its own
-  snapshot, and the admin integrity check flags a store behind what running services
-  report. The actions executor is no longer listed as a reader of the Fernet and
-  internal API keys.
-- **Temporal is no longer published on the host, and Umami's built-in login is
-  replaced.** `docker-compose.deployment.yml` published Temporal's unauthenticated
-  frontend on host port 7234; it is reachable on the compose network only now
-  (`docker compose exec temporal temporal ...` from the host). Umami's admin login
-  was the well-known `admin`/`umami` on a port the respondents' browsers have to
-  reach: `deploy.sh` replaces it with a generated password after the first start
-  (and on an upgrade when the built-in login still works), stored as the
-  `UMAMI_PASSWORD` setting. The Temporal, Umami and Mongo databases take
-  generated passwords on a new volume (the `MONGO_URI` setting is stored to match); a volume created by an earlier release keeps its
-  password. The remaining internal-only credentials and ports are listed in
-  `docs/admin-service.md`.
-  **Upgrade note:** anything that used port 7234 must join the compose network.
-  To sign in to Umami yourself: `./deploy.sh settings-env-export --keys
-  UMAMI_USERNAME,UMAMI_PASSWORD --out FILE`.
-
-- **The internal APIs no longer serve API docs by default, and 422 answers no
-  longer echo the rejected input.** The backend, auth and Google services
-  served `/docs`, `/redoc` and `/openapi.json` on their public path. They now
-  serve them only when `API_DOCS_ENABLED=true` (off by default; the
-  `.env.example` files turn it on for local development, and
-  `.env.deployment` and `docker-compose.deployment.yml` set it to false). The
-  public REST API's `/openapi.json` is unchanged. Request validation errors
-  keep their `detail` list of `loc`, `msg` and `type` but drop `input` and
-  `ctx`, so a rejected password, token or answer is not sent back.
+  `AUTH_JWT_SECRET`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`, `AUTH_AES_HEX_KEY`,
+  `MASTER_ENCRYPTION_KEYSET` and custom-domain keys are refused on `settings-set`,
+  `settings-import`, `bootstrap-keys` and in the portal. **Upgrade note:** a legacy short
+  or low-entropy `AUTH_JWT_SECRET` is refused on import; replace it (everyone is signed
+  out once) and import again. With `SETTINGS_STORE=required` a service refuses to start on
+  a store older than its own snapshot, and the admin integrity check flags a store behind
+  what running services report. The actions executor is no longer listed as a reader of
+  the Fernet and internal API keys.
+- **No more shipped signing and encryption keys.** `.env.deployment` used to contain
+  concrete values for `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` (a Fernet key) and
+  `MASTER_ENCRYPTION_KEYSET`; anyone could use them to forge session tokens and to decrypt
+  or forge Fernet-encrypted data (OAuth and SSO state, form-action secrets, SCIM webhook
+  secrets, Google credentials). They are gone from the file. `deploy.sh` generates its own
+  and the services refuse to start when `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY`
+  (`AES_HEX_KEY` in the workers) is empty, not a valid Fernet key, or any value that was
+  ever published in this repository; the error says what to set.
+  **Upgrade, every stack must set its own values:**
+  - With `deploy.sh`: re-run it. Values you set yourself in `.env.deployment` are copied
+    into the root `.env` and kept; the published ones are replaced with new random values.
+  - Rotating `AUTH_JWT_SECRET` signs everyone out once.
+  - Data encrypted with the old `AUTH_AES_HEX_KEY` can no longer be read: reconnect Google
+    Forms and Google Sheets, re-enter form-action secrets and regenerate SCIM webhook
+    secrets. In-progress SSO and OAuth sign-ins restart.
+  - Responses are encrypted with `MASTER_ENCRYPTION_KEYSET`, so a stack that already holds
+    responses must keep the keyset it has used: `deploy.sh` stops and asks for it instead
+    of generating a new one. Copy the `MASTER_ENCRYPTION_KEYSET` line from your previous
+    `.env.deployment` into the root `.env`. That keyset was public too: anyone with access
+    to the database could read those responses, so rotate it
+    (`docs/response-keyset-rotation.md`).
+  - Without `deploy.sh`: set your own `AUTH_JWT_SECRET` (`openssl rand -hex 32`) and
+    `AUTH_AES_HEX_KEY` (a Fernet key) on the backend, jobs worker, auth and integrations,
+    the same Fernet key as `AES_HEX_KEY` on the Temporal worker and the actions-executor,
+    and keep your `MASTER_ENCRYPTION_KEYSET`. See `docs/DEVELOPERS_GUIDE.md`.
+- **A published response encryption keyset is flagged, and can be rotated without losing
+  data.** Every service that loads `MASTER_ENCRYPTION_KEYSET` logs a warning at startup
+  when it holds a key that was published in this repository, naming the variable only.
+  The keyset is not refused, because a new one could not read the stored responses.
+  Instead the rotation (the admin tasks, or `python -m scripts.rotate_response_keyset`)
+  adds a new AES-256-GCM primary key, re-encrypts answers, hidden fields, internal
+  answers, feedback messages and Google credentials in batches (idempotent, resumable,
+  with a dry run), and only then drops the old key, refusing while any value still uses
+  it. Runbook, with the order across services, backups and rollback:
+  `docs/response-keyset-rotation.md`.
+- **The internal APIs no longer serve API docs by default, and 422 answers no longer echo
+  the rejected input.** The backend, auth and Google services served `/docs`, `/redoc` and
+  `/openapi.json` on their public path. They now serve them only when
+  `API_DOCS_ENABLED=true` (off by default; the `.env.example` files turn it on for local
+  development, and neither `.env.deployment` nor `docker-compose.deployment.yml` sets it).
+  The public REST API's `/openapi.json` is unchanged. Request validation errors keep their
+  `detail` list of `loc`, `msg` and `type` but drop `input` and `ctx`, so a rejected
+  password, token or answer is not sent back.
   **Upgrade note:** self-hosters who used `/docs` on the internal APIs must set
-  `API_DOCS_ENABLED=true`. The backend health check in
-  `docker-compose.deployment.yml` now probes the public API document instead of
-  `/api/v1/docs`; custom orchestration that probed `/docs` needs the same change.
-
-- **Debug mode is off unless explicitly enabled.** `DEBUG` used to default to
-  `true` in the backend, auth and Google integration services, and the
-  deployment files did not set it, so a stack answered an unhandled server
-  error with an HTML traceback (source, local paths). The code default is now
-  `false`, and `.env.deployment` and `docker-compose.deployment.yml` set
-  `DEBUG` to false explicitly for those services. The `.env.example` files set
-  `DEBUG=true` for local development.
-  **Upgrade note:** self-hosters who relied on debug output must set
-  `DEBUG=true` explicitly (for example in `.env.deployment`) and should turn it
-  off again afterwards.
-
+  `API_DOCS_ENABLED=true`. The backend health check in `docker-compose.deployment.yml`
+  now probes the public API document instead of `/api/v1/docs`; custom orchestration
+  that probed `/docs` needs the same change.
+- **Debug mode is off unless explicitly enabled.** `DEBUG` used to default to `true` in
+  the backend, auth and Google integration services, and the deployment files did not set
+  it, so a stack answered an unhandled server error with an HTML traceback (source, local
+  paths). The code default is now `false`; the `.env.example` files set `DEBUG=true` for
+  local development, and neither `.env.deployment` nor `docker-compose.deployment.yml` sets
+  it (a pinned value would win over a change made in the portal).
+  **Upgrade note:** self-hosters who relied on debug output must set `DEBUG=true`
+  explicitly (for example in `.env.deployment`) and should turn it off again afterwards.
 - **The client address can no longer be forged.** The backend used to believe
-  `X-Forwarded-For` and `CF-Connecting-IP` from any private-network peer, so a
-  request arriving through Swarm ingress or from another container could claim
-  any address. It now trusts no proxy by default (the TCP peer is the client)
-  and reads those headers only when the peer is inside `TRUSTED_PROXIES`
-  (comma-separated IPs/CIDRs, IPv4 and IPv6; `API_TRUSTED_PROXIES` is accepted
-  as an alias), walking `X-Forwarded-For` from the right and taking the first
-  address that is not a trusted proxy. The logic lives in
-  `common/utils/client_ip.py` for reuse by other services.
-  **Upgrade note:** self-hosters behind a reverse proxy or load balancer must
-  set `TRUSTED_PROXIES` (in the root `.env`, passed through by
-  `docker-compose.deployment.yml`) to the proxy's address(es), or all clients
-  look like the proxy and share its rate limits. Hosted stacks that set
-  `API_TRUSTED_PROXIES` keep working, but should list the private networks
-  they previously relied on being trusted implicitly.
-- **Flow events are limited per /64 for IPv6** (IPv4 stays per address) and
-  **deleted after 13 months** (`API_FLOW_EVENTS_RETENTION_DAYS`, default 395,
-  0 keeps them): a MongoDB TTL index on `created_at`, and for PostgreSQL a
-  sweep on the write path using the existing `created_at` index.
+  `X-Forwarded-For` and `CF-Connecting-IP` from any private-network peer, so a request
+  arriving through Swarm ingress or from another container could claim any address. It now
+  trusts no proxy by default (the TCP peer is the client) and reads those headers only when
+  the peer is inside `TRUSTED_PROXIES` (comma-separated IPs/CIDRs, IPv4 and IPv6;
+  `API_TRUSTED_PROXIES` is accepted as an alias), walking `X-Forwarded-For` from the right
+  and taking the first address that is not a trusted proxy. The backend warns once when a
+  private peer sends forwarding headers while `TRUSTED_PROXIES` is empty.
+  **Upgrade note:** self-hosters behind a reverse proxy or load balancer must set
+  `TRUSTED_PROXIES` (in the root `.env`, passed through by
+  `docker-compose.deployment.yml`) to the proxy's address(es), or all clients look like
+  the proxy and share its rate limits. Hosted stacks that set `API_TRUSTED_PROXIES` keep
+  working, but should list the private networks they previously relied on being trusted
+  implicitly.
+- **AI features are bounded.** Form generation's tool loop stops after
+  `AI_MAX_TOOL_ITERATIONS` round trips (default 10) or `AI_MAX_TOOL_CALLS` tool calls (30)
+  with a clear error; every call has an output token cap and timeouts (504 `ai_timeout`);
+  model JSON is validated and retried once before a clean 502. The AI endpoints are rate
+  limited per user (10/min) and per workspace (30/min) with a 429, and each workspace has a
+  daily request and token counter with optional caps (`AI_DAILY_REQUEST_BUDGET`,
+  `AI_DAILY_TOKEN_BUDGET`, off by default). Content people wrote is fenced as data in every
+  prompt, and AI paths log error types and counts only. AI proposals apply only to the
+  form version they were made from. See backend/AGENTS.md "AI limits".
+- Smaller fixes: the response encryption helper always encrypts values that start with the
+  ciphertext prefix; the Unsplash routes answer signed-in people only; an invitation can
+  be deleted only within its own workspace; analytics events no longer carry the user's
+  email; the document sandbox decodes and re-encodes logos and fetched pictures; a
+  disabled billing owner keeps no break-glass access; the settings operations write only
+  the caller's workspace.
+
+## [3.4.0] - 2026-10-06
 
 ### Added
 
-- **Complete-look theme presets, Kantlijn and Raster**: each sets colours,
-  faces, corners, button style, style, background and the welcome layout it
-  is made for in one pick. Kantlijn is a small-press book (Besley titles, a
-  cloth-green cover beside a marbled endpaper, a rose margin rule and notes);
-  Raster a Swiss poster (expanded Archivo titles on a visible column grid,
-  square edges, outlined buttons, the submission number as the ending's
-  headline). They are offered for new picks; stored forms do not change.
-  With them come a `selection` colour for the chosen answer, the `columns`
-  and `margin` background patterns, built-in `marble` artwork served by the
-  app itself, and an outlined button that fills on hover; all optional, with
-  absent meaning today's look, and accepted by the edit operations, the form
-  spec, whole-form saves and saved themes.
-
-- **Theme type and shape**: a form theme can set its title, text and data
-  faces (Public Sans, Atkinson Hyperlegible Next, Archivo, Besley, Rubik,
-  Atkinson Hyperlegible Mono; all self-hosted, OFL-1.1, loaded only by a form
-  that uses them), wide titles (Archivo's width axis), the corners of fields,
-  options and buttons (sharp, soft, round), the button style (filled,
-  outlined, pill) and a highlight colour for the chosen answer, the notes
-  beside a question and, where it reads, the focus ring. Every key is
-  optional and additive: stored forms and the existing presets render as
-  before. The builder's Design tab and the Themes page edit them; the edit
-  operations, the form spec, whole-form saves and saved themes accept only
-  the listed values.
-
-- **Form language**: a form can declare the language its questions are
-  written in (Nederlands, English, Deutsch, Français, Español, Italiano,
-  Português, Polski, Dansk, Svenska, Norsk bokmål, Suomi), set under
-  Form → Language in the builder, by the new edit operation
-  `set_form_language` (AI chat, MCP, public API) or by `language` in the form
-  spec. Respondent pages mark the form's text with it for screen readers and
-  browsers, and it goes live with the next publish. Forms generated from an
-  outline get the outline's language.
-
-- **Repeating groups**: a group of questions respondents fill several times
-  (one block per applicant, family member, employer, item) between a minimum
-  and maximum, with "Add another <item>" / "Remove" controls and required
-  questions per item. Answers are stored per item under the group
-  (`{type: "group", items: [...]}`, additive — existing responses are
-  unchanged) and limits are enforced on the server too. Inside an item, logic
-  and pipes that refer to a sibling question use the same item; outside, logic
-  works on the group as a whole (number of items, any item, all items) and
-  pipes offer the item count, a joined list of one question and
-  sum / average / minimum / maximum of a numeric question. The submission view
-  shows one card per item. CSV and Google Sheets exports use columns per item
-  for groups of up to 5 items and a separate table (one row per item) above
-  that, overridable per group. The AI form-edit ops (chat, MCP) can create
-  groups and add questions into them. Not yet: nested groups, hidden or
-  calculated fields and file uploads inside groups, prefilling items.
-- **Answer piping / recall**: question titles can reference earlier answers or
-  hidden fields ("Thanks, @name!") via an "@ Answer" menu in the builder's
-  title toolbar — stored as inline TipTap nodes, resolved live in the
-  responder runtime through the same value extractor conditional logic uses.
-  Plain-text surfaces (field descriptions, thank-you message) support
-  `{{field:<id>}}` / `{{hidden:<name>|fallback}}` tokens. Pipes referencing
-  deleted fields are pruned automatically.
-- **Hidden fields (URL parameters)**: creators declare parameter names
-  (e.g. `utm_source`) form-wide in the builder; values are captured from the
-  share link when a form loads (declared names only — arbitrary query params
-  are never stored), submitted with the response, encrypted at rest exactly
-  like answers, and shown in the response detail view. `?field_<id>=value`
-  parameters prefill text-like input fields.
-
-- Open-source contributor docs and community health files: `CONTRIBUTING.md`,
-  `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue/PR templates, `SUPPORT.md`,
-  `GOVERNANCE.md`, `ROADMAP.md`, `CODEOWNERS`, and this changelog.
-- `AGENTS.md` guidance files and `docs/ARCHITECTURE.md`.
-- Continuous integration (`ci.yml`): backend and auth `pytest` suites plus
-  webapp build/type-check and a Vitest test job, with self-hosted-runner
-  preference and a MongoDB service for the backend tests.
-- Dependabot configuration for weekly npm, uv, and GitHub Actions updates.
-- Initial frontend test suite (Vitest + Testing Library) with a shared config.
-- Mailpit for catching outbound email in local development.
-- Backend: flow-native template gallery (Support triage, Lead qualification,
-  Job application with screening) auto-seeded on every startup — idempotent,
-  gated by `DEFAULT_SEED_FLOW_TEMPLATES`/`DEFAULT_WORKSPACE_ID`. See
-  `backend/AGENTS.md` "Seed scripts" for the env vars and how to add more.
-- Self-hosted product analytics: Umami now ships as a first-class Docker
-  Compose service (its own Postgres, admin UI on `:3003`) instead of a
-  BetterCollected-hosted default — no self-hosted deployment now silently
-  phones home. Form views are attributed to a canonical
-  `/{workspace_name}/forms/{slug}` path from the webapp regardless of
-  client-host vs. custom-domain routing. See `backend/AGENTS.md`
-  "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`.
-- Umami website auto-provisioning: the backend now finds-or-creates its
-  Umami website by name on startup, so self-hosters no longer have to log
-  into the Umami UI and copy a website id into config by hand.
-- `docker-compose.deployment.yml` hardening: real health checks (Mongo,
-  Postgres, Temporal, backend, auth, Umami) with `depends_on:
-  condition: service_healthy` gating, so services actually wait for their
-  dependencies to be ready instead of just "started." `deploy.sh` now starts
-  Umami too (previously missing) and auto-generates `UMAMI_APP_SECRET` on
-  first run.
-
-### Changed
-
-- **Webapp fonts come from npm, not Google, at build time.** Instrument Sans,
-  JetBrains Mono, Public Sans and Source Serif 4 load through
-  `next/font/local` from the `@fontsource` packages instead of
-  `next/font/google`, so `next build` no longer downloads fonts and no longer
-  fails when fonts.googleapis.com can't be reached. Same families, weights,
-  latin subset, CSS variables and `display: swap`; no visual change.
-- **The webapp adopts the Sireto design system** (see `DESIGN.md`): one blue
-  ramp around Sireto blue `#123FC9` with a `#1649E2` primary button face, one
-  neutral ramp (the duplicate `new-*` colours, the old `#0764EB` / `#2456CC`
-  blues, pink and orange decoration are gone), Instrument Sans and JetBrains
-  Mono self-hosted through `next/font` (the five Google Fonts imports are
-  removed, so no page contacts Google's font servers), a 6px radius, hairlines
-  instead of decorative shadows with one shadow left for floating layers, a 2px
-  Sireto-blue focus outline on every interactive element, the "key edge" on
-  buttons, mono type for IDs, slugs, URLs and keys, and stronger borders on
-  controls (3:1). The Default form theme is retuned (`#1649E2` / `#101828` /
-  `#F5F7FB`); forms keep the theme colours stored on them. Public and auth
-  pages carry the Sireto trademark line. The backend's Default theme for
-  AI-created forms uses the same values.
-  **Respondent forms:** they keep their typeface (Public Sans, self-hosted),
-  radii and button shapes. Only the Default preset's colours change, and in
-  every theme field borders are now more visible (they rest on the theme's
-  border colour, tertiary, at 3:1 or more instead of a fixed light grey), the
-  focus outline wears the theme's action colour, and the "Back" link uses the
-  theme's ink (4.09:1 → AA on tinted themes).
-- **Forms and responses are now unlimited on every plan.** Removed the
-  per-workspace 100-form cap for non-Pro accounts (backend
-  `check_if_user_can_import_more_forms` no longer gates); responses were
-  never capped. "Unlimited Forms" is no longer listed as a Pro feature in
-  the upgrade modal — it's free, so it can't be a differentiator.
-- The workspace switcher now sits in a top band that matches the main
-  navbar's height and hairline border, vertically centred so its centre
-  lines up with the navbar's — the sidebar top and the navbar read as one
-  continuous top bar across the app (the switcher used to sit ~12px low,
-  out of line with the page title beside it). Removed the drawer paper's
-  `py-3` that caused the offset; the drawer content now owns its own top
-  band and bottom padding.
-- **De-branded the dashboard chrome.** Removed the bettercollected logo from
-  the top-left of the sidebar (the workspace's own switcher now leads) and
-  the "Upgrade to Pro" upsell card from the bottom-left. In their place, a
-  quiet "Powered by bettercollected" caption anchors the sidebar bottom —
-  the same subtle attribution the responder surfaces carry. bettercollected
-  is now a footer, not a header.
-- Corrected `docs/DEVELOPERS_GUIDE.md` to the current **uv + yarn** workflow.
-- Rewrote `README.md` for a public audience.
-- Sped up the backend test suite (~137s → ~5s) via session-scoped app/DB init.
-- Aligned toolchain versions (Node via `.nvmrc`, Python for CI, `.editorconfig`).
-- UI/UX: form titles are now shown across the app (forms list and form-detail
-  header) with an "Untitled form" fallback, plus a "Forms" breadcrumb, and the
-  form tab bar keeps the active tab in view.
-- UI/UX: corrected page titles and empty/error states (Templates, Analytics,
-  Integrations, Responders, Deletion Requests) and did a copy pass for typos,
-  grammar, and consistent, inclusive second-person wording.
-- UI/UX: Account Settings derives the avatar and name consistently and no
-  longer prints the email twice; Custom Domain shows an explicit Pro upgrade
-  prompt on free plans.
-- Batched routine dependency updates across all services (npm + uv + GitHub
-  Actions) and moved CI actions to Node-24 majors.
-
-### Changed (trust-first design pass — responder form + builder)
-
-- **Builder interaction pass** (per the measured builder audit): Insert /
-  Text block / Logic are now real, always-visible actions (they failed AA
-  contrast and unmounted entirely on the welcome/thank-you pages — new
-  creators saw no way to add a question); a quiet "Saving… / Saved /
-  Couldn't save" indicator finally reports autosave state; clicking a title
-  places the caret at the click point instead of selecting the whole title
-  (one keystroke from data loss before), and the toolbar size readout shows
-  the real 24px instead of "16"; page-rail thumbnails are legible schematics
-  (first question + count) instead of slides scaled to 2.7px text; the page
-  menu gained Duplicate (with internal logic/piping references correctly
-  remapped to the copy's own fields — the previous duplicate implementation
-  left them pointing at the original page) and a consequence-stating delete
-  confirmation; the canvas gained Fit/100% zoom; the properties drawer is
-  300px with a "‹ Back to page" affordance and Esc-to-deselect; Publish wears
-  trust blue and the help button dropped its amber.
-- **Trust & privacy authored in the builder** (DESIGN.md §4): a new
-  drawer section sets the form's purpose, plain-words retention, and privacy
-  policy link with a live preview of the responder-facing trust strip; the
-  values persist as workspace-form settings and render on every step of the
-  published form.
-- **Submission detail joins the portal's design**: opening a receipt (and
-  requesting deletion) landed on a bare white page with its own tab style —
-  a different product right where responders exercise their data rights. It
-  now wears the portal's clothes: surface wash, a white receipt card with
-  the same identity as the list (form title, mono receipt number, exact
-  time, Anonymous chip, deletion status), portal tabs renamed to responder
-  language ("My response" · "Privacy & deletion"), and the deletion section
-  restated as a calm trust surface — shield statement of the right, a muted
-  "Request deletion" button with an expectation-setting caption, and an
-  amber "Deletion requested · Pending" state instead of a red warning. The
-  page also stopped wearing the platform's brand: the bettercollected
-  wordmark header (a jarring brand switch inside the workspace's own
-  branded space, especially on custom domains) gave way to the workspace's
-  avatar + name linking back to the portal, with the platform down in the
-  same quiet "Powered by" caption the portal uses.
-- **Anonymity now holds at the account level**: verifying your email no
-  longer links anonymous submissions to your account — My submissions and
-  Deletion requests list only identified responses, and an anonymous
-  response is reachable solely through its submission number, which is what
-  the portal copy promises ("that's what keeps it anonymous"). A caption
-  under the list says where anonymous submissions live. Also from this
-  feedback round: confirm dialogs' dismiss action is a quiet outline button
-  (the filled near-black "No" read as a second primary), the deletion
-  confirmation says what it does ("Ask the workspace to delete this
-  response?" · Cancel / Request deletion — no more Yes/No) and states the
-  consequence; and opening a submission no longer hops through a redirect
-  (receipts and number-search link straight to the response tab) nor
-  flashes a white full-screen loader (the workspace-branded shell stays up
-  with a skeleton while loading).
-- **Anonymous responders can finally exercise their deletion right** (bug):
-  requesting deletion authorized only `dataOwnerIdentifier == user` (plus
-  admins) — an anonymous response has no owner identifier, so the very
-  people the product promised anonymity to were 403'd out of deleting their
-  own response; the check now accepts the anonymous identity hash. Deletion
-  requests also store that hash, so anonymous requests actually appear in
-  the responder's Deletion requests tab (they used to vanish after
-  creation). My submissions now surfaces "Deletion requested / Deleted"
-  status on the affected receipts (the list previously looked unchanged
-  after a request), deletion-request cards carry the receipt number and an
-  honest "Requested:" timestamp, the request button no longer nests a
-  button inside a tooltip's button (hydration error), and the danger button
-  uses the design language's muted red instead of washed pink.
-- **Responder portal redesigned as the trust surface it links from**: the
-  workspace portal (where every form's "view or delete your response
-  anytime" promise lands) was an admin-dashboard reskin. Form cards now
-  speak responder language — the form's purpose and question count instead
-  of a provider glyph and a tautological "Public" chip. Submission receipts
-  are finally identifiable: mono receipt number, exact time, and an
-  Anonymous shield chip (they used to show only title + date, so repeat
-  submissions were indistinguishable). The workspace card carries the trust
-  anchor; search-by-submission-number reads as the right-of-access feature
-  it is (trust treatment, labeled controls) instead of clip-art; the
-  deletion-requests empty state explains the right and the path to exercise
-  it; tabs, wash, avatar fallback and body ink moved onto the design
-  tokens; "Terms Of Services" typo fixed; the pink submission-detail title
-  and the "Form Page ‹ My response" breadcrumb cleaned up.
-- **The builder now loads the draft it edits** (data-trust bug): the edit
-  page's loader requested the form with `published=true&draft=true`, and the
-  API returns the latest *published* version whenever one exists — so
-  autosaved changes (theme, welcome description, …) looked lost on every
-  reload while the draft in the database was actually correct. The builder
-  loader now fetches the draft.
-- **One form footer**: "Powered by bettercollected" moved into the trust
-  strip as its last item (gated by the existing disable-branding setting,
-  which the old footer never honoured) — the thank-you page's own floating
-  footer sat underneath the fixed strip and the two overlapped.
-- **Thank-you heading is customizable**: the hardcoded "Thank You! 🎉" is now
-  an editable (and pipeable) title on the thank-you page — edited inline in
-  the builder like the welcome title, persisted on the form, with the
-  classic greeting as the default when unset.
-- **Responder form transitions unified**: every page type declared its own
-  animation — different easings, and no exit motion at all, so the old page
-  froze in place while the new one slid over it — and the ±100% fly-in was
-  never clipped, flashing a horizontal scrollbar on every step. One
-  direction-aware transition now covers welcome/pages/thank-you (entering
-  page slides the full width, exiting page drifts a quarter-width the other
-  way while fading), the container clips the motion, and
-  `prefers-reduced-motion` gets a plain cross-fade.
-- **Builder canvas works on large screens**: the canvas mat collapsed to a
-  content-height band floating in white void on tall viewports (the layout
-  row centres its children and the mat, unlike the drawer, never stretched)
-  — and the collapsed height fed back into the Fit computation, shrinking
-  the slide further. The mat now stretches to the workspace, and Fit no
-  longer caps at true size, so on big monitors Fit fills the mat while 100%
-  shows the true 1440×810 — the toggle was a no-op there before.
-- **Flow view feedback round**: the Insights header no longer contradicts the
-  node chips — it now labels its two instruments apart ("17 responses"
-  behind the node/edge counts vs "journeys: 13 started · 11 finished" from
-  anonymous navigation tracking, with tooltips explaining each); the side
-  panel shows the selected page's full question (it was CSS-truncated to one
-  line); the "Edit content" overlay was rebuilt on the main canvas's
-  measured-scale layout — exactly centred sheet on the mat, page-number
-  eyebrow + full-title header, live Saving…/Saved status instead of a static
-  "changes save automatically" claim, and the standard 300px drawer; and
-  edges are now set one frame after nodes when the graph re-derives —
-  React Flow silently drops edges whose handles aren't mounted yet, which
-  intermittently rendered the whole graph unlinked.
-- **Flow (Logic) view brought onto the design language**: the `brand-*`
-  Tailwind ramp — which still peaked at the old bright blue and leaked into
-  every "tokenized" surface using brand classes — was retuned to trust blue,
-  recolouring the flow view's jump edges/dots/labels, selected nodes and
-  buttons (and the last old-blue surfaces product-wide). Node eyebrows were
-  hairline-on-white (1.4:1 — illegible) and 11px metadata was below AA; both
-  now legible ink. Destructive red and the drop-off chip use the muted
-  design tokens. Interaction fixes: the graph re-fits after mount so the
-  Start node no longer opens clipped under the header; the connect dots —
-  the view's primary gesture — are visually larger with a ~2× invisible hit
-  area; empty pages get an amber "empty page" warning chip (they read
-  identically to real pages before, and responders would hit a blank page);
-  deleting a jump edge now offers an 8-second Undo toast (a rule can carry
-  several conditions — one keystroke shouldn't silently discard it), which
-  also fixed the shared toaster ignoring per-toast durations; the minimap
-  only appears once the graph outgrows a screenful; React Flow's zoom
-  controls are themed; and the autosave Saving…/Saved indicator now shows in
-  the flow header, where the navbar's is hidden.
-- **The trust strip is visible while building**: every builder slide now
-  renders the responder-facing trust footer (collected-by, purpose,
-  retention, privacy link) exactly where responders see it, live-updating as
-  the Form-tab fields change; while the trust content is empty, a nudge on
-  the canvas names what responders see and deep-links to the Form tab —
-  creators shouldn't need to publish to know what privacy story their form
-  tells.
-- **Form themes are contrast-verified** (WCAG 2.1, computed): 10 of 13 named
-  themes rendered buttons whose white text failed AA (Green was 2.3:1, Yellow
-  1.9:1), every theme's input borders failed the 3:1 non-text minimum, and
-  Teal's question text failed even AA. Each palette was retuned against how
-  the roles are actually used — question text on the accent ≥ 7:1 (AAA),
-  white-on-button ≥ 4.5:1, input borders ≥ 3:1 — keeping each theme's hue.
-  The Design tab now shows each theme as an honest miniature form (question
-  ink on the accent, bordered input, button with white text) in a proper
-  full-width card list, so the real contrast is visible before choosing.
-- **Builder canvas centring rebuilt**: Fit scaled the slide with
-  window-arithmetic (`100vh` boxes, `transform-origin: top left`) whose
-  layout box disagreed with the visible card, so the sheet drifted
-  off-centre depending on viewport size. The scale is now measured from the
-  canvas mat itself and the wrapper's layout size equals the scaled card's
-  visual size — exactly centred on both axes at every window size; 100%
-  edits at a true 1440×810 with scrolling.
-- **Builder drawer split into Page · Form · Design**: form-wide settings
-  (hidden fields, trust & privacy) moved out of the Page tab — which had
-  grown into one undifferentiated scroll — into their own Form tab, also
-  making them reachable from welcome/thank-you pages; Page-tab section
-  spacing tightened.
-- **Builder chrome speaks the design language** (second builder pass): the
-  neutral `black-*` Tailwind scale was retuned from flat Bootstrap grey to
-  the blue-biased ink/hairline tokens, so builder and dashboard chrome cohere
-  with the responder form; the Insert Field picker dropped its pastel-rainbow
-  tiles for one quiet white-tile grid with ink icons; layout and theme
-  selection use trust blue (they were Tailwind pink-500 and the old bright
-  brand blue) and layout thumbnails gained legible glyphs plus captions
-  ("Left aligned", "Image right", …); drawer tabs are a segmented control
-  instead of a near-black pill; the page rail uses one labelled-card grammar
-  for welcome/content/thank-you pages; selecting a field shows a toolbar
-  (field-type chip · duplicate · delete) instead of a lone floating trash
-  can, backed by a new duplicate-question action; the Page drawer is grouped
-  into "This page" / "Whole form" scopes; the canvas sheet sits on a real
-  elevation shadow; and the builder Preview (desktop and mobile) now renders
-  the trust strip — it previously omitted the very thing the drawer promises
-  responders will see.
-
-- **Form details page (dashboard) redesigned**: the 8-tab bar — which silently
-  overflowed and hid the Form Link and Analytics tabs entirely on desktop —
-  is now 5 always-visible tabs (Preview · Responses · Analytics · Share ·
-  Settings). Deletion requests became a segment inside Responses; Visibility
-  and Integrations became Settings sections (old URLs redirect); tabs use a
-  single active affordance with count badges. The header gained a real
-  breadcrumb and a plain-words meta line (Published/Draft chip, response
-  count, provenance) in place of an unlabeled provider glyph; Share is the
-  one primary action. Settings rows follow a label+description/control grid
-  with dividers between (not inside) settings, a locked state for Pro-gated
-  toggles, and a proper danger zone stating consequences. Preview shows
-  labelled page cards that open the full-screen preview. Anonymous responses
-  show a shield chip instead of "--"; creator-facing titles no longer leak
-  answer-piping editor syntax; every tab pane sits on one horizontal grid,
-  and pages end with a quiet "Version · Open form" line.
-
-- **Responder form redesigned to the trust-first design language**: questions
-  now render at 24px/600 ink and answers at 16–18px ink (the input no longer
-  out-shouts the question, and answers no longer render in link-blue); every
-  field type shares one bordered white input with a visible themed focus ring
-  (short/long-text fields had regressed to an underline with no focus
-  indicator); the default theme is a calm neutral surface (`#F6F8FC`) with
-  trust-blue actions (`#2456CC`) instead of the full-bleed pale-blue wash
-  (saturated themes remain opt-in); buttons say what happens ("Continue",
-  "Submit response") at proper weight; a provenance chip + "Page x of y"
-  progress meta sits where the eye starts; the trust strip is legible (13px)
-  and links "How your data is used" and "View or delete your response".
-- **Builder**: the slide canvas now sits on a neutral mat as a bordered white
-  card (figure/ground for the thing being edited); the title editor matches
-  the responder's 24px question scale (honest WYSIWYG); panel section headers
-  share one 12px-caps rhythm; empty pages show an "Add a question" affordance
-  that opens the Insert menu; piping chips use the trust palette.
+- **Several owners per workspace** with equal rights, managed on the Members page. A
+  billing owner of a shared workspace cannot be deleted, and directory sync (SCIM)
+  deactivates co-owners like any member.
+- **Plain-language check in the builder**: rule-based tips under the question being
+  edited.
+- **Privacy panel on every respondent form** (English and Dutch), with honest defaults
+  that are checked before a form is published, a "why we ask this" note per question
+  (required of new forms only), and a retention period that is applied to every
+  submission. Seeded contact questions say why they ask.
+- Single sign-on tests explain what failed (new `sso_email_missing` code, claim names,
+  Entra ID and Keycloak setup help).
 
 ### Fixed
 
-- The "Your site" browser frame now behaves like a real browser on desktop:
-  bounded to the viewport with fixed chrome, the site content scrolls INSIDE
-  the frame instead of the dashboard page scrolling around it. Matching the
-  responder portal, the left column (identity + receipt search) and the tabs
-  stay affixed — only the tab content scrolls (an earlier pass scrolled the
-  whole content block, carrying the tabs and left column out of view). The
-  in-frame settings view scrolls internally the same way. Mobile keeps
-  natural page flow.
-- The site's identity card no longer carries the "you can view or delete
-  your responses… anytime" line. The site already makes that promise
-  actionable — the My submissions / Deletion requests tabs, the receipt
-  search, and (logged out) the "See your submissions" card — so the
-  declarative sentence was a redundant restatement bundled into a card whose
-  job is identity (name, logo, policy links), not rights.
-- **Sidebar navigation grouped by meaning, not permission.** The old split
-  was "everyone" vs "admins", which stranded Site at the top away from Site
-  settings. Now three labelled groups: **Collection** (Forms, Responders and
-  Groups, Deletion requests, Templates) — the daily work, first; **Your
-  site** (Site, Site settings, Custom domain) — view it, configure it, point
-  a domain at it, together; **Workspace** (Members) — administration.
-  Quiet uppercase group labels replace anonymous dividers; per-item admin
-  gating replaces the all-or-nothing bottom cluster; the Site item matches
-  its route exactly so it no longer depends on being outside the nav list.
-  Site and Site settings share the dashboard-root route, so their active
-  state (and the top-bar title) is driven by whether the settings view is
-  open rather than by URL — clicking Site hands the highlight back and
-  closes the view, clicking Site settings takes it.
-- **Sign-in page redesigned as the first trust decision.** The pitch panel
-  was a gradient marketing collage with outdated UI screenshots and a
-  sentence that ended mid-thought; it's now a calm ink panel stating what
-  bettercollected is ("Your forms, on a site you own") with three honest
-  bullets (trust footer, your own site, responders' view/delete rights), a
-  responder-aware variant for portal "Verify email" arrivals, and a
-  passwordless pitch on the code step ("One code, no passwords — nothing to
-  create, remember, or leak"). The code step now says where the code went
-  and offers "Change email" (a typo used to be a dead end); copy fixes
-  throughout ("Sign in with Google or your email — no password needed",
-  "or continue with email", sentence-case buttons, grammar).
-- **Workspace settings: React error fixed and given a discoverable home.**
-  Opening the settings sheet errored (`value` prop on `input` should not be
-  null): the privacy-policy and terms URLs fed null into controlled inputs
-  (title/description already had fallbacks). The save diff also compared
-  snake_case keys against the camelCase DTO, so those two fields were sent on
-  every save whether changed or not — both fixed. Settings was reachable only
-  through an unlabelled translucent pencil on one page; it's now a
-  first-class "Workspace settings" item in the sidebar's administration
-  cluster (above Members), and the contextual pencil on the details card is a
-  bordered, titled button.
-- **Field spacing on form pages brought down to a readable rhythm.** Question
-  groups sat 120px apart for responders (desktop) and 80px in the builder —
-  10–15× the 8px gap inside a group, so question–input pairs stopped reading
-  as neighbours and a 6-question page showed ~3. Now 48px mobile / 64px
-  desktop everywhere (builder canvas, live form, preview thumbnails), so the
-  builder is honest WYSIWYG. Also removed the builder's per-row `h-full`
-  (each field stretched to an equal share of the slide, so spacing changed
-  with field count) and its doubled padding (`py-[10vh]` + `px-6` twice on
-  top of the layout's own 60px).
-- **Form preview modal rebuilt.** "Open preview" opened on a dark "please use
-  the desktop version to edit this form" banner (a mobile-editing message, in
-  a preview, on desktop) above an empty nav strip, and the `aspect-video
-  h-full` stage pushed the form card past the bottom of the screen. The
-  preview now has one quiet header — Back, the form title with a Preview
-  chip, the honest "Answers aren't saved" note, and Share/Publish — over a
-  centered 16:9 stage sized to fit both viewport dimensions (mobile fills the
-  screen, as a responder would see it).
-- Responder portal (and its dashboard mirror): the "Find a response by its
-  number" card moved from a third column on wide screens into the left
-  sidebar, below the identity section — one utility column, a consistent
-  two-column layout at every width, and no more modal fallback below xl.
-- **One vocabulary: workspace + site.** The product used three overlapping
-  terms — onboarding created an "Organization", the dashboard managed a
-  "workspace", and the responder-facing surface was a "Public Workspace" (or
-  internally, the "responder portal"). Now: the **workspace** is where you
-  work; your **site** is what the world sees ("Site" as the nav label, "your
-  site" in running copy). Onboarding says "Create your workspace /
-  Workspace name"; settings copy, custom-domain copy ("Serve your site from
-  a domain you own"), template visibility, and the sign-in feature line all
-  speak the same two words. "Organization" survives only where it means the
-  real-world entity. The settings surface follows the scheme too: "Workspace
-  Settings" is now **Site settings** (it configures exactly what the world
-  sees), with **Identity** and **Link & domain** tabs replacing "Workspace
-  Details" / "Manage URLs" — renamed in the sidebar entry and the frame's
-  gear as well.
-- Workspace settings: the Privacy Policy URL and Terms of Service URL inputs
-  are full-width, capitalized, and validated on save — values must be real
-  http(s) links (a missing scheme is forgiven by prepending https://;
-  whitespace, non-web schemes like javascript:, and scheme-less non-domains
-  are rejected with "Enter a full link, like https://yoursite.com/privacy").
-  These values render as links on the public workspace and in every form's
-  trust footer, so bad values were a broken-trust-link (or script-injection)
-  vector.
-- **Workspace settings audited against the trust language.** Copy rewritten
-  in plain speech: the Title-Case marketing header ("Tailor Title, Refine
-  Description… and Elevate with a Banner Image") now says what the page is
-  ("The identity responders see on your public workspace"); "Organizations
-  Title"/"Organization Descriptions" became "Workspace name"/"Description";
-  the policy-URL fields explain their trust role (linked from the public
-  workspace and every form's trust footer). One left edge for header, tabs
-  and panel content — the panels used to stack their own px-20+ on top of
-  the container's, indenting content past the tabs. Manage URLs was
-  reorganised into two honest sections: the workspace link (mono URL with
-  trust-blue handle, Copy, Change link, and the stated consequence — "the
-  old link stops working") and Custom Domain, which no longer shows free
-  users a domain form that only bounced them to the upgrade modal — the
-  upgrade note is the whole section. Validation copy tells you what to type
-  ("try something like forms.yoursite.com") in muted red, warnings in amber;
-  Save is the trust-blue primary instead of near-black.
-- Workspace settings now open **inside the Public Workspace frame** (behind
-  the address-bar gear, with a highlighted gear state and a "Back to page"
-  return) instead of a bottom sheet over the whole app — edit, save, and
-  you're looking at the page you just changed. The sidebar "Workspace
-  settings" entry routes to this view; the settings surface was extracted to
-  a shared component so the URL-update deep links that still use the bottom
-  sheet render the identical content. Inside the frame the settings' own
-  URL-actions row is hidden (the address bar already carries it).
-- **The dashboard's "Public Workspace" page is now a true mirror of the
-  responder portal.** It rendered admin-style form cards (provider icon,
-  "Public", response counts, edit/share affordances) — not what responders
-  see. It now renders the portal's own components: the same three tabs
-  (Forms · My submissions · Deletion requests), the same receipt-search card
-  (with the portal's below-xl modal fallback), forms with purpose line,
-  question count and pinned chip, with the page title matching the sidebar
-  entry. Clicking a form opens the real public form on the client domain in
-  a new tab, exactly as a responder experiences it. The mirror sits inside a
-  browser-style frame that says what this is — a page that lives at a URL:
-  the chrome carries the real public address with copy and open-live
-  actions, plus the workspace-settings gear, so creator controls live on the
-  frame and never inside the mirrored content (the old settings pencil
-  floated over the details card, which responders never see; the separate
-  Workspace Link card was absorbed by the address bar). Deliberately NOT
-  mirrored: the portal's identity furniture (verify-email card, responder
-  account card, powered-by caption) — redundant or misleading inside the
-  signed-in dashboard. Also fixed a React warning the fulfilled
-  deletion-request card tripped everywhere it renders (`href=""` spread onto
-  a plain div).
-- **Dashboard chrome brought onto the trust palette.** The sidebar's "Public
-  Workspace" link was blue→pink gradient text (the retired "playful" rainbow,
-  with no measurable contrast) and the "Pro" badge was an orange-gradient pill
-  with ~2.1:1 white-on-orange text in a one-off display face — both are now
-  quiet chips/links on the trust ramp. Sidebar selection had two bugs: exact
-  URL matching meant nested routes (Responders, Members subpages) highlighted
-  nothing, and the selected state was grey — now prefix-matched and trust-blue
-  tinted like every other selected state. Old bright-blue (`#0764EB`,
-  `blue-600`), slate/gray neutrals, Bootstrap greys in the account dropdown,
-  and the alarmist red Logout were retuned to the ink ramp and muted red; the
-  account dropdown avatar now falls back to the email initial instead of an
-  empty square. Page tabs (Members, Responders and Groups) use the trust-blue
-  underline; all admin data tables share hairline borders, surface headers and
-  ink text; duplicated page titles (sticky bar + in-page h1) collapsed to one.
-- **Upgrade-to-PRO modal made honest (no-dark-patterns law).** The headline
-  promised "PRO is Free" / "You won't be charged any money" while a footnote
-  said "Free for 90 days!" — and the upgrade has no expiry in code at all. It
-  now makes one claim ("currently free — no card needed and nothing is
-  charged"), the button says what it does ("Activate PRO for free"), the
-  pastel-rainbow feature cards became one calm treatment, and the feature
-  copy was corrected ("as many forms as you want", "separate workspaces for
-  different teams, organizations, and projects").
-- Copy: form cards pluralize response counts ("0 Responses"); the responders
-  page explains the list in plain language and states the responder's rights;
-  the groups empty state reads "Create a group to control who can access your
-  forms"; members rows no longer print the same email twice.
-- **Deletion requests were impossible to fulfil from the dashboard.** The only
-  delete affordance — a kebab menu inside the response drawer — was rendered
-  with a literal `hidden` class, and even unhidden it deleted permanently with
-  no confirmation. Pending rows in the Deletion requests table now carry a
-  first-class "Delete response" action (plus a quiet "View") that routes
-  through a consequence-stating confirmation dialog; the drawer kebab is
-  visible and uses the same confirm. Deleting now refreshes the table and the
-  pending counter (the mutation didn't invalidate the queries feeding them),
-  the status chip speaks the trust palette (amber Pending / green Deleted —
-  it was error-red, and a dead code path labelled fulfilled requests
-  "Expired"), fulfilled rows show the deletion date instead of "Not deleted
-  yet" beside a Pending chip, rows carry the submission receipt number so
-  anonymous requests can be matched to what a responder quotes, and the
-  header counter reads "N of M requests pending" instead of the quota-like
-  "5/5 deletion remaining".
-- The response drawer rendered blank question labels outside a form page:
-  the fetched form was never passed down, so titles and pipe resolution fell
-  back to the (empty) redux form. All VIEW_RESPONSE openers now pass the
-  form — question titles render, answer pipes resolve with that submission's
-  answers, legacy fields whose text lives in `value` (null rich-text title)
-  show their real question instead of the "Enter Question" placeholder, and
-  unanswered file-upload fields say "No answer" instead of an empty grey box.
-- Responders table rows drifted out of alignment: the "frozen" Responder ID
-  area was faked with two independent tables whose row heights were never
-  guaranteed equal (two-line identifier cells vs. one-line answers, against a
-  forced 48px row height). Rebuilt as a single table with CSS-sticky leading
-  columns — alignment holds by construction, the whole row shares one hover
-  and click behaviour, and the header scrolls in lockstep (fixed header +
-  frozen columns verified through full horizontal and vertical scroll).
-- Form details page: the Deletion Requests empty state showed the responses
-  copy ("No responses yet" on a form with responses); "bettercolleceted"
-  typo in the branding setting; preview cards had a pointer cursor but no
-  click behaviour and didn't survive window resizes.
-- **Identity sharing is now opt-in, and anonymity is actually enforced.** The
-  "Show your identity" checkbox on the submit step arrived pre-checked
-  (contradicting the no-dark-patterns design law) — it now starts unchecked,
-  in a legible 15px consent container. Worse: the backend accepted the
-  `anonymize` flag but never honoured it — "anonymously submitted" responses
-  still stored the signed-in email as `dataOwnerIdentifier`. Anonymous
-  responses now store no owner identifier and no email, only a one-way hash
-  (`anonymous_identity`) so the responder can still find and delete their own
-  submission.
-- Builder `useFormState` setters spread a stale render-time snapshot instead
-  of the current state, so mount-effect writers (theme, welcome description)
-  could silently wipe keys written between render and effect — this ate the
-  form title and hidden-field list under hot-reload/multi-writer conditions.
-  All setters now use functional updates.
-- Umami pageview double-counting: automatic tracking is now disabled
-  (`data-auto-track="false"`) and public form views send only the explicit
-  canonical-path event — previously every form view would count twice (auto +
-  canonical), and dashboard activity was tracked too. The tracker is also
-  rendered as a plain deferred `<script>` (not `next/script`), so analytics
-  loads even if client-side hydration stalls, and the canonical event now
-  waits for the tracker script instead of being dropped when it loads late.
-- Local dev: `nginx-local.conf` didn't forward WebSocket upgrades, so Next.js
-  dev-server HMR fell back to a `/_next/webpack-hmr` 404 polling loop through
-  the proxied hosts (`:3001`/`:3002`) and pages could stall on a loader
-  without hydrating.
-- React 19 form-rendering crash and DOM-prop console errors in the webapp.
-- React 19 DOM-prop warnings from data tables (`react-data-table-component` v8).
-- Form editor no longer auto-saves on load — only on real user edits.
-- Invalid nested `<button>` in the form-published modal.
-- Analytics now distinguishes a genuine load error (with a retry) from an
-  empty state.
-- Backend Umami client (`umami_client.py`): error paths raised a raw
-  `TypeError` instead of a clean HTTP error (the app's custom `HTTPException`
-  takes `content=`, not `detail=`); a failed retry after a 401 also went
-  unchecked instead of surfacing a clean error.
-- Form analytics `/stats` endpoint 500'd against current self-hosted Umami's
-  response shape (flat ints + a `comparison` object, not nested `{value,
-  prev}` per metric) — surfaced once Umami was actually reachable end-to-end.
-- Local dev: `nginx-local.conf` 502'd on the client-host/custom-domain ports
-  (e.g. a form's share URL) because it proxied to `localhost:3000`, which
-  inside the nginx container isn't the host where webapp/backend actually run.
-- `docker-compose.deployment.yml`: Temporal's `DB=postgresql` was never a
-  valid driver name (`temporalio/auto-setup` only accepts `postgres12`,
-  `postgres12_pgx`, `mysql8`, `cassandra`) — Temporal has likely never
-  started successfully via this compose file; this only surfaced once a real
-  health check was added instead of just checking the container was running.
-  Also pinned `postgres:latest` (temporal's Postgres) to `postgres:15-alpine`
-  and moved it to a named volume — an unpinned tag had already drifted to
-  Postgres 18, which refuses to start against an older major version's data
-  directory.
-- `install.sh` referenced Poetry and a per-service `Makefile`, neither of
-  which exist anymore since the Python services moved to `uv` — the script
-  was fully broken. Rewritten to `uv sync` per service.
-- Backend boots without an `OPENAI_API_KEY` (OpenAI client is created lazily).
-- Forms listing/pagination failure (fastapi-pagination under Starlette 1.x).
-- Login "Failed to send OTP" flow (route, API host, and cookie-domain issues).
-- Numerous Dependabot security advisories across all services.
+- Polis listens on all of its networks; a deleted account's email is no longer sent to
+  Brevo; the privacy panel states only what is true; publish checks see the builder's
+  latest edits.
+
+## [3.3.2] - 2026-10-06
+
+### Fixed
+
+- A custom domain that is being migrated can be removed and added again.
+- Every webapp route is rendered per request, so runtime settings such as `SSO_ENABLED`
+  take effect without a rebuild.
+
+## [3.3.1] - 2026-10-06
+
+### Added
+
+- The single sign-on interface is switched on at runtime with `SSO_ENABLED`.
+
+## [3.3.0] - 2026-10-06
+
+### Added
+
+- **Workspace roles**: Owner, Admin, Editor, Reviewer, Viewer and Privacy officer, with one
+  authorization service behind forms, responses, members, settings, groups and imports.
+  Members can be invited with a role and have their role changed; ownership can be
+  transferred. Privacy officers complete deletion requests and never read answers. The
+  webapp hides controls a member's role cannot use. The CSV download needs
+  `response.export` on the server. See `docs/enterprise-access-model.md`.
+- **Single sign-on** through Ory Polis, off by default (an overlay,
+  `docker-compose.sso-deployment.yml`, runs it): "Sign in with SSO", a settings page for
+  workspace owners, verified-domain and seat checks, SSO-required workspaces and Viewer as
+  the default SSO role. See `docs/sso.md`.
+- **Directory sync (SCIM)** on the single sign-on page: provisioning, group-to-role
+  mapping, a resync with a safety stop, and seats that follow the directory.
+- The hosted Custom Domain API is supported.
+
+### Changed
+
+- uv is pinned to 0.12.23 in the images and in CI, and the backend tests run on four
+  parallel workers.
+
+### Fixed
+
+- Yes/no questions always offer Yes and No; rating stars register clicks and show the
+  rating under the pointer; public forms get their own title and link preview; the
+  responder header stays readable while scrolling and every answer field says Optional.
+
+## [3.2.0] - 2026-10-04
+
+### Added
+
+- **Verified email domains**: a workspace proves it owns a domain with a DNS TXT record
+  (Domains page). See `docs/verified-domains.md`.
+- **Revocable sessions** with short-lived access tokens; the sessions are listed and can be
+  ended in account settings.
+- A permission catalogue and one authorization service (the first step of the roles in
+  3.3.0).
 
 ### Security
 
-- No more shipped signing and encryption keys. `.env.deployment` used to
-  contain concrete values for `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` (a Fernet
-  key) and `MASTER_ENCRYPTION_KEYSET`; anyone could use them to forge session
-  tokens and to decrypt or forge Fernet-encrypted data (OAuth and SSO state,
-  form-action secrets, SCIM webhook secrets, Google credentials). They are gone
-  from the file. `deploy.sh` now generates all three into the root `.env` on
-  its first run (`deploy/generate-secrets.sh`; it never changes a value already
-  there) and `docker-compose.deployment.yml` passes them to the services. The
-  backend, its jobs worker, auth, the Google Forms integration and the Temporal
-  workers refuse to start when `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY`
-  (`AES_HEX_KEY` in the workers) is empty, not a valid Fernet key, or any value
-  that was ever published in this repository; the error says what to set.
-  **Upgrade — every stack must set its own values:**
-  - With `deploy.sh`: re-run it. Values you set yourself in `.env.deployment`
-    are copied into the root `.env` and kept; the published ones are replaced
-    with new random values.
-  - Rotating `AUTH_JWT_SECRET` signs everyone out once.
-  - Data encrypted with the old `AUTH_AES_HEX_KEY` can no longer be read:
-    reconnect Google Forms and Google Sheets, re-enter form-action secrets and
-    regenerate SCIM webhook secrets. In-progress SSO and OAuth sign-ins restart.
-  - Responses are encrypted with `MASTER_ENCRYPTION_KEYSET`, so a stack that
-    already holds responses must keep the keyset it has used: `deploy.sh`
-    stops and asks for it instead of generating a new one. Copy the
-    `MASTER_ENCRYPTION_KEYSET` line from your previous `.env.deployment` into
-    the root `.env`. That keyset was public too: anyone with access to the
-    database could read those responses, so rotate it
-    (`docs/response-keyset-rotation.md`).
-  - Without `deploy.sh`: set your own `AUTH_JWT_SECRET` (`openssl rand -hex 32`)
-    and `AUTH_AES_HEX_KEY` (a Fernet key) on the backend, jobs worker, auth and
-    integrations, the same Fernet key as `AES_HEX_KEY` on the Temporal worker
-    and the actions-executor, and keep your `MASTER_ENCRYPTION_KEYSET`. See
-    `docs/DEVELOPERS_GUIDE.md`.
-- A published response encryption keyset is flagged, and can be rotated
-  without losing data. Every service that loads `MASTER_ENCRYPTION_KEYSET`
-  (backend, jobs worker, Google Forms integration) logs a warning at startup
-  when it holds a key that was published in this repository, naming the
-  variable only; the platform admin metrics page shows the same as a banner.
-  Keys are matched by the SHA-256 of their key material. The keyset is not
-  refused, because a new one could not read the stored responses. Instead,
-  `python -m scripts.rotate_response_keyset` (backend) rotates it with Tink's
-  keyset rotation: `add-key` (a new AES-256-GCM primary, the old keys kept for
-  decryption), `reencrypt` (answers, hidden fields, internal answers, feedback
-  messages and Google credentials, in batches, in Mongo and/or Postgres as
-  the write mode has it; idempotent, resumable, `--dry-run` counts only) and
-  `drop-old` (always checks every target and store, and refuses while any
-  value still uses an old key or a store holds no records unless
-  `--allow-empty`). Both write only with the keyset the services run with
-  (the primary must match `MASTER_ENCRYPTION_KEYSET`). Keysets are
-  written only to new mode-600 files, never printed. Runbook, with the order
-  across services, backups and rollback: `docs/response-keyset-rotation.md`.
-- AI features are bounded: form generation's tool loop stops after
-  `AI_MAX_TOOL_ITERATIONS` round trips (default 10) or `AI_MAX_TOOL_CALLS`
-  tool calls (30) with a clear error; every call has an output token cap per
-  call type and request/overall timeouts (504 `ai_timeout`); model JSON is
-  validated (OpenAI strict structured output for generation, JSON mode for
-  chat, review, insights and memory) and retried once before a clean 502. The
-  AI endpoints (generate, chat edit, review, applying a review fix, insights,
-  document import with AI, MCP `create_form_with_ai`) are rate limited per
-  user (10/min) and per workspace (30/min) with a 429, and each workspace has
-  a daily request and token counter with optional caps (`AI_DAILY_REQUEST_BUDGET`,
-  `AI_DAILY_TOKEN_BUDGET`, off by default). Content people wrote is fenced as
-  data in every prompt and the system prompts say to treat it as untrusted;
-  AI paths log error types and counts only. See backend/AGENTS.md "AI limits".
-- The backend's internal job routes (called by the Temporal worker and the
-  actions-executor with the `api-key` header) require a configured key: an
-  unset, empty or `random_api_key` value is no longer accepted, the routes
-  answer 503 until one is set, and the backend and both workers log an error
-  at startup. The key is compared in constant time, and the settings no longer
-  ship a default. **Upgrade:** `deploy.sh` generates `TEMPORAL_API_KEY` into
-  the root `.env` and `docker-compose.deployment.yml` passes it to the backend
-  and the worker; other deployments set the same value as `TEMPORAL_API_KEY`
-  (backend) and `API_KEY` (worker, actions-executor).
-- Removed committed Stripe/Sentry secrets from `auth/.env.example` (placeholders
-  now). **Note:** these values still exist in git history and should be rotated
-  and scrubbed before/at public release — see `SECURITY.md`.
+- **The internal job API key must be configured.** The backend's internal job routes
+  (called by the Temporal worker and the actions-executor with the `api-key` header)
+  require a configured key: an unset, empty or `random_api_key` value is no longer
+  accepted, the routes answer 503 until one is set, and the backend and both workers log an
+  error at startup. The key is compared in constant time, and the settings no longer ship
+  a default. **Upgrade:** `deploy.sh` generates `TEMPORAL_API_KEY` into the root `.env` and
+  `docker-compose.deployment.yml` passes it to the backend and the worker; other
+  deployments set the same value as `TEMPORAL_API_KEY` (backend) and `API_KEY` (worker,
+  actions-executor).
+- Only verified custom domains become allowed CORS origins.
+
+### Fixed
+
+- The owner of a disabled workspace keeps read and privacy access; workspace permissions
+  are cached per user and dropped on sign-out; a failed domains fetch shows an error with a
+  retry.
+
+## [3.1.1] - 2026-10-04
+
+### Security
+
+- Workspace endpoints are scoped to members and their own data; provider sign-ins link to
+  an account only by a verified email; only the backend may trigger notification mails and
+  the auth service's internal API requires the internal key; the submitter's identity is
+  taken only from the signed-in user; only admins switch responding to submissions.
+
+### Fixed
+
+- An account already deleted in auth counts as deleted.
+
+### Added
+
+- `docs/enterprise-access-model.md`: roles, permissions and form-level scope.
+
+## [3.1.0] - 2026-10-03
+
+### Added
+
+- **Respond to submissions**: creators can add feedback to a response and the submitter is
+  mailed a notice; enabling it is admin-only.
+- A platform admin metrics page and `GET /admin/metrics` for platform admins;
+  `PLATFORM_ADMIN_EMAILS` names them (removed again in 4.0.0, where the metrics live in
+  the admin portal).
+
+### Fixed
+
+- The date picker's month arrows did nothing.
+
+## [3.0.0] - 2026-10-03
+
+### Added
+
+- **PDF import**: upload a PDF and get a draft form, with progress and review screens.
+  Pages are rendered and structured inside an isolated document sandbox container with a
+  syscall filter; text is recovered (including legacy Devanagari fonts); filled-in answers
+  are kept out of the questions; staff-only parts become internal fields and tables become
+  repeating groups. A document is sent to an AI provider only with consent.
+- **Repeating groups**: a group of questions respondents fill several times (one block per
+  applicant, family member, employer, item) between a minimum and maximum, with "Add
+  another <item>" / "Remove" controls and required questions per item. Answers are stored
+  per item under the group (`{type: "group", items: [...]}`, additive: existing responses
+  are unchanged) and limits are enforced on the server too. Inside an item, logic and pipes
+  that refer to a sibling question use the same item; outside, logic works on the group as
+  a whole and pipes offer the item count, a joined list and sum, average, minimum and
+  maximum. The submission view shows one card per item. CSV and Google Sheets exports use
+  columns per item for groups of up to 5 items and a separate table above that. The AI
+  form-edit ops (chat, MCP) can create groups. Not yet: nested groups, hidden or calculated
+  fields and file uploads inside groups, prefilling items.
+- **Internal fields** that staff fill in after submission; they are never listed in
+  on-submit action payloads.
+- **AI consent**: workspaces opt in before any provider call, each form has its own consent
+  for AI insights on responses, and respondents see an AI notice.
+- A date picker label and date rules; headings in text blocks.
+- **PostgreSQL support, opt-in**: a schema per service with Alembic, every repository
+  behind a Mongo/Postgres routing seam, background jobs on Postgres (procrastinate), and a
+  Mongo to Postgres migration CLI with a cutover runbook (`docs/postgres-cutover-runbook.md`).
+  With every flag at its default the data stays in MongoDB.
+- The custom-domain service is integrated through its SDK (`docs/custom-domain.md`).
+
+### Changed
+
+- Services refuse to start on a database schema older than the code. `deploy.sh` runs the
+  migrations itself; a deployment that does not use it must run them before the release or
+  set `DB_AUTO_MIGRATE=true` (see the cutover runbook). With every flag on Mongo nothing is
+  checked.
+- Response times are stamped on the server.
+
+### Fixed
+
+- Formula-like answers stay text in CSV and Google Sheets exports; file downloads are
+  signed for the key the file is stored under; the responses table shows answers from every
+  form version; form group visibility shows what was saved; a text answer is committed when
+  the field loses focus; local variable values are never printed in tracebacks.
+
+## [2.3.4] - 2026-09-06
+
+### Fixed
+
+- Form all-submissions requires workspace membership.
+
+## [2.3.3] - 2026-09-02
+
+### Added
+
+- A legacy invitation page and better invitation handling.
+
+### Changed
+
+- The deployment workflow is simplified and deploys through Docker Manager (see
+  `README.md`, "CI deployments").
+
+## [2.3.2] - 2026-08-24
+
+### Added
+
+- AI response summaries and insights (opt-in), AI edits of form settings (purpose,
+  retention and trust metadata), and conditional-logic operations plus a blank `create_form`
+  MCP tool.
+- PKCE for the Google OAuth sign-in.
+- S3-compatible storage configuration, with RustFS for local development.
+
+### Changed
+
+- One `react-i18next` instance across the webapp (translations had broken); dependency
+  majors migrated and unused dependencies removed.
+
+### Fixed
+
+- The post-submit crash on forms without a thank-you page; the builder and form cards show
+  the workspace identity instead of the product logo; PRO activation errors are surfaced; the
+  access token is re-minted when the plan changes out of band.
+
+## [2.3.1] - 2026-07-13
+
+### Fixed
+
+- Analytics parameter names for Umami 3.x.
+
+## [2.3.0] - 2026-07-13
+
+A trust-first redesign of the responder form, the builder and the dashboard, AI-assisted
+form building, form theming, and self-hosted analytics.
+
+### Added
+
+- **AI-assisted form building**: a form-editing engine, an AI profile of your organisation
+  that grounds generation, a chat panel in the builder, a compliance review with per-finding
+  fixes, a living preference memory, and workspace API keys with an MCP server.
+- **Answer piping / recall**: question titles can reference earlier answers or hidden fields
+  ("Thanks, @name!") via an "@ Answer" menu in the builder's title toolbar, resolved live for
+  responders. Plain-text surfaces support `{{field:<id>}}` / `{{hidden:<name>|fallback}}`
+  tokens. Pipes referencing deleted fields are pruned automatically.
+- **Hidden fields (URL parameters)**: creators declare parameter names (for example
+  `utm_source`) form-wide; values are captured from the share link (declared names only),
+  submitted with the response, encrypted at rest like answers, and shown in the response
+  detail view. `?field_<id>=value` parameters prefill text-like input fields.
+- **Theming**: custom theme colours, saved workspace themes (Themes page), theme dropdown,
+  backgrounds (colour, gradient, pattern or image), form styles (classic, sheet, studio), a
+  12-column grid for field widths, and contrast-verified presets (WCAG 2.1).
+- **Conditional logic** with a flow (graph) view of jumps, drop-off analytics, and a tabular
+  input field.
+- Branded 404 and 500 pages, human-friendly default form slugs, richer form-list cards.
+- Self-hosted product analytics: Umami ships as a Docker Compose service (its own Postgres)
+  and the backend finds or creates its Umami website on startup, so no self-hosted
+  deployment phones home. Form views are attributed to a canonical
+  `/{workspace_name}/forms/{slug}` path. A flow-native template gallery is seeded on startup.
+- `docker-compose.deployment.yml` health checks with `depends_on: condition: service_healthy`
+  gating; `deploy.sh` starts Umami and generates `UMAMI_APP_SECRET` on first run.
+- Open-source community files (`CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`,
+  issue and PR templates, `SUPPORT.md`, `GOVERNANCE.md`, `ROADMAP.md`, `CODEOWNERS`, this
+  changelog), `AGENTS.md` guidance files, `docs/ARCHITECTURE.md`, continuous integration
+  (`ci.yml`), Dependabot configuration, a frontend test suite (Vitest + Testing Library)
+  and Mailpit for local email.
+
+### Changed
+
+- **Responder form and portal redesigned for trust.** Questions render at 24px/600 ink with
+  one bordered input per field type and a visible themed focus ring; buttons say what
+  happens; a trust strip links "How your data is used" and "View or delete your response",
+  and is visible while building. The responder portal (where "view or delete your response"
+  lands) shows the form's purpose, identifiable receipts and the right to delete, and
+  submission details wear the workspace's brand, not the platform's.
+- **Builder.** Insert, Text block and Logic are always visible; a Saving / Saved indicator
+  reports autosave; page duplicate remaps internal references; a Fit / 100% zoom; the
+  drawer is split into Page, Form and Design tabs; trust and privacy are authored in the
+  Form tab; the builder loads the draft it edits.
+- **Form details page** has five always-visible tabs (Preview, Responses, Analytics, Share,
+  Settings); the sidebar is grouped into Collection, Your site and Workspace; one vocabulary
+  (workspace and site); workspace settings open inside the site frame.
+- **Forms and responses are unlimited on every plan**, and the dashboard chrome is
+  de-branded (a quiet "Powered by bettercollected" caption).
+- **Anonymity now holds at the account level**: verifying your email no longer links
+  anonymous submissions to your account, and an anonymous response is reachable only
+  through its submission number.
+- Corrected `docs/DEVELOPERS_GUIDE.md` to the uv + yarn workflow, rewrote `README.md`, sped
+  up the backend test suite (about 137s to 5s), aligned toolchain versions, and batched
+  routine dependency updates.
+
+### Fixed
+
+- **Anonymity is enforced.** The backend accepted the `anonymize` flag but stored the
+  signed-in email as `dataOwnerIdentifier` anyway. Anonymous responses now store no owner
+  identifier and no email, only a one-way hash so the responder can still find and delete
+  their own submission, and anonymous responders can request deletion. Sharing your identity
+  is opt-in (the checkbox starts unchecked).
+- Deletion requests can be fulfilled from the dashboard, with a confirmation, and the
+  table and counters refresh.
+- Umami pageview double-counting (automatic tracking off, one canonical event per form
+  view) and the `/stats` endpoint against current self-hosted Umami.
+- `docker-compose.deployment.yml`: Temporal's `DB=postgresql` was never a valid driver name
+  (Temporal had likely never started successfully through this file), and Temporal's
+  Postgres is pinned to `postgres:15-alpine` on a named volume. `install.sh` referenced
+  Poetry and a per-service `Makefile` that no longer exist and is rewritten to `uv sync`.
+- Google login (canonical OAuth scopes), the Temporal client and the OTP mail on the main
+  event loop, startup crashes with pydantic v2 and beanie 2.x, forms listing pagination,
+  React 19 form-rendering crashes, the editor auto-saving on load, and numerous Dependabot
+  security advisories.
+
+### Security
+
+- Removed committed Stripe/Sentry secrets from `auth/.env.example` (placeholders now).
+  **Note:** these values still exist in git history and should be rotated and scrubbed
+  before/at public release; see `SECURITY.md`.
 
 ## [2.2.0] - 2026-02-27
 
@@ -873,5 +710,19 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/bettercollected/bettercollected/compare/v3.4.0...v4.0.0
+[3.4.0]: https://github.com/bettercollected/bettercollected/compare/v3.3.2...v3.4.0
+[3.3.2]: https://github.com/bettercollected/bettercollected/compare/v3.3.1...v3.3.2
+[3.3.1]: https://github.com/bettercollected/bettercollected/compare/v3.3.0...v3.3.1
+[3.3.0]: https://github.com/bettercollected/bettercollected/compare/v3.2.0...v3.3.0
+[3.2.0]: https://github.com/bettercollected/bettercollected/compare/v3.1.1...v3.2.0
+[3.1.1]: https://github.com/bettercollected/bettercollected/compare/v3.1.0...v3.1.1
+[3.1.0]: https://github.com/bettercollected/bettercollected/compare/v3.0.0...v3.1.0
+[3.0.0]: https://github.com/bettercollected/bettercollected/compare/v2.3.4...v3.0.0
+[2.3.4]: https://github.com/bettercollected/bettercollected/compare/v2.3.3...v2.3.4
+[2.3.3]: https://github.com/bettercollected/bettercollected/compare/v2.3.2...v2.3.3
+[2.3.2]: https://github.com/bettercollected/bettercollected/compare/v2.3.1...v2.3.2
+[2.3.1]: https://github.com/bettercollected/bettercollected/compare/v2.3.0...v2.3.1
+[2.3.0]: https://github.com/bettercollected/bettercollected/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0

@@ -224,12 +224,12 @@ naming the missing settings (never their values); see "Enabling the portal"
 above for how the compose service receives them. Settings that are present
 but invalid stop startup.
 
-## Portal pages (read-only)
+## Portal pages (viewing)
 
 After the second factor the portal shows a shell (navigation, the signed-in
 address, sign out, a notice area) and these pages. Every one is a `GET` at the
-`SECOND_FACTOR` level; none changes state. `Settings` is listed in the navigation as not
-available yet; the task pages are described under "Task pages" below.
+`SECOND_FACTOR` level; none changes state. The pages that do change state are
+described under "Settings pages" and "Task pages" below.
 
 | Page | What it shows |
 |---|---|
@@ -549,25 +549,329 @@ So a bundled install needs one value from you, `PLATFORM_ADMIN_EMAILS`, plus `AD
 
 ## Upgrading to 4.0
 
-Back up first: the root `.env`, `.env.deployment` and the database.
+This is the guide for an operator who runs a 3.x stack with `deploy.sh` and moves it to
+4.0. It covers what changes, the steps in order, the behaviour changes, what the
+migrations touch, how to roll back, what is not solved yet, and a checklist for after the
+deploy. The release notes are in [CHANGELOG.md](../CHANGELOG.md). Allow a maintenance
+window: the deploy recreates every service and runs migrations.
 
-1. `git pull` (or pull the release), then `./deploy.sh` as usual. It applies the migrations, then **imports** the settings your files carry into the store: the stack's keys (including the response keyset a stack that holds responses must keep), the Stripe, Google, Typeform, mail, analytics and other values that the services read. It never overwrites a stored value, stops on a value it refuses (a key that was published in the repository) or on services that disagree about a value (see `./deploy.sh settings-import --dry-run` and `--prefer SERVICE`), and prints only names and counts.
-2. It then **compares** the store with the files (`settings-drift`) and stops if any value differs. Until you prune, an environment value wins over the store, so a stale value in `.env` or `.env.deployment` silently overrides a change made in the portal.
-3. When the stack runs well, run `./deploy.sh settings-prune` to see what would be removed from `.env` and `.env.deployment`, and `./deploy.sh settings-prune --apply --swap` to do it (a private `.env.pre-v4.<time>` backup of each file stays; it holds the old secrets: delete it when you no longer need it). **Do this before rotating a key**: an environment value wins over the store, so a rotated key would be ignored by every service that still has the old one in its environment. Two root `.env` aliases are not setting names and are never pruned: `TRUSTED_PROXIES` and `STRIPE_REDIRECT_URL`; remove them yourself after the import.
-4. **Changes to know about:**
-   - `SETTINGS_MASTER_KEY` is now required by the backend, jobs worker, auth and the Google integration as well (they read the store; `SETTINGS_STORE=required`). Back it up; without it the store cannot be read.
-   - `DEBUG` and `API_DOCS_ENABLED` are no longer pinned by the compose file. Both are off by default; set one in the portal or in `.env.deployment` deliberately.
-   - `TRUSTED_PROXIES` is the `API_TRUSTED_PROXIES` setting now (the root `.env` value imports once).
-   - Temporal's port 7234 is gone (compose network only). Umami's built-in login is replaced (above). The Temporal, Umami and Mongo databases keep their old passwords on an existing volume (table above); a new volume gets generated ones.
-   - **Hardening of the deployment files.** (1) The webapp, the Temporal worker and the Typeform service no longer read `.env.deployment`: each reads its own file (`.env.webapp`, `.env.worker`, `.env.typeform`), which `deploy.sh` creates once from the lines of `.env.deployment` that service reads. Check them after the first deploy and move any other value those services need into them. (2) Umami's dashboard moved from `0.0.0.0:3003` to `127.0.0.1:3004`; port 3003 is now nginx and serves the tracker only, so `UMAMI_SCRIPT_URL` (`http://<host>:3003/script.js`) keeps working and the dashboard is reached through an SSH tunnel. (3) The admin service, jobs worker, document sandbox and task runner are started by `deploy.sh`. (4) `OAUTHLIB_INSECURE_TRANSPORT=1` is gone from the shipped `.env.deployment` (plain-http OAuth redirects now need it added deliberately); the inert `ADMIN_*` block is gone too (those settings belong in the root `.env`). (5) The Mongo `seeduser` account is removed. (6) `.env`, `.env.deployment` and every generated or exported env file are mode 600, and `.gitignore` covers every `.env.*` file except the examples. (7) A stack found under another compose project name is refused instead of being given new database passwords; the first-party images are pulled for every service, and the deploy stops when a schema migration fails.
-   - Single sign-on (`SSO_*`) and the admin sign-in mail (`MAIL_*` in the root `.env`) stay environment-driven in this release, and are kept in the files by `settings-prune`.
-   - `AUTH_CALLBACK_URI`, `UMAMI_URL` and the Typeform redirect values are no longer pinned by the compose file. `UMAMI_URL` is seeded with the compose-network address, `AUTH_CALLBACK_URI` has its code default (the auth address plus `/auth/callback`), and `TYPEFORM_REDIRECT_URI` / `TYPEFORM_SCOPE` now come from `.env.deployment`.
-5. **Rollback.** Before pruning, set `SETTINGS_STORE=off` in the root `.env` and re-run `./deploy.sh`: the services read the files again. After pruning, put the `.env.pre-v4.*` backups back (or run `./deploy.sh settings-env-export --keys ... --out FILE` for just the values you need) and set `SETTINGS_STORE=off`. Rolling back the images to a release that predates the store does not need the store at all.
+### What changes
+
+- **Keys and settings move into a settings store.** The stack's keys (`AUTH_JWT_SECRET`,
+  `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`, the response keyset)
+  and the settings the services read live in a signed, encrypted store in the
+  application Postgres, edited in the admin portal or with host commands. The backend, the
+  jobs worker, auth and the Google integration read it (`SETTINGS_STORE=required`). On an
+  upgrade `deploy.sh` imports what your files hold.
+- **Four values matter:**
+
+  | Value | Where | Who |
+  |---|---|---|
+  | `PLATFORM_ADMIN_EMAILS` | root `.env` | you: the super admins' addresses, comma-separated. Without it the portal stays off (the bare gate) and `deploy.sh` says so |
+  | `ADMIN_ALLOWED_IPS` | root `.env` | you, only when you reach the portal from another address than the host (default `127.0.0.1/32`). In the default layout it restricts nothing that comes through the published port: see "Network" |
+  | `SETTINGS_MASTER_KEY` | root `.env` | generated on the first 4.0 deploy and never overwritten. **You back it up, separately from the server.** It cannot be recovered and nothing stores a copy: without it the settings store, the second-factor secrets and the audit log's verification are lost. `./deploy.sh master-key-fingerprint` prints a short id of it, to write down with the backup (a restored key with another fingerprint is the wrong key) |
+  | `DATABASE_URL` | not an operator value | compose builds each service's URL from its own role password; pointing the bundled stack at an external Postgres is not supported |
+
+- **An admin portal replaces the public metrics page.** It is a separate service,
+  published on `127.0.0.1:8100` only. Reach it with an SSH tunnel
+  (`ssh -L 8100:127.0.0.1:8100 <host>`, then `http://localhost:8100`). **Never put a
+  reverse proxy in front of port 8100** and never publish it on another interface: any
+  local process and any proxy on the host passes its address check. See "Network" for what
+  `ADMIN_ALLOWED_IPS` does and does not protect. Super admins are the addresses in
+  `PLATFORM_ADMIN_EMAILS`; sign-in is a mailed code plus an authenticator, so set
+  `MAIL_SMTP_SERVER` and `MAIL_SENDER` (and `MAIL_USER` / `MAIL_PASSWORD` if the server needs
+  them) in the root `.env`, or use the setup wizard (step 3), which works without mail.
+- **`TRUSTED_PROXIES` must be set behind a reverse proxy or load balancer.** The backend no
+  longer believes `X-Forwarded-For` from any private-network peer. Put the proxy's
+  address(es) or CIDR(s), comma-separated, in the root `.env`; without it every visitor
+  looks like the proxy and shares its rate limits.
+- **`PLATFORM_ADMIN_EMAILS` has a second job.** It still grants the `ADMIN` role after a
+  verified sign-in in the public app (the operator-only endpoints check it), so keep it set.
+
+### Before you start
+
+1. **Back up**, and keep the copies off the server. They hold your data, encrypted with
+   the keyset you use now, so treat them like the live data:
+
+   ```bash
+   umask 077
+   docker compose -f docker-compose.deployment.yml exec -T app-postgres \
+     pg_dump -U bettercollected -Fc bettercollected > postgres-before-4.0.dump
+   docker compose -f docker-compose.deployment.yml exec -T mongodb \
+     mongodump --username root --password root --authenticationDatabase admin --archive --gzip \
+     > mongo-before-4.0.archive.gz
+   cp .env .env.before-4.0; cp .env.deployment .env.deployment.before-4.0
+   ```
+
+   (Use your own Mongo credentials if you changed them; skip the Mongo dump if no data is
+   in Mongo. The copies of the env files hold secrets: keep them private and delete them
+   when the stack runs well.) Test that you can restore one.
+2. **Check the host.** Docker Compose v2 (`docker compose`; the importer reads
+   `docker compose config --format json`, and the compose file uses optional env files,
+   which need Compose 2.24 or newer). The bundled `app-postgres` image is Postgres 16.
+3. **Keep your keys.** If `.env.deployment` holds your own `AUTH_JWT_SECRET`,
+   `AUTH_AES_HEX_KEY` or `MASTER_ENCRYPTION_KEYSET`, they are copied and imported. A stack
+   that holds responses must keep its `MASTER_ENCRYPTION_KEYSET`: `deploy.sh` stops and asks
+   for it rather than generate a new one that could not read them.
+4. **Set in the root `.env`** (create it if it is not there): `PLATFORM_ADMIN_EMAILS`,
+   `TRUSTED_PROXIES` if you run a proxy or load balancer, and the `MAIL_*` values for the
+   sign-in mail. Leave `ADMIN_ALLOWED_IPS` alone unless you need it.
+5. **Images.** `docker-compose.deployment.yml` runs the `bettercollected/<service>:nightly`
+   images and `deploy.sh` pulls them on every run. Check out the release tag so the compose
+   file, `deploy.sh` and the scripts are the release's.
+
+### Steps
+
+1. **Check out the release** and run `./deploy.sh` with the same preference as before
+   (`./deploy.sh`, `googleform`, `typeform` or `both`). In order, it:
+   - generates what is missing in the root `.env`, once and never overwriting: the database
+     role passwords, `UMAMI_APP_SECRET`, `SETTINGS_MASTER_KEY` and the Temporal worker's
+     two keys (the Temporal, Umami and Mongo database passwords only for a new volume: an
+     existing volume keeps its password);
+   - creates `.env.webapp`, `.env.worker` and `.env.typeform` once from the lines of
+     `.env.deployment` those services read (check them afterwards, see "Behaviour changes");
+   - pulls the first-party images, starts `app-postgres`, runs the roles script, the admin
+     schema's migrations, the application, jobs, auth and (if deployed) Google migrations,
+     and the roles script again (a failed migration stops the deploy);
+   - **imports** the keys and settings your files carry: it copies your own keys from
+     `.env.deployment` into the root `.env` (a published `AUTH_JWT_SECRET` or
+     `AUTH_AES_HEX_KEY` is not copied and a new one is generated; a published keyset is
+     kept, because responses depend on it), generates `AUTH_INTERNAL_NOTIFY_KEY` and
+     `TEMPORAL_API_KEY` if you had none, reads `docker compose config --format json`
+     (piped, never written to disk) and imports each setting once. It never overwrites a
+     stored value and prints only names and counts;
+   - **compares** the store with the files (`settings-drift`) and stops if any value differs;
+   - starts every service, replaces Umami's built-in login, and prints notices.
+
+   It stops, before any service starts, when:
+
+   | The message | What it means and what to do |
+   |---|---|
+   | `Volumes of a stack named '...' exist, but docker compose will use the project name '...'` | The stack was created under another compose project name. Set `COMPOSE_PROJECT_NAME=<that name>` in `.env` and run again |
+   | `MASTER_ENCRYPTION_KEYSET is not set, and this stack already holds data` | Copy the `MASTER_ENCRYPTION_KEYSET` line from your previous `.env.deployment` into the root `.env` |
+   | `SETTINGS_MASTER_KEY is not set in .env, but this stack has run before` | Your files carry none of the stack's keys. If a settings store exists, restore the key you backed up; otherwise add `SETTINGS_MASTER_KEY` to `.env` |
+   | `conflict <key> ...` in the import | Two services carry different values for one setting. `./deploy.sh settings-import --dry-run` shows them; `./deploy.sh settings-import --prefer SERVICE` picks one. Nothing is chosen for you |
+   | `refused <key> too_short`, `low_entropy`, `weak_secret` or `bad_keyset` | A legacy secret is too weak or malformed to be stored (see "Behaviour changes"). Replace it in the file named, then run again |
+   | `The store and the files differ` | Fix the differing values (the output names them) and run again |
+
+   A refused ordinary value (for example an `http://localhost` URL, which the registry
+   will not store) is a warning: it stays an environment value.
+2. **Back up `SETTINGS_MASTER_KEY` now** and write down `./deploy.sh master-key-fingerprint`.
+   On an upgrade `deploy.sh` does not print the fingerprint (it does on a new install).
+3. **First sign-in.** `deploy.sh` shows a setup token only on a new install, so on an
+   upgrade run `./deploy.sh setup-token --new` from a terminal once the admin service is
+   healthy (`docker compose -f docker-compose.deployment.yml ps admin`). Open an SSH tunnel,
+   then `http://localhost:8100/setup`, enter the token and one address from
+   `PLATFORM_ADMIN_EMAILS`, enrol an authenticator, save the ten recovery codes, optionally
+   save the sign-in mail settings (a test mail must arrive first) and acknowledge the
+   master key fingerprint. If mail already works you can instead open the portal and sign in
+   with a mailed code, which leads to the same enrolment. Every admin enrols their own
+   factor. If the authenticator and the recovery codes are both lost, only the host can
+   reset the factor: `python -m backend.admin reset-factor --email <address> --yes`.
+4. **Check the stack** with the checklist below.
+5. **Prune the old values** when the stack runs well. An environment value wins over the
+   store, so a stale value in `.env` or `.env.deployment` silently overrides a change made
+   in the portal, and a rotated key would be ignored by every service that still has the old
+   one in its environment. `./deploy.sh settings-prune` shows what would be removed;
+   `./deploy.sh settings-prune --apply --swap` does it and leaves private
+   `.env.pre-v4.<time>` and `.env.deployment.pre-v4.<time>` backups (they hold the old
+   secrets: delete them when you no longer need them). Prune never removes a setting whose
+   value differs from the store, and keeps in the files what something outside the store
+   reads: the SSO values, `MAIL_*` (the admin sign-in mail), and the Typeform service's three
+   keys when it is deployed (`--typeform` / `--no-typeform` override the detection). Two root
+   `.env` aliases are not setting names and are never pruned: `TRUSTED_PROXIES` and
+   `STRIPE_REDIRECT_URL`; remove them yourself once the import has run, and manage the
+   setting in the portal.
+6. **Rotating the response keyset is not part of this upgrade.** If your stack ran with the
+   keyset that was published in this repository, services log a warning at startup until you
+   rotate it. After the upgrade, and after pruning, rotate it with the portal's Tasks pages
+   (`keyset.add_key`, restart, `keyset.promote`, restart, `keyset.reencrypt`,
+   `keyset.verify`, `keyset.drop_old`, each mutating step after a dry run) as described in
+   [response-keyset-rotation.md](response-keyset-rotation.md). Take a fresh backup first.
+
+### Behaviour changes
+
+- **`DEBUG` and the internal APIs' docs are off.** Neither is set in the compose file or
+  `.env.deployment` any more (a pinned value would win over the portal). If you relied on
+  `/docs`, `/redoc` or HTML tracebacks, set `API_DOCS_ENABLED=true` or `DEBUG=true`
+  deliberately (portal, or `.env.deployment`) and turn them off afterwards. 422 answers no
+  longer echo the rejected input. The backend health check probes the public API document
+  instead of `/api/v1/docs`; custom orchestration that probed `/docs` needs the same change.
+- **Weak or malformed legacy secrets are refused on import.** Published `AUTH_JWT_SECRET` and
+  `AUTH_AES_HEX_KEY` values are replaced by new random ones, and the services refuse to start
+  with an empty or published one. A short or low-entropy `AUTH_JWT_SECRET` of your own, an
+  `AUTH_AES_HEX_KEY` that is not a Fernet key, or a keyset that is not valid is refused with a
+  refusal code. **The consequence is one forced rotation:** replacing the JWT secret signs
+  everyone out once; replacing the Fernet key makes data encrypted with the old one
+  unreadable (reconnect Google Forms and Google Sheets, re-enter form-action secrets,
+  regenerate SCIM webhook secrets; running SSO and OAuth sign-ins restart). The published
+  response keyset is still accepted, because a new one could not read your responses: rotate
+  it afterwards (step 6).
+- **The public `/admin/metrics` page and endpoints are gone** (webapp page and menu entry,
+  backend `GET /admin/metrics`, auth `GET /admin/metrics`). The metrics are in the portal
+  (`/metrics`).
+- **`GET /workspaces/{id}/forms/{form_id}/all-submissions` needs the export permission**
+  (Owner, Admin and Editor have it; Viewer, Reviewer and Privacy officer do not) instead of
+  the read permission. The builder's flow view uses the new `.../submission-paths`, which
+  needs only `response.read` and carries no answers. Scripts that called `.../all-submissions`
+  with a read-only role need the export permission.
+- **Temporal's port 7234 is no longer published.** Its frontend has no authentication and is
+  reachable on the compose network only (`docker compose exec temporal temporal ...`).
+- **Umami.** The dashboard moved from `0.0.0.0:3003` to `127.0.0.1:3004`; port `3003` is
+  nginx and passes only the tracker script and event endpoints, so `UMAMI_SCRIPT_URL`
+  (`http://<host>:3003/script.js`) keeps working. A reverse proxy that pointed at 3003 for
+  the dashboard must point at 3004 (or use `ssh -L 3004:127.0.0.1:3004 <host>`). The built-in
+  `admin`/`umami` login is replaced with a generated password after the first start, and on
+  an upgrade when the built-in login still works, stored as `UMAMI_PASSWORD`; to sign in
+  yourself run `./deploy.sh settings-env-export --keys UMAMI_USERNAME,UMAMI_PASSWORD --out FILE`
+  and delete the file afterwards.
+- **The Mongo `seeduser` account is removed** from existing volumes by the seed job, which
+  no longer passes a password on a command line.
+- **Per-service env files.** The webapp, the Temporal worker and the Typeform service read
+  `.env.webapp`, `.env.worker` and `.env.typeform` (mode 600, git-ignored), not
+  `.env.deployment`. `deploy.sh` creates each once from the lines of `.env.deployment` that
+  service reads and never changes it afterwards: look at them once, put anything else those
+  services need into them, and edit them (not `.env.deployment`) from now on.
+- **`deploy.sh` starts four more services:** the admin service, the jobs worker, the document
+  sandbox and the task runner. `OAUTHLIB_INSECURE_TRANSPORT=1` is no longer in the shipped
+  `.env.deployment` (plain-http OAuth redirects need it added deliberately); `AUTH_CALLBACK_URI`
+  and `UMAMI_URL` are no longer pinned by the compose file (the first has its code default,
+  the second is seeded with the compose-network address), and `TYPEFORM_REDIRECT_URI` and
+  `TYPEFORM_SCOPE` come from `.env.deployment`. `.env`, `.env.deployment` and every generated
+  or exported env file are mode 600.
+- **Flow events older than 13 months are deleted** (`API_FLOW_EVENTS_RETENTION_DAYS`, default
+  395; 0 keeps them).
+- **Single sign-on (`SSO_*`) and the admin sign-in mail (`MAIL_*`)** stay environment-driven
+  in this release, and are kept in the files by `settings-prune`.
+- **The deploy workflow** deploys release tags only (`vMAJOR.MINOR.PATCH`, optionally with a
+  pre-release suffix) and pins its actions by commit.
+
+### Migrations
+
+`deploy.sh` runs them, in this order, before the services start:
+
+- `postgres/ensure-admin-roles.sh`: creates the admin schema's roles and grants and the two
+  platform-count functions; idempotent, run before the migrations and again after them (the
+  task runner's data roles are granted on tables the other migrations create).
+- The **admin** schema's own chain, `0001` to `0017`, as the migration role `bc_admin_mig`.
+- The **application** schema: `0013` to `0016` (rate-limit counters, the AI notice stamp on
+  responses, the workspace id on responses and deletion requests, API idempotency keys;
+  there is no `0012`). Every one is expand-only, so a previous release keeps running on the
+  migrated schema. Two of them, `0014` and `0015`, rewrite `app.form_responses` under an
+  exclusive lock: a few seconds on fast storage, longer on a large table. Reads and writes of
+  responses wait meanwhile, so upgrade at a quiet moment.
+- procrastinate's `jobs` schema, **auth** and **google**: no new revisions since 3.4.0, the
+  commands run and find nothing to do.
+
+The admin portal, the task runner and the host commands are one image and one version:
+deploy them together. The runner's keyset write and audit calls use functions that this
+release's migrations create, and the old signatures are dropped.
+
+### Rolling back
+
+- **Back to the files, keeping 4.0:** set `SETTINGS_STORE=off` in the root `.env` and run
+  `./deploy.sh` again. The services read their environment again, the store is kept and
+  nothing in it is deleted. Before pruning, the values are still in `.env` and
+  `.env.deployment`. After pruning, put the `.env.pre-v4.*` and `.env.deployment.pre-v4.*`
+  backups back (or `./deploy.sh settings-env-export --keys ... --out FILE` for the values you
+  need), then set `off`.
+- **Back to 3.x images:** a release that predates the store does not use it at all. Check out
+  the old tag, restore the pre-prune backups so the old files hold their values, and redeploy.
+  Migrations are expand-only, so the old images run on the migrated schema. Data written under
+  keys that changed during the upgrade (a Google connection you reconnected, a form-action
+  secret you re-entered) is not readable with the old key.
+- Restoring the database from a backup into a running 4.0 stack: the services keep a signed
+  snapshot of the highest settings revision they accepted and, with `SETTINGS_STORE=required`,
+  refuse to start on an older store. After a restore you meant to do, remove the snapshot
+  volumes and restart (see "Rollback and wipe protection").
+
+### Known limits
+
+- The Temporal, Umami and Mongo databases keep the passwords of an **existing volume** (a new
+  volume gets generated ones). Mongo's root account on an old volume stays `root`/`root`, on
+  the compose network only; changing any of them is manual (see "Internal credentials and
+  ports").
+- **An external `DATABASE_URL` is not supported** by the bundled compose file.
+- **Compose v2 is required** (see "Before you start"); `deploy.sh` still falls back to
+  `docker-compose` when `docker compose` is missing, but the import needs
+  `docker compose config --format json`.
+- **The actions executor** is not run by this repository's compose files. Its environment is
+  whatever the stack that deploys it passes: keep `SETTINGS_MASTER_KEY` and other services'
+  `DATABASE_URL`s out of it and check it against `temporal/actions-executor/.env.example`. It
+  still reads `API_KEY` and `AES_HEX_KEY` itself, and runs creator code with `exec` (not a
+  sandbox), so give it nothing else.
+- **Rollback protection has a gap:** a validly signed older store is accepted by a service that
+  starts with no snapshot (volume gone, `docker compose down -v`). The admin integrity check is
+  the alarm; keep and back up the snapshot volumes with the master key.
+- **The Temporal worker runs Chromium with `--no-sandbox` as root** on user-supplied URLs. It
+  holds no secret beyond `API_KEY` and `AES_HEX_KEY` (no master key, no database role) and drops
+  all capabilities.
+- The Typeform service is a separate image and keeps three keys in its environment; the SSO
+  and mail settings are not in the store yet.
+- Third-party images with state (`mongo`, `temporalio/auto-setup`, Umami) are not pinned.
+- With SSO on, Polis shares a network with the services that call it (see `docs/sso.md`).
+
+### Checklist after the deploy
+
+On the host:
+
+- [ ] `docker compose -f docker-compose.deployment.yml ps`: `admin` and `document-sandbox`
+  are healthy, `task-runner` and `jobs-worker` are running.
+- [ ] `./deploy.sh master-key-fingerprint` is written down and `SETTINGS_MASTER_KEY` is backed
+  up elsewhere.
+- [ ] `./deploy.sh settings-drift` shows no unexplained differences (exit status 1 means a
+  value differs).
+- [ ] `.env.webapp`, `.env.worker` and `.env.typeform` hold the values those services need.
+- [ ] Umami: `admin` / `umami` no longer signs in (read the deploy output; on an upgrade a
+  failure to replace it is a warning, run `./deploy.sh` again).
+
+In the portal (through the tunnel):
+
+- [ ] `/health`: every service reports (no report for 120 s is "stopped"), the `admin` schema
+  is at its expected head, and the integrity status is ok. The `app`, `auth` and `google`
+  schemas may show "not available to this role": that role cannot read them on purpose.
+- [ ] `/config`: no unexpected source "environment" (until you prune, every value still in a
+  file is one); secrets show only "set" or "not set"; `PLATFORM_ADMIN_EMAILS` lists the
+  right super admins.
+- [ ] `/audit`: the chain head moves with what you did, and
+  `docker compose -f docker-compose.deployment.yml run --rm --no-deps admin /api/backend/.venv/bin/python -m backend.admin audit-verify`
+  reports the chain intact.
+- [ ] `/sessions`: only your sessions; every admin has enrolled a second factor.
+
+From another machine:
+
+- [ ] Ports `7234` (Temporal), `3004` (Umami dashboard), `8100` (portal), `27017` (Mongo) and
+  `5432` (Postgres) are closed; the webapp (`3000`), backend (`8000`) and nginx (`3001` to
+  `3003`) answer as before.
+- [ ] `http://<host>:3003/` and any path other than the tracker script and event endpoints
+  answer 404.
+- [ ] `/admin/metrics` on the public app answers 404.
+
+The public app:
+
+- [ ] Sign in with an emailed code, submit a form, open the response, load a custom-domain
+  form, and see an Umami event arrive.
+- [ ] Behind a proxy: `docker compose -f docker-compose.deployment.yml logs backend` does not
+  contain "TRUSTED_PROXIES is empty" after traffic through the proxy.
+
+### Without `deploy.sh`
+
+Nothing moves into the settings store on a deployment that does not run `deploy.sh` (a Swarm
+stack, say). Leave `SETTINGS_STORE=off`, or unset (the default `auto` uses the store only when
+both `DATABASE_URL` and `SETTINGS_MASTER_KEY` are set), and keep every value in the service
+environments as before. You still have to run the migrations (see
+`docs/postgres-cutover-runbook.md`, "Who runs the migrations"), set your own `AUTH_JWT_SECRET`
+and `AUTH_AES_HEX_KEY` (and keep your `MASTER_ENCRYPTION_KEYSET`), set one random value as
+`TEMPORAL_API_KEY` (backend) and `API_KEY` (worker and actions executor), and set
+`TRUSTED_PROXIES`; until the keys are set the services refuse to start or answer 503 on the
+internal job routes. See `docs/DEVELOPERS_GUIDE.md`. The admin portal and the task runner are
+part of `docker-compose.deployment.yml` and `deploy.sh`; this repository does not describe
+running them elsewhere.
 
 ## Task runner: the responses data tasks
 
 The `task-runner` service (backend image, no published port, own database role)
-runs the tasks the portal will list. Two of them work on stored responses:
+runs the tasks the portal lists. Two of them work on stored responses:
 
 | Task | Does | Refuses with |
 |---|---|---|
@@ -811,11 +1115,9 @@ check), `(setting, reason)` pairs and the time of the check; `Portal.mail_status
 | `ADMIN_ALLOWED_HOSTS` | `localhost:<port>,127.0.0.1:<port>` | allowed `Host` values |
 | `ADMIN_TRUSTED_PROXIES` | empty | proxies whose `X-Forwarded-For` is believed |
 | `ADMIN_EDGE_SUBNET` / `ADMIN_EDGE_GATEWAY` | `172.30.77.0/29` / `172.30.77.1` | the admin network |
-| `ADMIN_PUBLIC_ORIGINS` | `http://localhost:<port>,http://127.0.0.1:<port>` | origins the browser uses (sign-in form checks) |
+| `ADMIN_PUBLIC_ORIGINS` | `http://localhost:<port>,http://127.0.0.1:<port>` | origins the browser uses; state-changing requests must come from one of them (scheme, host, port) |
 | `PLATFORM_ADMIN_EMAILS` | empty (portal off) | the super admin addresses |
 | `SETTINGS_MASTER_KEY`, `BC_ADMIN_PASSWORD` | generated by `deploy.sh` | secrets; substituted from the root `.env`, never in `.env.deployment` |
 | `MAIL_*` | empty | SMTP for sign-in codes (same names as the other services); `ADMIN_MAIL_*` of the same names wins, and settings saved by the setup wizard apply when neither is set |
-| `PLATFORM_ADMIN_EMAILS` | empty | addresses allowed to sign in |
-| `ADMIN_PUBLIC_ORIGINS` | `http://localhost:<port>,http://127.0.0.1:<port>` | origins state-changing requests may come from (scheme, host, port) |
 | `ADMIN_SESSION_IDLE_MINUTES` / `ADMIN_SESSION_ABSOLUTE_HOURS` | `30` / `8` | session lifetimes (shorter only) |
 | `ADMIN_STEPUP_SECONDS` | `300` | how long a verified code counts for sensitive actions (max 600) |
