@@ -320,10 +320,10 @@ class OauthGoogleService:
                 status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
             )
 
-    @staticmethod
-    async def revoke(credentials: Oauth2CredentialDocument):
+    async def revoke(self, credentials: Oauth2CredentialDocument):
         """
-        Static method that revokes a set of OAuth2 credentials.
+        Revokes a set of OAuth2 credentials at Google and, once revoked,
+        removes them through the routed repository (both stores).
 
         Args:
         credentials (Oauth2CredentialDocument) : The set of OAuth2 credentials to be revoked.
@@ -341,7 +341,7 @@ class OauthGoogleService:
         status_code = getattr(revoke, "status_code")
         credentials_revoked = status_code == 200
         if credentials_revoked:
-            await credentials.delete()
+            await self.oauth_credential_repo.delete_credential(credentials.id)
         return credentials_revoked
 
     async def get_google_user(self, credentials):

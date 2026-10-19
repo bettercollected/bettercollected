@@ -146,3 +146,17 @@ async def test_oauth_credentials(stores):
         assert len(listed) == 1 and isinstance(listed[0].credentials, bytes)
         assert await repo.delete_oauth_credential_for_user("a@example.com", "u1")
         assert await repo.get("a@example.com") is None
+
+
+async def test_delete_one_credential(stores):
+    mongo, postgres = OauthCredentialRepository(), PostgresOauthCredentialRepository(
+        stores
+    )
+    creds = {"token": "t", "refresh_token": "r", "expiry": "2030-01-01T00:00:00Z"}
+    for repo in (mongo, postgres):
+        kept = await repo.add("keep@example.com", creds, user_id="u1")
+        gone = await repo.add("gone@example.com", creds, user_id="u2")
+        assert await repo.delete_credential(gone.id) == 1
+        assert await repo.delete_credential(gone.id) == 0
+        assert await repo.get("gone@example.com") is None
+        assert (await repo.get("keep@example.com")).id == kept.id

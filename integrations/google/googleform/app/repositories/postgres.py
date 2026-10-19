@@ -215,6 +215,9 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
     ) -> Oauth2CredentialDocument:
         return await self.upsert(document)
 
+    async def delete_credential(self, credential_id) -> int:
+        return await self.delete_by_id(credential_id)
+
     async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
         return await self.delete_where(
             or_(
