@@ -39,12 +39,12 @@ jobs:
                 working-directory: backend
         steps:
             - name: Checkout code with submodules
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   submodules: "recursive"
 
             - name: Set up uv
-              uses: astral-sh/setup-uv@v7
+              uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
               with:
                   version: "0.12.23"
                   python-version: 3.11.12
@@ -73,7 +73,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Configure schemathesis using action
-              uses: schemathesis/action@v1
+              uses: schemathesis/action@95849c1d1e806909cca98b7bf031bf47d552cd5b # v1
               with:
                   schema: "https://bettercollected-admin.sireto.dev/api/v1/public/v1/openapi.json"
                   max-examples: 30

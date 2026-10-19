@@ -9,8 +9,11 @@ on:
         branches:
             - develop
             - master
+        # release tags only (vMAJOR.MINOR.PATCH, optionally with a pre-release
+        # suffix); the jobs below check the name again before using it
         tags:
-            - "*"
+            - "v[0-9]+.[0-9]+.[0-9]+"
+            - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 jobs:
     build-and-push:
@@ -26,54 +29,77 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code with submodules
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: Set up Docker
-              uses: docker/login-action@v4
+              uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
               with:
                   registry: docker.io
                   username: ${{ secrets.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_TOKEN }}
 
+            # Context values reach the shell through env, never by interpolation into
+            # the script, and every expansion is quoted.
             - name: Build and Push Docker image
               id: docker_build
               env:
                   SERVICE_TAG: ${{ matrix.service }}
+                  SERVICE_DIR: ${{ matrix.service }}
+                  GIT_REF: ${{ github.ref }}
+                  GIT_SHA: ${{ github.sha }}
+                  REF_NAME: ${{ github.ref_name }}
+                  DEVELOP_API: ${{ vars.DEVELOP_API }}
+                  STAGING_API: ${{ vars.STAGING_API }}
+                  PROD_API: ${{ vars.PROD_API }}
               run: |
-                  SERVICE_TAG=${SERVICE_TAG//\//-}
-                  if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-                    API_ENDPOINT_HOST=${{ vars.DEVELOP_API }}
+                  set -euo pipefail
+                  SERVICE_TAG="${SERVICE_TAG//\//-}"
+                  API_ENDPOINT_HOST=""
+                  if [[ "${GIT_REF}" = "refs/heads/develop" ]]; then
+                    API_ENDPOINT_HOST="${DEVELOP_API}"
                   fi
-                  if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
-                    API_ENDPOINT_HOST=${{ vars.STAGING_API }}
+                  if [[ "${GIT_REF}" = "refs/heads/master" ]]; then
+                    API_ENDPOINT_HOST="${STAGING_API}"
                   fi
-                  if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-                    API_ENDPOINT_HOST=${{ vars.PROD_API }}
+                  if [[ "${GIT_REF}" =~ ^refs/tags/ ]]; then
+                    if [[ ! "${REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+                      echo "Refusing to build a release from the tag name: not a version tag" >&2
+                      exit 1
+                    fi
+                    API_ENDPOINT_HOST="${PROD_API}"
                   fi
                   docker build \
-                    --build-arg NEXT_PUBLIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST} \
-                    -f ${{ matrix.service }}/Dockerfile \
-                    -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
-                  docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
+                    --build-arg "NEXT_PUBLIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST}" \
+                    -f "${SERVICE_DIR}/Dockerfile" \
+                    -t "bettercollected/${SERVICE_TAG}:${GIT_SHA}" .
+                  docker push "bettercollected/${SERVICE_TAG}:${GIT_SHA}"
 
             - name: Add Nightly, Latest and Release Tags
               env:
                   SERVICE_TAG: ${{ matrix.service }}
+                  GIT_REF: ${{ github.ref }}
+                  GIT_SHA: ${{ github.sha }}
+                  REF_NAME: ${{ github.ref_name }}
               run: |
-                  SERVICE_TAG=${SERVICE_TAG//\//-}
-                  if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:nightly
-                    docker push bettercollected/${SERVICE_TAG}:nightly
+                  set -euo pipefail
+                  SERVICE_TAG="${SERVICE_TAG//\//-}"
+                  if [[ "${GIT_REF}" = "refs/heads/develop" ]]; then
+                    docker tag "bettercollected/${SERVICE_TAG}:${GIT_SHA}" "bettercollected/${SERVICE_TAG}:nightly"
+                    docker push "bettercollected/${SERVICE_TAG}:nightly"
                   fi
-                  if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
-                    docker push bettercollected/${SERVICE_TAG}:latest
+                  if [[ "${GIT_REF}" = "refs/heads/master" ]]; then
+                    docker tag "bettercollected/${SERVICE_TAG}:${GIT_SHA}" "bettercollected/${SERVICE_TAG}:latest"
+                    docker push "bettercollected/${SERVICE_TAG}:latest"
                   fi
-                  if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
-                    docker push bettercollected/${SERVICE_TAG}:release
-                    docker push bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
+                  if [[ "${GIT_REF}" =~ ^refs/tags/ ]]; then
+                    if [[ ! "${REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+                      echo "Refusing to tag a release from the tag name: not a version tag" >&2
+                      exit 1
+                    fi
+                    docker tag "bettercollected/${SERVICE_TAG}:${GIT_SHA}" "bettercollected/${SERVICE_TAG}:release"
+                    docker tag "bettercollected/${SERVICE_TAG}:${GIT_SHA}" "bettercollected/${SERVICE_TAG}:${REF_NAME}"
+                    docker push "bettercollected/${SERVICE_TAG}:release"
+                    docker push "bettercollected/${SERVICE_TAG}:${REF_NAME}"
                   fi
 
     deploy:
@@ -83,30 +109,42 @@ jobs:
             - name: Select deployment target
               id: target
               env:
+                  GIT_REF: ${{ github.ref }}
+                  GIT_SHA: ${{ github.sha }}
+                  REF_NAME: ${{ github.ref_name }}
+                  DEVELOP_STACK: ${{ vars.DEVELOP_STACK }}
+                  STAGING_STACK: ${{ vars.STAGING_STACK }}
+                  PROD_STACK: ${{ vars.PROD_STACK }}
                   DEVELOP_MANAGER: ${{ vars.DEVELOP_MANAGER }}
                   STAGING_MANAGER: ${{ vars.STAGING_MANAGER }}
                   PROD_MANAGER: ${{ vars.PROD_MANAGER }}
               run: |
-                  if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+                  set -euo pipefail
+                  if [[ "${GIT_REF}" == "refs/heads/develop" ]]; then
                     ENVIRONMENT="development"
-                    DOCKER_STACK="${{ vars.DEVELOP_STACK }}"
+                    DOCKER_STACK="${DEVELOP_STACK}"
                     DOCKER_MANAGER="${DEVELOP_MANAGER}"
-                    IMAGE_TAG="${{ github.sha }}"
+                    IMAGE_TAG="${GIT_SHA}"
 
-                  elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+                  elif [[ "${GIT_REF}" == "refs/heads/master" ]]; then
                     ENVIRONMENT="staging"
-                    DOCKER_STACK="${{ vars.STAGING_STACK }}"
+                    DOCKER_STACK="${STAGING_STACK}"
                     DOCKER_MANAGER="${STAGING_MANAGER}"
-                    IMAGE_TAG="${{ github.sha }}"
+                    IMAGE_TAG="${GIT_SHA}"
 
-                  elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+                  elif [[ "${GIT_REF}" == "refs/tags/"* ]]; then
+                    # only a version tag deploys to production
+                    if [[ ! "${REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+                      echo "Refusing a production deployment from a tag that is not a version tag" >&2
+                      exit 1
+                    fi
                     ENVIRONMENT="production"
-                    DOCKER_STACK="${{ vars.PROD_STACK }}"
+                    DOCKER_STACK="${PROD_STACK}"
                     DOCKER_MANAGER="${PROD_MANAGER}"
-                    IMAGE_TAG="${{ github.ref_name }}"
+                    IMAGE_TAG="${REF_NAME}"
 
                   else
-                    echo "Unexpected deployment ref: ${{ github.ref }}" >&2
+                    echo "Unexpected deployment ref" >&2
                     exit 1
                   fi
 
@@ -126,14 +164,14 @@ jobs:
                     echo "stack=${DOCKER_STACK}"
                     echo "images<<EOF"
                     for SERVICE in auth backend integrations/google webapp temporal/worker temporal/actions-executor; do
-                      SERVICE_TAG=${SERVICE//\//-}
+                      SERVICE_TAG="${SERVICE//\//-}"
                       echo "${SERVICE_TAG}=bettercollected/${SERVICE_TAG}:${IMAGE_TAG}"
                     done
                     echo "EOF"
                   } >> "$GITHUB_OUTPUT"
 
             - name: Deploy / update services through Docker Manager
-              uses: mesudip/docker-stack@v2
+              uses: mesudip/docker-stack@c3af89a3e028e9080eea773a4a5fdcec6f77134d # v2
               with:
                   manager: ${{ steps.target.outputs.manager }}
                   stack: ${{ steps.target.outputs.stack }}
