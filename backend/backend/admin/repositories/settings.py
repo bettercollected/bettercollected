@@ -18,9 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from common.settings.canonical import SettingRow
 
-# One writer at a time. Taken before the audit chain's lock, always in that order.
-SETTINGS_LOCK_KEY = 7310952481203619855
-
 ENTRY_COLUMNS = (
     "key, section, readers, is_secret, reload_class, tier, value::text AS value, blob, "
     "cleared, version, source, updated_by, updated_at, sig"
@@ -75,9 +72,18 @@ class HistoryRow:
     blob: Optional[str]
     cleared: bool
     action: str
+    # re-wraps appended by a master-key rotation, newest first (migration 0014)
+    wraps: tuple = ()
 
     def __repr__(self) -> str:
         return f"HistoryRow(key={self.key!r}, version={self.version})"
+
+    @property
+    def candidates(self) -> tuple:
+        """Every sealed copy of this version, newest wrap first, the original last:
+        a reader opens the first that opens, so a junk row appended by a stolen
+        credential cannot make the version unreadable."""
+        return tuple(self.wraps) + ((self.blob,) if self.blob is not None else ())
 
 
 def _entry(row: Any) -> EntryRow:
@@ -105,10 +111,12 @@ def _json(value: Any) -> Optional[str]:
 
 
 async def lock(conn: AsyncConnection) -> int:
-    """Serialise writers until the transaction ends; the manifest revision."""
-    await conn.execute(
-        text("SELECT pg_advisory_xact_lock(:k)"), {"k": SETTINGS_LOCK_KEY}
-    )
+    """Serialise writers until the transaction ends; the manifest revision.
+
+    One writer at a time: the row lock ``settings_writer`` (migration 0013; only
+    the admin roles can take it), then the manifest row. Always taken before the
+    audit chain's lock, in that order."""
+    await conn.execute(text("SELECT admin.take_lock('settings_writer')"))
     return (
         await conn.execute(text("SELECT revision FROM settings.manifest WHERE id = 1 FOR UPDATE"))
     ).scalar_one()
@@ -235,15 +243,21 @@ def _history(row: Any) -> HistoryRow:
         blob=m["blob"],
         cleared=m["cleared"],
         action=m["action"],
+        wraps=tuple(m["wraps"] or ()),
     )
 
-HISTORY_COLUMNS = "key, version, section, is_secret, value::text AS value, blob, cleared, action"
+
+HISTORY_COLUMNS = (
+    "h.key, h.version, h.section, h.is_secret, h.value::text AS value, h.blob, h.cleared, h.action, "
+    "ARRAY(SELECT w.blob FROM settings.history_wraps w "
+    "WHERE w.key = h.key AND w.version = h.version ORDER BY w.id DESC) AS wraps"
+)
 
 
 async def get_history(conn: AsyncConnection, key: str, version: int) -> Optional[HistoryRow]:
     row = (
         await conn.execute(
-            text(f"SELECT {HISTORY_COLUMNS} FROM settings.history WHERE key = :k AND version = :v"),
+            text(f"SELECT {HISTORY_COLUMNS} FROM settings.history h WHERE h.key = :k AND h.version = :v"),
             {"k": key, "v": version},
         )
     ).first()
@@ -252,7 +266,7 @@ async def get_history(conn: AsyncConnection, key: str, version: int) -> Optional
 
 async def list_history(conn: AsyncConnection, key: str) -> list[HistoryRow]:
     rows = await conn.execute(
-        text(f"SELECT {HISTORY_COLUMNS} FROM settings.history WHERE key = :k ORDER BY version"),
+        text(f"SELECT {HISTORY_COLUMNS} FROM settings.history h WHERE h.key = :k ORDER BY h.version"),
         {"k": key},
     )
     return [_history(r) for r in rows]
@@ -269,10 +283,14 @@ async def prune_history(conn: AsyncConnection, key: str, below_version: int) -> 
     return result.rowcount
 
 
-async def update_history_blob(conn: AsyncConnection, key: str, version: int, blob: str) -> None:
+async def insert_history_wrap(conn: AsyncConnection, key: str, version: int, blob: str) -> None:
+    """Append a re-wrapped copy of a history version (history rows themselves are
+    never changed; the database accepts only a copy that keeps the sealed value)."""
     await conn.execute(
-        text("UPDATE settings.history SET blob = :b WHERE key = :k AND version = :v"),
-        {"b": blob, "k": key, "v": version},
+        text(
+            "INSERT INTO settings.history_wraps (key, version, blob) VALUES (:k, :v, :b)"
+        ),
+        {"k": key, "v": version, "b": blob},
     )
 
 

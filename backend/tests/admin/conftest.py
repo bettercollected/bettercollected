@@ -57,9 +57,13 @@ def roles_sql(
     """The roles script's SQL with psql variables bound and role names suffixed."""
     script = ROLES_SCRIPT.read_text()
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
+    # the passwords reach psql through \getenv in the real script; here they are bound below
+    sql = "\n".join(line for line in sql.splitlines() if not line.startswith("\\getenv"))
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin_counts\b", f"bc_admin_counts_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
+    sql = re.sub(r"\bbc_tasks_def\b", f"bc_tasks_def_{suffix}", sql)
+    sql = re.sub(r"\bbc_count_(app|auth)\b", rf"bc_count_\1_{suffix}", sql)
     sql = re.sub(r"\bbc_(app|auth|google|tasks_data_app|tasks_data_google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return (
         sql.replace(":'admin_pw'", f"'{admin_pw}'")
@@ -120,6 +124,11 @@ class Server:
     def tasks_pw(self) -> str:
         # the runner role is also a settings reader: one password for all readers
         return self.reader_pw
+
+    @property
+    def definer_role(self) -> str:
+        """Owner of the runner's definer functions (NOLOGIN)."""
+        return f"bc_tasks_def_{self.suffix}"
 
     def reader_role(self, logical: str) -> str:
         return f"bc_{logical}_{self.suffix}"
@@ -234,6 +243,7 @@ async def server():
     srv.data_google_pw = secrets.token_hex(12)
     role_vars = {
         "ADMIN_DB_RUNTIME_ROLE": srv.runtime_role,
+        "ADMIN_DB_ROLE_TASKS_DEF": srv.definer_role,
         **{f"ADMIN_DB_ROLE_{r.upper()}": srv.reader_role(r) for r in READER_ROLES},
     }
     previous = {k: os.environ.get(k) for k in role_vars}
@@ -260,6 +270,9 @@ async def server():
             srv.data_google_role,
             *(f"bc_{r}_{suffix}" for r in {*INIT_ROLES, *READER_ROLES}),
             f"bc_admin_counts_{suffix}",
+            srv.definer_role,
+            f"bc_count_app_{suffix}",
+            f"bc_count_auth_{suffix}",
         ):
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
 

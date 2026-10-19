@@ -34,7 +34,6 @@ TOKEN_BITS = 160
 TTL = timedelta(minutes=60)
 MAX_FAILED_ATTEMPTS = 20
 _GROUP = 4
-_LOCK_KEY = 4099217756181324507  # serialises issuing and redeeming
 
 
 class SetupTokenError(Exception):
@@ -74,7 +73,8 @@ def _new_token() -> str:
 
 
 async def _lock(conn: AsyncConnection) -> None:
-    await conn.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _LOCK_KEY})
+    """Serialise issuing and redeeming (the row lock ``setup_token``)."""
+    await conn.execute(text("SELECT admin.take_lock('setup_token')"))
 
 
 async def _now(conn: AsyncConnection) -> datetime:

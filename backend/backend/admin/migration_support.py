@@ -65,3 +65,30 @@ def grant(op, statement_template: str, role: str = "runtime") -> None:
 def grant_roles(op, statement_template: str, roles: tuple[str, ...]) -> None:
     for role in roles:
         grant(op, statement_template, role)
+
+
+def hand_functions_to(
+    op, role: str, signatures: tuple[str, ...], schemas: tuple[str, ...]
+) -> None:
+    """Make the logical ``role`` the owner of the functions in ``signatures``
+    (``schema.name(argtypes)``), when that role exists (the roles script creates
+    it and makes the migration role a member; a scratch database without the
+    script keeps the migration role as owner and gets a NOTICE). The new owner
+    needs CREATE on each function's schema for the transfer only: it is granted
+    here and taken away again, so the role can create nothing afterwards."""
+    name = role_name(role)
+    body = "".join(
+        f"EXECUTE 'GRANT CREATE ON SCHEMA {s} TO \"{name}\"'; " for s in schemas
+    )
+    body += "".join(
+        f"EXECUTE 'ALTER FUNCTION {sig} OWNER TO \"{name}\"'; " for sig in signatures
+    )
+    body += "".join(
+        f"EXECUTE 'REVOKE CREATE ON SCHEMA {s} FROM \"{name}\"'; " for s in schemas
+    )
+    op.execute(
+        f"DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{name}') THEN "
+        f"{body}"
+        f"ELSE RAISE NOTICE 'role {name} does not exist; function ownership unchanged'; "
+        f"END IF; END $do$"
+    )

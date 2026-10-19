@@ -199,12 +199,21 @@ async def test_the_runner_role_touches_nothing_else_in_admin(world):
         "TRUNCATE admin.audit_log",
     ):
         assert "permission denied" in await refused(world.tasks, sql)
-    async with world.tasks.begin() as conn:  # the chain it may extend
-        entry = await audit.write(
-            conn, "task.run.started", "task_run", "x", None, None, "success", actor_kind="system"
-        )
-    assert entry.seq >= 1
-    assert await scalar(world.tasks, "SELECT count(*) FROM admin.audit_log") >= 1
+    # the runner has no access to the log at all: not to read it (addresses, IPs,
+    # user agents), not to insert into it; its rows go through tasks.audit_append
+    for sql in (
+        "SELECT 1 FROM admin.audit_log LIMIT 1",
+        "SELECT count(*) FROM admin.audit_log",
+        "INSERT INTO admin.audit_log (id, at, actor_kind, action, outcome, prev_hash, row_hash) "
+        "VALUES (gen_random_uuid(), now(), 'system', 'task.run.started', 'success', "
+        "decode(repeat('00', 32), 'hex'), decode(repeat('01', 32), 'hex'))",
+        "SELECT nextval('admin.audit_log_seq_seq')",
+    ):
+        assert "permission denied" in await refused(world.tasks, sql)
+    run_id = await world.enqueue("selftest", {})
+    claimed = await world.runner().claim()  # its own path: a definer function
+    assert claimed is not None and claimed[0]["id"] == run_id
+    assert len(await world.audit_rows("task.run.started")) == 1
 
 
 async def test_history_is_append_only(world):
@@ -346,18 +355,21 @@ async def test_roles_script_is_idempotent_and_repairs_grants(server, migrated):
 
 
 async def test_the_runner_may_only_write_audit_rows_as_system(world):
+    # through the function, as system, for a run that is running: nothing else
     for kind in ("admin", "cli", "anonymous"):
-        with pytest.raises(DBAPIError) as raised:
+        with pytest.raises(audit.AuditError):
             async with world.tasks.begin() as conn:
                 await audit.write(
                     conn, "task.run.started", "task_run", "x", None, None, "success",
-                    actor_kind=kind, actor_email="ops@example.org",
+                    actor_kind=kind, actor_email="ops@example.org", runner=True,
                 )
-        assert "as system only" in str(raised.value.orig)
-    async with world.tasks.begin() as conn:
-        await audit.write(
-            conn, "task.run.started", "task_run", "x", None, None, "success", actor_kind="system"
-        )
+    with pytest.raises(DBAPIError) as raised:
+        async with world.tasks.begin() as conn:
+            await audit.write(
+                conn, "task.run.started", "task_run", str(uuid.uuid4()), None, None, "success",
+                actor_kind="system", request_id=str(uuid.uuid4()), runner=True,
+            )
+    assert "tasks.audit_append" in str(raised.value.orig)
     # the admin role is unaffected
     async with world.admin.begin() as conn:
         await audit.write(

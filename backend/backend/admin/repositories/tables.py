@@ -18,6 +18,7 @@ from sqlalchemy import (
     LargeBinary,
     MetaData,
     PrimaryKeyConstraint,
+    SmallInteger,
     Table,
     Text,
     text,
@@ -149,6 +150,7 @@ audit_log = Table(
     # one successor per row: a fork (two rows claiming the same head) cannot commit
     Index("uq_audit_log_prev_hash", "prev_hash", unique=True),
     Index("ix_audit_log_at", "at"),
+    Index("ix_audit_log_request_id", "request_id", "action"),
 )
 
 notifications = Table(
@@ -221,4 +223,38 @@ setup_state = Table(
     Column("completed_by", Text),
     CheckConstraint("singleton", name="singleton"),
     CheckConstraint("mail_step IS NULL OR mail_step IN ('saved', 'skipped')", name="mail_step"),
+)
+
+# Fixed rows that serialise writers: ``SELECT ... FOR UPDATE`` through
+# ``admin.take_lock`` (revision 0013). Nothing ever changes them.
+lock_rows = Table(
+    "lock_rows",
+    metadata,
+    Column("name", Text, primary_key=True),
+    CheckConstraint("name ~ '^[a-z_]{1,32}$'", name="name"),
+)
+
+# Leadership of a background loop: a row with an expiry the leader renews.
+loop_leases = Table(
+    "loop_leases",
+    metadata,
+    Column("name", Text, primary_key=True),
+    Column("holder", Text, nullable=False),
+    _ts("acquired_at", nullable=False, server_default=text("clock_timestamp()")),
+    _ts("expires_at", nullable=False),
+    CheckConstraint("name ~ '^[a-z][a-z0-9_]{0,31}$'", name="name"),
+    CheckConstraint("length(holder) BETWEEN 1 AND 128", name="holder"),
+)
+
+# Checkpoint of the integrity loop's incremental audit-chain verification.
+audit_verify_state = Table(
+    "audit_verify_state",
+    metadata,
+    Column("id", SmallInteger, primary_key=True, server_default="1"),
+    Column("verified_seq", BigInteger, nullable=False),
+    Column("verified_hash", LargeBinary, nullable=False),
+    Column("rows_verified", BigInteger, nullable=False, server_default="0"),
+    _ts("verified_at", nullable=False, server_default=text("clock_timestamp()")),
+    CheckConstraint("id = 1", name="single"),
+    CheckConstraint("length(verified_hash) = 32", name="hash"),
 )

@@ -16,7 +16,6 @@ from sqlalchemy.pool import NullPool
 
 import backend.admin as admin_package
 from backend.admin.db import MIGRATIONS, ensure_schema
-from backend.admin.repositories import audit as audit_repo
 from backend.admin.repositories.tables import SCHEMA, metadata
 from backend.admin.services import audit
 from common.db import SchemaNotReady
@@ -28,7 +27,7 @@ pytestmark = needs_postgres
 
 BACKEND_ROOT = Path(admin_package.__file__).resolve().parents[2]
 INI = Path(admin_package.__file__).resolve().parent / "alembic.ini"
-HEAD = "0012_setup_state"
+HEAD = "0017_audit_verify_state"
 TABLES = sorted([t.name for t in metadata.sorted_tables] + ["alembic_version"])
 
 
@@ -84,6 +83,11 @@ def test_the_chain_is_linear_with_hand_named_revisions():
         "0010_background_loops",
         "0011_setup_tokens",
         "0012_setup_state",
+        "0013_lock_rows_and_leases",
+        "0014_history_immutable",
+        "0015_runner_audit_functions",
+        "0016_outbox_and_state_guards",
+        "0017_audit_verify_state",
     ]
 
 
@@ -98,7 +102,6 @@ def test_migration_constants_match_the_service():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert bytes.fromhex(module.GENESIS_HASH_HEX) == audit.GENESIS_HASH
-    assert module.CHAIN_LOCK_KEY == audit_repo.CHAIN_LOCK_KEY
 
 
 async def test_migrations_apply_from_empty_and_are_idempotent(server, unmigrated):
@@ -117,6 +120,11 @@ async def test_migrations_apply_from_empty_and_are_idempotent(server, unmigrated
         "0009_task_keyset_write",
         "0011_setup_tokens",
         "0012_setup_state",
+        "0013_lock_rows_and_leases",
+        "0014_history_immutable",
+        "0015_runner_audit_functions",
+        "0016_outbox_and_state_guards",
+        "0017_audit_verify_state",
     ]
     assert await _tables(owner) == TABLES
     assert await upgrade_schema(owner, MIGRATIONS) == []

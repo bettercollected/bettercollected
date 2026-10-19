@@ -156,8 +156,9 @@ async def write_stored(
     extra: Optional[Mapping[str, Any]] = None,
 ) -> tuple[int, int]:
     """Write ``new_value`` as the next version of the keyset, in the caller's
-    transaction: the audit row first (the database function checks it is
-    there), then ``settings.task_write_keyset``. Returns (version, revision).
+    transaction: the audit row is built first (hashed with the audit key) and
+    handed to ``settings.task_write_keyset``, which checks the run and writes the
+    row itself. Returns (version, revision).
     Raises ``Refusal('stale_version')`` when the store moved since ``current``
     was read."""
     from sqlalchemy.exc import DBAPIError
@@ -186,7 +187,10 @@ async def write_stored(
         "requested_by": requested_by,
         **(dict(extra) if extra else {}),
     }
-    await audit.write(
+    # the audit row for this write is built and hashed here (with the audit key, which
+    # the database never has) and appended by the function itself, after it has
+    # checked the run: the runner's role cannot insert into the log
+    row = await audit.prepare_runner_row(
         conn,
         AUDIT_ACTION,
         "setting",
@@ -198,7 +202,6 @@ async def write_stored(
             "digest": value_digest(keys, spec, KEY, version, new_value),
         },
         "success",
-        actor_kind="system",
         detail=detail,
         request_id=run_id,
     )
@@ -207,7 +210,9 @@ async def write_stored(
             text(
                 "SELECT settings.task_write_keyset(:key, :ev, :er, :section, "
                 "CAST(:readers AS text[]), :blob, :by, :at, :sig, :actor, :digest, "
-                "CAST(CAST(:entries AS text) AS jsonb), :msig, :action, :run, CAST(CAST(:extra AS text) AS jsonb))"
+                "CAST(CAST(:entries AS text) AS jsonb), :msig, :action, :run, CAST(CAST(:extra AS text) AS jsonb), "
+                ":aid, :aat, :aprev, :ahash, :akv, CAST(CAST(:abefore AS text) AS jsonb), "
+                "CAST(CAST(:aafter AS text) AS jsonb), CAST(CAST(:adetail AS text) AS jsonb))"
             ),
             {
                 "key": KEY,
@@ -229,6 +234,14 @@ async def write_stored(
                     {k: v for k, v in (extra or {}).items() if isinstance(v, int)},
                     allow_nan=False,
                 ),
+                "aid": row["id"],
+                "aat": row["at"],
+                "aprev": row["prev_hash"],
+                "ahash": row["row_hash"],
+                "akv": row["key_version"],
+                "abefore": json.dumps(row["before"], allow_nan=False),
+                "aafter": json.dumps(row["after"], allow_nan=False),
+                "adetail": json.dumps(row["detail"], allow_nan=False),
             },
         )
     except DBAPIError as error:

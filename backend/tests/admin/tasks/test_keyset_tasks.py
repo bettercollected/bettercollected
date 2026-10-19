@@ -617,7 +617,7 @@ async def test_a_resume_with_another_keyset_is_refused(world, flow, monkeypatch,
 
     stored = await flow.stored()
     changed = encode_keyset(add_secondary_key(parse_keyset(stored.value)))
-    await write(world.tasks, changed)
+    await write(world, changed)
     await flow.beat()
     second_id, second = await flow.run("keyset.reencrypt", params, resumes=first_id)
     assert second["state"] == "refused" and second["refusal_code"] == "resume_mismatch"

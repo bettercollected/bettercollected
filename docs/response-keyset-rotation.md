@@ -265,13 +265,19 @@ refuses while it is seen) and what it stores can be neither checked nor re-encry
 from here, so `promote`, `reencrypt` and `drop_old` need `typeform_acknowledged: true`: you confirm
 you kept the old key for it or will reconnect its accounts after the final keyset.
 
-**Where the new keyset is written.** The runner has no write privilege on the settings tables. It
-seals and signs the new row itself (for the keyset's section only) and calls
-`settings.task_write_keyset` (migration 0009), which accepts only this key, one version up, under
-the writer lock, with a matching signed manifest and an audit row (`settings.task_set`, actor kind
-`system`, the requesting admin in the detail) already in the same transaction. The same
-transaction enqueues a `settings.keyset_changed` notification for all admins (setting name, action,
-version and requester; never a value) in the admin outbox.
+**Where the new keyset is written.** The runner has no write privilege on the settings tables and
+no access to the audit log. It seals and signs the new row itself (for the keyset's section only),
+builds and hashes the audit row (it holds the audit key, the database never does) and calls
+`settings.task_write_keyset` (migrations 0009 and 0015), which accepts only this key, one version up,
+under the writer lock, with a matching signed manifest, **for a `running` apply run of the matching
+`keyset.*` task whose start (`task.run.started`) the runner's audit function recorded, once per
+run**, and writes the audit row (`settings.task_set`, actor kind `system`, the requesting admin in
+the detail) itself from parameters it validates. The same transaction enqueues a
+`settings.keyset_changed` notification for all admins (setting name, action, version and requester;
+never a value) in the admin outbox. The database cannot verify an HMAC, so a row signed wrongly is
+written but refused by every reader and reported by `settings-verify` and the integrity loop; what
+the checks above prevent is a database credential alone (the runner's, without a run) producing a
+write at all.
 
 **Requirements and limits.** The keyset must be in the settings store (imported with the admin
 import command) and the runner must be a reader of it. A keyset row imported before the runner
@@ -281,8 +287,10 @@ row with the runner among its readers; do not edit the table. Stacks whose servi
 keyset from the environment keep using the script above.
 
 **Old keys are kept for backups.** `settings.history` keeps every version of the keyset, never pruned
-(the history guard refuses deleting any row of a task-managed key, for the migration role and the
-portal's writer alike). After `drop_old` the dropped key therefore stays recoverable from the
+and never changed (the history guard refuses deleting or updating any row of a task-managed key, for
+the migration role and the portal's writer alike; a master-key rotation appends a re-wrapped copy to
+`settings.history_wraps` and leaves the original), and `settings-verify` reports a version that no
+stored copy opens (`history_unreadable`). After `drop_old` the dropped key therefore stays recoverable from the
 sealed history, so a database backup taken before the re-encryption can still be read: unseal the
 older version with the settings master key. Purging old keys is a deliberate database operation by
 the owner role (`ALTER TABLE settings.history DISABLE TRIGGER history_guard`, delete the versions,

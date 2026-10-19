@@ -236,7 +236,7 @@ available yet; the task pages are described under "Task pages" below.
 | `/` | Cards linking to the pages below |
 | `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the admin schema's Alembic state (current against the expected head) and the `app`, `auth` and `google` schemas' revisions where this role can read them (otherwise "not available to this role": the role has no access to those schemas on purpose) |
 | `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS` |
-| `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts()` |
+| `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts_app()` and `admin.platform_counts_auth()` |
 | `/audit`, `GET /api/audit` | Newest first, keyset pagination (`before` is a `seq`), filters `actor`, `action` (exact or dot-separated prefix), `outcome`, `from`, `to` (a date or an ISO time; `to` as a date includes that day), `limit` up to 200; all validated (400 otherwise). Payloads are shown masked and escaped. The page shows the chain head and points to `python -m backend.admin audit-verify`; the chain is not verified inside a request. No export |
 | `/sessions` | Your live sessions (created, last seen, address, a short fingerprint of the browser identification) with the current one marked; revoke forms post, with the CSRF token, to the existing account routes |
 
@@ -244,19 +244,29 @@ A notice area at the top of every page carries a permanent reminder to back up
 `SETTINGS_MASTER_KEY` (it cannot be recovered) and, when a service reports a
 pending restart, a restart notice.
 
-`admin.platform_counts()` is created by `postgres/ensure-admin-roles.sh`, not by
-an Alembic revision: the admin roles cannot read the `app` and `auth` schemas
-and the migration role owns nothing there, so the function is a SECURITY DEFINER
-owned by a dedicated role, `bc_admin_counts` (NOLOGIN, no superuser, no create
-rights anywhere, owns no objects). That role has `USAGE` on `app` and `auth` and
-column-level `SELECT` on only the columns the function reads; the script
-re-applies those grants on every deploy, so they appear once the application
-migrations have created the tables. The function takes no arguments, writes
-nothing, calls only `pg_catalog` functions (never an object another service's
-role owns, so those roles cannot make it run their code), pins `search_path`,
-and is executable by `bc_admin` alone. The counts follow the Postgres store, so they are complete
-once the application serves from Postgres; before the application migrations
-have run the page says they are not available.
+The counts come from two functions, `admin.platform_counts_app()` and
+`admin.platform_counts_auth()`, created by `postgres/ensure-admin-roles.sh`, not by
+an Alembic revision: the admin roles cannot read the `app` and `auth` schemas and
+the migration role owns nothing there. Each is a SECURITY DEFINER owned by a
+dedicated role of its own schema, `bc_count_app` and `bc_count_auth` (NOLOGIN, no
+superuser, no create rights anywhere, owning only its function). A role has `USAGE`
+on one schema and column-level `SELECT` on only the columns its function reads, so
+it holds nothing the schema's own owner role (`bc_app`, `bc_auth`) does not already
+hold. **No definer function reads tables of more than one owning role.** That is
+the point: a table owner can replace its table with a view that calls its own
+function, and that function then runs as whoever reads the view. Here the reader is
+a role with the owner's own rights and nothing more, so planted code gets nothing
+from another schema, from `admin` or from `settings`
+(`tests/admin/test_db_privilege_model.py` plants exactly that for each schema). The
+functions take no arguments, write nothing, pin `search_path` and are executable by
+`bc_admin` alone; the script re-applies the grants on every deploy, so they appear
+once the application migrations have created the tables. The admin service adds
+the two answers up in Python (`repositories/views.py`, `combine_counts`) and treats
+them as data: only whole numbers in known fields survive. The counts follow the
+Postgres store, so they are complete once the application serves from Postgres;
+before the application migrations have run the page says they are not available.
+(The earlier single `admin.platform_counts()` and its owner `bc_admin_counts` are
+dropped by the script.)
 
 ## Settings pages (changing settings)
 
@@ -300,8 +310,17 @@ adds a notice to every page.
 Schema `settings` holds signed (and, for secrets, encrypted) rows, a signed
 manifest and per-service views. The triggers on its tables stop mistakes and a
 compromised runtime role (no deleting entries, versions and the manifest
-revision only go up by one, no future history rows). They do not stop the
-migration role, which can disable triggers. Tampering is detected instead:
+revision only go up by one, no future history rows, and no history row is ever
+changed: a master-key rotation appends a re-wrapped copy to `settings.history_wraps`
+instead of overwriting, and the database accepts a copy only when it keeps the
+sealed value of the original, so a stolen portal credential cannot destroy the
+backup safety net). The keyset row (`MASTER_ENCRYPTION_KEYSET`) moves to a new
+version through the task runner's function only. They do not stop the
+migration role, which can disable triggers. What the database cannot do is verify
+a signature (the keys are not in it): a role without the master key can still
+damage a row it may update (for instance re-key a data key), but it cannot produce
+a row that verifies, and every such change is found by the integrity loop
+(`bad_signature`, `history_unreadable`) and refused by every reader. Tampering is detected instead:
 every row carries a signature, the manifest signs the full set of keys, versions
 and readers, and every change is in the audit trail; `settings-verify` checks
 all three against each other, including a wiped or rolled-back store.
@@ -400,7 +419,7 @@ commands print counts, setting names and short reason codes, never a value.
 
 | Command | What it does |
 |---|---|
-| `bootstrap-keys [--export-worker FILE] [--existing-stack] [--fill-missing]` | Fresh install: generates `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY` and the response keyset straight into the store, prints only the keyset's key-id fingerprint (the value services report as their keyset fingerprint) and the master-key fingerprint. Refused whatever the flags when the stack holds data (users or responses in `admin.platform_counts()`, plus, **only when `MONGO_URI` is in the command's own environment**, a non-empty `users` or `form_responses` collection in that Mongo server; `deploy.sh`'s one-off container has no Mongo credentials, so `deploy.sh` decides the Mongo half itself, see below) or when that cannot be established (fail closed): a new keyset could not read what the old one encrypted, so an existing stack imports its keys with `settings-import` instead. Also refused when `--existing-stack` is passed, when the environment already carries one of the keys (import instead), or when the store holds one (`--fill-missing` finishes an interrupted run and adds only the missing ones). `--export-worker FILE` writes `API_KEY` and `AES_HEX_KEY`, the two copies the Temporal worker keeps (it never gets the master key), to a new private file or appends them to a private env file that has neither; `--export-worker-only` skips generation. |
+| `bootstrap-keys [--export-worker FILE] [--existing-stack] [--fill-missing]` | Fresh install: generates `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY` and the response keyset straight into the store, prints only the keyset's key-id fingerprint (the value services report as their keyset fingerprint) and the master-key fingerprint. Refused whatever the flags when the stack holds data (users or responses in `admin.platform_counts_app()` and `admin.platform_counts_auth()`, or, only when `MONGO_URI` is in the command's own environment, a non-empty `users` or `form_responses` collection in that Mongo server; `deploy.sh`'s one-off container has no Mongo credentials, so `deploy.sh` decides the Mongo half itself, see below) or when that cannot be established (fail closed): a new keyset could not read what the old one encrypted, so an existing stack imports its keys with `settings-import` instead. Also refused when `--existing-stack` is passed, when the environment already carries one of the keys (import instead), or when the store holds one (`--fill-missing` finishes an interrupted run and adds only the missing ones). `--export-worker FILE` writes `API_KEY` and `AES_HEX_KEY`, the two copies the Temporal worker keeps (it never gets the master key), to a new private file or appends them to a private env file that has neither; `--export-worker-only` skips generation. |
 | `settings-import --from-compose-config [--dry-run] [--prefer SERVICE]` | Reads `docker compose config --format json` on standard input (never written to disk) and imports each setting once, from the services that read it (`backend`, `jobs-worker`, `auth`, `integrations-googleform`, `admin`). Prints `would_import`, `already_in_store`, `empty`, `unknown`, `env_only`, `conflict` and `refused <key> <reason>` as counts and names. Services that disagree on a value are imported neither way until `--prefer SERVICE` picks one. Never overwrites. `--env-file PATH` (without the other options) is the older single-file import. |
 | `settings-drift [--from-compose-config \| --env-file PATH]` | Compares the same sources with the store: `equal`, `differs <key> <service>`, `env_only`, `store_only`. The workers' `API_KEY` and `AES_HEX_KEY` are compared with `TEMPORAL_API_KEY` and `AUTH_AES_HEX_KEY`. `MASTER_ENCRYPTION_KEYSET` counts as `differs` when the stored keyset lacks any key id of the environment's (ids compared, never values). Exit 1 when any value differs. |
 | `settings-prune --env-file PATH ... [--apply] [--swap] [--keep NAME]` | In 4.0 an environment value wins over the store, so a stale value left in `.env` silently overrides a portal change. Prune removes the settings the store already holds with the same value (comments and everything else stay). Without `--apply` it only reports. With `--apply` it writes `PATH.pruned` and a private backup `PATH.pre-v4.<time>` (both mode 600, never over an existing file); `--swap` then replaces the original with the pruned copy. A key whose value differs is never removed (exit 1: fix it first). Backups hold the old secrets: delete them when the stack runs well. Use `--keep` for a name something outside the store still reads (the Typeform service keeps `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` in its environment). |
@@ -657,12 +676,63 @@ if it still refuses). Parameters travel only in POST bodies, never in a URL, and
 the audit row carries the validated parameters through the usual masking. All
 refusals are fixed sentences that never repeat a submitted value.
 
+## Serialisation and the locks outsiders cannot take
+
+Audit writes, settings writes, sign-ins and the setup token are serialised by row
+locks on `admin.lock_rows` (`audit_chain`, `settings_writer`, `signin`, `setup_token`),
+taken only through `admin.take_lock(name)` (SECURITY DEFINER; nobody else holds any
+privilege on the table). Postgres advisory locks are not used for any of this, because
+`pg_advisory_lock` is executable by every role and its keys live in one cluster-wide
+namespace: any database login (the backend, the auth service, the user-code executor's
+role) could take the repository's constant keys and stall the whole admin plane. Taking a
+row lock gives up after 5 seconds with SQLSTATE `55P03`, so a stuck holder is a quick,
+clear failure (the audited action fails closed) rather than a hang, and the integrity loop
+raises `lock_blocked` for it. The lock order is always `settings_writer`, then
+`audit_chain`.
+
+## What each database role can and cannot do (summary)
+
+| Role | Audit log | Settings store | Notes |
+| --- | --- | --- | --- |
+| `bc_admin` (portal, CLI) | `INSERT`, `SELECT`; may not write the runner's lifecycle actions (`task.run.started`, `task.run.finished`, `task.run.quarantined`, `settings.task_set`) | entries and manifest (signed rows only verify with the master key), history `INSERT`/prune, `history_wraps` `INSERT`; cannot move the keyset row to a new version, cannot change a history row | cannot read `app`, `auth`, `google`, `jobs` |
+| `bc_tasks` (runner) | none: no read, no insert; rows only through `tasks.audit_append`, `tasks.begin_audit` and `settings.task_write_keyset` (definer functions owned by `bc_tasks_def`) | its own view; the keyset only through `settings.task_write_keyset`, for a `running` apply run of the matching `keyset.*` task whose start the function recorded, once per run | cannot insert runs |
+| `bc_tasks_def` | NOLOGIN owner of the runner's functions; holds only what they touch | | nobody can connect as it |
+| `bc_count_app`, `bc_count_auth` | none | none | NOLOGIN owners of the count functions; column `SELECT` on their own schema |
+
+What grants cannot close, and what detects it: the database cannot verify an HMAC.
+A holder of both the portal's and the runner's database credentials (and no master key) can
+still queue a row of its own and drive the runner's functions through it, but nothing it writes
+verifies: the audit row carries a hash it cannot compute (`audit_chain_broken`), the keyset
+row has no valid signature (`bad_signature`, and every reader refuses it). The portal's
+credential alone can still mark a pending notification `sent` or `failed` (the sender uses
+that same role); resetting, replaying or editing a delivered notice is refused. Whoever holds
+the master key can sign anything: that is inherent to a shared key (see
+[the threat model](#threat-model-notes)).
+
+### Threat model notes
+
+* A service's heartbeat (`settings.report_state`) is **advisory readiness information**,
+  not proof. It is bounded (the reported revision is kept as reported so a rolled-back store shows, rejected names
+  must be stored settings the caller's service reads, name lists are capped, at most 100
+  instances a service), but a compromised service can still report a clean state for its own
+  instances. The keyset gates therefore also require a fresh heartbeat (under two minutes) from
+  every instance seen in the last 15 minutes and from each required service, they run again
+  immediately before `keyset.drop_old` writes, and `drop_old` and `reencrypt` rely on a full
+  scan of the data, not on the heartbeats, for the safety of the data itself.
+* A process that holds `SETTINGS_MASTER_KEY` can sign task requests and audit rows without any
+  admin's authorisation; the signature proves that a holder of the key signed, not that an admin
+  stepped up.
+
 ## Background loops
 
 In full portal mode (never in the bare gate) the service runs three loops. Each is
-one asyncio task guarded by a Postgres session advisory lock on its own connection:
-with several admin processes only one runs a given loop, the others stand by and
-retry, and the lock is freed on shutdown (or when the connection dies). Intervals are
+one asyncio task guarded by a lease, a row in `admin.loop_leases` that the leader
+renews on every pass: with several admin processes only one runs a given loop, the
+others stand by and retry (the status says `standby`, with when it began), the lease is
+released on shutdown and a crashed leader's runs out after two minutes. A lease is
+used instead of an advisory lock because advisory locks are one namespace every
+database login can use (the backend's role could have held the key and stopped the
+loops); only the admin role can touch the lease table. Intervals are
 jittered, a failing pass is logged by exception class only (never a message, address
 or payload), counted, and retried with a growing delay (up to 8 times the interval);
 nothing a loop does can stop the service. `ADMIN_LOOPS_ENABLED=false` switches them
@@ -704,7 +774,14 @@ touched.
 The admin role holds DELETE on `tasks.run_events`, `tasks.checkpoints` and
 `settings.service_state` for this; the runner role still can only append.
 
-**Integrity.** Any problem (a bad signature, a missing row, a manifest mismatch, a key a
+**Integrity.** Each pass runs the settings store check, verifies the next slice of the
+audit chain (up to 5000 rows) from a checkpoint kept in `admin.audit_verify_state` (the last
+verified `seq` and that row's hash; it only moves forward, and a break holds it in front of
+the break so the alarm repeats every pass: `audit_chain_broken`, or `audit_checkpoint_bad` when
+the checkpointed row is gone or changed), probes the two row locks the admin writes depend on
+(`lock_blocked`) and reads the keys services reported as rejected (only names the registry
+knows). Any problem (a bad signature, a missing row, a manifest mismatch, a broken audit
+chain, a blocked lock, a version of a secret that no sealed copy opens, a key a
 service rejected) sets the integrity status and is mailed once per incident: the
 same set of problems is not mailed again within 24 hours (kept in memory and, after a
 restart, found through the outbox row's dedupe key). When the problems are gone the
