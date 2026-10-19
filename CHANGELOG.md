@@ -71,6 +71,22 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `settings-env-export`, `settings-set`, `settings-restore`, `settings-history`,
   `settings-verify`, `master-key-fingerprint`, `setup-token`.
 
+### Fixed
+
+Found by running the real `deploy.sh` end to end (`scripts/v4-compose-check.sh`):
+
+- `deploy.sh` runs on a host that has only the Docker Compose plugin (`docker compose`);
+  it looked the two words up as one command and did nothing there.
+- A new install starts: the backend no longer needs an Unsplash access key it never reads
+  (a required field stopped every stack whose files did not set it).
+- The Postgres containers are checked over TCP with a start period, so `deploy.sh` no longer
+  races the image's temporary first-run server; nginx waits for the webapp and restarts;
+  the jobs worker and the task runner no longer inherit the backend image's health check
+  (they were reported unhealthy for good).
+- `responses.check_undecryptable` and `responses.backfill_workspaces` read the keyset from
+  the settings store first, as the documentation says (they refused with `keyset_missing` on
+  every 4.0 stack).
+
 ### Removed
 
 - **The public app's platform metrics dashboard is gone.** Platform
