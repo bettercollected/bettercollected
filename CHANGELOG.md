@@ -23,6 +23,22 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+## [4.0.1] - 2026-10-19
+
+### Fixed
+
+- The Google Forms integration reports the response keyset's fingerprint in its settings
+  heartbeat (it reported the master key's). The keyset tasks in the admin portal
+  (`keyset.promote`, `keyset.reencrypt`, `keyset.drop_old`) no longer refuse with
+  `consumer_missing_key` on a stack that runs the integration.
+- The admin service's own warnings (refused gate requests, mail that could not be sent)
+  reach the container log.
+
+### Changed
+
+- Dependency updates: webapp minor and patch releases; CI actions `schemathesis/action`
+  3.0.0 and `astral-sh/setup-uv` 10.3.0.
+
 ## [4.0.0] - 2026-10-19
 
 4.0.0 moves platform administration out of the public app into an internal admin
@@ -735,7 +751,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.1...HEAD
+[4.0.1]: https://github.com/bettercollected/bettercollected/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/bettercollected/bettercollected/compare/v3.4.0...v4.0.0
 [3.4.0]: https://github.com/bettercollected/bettercollected/compare/v3.3.2...v3.4.0
 [3.3.2]: https://github.com/bettercollected/bettercollected/compare/v3.3.1...v3.3.2
