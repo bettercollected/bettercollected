@@ -411,6 +411,8 @@ async def _bootstrap_keys(args) -> int:
             print(f"generated {key}")
     if args.export_worker:
         print(f"worker_keys_written file={os.path.basename(args.export_worker)} mode=600")
+    if result is not None and result.keyset_fp:
+        print(f"keyset_fingerprint {result.keyset_fp}")
     print(f"master_key_fingerprint {format_fingerprint(service.keys.fingerprint)}")
     print("back up SETTINGS_MASTER_KEY now: without it the stored secrets cannot be recovered")
     return 0
