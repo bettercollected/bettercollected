@@ -160,5 +160,5 @@ and events go through **Brevo** / SMTP (`brevo_service.py`, `mail_service.py`).
 - Images built per service (`.github/workflows/build-images.yml`), tagged `bettercollected/<service>:nightly`.
 - `docker-compose.deployment.yml` runs the full stack (webapp, backend, auth, both integrations, temporal + workers,
   mongo + seed, postgres, nginx, **umami + its own postgres**). `deploy.sh` / `Dockerfile.*.mongo-seed` handle seeding.
-- nginx (`nginx-deployment.conf`) fronts the admin/client/custom-domain hosts. Umami's admin UI is exposed directly on
-  host port `3003` in this first pass (no nginx/TLS routing yet).
+- nginx (`nginx-deployment.conf`) fronts the admin/client/custom-domain hosts. Umami's tracker script and event endpoint are
+  served by nginx on port `3003`; its dashboard is published on `127.0.0.1:3004` only (no TLS routing yet).

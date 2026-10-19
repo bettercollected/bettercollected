@@ -25,6 +25,8 @@ STUB = textwrap.dedent(
     argv = sys.argv[1:]
     with (state / "calls.log").open("a") as log:
         log.write(" ".join(argv) + "\\n")
+    with (state / "project.log").open("a") as log:
+        log.write(os.environ.get("COMPOSE_PROJECT_NAME", "") + "\\n")
     store = state / "store"
     store.mkdir(exist_ok=True)
 
@@ -97,9 +99,17 @@ STUB = textwrap.dedent(
     if "config" in argv:
         print("{}")
         sys.exit(0)
+    if "ps" in argv and "admin" in argv:
+        print("stub-admin-container")
+        sys.exit(0)
     if "exec" in argv and "umami" in argv:
         sys.stdin.read()
-        print("default_login=no")
+        if os.environ.get("STUB_UMAMI_FAILS"):
+            if "-e" in argv:  # the rotation itself (carries the new password by name)
+                sys.exit(1)
+            print("default_login=yes")
+        else:
+            print("default_login=no")
         sys.exit(0)
     if "exec" in argv:
         sys.stdin.read()
@@ -111,9 +121,24 @@ DOCKER_STUB = textwrap.dedent(
     #!/usr/bin/env python3
     import os, sys
     argv = sys.argv[1:]
+    # STUB_VOLUMES: comma separated; "vol" lives in the project named "stack" (the
+    # fixture's directory and COMPOSE_PROJECT_NAME), "project:vol" in that project
+    items = []
+    for item in os.environ.get("STUB_VOLUMES", "").split(","):
+        if not item:
+            continue
+        project, _, vol = item.rpartition(":")
+        items.append((project or "stack") + "_" + vol)
     if argv[:2] == ["volume", "inspect"]:
-        name = argv[2]
-        sys.exit(0 if any(name.endswith("_" + v) for v in os.environ.get("STUB_VOLUMES", "").split(",") if v) else 1)
+        sys.exit(0 if argv[2] in items else 1)
+    if argv[:2] == ["volume", "ls"]:
+        label = [a for a in argv if a.startswith("label=com.docker.compose.project=")]
+        prefix = label[0].split("=", 2)[2] + "_" if label else ""
+        print("\\n".join(i for i in items if i.startswith(prefix)))
+        sys.exit(0)
+    if argv[:1] == ["inspect"]:
+        print(os.environ.get("STUB_ADMIN_HEALTH", "healthy"))
+        sys.exit(0)
     sys.exit(0)
     '''
 )
@@ -149,9 +174,11 @@ def site(tmp_path):
     return work, state, env
 
 
-def _run(site, *args, volumes="", extra=None):
+def _run(site, *args, volumes="", extra=None, drop=()):
     work, state, env = site
-    env = {**env, "STUB_VOLUMES": volumes, **(extra or {})}
+    env = {**env, "STUB_VOLUMES": volumes, "BC_DEPLOY_ADMIN_WAIT_SECONDS": "2", "BC_DEPLOY_RETRY_SLEEP": "0", **(extra or {})}
+    for name in drop:
+        env.pop(name, None)
     done = subprocess.run(
         ["bash", "deploy.sh", *args], cwd=work, env=env, capture_output=True, text=True, timeout=120
     )
@@ -166,6 +193,11 @@ def _dotenv(work: Path) -> dict:
             key, value = line.split("=", 1)
             values[key] = value
     return values
+
+
+def _temp_leftovers(work: Path) -> list:
+    """mktemp leftovers (.env.XXXXXX): not the per-service env files."""
+    return [p for p in work.glob(".env.??????") if p.name not in (".env.worker", ".env.webapp")]
 
 
 def _index(calls, needle, start=0):
@@ -211,7 +243,7 @@ def test_new_install_bootstraps_keys_before_any_service_starts(site):
             assert value not in shown, name
     assert "abcd-ef01-2345" in shown  # the fingerprint is
     # no temp directory with keys is left behind
-    assert not list(work.glob(".env.??????"))
+    assert not _temp_leftovers(work)
 
 
 def test_a_second_run_does_not_bootstrap_again(site):
@@ -385,8 +417,278 @@ def test_a_postgres_that_holds_data_stops_the_deploy_at_the_real_refusal(site):
     values = _dotenv(work)
     assert "API_KEY" not in values and "AES_HEX_KEY" not in values
     # nothing was left behind by the one-off export directory
-    assert not list(work.glob(".env.??????"))
+    assert not _temp_leftovers(work)
     # a second run still stops: nothing was recorded that would let it through
     (state / "calls.log").unlink()
     done, calls = _run(site, volumes="app-postgres-data", extra={"STUB_PG_RESPONSES": "1"})
     assert done.returncode != 0 and not any("up --build" in c for c in calls)
+
+
+# --------------------------------------------------------------------------------
+# the security-review hardening of the deployment script
+
+
+def _tail(work, name=".env"):
+    return (work / name).read_text()
+
+
+def test_every_always_on_service_is_started_for_every_preference(site):
+    """`up -d NAME...` starts only what it names: the admin service, the jobs worker,
+    the document sandbox and the task runner have to be on the list, whatever the
+    preference (a docker-compose `up --dry-run` version of this runs in
+    test_deployment_config.py)."""
+    required = {"admin", "jobs-worker", "document-sandbox", "task-runner", "backend", "auth", "worker", "webapp"}
+    for preference, extra in (("", set()), ("both", {"integrations-typeform", "integrations-googleform"}),
+                              ("typeform", {"integrations-typeform"}), ("googleform", {"integrations-googleform"})):
+        done, calls = _run(site, "print-services", preference)
+        assert done.returncode == 0, done.stderr
+        listed = set(done.stdout.split())
+        assert required <= listed, (preference, required - listed)
+        assert extra <= listed
+        assert ("integrations-typeform" in listed) == ("integrations-typeform" in extra)
+    # and the real start passes exactly that list to `up`
+    done, calls = _run(site, "both")
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    up = calls[_index(calls, "up --build")]
+    for name in required | {"integrations-typeform", "integrations-googleform"}:
+        assert f" {name}" in up, name
+
+
+@pytest.mark.parametrize("value", ['true', '"true"', "'True'", "1", "yes", "on"])
+def test_sso_is_read_from_the_root_env_the_way_compose_reads_it(site, value):
+    work, _, _ = site
+    (work / ".env").write_text(f"export SSO_ENABLED={value}  # on\n")
+    done, _ = _run(site, "print-services")
+    assert {"polis", "polis-postgres"} <= set(done.stdout.split()), value
+    for value in ("false", "", "no"):
+        (work / ".env").write_text(f"SSO_ENABLED={value}\n")
+        done, _ = _run(site, "print-services")
+        assert "polis" not in done.stdout.split()
+
+
+def test_an_interrupted_first_run_shows_the_fingerprint_and_the_token_notice_later(site):
+    work, state, _ = site
+    (work / ".env").write_text("PLATFORM_ADMIN_EMAILS=ops@example.test\n")
+    done, calls = _run(site, extra={"STUB_ADMIN_HEALTH": "starting"})
+    assert done.returncode == 0, done.stderr[-800:]
+    assert "First sign-in" not in done.stdout and "did not become healthy" in done.stderr
+    assert _dotenv(work)["BC_FIRST_RUN_PENDING"] == "1"
+    # the next run finds the keys complete, but still owes the notice
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert not any("bootstrap-keys" in c for c in calls)
+    assert "abcd-ef01-2345" in done.stdout and "First sign-in" in done.stdout
+    assert "BC_FIRST_RUN_PENDING" not in _dotenv(work)
+    # and once shown it is not shown again
+    done, _ = _run(site, volumes="mongo-data,app-postgres-data")
+    assert "First sign-in" not in done.stdout
+
+
+def test_an_unreplaced_umami_login_is_fatal_on_a_new_install_and_a_warning_on_an_upgrade(site):
+    work, state, _ = site
+    done, calls = _run(site, extra={"STUB_UMAMI_FAILS": "1"})
+    assert done.returncode != 0
+    assert "Umami's built-in login could not be replaced" in done.stderr
+    assert sum("exec -T -e UMAMI_NEW_PASSWORD" in c for c in calls) == 3  # tried, then given up
+    assert "First sign-in" not in done.stdout
+    assert _dotenv(work)["BC_FIRST_RUN_PENDING"] == "1"  # the rerun still owes the notice
+    # an upgrade of a running stack only warns
+    shutil.rmtree(state / "store", ignore_errors=True)
+    _upgrade_env(work)
+    done, calls = _run(site, volumes="mongo-data", extra={"STUB_UMAMI_FAILS": "1"})
+    assert done.returncode == 0, done.stderr[-800:]
+    assert "could not be replaced" in done.stderr
+
+
+def test_a_stack_found_under_another_project_name_is_refused_not_regenerated(site):
+    """COMPOSE_PROJECT_NAME in the root .env is what compose uses (the shell has none
+    here): the stack's volumes are looked up under that name, and the passwords of a
+    stack that exists are never regenerated."""
+    work, state, _ = site
+    _upgrade_env(work)
+    with open(work / ".env", "a") as fh:
+        fh.write("COMPOSE_PROJECT_NAME=Prod_Stack\n")
+    volumes = ",".join(f"prod_stack:{v}" for v in ("mongo-data", "app-postgres-data", "temporal-postgres-data", "umami-db-data"))
+    done, calls = _run(site, volumes=volumes, drop=("COMPOSE_PROJECT_NAME",))
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    values = _dotenv(work)
+    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD", "BC_MONGO_ROOT_PASSWORD"):
+        assert name not in values, name
+    # compose is told the same name this script used
+    assert set((state / "project.log").read_text().split()) == {"prod_stack"}
+    assert (state / "store" / "MONGO_URI").read_text() == "mongodb://root:root@mongodb:27017"
+
+    # volumes only under the directory's name while .env names another project: refused
+    shutil.rmtree(state / "store")
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes="stack:mongo-data,stack:app-postgres-data", drop=("COMPOSE_PROJECT_NAME",))
+    assert done.returncode != 0
+    assert "Volumes of a stack named 'stack' exist" in done.stderr
+    assert not calls or not any("up " in c for c in calls)  # refused before anything ran
+
+
+def test_no_database_password_is_generated_while_any_volume_of_the_stack_exists(site):
+    work, state, _ = site
+    done, calls = _run(site, volumes="app-postgres-data")
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    values = _dotenv(work)
+    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD", "BC_MONGO_ROOT_PASSWORD"):
+        assert name not in values, name
+        assert f"NOTE: {name} is not set" in done.stdout
+    # the Mongo of a stack that has volumes keeps the original default, and the store
+    # is told so (no new password that would not match)
+    assert (state / "store" / "MONGO_URI").read_text() == "mongodb://root:root@mongodb:27017"
+    # a stack with no volume at all gets all three
+    other = site[0].parent / "stack2"
+    other.mkdir()
+    for item in ("deploy.sh", "docker-compose.deployment.yml", ".env.deployment"):
+        shutil.copy(work / item, other / item)
+    shutil.copytree(work / "deploy", other / "deploy")
+    shutil.copytree(work / "postgres", other / "postgres")
+    state2 = site[0].parent / "state2"
+    state2.mkdir()
+    done, _ = _run((other, state2, {**site[2], "STUB_STATE": str(state2)}), drop=("COMPOSE_PROJECT_NAME",))
+    assert done.returncode == 0
+    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD", "BC_MONGO_ROOT_PASSWORD"):
+        assert _dotenv(other).get(name), name
+
+
+@pytest.mark.parametrize("where", [".env", ".env.deployment"])
+def test_a_new_stack_is_refused_when_a_mongo_the_script_cannot_look_into_is_configured(site, where):
+    """bootstrap-keys' one-off container has no Mongo credentials, so the Mongo half of
+    'does this stack hold data' is decided by deploy.sh: a configured MONGO_URI (an
+    external Mongo) with no keys anywhere is refused before any key is generated."""
+    work, state, _ = site
+    path = work / where
+    path.write_text(path.read_text() + "MONGO_URI=mongodb://u:p@db.example.test:27017\n" if path.exists() else "MONGO_URI=mongodb://u:p@db.example.test:27017\n")
+    done, calls = _run(site)
+    assert done.returncode != 0
+    assert "may hold data" in done.stderr and "cannot look" in done.stderr
+    assert not any("bootstrap-keys" in c or "up --build" in c for c in calls)
+    assert not (state / "store" / "MASTER_ENCRYPTION_KEYSET").exists()
+
+
+def test_a_mongo_volume_without_keys_is_refused_before_bootstrap(site):
+    work, state, _ = site
+    (work / ".env").write_text("SETTINGS_MASTER_KEY=" + "m" * 64 + "\n")
+    done, calls = _run(site, volumes="mongo-data")
+    assert done.returncode != 0 and not any("bootstrap-keys" in c for c in calls)
+
+
+def test_the_service_env_files_hold_only_what_each_service_reads(site):
+    work, state, _ = site
+    (work / ".env.deployment").write_text(
+        "STRIPE_SECRET=sk_live_dummy\nGOOGLE_CLIENT_SECRET=gsecret\nMAIL_PASSWORD=mailpw\n"
+        "OAUTHLIB_RELAX_TOKEN_SCOPE=1\nSTRIPE_WEBHOOK_SECRET=whsec\nMASTER_ENCRYPTION_KEYSET=\n"
+        "UNSPLASH_ACCESS_KEY=unsplash\nGOOGLE_CLIENT_ID=gid\nGOOGLE_PICKER_API_KEY=\n"
+        "export UMAMI_SCRIPT_URL=http://host:3003/script.js\nNEXT_PUBLIC_API_ENDPOINT_HOST=http://api\n"
+        "ELASTIC_APM_SERVER_URL=http://apm\nCUSTOM_DOMAIN_ASSERTION_KEYS='k1,k2'\n"
+        "SERVER_URL=http://backend:8000/api/v1\nCOOKIE_DOMAIN=example.test\nNAMESPACE=default\n"
+        "TYPEFORM_CLIENT_ID=tid\nTYPEFORM_CLIENT_SECRET=tsecret\nUMAMI_PASSWORD=\n"
+    )
+    done, _ = _run(site, "typeform")
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    webapp = _tail(work, ".env.webapp")
+    worker = _tail(work, ".env.worker")
+    typeform = _tail(work, ".env.typeform")
+    for text, name in ((webapp, "webapp"), (worker, "worker"), (typeform, "typeform")):
+        for secret in ("sk_live_dummy", "gsecret", "mailpw", "whsec"):
+            assert secret not in text, (name, secret)
+        assert "MASTER_ENCRYPTION_KEYSET" not in text and "AUTH_JWT_SECRET" not in text
+        assert stat.S_IMODE((work / f".env.{name}").stat().st_mode) == 0o600
+    # what the webapp reads, empty values left out, `export` dropped, quotes kept
+    assert "UNSPLASH_ACCESS_KEY=unsplash" in webapp and "GOOGLE_CLIENT_ID=gid" in webapp
+    assert "UMAMI_SCRIPT_URL=http://host:3003/script.js" in webapp and "GOOGLE_PICKER_API_KEY" not in webapp
+    assert "NEXT_PUBLIC_API_ENDPOINT_HOST=http://api" in webapp and "ELASTIC_APM_SERVER_URL=http://apm" in webapp
+    assert "CUSTOM_DOMAIN_ASSERTION_KEYS='k1,k2'" in webapp
+    assert "TYPEFORM_CLIENT" not in webapp
+    assert not any(line.startswith(("SERVER_URL=", "COOKIE_DOMAIN=")) for line in webapp.splitlines())
+    assert "COOKIE_DOMAIN=example.test" in worker and "SERVER_URL=http://backend:8000/api/v1" in worker
+    assert "NAMESPACE=default" in worker and "UNSPLASH" not in worker and "TYPEFORM" not in worker
+    assert "TYPEFORM_CLIENT_SECRET=tsecret" in typeform and "UNSPLASH" not in typeform
+    # a new stack's Mongo connection is written for the Typeform service (it needs it)
+    assert _dotenv(work)["BC_MONGO_ROOT_PASSWORD"] in typeform
+    # never overwritten by a later run
+    (work / ".env.webapp").write_text("MINE=1\n")
+    (work / ".env.worker").chmod(0o644)
+    _run(site, volumes="mongo-data,app-postgres-data")
+    assert (work / ".env.webapp").read_text() == "MINE=1\n"
+    assert stat.S_IMODE((work / ".env.worker").stat().st_mode) == 0o600
+
+
+def test_a_symlinked_service_env_file_is_refused(site):
+    work, _, _ = site
+    (work / "elsewhere").write_text("")
+    (work / ".env.webapp").symlink_to(work / "elsewhere")
+    done, calls = _run(site)
+    assert done.returncode != 0 and "symbolic link" in done.stderr
+    assert (work / "elsewhere").read_text() == ""
+    assert not any("up --build" in c for c in calls)
+
+
+def test_env_files_are_owner_only_before_anything_is_added(site):
+    work, state, _ = site
+    (work / ".env").write_text("PLATFORM_ADMIN_EMAILS=ops@example.test")  # 644, no newline
+    (work / ".env").chmod(0o644)
+    (work / ".env.deployment").chmod(0o644)
+    done, _ = _run(site)
+    assert done.returncode == 0
+    assert stat.S_IMODE((work / ".env").stat().st_mode) == 0o600
+    assert stat.S_IMODE((work / ".env.deployment").stat().st_mode) == 0o600
+    # the last line had no newline: the first generated value is on a line of its own
+    assert _dotenv(work)["PLATFORM_ADMIN_EMAILS"] == "ops@example.test"
+
+
+def test_an_export_prefix_and_quotes_do_not_hide_a_value_from_the_checks(site):
+    work, state, _ = site
+    (work / ".env").write_text('export SETTINGS_MASTER_KEY="' + "m" * 64 + '"\n')
+    done, _ = _run(site)
+    assert done.returncode == 0
+    assert _tail(work).count("SETTINGS_MASTER_KEY") == 1  # not a second, winning line
+
+
+@pytest.mark.parametrize("name", ["BC_APP_PASSWORD", "BC_AUTH_PASSWORD", "BC_GOOGLE_PASSWORD", "BC_UMAMI_DB_PASSWORD", "BC_MONGO_ROOT_PASSWORD"])
+def test_a_password_that_would_break_a_url_is_refused(site, name):
+    work, _, _ = site
+    (work / ".env").write_text(f"{name}=pa@ss/word\n")
+    done, calls = _run(site)
+    assert done.returncode != 0 and name in done.stderr
+    assert not any("up --build" in c for c in calls)
+
+
+def test_settings_env_export_refuses_an_existing_file_and_a_dangling_link(site):
+    work, state, _ = site
+    (work / ".env").write_text("SETTINGS_MASTER_KEY=" + "m" * 64 + "\n")
+    target = work / "nowhere" / "stolen.env"
+    (work / "link.env").symlink_to(target)
+    (work / "nowhere").mkdir()
+    done, _ = _run(site, "settings-env-export", "--keys", "UMAMI_PASSWORD", "--out", "link.env")
+    assert done.returncode != 0 and "refused" in done.stderr
+    assert not target.exists()  # nothing was written through the link
+    (work / "taken.env").write_text("x")
+    done, _ = _run(site, "settings-env-export", "--keys", "UMAMI_PASSWORD", "--out", "taken.env")
+    assert done.returncode != 0 and (work / "taken.env").read_text() == "x"
+
+
+def test_admin_settings_in_env_deployment_are_flagged_as_ineffective(site):
+    work, _, _ = site
+    (work / ".env.deployment").write_text("ADMIN_ALLOWED_IPS=10.0.0.0/8\n")
+    done, _ = _run(site)
+    assert "ADMIN_ALLOWED_IPS is set in .env.deployment but the admin service ignores it" in done.stdout
+    (work / ".env").write_text("ADMIN_TRUSTED_PROXIES=10.0.0.1\n")
+    done, _ = _run(site)
+    assert "reverse proxy in front of the admin portal" in done.stdout
+
+
+def test_volumes_under_both_names_are_not_a_mismatch(site):
+    """The name compose uses has its own volumes: a second, older stack under the
+    directory's name is none of this run's business."""
+    work, state, _ = site
+    _upgrade_env(work)
+    with open(work / ".env", "a") as fh:
+        fh.write("COMPOSE_PROJECT_NAME=prod_stack\n")
+    volumes = "prod_stack:mongo-data,prod_stack:app-postgres-data,stack:mongo-data"
+    done, _ = _run(site, volumes=volumes, drop=("COMPOSE_PROJECT_NAME",))
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert "Volumes of a stack named" not in done.stderr

@@ -16,6 +16,14 @@
 # /api/oauth/*, /.well-known/* (and /api/scim/* with directory sync)
 # through your TLS reverse proxy at
 # SSO_POLIS_URL, never the admin API (/api/v1/*) or the admin UI.
+#
+# Known limit: Polis fetches IdP metadata from URLs customers supply and has
+# internet egress, and a network is symmetric: anything Polis can be called from
+# (the backend, auth) can also be called by Polis. Their internal routes are
+# protected by keys, not by the network. Where that matters, filter Polis's egress
+# (a forward proxy or host firewall rule for the `sso` network) so it cannot reach
+# private addresses; splitting the callers onto a listener Polis cannot reach needs
+# a change in those services, not in this file.
 services:
   polis:
     # 26.2.0, the version tested; pinned by digest

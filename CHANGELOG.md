@@ -11,6 +11,22 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+### Security
+
+- **Deployment hardening.** The public webapp, the Temporal worker (which drives a browser
+  on user-supplied URLs) and the Typeform service no longer receive the contents of
+  `.env.deployment`; each reads an env file of its own that `deploy.sh` creates once from
+  the lines it reads. `deploy.sh` now starts the admin service, jobs worker, document
+  sandbox and task runner, shows the setup token only once the admin service is healthy,
+  keeps all generated and exported files owner-only, refuses a stack found under another
+  compose project name instead of giving it new passwords, and decides the Mongo half of
+  "does this stack hold data" itself. The Mongo seed no longer creates a `seeduser`
+  account (and removes it from existing volumes) and passes no password on a command line.
+  Umami's dashboard is published on `127.0.0.1:3004` only; port `3003` is nginx and serves
+  its tracker only. `OAUTHLIB_INSECURE_TRANSPORT` is no longer set in the shipped
+  `.env.deployment`. The dev compose binds every port to the loopback. The deploy workflow
+  pins its actions by commit and deploys release tags (`vX.Y.Z`) only.
+
 ### Added
 
 - **Host commands for the settings store.** The admin CLI gains `bootstrap-keys`

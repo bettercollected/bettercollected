@@ -9,11 +9,14 @@ volumes:
 services:
     mongodb:
         image: mongo:latest
+        # Local-only credentials (root/root) and every published port below is bound to
+        # 127.0.0.1: Docker's own firewall rules bypass ufw/firewalld, so a bare
+        # `5432:5432` would hand the database to every machine on the network.
         environment:
             MONGO_INITDB_ROOT_USERNAME: root
             MONGO_INITDB_ROOT_PASSWORD: root
         ports:
-            - 27017:27017
+            - '127.0.0.1:27017:27017'
         volumes:
             - mongo-data:/data/db
         restart: always
@@ -40,7 +43,7 @@ services:
         image: postgres:16-alpine
         restart: unless-stopped
         ports:
-            - '5432:5432'
+            - '127.0.0.1:5432:5432'
         environment:
             POSTGRES_DB: bettercollected
             POSTGRES_USER: bettercollected
@@ -59,8 +62,8 @@ services:
         volumes:
             - ./nginx-local.conf:/etc/nginx/conf.d/nginx.conf:ro
         ports:
-            - '3001:3001'
-            - '3002:3002'
+            - '127.0.0.1:3001:3001'
+            - '127.0.0.1:3002:3002'
         # webapp/backend run on the host in local dev (not in this compose
         # network), so nginx-local.conf proxies to host.docker.internal rather
         # than localhost (which inside this container means the container
@@ -77,8 +80,8 @@ services:
         image: axllent/mailpit:latest
         restart: unless-stopped
         ports:
-            - '1026:1025'
-            - '8026:8025'
+            - '127.0.0.1:1026:1025'
+            - '127.0.0.1:8026:8025'
         environment:
             MP_SMTP_AUTH_ACCEPT_ANY: 'true'
             MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
@@ -93,8 +96,8 @@ services:
         image: rustfs/rustfs:latest
         restart: unless-stopped
         ports:
-            - '9000:9000' # S3 API
-            - '9001:9001' # web console — http://localhost:9001/rustfs/console/ (rustfsadmin/rustfsadmin)
+            - '127.0.0.1:9000:9000' # S3 API
+            - '127.0.0.1:9001:9001' # web console — http://localhost:9001/rustfs/console/ (rustfsadmin/rustfsadmin)
         environment:
             RUSTFS_ACCESS_KEY: rustfsadmin
             RUSTFS_SECRET_KEY: rustfsadmin
@@ -128,7 +131,7 @@ services:
         image: ghcr.io/umami-software/umami:postgresql-latest
         restart: unless-stopped
         ports:
-            - '3003:3000'
+            - '127.0.0.1:3003:3000'
         environment:
             DATABASE_URL: postgresql://umami:umami@umami-postgresql:5432/umami
             # Local-only placeholder — deployment must override with a real secret.

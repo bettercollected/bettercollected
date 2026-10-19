@@ -71,8 +71,16 @@ services:
       # Single sign-on UI (docs/sso.md), read at runtime; the same root .env
       # switch as the backend and auth
       SSO_ENABLED: ${SSO_ENABLED:-false}
+    # Its own env file, not .env.deployment: the public webapp must not receive the
+    # backend's secrets (Stripe, Google, mail, Mongo, keys). deploy.sh creates
+    # .env.webapp once from the lines of .env.deployment the webapp reads; it is
+    # optional so a plain `docker compose config` works without it.
     env_file:
-      - .env.deployment
+      - path: .env.webapp
+        required: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
     ports:
       - '3000:3000'
     depends_on:
@@ -190,21 +198,31 @@ services:
       # stack, and deploy.sh writes both before it starts the worker)
       API_KEY: ${API_KEY:-}
       AES_HEX_KEY: ${AES_HEX_KEY:-}
-
+    # Its own env file, not .env.deployment: this service drives a browser on
+    # user-supplied URLs and gets only what it reads (SERVER_URL, NAMESPACE,
+    # COOKIE_DOMAIN, WORKER_QUEUE, WORKERS, MAX_THREAD_POOL_EXECUTORS,
+    # ELASTIC_APM_*), written by deploy.sh once into .env.worker.
     env_file:
-      - .env.deployment
+      - path: .env.worker
+        required: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
     depends_on:
       temporal:
         condition: service_healthy
   # You need to run nginx only if your webapp is running locally without using docker-compose
   # You may need to setup nginx locally with same configs provided inside `./nginx.conf`
   nginx:
-    image: nginx
+    image: nginx:1.28-alpine
     volumes:
       - ./nginx-deployment.conf:/etc/nginx/conf.d/nginx-deployment.conf:ro
     ports:
       - '3001:3001'
       - '3002:3002'
+      # Umami's tracker script and event endpoints only (nginx-deployment.conf);
+      # its dashboard and login are not reachable from the network
+      - '3003:3003'
 
 
   backend:
@@ -258,6 +276,10 @@ services:
       SSO_SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:-}
     env_file:
       - .env.deployment
+    # no cap_drop here: root needs CAP_DAC_OVERRIDE to open the document sandbox's
+    # socket directory (owned by the sandbox user, mode 0770)
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - settings-snapshots-backend:/var/lib/bc-settings
       - doc-sandbox:/run/doc-sandbox
@@ -346,8 +368,8 @@ services:
     restart: unless-stopped
 
   # The data task runner for the internal admin service: claims signed task
-  # requests from the tasks schema and runs them. Not started by deploy.sh yet
-  # (like `admin`); start it with `docker compose up -d task-runner`. Isolated on
+  # requests from the tasks schema and runs them. Started by deploy.sh
+  # (like `admin`); it can be restarted on its own with `docker compose up -d task-runner`. Isolated on
   # purpose: no published port, no env_file, only the two variables it needs, its
   # own database role (bc_tasks), read-only filesystem, no capabilities, and not
   # attached to admin-edge. Task implementations that need Mongo or other
@@ -458,6 +480,8 @@ services:
       SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
     env_file:
       - .env.deployment
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - doc-sandbox:/run/doc-sandbox
       - settings-snapshots-jobs:/var/lib/bc-settings
@@ -510,10 +534,16 @@ services:
       start_period: 15s
     env_file:
       - .env.deployment
+    security_opt:
+      - no-new-privileges:true
 
   # Not on the settings store: this image is not built from this repository, so
   # it keeps reading its three keys from the environment (the root .env). Keep
-  # them there (`deploy.sh settings-prune` passes --keep for them).
+  # them there (`deploy.sh settings-prune` passes --keep for them). Its other
+  # settings (Mongo connection, Typeform client values, APM) come from its own
+  # env file, .env.typeform, which deploy.sh creates once from the lines of
+  # .env.deployment this service reads: it gets nothing else (no Stripe, Google
+  # or mail secrets).
   integrations-typeform:
     image: bettercollected/integrations-typeform:nightly
     # image: bettercollected/integrations-typeform:nightly
@@ -522,7 +552,11 @@ services:
       AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
       MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
     env_file:
-      - .env.deployment
+      - path: .env.typeform
+        required: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
 
   integrations-googleform:
     image: bettercollected/integrations-google:nightly
@@ -542,6 +576,8 @@ services:
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
     env_file:
       - .env.deployment
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - settings-snapshots-google:/var/lib/bc-settings
     depends_on:
@@ -549,19 +585,19 @@ services:
         condition: service_healthy
 
   # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
-  # First-pass exposure: plain host port 3003, no TLS/reverse-proxy — put it
-  # behind nginx/TLS yourself for a production deployment. The port has to stay
-  # reachable by respondents' browsers (the tracker script and its events), so
-  # Umami's own login is internet-facing: deploy.sh replaces its built-in
-  # admin/umami login with a generated password after the first start (and on
-  # an upgrade, when the built-in login still works) and stores it as the
-  # backend's UMAMI_PASSWORD setting. Its database is internal only.
+  # Respondents' browsers need the tracker script and its event endpoint only:
+  # nginx publishes exactly those on port 3003 (plain HTTP: put TLS in front of
+  # it), and the dashboard and login are on 127.0.0.1:3004. deploy.sh still
+  # replaces Umami's built-in admin/umami login with a generated password after
+  # the first start (and on an upgrade, when the built-in login still works) and
+  # stores it as the backend's UMAMI_PASSWORD setting. Its database is internal
+  # only.
   #
   # No manual website setup needed: the backend auto-provisions a website
   # named UMAMI_WEBSITE_NAME (default "BetterCollected") on first boot if
   # UMAMI_WEBSITE_ID is unset — see backend/AGENTS.md "Analytics (Umami)".
   # You only need to set UMAMI_SCRIPT_URL (webapp, browser-facing, e.g.
-  # http://<host>:3003/script.js) in .env.deployment.
+  # http://<host>:3003/script.js) in .env.webapp (deploy.sh copies it from .env.deployment once).
   #
   # `deploy.sh` auto-generates UMAMI_APP_SECRET and BC_UMAMI_DB_PASSWORD below
   # into a root `.env` file on first run (docker compose's own var-substitution
@@ -589,8 +625,12 @@ services:
   umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: always
+    # The dashboard and its login are published on the host's loopback only
+    # (reach it with `ssh -L 3004:127.0.0.1:3004 <host>`). Respondents' browsers
+    # reach just the tracker script and the event endpoints, through nginx on
+    # port 3003 (nginx-deployment.conf).
     ports:
-      - '3003:3000'
+      - '127.0.0.1:3004:3000'
     environment:
       DATABASE_URL: postgresql://umami:${BC_UMAMI_DB_PASSWORD:-umami}@umami-postgresql:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET}

@@ -59,6 +59,9 @@ def init_sql(database: str, suffix: str, passwords: dict[str, str]) -> str:
     """The init script's SQL with psql variables bound and role names suffixed."""
     script = INIT_SCRIPT.read_text()
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
+    # the script reads the passwords with psql's \getenv (never as -v arguments); here
+    # they are bound below, so the meta-commands are dropped
+    sql = re.sub(r"^\\getenv .*\n", "", sql, flags=re.M)
     sql = re.sub(r"\bbc_(app|auth|google|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     for role, var in zip(ROLES, ("app_pw", "auth_pw", "google_pw", "jobs_pw")):
         sql = sql.replace(f":'{var}'", f"'{passwords[role]}'")

@@ -164,3 +164,15 @@ def test_existing_stack_without_a_keyset_stops_instead_of_generating(tmp_path):
     # the other two are generated, with what that means for a running stack
     assert "Everyone is signed out" in result.stdout
     assert "reconnect Google Forms" in result.stdout
+
+
+def test_an_operator_made_root_env_is_made_private_before_secrets_are_added(tmp_path):
+    root_env = tmp_path / ".env"
+    root_env.write_text("PLATFORM_ADMIN_EMAILS=ops@example.test")  # no trailing newline
+    root_env.chmod(0o644)
+    result, root_env = run(tmp_path, root=None)
+    assert result.returncode == 0, result.stderr
+    assert stat.S_IMODE(root_env.stat().st_mode) == 0o600
+    found = values(root_env)
+    assert found["PLATFORM_ADMIN_EMAILS"] == "ops@example.test"
+    assert all(found[name] for name in NAMES)

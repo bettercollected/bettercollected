@@ -9,9 +9,11 @@
 #
 # Besides the admin service it checks the deployment properties around it: a
 # minimal operator-provided .env renders, no internal port is published, the
-# worker never gets the master key, no built-in credentials remain on a new
-# stack, and the host commands deploy.sh runs (bootstrap-keys, import, drift)
-# work through compose.
+# worker never gets the master key, no service outside the settings-store readers
+# receives the secrets of a populated .env.deployment, no built-in credentials
+# remain on a new stack (the Mongo seed leaves no seeduser; Umami's dashboard is not
+# published, nginx passes only its tracker), and the host commands deploy.sh runs
+# (bootstrap-keys, import, drift) work through compose.
 #
 # Needs: bash, docker (with compose v2), curl, openssl. By default it builds the
 # backend image from this checkout (tag bc-admin-check:local, replaced if it exists, removed afterwards).
@@ -39,6 +41,8 @@ envfile=""
 compose_files=(-f "$root/docker-compose.deployment.yml" -f "$work/override.yml")
 dc() { docker compose -p "$project" "${compose_files[@]}" --env-file "$envfile" "$@" 2> >(grep -v "level=warning" >&2); }
 
+extra_containers=()
+extra_networks=()
 cleanup() {
   if [ "${KEEP:-}" = "1" ]; then
     echo "KEEP=1: project $project left running (work dir $work)"
@@ -47,6 +51,8 @@ cleanup() {
   if [ -n "$envfile" ]; then
     dc down -v --remove-orphans --timeout 5 >/dev/null 2>&1
   fi
+  if [ "${#extra_containers[@]}" -gt 0 ]; then docker rm -f "${extra_containers[@]}" >/dev/null 2>&1; fi
+  if [ "${#extra_networks[@]}" -gt 0 ]; then docker network rm "${extra_networks[@]}" >/dev/null 2>&1; fi
   if [ "$built_image" = 1 ]; then docker rmi "$image" >/dev/null 2>&1; fi
   rm -rf "$work"
 }
@@ -218,6 +224,9 @@ print("umami_db_pw=" + env("umami-postgresql")["POSTGRES_PASSWORD"])
 print("mongo_pw=" + env("mongodb")["MONGO_INITDB_ROOT_PASSWORD"])
 print("mongo_seed_pw=" + env("mongo-seed")["MONGO_ROOT_PASSWORD"])
 print("umami_url_default=%s" % ("umami:umami@" in env("umami")["DATABASE_URL"]))
+pub = lambda n: ",".join(sorted("%s:%s" % (p.get("host_ip") or "*", p.get("published")) for p in s[n]["ports"]))
+print("umami_ports=" + pub("umami"))
+print("nginx_ports=" + pub("nginx"))
 print("stored_keys_empty=%s" % all(env("backend")[k] == "" for k in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET")))
 '
 props="$(dc config --format json 2>/dev/null | docker run --rm -i --entrypoint /api/backend/.venv/bin/python "$image" -I -c "$props_py" 2>/dev/null)"
@@ -235,7 +244,83 @@ expect "umami's database has the generated password" "umami_db_pw=$umami_pw" "$(
 expect "mongo's root has the generated password" "mongo_pw=$mongo_pw" "$(gotp mongo_pw)"
 expect "the seed job uses the same password" "mongo_seed_pw=$mongo_pw" "$(gotp mongo_seed_pw)"
 expect "umami does not connect with the built-in password" "umami_url_default=False" "$(gotp umami_url_default)"
+expect "umami's dashboard is published on the loopback only" "umami_ports=127.0.0.1:3004" "$(gotp umami_ports)"
+expect "nginx publishes the webapp ports and the Umami tracker port" "nginx_ports=*:3001,*:3002,*:3003" "$(gotp nginx_ports)"
 expect "the stored keys render empty (read the store)" "stored_keys_empty=True" "$(gotp stored_keys_empty)"
+
+# --- (i) what each service receives --------------------------------------------------
+# The compose file is rendered from a copy next to a .env.deployment that holds every
+# secret an operator may keep there (as an upgraded stack does), plus the per-service
+# env files deploy.sh writes. Only the four services that read the settings store (and
+# so hold the master key anyway) may carry those values; the Chromium worker and the
+# public webapp must not, and the worker's whole environment is its few variables.
+echo "== (i) what each service receives (rendered with a populated .env.deployment)"
+render="$work/render"
+mkdir -m 700 "$render"
+cp "$root/docker-compose.deployment.yml" "$render/"
+dummies=(
+  "STRIPE_SECRET=DUMMY-stripe-secret-1" "STRIPE_WEBHOOK_SECRET=DUMMY-stripe-webhook-2"
+  "GOOGLE_CLIENT_SECRET=DUMMY-google-secret-3" "MAIL_PASSWORD=DUMMY-mail-password-4"
+  "MONGO_URI=mongodb://root:DUMMY-mongo-root-5@mongodb:27017" "MASTER_ENCRYPTION_KEYSET=DUMMY-keyset-6"
+  "AUTH_JWT_SECRET=DUMMY-jwt-secret-7" "AUTH_AES_HEX_KEY=DUMMY-aes-key-8" "TYPEFORM_CLIENT_SECRET=DUMMY-typeform-9"
+)
+printf '%s\n' "${dummies[@]}" > "$render/.env.deployment"
+printf 'UNSPLASH_ACCESS_KEY=DUMMY-unsplash\n' > "$render/.env.webapp"
+printf 'COOKIE_DOMAIN=example.test\n' > "$render/.env.worker"
+printf 'TYPEFORM_CLIENT_ID=DUMMY-tid\n' > "$render/.env.typeform"
+holders_py='
+import json, sys
+c = json.load(sys.stdin)["services"]
+dummy = dict(a.split("=", 1) for a in sys.argv[1:])
+store = {"backend", "jobs-worker", "auth", "integrations-googleform"}
+outside = sorted({"%s>%s" % (k, s) for k, v in dummy.items() for s, b in c.items() if v in json.dumps(b) and s not in store})
+# the Typeform service legitimately gets its own three keys from the compose file
+outside = [o for o in outside if not (o.endswith(">integrations-typeform") and o.split(">")[0] in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET"))]
+print("outside_store=" + ",".join(outside))
+env = lambda n: ",".join(sorted((c[n].get("environment") or {}).keys()))
+print("worker_env=" + env("worker"))
+print("webapp_own_file=%s" % ((c["webapp"].get("environment") or {}).get("UNSPLASH_ACCESS_KEY")))
+print("env_file_users=" + ",".join(sorted(n for n, b in c.items() if b.get("env_file"))))
+print("caps_dropped=" + ",".join(sorted(n for n, b in c.items() if b.get("cap_drop") == ["ALL"])))
+print("no_new_privileges=" + ",".join(sorted(n for n, b in c.items() if "no-new-privileges:true" in (b.get("security_opt") or []))))
+'
+holders="$(docker compose -p "$project" -f "$render/docker-compose.deployment.yml" --env-file "$skeleton_env" config --format json 2>/dev/null \
+  | docker run --rm -i --entrypoint /api/backend/.venv/bin/python "$image" -I -c "$holders_py" "${dummies[@]}" 2>/dev/null)"
+goth() { printf '%s\n' "$holders" | grep "^$1="; }
+expect "no secret of .env.deployment reaches a service outside the store readers" "outside_store=" "$(goth outside_store)"
+expect "the Chromium worker's whole environment" "worker_env=AES_HEX_KEY,API_KEY,COOKIE_DOMAIN,TEMPORAL_SERVER_URL" "$(goth worker_env)"
+expect "the webapp reads its own env file" "webapp_own_file=DUMMY-unsplash" "$(goth webapp_own_file)"
+expect "the worker, webapp and Typeform services drop every capability" "caps_dropped=admin,document-sandbox,integrations-typeform,task-runner,webapp,worker" "$(goth caps_dropped)"
+expect "every first-party service is barred from gaining privileges" \
+  "no_new_privileges=admin,auth,backend,document-sandbox,integrations-googleform,integrations-typeform,jobs-worker,task-runner,webapp,worker" "$(goth no_new_privileges)"
+
+# --- (j) nginx passes Umami's tracker and nothing else ---------------------------------
+echo "== (j) the public Umami port passes only the tracker script and the event endpoint"
+mkdir -m 755 "$work/upstream"
+echo "tracker" > "$work/upstream/script.js"
+echo "login page" > "$work/upstream/login"
+umami_conf="$work/umami.conf"
+sed -n '/^# Umami (self-hosted analytics)/,$p' "$root/nginx-deployment.conf" > "$umami_conf"
+nx_net="${project}_nxcheck"
+nx_up="${project}-nxcheck-upstream"
+nx_proxy="${project}-nxcheck-proxy"
+extra_networks+=("$nx_net")
+extra_containers+=("$nx_up" "$nx_proxy")
+docker network create "$nx_net" >/dev/null
+docker run -d --name "$nx_up" --network "$nx_net" --network-alias umami --user 65534:65534 \
+  -v "$work/upstream:/srv:ro" --entrypoint /api/backend/.venv/bin/python "$image" -I -m http.server 3000 --directory /srv >/dev/null
+docker run -d --name "$nx_proxy" --network "$nx_net" -v "$umami_conf:/etc/nginx/conf.d/umami.conf:ro" nginx:1.28-alpine >/dev/null
+sleep 3
+check "the nginx configuration is valid" docker exec "$nx_proxy" nginx -t
+nx_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"$nx_net\").IPAddress}}" "$nx_proxy")"
+expect "GET /script.js is passed to Umami" "200" "$(http_code "http://$nx_ip:3003/script.js")"
+expect "POST /api/send is passed to Umami (the stand-in answers 501 to a POST)" "501" "$(http_code -X POST -d '{}' "http://$nx_ip:3003/api/send")"
+expect "GET /api/send is refused" "403" "$(http_code "http://$nx_ip:3003/api/send")"
+expect "the login page is not reachable" "404" "$(http_code "http://$nx_ip:3003/login")"
+expect "the API is not reachable" "404" "$(http_code "http://$nx_ip:3003/api/auth/login")"
+expect "the root is not reachable" "404" "$(http_code "http://$nx_ip:3003/")"
+docker rm -f "$nx_up" "$nx_proxy" >/dev/null 2>&1
+docker network rm "$nx_net" >/dev/null 2>&1
 
 # --- skeleton mode ---------------------------------------------------------------------
 echo "== skeleton mode (no admin list: the bare gate)"
@@ -392,6 +477,30 @@ rc=$?
 expect "settings-drift reports nothing that differs" "0" "$rc"
 [ "$rc" -eq 0 ] || grep -E '^(differs|[a-z_]+=[0-9])' "$cli_out" | head -n 12
 rm -rf "$outdir"
+
+echo "== (k) the Mongo seed leaves no built-in user and keeps its password off the command line"
+envfile="$skeleton_env"
+dc up -d --wait mongodb >"$work/mongo-up.log" 2>&1
+mongo_rc=$?
+sleep 1
+if [ "$mongo_rc" -eq 0 ]; then
+  mongo_cli() { dc exec -T mongodb mongosh --quiet -u root -p "$mongo_pw" --authenticationDatabase admin --eval "$1" 2>/dev/null | tail -n 1; }
+  # a volume from an earlier release has the user the seed used to create
+  mongo_cli 'db.getSiblingDB("bettercollected_backend").createUser({user:"seeduser",pwd:"seeduser",roles:[{role:"readWrite",db:"bettercollected_backend"}]})' >/dev/null
+  expect "an old volume has the built-in user (the starting point)" "1" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").getUsers().users.length')"
+  for _ in 1 2; do
+    dc run --rm --no-deps -T mongo-seed >"$work/seed.log" 2>&1
+    expect "mongo-seed runs against the generated root password" "0" "$?"
+  done
+  expect "the seed removed the built-in user and created none" "0" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").getUsers().users.length')"
+  expect "the seed still seeds the data" "3" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").allowed_origins.countDocuments()')"
+  check "the built-in login no longer works" bash -c "! docker exec $(dc ps -q mongodb) mongosh --quiet -u seeduser -p seeduser --authenticationDatabase bettercollected_backend --eval 1"
+  expect "the seed's command line carries no password" "0" "$(docker image inspect "$(dc images -q mongo-seed | head -n 1)" --format '{{json .Config.Cmd}}' 2>/dev/null | grep -c 'root:')"
+  dc rm -sf mongo-seed >/dev/null 2>&1
+else
+  bad "mongodb starts"
+  tail -n 10 "$work/mongo-up.log"
+fi
 
 echo "== network attachment is stable without COMPOSE_PARALLEL_LIMIT (5 fresh creations)"
 envfile="$skeleton_env"
