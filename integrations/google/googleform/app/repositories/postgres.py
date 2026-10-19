@@ -56,7 +56,7 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
             credentials = OauthCredentialRepository.encrypt_token(
                 user_id=user_id, token=json.dumps(dict(credentials))
             )
-            return await self.upsert(
+            return await self.save_document(
                 Oauth2CredentialDocument(
                     user_id=user_id,
                     email=email,
@@ -82,7 +82,7 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
                 item.credentials = OauthCredentialRepository.encrypt_token(
                     user_id=document.user_id, token=json.dumps(dict(item.credentials))
                 )
-            await self.upsert(item)
+            await self.save_document(item)
             stored = item.model_copy(deep=True)
             item.credentials = credentials
             return WriteResult(item, [stored])

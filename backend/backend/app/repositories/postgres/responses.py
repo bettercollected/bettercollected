@@ -584,7 +584,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def add_deletion_request(
         self, response: FormResponseDocument, response_id: str
     ) -> FormResponseDeletionRequest:
-        return await self.upsert(
+        return await self.save_document(
             FormResponseDeletionRequest(
                 form_id=response.form_id,
                 response_id=response_id,
@@ -685,7 +685,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         now = utcnow()
         response_document.created_at = now
         response_document.updated_at = now
-        return await self.upsert(response_document)
+        return await self.save_document(response_document)
 
     async def patch_form_response(
         self,
@@ -744,7 +744,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         # gets the workspace the caller checked it against
         if response_document.workspace_id is None:
             response_document.workspace_id = PydanticObjectId(workspace_id)
-        return await self.upsert(response_document)
+        return await self.save_document(response_document)
 
     async def delete_form_response(self, response: FormResponseDocument):
         response_id = response.response_id
@@ -827,7 +827,7 @@ class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
         )
         if not workspace_tag:
             workspace_tag = WorkspaceTags(workspace_id=workspace_id, title=title)
-        return await self.upsert(workspace_tag, row=WorkspaceTagRow)
+        return await self.save_document(workspace_tag, row=WorkspaceTagRow)
 
     async def get_workspace_tags(self, workspace_id: PydanticObjectId):
         return await self.many(
@@ -847,7 +847,7 @@ class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
             workspace_responder = WorkspaceResponderDocument(
                 workspace_id=workspace_id, email=email
             )
-        return await self.upsert(workspace_responder)
+        return await self.save_document(workspace_responder)
 
     async def patch_responder(
         self,
@@ -868,7 +868,7 @@ class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
             workspace_responder.metadata = metadata
         if tags:
             workspace_responder.tags = tags
-        return await self.upsert(workspace_responder)
+        return await self.save_document(workspace_responder)
 
 
 class PostgresResponderGroupsRepository(PostgresRepositoryBase):
@@ -912,7 +912,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
     ):
         if description and len(description) > 280:
             return {"message": "description should be less than 280 characters"}
-        return await self.upsert(
+        return await self.save_document(
             ResponderGroupDocument(
                 name=name,
                 workspace_id=workspace_id,

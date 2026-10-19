@@ -450,7 +450,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         return await self.delete_where(FormRow.form_id.in_(form_ids))
 
     async def create_form(self, form: StandardForm) -> FormDocument:
-        return await self.upsert(FormDocument(**form.model_dump(mode="json")))
+        return await self.save_document(FormDocument(**form.model_dump(mode="json")))
 
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         form_document = await self.one(FormRow.form_id == _oid(form_id))
@@ -555,7 +555,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
             **form.model_dump(mode="json"), version=version
         )
         new_form_version.id = None
-        return await self.upsert(new_form_version, row=FormVersionRow)
+        return await self.save_document(new_form_version, row=FormVersionRow)
 
     async def get_form_by_id(self, form_id: PydanticObjectId):
         return await self.one(FormRow.form_id == _oid(form_id))
@@ -656,7 +656,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
                 workspace_id=workspace_id, form_id=form_id, user_id=user_id
             )
         workspace_form.settings = workspace_form_settings
-        return await self.upsert(workspace_form)
+        return await self.save_document(workspace_form)
 
     @staticmethod
     def _settings():
@@ -911,7 +911,7 @@ class PostgresWorkspaceConsentRepo(PostgresRepositoryBase):
     ):
         consent_document = WorkspaceConsentDocument(**consent.model_dump(mode="json"))
         consent_document.workspace_id = workspace_id
-        return await self.upsert(consent_document)
+        return await self.save_document(consent_document)
 
 
 class PostgresFormTemplateRepository(PostgresRepositoryBase):
@@ -1010,7 +1010,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         imported_template.imported_from = template.workspace_id
         imported_template.workspace_id = workspace_id
         imported_template.settings = StandardTemplateSetting()
-        return await self.upsert(imported_template)
+        return await self.save_document(imported_template)
 
     async def create_new_template(
         self,
@@ -1021,7 +1021,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         template = FormTemplateDocument(**template_body.model_dump(mode="json"))
         template.workspace_id = workspace_id
         template.created_by = user.id
-        return await self.upsert(template)
+        return await self.save_document(template)
 
     async def update_template(
         self, template_id: PydanticObjectId, template_body: StandardFormTemplate
@@ -1085,7 +1085,7 @@ class PostgresMediaLibraryRepository(PostgresRepositoryBase):
             media_url=media_url,
             s3_key=s3_key,
         )
-        return await self.upsert(media)
+        return await self.save_document(media)
 
     async def delete_media_from_library(
         self, workspace_id: str, media_id: PydanticObjectId

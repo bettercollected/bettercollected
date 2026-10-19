@@ -406,7 +406,7 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
                 invitation_token=secrets.token_hex(16),
                 expiry=get_expiry_epoch_after(time_delta=timedelta(days=7)),
             )
-        return await self.upsert(existing_invitation)
+        return await self.save_document(existing_invitation)
 
     async def get_workspace_invitations(self, workspace_id: PydanticObjectId):
         statuses = [InvitationStatus.PENDING.value, InvitationStatus.EXPIRED.value]

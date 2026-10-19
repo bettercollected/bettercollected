@@ -33,7 +33,7 @@ class PostgresAllowedOriginsRepository(PostgresRepositoryBase):
         return await self.one(AllowedOriginRow.origin == origin)
 
     async def add(self, origin: str) -> AllowedOriginsDocument:
-        return await self.upsert(AllowedOriginsDocument(origin=origin))
+        return await self.save_document(AllowedOriginsDocument(origin=origin))
 
     async def delete_by_origin(self, origin: str) -> None:
         # Mongo's find_one(...).delete() removes a single document; match it.
@@ -109,7 +109,7 @@ class PostgresPriceSuggestionRepository(PostgresRepositoryBase):
     document = PriceSuggestion
 
     async def add(self, suggestion: PriceSuggestion) -> PriceSuggestion:
-        return await self.upsert(suggestion)
+        return await self.save_document(suggestion)
 
     async def list_by_user_id(self, user_id: PydanticObjectId) -> List[PriceSuggestion]:
         return await self.many(PriceSuggestionRow.user_id == str(user_id))

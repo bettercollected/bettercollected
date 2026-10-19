@@ -43,7 +43,7 @@ class PostgresFlowEventRepository(PostgresRepositoryBase):
     async def add(
         self, form_id: str, session_id: str, from_page: str, to_page: str
     ) -> FlowEventDocument:
-        return await self.upsert(
+        return await self.save_document(
             FlowEventDocument(
                 form_id=form_id,
                 session_id=session_id,
@@ -165,7 +165,7 @@ class PostgresMcpAuditLogRepository(PostgresRepositoryBase):
     document = MCPAuditLogDocument
 
     async def add(self, **fields) -> MCPAuditLogDocument:
-        return await self.upsert(MCPAuditLogDocument(**fields))
+        return await self.save_document(MCPAuditLogDocument(**fields))
 
     async def list_by_workspace(
         self, workspace_id: PydanticObjectId
@@ -178,7 +178,7 @@ class PostgresCreateFormPromptRepository(PostgresRepositoryBase):
     document = CreateFormPrompt
 
     async def add(self, prompt: CreateFormPrompt) -> CreateFormPrompt:
-        return await self.upsert(prompt)
+        return await self.save_document(prompt)
 
     async def list_by_form_id(
         self, form_id: PydanticObjectId
