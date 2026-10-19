@@ -235,9 +235,32 @@ parameter, result, event, audit row or log: only key ids and counts.
 | 2 | (restart the services) | they pick up the new keyset and report its key ids in their heartbeat |
 | 3 | `keyset.promote` (`new_primary_id`) | makes that key the primary; refuses a key that was published |
 | 4 | (restart the services) | |
-| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: auto` (the default) is every store the runner is configured for (`MONGO_URI`, `DATABASE_URL`, `GOOGLE_DATABASE_URL`), the primary first as the services' write mode says, and the primary's new ciphertext is copied to the other; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
+| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: auto` (the default) follows the store rule below (every store the services still write, primary first, plus any other store the runner is configured for), and the primary's new ciphertext is copied to the other; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
 | 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`) |
-| 7 | `keyset.drop_old` | removes the other keys only when a full scan of EVERY target in EVERY store finds no value on them. It needs `MONGO_URI`, `DATABASE_URL` and `GOOGLE_DATABASE_URL` all configured (else `store_not_configured`), whatever the runner's own write mode says. The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). Only the primary store (the services' write mode: give the runner the same `DB_WRITE_MODE`) must hold records |
+| 7 | `keyset.drop_old` | removes the other keys only when a full scan of EVERY target in EVERY store the services still write (and any other store the runner is configured for) finds no value on them; see the store rule below. The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). Only the primary store must hold records |
+
+**The store rule.** The runner works out which stores the services write from its own copy of
+their write mode: `DB_WRITE_MODE__RESPONSES` (responses) or `DB_WRITE_MODE__GOOGLE` (Google
+credentials), else `DB_WRITE_MODE`, from the root `.env`. Give it the values the services run with,
+and change them together during the move to Postgres.
+
+| Write mode of the target's group | Stores the services write (primary first) | Runner needs |
+|---|---|---|
+| `mongo` | Mongo | `MONGO_URI` |
+| `dual` | Mongo, then Postgres | `MONGO_URI` and the Postgres URL |
+| `postgres_primary_dual` | Postgres, then Mongo | the Postgres URL and `MONGO_URI` |
+| `postgres` | Postgres | the Postgres URL (`DATABASE_URL` for responses, `GOOGLE_DATABASE_URL` for the Google credentials) |
+| unset or not a write mode | unknown | refused: `write_mode_unknown` |
+
+`stores: auto` and `drop_old` cover every store in that list, each of which must be configured
+(else `store_not_configured`), and then any other store the runner is configured for: a store the
+runner can reach is scanned even when the write mode says the services no longer write it, so a
+runner whose copy of the mode is behind the services' cannot make `drop_old` skip a store that still
+holds old values (once Mongo is retired, unset `TASK_RUNNER_MONGO_URI` and it is no longer scanned).
+The runner never guesses an unset write mode, not even the services' default (`mongo`): set
+`DB_WRITE_MODE=mongo` in the root `.env` on a stack that never started the move. `stores: mongo`,
+`postgres` or `both` (on `reencrypt` and `verify`) name the stores instead and need no write mode.
+The same rule applies to the `responses.*` tasks (group `responses`).
 
 `drop_old` has no target or store parameters on purpose, and a scan that did not finish (cancelled)
 refuses. A Google credentials store that is empty because the integration was never used needs

@@ -981,11 +981,18 @@ compose service passes them from the root `.env`, and they are empty by default
 | `TASK_RUNNER_GOOGLE_DATABASE_URL` | the same for the Google credentials (`google` schema); defaults to `bc_tasks_data_google` from `BC_TASKS_DATA_GOOGLE_PASSWORD`, never the integration's role |
 | `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
 | `TASK_RUNNER_KEYSET` | the response keyset for the read-only `responses.*` tasks and `keyset.verify` when it is not in the settings store; it never goes to a file or a log. The `keyset.*` tasks that change or re-encrypt ignore it and use the settings store only |
-| `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES`, `DB_WRITE_MODE__GOOGLE` | the services' write mode (from the root `.env`), so `keyset.*` re-encrypts the stores the services write and copies the primary's new ciphertext to the mirror |
+| `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES`, `DB_WRITE_MODE__GOOGLE` | the services' write mode (from the root `.env`; keep it equal to the services' and change it with them during the move to Postgres). It decides the stores `stores: auto` and `keyset.drop_old` cover (every store the services still write); unset, they refuse with `write_mode_unknown` rather than guess |
 | `TASK_RUNNER_GOOGLE_MONGO_DB` | the Google Forms integration's Mongo database (default `bettercollected_googleform`) |
 
-`stores: auto` covers every configured store; `mongo`, `postgres` or `both` name
-them and refuse if one is missing. The scripts `backend/scripts/check_undecryptable_values.py`
+`stores: auto` covers every store the services still write for the task's group, as the
+runner's `DB_WRITE_MODE*` says (`mongo`: Mongo; `dual` and `postgres_primary_dual`: both;
+`postgres`: Postgres), each of which must be configured (else `store_not_configured`), and then
+any other store the runner is configured for; never fewer than the services write, so once Mongo
+is retired the tasks run on Postgres alone (unset `TASK_RUNNER_MONGO_URI`). With the write mode
+unset or unreadable `auto` refuses (`write_mode_unknown`): set `DB_WRITE_MODE=mongo` in the root
+`.env` on a stack that has not started the move. `mongo`, `postgres` or `both` name the stores,
+need no write mode, and refuse if one is missing. `keyset.drop_old` always uses the `auto` rule
+(docs/response-keyset-rotation.md, "The store rule"). The scripts `backend/scripts/check_undecryptable_values.py`
 and `backend/scripts/backfill_response_workspaces.py` stay as command-line
 tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
 

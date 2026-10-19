@@ -18,7 +18,7 @@ import hashlib
 import json
 import os
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, List, Mapping, Optional, Sequence
 
 from sqlalchemy import text
@@ -27,7 +27,12 @@ from backend.admin.config import parse_master_key
 from backend.admin.tasks.catalog.keyset import Targets
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.impl import keyset_core as core
-from backend.admin.tasks.impl.responses_common import ReadOnlyDatabase
+from backend.admin.tasks.impl.responses_common import (
+    ReadOnlyDatabase,
+    plan_task_stores,
+    write_mode_env,
+    written_stores,
+)
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
     KEYSET_ENV,
@@ -348,7 +353,9 @@ class DataConfig:
     google_mongo_db: str
     database_url: Optional[str]
     google_database_url: Optional[str]
-    env: Mapping[str, str]
+    # the runner's DB_WRITE_MODE* only: the services' write mode, which decides
+    # the stores (responses_common.plan_task_stores)
+    env: Mapping[str, str] = field(default_factory=dict, repr=False)
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "DataConfig":
@@ -359,7 +366,7 @@ class DataConfig:
             google_mongo_db=env.get("GOOGLE_MONGO_DB", "bettercollected_googleform"),
             database_url=env.get("DATABASE_URL"),
             google_database_url=env.get("GOOGLE_DATABASE_URL"),
-            env=env,
+            env=write_mode_env(env),
         )
 
     def url_for(self, target: core.Target) -> Optional[str]:
@@ -373,39 +380,27 @@ class DataConfig:
             if ok
         ]
 
+    def written(self, target: core.Target) -> List[str]:
+        """The stores the services write for the target's group, primary first;
+        refuses ``write_mode_unknown`` when the runner has no write mode for it."""
+        return written_stores(target.group, self.env)
+
     def primary_store(self, target: core.Target) -> str:
-        """The store the services write first (their write mode; Mongo by default)."""
-        try:
-            return core.plan_stores(target, "auto", self.env)[0]
-        except Exception:  # noqa: BLE001 - a bad DB_WRITE_MODE; never echo it
-            return "mongo"
+        """The store the services write first (their write mode)."""
+        return self.written(target)[0]
 
     def stores_for(self, target: core.Target, choice: StoreChoice) -> List[str]:
-        """Store names, primary first. ``auto`` is EVERY configured store (what
-        the runner can reach, not what its own write mode says); the other
-        choices name stores and refuse when one is not configured."""
-        if choice is StoreChoice.auto:
-            names = self.configured(target)
-            primary = self.primary_store(target)
-            names.sort(key=lambda n: n != primary)
-        else:
-            try:
-                names = core.plan_stores(target, choice.value, self.env)
-            except Exception:  # noqa: BLE001
-                raise Refusal("store_not_configured") from None
-            if any(n not in self.configured(target) for n in names):
-                raise Refusal("store_not_configured")
-        if not names:
-            raise Refusal("store_not_configured")
-        return names
+        """Store names, primary first (``plan_task_stores``): ``auto`` is every
+        store the services still write for the target, plus any other configured
+        store; the other choices name stores. Refuses ``store_not_configured`` or
+        ``write_mode_unknown``."""
+        return plan_task_stores(choice, self.configured(target), target.group, self.env)
 
     def every_store(self, target: core.Target) -> List[str]:
-        """For a step that makes a key unreadable: both stores, always, or refuse."""
-        names = self.configured(target)
-        if len(names) != 2:
-            raise Refusal("store_not_configured")
-        primary = self.primary_store(target)
-        return sorted(names, key=lambda n: n != primary)
+        """For a step that makes a key unreadable (``drop_old``): every store the
+        services still write, each configured, plus any other configured store;
+        never fewer. An unknown write mode refuses, it is never guessed."""
+        return self.stores_for(target, StoreChoice.auto)
 
 
 def selected_targets(chosen: Sequence[Targets]) -> List[core.Target]:

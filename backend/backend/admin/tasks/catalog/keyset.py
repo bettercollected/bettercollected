@@ -46,6 +46,7 @@ class Refusals(str, enum.Enum):
     keyset_not_readable_by_runner = "keyset_not_readable_by_runner"
     keyset_unverified = "keyset_unverified"
     store_not_configured = "store_not_configured"
+    write_mode_unknown = "write_mode_unknown"
     store_unreachable = "store_unreachable"
     store_empty = "store_empty"
     typeform_not_acknowledged = "typeform_not_acknowledged"
