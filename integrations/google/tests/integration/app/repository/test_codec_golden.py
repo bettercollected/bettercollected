@@ -10,9 +10,7 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 
-import googleform.app.schemas.google_form  # noqa: F401 — registers the classes
-import googleform.app.schemas.google_form_response  # noqa: F401
-import googleform.app.schemas.oauth_credential  # noqa: F401
+import googleform.app.schemas.oauth_credential  # noqa: F401 — registers the class
 import googleform.db.models  # noqa: F401 — registers the rows on the metadata
 from common.db import BaseRow
 from common.db.codec_golden import (
@@ -28,6 +26,9 @@ pytestmark = pytest.mark.asyncio
 
 FIXTURE = Path(__file__).parents[3] / "fixtures" / "codec_golden" / "google.json"
 
+# Tables kept (expand-only) whose document classes and code were removed.
+NO_DOCUMENT_CLASS = ["GoogleFormDocument", "GoogleFormResponseDocument"]
+
 
 @pytest_asyncio.fixture
 async def documents():
@@ -37,14 +38,15 @@ async def documents():
     await database_service.close_db()
 
 
-async def test_every_mirrored_table_has_a_document_class(documents):
-    assert sorted(c for c, cls in documents.items() if cls is None) == []
+async def test_every_mirrored_table_has_a_document_class_or_is_listed(documents):
+    assert sorted(c for c, cls in documents.items() if cls is None) == NO_DOCUMENT_CLASS
 
 
 async def test_encoding_matches_the_pinned_bytes(documents):
+    documents = {c: cls for c, cls in documents.items() if cls is not None}
     assert check(FIXTURE, build_cases(documents)) == []
 
 
 async def test_decode_then_encode_gives_the_pinned_bytes(documents):
-    classes = {cls.__name__: cls for cls in documents.values()}
+    classes = {cls.__name__: cls for cls in documents.values() if cls is not None}
     assert check_round_trip(FIXTURE, classes) == []

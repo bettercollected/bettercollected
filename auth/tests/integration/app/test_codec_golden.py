@@ -10,8 +10,7 @@ import pytest
 import pytest_asyncio
 from mongomock_motor import AsyncMongoMockClient
 
-import auth.app.schemas.provider  # noqa: F401 — registers the document classes
-import auth.app.schemas.user  # noqa: F401
+import auth.app.schemas.user  # noqa: F401 — registers the document classes
 import auth.db.models  # noqa: F401 — registers the rows on the metadata
 from auth.app.services.database_service import document_models, init_db
 from auth.db.base import Base
@@ -27,6 +26,9 @@ pytestmark = pytest.mark.asyncio
 
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "codec_golden" / "auth.json"
 
+# Tables kept (expand-only) whose document class and code were removed.
+NO_DOCUMENT_CLASS = ["Provider"]
+
 
 @pytest_asyncio.fixture
 async def documents():
@@ -35,14 +37,15 @@ async def documents():
     return mirrored_documents(rows, document_models)
 
 
-async def test_every_mirrored_table_has_a_document_class(documents):
-    assert sorted(c for c, cls in documents.items() if cls is None) == []
+async def test_every_mirrored_table_has_a_document_class_or_is_listed(documents):
+    assert sorted(c for c, cls in documents.items() if cls is None) == NO_DOCUMENT_CLASS
 
 
 async def test_encoding_matches_the_pinned_bytes(documents):
+    documents = {c: cls for c, cls in documents.items() if cls is not None}
     assert check(FIXTURE, build_cases(documents)) == []
 
 
 async def test_decode_then_encode_gives_the_pinned_bytes(documents):
-    classes = {cls.__name__: cls for cls in documents.values()}
+    classes = {cls.__name__: cls for cls in documents.values() if cls is not None}
     assert check_round_trip(FIXTURE, classes) == []
