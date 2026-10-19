@@ -10,10 +10,11 @@ from backend.app.schemas.api_idempotency_record import (
     ApiIdempotencyRecordDocument,
 )
 from common.db.routing import write_op
+from common.clock import utcnow
 
 
 def _now() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc)
+    return utcnow()
 
 
 class IdempotencyRepository:

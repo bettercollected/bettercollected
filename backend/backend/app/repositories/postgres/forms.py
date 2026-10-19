@@ -71,6 +71,7 @@ from common.db import PostgresRepositoryBase, from_canonical_document, from_row_
 from common.db.beanie_bridge import row_values
 from common.models.standard_form import StandardForm, Trigger
 from common.models.user import User
+from common.clock import utcnow
 
 _fn = getattr(func, SCHEMA)
 TIMESTAMP_FIELDS = {"created_at", "updated_at", "published_at"}
@@ -423,13 +424,13 @@ class PostgresFormRepository(PostgresRepositoryBase):
     async def save_form(self, form: FormDocument):
         # As MongoDocument.save does: every save moves updated_at, which the
         # builder's conflict check (form_concurrency.py) relies on.
-        form.updated_at = datetime.now(timezone.utc)
+        form.updated_at = utcnow()
         return await self.upsert(form)
 
     async def save_form_version(
         self, form_version: FormVersionsDocument
     ) -> FormVersionsDocument:
-        return await self.upsert(form_version, row=FormVersionRow)
+        return await self.save_document(form_version, row=FormVersionRow)
 
     async def delete_versions_by_imported_form_id(self, imported_form_id: str):
         return await self.delete_where(
@@ -454,7 +455,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         form_document = await self.one(FormRow.form_id == _oid(form_id))
         apply_form_update(form_document, form)
-        form_document.updated_at = datetime.now(timezone.utc)
+        form_document.updated_at = utcnow()
         return await self.upsert(form_document)
 
     async def _stored_draft(self, form_id: PydanticObjectId):
@@ -602,7 +603,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
             if secret.name == payload.name:
                 secret.value = payload.value
         form.secrets[str(action_id)] = secrets
-        return await self.upsert(form)
+        return await self.save_document(form)
 
 
 class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
@@ -629,14 +630,14 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
     async def save(
         self, workspace_form: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
-        return await self.upsert(workspace_form)
+        return await self.save_document(workspace_form)
 
     async def update(
         self, item_id: str, item: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
         if await self.one(WorkspaceFormRow.id == _oid(item_id)) is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
-        return await self.upsert(item)
+        return await self.save_document(item)
 
     async def save_workspace_form(
         self,
@@ -1025,10 +1026,10 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         template.button_text = template_body.button_text
         template.logo = template_body.logo
         template.cover_image = template_body.cover_image
-        return await self.upsert(template)
+        return await self.save_document(template)
 
     async def save(self, template: FormTemplateDocument) -> FormTemplateDocument:
-        return await self.upsert(template)
+        return await self.save_document(template)
 
     async def delete_template(self, template_id: PydanticObjectId):
         template = await self.get_template_by_id(template_id)
@@ -1095,7 +1096,7 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
     document = FormImportDocument
 
     async def save(self, document: FormImportDocument) -> FormImportDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def create_within_limits(
         self,

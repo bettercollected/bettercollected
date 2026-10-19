@@ -14,6 +14,7 @@ from auth.db.models import UserRow
 from common.db import PostgresRepositoryBase
 from common.enums.plan import Plans
 from common.enums.roles import Roles
+from common.clock import utcnow
 
 
 class PostgresUserRepository(PostgresRepositoryBase):
@@ -161,5 +162,5 @@ class PostgresUserRepository(PostgresRepositoryBase):
 
     async def update_last_logged_in(self, user_id: PydanticObjectId):
         user_document = await self.one(UserRow.id == str(user_id))
-        user_document.last_logged_in = datetime.datetime.now(datetime.timezone.utc)
-        return await self.upsert(user_document)
+        user_document.last_logged_in = utcnow()
+        return await self.save_document(user_document)

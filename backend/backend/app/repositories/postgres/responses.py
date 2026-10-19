@@ -68,6 +68,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
+from common.clock import utcnow
 from camel_converter import to_camel, to_snake
 
 
@@ -550,7 +551,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         return responses + requests
 
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
-        return await self.upsert(response)
+        return await self.save_document(response)
 
     async def find_deletion_request_by_response_id(
         self, response_id: str
@@ -681,7 +682,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         response_document.provider = "self"
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
-        now = dt.datetime.now(dt.timezone.utc)
+        now = utcnow()
         response_document.created_at = now
         response_document.updated_at = now
         return await self.upsert(response_document)
@@ -738,7 +739,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         )
         # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
-        response_document.updated_at = dt.datetime.now(dt.timezone.utc)
+        response_document.updated_at = utcnow()
         # the workspace it was collected in stays; one stored before #768
         # gets the workspace the caller checked it against
         if response_document.workspace_id is None:
@@ -751,7 +752,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         deletion_request = await self.find_deletion_request_for(response)
         if deletion_request:
             deletion_request.status = DeletionRequestStatus.SUCCESS
-            await self.upsert(deletion_request, row=ResponseDeletionRequestRow)
+            await self.save_document(deletion_request, row=ResponseDeletionRequestRow)
         return response_id
 
     async def get_all_expiring_responses(self):
@@ -924,7 +925,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             if description:
                 responder_group.description = description
             responder_group.regex = regex
-        return await self.upsert(responder_group)
+        return await self.save_document(responder_group)
 
     async def get_group_in_workspace(
         self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
@@ -1044,7 +1045,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             ResponderGroupFormRow.group_id == _oid(group_id),
         )
         if not existing:
-            return await self.upsert(
+            return await self.save_document(
                 self.link(group_id, form_id), row=ResponderGroupFormRow
             )
 

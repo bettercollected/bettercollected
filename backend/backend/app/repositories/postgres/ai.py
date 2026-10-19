@@ -31,6 +31,7 @@ from backend.db.models import (
     WorkspaceAiProfileRow,
 )
 from common.db import PostgresRepositoryBase, from_row_doc, row_values
+from common.clock import utcnow
 
 
 class PostgresFlowEventRepository(PostgresRepositoryBase):
@@ -70,7 +71,7 @@ class PostgresFormAIInsightRepository(PostgresRepositoryBase):
         )
 
     async def save(self, document: FormAIInsightDocument) -> FormAIInsightDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
 
 class PostgresFormAISessionRepository(PostgresRepositoryBase):
@@ -81,7 +82,7 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
         return await self.get_or_raise(session_id)
 
     async def save(self, session: FormAISessionDocument) -> FormAISessionDocument:
-        return await self.upsert(session)
+        return await self.save_document(session)
 
     async def update_proposal(
         self,
@@ -127,7 +128,7 @@ class PostgresWorkspaceAIProfileRepository(PostgresRepositoryBase):
     async def save(
         self, document: WorkspaceAIProfileDocument
     ) -> WorkspaceAIProfileDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
 
 class PostgresAIPreferenceMemoryRepository(PostgresRepositoryBase):
@@ -145,7 +146,7 @@ class PostgresAIPreferenceMemoryRepository(PostgresRepositoryBase):
     async def save(
         self, document: UserAIPreferenceMemoryDocument
     ) -> UserAIPreferenceMemoryDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
 
 class PostgresMcpAuditLogRepository(PostgresRepositoryBase):
@@ -168,7 +169,7 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
     async def hit(
         self, counter_id: str, expires_at: dt.datetime, amount: int = 1
     ) -> int:
-        now = dt.datetime.now(dt.timezone.utc)
+        now = utcnow()
         names = self._column_names()
         locked = (
             select(RateLimitCounterRow.doc)
@@ -220,7 +221,7 @@ class PostgresIdempotencyRepository(PostgresRepositoryBase):
         )
 
     async def claim(self, record: ApiIdempotencyRecordDocument) -> bool:
-        now = dt.datetime.now(dt.timezone.utc)
+        now = utcnow()
         names = self._column_names()
         values = row_values(record)
         async with self._session() as session, session.begin():
@@ -266,7 +267,7 @@ class PostgresIdempotencyRepository(PostgresRepositoryBase):
             record.status_code = status_code
             record.body = body
             record.etag = etag
-            record.updated_at = dt.datetime.now(dt.timezone.utc)
+            record.updated_at = utcnow()
             await session.execute(self._upsert_statement(row_values(record)))
 
     async def release(self, record_id: str) -> None:

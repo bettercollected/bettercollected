@@ -10,6 +10,7 @@ from pydantic import EmailStr
 from auth.app.repositories.metric_periods import iso_second, object_id_at
 from auth.app.schemas.user import UserDocument
 from common.db import write_op
+from common.clock import utcnow
 
 
 class UserRepository:
@@ -170,5 +171,5 @@ class UserRepository:
     @write_op
     async def update_last_logged_in(self, user_id: PydanticObjectId):
         user_document = await UserDocument.find_one(UserDocument.id == user_id)
-        user_document.last_logged_in = datetime.datetime.now(datetime.timezone.utc)
+        user_document.last_logged_in = utcnow()
         return await user_document.save()

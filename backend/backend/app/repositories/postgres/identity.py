@@ -91,6 +91,7 @@ from common.db import (
     to_bson_dict,
 )
 from common.enums.workspace_invitation_status import InvitationStatus
+from common.clock import utcnow
 
 
 def _oid(value: Any) -> str:
@@ -124,7 +125,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
     ) -> WorkspaceDocument:
         if await self.one(WorkspaceRow.id == _oid(item_id)) is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Workspace not found")
-        return await self.upsert(item)
+        return await self.save_document(item)
 
     async def get_workspace_by_id(
         self, workspace_id: PydanticObjectId
@@ -156,7 +157,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
         return await self.get_or_raise(workspace_id)
 
     async def save(self, workspace: WorkspaceDocument) -> WorkspaceDocument:
-        return await self.upsert(workspace)
+        return await self.save_document(workspace)
 
     async def set_fields(
         self, workspace: WorkspaceDocument, fields: Dict[str, Any]
@@ -303,7 +304,7 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
         )
 
     async def save(self, workspace_user: WorkspaceUserDocument):
-        return await self.upsert(workspace_user)
+        return await self.save_document(workspace_user)
 
     async def add_if_absent(
         self, workspace_user: WorkspaceUserDocument
@@ -332,13 +333,13 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
                 and not has_owner_role(workspace_user.roles)
                 and workspace_user.disable_for(DISABLED_BY_PLAN)
             ):
-                await self.upsert(workspace_user)
+                await self.save_document(workspace_user)
 
     async def enable_all_user_in_workspace(self, workspace_id: PydanticObjectId):
         enabled = 0
         for workspace_user in await self.get_workspace_users(workspace_id):
             if workspace_user.enable_for(DISABLED_BY_PLAN):
-                await self.upsert(workspace_user)
+                await self.save_document(workspace_user)
                 enabled += 1
         return enabled
 
@@ -369,7 +370,7 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
     async def save(
         self, invitation: WorkspaceUserInvitesDocument
     ) -> WorkspaceUserInvitesDocument:
-        return await self.upsert(invitation)
+        return await self.save_document(invitation)
 
     async def _find(
         self, workspace_id, email
@@ -391,7 +392,7 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
             existing_invitation.expiry = get_expiry_epoch_after(
                 time_delta=timedelta(days=7)
             )
-            existing_invitation.created_at = datetime.datetime.now(timezone.utc)
+            existing_invitation.created_at = utcnow()
             existing_invitation.invitation_token = secrets.token_hex(16)
             # inviting again may change the role
             existing_invitation.role = invitation.role
@@ -471,7 +472,7 @@ class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
     document = WorkspaceAPIKeyDocument
 
     async def save(self, document: WorkspaceAPIKeyDocument) -> WorkspaceAPIKeyDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def list_by_workspace(
         self, workspace_id: PydanticObjectId
@@ -501,7 +502,7 @@ class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
 
     async def save(self, document: WorkspaceDomainDocument) -> WorkspaceDomainDocument:
         try:
-            return await self.upsert(document)
+            return await self.save_document(document)
         except IntegrityError:
             raise DomainVerifiedElsewhere(document.domain)
 
@@ -554,7 +555,7 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
             raise SsoConnectionExists(document.polis_client_id)
 
     async def save(self, document: SsoConnectionDocument) -> SsoConnectionDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def get(self, connection_id) -> Optional[SsoConnectionDocument]:
         return await self.one(SsoConnectionRow.id == str(connection_id))
@@ -650,7 +651,7 @@ class PostgresScimDirectoryRepository(PostgresRepositoryBase):
             raise ScimDirectoryExists(str(document.workspace_id))
 
     async def save(self, document: ScimDirectoryDocument) -> ScimDirectoryDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def update_fields(
         self, directory_id: PydanticObjectId, fields: Dict[str, Any]
@@ -692,7 +693,7 @@ class PostgresScimUserRepository(PostgresRepositoryBase):
     document = ScimUserDocument
 
     async def save(self, document: ScimUserDocument) -> ScimUserDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def get(self, scim_user_id) -> Optional[ScimUserDocument]:
         return await self.one(ScimUserRow.id == str(scim_user_id))
@@ -731,7 +732,7 @@ class PostgresScimGroupRepository(PostgresRepositoryBase):
     document = ScimGroupDocument
 
     async def save(self, document: ScimGroupDocument) -> ScimGroupDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def get(self, group_id) -> Optional[ScimGroupDocument]:
         return await self.one(ScimGroupRow.id == str(group_id))
@@ -761,7 +762,7 @@ class PostgresScimGroupMemberRepository(PostgresRepositoryBase):
     document = ScimGroupMemberDocument
 
     async def add(self, document: ScimGroupMemberDocument) -> ScimGroupMemberDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def remove(
         self, group_id: PydanticObjectId, scim_user_id: PydanticObjectId
@@ -823,7 +824,7 @@ class PostgresSessionRepository(PostgresRepositoryBase):
     document = SessionDocument
 
     async def save(self, document: SessionDocument) -> SessionDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def get(self, session_id: str) -> Optional[SessionDocument]:
         try:

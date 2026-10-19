@@ -60,7 +60,7 @@ class PostgresFormPluginProviderRepository(PostgresRepositoryBase):
         )
 
     async def add(self, item: FormPluginConfigDocument) -> FormPluginConfigDocument:
-        return await self.upsert(item)
+        return await self.save_document(item)
 
     async def update(
         self, provider_name: str, item: FormPluginConfigDocument
@@ -68,7 +68,7 @@ class PostgresFormPluginProviderRepository(PostgresRepositoryBase):
         existing = await self.get(provider_name)
         if existing:
             item.id = existing.id
-        return await self.upsert(item)
+        return await self.save_document(item)
 
     async def delete(self, provider_name: str, provider: FormPluginConfigDocument):
         pass  # the Mongo implementation is a no-op too
@@ -83,7 +83,7 @@ class PostgresCouponRepository(PostgresRepositoryBase):
         return "Created"
 
     async def save(self, coupon: CouponCodeDocument) -> CouponCodeDocument:
-        return await self.upsert(coupon)
+        return await self.save_document(coupon)
 
     async def get_all_coupons(self):
         return await self.many()
@@ -97,4 +97,4 @@ class PostgresUserFeedbackRepo(PostgresRepositoryBase):
     document = UserFeedbackDocument
 
     async def save_user_feedback(self, user_feedback: UserFeedbackDocument):
-        return await self.upsert(user_feedback)
+        return await self.save_document(user_feedback)

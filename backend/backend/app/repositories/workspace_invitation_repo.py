@@ -1,6 +1,5 @@
-import datetime
 import secrets
-from datetime import timedelta, timezone
+from datetime import timedelta
 from http import HTTPStatus
 from typing import Optional
 
@@ -15,6 +14,7 @@ from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.db.routing import write_op
+from common.clock import utcnow
 
 
 class WorkspaceInvitationRepo:
@@ -39,7 +39,7 @@ class WorkspaceInvitationRepo:
             existing_invitation.expiry = get_expiry_epoch_after(
                 time_delta=timedelta(days=7)
             )
-            existing_invitation.created_at = datetime.datetime.now(timezone.utc)
+            existing_invitation.created_at = utcnow()
             existing_invitation.invitation_token = secrets.token_hex(16)
             # inviting again may change the role
             existing_invitation.role = invitation.role
