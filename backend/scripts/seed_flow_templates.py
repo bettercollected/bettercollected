@@ -2,8 +2,8 @@
 Seed flow-native v2 templates (branching logic as the starting point).
 
 Idempotent: skips any template whose title already exists with builder_version
-"v2". Uses the backend's own Beanie documents so the stored encoding is exactly
-what the API writes — never hand-rolled JSON.
+"v2". Uses the backend's own documents and template repository so the stored
+encoding is exactly what the API writes — never hand-rolled JSON.
 
 **This runs automatically on every backend startup** (see the call in
 `backend/app/asgi.py`'s lifespan, right after `init_db`), gated by
@@ -15,8 +15,9 @@ the full writeup (env vars, what's idempotent, how to add a template).
 
 For one-off manual runs (e.g. to seed without restarting the app), run from
 backend/:  uv run python -m scripts.seed_flow_templates
-Env: MONGO_URI (default mongodb://root:root@localhost:27017), DB name
-     bettercollected_backend, DEFAULT_WORKSPACE_ID (required — see above).
+Env: the backend's own (MONGO_URI, MONGO_DB, DATABASE_URL and the DB_* flags),
+     DEFAULT_WORKSPACE_ID (required — see above). Reads and writes go through
+     the routed template repository, like the app's.
 
 Note: create_form_from_template copies template fields VERBATIM (no id
 regeneration), so the slide/field ids referenced by jumps and visibility rules
@@ -212,15 +213,15 @@ def job_screening() -> dict:
 TEMPLATE_BUILDERS = (support_triage, lead_qualification, job_screening)
 
 
-async def seed_flow_templates(workspace_id, template_repo=None) -> dict:
+async def seed_flow_templates(workspace_id, template_repo) -> dict:
     """
     Create any of TEMPLATE_BUILDERS that don't already exist (matched by title +
-    builder_version="v2"). Assumes Beanie is already initialized with
-    FormTemplateDocument — true both at app startup (see asgi.py) and in the
-    standalone CLI path below. Safe to call repeatedly: existing templates are
-    left untouched, never overwritten, except that with ``template_repo`` (the
-    app's routed template repository) existing templates get their missing
-    yes/no choices repaired.
+    builder_version="v2", in any workspace). ``template_repo`` is the app's
+    routed template repository: the existence check, the repair and the new
+    templates all go through it, so whichever store serves templates (Mongo,
+    mirrored or Postgres) is the one checked and written. Safe to call
+    repeatedly: existing templates are left untouched, never overwritten,
+    except that their missing yes/no choices are repaired.
 
     Returns {"seeded": [...], "skipped": [...], "repaired": [...]} (titles).
     """
@@ -229,12 +230,10 @@ async def seed_flow_templates(workspace_id, template_repo=None) -> dict:
         payload = build()
         # Matched by title in any workspace, as before: DEFAULT_WORKSPACE_ID may
         # differ from the workspace an earlier run seeded into.
-        existing = await FormTemplateDocument.find_one(
-            FormTemplateDocument.title == payload["title"], FormTemplateDocument.builder_version == "v2"
-        )
+        existing = await template_repo.get_v2_template_by_title(payload["title"])
         if existing:
             skipped.append(payload["title"])
-            if template_repo is not None and await repair_yes_no_choices(template_repo, existing.id):
+            if await repair_yes_no_choices(template_repo, existing.id):
                 repaired.append(payload["title"])
             continue
         # fix slide/field indexes
@@ -242,7 +241,7 @@ async def seed_flow_templates(workspace_id, template_repo=None) -> dict:
             slide["index"] = i
             for j, f in enumerate(slide["properties"]["fields"]):
                 f["index"] = j
-        doc = FormTemplateDocument(
+        template = FormTemplateDocument(
             builder_version="v2",
             type="form",
             workspace_id=workspace_id,
@@ -254,35 +253,38 @@ async def seed_flow_templates(workspace_id, template_repo=None) -> dict:
             thankyou_page=[{"layout": LAYOUT}],
             settings={"is_public": True},
         )
-        if template_repo is not None:
-            # Through the routed repository, so the store that serves templates
-            # (mirrored or Postgres-served) has it for the gallery...
-            doc = await template_repo.save(doc)
-        # ...and always in Mongo, where the existence check above looks.
-        await doc.save()
+        await template_repo.save(template)
         seeded.append(payload["title"])
     return {"seeded": seeded, "skipped": skipped, "repaired": repaired}
 
 
 async def _main() -> None:
-    """Standalone CLI entry point: creates its own Mongo client + Beanie init,
-    since the app isn't running. Startup auto-seeding (asgi.py) calls
-    seed_flow_templates() directly against the already-initialized app db."""
-    from beanie import init_beanie
+    """Standalone CLI entry point: connects the stores the way the app does
+    (Mongo from MONGO_URI/MONGO_DB, Postgres from DATABASE_URL and the
+    DB_* flags) and seeds through the app's routed template repository.
+    Startup auto-seeding (asgi.py) calls seed_flow_templates() directly."""
+    from dependency_injector import providers
     from pymongo import AsyncMongoClient
 
+    from backend.app.container import container
+    from backend.app.handlers.database import close_db, init_db
     from backend.config import settings
+    from backend.db.startup import check_postgres_at_startup, dispose_postgres
 
-    mongo_uri = os.environ.get("MONGO_URI", "mongodb://root:root@localhost:27017")
-    db_name = os.environ.get("BACKEND_DB", "bettercollected_backend")
     workspace_id = settings.default_workspace_settings.WORKSPACE_ID
     if not workspace_id:
         print("DEFAULT_WORKSPACE_ID is not set — refusing to seed without a stable predefined-templates workspace id.")
         return
 
-    client = AsyncMongoClient(mongo_uri)
-    await init_beanie(database=client[db_name], document_models=[FormTemplateDocument])
-    result = await seed_flow_templates(workspace_id)
+    client = AsyncMongoClient(settings.mongo_settings.URI)
+    container.database_client.override(providers.Object(client))
+    await init_db(settings.mongo_settings.DB, client)
+    await check_postgres_at_startup(container)
+    try:
+        result = await seed_flow_templates(workspace_id, container.form_template_repo())
+    finally:
+        await close_db(client)
+        await dispose_postgres(container)
     for title in result["seeded"]:
         print(f"seeded: {title}")
     for title in result["skipped"]:
