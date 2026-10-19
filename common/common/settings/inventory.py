@@ -555,14 +555,9 @@ PDF_IMPORT: Tuple[SettingSpec, ...] = (
           "*/10 * * * *", tier=T2, max_length=64),
 )
 
-TEMPORAL: Tuple[SettingSpec, ...] = (
-    _bool("TEMPORAL_ADD_IMPORT_SCHEDULES", "temporal", (BACKEND,), False,
-          "Registers the import schedules at startup.", tier=T2),
-)
-
 INVENTORY: Tuple[SettingSpec, ...] = (
     SERVER + RATE_LIMITS + NETWORK + SESSION + KEY_MATERIAL + AI + STORAGE + SSO_SPECS
-    + MAIL_BILLING + GOOGLE_OAUTH + SERVICES + PDF_IMPORT + TEMPORAL
+    + MAIL_BILLING + GOOGLE_OAUTH + SERVICES + PDF_IMPORT
 )
 
 # Keys read at import time (or captured when the container is built): they stay

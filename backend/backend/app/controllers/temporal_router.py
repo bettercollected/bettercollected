@@ -31,14 +31,6 @@ class TemporalRouter(Routable):
         self.form_schedular = form_schedular
         self.form_actions_service = form_actions_service
 
-    @post("/import/{workspace_id}/form/{form_id}")
-    async def import_form_to_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str, api_key=Depends(get_api_key)
-    ):
-        await self.form_schedular.update_form(
-            workspace_id=workspace_id, form_id=form_id
-        )
-
     @patch("/forms/{form_id}/actions/{action_id}/secrets")
     async def patch_form_secrets(
         self,
