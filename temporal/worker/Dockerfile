@@ -24,5 +24,6 @@ COPY ./temporal/worker/ .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
     
-# Run the application
-CMD ["uv", "run", "python", "main.py"]
+# Run the application from the environment built above. `uv run` would re-resolve
+# and sync (dev group included) from the network every time the container starts.
+CMD ["python", "main.py"]
