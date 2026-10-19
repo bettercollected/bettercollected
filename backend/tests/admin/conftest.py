@@ -57,6 +57,8 @@ def roles_sql(
     """The roles script's SQL with psql variables bound and role names suffixed."""
     script = ROLES_SCRIPT.read_text()
     sql = script.split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
+    # the passwords reach psql through \getenv in the real script; here they are bound below
+    sql = "\n".join(line for line in sql.splitlines() if not line.startswith("\\getenv"))
     sql = re.sub(r"\bbc_admin_mig\b", f"bc_admin_mig_{suffix}", sql)
     sql = re.sub(r"\bbc_admin_counts\b", f"bc_admin_counts_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)

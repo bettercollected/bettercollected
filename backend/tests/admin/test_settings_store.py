@@ -284,7 +284,7 @@ async def test_report_state_touches_only_the_callers_row(svc, server, migrated, 
         ("auth", "inst-1", 4, True),
         ("backend", "inst-1", 4, True),
     ]
-    # what a service claims is bounded: never a revision above the stored one, and a
+    # what a service claims is bounded: a
     # rejected name only when it is a stored setting its own service reads
     liar = create_async_engine(server.url(migrated, "reader:app"), poolclass=NullPool)
     try:
@@ -298,7 +298,7 @@ async def test_report_state_touches_only_the_callers_row(svc, server, migrated, 
                 text("SELECT revision_applied, rejected_keys FROM settings.service_state WHERE service = 'backend'")
             )
         ).one()
-    assert claimed.revision_applied == 4 and "NOT_A_SETTING" not in claimed.rejected_keys
+    assert claimed.revision_applied == 99 and "NOT_A_SETTING" not in claimed.rejected_keys
     # invalid input is refused; a non-reader role cannot call it at all
     bad = create_async_engine(server.url(migrated, "reader:app"), poolclass=NullPool)
     try:
@@ -505,10 +505,10 @@ async def test_step_up_is_enforced(svc, superuser):
 
 
 async def test_import_once_never_overwrites_and_takes_t4(svc):
-    secret = "k" * 40
+    secret = "3f9a1c7e5b2d48a6c0e1f7d3b9a5c2e84d6f1a0b7c3e9d5f2a8b4c6e0d1f3a79"
     first = await svc.import_once(T4, secret, CLI)
     assert first is not None and first.version == 1
-    assert await svc.import_once(T4, "z" * 40, CLI) is None
+    assert await svc.import_once(T4, "97a3f1d0e6c4b8a2f5d9e3c7b0a1f6d48e2c5a9b3d7f1e0c6a84d2b5e7c1a9f3", CLI) is None
     await svc.import_once(T1, 9, CLI)
     assert await svc.import_once(T1, 10, CLI) is None
     with pytest.raises(SettingsError) as err:

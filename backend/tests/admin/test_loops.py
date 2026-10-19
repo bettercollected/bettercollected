@@ -785,6 +785,36 @@ async def test_integrity_monitor_notifies_once_per_incident_and_recovers(
     assert len(await notices(superuser)) == 3
 
 
+async def test_integrity_flags_a_store_behind_what_running_services_report(
+    runtime_engine, superuser, store, now_clock
+):
+    """The rollback floor that does not live in a container: a restored backup or a
+    replaced database shows a lower manifest revision than the services accepted."""
+    await put(store, T1, 5)
+    revision = await scalar(superuser, "SELECT revision FROM settings.manifest WHERE id = 1")
+    mon, board = monitor(runtime_engine, now_clock, store)
+    assert await mon.run_once() == "ok"
+    insert = (
+        "INSERT INTO settings.service_state (service, instance, reported_at, revision_applied, "
+        "env_overrides, rejected_keys, restart_pending, keyset_fp) "
+        "VALUES ('backend', :i, :at, :rev, '{}', '{}', false, '')"
+    )
+    # equal to the store: fine
+    await as_superuser_raw(superuser, insert, i="backend:a", at=now_clock.now(), rev=revision)
+    assert await mon.run_once() == "ok"
+    # a stale report (older than an hour) from before a legitimate restore is not counted
+    await as_superuser_raw(
+        superuser, insert, i="backend:old", at=now_clock.now() - timedelta(hours=3), rev=revision + 50
+    )
+    assert await mon.run_once() == "ok"
+    # a live instance that accepted a higher revision than the store now shows
+    await as_superuser_raw(superuser, insert, i="backend:b", at=now_clock.now(), rev=revision + 3)
+    assert (await mon.run_once()).endswith("notified")
+    assert ("*", "store_behind_services") in board.integrity.problems
+    (notice,) = await notices(superuser)
+    assert json.loads(notice.p)["problems"][0] == {"key": "*", "reason": "store_behind_services"}
+
+
 async def test_the_integrity_notice_renders_and_is_mailed_without_values(
     runtime_engine, superuser, store, now_clock
 ):

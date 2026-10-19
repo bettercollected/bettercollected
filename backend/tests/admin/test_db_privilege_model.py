@@ -598,6 +598,39 @@ def test_notice_fields_do_not_accept_a_trailing_newline():
         render("settings.integrity", {"count": 1, "problems": [{"key": "*", "reason": "bad_signature\n"}]})
 
 
+def test_the_roles_script_never_puts_a_password_on_a_command_line(tmp_path):
+    """The passwords reach psql through its environment (\\getenv); a fake psql records
+    its arguments and stdin, and no password appears in the arguments."""
+    import stat
+    import subprocess
+
+    from tests.admin.conftest import ROLES_SCRIPT
+
+    passwords = {
+        "BC_ADMIN_PASSWORD": "pw-admin-Zk3q",
+        "BC_ADMIN_MIG_PASSWORD": "pw-mig-Zk3q",
+        "BC_TASKS_PASSWORD": "pw-tasks-Zk3q",
+        "BC_TASKS_DATA_APP_PASSWORD": "pw-dataapp-Zk3q",
+        "BC_TASKS_DATA_GOOGLE_PASSWORD": "pw-datagoogle-Zk3q",
+    }
+    fake = tmp_path / "psql"
+    fake.write_text(
+        "#!/bin/bash\n"
+        f"printf '%s\\n' \"$@\" > {tmp_path}/argv\n"
+        f"cat > {tmp_path}/stdin\n"
+    )
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    env = {"PATH": f"{tmp_path}:{os.environ['PATH']}", "POSTGRES_USER": "u", "POSTGRES_DB": "d", **passwords}
+    done = subprocess.run(["bash", str(ROLES_SCRIPT)], env=env, capture_output=True, text=True, timeout=30)
+    assert done.returncode == 0, done.stderr
+    argv = (tmp_path / "argv").read_text()
+    stdin = (tmp_path / "stdin").read_text()
+    for value in passwords.values():
+        assert value not in argv and value not in stdin and value not in done.stdout + done.stderr
+    assert "ON_ERROR_STOP=1" in argv and "_pw=" not in argv
+    assert "\\getenv admin_pw BC_ADMIN_PASSWORD" in stdin
+
+
 def test_a_read_only_collection_refuses_an_aggregation_that_writes():
     from backend.admin.tasks.impl.responses_common import ReadOnlyCollection, ReadOnlyViolation
 

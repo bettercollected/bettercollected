@@ -118,6 +118,8 @@ class IntegrityMonitor(Loop):
                 # cannot raise alarms (and mail every admin) about names it invents
                 if _KEY.match(str(key)) and (known is None or key in known):
                     found.add((key, "rejected_by_reader"))
+        if await self._store_behind_services(since):
+            found.add(("*", "store_behind_services"))
         return tuple(sorted(found))[:MAX_PROBLEMS]
 
     async def _lock_blocked(self) -> bool:
@@ -139,6 +141,26 @@ class IntegrityMonitor(Loop):
                     if attempt == 1:
                         return True
         return False
+
+    async def _store_behind_services(self, since: datetime) -> bool:
+        """The rollback floor that does not live in a container: running services
+        report the highest revision they accepted, and the store never legitimately
+        shows a lower manifest revision than that. A restored backup or a
+        replaced database does, even when its own audit trail was restored too."""
+        async with self._engine.connect() as conn:
+            row = (
+                await conn.execute(
+                    text(
+                        "SELECT (SELECT revision FROM settings.manifest WHERE id = 1) AS stored, "
+                        "(SELECT coalesce(max(revision_applied), 0) FROM settings.service_state "
+                        " WHERE reported_at >= :since) AS applied"
+                    ),
+                    {"since": since},
+                )
+            ).first()
+        if row is None or row.stored is None:
+            return False
+        return int(row.applied) > int(row.stored)
 
     async def run_once(self) -> str:
         now = self._clock.now()

@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 from backend.admin.security.clock import Clock
 from backend.admin.security.keycheck import require_key
 
-FORM_TOKEN_MAX_AGE = 3600
+FORM_TOKEN_MAX_AGE = 900  # a code is good for ten minutes; a form need not outlive it
 _ALLOWED_FETCH_SITE = frozenset({"same-origin", "none"})
 
 

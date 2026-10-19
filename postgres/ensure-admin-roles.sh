@@ -78,12 +78,17 @@ done
 : "${POSTGRES_USER:?POSTGRES_USER must be set}"
 : "${POSTGRES_DB:?POSTGRES_DB must be set}"
 
-psql -v ON_ERROR_STOP=1 --quiet --output /dev/null --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
-    -v admin_pw="$BC_ADMIN_PASSWORD" \
-    -v mig_pw="$BC_ADMIN_MIG_PASSWORD" \
-    -v tasks_pw="$BC_TASKS_PASSWORD" \
-    -v tasks_data_app_pw="$BC_TASKS_DATA_APP_PASSWORD" \
-    -v tasks_data_google_pw="$BC_TASKS_DATA_GOOGLE_PASSWORD" <<'SQL'
+# The passwords reach psql through its environment (\getenv below), never as
+# `-v name=value` arguments, which any user of the host can read in the process
+# list while the command runs. (\getenv needs psql 15 or newer; compose uses 16.)
+export BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_APP_PASSWORD BC_TASKS_DATA_GOOGLE_PASSWORD
+
+psql -v ON_ERROR_STOP=1 --quiet --output /dev/null --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'SQL'
+\getenv admin_pw BC_ADMIN_PASSWORD
+\getenv mig_pw BC_ADMIN_MIG_PASSWORD
+\getenv tasks_pw BC_TASKS_PASSWORD
+\getenv tasks_data_app_pw BC_TASKS_DATA_APP_PASSWORD
+\getenv tasks_data_google_pw BC_TASKS_DATA_GOOGLE_PASSWORD
 SET log_statement = 'none';
 SET log_min_error_statement = 'panic';
 SELECT count(set_config('bc.admin_pw', :'admin_pw', false));

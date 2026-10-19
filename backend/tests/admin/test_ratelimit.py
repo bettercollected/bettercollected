@@ -47,16 +47,65 @@ def test_keys_hide_identifiers_and_depend_on_the_pepper():
 # ------------------------------------------------------------ code requests
 
 
-async def test_code_requests_three_per_email_per_ten_minutes():
+async def test_code_requests_three_per_email_and_address_per_ten_minutes():
     limiter, clock, _ = make()
-    for n in range(3):
-        d = await limiter.request_code("ann@example.org", f"203.0.113.{n}")
-        assert d.allowed
-    d = await limiter.request_code("ANN@example.org", "203.0.113.50")
-    assert not d.allowed and 0 < d.retry_after <= 600
-    assert (await limiter.request_code("bob@example.org", "203.0.113.60")).allowed
+    for _ in range(3):
+        assert (await limiter.request_code("ann@example.org", "203.0.113.1")).allowed
+    d = await limiter.request_code("ANN@example.org", "203.0.113.1")
+    assert not d.allowed and 0 < d.retry_after <= 600 and not d.blocked_by_ip
+    # another address is not affected by the first one's requests
+    assert (await limiter.request_code("ann@example.org", "203.0.113.2")).allowed
+    assert (await limiter.request_code("bob@example.org", "203.0.113.1")).allowed
     clock.advance(600)
-    assert (await limiter.request_code("ann@example.org", "203.0.113.50")).allowed
+    assert (await limiter.request_code("ann@example.org", "203.0.113.1")).allowed
+
+
+async def test_code_requests_have_a_higher_ceiling_per_email_over_all_addresses():
+    limiter, clock, _ = make()
+    for n in range(12):
+        assert (await limiter.request_code("ann@example.org", f"203.0.113.{n}")).allowed
+    d = await limiter.request_code("ann@example.org", "203.0.113.99")
+    assert not d.allowed and not d.blocked_by_ip
+    clock.advance(600)
+    assert (await limiter.request_code("ann@example.org", "203.0.113.99")).allowed
+
+
+async def test_shared_address_is_not_one_global_bucket_for_every_email():
+    limiter, _, _ = make()
+    limiter.set_shared_clients(["172.30.77.1"])
+    for n in range(40):  # far past the 10 an ordinary address gets
+        assert (await limiter.request_code(f"u{n}@example.net", "172.30.77.1")).allowed
+    # the genuine admin still gets a code after noise from other emails
+    assert (await limiter.request_code("admin@example.org", "172.30.77.1")).allowed
+    # a flood guard still caps the total work from the shared address
+    for n in range(200):
+        await limiter.request_code(f"v{n}@example.net", "172.30.77.1")
+    d = await limiter.request_code("w@example.net", "172.30.77.1")
+    assert not d.allowed and d.blocked_by_ip
+    # an ordinary address keeps the strict per-address limit
+    for n in range(10):
+        assert (await limiter.request_code(f"x{n}@example.net", "198.51.100.1")).allowed
+    assert (await limiter.request_code("x99@example.net", "198.51.100.1")).blocked_by_ip
+
+
+async def test_signin_scope_counts_and_locks_do_not_touch_the_factor_lock():
+    limiter, _, _ = make()
+    pair = limiter.pair_subject("ann@example.org", "203.0.113.1")
+    for _ in range(5):
+        outcome = await limiter.record_failure(pair, "signin")
+    assert outcome.newly_locked is False or outcome.locked
+    assert (await limiter.lock_status(pair, "signin")).locked
+    assert not (await limiter.lock_status("ann@example.org")).locked  # factor scope
+    other = limiter.pair_subject("ann@example.org", "203.0.113.2")
+    assert not (await limiter.lock_status(other, "signin")).locked
+
+
+async def test_email_ceiling_is_an_alert_not_a_lock():
+    limiter, _, _ = make()
+    last = None
+    for _ in range(31):
+        last = await limiter.email_ceiling("ann@example.org")
+    assert last.count == 31 and not (await limiter.lock_status("ann@example.org")).locked
 
 
 async def test_code_requests_ten_per_ip_per_ten_minutes():
@@ -371,8 +420,8 @@ async def test_cleanup_removes_old_counters_only():
     clock.advance(3 * 86400)
     await limiter.request_code("bob@example.org", "203.0.113.2")
     removed = await limiter.cleanup()
-    assert removed == 2
-    assert len(store.rows) == 2
+    assert removed == 3  # address, (email, address) and email counters of the first request
+    assert len(store.rows) == 3
 
 
 async def test_memory_store_satisfies_the_protocol():

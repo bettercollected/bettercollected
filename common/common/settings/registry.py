@@ -22,8 +22,10 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Iterable, Iterator, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, Optional, Tuple
 from urllib.parse import urlsplit
+
+from .secret_checks import SECRET_FORMATS, FormatCheck
 
 __all__ = [
     "ENV_ONLY_KEYS",
@@ -197,7 +199,12 @@ class SettingSpec:
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     max_length: Optional[int] = None
-    format: str = ""  # for strings: "cidr_list" or "host"
+    # for strings: "cidr_list" or "host"; for secrets one of ``secret_checks.SECRET_FORMATS``
+    format: str = ""
+    # services that were once readers: rows written then still list them, and a
+    # reader accepts such a row (its signature covers the old list) instead of
+    # refusing it as a changed spec; the next write drops the name
+    retired_readers: Tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         def bad(msg: str) -> None:
@@ -211,6 +218,10 @@ class SettingSpec:
             bad("readers must be a non-empty tuple of service names")
         if len(set(self.readers)) != len(self.readers):
             bad("duplicate readers")
+        if any(not NAME_RE.match(r or "") for r in self.retired_readers) or set(
+            self.retired_readers
+        ) & set(self.readers):
+            bad("retired readers must be names that are not current readers")
         if not isinstance(self.type, ValueType):
             bad("unknown type")
         if not isinstance(self.reload_class, Reload):
@@ -249,10 +260,15 @@ class SettingSpec:
             bad("empty range")
         if self.max_length is not None and self.type is not ValueType.STR:
             bad("max_length applies to strings only")
-        if self.format not in ("", "cidr_list", "host"):
+        plain_formats = ("cidr_list", "host")
+        if self.format and self.format not in plain_formats + tuple(SECRET_FORMATS):
             bad("unknown format")
-        if self.format and (self.type is not ValueType.STR or self.is_secret):
-            bad("a format applies to plain strings only")
+        if self.format and self.type is not ValueType.STR:
+            bad("a format applies to strings only")
+        if self.format in plain_formats and self.is_secret:
+            bad("this format applies to plain strings only")
+        if self.format in SECRET_FORMATS and not self.is_secret:
+            bad("this format applies to secrets only")
         if self.default is not None:
             try:
                 coerce_value(self, self.default)
@@ -524,12 +540,19 @@ class Registry:
         specs: Iterable[SettingSpec] = (),
         *,
         secret_problems: Optional[SecretCheck] = None,
+        format_checks: Optional[Mapping[str, FormatCheck]] = None,
     ):
         """``secret_problems(key, value)`` returns one line per problem with
         the secret (lines name the key, never the value). For example
-        ``lambda k, v: shipped_secrets.secret_problems(jwt_secrets={k: v})``."""
+        ``lambda k, v: shipped_secrets.secret_problems(jwt_secrets={k: v})``.
+
+        ``format_checks`` maps a secret's ``format`` to its check (see
+        ``secret_checks``). A registry built with it (the store's writers) refuses
+        a malformed or weak secret with the check's code; one built without it
+        (the readers) accepts whatever the writers stored."""
         self._specs: Dict[str, SettingSpec] = {}
         self._secret_problems = secret_problems
+        self._format_checks = None if format_checks is None else dict(format_checks)
         for spec in specs:
             self.register(spec)
 
@@ -583,6 +606,13 @@ class Registry:
             problems = list(self._secret_problems(spec.key, value))
             if problems:
                 raise _fail(spec, "weak_secret", "; ".join(problems))
+            if self._format_checks is not None and spec.format:
+                check = self._format_checks.get(spec.format)
+                if check is None:  # fail closed: a format nobody can check
+                    raise _fail(spec, "no_secret_check", "no check for this key's format")
+                found = check(value)
+                if found:
+                    raise _fail(spec, found[0], found[1])
         elif spec.type is ValueType.URL:
             check_policy_url(spec, value)
         elif spec.format == "cidr_list":
@@ -746,9 +776,12 @@ SEED_SPECS: Tuple[SettingSpec, ...] = (
 )
 
 
-def default_registry(secret_problems: Optional[SecretCheck] = None) -> Registry:
+def default_registry(
+    secret_problems: Optional[SecretCheck] = None,
+    format_checks: Optional[Mapping[str, FormatCheck]] = None,
+) -> Registry:
     """The full registry (``inventory.INVENTORY``). ``SEED_SPECS`` stays as the
     small fixed set the core library tests build their own registry from."""
     from .inventory import full_registry
 
-    return full_registry(secret_problems)
+    return full_registry(secret_problems, format_checks)

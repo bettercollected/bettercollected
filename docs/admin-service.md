@@ -41,6 +41,31 @@ mode instead of failing.
   - `admin-db` is `internal` (no gateway, no route out) and shared only by the
     admin service and `app-postgres`. The service connects as the `bc_admin`
     role, which can use schema `admin` only.
+- **What `ADMIN_ALLOWED_IPS` does and does not protect.** In this layout every
+  connection from the host reaches the service as the `admin-edge` gateway
+  (`ADMIN_EDGE_GATEWAY`), which is always allowed, so the service cannot tell one
+  client from another. `ADMIN_ALLOWED_IPS` therefore restricts nothing that
+  arrives through the published port: it only matters when clients reach the
+  service with their own address (a different network layout, or real proxies
+  listed in `ADMIN_TRUSTED_PROXIES` that report it in `X-Forwarded-For`). The real
+  boundary is the host port binding (`127.0.0.1` only) and who can log in to the
+  host: any local process, and any reverse proxy running on the host, passes the
+  address gate. **Never put a proxy in front of port 8100** and never publish it
+  on another interface. Consequences: session address binding, the "new address"
+  notice and the address in audit rows show the gateway for everyone; the per-address
+  limits cannot separate clients, so the pre-sign-in limits also use the (email)
+  and (challenge) dimensions instead of one global address bucket (see "Sign-in
+  and sessions"). At start the service logs a WARNING when the gateway is set and
+  `ADMIN_TRUSTED_PROXIES` is empty, because that is this situation.
+- **Cookies and ports.** The `__Host-` cookies carry no port, so a browser sends
+  `__Host-bcadmin` to every service on the same host name, whatever the port
+  (`localhost:3000`, another tunnel, a second environment's portal tunnelled to
+  another port). `SameSite=Strict` does not help (same site), though `Origin` and
+  `Sec-Fetch-Site` are still checked. Use a host name of your own that resolves to
+  loopback for each environment (for example `admin.localhost` in the `/etc/hosts`
+  of the machine that opens the tunnel, added to `ADMIN_ALLOWED_HOSTS` and
+  `ADMIN_PUBLIC_ORIGINS`), which gives each portal its own cookie jar, and do not
+  run untrusted software on a machine that holds a tunnel.
 - Because the service is not on `default`, no other container can resolve or
   route to it. Attaching it to `default` as well would let Docker pick which
   network host traffic comes from; keep the layout as it is.
@@ -88,7 +113,10 @@ Every request must pass, in order: the `Host` allowlist, then the client
 address allowlist. A request that fails either gets a bare 404 and a rate
 limited warning log line. Routes are registered with a required level;
 anything unregistered is a 404. `/healthz` answers `ok` to loopback peers and, for host-side monitoring, the admin network gateway.
-Responses carry a strict CSP and related security headers. Bodies are capped
+Responses carry a strict CSP and related security headers, a `Permissions-Policy`
+that turns every powerful browser feature off, and, when the request arrived over
+TLS (the ASGI scheme, or `X-Forwarded-Proto: https` from a trusted proxy only),
+`Strict-Transport-Security` (one year, subdomains). Bodies are capped
 at 64 KB and only form or JSON content types are accepted.
 
 ## Sign-in and sessions
@@ -97,10 +125,41 @@ Sign-in is by an 8-digit code mailed to an address listed in
 `PLATFORM_ADMIN_EMAILS` (read once at start). The sign-in form
 answers every address the same way, so it does not reveal who is an
 admin. A code lasts 10 minutes, works once and allows five attempts; asking
-for a new one cancels the old one. Wrong codes lock the address (15 minutes,
-then 1 hour, then 4 hours) and many wrong codes across the service pause
-sign-in for 10 minutes; admins are mailed once when either happens. The
+for a new one cancels the old one. Many wrong codes across the service pause
+sign-in for 10 minutes; admins are mailed once when that happens. The
 sign-in mail uses the platform's `MAIL_*` settings.
+
+Who can be locked out by what. Anyone who can reach the sign-in page can ask for
+a code for a listed address and type wrong ones, so wrong **email codes** never
+lock the address itself:
+
+- they count against the pair (email, client address): five wrong codes lock that
+  pair for 15 minutes, then 1 hour, then 4 hours, and the genuine admin can still
+  sign in from another address with a valid code. Behind the shared gateway address
+  (see "Network") the pair is everyone, so there no pair lock is applied and only
+  the per-challenge limit (five attempts, then the challenge is burned) and the
+  request limits below hold;
+- a ceiling of 30 wrong email codes per address and hour, from any addresses, is
+  an alert (an audit row `signin.failure_surge` and one mail to every admin), never
+  a lock;
+- code requests are limited per (email, address) (3 per 10 minutes), per address
+  (10 per 10 minutes; one high flood cap for the shared gateway address) and, at a
+  higher ceiling, per email (12 per 10 minutes), so one client cannot use up the
+  admin's requests from another;
+- the lockout mail goes out at most once per address and hour;
+- the **second factor** keeps its own lock per admin email (five wrong codes in five
+  minutes, escalating as above): it is reached only with a valid email code, so
+  only someone who already passed the first step can feed it. Operator `unlock`
+  clears that lock and the factor counters; a pair lock lapses by itself.
+
+What brute force costs: with the limits above one address gets at most 15
+guesses per 10 minutes at an 8-digit code, so a guessing run is not practical, and
+a flood of wrong posts against one challenge cookie costs memory only: after a few
+posts (the five counted attempts and a little slack) the service answers from memory
+with no database work and no audit row, and a refused challenge writes one audit row
+in total. The residual: an attacker at the same shared address as the admin can
+keep requesting codes (each new request cancels the previous code), which is a
+nuisance, not a bypass; the host boundary is what keeps them out.
 
 A session cookie (`__Host-bcadmin`, `Secure`, `HttpOnly`, `SameSite=Strict`) holds
 a random token; only its hash is stored. Sessions end after 30 minutes idle or
@@ -135,9 +194,13 @@ A recovery code can be used instead of an authenticator code; every admin is
 mailed when one is used, when an address is locked, when a factor is set up,
 and when an admin signs in from an address not seen in their recent sessions.
 
-Sensitive actions (making new recovery codes, replacing the authenticator,
-ending another admin's session) need a fresh code within `ADMIN_STEPUP_SECONDS`
-(default 300, at most 600); the portal asks for it on a prompt page. Actions that
+Sensitive actions that keep an account recoverable (making new recovery codes,
+adding or replacing the authenticator) need a fresh code **sent with that
+request**: the 300 seconds that sign-in itself opens do not count, so a stolen
+session cookie alone cannot do them. Making new recovery codes also mails every
+admin. Ending another admin's session needs a fresh code within
+`ADMIN_STEPUP_SECONDS` (default 300, at most 600); the portal asks for it on a
+prompt page. Actions that
 must not ride on that window use a single-use token (120 s) bound to the exact
 action, from `POST /api/stepup`.
 
@@ -268,6 +331,77 @@ asks the step-up module to issue a token for, and passes the same
 A replayed token, or a form left open while someone else changed the setting,
 fails with `stale_version`.
 
+### Key material is checked when it is written
+
+The registry names a format for the keys that are key material, and every write
+(`settings-set`, `settings-import`, `bootstrap-keys`, the portal) refuses a value
+that does not meet it, with a refusal code and a sentence that never shows the value:
+
+| Key | Format | Refusal codes |
+|---|---|---|
+| `AUTH_JWT_SECRET`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY` | at least 32 characters, not a known placeholder, not a repeating or low-entropy pattern (`openssl rand -hex 32` is what the deploy scripts make) | `too_short`, `low_entropy`, `weak_secret` |
+| `AUTH_AES_HEX_KEY` | a Fernet key (32 bytes, url-safe base64) of bytes that are not all alike | `weak_secret` (not Fernet), `low_entropy` |
+| `MASTER_ENCRYPTION_KEYSET` | a Tink keyset Tink can build an AEAD from: key ids once each, an enabled primary key | `bad_keyset` |
+| `CUSTOM_DOMAIN_ASSERTION_KEYS` | `id:secret` pairs, secrets of 16+ characters | `bad_pairs` |
+| `CUSTOM_DOMAIN_WEBHOOK_SECRETS` | one or two secrets of 16+ characters | `bad_list` |
+
+Published values are refused as before (`weak_secret`). The master key
+(`SETTINGS_MASTER_KEY`) must also decode to 32+ bytes that are not nearly identical.
+An upgrade imports what the old `.env` holds: a legacy short or low-entropy
+`AUTH_JWT_SECRET` is now **refused with `too_short` or `low_entropy`** instead of being
+moved into the hardened store; replace it (everyone is signed out once) and import
+again. The services that only read the store do not apply these checks, so a value
+stored earlier never stops one from starting. The keyset a stack published long ago
+is still accepted (its responses could not be read with another), with the existing
+warning.
+
+### Rollback and wipe protection
+
+The signed rows and manifest cannot be forged without the master key, but an older
+validly signed state can be put back, and a database can be replaced by an empty one.
+What stops that, and what does not:
+
+- Each service keeps the highest manifest revision and row versions it accepted in
+  its signed snapshot (`SETTINGS_SNAPSHOT_DIR`, a volume in the compose file). With
+  `SETTINGS_STORE=required` a service **refuses to start** on a store whose revision
+  is below that floor (`StoreError`: "settings store is behind this service's
+  record"), and on a never-written store (revision 0) while its environment lacks a
+  key it cannot run without (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`): a wiped database
+  looks like that. After a restore or replacement you meant to do, remove the snapshot
+  directory (or the volume) and restart.
+- The floor is the highest revision the service reports in `report_state`
+  (`revision_applied`), and the **admin integrity check** compares it with the store:
+  a manifest revision below what a live service (reported within the hour) accepted is
+  `store_behind_services` on the health page and in the integrity mail, whatever the
+  database's own audit trail says (a full restore brings back an older audit trail
+  too, but not the running services' memory). `settings-verify` also reports
+  `manifest_rollback` against the audit trail.
+- Not covered: a validly signed older state on a service that starts with **no**
+  snapshot (a recreated container with its volume gone, `docker compose down -v`,
+  a first start) is accepted. Nothing outside the container and the database holds
+  a floor for it, and an attacker who can write the database (or restore a backup)
+  and also replace the service's volume could use that. The integrity check above
+  is the compensating alarm; for the strongest guarantee keep the snapshot volumes
+  and back them up with the master key. A wiped store on a stack that still keeps
+  its secrets in the environment (not yet migrated) is indistinguishable from an
+  unmigrated one, so non-secret settings (trusted proxies, SSO, webhook URLs) fall
+  back to their code defaults there until the floor exists.
+
+### The actions executor and key material
+
+`temporal/actions-executor` runs form-creator code with `exec`, a stripped globals
+dictionary and `__builtins__` set to `None`. That is not a sandbox: a known
+introspection chain reaches `os.environ` from such code. The registry therefore
+lists the executor as a reader of **no** key material, and its environment must hold
+as little as possible: not `SETTINGS_MASTER_KEY`, not `DATABASE_URL`s of other
+services, and, in time, neither `AES_HEX_KEY` nor `API_KEY` (today the executor's own
+code still reads them, to decrypt action secrets and to call the backend's job
+routes, so an executor that is given them exposes them to action authors; moving
+decryption and the callback behind a per-run credential from the backend is the open
+change). The repository's compose files do not run the executor (the deployment
+workflow deploys it separately), so its environment is whatever that stack passes:
+check it against `temporal/actions-executor/.env.example`.
+
 ## Host commands for the settings store
 
 `python -m backend.admin <command>` runs on the host (in a one-off container that
@@ -319,8 +453,12 @@ bare 404 of an unknown path.
    160 random bits, valid 60 minutes, usable once.
 2. Open `/setup` (through the SSH tunnel) and enter the token and one address from
    `PLATFORM_ADMIN_EMAILS`. The token travels in the POST body only, never in a URL.
-   At most 5 tries per address and 15 minutes; 20 wrong tries lock the token for good
-   (every admin is mailed, if mail works). A wrong token, an unlisted address, an
+   Wrong tries count against the token only within limits (5 per client and 15
+   minutes, 8 per address and hour); past them a wrong try is refused without being
+   counted or audited and the right token still works, so a flood from the one
+   address everything shares cannot burn the token. 20 counted wrong tries lock the
+   token for good (every admin is mailed, if mail works); `setup-token --new`
+   replaces a locked or lost one. A wrong token, an unlisted address, an
    expired or locked token, a finished setup and a rate limit all get the same
    answer (a redirect back to `/setup`, which is the bare 404 when setup is closed)
    and the same database work. A right token creates a
@@ -336,8 +474,11 @@ bare 404 of an unknown path.
    delivered-test guard) only after you type the code. Saving needs a fresh
    authenticator code. Defaults are STARTTLS on port 587; STARTTLS and TLS from the
    start are never both on (refused by the server too), and implicit TLS needs its
-   port stated. A saved password is never sent to a different server: if the server,
-   port or user name changed, the password must be typed again. The environment (`ADMIN_MAIL_*`, then `MAIL_*`) wins over
+   port stated. A saved password is never sent to a different server, and never over weaker
+   transport than it was saved with: if the server, port or user name changed, or
+   STARTTLS / TLS / certificate checking changed to something other than "protected
+   and verified" (or to something different from an insecure setting it was already
+   saved with), the password must be typed again. The environment (`ADMIN_MAIL_*`, then `MAIL_*`) wins over
    saved settings; the service reloads saved ones at most once a minute. You can
    skip the step and run `settings-mail-apply` on the host later.
 5. **Finish** (`/setup/finish`): the master key fingerprint and a backup reminder
@@ -501,6 +642,18 @@ two seconds while the run is active, shows a "Live" indicator and reloads once
 when the run ends; it writes with `textContent` only. The content security
 policy stays `script-src 'self'`.
 
+### Look and fonts
+
+The portal follows the interface's design system (`DESIGN.md`): paper-mist ground,
+white panels on hairlines, one blue, Instrument Sans for text and JetBrains Mono
+for values (setting keys, ids, hashes, task parameters). The tokens are CSS custom
+properties on `:root` in `static/admin.css`, named like the webapp's; dark mode
+follows `prefers-color-scheme` from the same roles. The latin woff2 files live in
+`static/fonts/` (OFL-1.1, notices in `static/fonts/LICENSE`) and are served by
+`/static/fonts/<name>.woff2` with `font/woff2`, `nosniff` and a one-year immutable
+cache, the only response the portal lets a browser keep. Nothing is loaded from
+another origin, so the content security policy is unchanged.
+
 Starting a real run inserts the run row (state `queued`, signed as `tasks/request`)
 and the `task.run.requested` audit row in one transaction; a task that requires a
 prior dry run is refused unless a succeeded dry run of the same task, version and
@@ -546,7 +699,7 @@ the master key can sign anything: that is inherent to a shared key (see
 ### Threat model notes
 
 * A service's heartbeat (`settings.report_state`) is **advisory readiness information**,
-  not proof. It is bounded (the reported revision never exceeds the stored one, rejected names
+  not proof. It is bounded (the reported revision is kept as reported so a rolled-back store shows, rejected names
   must be stored settings the caller's service reads, name lists are capped, at most 100
   instances a service), but a compromised service can still report a clean state for its own
   instances. The keyset gates therefore also require a fresh heartbeat (under two minutes) from

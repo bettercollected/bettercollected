@@ -15,7 +15,9 @@ Reading the tables:
   ``temporal_worker``, ``actions_executor``, ``jobs`` (queue workers),
   ``admin`` (admin portal process), ``webapp``. The webapp and the actions
   executor read their own environment only; they are listed so an operator
-  sees every service a value must reach.
+  sees every service a value must reach. The executor runs user-authored code, so
+  it is listed for no key material (``AUTH_AES_HEX_KEY``, ``API_KEY``,
+  ``AES_HEX_KEY``, the signing and keyset keys): it must not be handed them.
 * reload class: ``H`` only for a key every consumer reads at call time (a test
   in ``backend/tests/app/services/test_live_settings_reads.py`` proves it);
   ``R`` otherwise; ``B`` for build arguments. Keys read at import time carry a
@@ -32,8 +34,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, Mapping, Optional, Tuple
 
+from .secret_checks import FormatCheck
 from .registry import (
     Registry,
     Reload,
@@ -250,20 +253,26 @@ SESSION: Tuple[SettingSpec, ...] = (
 
 KEYS = dict(section="auth_keys", tier=T4)
 KEY_MATERIAL: Tuple[SettingSpec, ...] = (
-    _secret("AUTH_JWT_SECRET", readers=(BACKEND, AUTH, GOOGLE),
+    _secret("AUTH_JWT_SECRET", readers=(BACKEND, AUTH, GOOGLE), format="token",
             description="Signs session tokens; rotated by a task, not edited.", **KEYS),
-    _secret("AUTH_AES_HEX_KEY", readers=(BACKEND, AUTH, GOOGLE, WORKER, EXECUTOR),
+    # The actions executor runs user-authored code, so it is NOT a reader of any key
+    # material: it must not be handed this key (see docs/admin-service.md).
+    _secret("AUTH_AES_HEX_KEY", readers=(BACKEND, AUTH, GOOGLE, WORKER), format="fernet",
+            retired_readers=(EXECUTOR,),  # rows written before it was dropped still list it
             description="Fernet key for state and secrets; rotated by a task. The workers call it AES_HEX_KEY.",
             **KEYS),
-    _secret("AUTH_INTERNAL_NOTIFY_KEY", readers=(BACKEND, AUTH, GOOGLE),
+    _secret("AUTH_INTERNAL_NOTIFY_KEY", readers=(BACKEND, AUTH, GOOGLE), format="token",
             description="Shared key for internal service calls; rotated by a task.", **KEYS),
-    _secret("TEMPORAL_API_KEY", section="auth_keys", readers=(BACKEND,), tier=T4,
+    _secret("TEMPORAL_API_KEY", section="auth_keys", readers=(BACKEND,), tier=T4, format="token",
             description="Key the background workers present to the API (the workers call it API_KEY)."),
     _secret("MASTER_ENCRYPTION_KEYSET", section="auth_keys", readers=(BACKEND, GOOGLE, TASKS), tier=T4,
+            format="tink_keyset",
             description="Keyset that encrypts stored responses; changed by a task only."),
     _secret("CUSTOM_DOMAIN_ASSERTION_KEYS", "custom_domain", (BACKEND, WEBAPP), tier=T4,
+            format="key_pairs",
             description="Edge signing keys as id:secret pairs; the web app reads its own copy."),
     _secret("CUSTOM_DOMAIN_WEBHOOK_SECRETS", "custom_domain", (BACKEND,), tier=T4,
+            format="secret_list",
             description="Webhook subscription secret, current first and previous second."),
 )
 
@@ -678,10 +687,12 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "http://localhost:8000/api/v1", tier=T5),
     _text("FRONTEND_URL", "services", (EXECUTOR,), "Public web address used in action links.",
           "http://localhost:3000", tier=T5),
-    _secret("API_KEY", "services", (WORKER, EXECUTOR),
-            "Key presented to the API; the same value as TEMPORAL_API_KEY.", tier=T5),
-    _secret("AES_HEX_KEY", "services", (WORKER, EXECUTOR),
-            "Fernet key of the workers; the same value as AUTH_AES_HEX_KEY.", tier=T5),
+    _secret("API_KEY", "services", (WORKER,),
+            "Key presented to the API; the same value as TEMPORAL_API_KEY. Not for the actions executor.",
+            tier=T5),
+    _secret("AES_HEX_KEY", "services", (WORKER,),
+            "Fernet key of the workers; the same value as AUTH_AES_HEX_KEY. Not for the actions executor.",
+            tier=T5),
     _text("WORKER_QUEUE", "services", (WORKER, EXECUTOR),
           "Queue the worker serves (code default: default for the worker, actions for the executor).",
           tier=T5),
@@ -777,9 +788,12 @@ def all_specs() -> Tuple[SettingSpec, ...]:
     return INVENTORY + ENV_ONLY_INVENTORY
 
 
-def full_registry(secret_problems: Optional[SecretCheck] = None) -> Registry:
+def full_registry(
+    secret_problems: Optional[SecretCheck] = None,
+    format_checks: Optional[Mapping[str, FormatCheck]] = None,
+) -> Registry:
     """A registry of every storable key (``ENV_ONLY_INVENTORY`` is not stored)."""
-    return Registry(INVENTORY, secret_problems=secret_problems)
+    return Registry(INVENTORY, secret_problems=secret_problems, format_checks=format_checks)
 
 
 # ---------------------------------------------------------------- markdown

@@ -25,7 +25,7 @@
 </ul>
 <form method="post" action="/account/sessions/revoke-others">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <button type="submit">{{ _("Sign out all other sessions") }}</button>
+  <button type="submit" class="secondary">{{ _("Sign out all other sessions") }}</button>
 </form>
 <p><a href="/sessions">{{ _("Sessions page") }}</a></p>
 {% endblock %}

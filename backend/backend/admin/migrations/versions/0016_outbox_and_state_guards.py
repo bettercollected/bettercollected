@@ -14,8 +14,8 @@ Create Date: 2026-10-19
   What it cannot tell is a real send from a ``pending -> sent`` UPDATE made by the
   same role: that remains possible for whoever holds the portal's credential.
 * ``settings.report_state`` keeps its contract and adds bounds: smaller name lists,
-  a reported revision never above the stored manifest's (a service cannot claim a
-  revision that does not exist), and rejected names only when they are stored
+  the reported revision kept as reported (the integrity loop compares it with the
+  stored revision to notice a rolled-back database), and rejected names only when they are stored
   settings the caller's service reads. Reports remain self-asserted readiness
   information; the keyset gates cross-check them with their own limits (see
   ``docs/admin-service.md``).
@@ -93,7 +93,6 @@ def upgrade() -> None:
             svc text;
             env_names text[] := coalesce(p_env_overrides, '{{}}');
             rejected text[] := coalesce(p_rejected_keys, '{{}}');
-            stored_revision bigint;
         BEGIN
             SELECT service INTO svc FROM settings.reader_roles
             WHERE role = session_user::text;
@@ -119,9 +118,9 @@ def upgrade() -> None:
                 RAISE EXCEPTION 'settings.report_state: invalid fingerprint'
                     USING ERRCODE = 'invalid_parameter_value';
             END IF;
-            -- a service cannot have applied a revision that was never stored, and a
-            -- rejection is about a stored setting the caller's service reads
-            SELECT revision INTO stored_revision FROM settings.manifest WHERE id = 1;
+            -- a rejection is about a stored setting the caller's service reads (the
+            -- reported revision is kept as reported: the integrity loop compares it
+            -- with the stored one to notice a restored or replaced database)
             rejected := coalesce((
                 SELECT array_agg(DISTINCT n ORDER BY n) FROM unnest(rejected) n
                 WHERE EXISTS (SELECT 1 FROM settings.entries e
@@ -141,7 +140,7 @@ def upgrade() -> None:
             INSERT INTO settings.service_state AS s
                 (service, instance, reported_at, revision_applied, env_overrides,
                  rejected_keys, restart_pending, keyset_fp)
-            VALUES (svc, p_instance, now(), least(p_revision_applied, coalesce(stored_revision, 0)),
+            VALUES (svc, p_instance, now(), p_revision_applied,
                     env_names, rejected, coalesce(p_restart_pending, false), coalesce(p_keyset_fp, ''))
             ON CONFLICT (service, instance) DO UPDATE SET
                 reported_at = excluded.reported_at,
