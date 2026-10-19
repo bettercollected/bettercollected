@@ -9,6 +9,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 import textwrap
 from pathlib import Path
 
@@ -37,6 +38,21 @@ STUB = textwrap.dedent(
         if verb == "settings-history":
             print("versions=%d" % (1 if has(cmd[1]) else 0))
         elif verb == "bootstrap-keys":
+            if os.environ.get("STUB_PG_RESPONSES"):
+                # the real refusal (and its wording) from the host commands, with the
+                # database counts faked: a Postgres that already holds data
+                import asyncio
+                from backend.admin.__main__ import _refuse
+                from backend.admin.services import host_settings as host
+
+                async def counts():
+                    return {"users": {"total": 0},
+                            "responses": {"total": int(os.environ["STUB_PG_RESPONSES"])}}
+
+                try:
+                    asyncio.run(host.refuse_if_stack_has_data(None, counts=counts))
+                except host.HostError as error:
+                    sys.exit(_refuse(error))
             if "--fill-missing" not in cmd and has("AUTH_JWT_SECRET"):
                 print("refused: keys_exist", file=sys.stderr); sys.exit(1)
             for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY",
@@ -118,7 +134,8 @@ def site(tmp_path):
     bin_dir.mkdir()
     for name, body in (("docker-compose", STUB), ("docker", DOCKER_STUB)):
         path = bin_dir / name
-        path.write_text(body)
+        # the stand-in imports the real host-command code for the refusal
+        path.write_text(body.replace("#!/usr/bin/env python3", f"#!{sys.executable}", 1))
         path.chmod(path.stat().st_mode | stat.S_IEXEC)
     state = tmp_path / "state"
     state.mkdir()
@@ -127,6 +144,7 @@ def site(tmp_path):
         "HOME": str(tmp_path),
         "STUB_STATE": str(state),
         "COMPOSE_PROJECT_NAME": "stack",
+        "PYTHONPATH": os.pathsep.join([str(ROOT / "backend"), str(ROOT / "common")]),
     }
     return work, state, env
 
@@ -179,8 +197,13 @@ def test_new_install_bootstraps_keys_before_any_service_starts(site):
                  "TEMPORAL_API_KEY", "AUTH_INTERNAL_NOTIFY_KEY"):
         assert name not in values, name
     assert stat.S_IMODE((work / ".env").stat().st_mode) == 0o600
-    # UMAMI_URL seeded into the store
+    # UMAMI_URL seeded into the store; so is the Mongo connection, with the generated
+    # root password (which is in .env but never printed)
     assert (state / "store" / "UMAMI_URL").read_text() == "http://umami:3000"
+    assert values["BC_MONGO_ROOT_PASSWORD"]
+    assert (state / "store" / "MONGO_URI").read_text() == (
+        f"mongodb://root:{values['BC_MONGO_ROOT_PASSWORD']}@mongodb:27017"
+    )
     # nothing generated is printed
     shown = done.stdout + done.stderr
     for name, value in values.items():
@@ -242,6 +265,9 @@ def test_an_upgrade_imports_and_checks_before_the_services_start(site):
     assert "settings-prune" in shown
     # an existing database keeps its internal passwords: nothing is generated for them
     assert "BC_TEMPORAL_DB_PASSWORD" not in values and "BC_UMAMI_DB_PASSWORD" not in values
+    assert "BC_MONGO_ROOT_PASSWORD" not in values
+    # no MONGO_URI in the files: the original default is seeded, never a new password
+    assert (state / "store" / "MONGO_URI").read_text() == "mongodb://root:root@mongodb:27017"
 
 
 def test_an_upgrade_stops_when_the_import_or_the_comparison_fails(site):
@@ -340,3 +366,27 @@ def test_a_refused_key_a_weak_secret_or_a_conflict_stops_the_deploy(site, extra)
     assert done.returncode != 0
     assert "The import stopped" in done.stderr
     assert not any("up --build" in c for c in calls)
+
+
+def test_a_postgres_that_holds_data_stops_the_deploy_at_the_real_refusal(site):
+    """No Mongo volume, no key files, but one response in Postgres: bootstrap-keys
+    refuses (stack_has_data); the deploy stops before any service starts, stores
+    no keyset, and points at the import. The refusal text is the real one."""
+    work, state, _ = site
+    done, calls = _run(site, volumes="app-postgres-data", extra={"STUB_PG_RESPONSES": "1"})
+    assert done.returncode != 0
+    shown = done.stdout + done.stderr
+    assert "refused: stack_has_data" in shown  # not hidden
+    assert "settings-import" in shown
+    assert "STOPPED before any service started" in done.stderr
+    assert not any("up --build" in c for c in calls)
+    for key in ("MASTER_ENCRYPTION_KEYSET", "AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY"):
+        assert not (state / "store" / key).exists(), key
+    values = _dotenv(work)
+    assert "API_KEY" not in values and "AES_HEX_KEY" not in values
+    # nothing was left behind by the one-off export directory
+    assert not list(work.glob(".env.??????"))
+    # a second run still stops: nothing was recorded that would let it through
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes="app-postgres-data", extra={"STUB_PG_RESPONSES": "1"})
+    assert done.returncode != 0 and not any("up --build" in c for c in calls)

@@ -70,8 +70,8 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   was the well-known `admin`/`umami` on a port the respondents' browsers have to
   reach: `deploy.sh` replaces it with a generated password after the first start
   (and on an upgrade when the built-in login still works), stored as the
-  `UMAMI_PASSWORD` setting. The Temporal and Umami databases take generated
-  passwords on a new volume; a volume created by an earlier release keeps its
+  `UMAMI_PASSWORD` setting. The Temporal, Umami and Mongo databases take
+  generated passwords on a new volume (the `MONGO_URI` setting is stored to match); a volume created by an earlier release keeps its
   password. The remaining internal-only credentials and ports are listed in
   `docs/admin-service.md`.
   **Upgrade note:** anything that used port 7234 must join the compose network.

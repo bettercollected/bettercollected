@@ -3,4 +3,5 @@ FROM mongo:latest
 COPY ./seed-data-deployment.js .
 
 # This should run only when rnning your app through docker-compose
-CMD mongosh "mongodb://root:root@mongodb:27017/bettercollected_backend" --authenticationDatabase admin ./seed-data-deployment.js
+# MONGO_ROOT_PASSWORD comes from the compose service (default: the original "root")
+CMD mongosh "mongodb://root:${MONGO_ROOT_PASSWORD:-root}@mongodb:27017/bettercollected_backend" --authenticationDatabase admin ./seed-data-deployment.js

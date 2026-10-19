@@ -123,9 +123,20 @@ def test_no_default_credentials_on_new_volumes():
     assert "umami:umami@" not in COMPOSE_TEXT
 
 
-def test_the_only_literal_credential_left_is_the_internal_mongo_root():
-    """Documented in docs/admin-service.md: Mongo is on the compose network only
-    (no published port) and its URI is in .env.deployment."""
+def test_mongo_takes_a_generated_root_password_on_a_new_volume():
+    assert _env("mongodb")["MONGO_INITDB_ROOT_PASSWORD"] == "${BC_MONGO_ROOT_PASSWORD:-root}"
+    assert _env("mongo-seed")["MONGO_ROOT_PASSWORD"] == "${BC_MONGO_ROOT_PASSWORD:-root}"
+    seed = (ROOT / "Dockerfile.deployment.mongo-seed").read_text()
+    assert "root:root@" not in seed and "${MONGO_ROOT_PASSWORD:-root}" in seed
+    # the services' MONGO_URI is a store setting seeded by deploy.sh, not a file value
+    assert not re.search(r"^MONGO_URI=", (ROOT / ".env.deployment").read_text(), re.M)
+    assert "BC_MONGO_ROOT_PASSWORD" in DEPLOY and "seed_setting MONGO_URI" in DEPLOY
+
+
+def test_no_literal_credential_is_left_in_the_compose_file():
+    """Every password, secret or key in an environment is a substitution; the
+    ones with a default (`:-root`, `:-temporal`, `:-umami`) keep the password an
+    old volume was created with. Documented in docs/admin-service.md."""
     literal = []
     for name, svc in SERVICES.items():
         env = svc.get("environment") or {}
@@ -136,7 +147,7 @@ def test_the_only_literal_credential_left_is_the_internal_mongo_root():
             if re.search(r"(PASSWORD|PWD|SECRET|API_KEY|TOKEN)", key) and isinstance(value, str):
                 if value and not value.startswith("${") and not value.endswith(":-}"):
                     literal.append((name, key))
-    assert literal == [("mongodb", "MONGO_INITDB_ROOT_PASSWORD")]
+    assert literal == []
 
 
 def test_umami_default_login_is_replaced_by_deploy_sh():

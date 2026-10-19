@@ -26,7 +26,10 @@ services:
     image: mongo:latest
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
+      # Internal only (no published port). deploy.sh generates the password for a
+      # new volume; the variable is only read when the volume is created, so a
+      # volume from an earlier release keeps `root` (the default here).
+      MONGO_INITDB_ROOT_PASSWORD: ${BC_MONGO_ROOT_PASSWORD:-root}
     volumes:
       - mongo-data:/data/db
     restart: always
@@ -43,6 +46,7 @@ services:
     environment:
       GOOGLE_ENABLED: ${GOOGLE_ENABLED}
       TYPEFORM_ENABLED: ${TYPEFORM_ENABLED}
+      MONGO_ROOT_PASSWORD: ${BC_MONGO_ROOT_PASSWORD:-root}
     depends_on:
       mongodb:
         condition: service_healthy

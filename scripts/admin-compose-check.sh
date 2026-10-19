@@ -134,6 +134,7 @@ mig_pw="$(openssl rand -hex 16)"
 master_key="$(openssl rand -base64 48 | tr -d '\n')"
 temporal_pw="$(openssl rand -hex 16)"
 umami_pw="$(openssl rand -hex 16)"
+mongo_pw="$(openssl rand -hex 16)"
 
 printf 'services:\n  admin:\n    image: %s\n' "$image" > "$work/override.yml"
 skeleton_env="$work/skeleton.env"
@@ -155,6 +156,7 @@ full_env="$work/full.env"
     # what deploy.sh generates for a new stack's internal databases
     echo "BC_TEMPORAL_DB_PASSWORD=$temporal_pw"
     echo "BC_UMAMI_DB_PASSWORD=$umami_pw"
+    echo "BC_MONGO_ROOT_PASSWORD=$mongo_pw"
     echo "ADMIN_PORT=$port"
     echo "ADMIN_EDGE_SUBNET=$subnet"
     echo "ADMIN_EDGE_GATEWAY=$gateway"
@@ -213,6 +215,8 @@ print("store_required=" + ",".join(n for n in store if env(n).get("SETTINGS_STOR
 print("pins=%d" % sum(1 for n in store[:1] + store[2:] for k in ("DEBUG", "API_DOCS_ENABLED") if k in env(n)))
 print("temporal_db_pw=" + env("postgresql")["POSTGRES_PASSWORD"])
 print("umami_db_pw=" + env("umami-postgresql")["POSTGRES_PASSWORD"])
+print("mongo_pw=" + env("mongodb")["MONGO_INITDB_ROOT_PASSWORD"])
+print("mongo_seed_pw=" + env("mongo-seed")["MONGO_ROOT_PASSWORD"])
 print("umami_url_default=%s" % ("umami:umami@" in env("umami")["DATABASE_URL"]))
 print("stored_keys_empty=%s" % all(env("backend")[k] == "" for k in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET")))
 '
@@ -228,6 +232,8 @@ expect "the services read the settings store (required)" "store_required=backend
 expect "DEBUG and API_DOCS_ENABLED are not pinned" "pins=0" "$(gotp pins)"
 expect "temporal's database has the generated password" "temporal_db_pw=$temporal_pw" "$(gotp temporal_db_pw)"
 expect "umami's database has the generated password" "umami_db_pw=$umami_pw" "$(gotp umami_db_pw)"
+expect "mongo's root has the generated password" "mongo_pw=$mongo_pw" "$(gotp mongo_pw)"
+expect "the seed job uses the same password" "mongo_seed_pw=$mongo_pw" "$(gotp mongo_seed_pw)"
 expect "umami does not connect with the built-in password" "umami_url_default=False" "$(gotp umami_url_default)"
 expect "the stored keys render empty (read the store)" "stored_keys_empty=True" "$(gotp stored_keys_empty)"
 

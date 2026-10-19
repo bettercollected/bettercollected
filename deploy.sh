@@ -422,6 +422,14 @@ if [ "$fresh_temporal_db" = true ] && ! grep -q "^BC_TEMPORAL_DB_PASSWORD=" .env
   echo "BC_TEMPORAL_DB_PASSWORD=$(openssl rand -hex 24)" >> .env
   echo "Generated a new BC_TEMPORAL_DB_PASSWORD in .env (first run)."
 fi
+# Mongo's root password, for a new volume of a new stack only: the variable is
+# read when the volume is created, and an upgrade keeps the MONGO_URI it has
+# (an operator's own MONGO_URI in .env.deployment counts as one).
+if [ "$existing_stack" = false ] && [ "$legacy_keys" = false ] && ! file_has .env.deployment MONGO_URI \
+   && ! grep -q "^BC_MONGO_ROOT_PASSWORD=" .env 2>/dev/null; then
+  echo "BC_MONGO_ROOT_PASSWORD=$(openssl rand -hex 24)" >> .env
+  echo "Generated a new BC_MONGO_ROOT_PASSWORD in .env (first run)."
+fi
 if [ "$fresh_umami_db" = true ] && ! grep -q "^BC_UMAMI_DB_PASSWORD=" .env 2>/dev/null; then
   echo "BC_UMAMI_DB_PASSWORD=$(openssl rand -hex 24)" >> .env
   echo "Generated a new BC_UMAMI_DB_PASSWORD in .env (first run)."
@@ -561,9 +569,21 @@ function stack_keys() {
     # except the master key's short fingerprint.
     dir=$(private_dir) || return 1
     admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/out")
-    admin_cli bootstrap-keys $([ "$state" = partial ] && echo --fill-missing) --export-worker /out/worker.env
+    # its output is counts, names and the refusal reason: never key material
+    boot_out=$(admin_cli bootstrap-keys $([ "$state" = partial ] && echo --fill-missing) --export-worker /out/worker.env 2>&1)
     rc=$?
     admin_cli_opts=()
+    printf '%s\n' "$boot_out"
+    if [ "$rc" -ne 0 ] && printf '%s\n' "$boot_out" | grep -qE 'stack_has_data|stack_unknown|existing_stack|keys_in_environment'; then
+      rm -rf "$dir"
+      echo "" >&2
+      echo "STOPPED before any service started, and no new keys were stored. This database already holds data" >&2
+      echo "(or that could not be established), and a new response keyset could not read what the old one" >&2
+      echo "encrypted. Import the keys this stack has used instead: put AUTH_JWT_SECRET, AUTH_AES_HEX_KEY and" >&2
+      echo "MASTER_ENCRYPTION_KEYSET in .env, then run ./deploy.sh again (it imports them; see" >&2
+      echo "'Upgrading to 4.0' in docs/admin-service.md and ./deploy.sh settings-import --dry-run)." >&2
+      return 1
+    fi
     if [ "$rc" -eq 0 ]; then merge_worker_env "$dir/worker.env"; rc=$?; fi
     rm -rf "$dir"
     if [ "$rc" -ne 0 ]; then
@@ -583,6 +603,20 @@ function stack_keys() {
     echo "Could not seed the UMAMI_URL setting." >&2
     return 1
   }
+  # The Mongo connection: the generated root password of a new stack, or the
+  # original default for a stack whose files do not carry a MONGO_URI (the
+  # template used to ship it). Never overwrites a stored value.
+  if file_has .env BC_MONGO_ROOT_PASSWORD; then
+    seed_setting MONGO_URI "mongodb://root:$(grep -E '^BC_MONGO_ROOT_PASSWORD=' .env | tail -n 1 | cut -d= -f2-)@mongodb:27017" || {
+      echo "Could not seed the MONGO_URI setting." >&2
+      return 1
+    }
+  elif [ "$existing_stack" = true ]; then
+    seed_setting MONGO_URI "mongodb://root:root@mongodb:27017" || {
+      echo "Could not seed the MONGO_URI setting." >&2
+      return 1
+    }
+  fi
 }
 
 fresh_install=false
