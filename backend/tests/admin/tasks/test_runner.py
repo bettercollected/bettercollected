@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import enum
 import json
-
+import uuid
 from datetime import timedelta
 
 import pytest
@@ -13,7 +13,9 @@ from sqlalchemy import text
 
 from backend.admin.services import audit
 from backend.admin.tasks.impl import selftest_slow as slow_impl
+from backend.admin.tasks import signing
 from backend.admin.tasks.registry import Registry
+from backend.admin.tasks.runner.runner import MAX_CLAIM_ATTEMPTS
 from backend.admin.tasks.spec import Params, Result, TaskMeta
 from tests.admin.conftest import needs_postgres
 
@@ -128,8 +130,11 @@ async def test_a_bad_signature_is_refused_and_never_executes(world):
     assert slow_impl.WORLD == set()
     assert await world.events(forged) == []
     assert await world.audit_rows("task.run.started") == []
-    (finished,) = await world.audit_rows("task.run.finished")
-    assert finished["outcome"] == "denied" and finished["detail"]["reason"] == "bad_signature"
+    # a row nobody signed gets no audit row of its own: one aggregate row with the count
+    assert await world.audit_rows("task.run.finished") == []
+    (quarantined,) = await world.audit_rows("task.run.quarantined")
+    assert quarantined["outcome"] == "denied" and quarantined["detail"]["count"] == 1
+    assert quarantined["target_id"] is None and quarantined["actor_kind"] == "system"
 
 
 @pytest.mark.parametrize(
@@ -741,13 +746,116 @@ async def test_a_failed_audit_write_keeps_the_run_running_until_takeover(world, 
 
     original = audit.write
     monkeypatch.setattr(audit, "write", boom)
-    with pytest.raises(RuntimeError):
-        await runner.execute(*claimed)
-    assert (await world.run(run_id))["state"] == "running"  # the finish rolled back
+    # the task ran; only the record of its end failed, every try: it is NOT recorded
+    # as failed (that would say a change that happened did not)
+    await runner.execute(*claimed)
+    row = await world.run(run_id)
+    assert row["state"] == "running" and row["refusal_code"] is None  # the finish rolled back
     monkeypatch.setattr(audit, "write", original)
     world.clock.advance(91)
     assert await world.runner().takeover_stale() == 1
     assert (await world.run(run_id))["state"] == "interrupted"
+
+
+async def test_a_final_audit_write_that_fails_once_is_retried_and_the_outcome_recorded(world, monkeypatch):
+    run_id = await world.enqueue("selftest", {})
+    runner = world.runner()
+    claimed = await runner.claim()
+    original = audit.write
+    calls = []
+
+    async def flaky(*a, **k):
+        calls.append(a[1])
+        if len(calls) == 1:
+            raise RuntimeError("lock timeout")
+        return await original(*a, **k)
+
+    monkeypatch.setattr(audit, "write", flaky)
+    assert (await runner.execute(*claimed)).value == "succeeded"
+    assert len(calls) == 2  # the same final write, twice
+    assert (await world.run(run_id))["state"] == "succeeded"
+    (finished,) = await world.audit_rows("task.run.finished")
+    assert finished["detail"]["state"] == "succeeded"
+
+
+async def test_a_claim_that_keeps_raising_does_not_block_the_queue(world, monkeypatch):
+    poisoned = await world.enqueue("selftest", {})
+    healthy = await world.enqueue("selftest", {})
+    original = audit.write
+
+    async def poisoned_audit(conn, action, target_type, target_id, *a, **k):
+        if action == "task.run.started" and target_id == str(poisoned):
+            raise RuntimeError("audit unavailable for this row")
+        return await original(conn, action, target_type, target_id, *a, **k)
+
+    monkeypatch.setattr(audit, "write", poisoned_audit)
+    runner = world.runner()
+    for _ in range(MAX_CLAIM_ATTEMPTS):
+        with pytest.raises(RuntimeError):
+            await runner.claim()
+    assert (await world.run(poisoned))["claim_attempts"] == MAX_CLAIM_ATTEMPTS
+    # the head of the queue is skipped: the next run goes through at once
+    assert await world.drain(runner) == 1
+    assert (await world.run(healthy))["state"] == "succeeded"
+    assert (await world.run(poisoned))["state"] == "queued"
+    # once the log accepts it, the poisoned row is ended with its audit row
+    assert await runner.settle_poisoned() == 1
+    row = await world.run(poisoned)
+    assert row["state"] == "failed" and row["refusal_code"] == "claim_failed"
+    (finished,) = [r for r in await world.audit_rows("task.run.finished") if r["target_id"] == str(poisoned)]
+    assert finished["detail"]["reason"] == "claim_failed"
+
+
+async def test_unsigned_rows_cannot_flood_the_log_or_jump_the_queue(world):
+    legit = await world.enqueue("selftest", {})
+    for _ in range(120):
+        # a portal-role insert with a zero signature and a created_at far in the past
+        await world.enqueue(
+            "selftest", {}, tamper={"sig": b"\x00" * 32}
+        )
+    runner = world.runner()
+    assert await world.drain(runner) == 1
+    assert (await world.run(legit))["state"] == "succeeded"
+    # 120 refusals, three aggregate rows (50 + 50 + 20), no per-row rows
+    rows = await world.audit_rows("task.run.quarantined")
+    assert sorted(r["detail"]["count"] for r in rows) == [20, 50, 50]
+    assert await world.audit_rows("task.run.finished") == [
+        r for r in await world.audit_rows("task.run.finished") if r["target_id"] == str(legit)
+    ]
+
+
+async def test_the_queue_is_ordered_by_the_database_clock_not_the_inserters(world):
+    first = await world.enqueue("selftest", {})
+    late = await world.enqueue("selftest", {})
+    # the portal role may try to backdate a row: created_at is stamped by the trigger
+    async with world.admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE tasks.runs SET cancel_requested_at = now() WHERE id = :i"), {"i": late}
+        )
+    async with world.owner.connect() as conn:
+        stamps = dict((await conn.execute(text("SELECT id, created_at FROM tasks.runs"))).all())
+    assert stamps[first] < stamps[late]
+    from datetime import datetime, timezone
+
+    assert (datetime.now(timezone.utc) - stamps[late]).total_seconds() < 60
+    backdated = uuid.uuid4()
+    request = signing.RunRequest.create(
+        task="selftest", version=1, params={}, dry_run=False,
+        requested_by="ops@example.org", requested_at=datetime.now(timezone.utc),
+    )
+    async with world.admin.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO tasks.runs (id, task, version, params, params_hash, dry_run, "
+                "requested_by, requested_at, nonce, request_sig, sig_version, created_at) "
+                "VALUES (:id, 'selftest', 1, CAST('{}' AS jsonb), :h, false, 'x', now(), 'n', "
+                ":sig, 1, '2000-01-01')"
+            ),
+            {"id": backdated, "h": request.params_hash, "sig": b"\x00" * 32},
+        )
+    async with world.owner.connect() as conn:
+        stamp = (await conn.execute(text("SELECT created_at FROM tasks.runs WHERE id = :i"), {"i": backdated})).scalar_one()
+    assert stamp.year >= 2026
 
 
 async def test_progress_writes_are_throttled_to_two_seconds(world, monkeypatch):

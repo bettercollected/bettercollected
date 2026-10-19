@@ -58,6 +58,7 @@ runs = Table(
     Column("progress", JSONB),
     Column("result", JSONB),
     Column("refusal_code", Text),
+    Column("claim_attempts", Integer, server_default="0", nullable=False),
     PrimaryKeyConstraint("id"),
     Index("ix_runs_state_created_at", "state", "created_at"),
     Index("ix_runs_task_params_hash", "task", "params_hash", "finished_at"),

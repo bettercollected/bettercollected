@@ -25,11 +25,11 @@ async def insert_session(conn: AsyncConnection, **values: Any) -> uuid.UUID:
 
 
 async def lock_email(conn: AsyncConnection, email: str) -> None:
-    """Take a transaction-scoped advisory lock keyed on ``email``."""
-    await conn.execute(
-        text("SELECT pg_advisory_xact_lock(hashtextextended(:email, 0))"),
-        {"email": email},
-    )
+    """Serialise sign-ins until the transaction ends (the row lock ``signin``).
+    One lock for every address: this is an admin portal with a handful of
+    sign-ins, and a lock keyed on a chosen address could be taken by anyone who
+    can compute its hash."""
+    await conn.execute(text("SELECT admin.take_lock('signin')"))
 
 
 async def get_by_token_hash(conn: AsyncConnection, token_hash: bytes):

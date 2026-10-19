@@ -232,4 +232,5 @@ class RunContext:
                 actor_kind="system",
                 detail=merged,
                 request_id=self.run_id,
+                runner=True,
             )

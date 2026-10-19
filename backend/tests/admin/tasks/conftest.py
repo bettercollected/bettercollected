@@ -45,6 +45,7 @@ class World:
 
     def runner(self, **kw) -> Runner:
         kw.setdefault("heartbeat_seconds", None)
+        kw.setdefault("finish_retry_delays", (0, 0))
         return Runner(self.tasks, self.registry, clock=self.clock, **kw)
 
     async def enqueue(

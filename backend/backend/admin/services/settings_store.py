@@ -470,10 +470,10 @@ class SettingsService:
         if spec.is_secret:
             if old.blob is None:
                 raise SettingsError("nothing_to_restore", spec.key)
-            try:
-                plain = self.keys.open(old.section, spec.key, old.version, old.blob)
-            except Exception:  # noqa: BLE001 - never carry the cause
-                raise SettingsError("cannot_open", spec.key) from None
+            usable = self._open_copy(old, spec.key)
+            if usable is None:
+                raise SettingsError("cannot_open", spec.key)
+            plain = self.keys.open(old.section, spec.key, old.version, usable)
         else:
             plain = old.value
         return self._validate(spec, plain)
@@ -572,6 +572,17 @@ class SettingsService:
 
     # ---------------------------------------------------------------- rewrap
 
+    def _open_copy(self, old: "repo.HistoryRow", key: str) -> Optional[str]:
+        """The newest sealed copy of a history version that opens with the keys in
+        hand (the original, or a re-wrap appended by a rotation), or ``None``."""
+        for blob in old.candidates:
+            try:
+                self.keys.open(old.section, key, old.version, blob)
+                return blob
+            except Exception:  # noqa: BLE001 - a junk or foreign copy: try the next
+                continue
+        return None
+
     async def rewrap(self, actor: Actor) -> RewrapResult:
         """Re-wrap every data key (current and historical versions) under the
         current master key and re-sign every row the current key did not sign,
@@ -637,12 +648,15 @@ class SettingsService:
                 blob = self.keys.rewrap(entry.section, entry.key, entry.version, blob)
                 wrapped = 1
             for old in await repo.list_history(conn, entry.key):
-                if old.blob is not None and self.keys.needs_rewrap(old.section, old.blob):
-                    await repo.update_history_blob(
+                # the newest copy that opens; an older version is re-wrapped by
+                # APPENDING a copy (history rows are never changed)
+                usable = self._open_copy(old, entry.key)
+                if usable is not None and self.keys.needs_rewrap(old.section, usable):
+                    await repo.insert_history_wrap(
                         conn,
                         entry.key,
                         old.version,
-                        self.keys.rewrap(old.section, entry.key, old.version, old.blob),
+                        self.keys.rewrap(old.section, entry.key, old.version, usable),
                     )
                     history_versions.append(old.version)
             sig = self.keys.sign_row(_with_blob(entry, blob).to_setting_row()).sig
@@ -684,12 +698,25 @@ class SettingsService:
             stored = await repo.get_manifest(conn)
             audited = await repo.latest_audited_versions(conn)
             audited_revision = await repo.max_audited_revision(conn)
+            histories = {
+                e.key: await repo.list_history(conn, e.key)
+                for e in entries
+                if e.is_secret and not e.cleared
+            }
 
         for e in entries:
             if e.key not in self.registry:
                 problems.append(Problem(e.key, "unknown_key"))
                 continue
             spec = self.registry.get(e.key)
+            # every sealed version kept in the history must still open (the history
+            # rows cannot be changed by the portal's role, but a copy damaged by a
+            # database-level actor, or a master key that was not kept, shows here)
+            if any(
+                old.blob is not None and self._open_copy(old, e.key) is None
+                for old in histories.get(e.key, ())
+            ):
+                problems.append(Problem(e.key, "history_unreadable"))
             try:
                 if not self.keys.verify_row(e.to_setting_row()):
                     problems.append(Problem(e.key, "bad_signature"))

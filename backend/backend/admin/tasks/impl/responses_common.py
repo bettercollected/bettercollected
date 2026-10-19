@@ -133,6 +133,13 @@ class ReadOnlyCollection:
     def __init__(self, collection):
         self._collection = collection
 
+    def aggregate(self, pipeline, *args, **kwargs):
+        """Reads only: a pipeline with ``$out`` or ``$merge`` writes a collection."""
+        for stage in pipeline or ():
+            if isinstance(stage, dict) and ({"$out", "$merge"} & set(stage)):
+                raise ReadOnlyViolation("aggregate")
+        return self._collection.aggregate(pipeline, *args, **kwargs)
+
     def __getattr__(self, name: str):
         if name not in _READ_METHODS:
             raise ReadOnlyViolation(name)

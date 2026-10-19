@@ -182,11 +182,15 @@ async def test_writer_grants_and_no_delete_on_entries(server, migrated, superuse
         assert not await can(f"settings.{table}", "TRUNCATE")
     assert await can("settings.history", "INSERT")
     assert not await can("settings.history", "UPDATE")
-    assert await scalar(
+    # a history row is never changed by the portal's role, not even its blob; a
+    # master-key re-wrap is appended to history_wraps
+    assert not await scalar(
         superuser,
         "SELECT has_column_privilege(:r, 'settings.history', 'blob', 'UPDATE')",
         r=role,
     )
+    assert await can("settings.history_wraps", "SELECT") and await can("settings.history_wraps", "INSERT")
+    assert not await can("settings.history_wraps", "UPDATE") and not await can("settings.history_wraps", "DELETE")
     assert await can("settings.service_state", "SELECT")
     assert not await can("settings.service_state", "INSERT")
     assert not await can("settings.service_state", "UPDATE")
@@ -259,6 +263,8 @@ async def test_report_state_touches_only_the_callers_row(svc, server, migrated, 
     sql = (
         "SELECT settings.report_state(:i, :r, CAST(:e AS text[]), CAST(:k AS text[]), :p, :f)"
     )
+    for n in range(1, 5):  # the store is at revision 4: a service cannot have applied more
+        await put(svc, T1, n)
     args = dict(i="inst-1", r=3, e=["MAIL_PASSWORD"], k=[], p=True, f="ab12")
     for logical in ("app", "auth"):
         engine = create_async_engine(server.url(migrated, f"reader:{logical}"), poolclass=NullPool)
@@ -278,6 +284,21 @@ async def test_report_state_touches_only_the_callers_row(svc, server, migrated, 
         ("auth", "inst-1", 4, True),
         ("backend", "inst-1", 4, True),
     ]
+    # what a service claims is bounded: never a revision above the stored one, and a
+    # rejected name only when it is a stored setting its own service reads
+    liar = create_async_engine(server.url(migrated, "reader:app"), poolclass=NullPool)
+    try:
+        async with liar.begin() as conn:
+            await conn.execute(text(sql), {**args, "r": 99, "k": ["NOT_A_SETTING", T1]})
+    finally:
+        await liar.dispose()
+    async with superuser.connect() as conn:
+        claimed = (
+            await conn.execute(
+                text("SELECT revision_applied, rejected_keys FROM settings.service_state WHERE service = 'backend'")
+            )
+        ).one()
+    assert claimed.revision_applied == 4 and "NOT_A_SETTING" not in claimed.rejected_keys
     # invalid input is refused; a non-reader role cannot call it at all
     bad = create_async_engine(server.url(migrated, "reader:app"), poolclass=NullPool)
     try:
@@ -542,8 +563,16 @@ async def test_rewrap_with_the_previous_key_leaves_rows_readable_with_the_new_ke
     spec = svc.registry.get(SECRET)
     row = result.accepted[SECRET]
     assert new_only.open(spec.section, SECRET, row.version, row.blob) == PLANT + "-b"
+    # the history row itself is never rewritten: the re-wrap is a copy appended next to it
     old_hist = await scalar(superuser, "SELECT blob FROM settings.history WHERE key = :k AND version = 1", k=SECRET)
-    assert new_only.open(spec.section, SECRET, 1, old_hist) == PLANT
+    with pytest.raises(Exception):
+        new_only.open(spec.section, SECRET, 1, old_hist)
+    wrapped = await scalar(
+        superuser,
+        "SELECT blob FROM settings.history_wraps WHERE key = :k AND version = 1 ORDER BY id DESC LIMIT 1",
+        k=SECRET,
+    )
+    assert new_only.open(spec.section, SECRET, 1, wrapped) == PLANT
     # the old key alone no longer verifies the rows
     old_result = verified(rows, manifest)
     assert old_result.accepted == {} or SECRET not in old_result.accepted

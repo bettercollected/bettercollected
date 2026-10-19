@@ -1,8 +1,11 @@
 """The integrity monitor.
 
 Every pass it runs the settings store's ``verify()`` (signatures, manifest,
-audit cross-check) and reads the keys that running services reported as
-rejected. Any problem is shown on the shell banner (through the shared status
+audit cross-check), verifies the next bounded slice of the audit chain from a
+stored checkpoint (``audit_chain_broken`` / ``audit_checkpoint_bad``), probes the
+two row locks the admin writes depend on (``lock_blocked``: a holder that keeps
+one for longer than the 5 s lock timeout) and reads the keys that running
+services reported as rejected (only names the registry knows). Any problem is shown on the shell banner (through the shared status
 board) and mailed once per incident: the same set of problems is not mailed
 again within 24 hours (kept in memory, and, after a restart, in the outbox row's
 ``dedupe_key``). When the problems are gone the status returns to ok, and a
@@ -20,6 +23,7 @@ from datetime import datetime, timedelta
 from typing import Awaitable, Callable, List, Optional, Sequence, Tuple
 
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.admin.loops.base import Loop
@@ -60,11 +64,17 @@ class IntegrityMonitor(Loop):
         board: StatusBoard,
         *,
         interval: float = 600.0,
+        audit_step: Optional[Callable[[], Awaitable[object]]] = None,
+        known_keys: Optional[Callable[[], frozenset]] = None,
+        probe_locks: bool = True,
     ) -> None:
         self._engine = engine
         self._clock = clock
         self._verify = verify
         self._board = board
+        self._audit_step = audit_step
+        self._known_keys = known_keys
+        self._probe_locks = probe_locks
         self.interval = interval
         # fingerprint and moment of the last notice from this process
         self._known: Optional[Tuple[str, datetime]] = None
@@ -81,6 +91,15 @@ class IntegrityMonitor(Loop):
                     reason if _REASON.match(str(reason)) else "other",
                 )
             )
+        if self._audit_step is not None:
+            step = await asyncio.wait_for(self._audit_step(), VERIFY_TIMEOUT)
+            for _, why in getattr(step, "breaks", ()):
+                found.add(
+                    ("*", "audit_chain_broken" if why.endswith("_hash_mismatch") else "audit_checkpoint_bad")
+                )
+        if self._probe_locks and await self._lock_blocked():
+            found.add(("*", "lock_blocked"))
+        known = self._known_keys() if self._known_keys is not None else None
         since = self._clock.now() - REPORT_FRESH
         async with self._engine.connect() as conn:
             rows = (
@@ -95,9 +114,31 @@ class IntegrityMonitor(Loop):
             ).all()
         for row in rows:
             for key in row.rejected_keys or []:
-                if _KEY.match(str(key)):
+                # a reported name counts only when the registry knows it: a service
+                # cannot raise alarms (and mail every admin) about names it invents
+                if _KEY.match(str(key)) and (known is None or key in known):
                     found.add((key, "rejected_by_reader"))
         return tuple(sorted(found))[:MAX_PROBLEMS]
+
+    async def _lock_blocked(self) -> bool:
+        """Whether the audit chain's or the settings writer's lock cannot be taken
+        (twice, 5 s each): somebody holds it for far longer than any write needs.
+        Only the admin roles can take these locks, so this is the portal, the CLI or
+        the runner stuck, never an outsider; the audit and settings writes fail
+        (clearly, after 5 s) while it lasts."""
+        for name in ("audit_chain", "settings_writer"):
+            for attempt in range(2):
+                try:
+                    async with self._engine.begin() as conn:
+                        await conn.execute(text("SELECT admin.take_lock(:n)"), {"n": name})
+                    break
+                except DBAPIError as exc:
+                    sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
+                    if sqlstate != "55P03":
+                        raise
+                    if attempt == 1:
+                        return True
+        return False
 
     async def run_once(self) -> str:
         now = self._clock.now()
