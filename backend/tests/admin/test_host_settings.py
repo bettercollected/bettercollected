@@ -524,6 +524,44 @@ async def test_worker_export_appends_to_a_private_env_file_but_not_twice(svc, tm
     assert err.value.code == "file_not_private" and loose.read_text() == "A=1\n"
 
 
+async def test_worker_export_never_follows_a_symlink(svc, tmp_path):
+    await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=empty_counts)
+    target = tmp_path / "other-private.env"
+    target.write_text("KEEP=1\n")
+    os.chmod(target, 0o600)
+    link = tmp_path / "link.env"
+    link.symlink_to(target)
+    with pytest.raises(host.HostError) as err:
+        await host.export_worker(svc, str(link), CLI)
+    assert err.value.code == "file_not_private"
+    assert target.read_text() == "KEEP=1\n"  # nothing was appended through the link
+    dangling = tmp_path / "dangling.env"
+    dangling.symlink_to(tmp_path / "created-by-attacker.env")
+    with pytest.raises(host.HostError):
+        await host.export_worker(svc, str(dangling), CLI)
+    assert not (tmp_path / "created-by-attacker.env").exists()
+
+
+def test_append_private_checks_the_opened_file_not_the_path(tmp_path):
+    good = tmp_path / "good.env"
+    good.write_text("A=1")
+    os.chmod(good, 0o600)
+    host._append_private(str(good), "B=2\n")
+    assert good.read_text() == "A=1\nB=2\n"
+    other = tmp_path / "other.env"
+    other.write_text("A=1\n")
+    os.chmod(other, 0o600)
+    link = tmp_path / "link.env"
+    link.symlink_to(other)
+    with pytest.raises(host.HostError):
+        host._append_private(str(link), "B=2\n")
+    assert other.read_text() == "A=1\n"
+    fifo = tmp_path / "fifo.env"
+    os.mkfifo(fifo, 0o600)  # not a regular file
+    with pytest.raises(host.HostError):
+        host._append_private(str(fifo), "B=2\n")
+
+
 async def test_worker_export_needs_the_keys_in_the_store(svc, tmp_path):
     with pytest.raises(host.HostError) as err:
         await host.export_worker(svc, str(tmp_path / "w.env"), CLI)

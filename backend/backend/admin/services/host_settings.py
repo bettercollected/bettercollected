@@ -28,6 +28,7 @@ import os
 import re
 import secrets
 import shutil
+import stat
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
@@ -593,7 +594,7 @@ async def _audited_file(
                 conn, action, "settings_store", None, None, None, "success",
                 actor_kind=actor.kind, actor_email=actor.email, detail=detail,
             )
-            if append_to_existing and os.path.exists(path):
+            if append_to_existing and os.path.lexists(path):
                 _append_private(path, body)
             else:
                 _write_private(path, body)
@@ -607,13 +608,39 @@ async def _audited_file(
         raise
 
 
+def _open_private_existing(path: str, flags: int) -> int:
+    """Open an existing file without following a symlink and verify, on the
+    OPENED descriptor, that it is a regular file owned by this user with no
+    group or other access (no check-then-open gap)."""
+    try:
+        fd = os.open(path, flags | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:  # a symlink (ELOOP), a missing file, no permission
+        raise HostError("file_not_private", os.path.basename(path)) from None
+    try:
+        info = os.fstat(fd)
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_mode & 0o077
+            or info.st_uid != os.geteuid()
+        ):
+            raise HostError("file_not_private", os.path.basename(path))
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _read_private(path: str) -> str:
+    fd = _open_private_existing(path, os.O_RDONLY)
+    with os.fdopen(fd, "r", encoding="utf-8") as handle:
+        return handle.read()
+
+
 def _append_private(path: str, body: str) -> None:
-    mode = os.stat(path).st_mode & 0o777
-    if mode & 0o077:
-        raise HostError("file_not_private", os.path.basename(path))
-    with open(path, encoding="utf-8") as handle:
+    fd = _open_private_existing(path, os.O_RDWR | os.O_APPEND)
+    with os.fdopen(fd, "a+", encoding="utf-8") as handle:
+        handle.seek(0)
         existing = handle.read()
-    with open(path, "a", encoding="utf-8") as handle:
         if existing and not existing.endswith("\n"):
             handle.write("\n")
         handle.write(body)
@@ -626,8 +653,8 @@ async def export_worker(service: SettingsService, out: str, actor: Actor) -> Non
     missing = [k for k in WORKER_COPIES.values() if k not in stored.values]
     if missing:
         raise HostError("not_in_store", ",".join(missing))
-    if os.path.exists(out):
-        present = parse_env_text(open(out, encoding="utf-8").read())
+    if os.path.lexists(out):
+        present = parse_env_text(_read_private(out))
         if any(name in present for name in WORKER_COPIES):
             raise HostError("worker_keys_present", os.path.basename(out))
     body = "".join(

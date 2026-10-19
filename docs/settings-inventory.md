@@ -53,11 +53,11 @@ environment, whatever the tier.
 | `UMAMI_USERNAME` | analytics | backend | str max 200 |  | R | T2 |  |
 | `UMAMI_WEBSITE_ID` | analytics | backend, webapp | str max 100 |  | R | T2 |  |
 | `UMAMI_WEBSITE_NAME` | analytics | backend | str max 100 |  | R | T1 | `BetterCollected` |
-| `AUTH_AES_HEX_KEY` | auth_keys | backend, auth, google, temporal_worker, actions_executor | str | yes | R | T4 |  |
-| `AUTH_INTERNAL_NOTIFY_KEY` | auth_keys | backend, auth, google | str | yes | R | T4 |  |
-| `AUTH_JWT_SECRET` | auth_keys | backend, auth, google | str | yes | R | T4 |  |
-| `MASTER_ENCRYPTION_KEYSET` | auth_keys | backend, google, tasks | str | yes | R | T4 |  |
-| `TEMPORAL_API_KEY` | auth_keys | backend | str | yes | R | T4 |  |
+| `AUTH_AES_HEX_KEY` | auth_keys | backend, auth, google, temporal_worker | str fernet | yes | R | T4 |  |
+| `AUTH_INTERNAL_NOTIFY_KEY` | auth_keys | backend, auth, google | str token | yes | R | T4 |  |
+| `AUTH_JWT_SECRET` | auth_keys | backend, auth, google | str token | yes | R | T4 |  |
+| `MASTER_ENCRYPTION_KEYSET` | auth_keys | backend, google, tasks | str tink_keyset | yes | R | T4 |  |
+| `TEMPORAL_API_KEY` | auth_keys | backend | str token | yes | R | T4 |  |
 | `STRIPE_CANCEL_URL` | billing | auth | url |  | R | T3 |  |
 | `STRIPE_PRODUCT_ID` | billing | auth | str max 100 |  | R | T3 |  |
 | `STRIPE_RETURN_URL` | billing | auth | url |  | R | T3 |  |
@@ -67,8 +67,8 @@ environment, whatever the tier.
 | `CUSTOM_DOMAIN_API_CREDENTIAL` | custom_domain | backend | str | yes | R | T3 |  |
 | `CUSTOM_DOMAIN_API_URL` | custom_domain | backend | url |  | R | T3 |  |
 | `CUSTOM_DOMAIN_APPLICATION_ID` | custom_domain | backend, webapp | str max 200 |  | R | T3 |  |
-| `CUSTOM_DOMAIN_ASSERTION_KEYS` | custom_domain | backend, webapp | str | yes | R | T4 |  |
-| `CUSTOM_DOMAIN_WEBHOOK_SECRETS` | custom_domain | backend | str | yes | R | T4 |  |
+| `CUSTOM_DOMAIN_ASSERTION_KEYS` | custom_domain | backend, webapp | str key_pairs | yes | R | T4 |  |
+| `CUSTOM_DOMAIN_WEBHOOK_SECRETS` | custom_domain | backend | str secret_list | yes | R | T4 |  |
 | `HTTPS_CERT_API_HOST` | custom_domain | backend | str max 253 |  | R | T3 |  |
 | `HTTPS_CERT_API_KEY` | custom_domain | backend | str | yes | R | T3 |  |
 | `HTTPS_CERT_API_UPSTREAM` | custom_domain | backend | str max 253 |  | R | T3 |  |
@@ -277,8 +277,8 @@ environment, whatever the tier.
 | `DOC_SANDBOX_PARALLEL` | pdf_import | backend | int 1..64 |  | R | T5 | `2` |
 | `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX` | pdf_import | backend | bool |  | R | T5 | `false` |
 | `PDF_IMPORT_SANDBOX_SOCKET` | pdf_import | backend | str |  | R | T5 |  |
-| `AES_HEX_KEY` | services | temporal_worker, actions_executor | str | yes | R | T5 |  |
-| `API_KEY` | services | temporal_worker, actions_executor | str | yes | R | T5 |  |
+| `AES_HEX_KEY` | services | temporal_worker | str | yes | R | T5 |  |
+| `API_KEY` | services | temporal_worker | str | yes | R | T5 |  |
 | `AUTH_BASE_URL` | services | backend | url |  | R | T5 |  |
 | `AUTH_SERVER_URL` | services | google | url internal ok |  | R | T5 | `http://auth:8000/api/v1` |
 | `BACKEND_URL` | services | actions_executor | str |  | R | T5 | `http://localhost:8000/api/v1` |
