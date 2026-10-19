@@ -221,11 +221,10 @@ async def test_reconcile_does_not_propagate_a_postgres_delete(target):
     async with Runner(target) as runner:
         (before,) = await runner.verify(["allowed_origins"])
         assert before.missing_in_postgres == 1
-        # the kept row differs too: replaying a write into Mongo re-stamps its
-        # updated_at, so postgres->mongo rewrites it from the row
-        assert before.samples["mismatched"] == [str(kept.id)]
+        # the kept row agrees: its replay stored the row's document exactly
+        assert before.mismatched == 0
         result = await runner.reconcile(direction="postgres->mongo")
-        assert result["allowed_origins"]["fixed"] == 1
+        assert result["allowed_origins"]["fixed"] == 0
         (after,) = await runner.verify(["allowed_origins"])
     assert await AllowedOriginsDocument.get(gone.id) is not None  # not deleted
     assert after.missing_in_postgres == 1 and after.mismatched == 0

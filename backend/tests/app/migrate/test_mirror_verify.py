@@ -246,7 +246,8 @@ async def test_a_failed_mirror_write_is_repaired_by_reconcile(target, mode):
         assert (await runner.status())["outbox"][
             "mongo" if mode == "dual" else "postgres"
         ] == 2
-        await runner.reconcile(["forms"], direction=DIRECTION[mode])
+        # a full pass (every collection) drains the outbox
+        await runner.reconcile(direction=DIRECTION[mode])
         assert (await runner.status())["outbox"] == {"mongo": 0, "postgres": 0}
     assert await verify(target, "forms") == {}
 
