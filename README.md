@@ -123,8 +123,11 @@ prints them. On a new stack it ends by showing a one-time setup token on the
 console. Everything else is a setting in the store. Details, the host commands
 and the upgrade path: [docs/admin-service.md](docs/admin-service.md).
 
-[`.env.deployment`](.env.deployment) ships no secrets and is only needed for
-values you want to set from a file. The services refuse to start when
+`.env.deployment` (the services' env file) is your own file and is not tracked:
+`deploy.sh` creates it from the template
+[`.env.deployment.example`](.env.deployment.example) (mode 600) when it is missing
+and never overwrites it. The template ships no secrets; the file is only needed
+for values you want to set from a file. The services refuse to start when
 `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY` is empty or a value that was ever
 published in this repository. Put TLS or a reverse proxy in front of the stack
 yourself, and set `TRUSTED_PROXIES` in the root `.env` (or the setting in the
@@ -141,7 +144,8 @@ portal's address check admits. Reach the portal with an SSH tunnel (see
 [Upgrading to 4.0](docs/admin-service.md#upgrading-to-40) first (backups, what
 changes, the steps in order, behaviour changes, rollback, and a checklist for after
 the deploy), and see the [changelog](CHANGELOG.md). In short: back up the root `.env`,
-`.env.deployment` and the database, set `PLATFORM_ADMIN_EMAILS` (and `TRUSTED_PROXIES`
+`.env.deployment` and the database, keep a copy of `.env.deployment` across the
+`git pull` (it is no longer tracked, so the pull deletes or refuses it; see the guide), set `PLATFORM_ADMIN_EMAILS` (and `TRUSTED_PROXIES`
 behind a proxy) in the root `.env`, then re-run `./deploy.sh`. It imports the keys and
 settings your files hold into the settings store (never overwriting), compares them,
 and tells you when to remove the old values with `./deploy.sh settings-prune`. Back up

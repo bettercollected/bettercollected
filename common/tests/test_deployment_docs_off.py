@@ -27,11 +27,11 @@ def test_no_shipped_deployment_file_enables_docs():
     for name in (
         "docker-compose.deployment.yml",
         "docker-compose.sso-deployment.yml",
-        ".env.deployment",
+        ".env.deployment.example",
     ):
         text = (REPO / name).read_text()
         assert not re.search(rf"^\s*API_DOCS_ENABLED\s*[:=]\s*{TRUE}", text, re.M | re.I), name
-    assert not re.search(r"^API_DOCS_ENABLED=", (REPO / ".env.deployment").read_text(), re.M)
+    assert not re.search(r"^API_DOCS_ENABLED=", (REPO / ".env.deployment.example").read_text(), re.M)
 
 
 def test_no_healthcheck_depends_on_the_internal_docs_route():

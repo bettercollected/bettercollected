@@ -172,7 +172,7 @@ def test_mongo_takes_a_generated_root_password_on_a_new_volume():
     assert "root:root@" not in seed and "MONGO_ROOT_PASSWORD" not in seed.replace("# ", "").split("CMD")[1]
     assert "--nodb" in seed and "process.env.MONGO_ROOT_PASSWORD" in seed_js and "mongodb://root" not in seed_js
     # the services' MONGO_URI is a store setting seeded by deploy.sh, not a file value
-    assert not re.search(r"^MONGO_URI=", (ROOT / ".env.deployment").read_text(), re.M)
+    assert not re.search(r"^MONGO_URI=", (ROOT / ".env.deployment.example").read_text(), re.M)
     assert "BC_MONGO_ROOT_PASSWORD" in DEPLOY and "seed_setting MONGO_URI" in DEPLOY
 
 
@@ -248,7 +248,7 @@ def test_the_worker_keeps_two_keys_in_env_and_never_the_master_key():
     ):
         assert forbidden not in json.dumps(SERVICES["worker"])
     # its environment file never carries the master key either
-    assert "SETTINGS_MASTER_KEY" not in (ROOT / ".env.deployment").read_text()
+    assert "SETTINGS_MASTER_KEY" not in (ROOT / ".env.deployment.example").read_text()
     assert "worker" not in COMPOSE["networks"]  # default network only, no database role
     assert "volumes" not in SERVICES["worker"]
 
@@ -370,10 +370,12 @@ def test_env_is_ignored_in_every_backup_form():
     for pattern in (".env.pre-v4.*", ".env.deployment.pre-v4.*", ".env.*.pruned", ".env.deployment.pre-umami.*"):
         assert pattern in ignore
     # every other .env.* file is ignored too (.env.pruned, .env.XXXXXX leftovers, the
-    # per-service env files), except the shipped example and the tracked template
+    # per-service env files, .env.deployment itself), except the shipped examples
     lines = ignore.splitlines()
-    assert ".env.*" in lines and "!.env.example" in lines and "!.env.deployment" in lines
+    assert ".env.*" in lines and "!.env.example" in lines and "!.env.deployment.example" in lines
+    assert "!.env.deployment" not in lines  # the operator's own file is never tracked
     assert lines.index(".env.*") < lines.index("!.env.example")
+    assert lines.index(".env.*") < lines.index("!.env.deployment.example")
 
 
 @pytest.mark.skipif(not shutil.which("git"), reason="needs git")
@@ -382,10 +384,18 @@ def test_generated_secret_files_are_git_ignored_and_the_templates_are_not():
         return subprocess.run(["git", "check-ignore", "-q", name], cwd=ROOT).returncode == 0
 
     for name in (".env", ".env.pruned", ".env.XXXXXX", ".env.deployment.pruned", ".env.deployment.AbC123",
-                 ".env.webapp", ".env.worker", ".env.typeform", ".env.pre-v4.20260101"):
+                 ".env.webapp", ".env.worker", ".env.typeform", ".env.pre-v4.20260101",
+                 ".env.deployment", ".env.deployment.mine"):
         assert ignored(name), name
-    for name in (".env.example", "webapp/.env.example", ".env.deployment"):
+    for name in (".env.example", "webapp/.env.example", ".env.deployment.example"):
         assert not ignored(name), name
+    # the template is tracked, the operator's file is not
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", ".env.deployment.example"], cwd=ROOT, capture_output=True
+    )
+    assert tracked.returncode == 0
+    untracked = subprocess.run(["git", "ls-files", "--", ".env.deployment"], cwd=ROOT, capture_output=True, text=True)
+    assert untracked.stdout.strip() == ""
 
 
 # ------------------------------------------------ the rendered config
@@ -466,6 +476,10 @@ def _env_files(service: str) -> list:
 def test_only_the_store_readers_get_the_shared_env_file():
     users = sorted(n for n in SERVICES if ".env.deployment" in _env_files(n))
     assert users == sorted(ENV_DEPLOYMENT_READERS)
+    # the operator's file is not tracked: optional, so compose renders on a fresh checkout
+    # (deploy.sh creates it from .env.deployment.example)
+    for name in ENV_DEPLOYMENT_READERS:
+        assert SERVICES[name]["env_file"] == [{"path": ".env.deployment", "required": False}], name
     # the others read an env file of their own, optional (compose renders without it),
     # or none at all
     for name, path in OWN_ENV_FILE.items():
@@ -547,7 +561,7 @@ def test_umami_dashboard_is_private_and_nginx_passes_only_the_tracker():
 
 
 def test_the_shipped_env_template_is_free_of_insecure_and_inert_settings():
-    template = (ROOT / ".env.deployment").read_text()
+    template = (ROOT / ".env.deployment.example").read_text()
     active = [l for l in template.splitlines() if l.strip() and not l.lstrip().startswith("#")]
     assert not any(l.startswith("OAUTHLIB_INSECURE_TRANSPORT") for l in active)
     assert not any(l.startswith("ADMIN_") for l in active)  # compose reads those from the root .env
@@ -640,6 +654,21 @@ def test_a_populated_env_deployment_reaches_only_the_store_readers(tmp_path):
                                                               "admin", "task-runner", "document-sandbox",
                                                               "umami", "temporal", "mongodb"):
             assert service not in services, (name, service)
+
+
+@pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
+def test_a_fresh_checkout_without_env_files_renders(tmp_path):
+    """Before deploy.sh ran there is no .env.deployment (it is not tracked) and no
+    per-service env file: compose still renders, and the four readers get nothing from one."""
+    shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
+    rendered = _render(tmp_path)
+    for name in ENV_DEPLOYMENT_READERS:
+        assert "OAUTHLIB_RELAX_TOKEN_SCOPE" not in (rendered[name].get("environment") or {}), name
+    # with the template copied in place, its values reach the readers
+    shutil.copy(ROOT / ".env.deployment.example", tmp_path / ".env.deployment")
+    rendered = _render(tmp_path)
+    for name in ENV_DEPLOYMENT_READERS:
+        assert rendered[name]["environment"]["OAUTHLIB_RELAX_TOKEN_SCOPE"] == "1", name
 
 
 @pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")

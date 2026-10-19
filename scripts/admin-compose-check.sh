@@ -15,7 +15,7 @@
 # published, nginx passes only its tracker), and the host commands deploy.sh runs
 # (bootstrap-keys, import, drift) work through compose.
 #
-# Needs: bash, docker (with compose v2), curl, openssl. By default it builds the
+# Needs: bash, docker (with compose 2.24.4 or newer), curl, openssl. By default it builds the
 # backend image from this checkout (tag bc-admin-check:local, replaced if it exists, removed afterwards).
 # To test an existing image instead: ADMIN_CHECK_IMAGE=<image> (never removed). KEEP=1 leaves the project up.
 set -uo pipefail
@@ -142,7 +142,17 @@ temporal_pw="$(openssl rand -hex 16)"
 umami_pw="$(openssl rand -hex 16)"
 mongo_pw="$(openssl rand -hex 16)"
 
-printf 'services:\n  admin:\n    image: %s\n  backend:\n    image: %s\n' "$image" "$image" > "$work/override.yml"
+# The four services that read .env.deployment get a copy of the shipped template, never
+# the operator's own (untracked) .env.deployment this checkout may have (`!override`
+# replaces the list; Compose 2.24.4 or newer).
+( umask 077; cp "$root/.env.deployment.example" "$work/.env.deployment" )
+{
+  printf 'services:\n  admin:\n    image: %s\n' "$image"
+  printf '  backend:\n    image: %s\n    env_file: !override\n      - path: %s\n' "$image" "$work/.env.deployment"
+  for svc in jobs-worker auth integrations-googleform; do
+    printf '  %s:\n    env_file: !override\n      - path: %s\n' "$svc" "$work/.env.deployment"
+  done
+} > "$work/override.yml"
 skeleton_env="$work/skeleton.env"
 full_env="$work/full.env"
 (
@@ -180,6 +190,19 @@ check "config parses without the optional variables" dc config -q
 envfile="$full_env"
 check "config parses with the optional variables" dc config -q
 envfile="$skeleton_env"
+# a fresh checkout before deploy.sh ran: no .env.deployment (it is not tracked) and no
+# per-service env file next to the compose file
+mkdir -m 700 "$work/fresh"
+cp "$root/docker-compose.deployment.yml" "$work/fresh/"
+check "config parses on a fresh checkout without .env.deployment or the per-service env files" \
+  docker compose -p "$project" -f "$work/fresh/docker-compose.deployment.yml" --env-file "$skeleton_env" config -q
+if command -v git >/dev/null 2>&1 && git -C "$root" rev-parse --git-dir >/dev/null 2>&1; then
+  check "the template .env.deployment.example is tracked and .env.deployment is git-ignored" \
+    bash -c 'cd "$1" && git ls-files --error-unmatch .env.deployment.example && git check-ignore -q .env.deployment && [ -z "$(git ls-files .env.deployment)" ]' _ "$root"
+else
+  skip=$((skip + 1))
+  echo "  SKIP  not a git checkout: .env.deployment tracking not checked"
+fi
 layout_py='
 import json, sys
 c = json.load(sys.stdin)
@@ -463,7 +486,7 @@ expect "bootstrap-keys refuses a database that holds a user, even with --fill-mi
 check "the refusal names stack_has_data and points at the import" grep -q 'stack_has_data.*settings-import' "$cli_out"
 dc config --format json 2>/dev/null | cli settings-import --from-compose-config --dry-run >"$cli_out" 2>&1
 rc=$?
-# The shipped .env.deployment has http://localhost URLs, which the registry
+# The shipped .env.deployment.example has http://localhost URLs, which the registry
 # refuses (exit 1): they stay environment values. What must not happen: a
 # conflict between services, or a refused key of the stack itself.
 if grep -q '^would_import=' "$cli_out" && ! grep -qE '^(conflict |refused (AUTH_JWT_SECRET|AUTH_AES_HEX_KEY|AUTH_INTERNAL_NOTIFY_KEY|TEMPORAL_API_KEY|MASTER_ENCRYPTION_KEYSET) )' "$cli_out" && [ "$rc" -le 1 ]; then

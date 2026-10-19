@@ -289,8 +289,13 @@ services:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
       SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
       SSO_SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:-}
+    # .env.deployment is the operator's own file and is not tracked; deploy.sh
+    # creates it from .env.deployment.example when it is missing. Optional
+    # (Compose 2.24+) here and in the other three services that read it, so
+    # `docker compose config` works on a fresh checkout before deploy.sh ran.
     env_file:
-      - .env.deployment
+      - path: .env.deployment
+        required: false
     # no cap_drop here: root needs CAP_DAC_OVERRIDE to open the document sandbox's
     # socket directory (owned by the sandbox user, mode 0770)
     security_opt:
@@ -499,7 +504,8 @@ services:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
       SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
     env_file:
-      - .env.deployment
+      - path: .env.deployment
+        required: false
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -557,7 +563,8 @@ services:
       retries: 20
       start_period: 15s
     env_file:
-      - .env.deployment
+      - path: .env.deployment
+        required: false
     security_opt:
       - no-new-privileges:true
 
@@ -599,7 +606,8 @@ services:
       MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
       # DB_AUTO_MIGRATE: "true"   # see the backend service above
     env_file:
-      - .env.deployment
+      - path: .env.deployment
+        required: false
     security_opt:
       - no-new-privileges:true
     volumes:

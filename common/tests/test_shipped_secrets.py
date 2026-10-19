@@ -112,7 +112,7 @@ def test_no_tracked_example_file_still_holds_a_published_value():
     names = r"(?:AUTH_JWT_SECRET|AUTH_AES_HEX_KEY|AES_HEX_KEY|GOOGLE_AES_KEY)"
     still_published = [
         path
-        for path in (".env.deployment", "webapp/README.md")
+        for path in (".env.deployment.example", "webapp/README.md")
         if any(
             is_shipped_secret(value)
             for value in re.findall(

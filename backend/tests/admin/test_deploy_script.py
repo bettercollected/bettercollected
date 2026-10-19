@@ -369,7 +369,7 @@ def _upgrade_env(work):
 
 
 def test_a_refused_ordinary_value_is_a_warning_not_a_stop(site):
-    """The shipped .env.deployment has http://localhost URLs, which the registry
+    """The shipped .env.deployment.example has http://localhost URLs, which the registry
     refuses: they stay environment values, as they always were."""
     work, state, _ = site
     _upgrade_env(work)
@@ -615,6 +615,53 @@ def test_the_service_env_files_hold_only_what_each_service_reads(site):
     _run(site, volumes="mongo-data,app-postgres-data")
     assert (work / ".env.webapp").read_text() == "MINE=1\n"
     assert stat.S_IMODE((work / ".env.worker").stat().st_mode) == 0o600
+
+
+def test_a_fresh_checkout_gets_env_deployment_from_the_template(site):
+    """.env.deployment is not tracked: on a fresh checkout deploy.sh creates it from
+    .env.deployment.example (owner-only, said on the console), and the per-service env
+    files are written from it."""
+    work, state, _ = site
+    (work / ".env.deployment").unlink()
+    shutil.copy(ROOT / ".env.deployment.example", work / ".env.deployment.example")
+    (work / ".env.deployment.example").chmod(0o644)
+    done, calls = _run(site)
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert "Created .env.deployment from .env.deployment.example" in done.stdout
+    created = work / ".env.deployment"
+    assert created.read_text() == (ROOT / ".env.deployment.example").read_text()
+    assert stat.S_IMODE(created.stat().st_mode) == 0o600
+    assert stat.S_IMODE((work / ".env.deployment.example").stat().st_mode) == 0o644  # left alone
+    assert "SERVER_URL=http://backend:8000/api/v1" in _tail(work, ".env.worker")
+    assert "UMAMI_PASSWORD" not in _tail(work, ".env.webapp")  # empty values are left out
+    assert any("up --build" in c for c in calls)
+    # never overwritten afterwards, and not announced again
+    created.write_text("MINE=1\n")
+    done, _ = _run(site, volumes="mongo-data,app-postgres-data")
+    assert created.read_text() == "MINE=1\n"
+    assert "Created .env.deployment" not in done.stdout
+
+
+def test_print_services_creates_no_env_deployment(site):
+    work, _, _ = site
+    (work / ".env.deployment").unlink()
+    shutil.copy(ROOT / ".env.deployment.example", work / ".env.deployment.example")
+    done, _ = _run(site, "print-services")
+    assert done.returncode == 0 and "backend" in done.stdout.split()
+    assert not (work / ".env.deployment").exists()
+
+
+def test_a_missing_template_or_a_dangling_env_deployment_link_is_refused(site):
+    work, state, _ = site
+    (work / ".env.deployment").unlink()
+    done, calls = _run(site)
+    assert done.returncode != 0 and ".env.deployment.example" in done.stderr
+    assert calls == [] and not (work / ".env.deployment").exists()
+    shutil.copy(ROOT / ".env.deployment.example", work / ".env.deployment.example")
+    (work / ".env.deployment").symlink_to(work / "nowhere" / "env")
+    done, calls = _run(site)
+    assert done.returncode != 0 and "symbolic link" in done.stderr
+    assert calls == [] and not (work / "nowhere").exists()
 
 
 def test_a_symlinked_service_env_file_is_refused(site):

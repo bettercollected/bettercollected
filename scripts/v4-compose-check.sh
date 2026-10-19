@@ -223,17 +223,22 @@ untimed() { sed -E 's/^[0-9]+\.[0-9]+ //' "$1"; }
 
 # Copies the deployment files of a layout into a new directory named after its compose project.
 #   new: the working tree of this checkout        old: <old tag> (git show)
-deploy_paths=(deploy.sh docker-compose.deployment.yml docker-compose.sso-deployment.yml .env.deployment nginx-deployment.conf
+# The new layout ships the template .env.deployment.example (deploy.sh creates the untracked
+# .env.deployment from it on the first run, as on a fresh checkout); the old one tracked
+# .env.deployment itself. The operator's own .env.deployment of this checkout is never copied.
+deploy_paths=(deploy.sh docker-compose.deployment.yml docker-compose.sso-deployment.yml nginx-deployment.conf
   Dockerfile.deployment.mongo-seed seed-data-deployment.js deploy postgres)
+new_paths=("${deploy_paths[@]}" .env.deployment.example)
+old_paths=("${deploy_paths[@]}" .env.deployment)
 copy_layout() { # copy_layout new|old <dir>
   local layout="$1" dir="$2" path
   mkdir -p "$dir"
   if [ "$layout" = new ]; then
-    for path in "${deploy_paths[@]}"; do
+    for path in "${new_paths[@]}"; do
       [ -e "$root/$path" ] && cp -a "$root/$path" "$dir/"
     done
   else
-    git -C "$root" archive "$old_tag" -- "${deploy_paths[@]}" 2>/dev/null | tar -x -C "$dir" || return 1
+    git -C "$root" archive "$old_tag" -- "${old_paths[@]}" 2>/dev/null | tar -x -C "$dir" || return 1
   fi
   chmod +x "$dir/deploy.sh"
 }
@@ -453,6 +458,9 @@ part_fresh() {
   sleep 2; kill "$ps_pid" "$ev_pid" >/dev/null 2>&1
   expect "deploy.sh exits 0 on a fresh install" "0" "$rc"
   if [ "$rc" != 0 ]; then untimed "$out" | tr -d '\033' | grep -v 'Container\|Volume\|Network' | tail -n 20; show_failures; return; fi
+  # the copy had only the template: deploy.sh created .env.deployment from it, owner-only
+  expect ".env.deployment was created from .env.deployment.example, mode 600, and said so" "same 600 1" \
+    "$(cmp -s "$S_DIR/.env.deployment" "$S_DIR/.env.deployment.example" && echo same) $(stat -c %a "$S_DIR/.env.deployment" 2>/dev/null) $(untimed "$out" | grep -c 'Created .env.deployment from .env.deployment.example')"
   fresh_assertions "$out" "$events" "$ps_samples"
   fresh_second_run
   fresh_published_ports
@@ -717,7 +725,9 @@ negatives_runtime() {
 negatives_rendered() {
   local tmp="$work/render" env_file="$work/render.env" rendered
   mkdir -p "$tmp"; chmod 700 "$tmp"
-  cp "$root/docker-compose.deployment.yml" "$root/.env.deployment" "$tmp/"
+  cp "$root/docker-compose.deployment.yml" "$tmp/"
+  # the shipped template, as deploy.sh creates .env.deployment from it (never this checkout's own file)
+  ( umask 077; cp "$root/.env.deployment.example" "$tmp/.env.deployment" )
   # the variables the compose file marks required, with throw-away values, plus the operator's
   ( umask 077
     # shellcheck disable=SC2016  # the pattern is literal text
@@ -817,13 +827,13 @@ print(base64.b64encode(buffer.getvalue().encode()).decode())' 2>/dev/null | tr -
 }
 
 # the previous release's files over the directory (git pull / checkout of a tag), keeping the
-# operator's own files: .env, .env.deployment and the per-service env files
+# operator's own files: .env, .env.deployment and the per-service env files (the operator copies
+# .env.deployment aside and back across the update, docs/admin-service.md "Before you start")
 overlay_layout() { # overlay_layout new|old
   local layout="$1" tmp="$work/overlay-$1" path
   rm -rf "$tmp"
   copy_layout "$layout" "$tmp" || return 1
-  for path in "${deploy_paths[@]}"; do
-    [ "$path" = .env.deployment ] && continue
+  for path in "${deploy_paths[@]}" .env.deployment.example; do
     rm -rf "${S_DIR:?}/$path"
     [ -e "$tmp/$path" ] && cp -a "$tmp/$path" "$S_DIR/"
   done

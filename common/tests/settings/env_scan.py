@@ -35,7 +35,7 @@ BARE_NAMES = {"PORT", "DEBUG"}
 ENV_RECEIVERS = {"environ", "env", "source", "os.environ"}
 ENV_HELPERS = {"_int", "_bool", "_float", "flag", "_networks", "_env", "_str"}
 ENV_FILES = (
-    ".env.deployment",
+    ".env.deployment.example",
     "auth/.env.example",
     "backend/.env.example",
     "integrations/google/.env.example",

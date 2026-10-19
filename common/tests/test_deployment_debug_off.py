@@ -25,9 +25,9 @@ def test_no_shipped_deployment_file_enables_debug():
     for name in (
         "docker-compose.deployment.yml",
         "docker-compose.sso-deployment.yml",
-        ".env.deployment",
+        ".env.deployment.example",
     ):
         text = (REPO / name).read_text()
         assert not re.search(r"^\s*DEBUG\s*[:=]\s*[\"']?(true|1|yes|on)", text, re.M | re.I), name
-    env = (REPO / ".env.deployment").read_text()
+    env = (REPO / ".env.deployment.example").read_text()
     assert not re.search(r"^DEBUG=", env, re.M)

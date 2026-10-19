@@ -476,6 +476,35 @@ services_for() {
   printf '%s\n' "${list[@]}"
 }
 
+# --- .env.deployment ----------------------------------------------------------------------
+# The services' env file is the operator's own and is not tracked by git; the repository
+# ships the template .env.deployment.example. A missing .env.deployment is created from
+# the template, owner-only from the first byte. An existing one is never overwritten
+# (also not when it is a link: it is the operator's), and a dangling link is refused
+# rather than written through.
+ensure_env_deployment() {
+  [ -e .env.deployment ] && return 0
+  if [ -L .env.deployment ]; then
+    echo "refused: .env.deployment is a symbolic link that points nowhere; fix or remove it" >&2
+    return 1
+  fi
+  if [ ! -f .env.deployment.example ]; then
+    echo "refused: neither .env.deployment nor its template .env.deployment.example exists" >&2
+    return 1
+  fi
+  if ! ( umask 077; set -C; cat .env.deployment.example > .env.deployment ) 2>/dev/null; then
+    echo "refused: .env.deployment could not be created" >&2
+    return 1
+  fi
+  chmod 600 .env.deployment
+  echo "Created .env.deployment from .env.deployment.example (mode 600). Your own values go there; git ignores it."
+}
+
+# print-services only lists names and writes nothing
+if [ "$user_preference" != "print-services" ]; then
+  ensure_env_deployment || exit 1
+fi
+
 # --- host commands on the settings store ------------------------------------------------
 # These need the stack's database up and the root .env of this stack.
 case "$user_preference" in
