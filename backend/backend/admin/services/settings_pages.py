@@ -210,9 +210,10 @@ def _aad(session_id: Any, action: str, key: str, version: int, expiry: int) -> b
 
 
 def seal_pending(
-    box_key: bytes, clock: Clock, session_id: Any, action: str, key: str, version: int, material: Any
+    box_key: bytes, clock: Clock, session_id: Any, action: str, key: str, version: int,
+    material: Any, seconds: int = PENDING_SECONDS,
 ) -> str:
-    expiry = int(clock.time()) + PENDING_SECONDS
+    expiry = int(clock.time()) + seconds
     nonce = secrets.token_bytes(12)
     body = json.dumps({"m": material}, allow_nan=False).encode()
     sealed = AESGCM(box_key).encrypt(nonce, body, _aad(session_id, action, key, version, expiry))

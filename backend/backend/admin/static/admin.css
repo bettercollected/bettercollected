@@ -91,3 +91,7 @@ progress { width: min(24rem, 70%); height: 1rem; vertical-align: middle; }
 [hidden] { display: none !important; }
 table.kv th { width: 14rem; max-width: 45%; }
 .inline-links { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; margin: 0 0 1rem; padding: 0; list-style: none; }
+ol.steps { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin: 0 0 1rem; padding: 0; list-style: none; counter-reset: step; color: var(--muted); }
+ol.steps li { counter-increment: step; }
+ol.steps li::before { content: counter(step) ". "; }
+ol.steps li[aria-current="step"] { color: var(--fg); font-weight: 700; border-bottom: 2px solid var(--accent); }

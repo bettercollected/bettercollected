@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Set up sign-in mail") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% macro problem(name) %}
+  {% if errors.get(name) %}<p class="error" id="e-{{ name }}">{{ field_errors[errors.get(name)] }}</p>{% endif %}
+{% endmacro %}
+{% macro choice(name, label, default="true") %}
+  <div class="field">
+    <label for="m-{{ name }}">{{ label }}</label>
+    <select id="m-{{ name }}" name="{{ name }}"{% if errors.get(name) %} aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
+      <option value="true"{% if (values[name] or default) == "true" %} selected{% endif %}>{{ _("Yes") }}</option>
+      <option value="false"{% if (values[name] or default) == "false" %} selected{% endif %}>{{ _("No") }}</option>
+    </select>
+    {{ problem(name) }}
+  </div>
+{% endmacro %}
+{% block main %}
+{% set step = 3 %}{% include "_setup_steps.html" %}
+<h1>{{ _("Set up sign-in mail") }}</h1>
+<p>{{ _("Admin sign-in codes arrive by mail. Enter your mail server settings. We send a test mail with a code to") }} <strong>{{ email }}</strong> {{ _("using exactly these settings, and save them only after you type that code. Nothing is saved before.") }}</p>
+{% if source == "environment" %}
+<p class="notice notice-ok" role="status">{{ _("The server environment already configures mail (MAIL_* or ADMIN_MAIL_* in the .env file). The environment wins over saved settings, so saved settings take effect only if you remove it. You can skip this step.") }}</p>
+{% endif %}
+{% if notice %}<p class="notice notice-{{ notice.kind }}" role="{{ 'alert' if notice.kind == 'error' else 'status' }}">{{ notice.text }}</p>{% endif %}
+<form method="post" action="/setup/mail/test" class="stack" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="field">
+    <label for="m-server">{{ _("Mail server") }}</label>
+    <input id="m-server" name="server" type="text" value="{{ values.server }}" required maxlength="253" spellcheck="false" autocomplete="off"{% if errors.get("server") %} aria-invalid="true" aria-describedby="e-server"{% endif %}>
+    {{ problem("server") }}
+  </div>
+  <div class="field">
+    <label for="m-port">{{ _("Port") }}</label>
+    <input id="m-port" name="port" type="text" value="{{ values.port }}" inputmode="numeric" maxlength="5" placeholder="587" autocomplete="off"{% if errors.get("port") %} aria-invalid="true" aria-describedby="e-port"{% endif %}>
+    {{ problem("port") }}
+  </div>
+  <div class="field">
+    <label for="m-sender">{{ _("From address") }}</label>
+    <input id="m-sender" name="sender" type="text" value="{{ values.sender }}" required maxlength="320" spellcheck="false" autocomplete="off"{% if errors.get("sender") %} aria-invalid="true" aria-describedby="e-sender"{% endif %}>
+    {{ problem("sender") }}
+  </div>
+  <p class="muted">{{ _("Default: STARTTLS on port 587. Use TLS from the start (usually port 465) only instead of STARTTLS, never both.") }}</p>
+  {{ choice("starttls", _("Upgrade with STARTTLS")) }}
+  {{ choice("ssl_tls", _("Use TLS from the start"), "false") }}
+  {{ choice("validate_certs", _("Verify the server certificate")) }}
+  {{ choice("use_credentials", _("Log in to the server")) }}
+  <div class="field">
+    <label for="m-user">{{ _("User name") }}</label>
+    <input id="m-user" name="user" type="text" value="{{ values.user }}" maxlength="320" spellcheck="false" autocomplete="off"{% if errors.get("user") %} aria-invalid="true" aria-describedby="e-user"{% endif %}>
+    {{ problem("user") }}
+  </div>
+  <div class="field">
+    <label for="m-password">{{ _("Password") }}</label>
+    <input id="m-password" name="password" type="password" maxlength="1024" autocomplete="new-password"{% if errors.get("password") %} aria-invalid="true" aria-describedby="e-password"{% endif %}>
+    {{ problem("password") }}
+    {% if password_saved %}<p class="muted">{{ _("A password is already saved. Leave this empty to keep it.") }}</p>{% endif %}
+  </div>
+  <button type="submit">{{ _("Send test mail") }}</button>
+</form>
+<form method="post" action="/setup/mail/skip">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <p class="muted">{{ _("Without working mail nobody can sign in by email code. The command settings-mail-apply on the server sets it up later.") }}</p>
+  <button type="submit" class="link">{{ _("Skip this step") }}</button>
+</form>
+{% endblock %}

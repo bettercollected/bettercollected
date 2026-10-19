@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Back up the master key") }}{% endblock %}
+{% block nav %}{% include "_signout.html" %}{% endblock %}
+{% block main %}
+{% set step = 4 %}{% include "_setup_steps.html" %}
+<h1>{{ _("Back up the master key") }}</h1>
+{% if notice %}<p class="notice notice-{{ notice.kind }}" role="{{ 'alert' if notice.kind == 'error' else 'status' }}">{{ notice.text }}</p>{% endif %}
+<p>{{ _("Stored secrets and second-factor enrolments are sealed with SETTINGS_MASTER_KEY from the server's .env file. It cannot be recovered and nothing here stores a copy: without it they cannot be opened. Keep a copy somewhere separate from the server.") }}</p>
+<dl class="facts">
+  <dt>{{ _("Master key fingerprint") }}</dt>
+  <dd><code class="secret">{{ fingerprint }}</code></dd>
+  <dt>{{ _("Sign-in mail") }}</dt>
+  <dd>{% if mail_step == "saved" %}{{ _("Saved after a delivered test mail.") }}{% else %}{{ _("Skipped.") }}{% endif %}</dd>
+</dl>
+<p>{{ _("The fingerprint identifies the key but cannot be used to rebuild it. Write it next to the backup: a restored key with a different fingerprint is the wrong key.") }}</p>
+<form method="post" action="/setup/finish" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label class="check"><input type="checkbox" name="ack" value="yes" required> {{ _("I backed up SETTINGS_MASTER_KEY and noted the fingerprint") }}</label>
+  <button type="submit">{{ _("Finish setup") }}</button>
+</form>
+{% endblock %}

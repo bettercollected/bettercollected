@@ -9,7 +9,7 @@ session, admin and second-factor levels are supplied by later stages through
 ``GateMiddleware(checkers={Level.X: async_callable(scope) -> bool})``.
 """
 
-from enum import IntEnum
+from enum import Enum, IntEnum
 from typing import Callable, Optional
 
 from fastapi import APIRouter, Depends
@@ -24,6 +24,22 @@ class Level(IntEnum):
     SECOND_FACTOR = 4  # second factor completed
 
 
+class SetupStage(Enum):
+    """Where a ``/setup`` route sits in the first-run wizard (see
+    ``services/setup_wizard.py``). Every route under ``/setup`` must declare
+    one (default deny) and nothing else may; a request outside its stage gets
+    the same bare 404 as an unknown path, whatever the reason."""
+
+    OPEN = "open"  # the token page: no confirmed factor anywhere and a valid token waits
+    # a token attempt (POST): always passes the gate; the handler does the same work and
+    # gives the same answer whether the token is wrong, expired, locked or setup is over
+    ATTEMPT = "attempt"
+    CHECKLIST = "checklist"  # after enrolment: the admin who redeemed the token, until finished
+
+
+SETUP_PREFIX = "/setup"
+SETUP_ATTR = "admin_setup_stage"
+
 # answered without the address gate, for loopback peers only, no details
 HEALTH_PATH = "/healthz"
 LEVEL_ATTR = "admin_level"
@@ -37,7 +53,7 @@ class RouteRegistry:
 
     def route(
         self, path: str, *, level: Level, methods=("GET",), stepup=None,
-        stepup_exempt: Optional[str] = None, **kwargs
+        stepup_exempt: Optional[str] = None, setup: Optional[SetupStage] = None, **kwargs
     ) -> Callable:
         """``stepup`` (optional) is a ``StepUp`` or ``ActionBound`` from
         ``gate.stepup``; it is enforced by a dependency before the handler and
@@ -49,6 +65,15 @@ class RouteRegistry:
             raise ValueError(f"route {path}: a level of ADDRESS or above is required")
         if path == HEALTH_PATH:
             raise ValueError(f"{HEALTH_PATH} is handled by the gate itself")
+        under_setup = path == SETUP_PREFIX or path.startswith(SETUP_PREFIX + "/")
+        if under_setup != (setup is not None):
+            raise ValueError(
+                f"route {path}: routes under {SETUP_PREFIX} declare a setup stage, and only they do"
+            )
+        if setup in (SetupStage.OPEN, SetupStage.ATTEMPT) and level != Level.ADDRESS:
+            raise ValueError(f"route {path}: the open setup stage is an ADDRESS-level page")
+        if setup is SetupStage.CHECKLIST and level != Level.SECOND_FACTOR:
+            raise ValueError(f"route {path}: the checklist stage needs the SECOND_FACTOR level")
 
         from backend.admin.gate import stepup as step
 
@@ -65,6 +90,8 @@ class RouteRegistry:
 
         def decorator(func: Callable) -> Callable:
             setattr(func, LEVEL_ATTR, level)
+            if setup is not None:
+                setattr(func, SETUP_ATTR, setup)
             if stepup is not None:
                 setattr(func, step.STEPUP_ATTR, stepup)
             if stepup_exempt:
@@ -89,4 +116,14 @@ def level_for_scope(routes, scope) -> Optional[Level]:
         if match == Match.FULL:
             level = getattr(getattr(route, "endpoint", None), LEVEL_ATTR, None)
             return level if isinstance(level, Level) else None
+    return None
+
+
+def setup_stage_for_scope(routes, scope) -> Optional[SetupStage]:
+    """The wizard stage of the matching route, None for a route outside it."""
+    for route in routes:
+        match, _ = route.matches(scope)
+        if match == Match.FULL:
+            stage = getattr(getattr(route, "endpoint", None), SETUP_ATTR, None)
+            return stage if isinstance(stage, SetupStage) else None
     return None

@@ -207,6 +207,7 @@ class NotificationSender(Loop):
     # ------------------------------------------------------------- the pass
 
     async def run_once(self) -> str:
+        await self._mailer.refresh_settings()  # saved admin mail settings, at most once a minute
         if not self._mailer.is_configured():
             if self._board is not None:
                 self._board.mail = "mail not configured"

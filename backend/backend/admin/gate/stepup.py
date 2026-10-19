@@ -31,7 +31,7 @@ STEPUP_ATTR = "admin_stepup"
 EXEMPT_ATTR = "admin_stepup_exempt"
 # Mutating routes under these prefixes are DENIED registration unless they declare
 # a step-up or an explicit, reasoned exemption (``stepup_exempt="why"``).
-STEPUP_REQUIRED_PREFIXES = ("/settings", "/tasks")
+STEPUP_REQUIRED_PREFIXES = ("/settings", "/tasks", "/setup")
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 TOKEN_HEADER = "x-stepup-token"
 TOKEN_FIELD = "stepup_token"

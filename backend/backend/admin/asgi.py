@@ -101,6 +101,9 @@ def get_admin_application(
         app = CsrfMiddleware(
             inner, portal.settings.public_origins, portal.csrf_key, portal.clock
         )
-    gated = GateMiddleware(app, settings, checkers, routes=lambda: inner.router.routes)
+    gated = GateMiddleware(
+        app, settings, checkers, routes=lambda: inner.router.routes,
+        setup_checker=portal.setup_checker() if portal is not None else None,
+    )
     gated.inner = inner
     return gated

@@ -16,6 +16,7 @@ import os
 import re
 from dataclasses import dataclass
 from typing import (
+    Awaitable,
     Callable,
     List,
     Mapping,
@@ -34,6 +35,10 @@ SUBJECT_RECOVERY_USE = "Security notice: a recovery code was used"
 SUBJECT_LOCKOUT = "Security notice: admin sign-in was locked"
 SUBJECT_NEW_ADDRESS = "Security notice: admin sign-in from a new address"
 SUBJECT_FACTOR_RESET = "Security notice: a second factor was reset by an operator"
+SUBJECT_SETUP_STARTED = "Security notice: the first-run setup of the admin portal was started"
+SUBJECT_SETUP_LOCKED = "Security notice: the first-run setup token was locked"
+SUBJECT_SETUP_FINISHED = "Security notice: the first-run setup of the admin portal was finished"
+SUBJECT_MAIL_TEST = "Test mail for the admin sign-in"
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f  ]+")
 MAX_VALUE = 120
@@ -114,6 +119,43 @@ def factor_reset_message(account: str) -> Message:
         "If this was not expected, review the admin audit log.\n"
     )
     return Message(SUBJECT_FACTOR_RESET, body)
+
+
+def setup_started_message(account: str, ip: str) -> Message:
+    body = (
+        f"The first-run setup token of the admin portal was used for {clean(account)}.\n"
+        f"It was used from the address {clean(ip)}.\n\n"
+        "If this was not expected, review the admin audit log.\n"
+    )
+    return Message(SUBJECT_SETUP_STARTED, body)
+
+
+def setup_locked_message(ip: str) -> Message:
+    body = (
+        "The first-run setup token was locked after too many wrong tries.\n"
+        f"The last attempt came from the address {clean(ip)}.\n\n"
+        "Someone may be guessing the token. Issue a new one on the host with the "
+        "setup-token command when you are ready.\n"
+    )
+    return Message(SUBJECT_SETUP_LOCKED, body)
+
+
+def setup_finished_message(account: str, ip: str) -> Message:
+    body = (
+        f"{clean(account)} finished the first-run setup of the admin portal.\n"
+        f"It was done from the address {clean(ip)}.\n\n"
+        "If this was not expected, review the admin audit log.\n"
+    )
+    return Message(SUBJECT_SETUP_FINISHED, body)
+
+
+def mail_test_message(code: str) -> Message:
+    body = (
+        f"Your confirmation code is {clean(code)}\n\n"
+        "Enter it in the admin setup to confirm that this mail server works. "
+        "Nothing is saved until you do.\n"
+    )
+    return Message(SUBJECT_MAIL_TEST, body)
 
 
 class MailTransport(Protocol):
@@ -237,6 +279,66 @@ class StaticMailConfigProvider:
         return self._config
 
 
+def mail_config_from_settings(values: Mapping[str, object]) -> MailConfig:
+    """A ``MailConfig`` from stored ``admin_mail`` settings (keys ``ADMIN_MAIL_*``);
+    a missing key keeps the code default."""
+
+    def get(name: str, default):
+        value = values.get(f"ADMIN_MAIL_{name}")
+        return default if value is None else value
+
+    return MailConfig(
+        user=str(get("USER", "")),
+        password=str(get("PASSWORD", "")),
+        smtp_server=str(get("SMTP_SERVER", "")),
+        smtp_port=int(get("SMTP_PORT", 587)),
+        sender=str(get("SENDER", "")),
+        starttls=bool(get("STARTTLS", True)),
+        ssl_tls=bool(get("SSL_TLS", False)),
+        use_credentials=bool(get("USE_CREDENTIALS", True)),
+        validate_certs=bool(get("VALIDATE_CERTS", True)),
+    )
+
+
+class LayeredMailConfigProvider:
+    """The portal's own mail settings: an environment value wins (``ADMIN_MAIL_*``,
+    then the platform's ``MAIL_*``), the saved ``admin_mail`` settings come next.
+
+    ``stored`` is filled by the portal (at start, after the setup wizard saves,
+    and by ``refresher`` at most once a minute); ``get`` itself never touches a
+    database."""
+
+    PREFIX = "ADMIN_MAIL_"
+
+    def __init__(self, env: Optional[Mapping[str, str]] = None) -> None:
+        self._env = env
+        self.stored: Optional[MailConfig] = None
+
+    def _environment(self) -> Tuple[MailConfig, MailConfig]:
+        source = os.environ if self._env is None else self._env
+        renamed = {
+            "MAIL_" + key[len(self.PREFIX):]: value
+            for key, value in source.items()
+            if key.startswith(self.PREFIX)
+        }
+        return MailConfig.from_env(renamed), MailConfig.from_env(source)
+
+    def get(self) -> MailConfig:
+        admin_env, platform_env = self._environment()
+        if admin_env.configured:
+            return admin_env
+        if platform_env.configured:
+            return platform_env
+        return self.stored or platform_env
+
+    def source(self) -> str:
+        """Where the settings in use come from: ``environment``, ``store`` or ``none``."""
+        admin_env, platform_env = self._environment()
+        if admin_env.configured or platform_env.configured:
+            return "environment"
+        return "store" if self.stored is not None and self.stored.configured else "none"
+
+
 TransportFactory = Callable[[MailConfig], MailTransport]
 
 
@@ -249,9 +351,11 @@ class AdminMailer:
         self,
         provider: Optional[MailConfigProvider] = None,
         transport_factory: TransportFactory = FastMailTransport,
+        refresh: Optional[Callable[[], Awaitable[None]]] = None,
     ) -> None:
         self._provider = provider or EnvMailConfigProvider()
         self._factory = transport_factory
+        self._refresh = refresh  # keeps stored settings current; never fatal
         self._cached: Optional[Tuple[MailConfig, MailTransport]] = None
 
     @classmethod
@@ -262,6 +366,12 @@ class AdminMailer:
             lambda _config: transport,
         )
 
+    def with_config(self, config: MailConfig) -> "AdminMailer":
+        """A mailer on exactly ``config`` (same transport factory): the setup
+        wizard's test mail is sent with the candidate settings, never the saved
+        ones."""
+        return AdminMailer(StaticMailConfigProvider(config), self._factory)
+
     def _transport(self) -> MailTransport:
         config = self._provider.get()
         if not config.configured:
@@ -270,7 +380,18 @@ class AdminMailer:
             self._cached = (config, self._factory(config))
         return self._cached[1]
 
+    async def refresh_settings(self) -> None:
+        """Let the provider pick up saved settings (a no-op without a refresher;
+        a failure keeps the last known settings)."""
+        if self._refresh is None:
+            return
+        try:
+            await self._refresh()
+        except Exception as exc:  # noqa: BLE001 - class only
+            logger.warning("admin mail settings not refreshed (%s)", type(exc).__name__)
+
     async def _deliver(self, to: str, message: Message) -> bool:
+        await self.refresh_settings()
         try:
             await self._transport().send(to, message.subject, message.body)
             return True
@@ -321,6 +442,15 @@ class AdminMailer:
         self, admins: Sequence[str], account: str, ip: str
     ) -> int:
         return await self._notify(admins, new_address_message(account, ip))
+
+    async def notify_setup_started(self, admins: Sequence[str], account: str, ip: str) -> int:
+        return await self._notify(admins, setup_started_message(account, ip))
+
+    async def notify_setup_locked(self, admins: Sequence[str], ip: str) -> int:
+        return await self._notify(admins, setup_locked_message(ip))
+
+    async def notify_setup_finished(self, admins: Sequence[str], account: str, ip: str) -> int:
+        return await self._notify(admins, setup_finished_message(account, ip))
 
     async def notify_factor_reset(self, admins: Sequence[str], account: str) -> int:
         return await self._notify(admins, factor_reset_message(account))

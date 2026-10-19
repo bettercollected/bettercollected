@@ -103,7 +103,10 @@ async def test_email_ok_session_reaches_only_mfa_logout_and_static(
         kw["json"] = {}
     response = await b.request(method, fill(route.path), **kw)
     reachable = level <= Level.ADMIN
-    if reachable and route.path.startswith("/mfa"):
+    if route.path.startswith("/setup"):
+        # the wizard never says why or where to go: the bare 404 of an unknown path
+        assert response.status_code == 404 and response.content == b"", route.path
+    elif reachable and route.path.startswith("/mfa"):
         # narrowed by state: no factor yet -> only /mfa/enrol*, others redirect there
         assert response.status_code in (200, 303), route.path
         if response.status_code == 303:

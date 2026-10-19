@@ -24,6 +24,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   stored hashed) and `master-key-fingerprint`. Every change is audited. The admin
   sign-in mail gets its own `admin_mail` settings section, which can only be saved
   after a test mail was delivered (`settings-mail-apply`).
+- **First-run setup wizard in the admin portal.** A fresh install can now be set up
+  without any mail working: the host prints a one-time token (`setup-token`), the
+  operator redeems it at `/setup`, enrols an authenticator, optionally saves the
+  admin sign-in mail settings after a delivered test mail, and notes the master key
+  fingerprint. The wizard exists only while no admin has a second factor and a valid
+  token waits, and closes for good when finished.
 
 ### Changed
 
