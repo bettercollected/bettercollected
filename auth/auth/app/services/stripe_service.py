@@ -23,9 +23,7 @@ class StripeService:
             success_url=settings.stripe_settings.success_url,
             cancel_url=settings.stripe_settings.cancel_url,
         )
-        user: UserDocument = await self.user_repository.get_user_by_id(user_id)
-        user.stripe_payment_id = checkout_session.id
-        await user.save()
+        await self.user_repository.set_stripe_payment_id(user_id, checkout_session.id)
         return checkout_session.url
 
     async def create_portal_session(self, user_id):
@@ -77,9 +75,9 @@ class StripeService:
             if not user:
                 loguru.logger.error("User not found for payment_id:" + stripe_payment_id)
                 return {"message": "User not found for payment_id"}
-            user.stripe_customer_id = stripe_customer_id
-            user.plan = Plans.PRO
-            await user.save()
+            user = await self.user_repository.set_user_plan(
+                user.id, Plans.PRO, stripe_customer_id=stripe_customer_id
+            )
             return {"user": user, "upgrade": True}
         elif (
             event_type == "customer.subscription.deleted"
@@ -94,8 +92,7 @@ class StripeService:
             if not user:
                 loguru.logger.error("User not found with customer_id:" + stripe_customer_id)
                 return {"message": "User not found with customer_id:" + stripe_customer_id}
-            user.plan = Plans.FREE
-            user = await user.save()
+            user = await self.user_repository.set_user_plan(user.id, Plans.FREE)
             return {"user": user, "downgrade": True}
         elif event_type == "invoice.payment_succeeded":
             stripe_customer_id = data.object.customer
@@ -107,6 +104,5 @@ class StripeService:
             if not user:
                 loguru.logger.error("User not found with customer_id:" + stripe_customer_id)
                 return {"message": "User not found with customer_id:" + stripe_customer_id}
-            user.plan = Plans.PRO
-            await user.save()
+            user = await self.user_repository.set_user_plan(user.id, Plans.PRO)
             return {"user": user, "upgrade": True}

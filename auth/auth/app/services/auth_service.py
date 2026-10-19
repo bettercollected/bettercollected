@@ -76,15 +76,11 @@ class AuthService:
         if not (user_document.first_name and user_document.last_name) and (
             user_info.first_name or user_info.last_name
         ):
-            user_document.first_name = (
-                user_info.first_name
-                if user_info.first_name
-                else user_document.first_name
+            user_document = await self.user_repository.update_user_names(
+                user_document.id,
+                first_name=user_info.first_name or user_document.first_name,
+                last_name=user_info.last_name or user_document.last_name,
             )
-            user_document.last_name = (
-                user_info.last_name if user_info.last_name else user_document.last_name
-            )
-            user_document = await user_document.save()
         # The re-issued token continues the backend's signed-in session for the
         # same email, so it keeps that session's proof of the email (and what
         # it grants, like a config-named platform admin's ADMIN).
@@ -162,13 +158,12 @@ class AuthService:
 
         existing_user = await self.user_repository.get_user_by_email(receiver_mail)
         if existing_user:
-            existing_user.otp_code = otp
-            existing_user.otp_expiry = otp_expiry
-            if creator:
-                existing_user.otp_code_for = Roles.FORM_CREATOR
-            else:
-                existing_user.otp_code_for = Roles.FORM_RESPONDER
-            await existing_user.save()
+            await self.user_repository.set_user_otp(
+                existing_user.id,
+                otp_code=otp,
+                otp_expiry=otp_expiry,
+                otp_code_for=Roles.FORM_CREATOR if creator else Roles.FORM_RESPONDER,
+            )
         else:
             await self.user_repository.save_otp_user(
                 email=receiver_mail,

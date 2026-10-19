@@ -103,6 +103,11 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   return value must differ from what was stored). Relation documents get `derived_object_id` so both stores agree.
 - **Joins:** SQL joins only within a group; a `$lookup` into another group's collection is *composed* through that
   group's routed repository (see `postgres/forms.py`). Never query Mongo or Postgres from a service or controller.
+- **No Beanie calls outside the repositories.** `document.save()`, `SomeDocument.find_one(...)` and friends in a
+  service, controller or script reach Mongo only: dual mode never mirrors them and a group read from Postgres loses
+  them. `tests/app/test_direct_db_access.py` (and its auth and google copies, over `common/db/access_guard.py`) fails
+  on any such call outside `app/repositories/` and `migrate/`; add a repository method instead. An allow-list entry
+  needs a written reason.
 - **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
   (query only spine columns; add one + an Alembic revision under `backend/migrations/` when a query needs a new
   field). Migrations run as the service role (`bc_app`), never as the superuser.
@@ -310,7 +315,9 @@ and the nightly procrastinate periodic task `scim_reconcile`. Storage: `scim_dir
 `backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment
 needs but that don't belong in a migration. Pattern to follow for new ones: a reusable `async def seed_x(...)`
 function that assumes Beanie is already initialized (so it can be called from `lifespan` on every boot), plus a thin
-`_main()`/`if __name__ == "__main__":` CLI wrapper that creates its own Mongo client for one-off manual runs. Never
+`_main()`/`if __name__ == "__main__":` CLI wrapper that connects the stores itself for one-off manual runs. Reads
+and writes go through the container's routed repositories, never Beanie documents directly (the direct-access guard,
+`tests/app/test_direct_db_access.py`, fails on that), so every persistence mode sees them. Never
 overwrite existing data — check-then-create, so re-running (including "run" via a normal app restart) is always safe.
 
 **`seed_flow_templates.py`** — seeds the flow-native template gallery (branching used as the hook: support triage,
@@ -326,9 +333,9 @@ up new/changed templates the next time it restarts, no manual step required.
   `DEFAULT_WORKSPACE_ID` silently produces an empty gallery even with templates in the DB: check this first.
 - Idempotent by title + `builder_version="v2"` — never overwrites an existing template, so hand-edits in the DB
   survive restarts. One exception: at startup it gives an existing template's yes/no fields the Yes/No choices
-  earlier versions left out (forms made from them showed the question with nothing to answer). That repair and
-  new templates go through the routed template repository, so mirrored or Postgres-served stores get them too;
-  new templates are also written to Mongo, where the existence check looks.
+  earlier versions left out (forms made from them showed the question with nothing to answer). The existence
+  check, that repair and new templates all go through the routed template repository, so the store that serves
+  templates (Mongo, mirrored or Postgres) is the one checked and written.
 - Every choice-type field needs its choices stored: the responder renders yes/no, dropdown and multiple-choice
   options from `properties.choices` (yes/no falls back to Yes/No, the others show nothing). Use `_yes_no()` and
   `_choices(...)`.

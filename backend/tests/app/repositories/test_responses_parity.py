@@ -309,6 +309,7 @@ async def test_workspace_responders_and_tags(sessions):
         strip(await repo.create_workspace_tag(ws, "vip")) for repo in (mongo, postgres)
     ]
     assert tags[0] == tags[1]
+    tag_id = PydanticObjectId()
     await parity(
         mongo,
         postgres,
@@ -318,8 +319,19 @@ async def test_workspace_responders_and_tags(sessions):
             ("get_workspace_tags", lambda: (PydanticObjectId(),)),
             ("get_responder_by_email_and_workspace_id", lambda: (ws, "a@example.com")),
             ("get_responder_by_email_and_workspace_id", lambda: (ws, "a@example.com")),
+            # patches the existing record; only non-empty fields change
+            ("patch_responder", lambda: (ws, "a@example.com", {"team": "x"}, None)),
+            ("patch_responder", lambda: (ws, "a@example.com", None, [tag_id])),
+            ("patch_responder", lambda: (ws, "a@example.com", {}, [])),
+            # creates one that does not exist yet
+            ("patch_responder", lambda: (ws, "b@example.com", None, [tag_id])),
         ],
     )
+    for repo in (mongo, postgres):
+        stored = await repo.get_responder_by_email_and_workspace_id(
+            ws, "a@example.com"
+        )
+        assert (stored.metadata, stored.tags) == ({"team": "x"}, [tag_id])
 
 
 async def test_responder_groups(sessions):

@@ -414,6 +414,9 @@ async def test_templates(sessions):
             ("get_template_by_id", lambda: (PydanticObjectId(),)),
             ("get_template_by_workspace_id_n_template_id", lambda: (ws, docs[1].id)),
             ("get_template_by_id_with_creator", lambda: (ws, docs[2].id)),
+            ("get_v2_template_by_title", lambda: ("v2",)),
+            ("get_v2_template_by_title", lambda: ("plain",)),  # not v2
+            ("get_v2_template_by_title", lambda: ("missing",)),
         ],
     )
     listed = await postgres.get_templates_with_creator(workspace_id=ws)

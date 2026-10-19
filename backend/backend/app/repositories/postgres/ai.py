@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from backend.app.repositories.postgres.forms import _oid
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
+from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.schemas.api_idempotency_record import (
     IDEMPOTENCY_DONE,
     IDEMPOTENCY_PENDING,
@@ -23,6 +24,7 @@ from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.db.models import (
     AiPreferenceMemoryRow,
     ApiIdempotencyKeyRow,
+    CreateFormPromptRow,
     FormAiInsightRow,
     FormAiSessionRow,
     FormFlowEventRow,
@@ -159,6 +161,19 @@ class PostgresMcpAuditLogRepository(PostgresRepositoryBase):
         self, workspace_id: PydanticObjectId
     ) -> List[MCPAuditLogDocument]:
         return await self.many(McpAuditLogRow.workspace_id == _oid(workspace_id))
+
+
+class PostgresCreateFormPromptRepository(PostgresRepositoryBase):
+    row = CreateFormPromptRow
+    document = CreateFormPrompt
+
+    async def add(self, prompt: CreateFormPrompt) -> CreateFormPrompt:
+        return await self.upsert(prompt)
+
+    async def list_by_form_id(
+        self, form_id: PydanticObjectId
+    ) -> List[CreateFormPrompt]:
+        return await self.many(CreateFormPromptRow.form_id == _oid(form_id))
 
 
 class PostgresRateLimitRepository(PostgresRepositoryBase):
