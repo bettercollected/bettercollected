@@ -28,16 +28,6 @@ export interface InternalAnswersState {
     internalAnswersVersion: number;
 }
 
-interface ImportFormQueryInterface {
-    workspaceId: string;
-    provider: string;
-
-    body: {
-        form: any;
-        response_data_owner: string;
-    };
-}
-
 /** The workspace's AI consent (backend services/ai/consent.py). */
 export interface WorkspaceAISettings {
     enabled: boolean;
@@ -70,118 +60,6 @@ export const workspacesApi = createApi({
         credentials: 'include'
     }),
     endpoints: (builder) => ({
-        getMinifiedForms: builder.query<Array<any>, { provider: string }>({
-            query: (request) => ({
-                url: `/${request.provider}/import`,
-                method: 'GET'
-            }),
-            transformResponse(baseQueryReturnValue: Array<any>, meta, arg) {
-                const provider = arg?.provider;
-                const returnValue: Array<{ label: string; formId: string }> = [];
-                baseQueryReturnValue.forEach((data) => {
-                    if (provider === 'google') {
-                        const parsedForm = { label: data?.name, formId: data?.id };
-                        returnValue.push(parsedForm);
-                    }
-                    if (provider === 'typeform') {
-                        const parsedForm = { label: data?.title, formId: data?.id };
-                        returnValue.push(parsedForm);
-                    }
-                });
-
-                return returnValue;
-            }
-        }),
-        getSingleFormFromProvider: builder.query<any, { provider: string; formId: string }>({
-            query: ({ provider, formId }) => ({
-                url: `/${provider}/import/${formId}`,
-                method: 'GET',
-                refetchOnMountOrArgChange: false,
-                refetchOnReconnect: false,
-                refetchOnFocus: false
-            }),
-            transformResponse(baseQueryReturnValue: any, meta, arg) {
-                const provider = arg?.provider;
-                const fieldItems: Array<{ label: string; questionId: string }> = [];
-                const returnValue = baseQueryReturnValue;
-                if (provider === 'google') {
-                    const formItems = baseQueryReturnValue?.items ?? [];
-                    if (formItems && Array.isArray(formItems)) {
-                        formItems.forEach((item) => {
-                            if (!item?.questionItem?.question?.questionId) return;
-                            const field = {
-                                label: item.title,
-                                questionId: item?.questionItem?.question?.questionId
-                            };
-                            fieldItems.push(field);
-                        });
-
-                        // We're appending clientFormItems in the API response to set parsed field items
-                        // We need to remove this before making POST request when importing the form
-                        returnValue['clientFormItems'] = fieldItems;
-                    }
-                }
-                if (provider === 'typeform') {
-                    const formItems = baseQueryReturnValue?.fields ?? [];
-                    if (formItems && Array.isArray(formItems)) {
-                        const emailFieldsArray = ['short_text', 'long_text', 'phone_number', 'email'];
-                        formItems
-                            .filter((field: any) => emailFieldsArray.includes(field.type))
-                            .forEach((item: any) => {
-                                if (!item?.id) return;
-                                const field = {
-                                    label: item.title,
-                                    questionId: item?.id
-                                };
-                                fieldItems.push(field);
-                            });
-
-                        // We're appending clientFormItems in the API response to set parsed field items
-                        // We need to remove this before making POST request when importing the form
-                        returnValue['clientFormItems'] = fieldItems;
-                    }
-                }
-                return returnValue;
-            }
-        }),
-        verifyFormToken: builder.mutation<any, any>({
-            query: ({ provider }) => ({
-                url: `/${provider}/oauth/verify`,
-                method: 'GET'
-            })
-        }),
-
-        publishForm: builder.mutation<any, any>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/publish`,
-                method: 'POST',
-                body: request.body
-            }),
-            invalidatesTags: [FORM_TAG]
-        }),
-        createForm: builder.mutation<any, any>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms`,
-                method: 'POST',
-                body: request.body
-            }),
-            invalidatesTags: [FORM_TAG]
-        }),
-        patchForm: builder.mutation<any, any>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/${request.formId}`,
-                method: 'PATCH',
-                body: request.body
-            }),
-            invalidatesTags: [FORM_TAG]
-        }),
-        submitResponse: builder.mutation<any, any>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response`,
-                method: 'POST',
-                body: request.body
-            })
-        }),
         deleteResponse: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response/${request.responseId}`,
@@ -191,14 +69,6 @@ export const workspacesApi = createApi({
             // pending counter (getWorkspaceStats) only carry WORKSPACE_TAGS —
             // without it they kept showing the row as Pending after the delete.
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
-        }),
-        importForm: builder.mutation<any, ImportFormQueryInterface>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/import/${request.provider}`,
-                method: 'POST',
-                body: request.body
-            }),
-            invalidatesTags: [WORKSPACE_TAGS]
         }),
         getWorkspaceNameSuggestions: builder.query<any, any>({
             query: (request) => ({
@@ -211,13 +81,6 @@ export const workspacesApi = createApi({
                 url: `/workspaces/check-handle-availability/${request.title}${request?.workspaceId ? `?workspace_id=${request?.workspaceId}` : ''}`,
                 method: 'GET'
             })
-        }),
-        getWorkspace: builder.query<WorkspaceDto, string>({
-            query: (body) => ({
-                url: `/workspaces/${body}`,
-                method: 'GET'
-            }),
-            providesTags: [WORKSPACE_TAGS]
         }),
         getWorkspaceByName: builder.query<WorkspaceDto, string>({
             query: (workspaceName) => ({
@@ -719,17 +582,6 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_TAGS]
         }),
-        patchWorkspacePolicies: builder.mutation<any, any>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspace_id}`,
-                method: 'PATCH',
-                body: request.body,
-                credentials: 'include',
-                headers: {
-                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
-                }
-            })
-        }),
         deleteWorkspaceDomain: builder.mutation<any, any>({
             query: (workspace_id) => ({
                 url: `/workspaces/${workspace_id}/custom-domain`,
@@ -827,19 +679,10 @@ export const workspacesApi = createApi({
 
 export const {
     useDeleteWorkspaceDomainMutation,
-    useGetSingleFormFromProviderQuery,
-    useLazyGetSingleFormFromProviderQuery,
-    useGetMinifiedFormsQuery,
-    useLazyGetMinifiedFormsQuery,
-    useImportFormMutation,
-    useGetWorkspaceQuery,
-    useLazyGetWorkspaceQuery,
     useGetWorkspaceByNameQuery,
     useGetWorkspaceFormsQuery,
     useGetWorkspaceFormQuery,
     useGetWorkspaceStatsQuery,
-    useLazyGetWorkspaceFormsQuery,
-    useCreateFormMutation,
     useGetWorkspaceSubmissionsQuery,
     useGetWorkspaceAllSubmissionsQuery,
     useGetWorkspaceRespondersQuery,
@@ -850,11 +693,9 @@ export const {
     useLazyGetWorkspaceNameAvailabilityQuery,
     useLazySearchWorkspaceFormsQuery,
     useGetFormsSubmissionsQuery,
-    usePatchFormMutation,
     useDeleteResponseMutation,
     usePatchFormSettingsMutation,
     useDeleteFormMutation,
-    useSubmitResponseMutation,
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
     usePatchWorkspaceThemesMutation,
@@ -887,9 +728,7 @@ export const {
     useVerifyEmailDomainMutation,
     useDeleteEmailDomainMutation,
     useDuplicateFormMutation,
-    usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,
-    useLazyGetAllMineWorkspacesQuery,
     useRequestWorkspaceSubmissionDeletionMutation,
     useCreateRespondersGroupMutation,
     useGetRespondersGroupQuery,
@@ -900,8 +739,6 @@ export const {
     useDeleteResponderFromGroupMutation,
     useDeleteGroupFormMutation,
     useUpdateResponderGroupMutation,
-    usePublishFormMutation,
-    useVerifyFormTokenMutation,
     useGetWorkspaceSubmissionByUUIDQuery,
     useLazyGetWorkspaceSubmissionByUUIDQuery,
     useRequestWorkspaceSubmissionDeletionByUUIDMutation,

@@ -25,7 +25,6 @@ class GoogleFormRouter(Routable):
         self.executor = Container.executor()
         self.oauth_credential_service: OauthCredentialService = Container.oauth_credential_service()
         self.google_service = Container.google_service()
-        self.form_service = Container.form_service()
 
     @get("", status_code=HTTPStatus.OK)
     async def _get_all_google_forms(

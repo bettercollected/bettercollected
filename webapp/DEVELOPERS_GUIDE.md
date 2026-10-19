@@ -22,13 +22,10 @@ set up `husky` for running some scripts to check the `Code Format, ESLinting, TS
 Please refer to the [.env.example](.env.example) file for updated environment variables
 
 -   BASE_DEPLOY_PATH
--   GA_MEASUREMENT_ID
 -   NEXT_PUBLIC_NODE_ENV
 -   GOOGLE_IMAGE_DOMAINS
 -   API_ENDPOINT_HOST
 -   CLIENT_HOST
--   ENABLE_GOOGLE
--   ENABLE_TYPEFORM
 -   ENABLE_BRAND_COLORS
 
 ### Directory Structure

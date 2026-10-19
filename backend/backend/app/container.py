@@ -716,12 +716,8 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_schedular = providers.Singleton(
         FormSchedular,
-        form_provider_service=form_provider_service,
-        form_import_service=form_import_service,
-        jwt_service=jwt_service,
         temporal_service=temporal_service,
         form_response_service=form_response_service,
-        workspace_form_repo=workspace_form_repo,
     )
 
     responder_groups_service = providers.Singleton(
@@ -751,7 +747,6 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
         workspace_form_repository=workspace_form_repo,
         form_repo=form_repo,
-        form_schedular=form_schedular,
         form_import_service=form_import_service,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
