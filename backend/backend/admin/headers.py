@@ -31,6 +31,10 @@ SECURITY_HEADERS: Tuple[Tuple[bytes, bytes], ...] = (
 )
 HSTS = (b"strict-transport-security", b"max-age=31536000; includeSubDomains")
 
+# Fonts are the one thing a browser may keep: a handler sets exactly this value, and
+# only it survives (every other response, a font error included, stays no-store).
+FONT_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
 _NAMES = {name for name, _ in SECURITY_HEADERS} | {
     HSTS[0],
     b"server",
@@ -45,6 +49,13 @@ def with_security_headers(
     """``headers`` without any of ours (or a Server / CORS header a handler set),
     followed by ours. ``https`` adds HSTS (only meaningful, and only sent, when
     the request really arrived over TLS)."""
+    headers = list(headers)
+    keep_cache = any(
+        k.lower() == b"cache-control" and v == FONT_CACHE_CONTROL.encode("ascii") for k, v in headers
+    )
     kept = [(k, v) for k, v in headers if k.lower() not in _NAMES]
+    ours = [h for h in SECURITY_HEADERS if not (keep_cache and h[0] == b"cache-control")]
+    if keep_cache:
+        kept.append((b"cache-control", FONT_CACHE_CONTROL.encode("ascii")))
     extra = [HSTS] if https else []
-    return kept + list(SECURITY_HEADERS) + extra
+    return kept + ours + extra

@@ -16,12 +16,14 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 
 from backend.admin import cookies
 from backend.admin.gate.levels import Level, RouteRegistry
+from backend.admin.headers import FONT_CACHE_CONTROL
 from backend.admin.portal import STATIC_DIR, Portal
 from backend.admin.security import csrf
 
 MAX_FIELD = 400
 STATIC_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}\.(css|js)$")
 STATIC_TYPES = {"css": "text/css", "js": "text/javascript"}
+FONT_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}\.woff2$")
 
 
 def _portal(request: Request) -> Portal:
@@ -74,6 +76,14 @@ def build_registry() -> RouteRegistry:
         if path is None or not path.is_file() or path.is_symlink():
             return Response(status_code=404)
         return FileResponse(path, media_type=STATIC_TYPES[path.suffix[1:]])
+
+    @reg.route("/static/fonts/{name}", level=Level.ADDRESS)
+    async def static_font(name: str):
+        path = (STATIC_DIR / "fonts" / name) if FONT_NAME.match(name) else None
+        if path is None or not path.is_file() or path.is_symlink():
+            return Response(status_code=404)
+        # the fonts never change under their name: the one response the portal lets a browser keep
+        return FileResponse(path, media_type="font/woff2", headers={"cache-control": FONT_CACHE_CONTROL})
 
     # -- before sign-in ----------------------------------------------------------
     @reg.route("/login", level=Level.ADDRESS)

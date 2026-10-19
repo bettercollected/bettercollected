@@ -21,9 +21,16 @@ def test_no_safe_filter_or_autoescape_off(path: Path):
     assert not re.search(r"\|\s*safe\b|\|\s*forceescape|Markup|autoescape\s+(false|off)", source)
 
 
-@pytest.mark.parametrize("path", [*TEMPLATES, *STATIC_DIR.glob("*")], ids=lambda p: p.name)
+TEXT_ASSETS = [p for p in sorted(STATIC_DIR.glob("*")) if p.is_file()]
+SELF_HOSTED_FONT = re.compile(r"url\(/static/fonts/[a-z0-9-]+\.woff2\) format\(\"woff2\"\)")
+
+
+@pytest.mark.parametrize("path", [*TEMPLATES, *TEXT_ASSETS], ids=lambda p: p.name)
 def test_no_external_urls_or_inline_code(path: Path):
     source = path.read_text()
+    if path.suffix == ".css":
+        # the only url(): the self-hosted woff2 faces, root-relative
+        source = SELF_HOSTED_FONT.sub("", source)
     assert not re.search(r"https?://|//[a-z0-9.-]+\.[a-z]{2,}|@import|url\(", source, re.I)
     if path.suffix == ".html":
         # the one allowed script: a self-hosted file, no inline code
@@ -78,3 +85,29 @@ def test_session_lifetimes_can_only_be_shortened():
 def test_admin_emails_are_case_insensitive():
     s = PortalSettings.from_env({"PLATFORM_ADMIN_EMAILS": " A@X.org ; b@y.org,,junk"})
     assert s.is_admin("a@x.ORG") and s.is_admin(" B@y.org ") and not s.is_admin("junk")
+
+
+def test_every_font_face_points_at_a_shipped_file():
+    css = (STATIC_DIR / "admin.css").read_text()
+    names = set(re.findall(r"/static/fonts/([a-z0-9-]+\.woff2)", css))
+    assert names and names == {p.name for p in (STATIC_DIR / "fonts").glob("*.woff2")}
+    assert css.count("font-display: swap") >= len(names)
+    assert (STATIC_DIR / "fonts" / "LICENSE").read_text().startswith("The woff2 files")
+
+
+@pytest.mark.parametrize("path", TEMPLATES, ids=lambda p: p.name)
+def test_preloads_are_same_origin_fonts(path: Path):
+    for link in re.findall(r"<link[^>]*rel=\"preload\"[^>]*>", path.read_text()):
+        assert re.search(r'href="/static/fonts/[a-z0-9-]+\.woff2"', link) and 'as="font"' in link and "crossorigin" in link
+
+
+def test_only_the_font_cache_value_survives_the_header_rewrite():
+    from backend.admin.headers import FONT_CACHE_CONTROL, with_security_headers
+
+    def cache(headers):
+        return [v for k, v in headers if k == b"cache-control"]
+
+    assert cache(with_security_headers([(b"cache-control", b"public, max-age=60")])) == [b"no-store"]
+    assert cache(with_security_headers([])) == [b"no-store"]
+    font = FONT_CACHE_CONTROL.encode()
+    assert cache(with_security_headers([(b"cache-control", font)])) == [font]

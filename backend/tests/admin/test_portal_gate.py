@@ -23,7 +23,7 @@ ROUTES = [
 
 
 def fill(path: str) -> str:
-    return path.replace("{name}", "admin.css").replace("{session_id}", str(uuid.uuid4()))
+    return path.replace("{name}", "instrument-sans-latin-400-normal.woff2" if "fonts" in path else "admin.css").replace("{session_id}", str(uuid.uuid4()))
 
 
 def level_of(route) -> Level:
@@ -289,6 +289,28 @@ async def test_static_serves_the_stylesheet_only(app):
     for path in ("/static/", "/static", "/static/..%2Fasgi.py", "/static/asgi.py",
                  "/static/missing.css", "/static/.css", "/static/%2e%2e/config.py"):
         assert (await b.get(path)).status_code == 404, path
+    await b.aclose()
+
+
+@needs_postgres
+async def test_fonts_are_served_as_woff2_with_long_cache_and_nothing_else(app):
+    b = Browser(app)
+    name = "instrument-sans-latin-400-normal.woff2"
+    r = await b.get(f"/static/fonts/{name}")
+    assert r.status_code == 200 and r.headers["content-type"] == "font/woff2"
+    assert r.content[:4] == b"wOF2"
+    assert r.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["content-security-policy"] == CONTENT_SECURITY_POLICY
+    assert r.headers["cross-origin-resource-policy"] == "same-origin"
+    for path in ("/static/fonts/", "/static/fonts/LICENSE", "/static/fonts/missing.woff2", "/static/fonts/..%2Fadmin.css",
+                 "/static/fonts/%2e%2e/admin.css", "/static/fonts/.woff2", "/static/fonts/X.woff2"):
+        missing = await b.get(path)
+        assert missing.status_code == 404, path
+        assert missing.headers["cache-control"] == "no-store", path
+    # the stylesheet and every page stay uncached
+    assert (await b.get("/static/admin.css")).headers["cache-control"] == "no-store"
+    assert (await b.get("/login")).headers["cache-control"] == "no-store"
     await b.aclose()
 
 

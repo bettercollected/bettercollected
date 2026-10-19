@@ -20,7 +20,7 @@
       {% for s in states %}<option value="{{ s }}"{% if s == state %} selected{% endif %}>{{ s }}</option>{% endfor %}
     </select>
   </div>
-  <button type="submit">{{ _("Filter") }}</button>
+  <button type="submit" class="secondary">{{ _("Filter") }}</button>
   <a href="/tasks/runs">{{ _("Clear") }}</a>
 </form>
 
