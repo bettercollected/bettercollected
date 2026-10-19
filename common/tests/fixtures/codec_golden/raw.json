@@ -1,0 +1,158 @@
+{
+ "bson_types": {
+  "checksum": "sha256:2bfc3c39460673d02ed069684d08f2ba8dd1baa35972530d280cd6da47e971a4",
+  "doc": {
+   "_id": {
+    "$oid": "65f0a1b2c3d4e5f601234567"
+   },
+   "bytes": {
+    "$binary": {
+     "base64": "AAFiaW5hcnn/",
+     "subType": "00"
+    }
+   },
+   "decimal": {
+    "$numberDecimal": "1234.5600"
+   },
+   "decimal_negative_zero": {
+    "$numberDecimal": "-0.00"
+   },
+   "empty_bytes": {
+    "$binary": {
+     "base64": "",
+     "subType": "00"
+    }
+   },
+   "ref": {
+    "$oid": "65f0a1b2c3d4e5f60123456a"
+   },
+   "uuid": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   }
+  },
+  "document": "raw"
+ },
+ "containers": {
+  "checksum": "sha256:4e9e5090873aeeb289b8a1add533411df14800d38c020c770554f71d399002f2",
+  "doc": {
+   "_id": {
+    "$oid": "65f0a1b2c3d4e5f601234567"
+   },
+   "empty_list": [],
+   "empty_object": {},
+   "keys": {
+    "": 4,
+    "$weird": 1,
+    "dotted.key": 2,
+    "ünïcode": 3
+   },
+   "mixed_list": [
+    1,
+    "two",
+    3.5,
+    null,
+    true,
+    {
+     "k": {
+      "$date": "2026-03-04T05:06:07.891Z"
+     }
+    },
+    [
+     {
+      "$oid": "65f0a1b2c3d4e5f601234567"
+     }
+    ]
+   ],
+   "nested": {
+    "a": {
+     "y": [
+      1,
+      {
+       "x": [
+        null,
+        {
+         "$oid": "65f0a1b2c3d4e5f601234567"
+        }
+       ]
+      }
+     ]
+    },
+    "z": 1
+   },
+   "tuple": [
+    1,
+    2
+   ]
+  },
+  "document": "raw"
+ },
+ "datetimes": {
+  "checksum": "sha256:812a5ff41f2cbead31efa26aa0e669f9310d2922e5fa00aed22d18783dddc855",
+  "doc": {
+   "_id": {
+    "$oid": "65f0a1b2c3d4e5f601234567"
+   },
+   "aware_offset": {
+    "$date": "2026-03-04T03:06:07.891Z"
+   },
+   "aware_utc": {
+    "$date": "2026-03-04T05:06:07.891Z"
+   },
+   "before_epoch": {
+    "$date": {
+     "$numberLong": "-315576000000"
+    }
+   },
+   "epoch": {
+    "$date": "1970-01-01T00:00:00Z"
+   },
+   "far_future": {
+    "$date": "9999-12-31T23:59:59.999Z"
+   },
+   "iso_string": "2026-03-04T05:06:07.891234+02:00",
+   "minus_offset": {
+    "$date": "2026-01-01T05:00:00Z"
+   },
+   "naive_utc": {
+    "$date": "2026-03-04T05:06:07.891Z"
+   },
+   "whole_second": {
+    "$date": "2026-01-01T00:00:00Z"
+   }
+  },
+  "document": "raw"
+ },
+ "scalars": {
+  "checksum": "sha256:39b3fc8c6464cdde2b67d7637a9c931fc8ec6ab3280b4e175a74179532f569d5",
+  "doc": {
+   "_id": {
+    "$oid": "65f0a1b2c3d4e5f601234567"
+   },
+   "empty": "",
+   "false": false,
+   "float": 0.30000000000000004,
+   "infinity": {
+    "$numberDouble": "Infinity"
+   },
+   "int": 7,
+   "int64": 4611686018427387904,
+   "large_int": 9007199254740993,
+   "minus_infinity": {
+    "$numberDouble": "-Infinity"
+   },
+   "nan": {
+    "$numberDouble": "NaN"
+   },
+   "negative": -9007199254740993,
+   "none": null,
+   "text": "tëxt ✓ \"quoted\" \\ line\nbreak",
+   "tiny_float": 1e-07,
+   "true": true,
+   "whole_float": 3.0
+  },
+  "document": "raw"
+ }
+}
