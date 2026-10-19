@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 
 from common.configs.shipped_secrets import require_secrets
-from common.settings.loader import ensure_poller, load_snapshot
+from common.services.keyset_source import configured_key_ids
+from common.settings.loader import ensure_poller, load_snapshot, set_keyset_key_ids
 from common.settings.loader.pydantic_source import StoreBackedSettings
 from dotenv import load_dotenv
 
@@ -121,6 +122,10 @@ class Application(StoreBackedSettings):
 
 
 settings = Application()
+# The heartbeat carries the fingerprint of the keyset this service holds (key ids
+# only); the admin keyset tasks refuse to promote, re-encrypt or drop a key while
+# a reporting consumer's fingerprint does not match the stored keyset.
+set_keyset_key_ids(configured_key_ids)
 ensure_poller()  # no-op when the store is off
 
 # Tokens from the auth service are checked with AUTH_JWT_SECRET and Google

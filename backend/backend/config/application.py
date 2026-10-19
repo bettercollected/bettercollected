@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 
 from common.configs.shipped_secrets import require_secrets
+from common.services.keyset_source import configured_key_ids
 from common.settings.loader import (
-    current_runtime,
     ensure_poller,
     expose_live,
     load_snapshot,
@@ -110,18 +110,10 @@ expose_live("ai", settings.ai)
 expose_live("api", settings.api_settings)
 
 
-def keyset_key_ids():
-    """Key ids (never key material) of MASTER_ENCRYPTION_KEYSET, for the
-    fingerprint this service reports to the settings store. The value is the
-    resolved one: the environment, else the store's verified row."""
-    from common.services.keyset import KEYSET_ENV, parse_keyset
-
-    value = (os.getenv(KEYSET_ENV) or "").strip()
-    if not value:
-        runtime = current_runtime()
-        resolved = runtime.resolve_key(KEYSET_ENV) if runtime is not None else None
-        value = resolved.value if resolved is not None else ""
-    return [key.key_id for key in parse_keyset(value).key]
+# Key ids (never key material) of MASTER_ENCRYPTION_KEYSET, for the fingerprint
+# this service reports to the settings store: the environment, else the store's
+# verified row (common.services.keyset_source).
+keyset_key_ids = configured_key_ids
 
 
 set_keyset_key_ids(keyset_key_ids)
