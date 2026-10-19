@@ -138,3 +138,13 @@ def test_canonicalising_does_not_modify_the_input():
     original = {"at": LOCAL, "list": [LOCAL], "keep": {"x": 1}}
     canonical_document(original)
     assert original["at"] is LOCAL and original["list"][0] is LOCAL
+
+
+def test_a_row_written_with_an_offset_reads_back_as_the_same_instant():
+    """Rows the application wrote before the UTC conversion may hold
+    ``...+0200``; they decode to the same instant and, when written again,
+    encode the way Mongo's copy does."""
+    legacy = {"at": {"$date": "2026-03-04T05:06:07.891+0200"}}
+    decoded = from_canonical_document(legacy)
+    assert decoded["at"] == LOCAL
+    assert canonical_document(decoded) == {"at": {"$date": "2026-03-04T03:06:07.891Z"}}
