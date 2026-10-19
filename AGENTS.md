@@ -32,7 +32,7 @@ Public site: https://bettercollected.com · License: see [LICENSE](LICENSE).
 **PostgreSQL `app-postgres`** (the application database replacing MongoDB and Temporal — one schema per
 service, `app`/`auth`/`google`/`jobs`, one least-privilege role each; plan in `plans/postgres-consolidation.md`),
 **PostgreSQL + Temporal server** (workflow engine), **Redis**, **nginx** (routes the admin / client / custom-domain
-hosts), **Umami + its own PostgreSQL** (self-hosted product analytics, admin UI on `:3003` — see
+hosts), **Umami + its own PostgreSQL** (self-hosted product analytics, tracker on `:3003` via nginx, dashboard on `127.0.0.1:3004` — see
 `backend/AGENTS.md` "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`).
 
 > Note: `integrations/typeform/` and `common/` are referenced by build scripts but live in separate repos /

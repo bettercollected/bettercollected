@@ -103,9 +103,11 @@ third-party service ever sees responder data:
 `deploy.sh` brings up the full stack from
 [`docker-compose.deployment.yml`](docker-compose.deployment.yml) with health
 checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
-auth, MongoDB (+ seed data), Temporal + workers, nginx (`:3001`/`:3002`), and
-[Umami](https://umami.is) analytics (`:3003`; the built-in `admin`/`umami`
-login is replaced by a generated password on the first run). Temporal and the
+auth, MongoDB (+ seed data), Temporal + workers, nginx (`:3001`/`:3002`), the
+internal admin service, the jobs worker and the document sandbox, and
+[Umami](https://umami.is) analytics (its tracker on `:3003` through nginx; its
+dashboard on `127.0.0.1:3004` only, with the built-in `admin`/`umami` login
+replaced by a generated password on the first run). Temporal and the
 databases are reachable on the compose network only.
 
 **What you provide:** one value, `PLATFORM_ADMIN_EMAILS` (who may sign in to
@@ -130,6 +132,10 @@ portal) to the address(es) or CIDR(s) it connects to the backend from
 (comma-separated). The backend takes the client address from `X-Forwarded-For`
 only for requests from those proxies; without it every client looks like the
 proxy (and shares its rate limits).
+Do not put a reverse proxy in front of the admin portal's port (`8100`): behind a
+proxy on the host every client would look like the Docker gateway, which the
+portal's address check admits. Reach the portal with an SSH tunnel (see
+[docs/admin-service.md](docs/admin-service.md), "Network").
 
 **Upgrading an existing instance:** re-run `./deploy.sh`. It imports the keys and
 settings your root `.env` and `.env.deployment` hold into the settings store
