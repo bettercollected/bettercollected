@@ -8,7 +8,7 @@ from sqlalchemy import Index
 
 from common.db import BaseRow, MirrorWriteFailureMixin
 from googleform.db.base import S, Base
-from common.db.migrate import MigrationProgressMixin
+from common.db.migrate import MigrationProgressMixin, StoreMigrationMixin
 
 
 class GoogleFormRow(Base, BaseRow):
@@ -52,3 +52,10 @@ class MigrationProgress(Base, MigrationProgressMixin):
     """Checkpoints of the Mongo → Postgres backfill (python -m <service>.migrate)."""
 
     __tablename__ = "migration_progress"
+
+
+class StoreMigration(Base, StoreMigrationMixin):
+    """The "migration verified" marker and per-group verify records
+    (common.db.marker); written only by a clean ``verify``."""
+
+    __tablename__ = "store_migration"
