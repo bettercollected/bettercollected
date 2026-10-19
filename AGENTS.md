@@ -30,10 +30,10 @@ Public site: https://bettercollected.com · License: see [LICENSE](LICENSE).
 
 **Infra** (via `docker-compose.local.yml` / `docker-compose.deployment.yml`): **MongoDB** (app data),
 **PostgreSQL `app-postgres`** (the application database replacing MongoDB and Temporal — one schema per
-service, `app`/`auth`/`google`/`jobs`, one least-privilege role each; plan in `plans/postgres-consolidation.md`),
+service, `app`/`auth`/`google`/`jobs`, one least-privilege role each; runbook in `docs/postgres-cutover-runbook.md`),
 **PostgreSQL + Temporal server** (workflow engine), **Redis**, **nginx** (routes the admin / client / custom-domain
 hosts), **Umami + its own PostgreSQL** (self-hosted product analytics, tracker on `:3003` via nginx, dashboard on `127.0.0.1:3004` — see
-`backend/AGENTS.md` "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`).
+`backend/AGENTS.md` "Analytics (Umami)").
 
 > Note: `integrations/typeform/` and `common/` are referenced by build scripts but live in separate repos /
 > are vendored per service. Only `integrations/google` and a top-level `common/` are present in this checkout.
@@ -73,8 +73,8 @@ Python services double-nest the package: the FastAPI code for `backend` lives at
 
 ## Environment & setup
 
-- **Prereqs:** Python **3.10** (exact — services pin `python3.10`), **Poetry**, **Node 16.18+**, **Yarn 1.x**, Docker.
-- **One-shot setup:** `./install.sh` (Poetry install for Python services + `yarn` for webapp; skips missing dirs).
+- **Prereqs:** Python **3.11** (see `.python-version`; services require `>=3.10`), **uv**, **Node 22** (see `.nvmrc`), **Yarn 1.x**, Docker.
+- **One-shot setup:** `./install.sh` (`uv sync` for the Python services + `yarn` for the webapp; skips missing dirs).
 - **Env file:** copy/fill `.env.deployment` (keys: `MONGO_URI`, Stripe, Google/Typeform OAuth,
   `TEMPORAL_SERVER_URL`, mail). It ships no secrets: `deploy.sh` generates `AUTH_JWT_SECRET`,
   `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` into the root `.env`, and the services refuse to start

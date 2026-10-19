@@ -137,16 +137,18 @@ proxy on the host every client would look like the Docker gateway, which the
 portal's address check admits. Reach the portal with an SSH tunnel (see
 [docs/admin-service.md](docs/admin-service.md), "Network").
 
-**Upgrading an existing instance:** re-run `./deploy.sh`. It imports the keys and
-settings your root `.env` and `.env.deployment` hold into the settings store
-(never overwriting), compares them, and tells you when to remove the old values
-with `./deploy.sh settings-prune`. Read "Upgrading to 4.0" in
-[docs/admin-service.md](docs/admin-service.md) first, and back up the root
-`.env` and the database. If you deploy without `deploy.sh`, set the same random
-value as `TEMPORAL_API_KEY` in the settings store and as `API_KEY` on the
-Temporal worker and the actions-executor; until then imports, scheduled
-deletions and form actions fail with 503 and the services log an error at
-startup.
+**Upgrading an existing instance:** read
+[Upgrading to 4.0](docs/admin-service.md#upgrading-to-40) first (backups, what
+changes, the steps in order, behaviour changes, rollback, and a checklist for after
+the deploy), and see the [changelog](CHANGELOG.md). In short: back up the root `.env`,
+`.env.deployment` and the database, set `PLATFORM_ADMIN_EMAILS` (and `TRUSTED_PROXIES`
+behind a proxy) in the root `.env`, then re-run `./deploy.sh`. It imports the keys and
+settings your files hold into the settings store (never overwriting), compares them,
+and tells you when to remove the old values with `./deploy.sh settings-prune`. Back up
+`SETTINGS_MASTER_KEY`: it cannot be recovered. If you deploy without `deploy.sh`, set
+the same random value as `TEMPORAL_API_KEY` in the backend and as `API_KEY` on the
+Temporal worker and the actions-executor; until then imports, scheduled deletions and
+form actions fail with 503 and the services log an error at startup.
 
 ### CI deployments
 

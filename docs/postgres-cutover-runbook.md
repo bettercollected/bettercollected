@@ -2,8 +2,7 @@
 
 Operator procedure for moving bettercollected's data from MongoDB (and its jobs from Temporal)
 to the `app-postgres` PostgreSQL database, one repository group at a time, with rollback at every
-step. Background and design decisions: `plans/postgres-consolidation.md` (private). Code
-conventions: `backend/AGENTS.md` "Persistence".
+step. Code conventions: `backend/AGENTS.md` "Persistence".
 
 Everything below is driven by environment variables read at boot — **a flip is a restart**, never
 a code change — and by the migration CLI, which runs out of band as a one-off process.

@@ -60,7 +60,7 @@ The repository includes an internal admin portal (`docs/admin-service.md`). A su
 - Every sign-in, change and refusal is written to an append-only audit log chained with a keyed hash;
   `python -m backend.admin audit-verify` recomputes the chain. Secret values are never shown in pages or logs.
 - The database role it uses can read and write only its own schemas; it cannot read application data except
-  through one read-only function that returns counts.
+  through two read-only functions that return counts.
 - The break-glass path is the host command line (`python -m backend.admin`): unlock an address, lift the sign-in
   pause, revoke sessions, or remove a lost second factor. Each is audited, and a factor reset also mails every administrator. There is
   no email-only reset.
