@@ -17,7 +17,7 @@ import datetime
 import secrets
 from datetime import timedelta, timezone
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from beanie import PydanticObjectId
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -151,6 +151,17 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
         self, domain_id: str
     ) -> Optional[WorkspaceDocument]:
         return await self.one(WorkspaceRow.doc["custom_domain_id"].astext == domain_id)
+
+    async def list_custom_domain_references(self) -> List[Tuple[str, str]]:
+        # Mongo's {"custom_domain_disabled": {"$ne": true}}: only a JSON true excludes
+        stmt = select(WorkspaceRow.custom_domain, WorkspaceRow.id).where(
+            WorkspaceRow.custom_domain.is_not(None),
+            WorkspaceRow.custom_domain != "",
+            not_(WorkspaceRow.doc.contains({"custom_domain_disabled": True})),
+        )
+        async with self._session() as session:
+            rows = (await session.execute(stmt)).all()
+        return sorted(((domain, str(ws)) for domain, ws in rows), key=lambda row: row[1])
 
     async def get_or_404(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
         return await self.get_or_raise(workspace_id)

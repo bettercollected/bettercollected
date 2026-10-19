@@ -28,43 +28,47 @@ def _tables():
     }
 
 
+async def schedule_expirations(responses_repo, schedule) -> int:
+    """Hand every response with an expiration to ``schedule``, read through the
+    routed responses repository (so from ``DB_READ_SOURCE__responses``, the
+    store the services read). Returns how many were scheduled."""
+    from common.models.standard_form import StandardFormResponse
+
+    scheduled = 0
+    for response_id, expiration in await responses_repo.list_expiration_schedules():
+        await schedule(
+            StandardFormResponse(response_id=response_id, expiration=expiration)
+        )
+        scheduled += 1
+    return scheduled
+
+
 async def jobs_sweep(backend: str) -> dict:
     """Every response with an expiration gets its deletion (re)scheduled on
     ``backend``; queueing locks / schedule ids make this idempotent."""
-    from pymongo import AsyncMongoClient
-
-    from backend.app.container import container
     from backend.app.services.temporal_service import TemporalService
+    from backend.cli_store import routed_repositories
     from backend.jobs.app import app as jobs_app
     from common.db import load_flags
-    from common.models.standard_form import StandardFormResponse
 
-    service = TemporalService(
-        server_uri=settings.temporal_settings.server_uri,
-        namespace=settings.temporal_settings.namespace,
-        crypto=container.crypto(),
-        flags=load_flags({"JOBS_BACKEND__delete_response": backend}),
-        jobs=jobs_app,
-    )
-    client = AsyncMongoClient(settings.mongo_settings.URI)
-    responses = client[settings.mongo_settings.DB]["form_responses"]
-    scheduled = 0
-    async with jobs_app.open_async():
-        async for doc in responses.find(
-            {
-                "expiration_type": {"$in": ["date", "days"]},
-                "expiration": {"$type": "string"},
-            },
-            {"response_id": 1, "expiration": 1},
-        ):
-            await service.add_scheduled_job_for_deleting_response(
-                StandardFormResponse(
-                    response_id=doc["response_id"], expiration=doc["expiration"]
-                )
+    async with routed_repositories("responses") as container:
+        service = TemporalService(
+            server_uri=settings.temporal_settings.server_uri,
+            namespace=settings.temporal_settings.namespace,
+            crypto=container.crypto(),
+            flags=load_flags({"JOBS_BACKEND__delete_response": backend}),
+            jobs=jobs_app,
+        )
+        async with jobs_app.open_async():
+            scheduled = await schedule_expirations(
+                container.form_response_repo(),
+                service.add_scheduled_job_for_deleting_response,
             )
-            scheduled += 1
-    await client.close()
-    return {"backend": backend, "scheduled": scheduled}
+    return {
+        "backend": backend,
+        "read_from": container.flags().read_source("responses").value,
+        "scheduled": scheduled,
+    }
 
 
 if __name__ == "__main__":

@@ -29,46 +29,42 @@ import os
 import sys
 
 from bson import ObjectId
-from dependency_injector import providers
-from pymongo import AsyncMongoClient
 
 from backend.app.container import container
-from backend.app.handlers.database import init_db
 from backend.app.services.custom_domain_origins import (
     prune_unverified_origins,
     sync_custom_domain_origin,
 )
 from backend.app.services.custom_domain_service import READY, domain_fields
+from backend.cli_store import routed_repositories
 from backend.config import settings
 
-DOMAIN_FILTER = {
-    "custom_domain": {"$nin": [None, ""]},
-    "custom_domain_disabled": {"$ne": True},
-}
+# the workspaces (identity) and the allowed origins (refdata), through the routed
+# repositories: from the store the services read, written to the ones they write
+GROUPS = ("identity", "refdata")
 
 
-async def _open():
-    client = AsyncMongoClient(settings.mongo_settings.URI)
-    container.database_client.override(providers.Object(client))
-    await init_db(settings.mongo_settings.DB, client)
-    return client
+def reference_map(rows) -> dict:
+    """{hostname: workspace id} from ``(custom_domain, workspace id)`` rows."""
+    return {domain.strip().lower().rstrip("."): ws for domain, ws in rows}
 
 
 async def export_reference_map(out: str) -> int:
-    client = await _open()
-    workspaces = client[settings.mongo_settings.DB]["workspaces"]
-    references = {}
-    async for doc in workspaces.find(DOMAIN_FILTER, {"custom_domain": 1}):
-        references[doc["custom_domain"].strip().lower().rstrip(".")] = str(doc["_id"])
+    async with routed_repositories(*GROUPS):
+        rows = await container.workspace_repo().list_custom_domain_references()
+    references = reference_map(rows)
     with open(out, "w") as handle:
         json.dump(references, handle, indent=1, sort_keys=True)
     print(f"{len(references)} hostnames written to {out}")
-    await client.close()
     return 0
 
 
 async def adopt(dry_run: bool) -> int:
-    client = await _open()
+    async with routed_repositories(*GROUPS):
+        return await _adopt(dry_run)
+
+
+async def _adopt(dry_run: bool) -> int:
     service = container.custom_domain_service()
     repo = container.workspace_repo()
     counts = {
@@ -107,7 +103,6 @@ async def adopt(dry_run: bool) -> int:
                 domain.status == READY,
             )
     print(json.dumps(counts))
-    await client.close()
     return 0 if not (counts["hostname_mismatch"] or counts["unknown_workspace"]) else 1
 
 
@@ -124,7 +119,11 @@ async def subscribe(url: str, secret_file: str) -> int:
 
 
 async def sweep(dry_run: bool) -> int:
-    client = await _open()
+    async with routed_repositories(*GROUPS):
+        return await _sweep(dry_run)
+
+
+async def _sweep(dry_run: bool) -> int:
     service = container.custom_domain_service()
     repo = container.workspace_repo()
     orphans = []
@@ -137,19 +136,18 @@ async def sweep(dry_run: bool) -> int:
         if not dry_run:
             await service.delete(domain.id)
     print(f"{len(orphans)} orphan domains {'found' if dry_run else 'deleted'}")
-    await client.close()
     return 0
 
 
 async def prune_origins(dry_run: bool, orphans: bool, keep: list) -> int:
-    client = await _open()
-    result = await prune_unverified_origins(
-        container.allowed_origins_repo(),
-        container.workspace_repo(),
-        include_orphans=orphans,
-        keep=keep,
-        dry_run=dry_run,
-    )
+    async with routed_repositories(*GROUPS):
+        result = await prune_unverified_origins(
+            container.allowed_origins_repo(),
+            container.workspace_repo(),
+            include_orphans=orphans,
+            keep=keep,
+            dry_run=dry_run,
+        )
     for origin in result["removed"]:
         print(f"  {'would remove' if dry_run else 'removed'} {origin}")
     for origin in result["orphans"]:
@@ -164,7 +162,6 @@ async def prune_origins(dry_run: bool, orphans: bool, keep: list) -> int:
             }
         )
     )
-    await client.close()
     return 0
 
 
