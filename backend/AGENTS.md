@@ -89,7 +89,7 @@ Routers are registered in [backend/app/router.py](backend/app/router.py) via the
 ## Persistence (MongoDB → PostgreSQL, in progress)
 
 Application data lives in MongoDB (Beanie Documents) **and** is moving to PostgreSQL (`app-postgres`, schema `app`);
-plan and decisions in `plans/postgres-consolidation.md`. What that means when you touch data code:
+runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch data code:
 
 - **Every repository is routed.** The container hands out `RoutingRepository` proxies over a Mongo implementation and
   its Postgres *twin* (`app/repositories/postgres/*.py`, one class per Mongo repository, same public methods —
@@ -127,7 +127,7 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
   `common.services.crypto_service` (tests enforce it). New admin tables need explicit grants in their revision: there
   are deliberately no default privileges. Sessions, email-code sign-in, CSRF and gate levels 2-4 live in
   `services/sessions.py`, `services/signin.py`, `gate/checkers.py`, `gate/csrf.py` and `controllers/portal.py` (pages are
-  Jinja2 templates with no inline script or style; details in `docs/admin-service.md`). The read-only pages (dashboard, health, configuration, metrics, audit log, sessions) are in `controllers/pages.py`, `services/pages.py` and `repositories/views.py`; they are GET-only at the second-factor level and never select secret values. Platform counts come from two definer functions, `admin.platform_counts_app()` and `admin.platform_counts_auth()` (created by `postgres/ensure-admin-roles.sh`, each owned by a NOLOGIN role of its own schema, `bc_count_app` / `bc_count_auth`, with column-level SELECT on that schema only; never a superuser, they call only `pg_catalog` functions, no definer function may read tables of more than one owning role; the admin roles cannot read `app`/`auth`; `repositories/views.py` combines the answers as data). Admin writes are serialised by row locks (`admin.take_lock`, migration 0013), never advisory locks; the runner's audit rows go through `tasks.audit_append` / `settings.task_write_keyset` (migration 0015), the runner role has no access to `admin.audit_log`; settings history rows are never updated (re-wraps append to `settings.history_wraps`). Pages show a permanent reminder to back up `SETTINGS_MASTER_KEY`. Tests: `tests/admin/`.
+  Jinja2 templates with no inline script or style; details in `docs/admin-service.md`). The viewing pages (dashboard, health, configuration, metrics, audit log, sessions) are in `controllers/pages.py`, `services/pages.py` and `repositories/views.py`; they are GET-only at the second-factor level and never select secret values. The settings and task pages (which change state, behind a fresh code) and the setup wizard are described in `docs/admin-service.md`. Platform counts come from two definer functions, `admin.platform_counts_app()` and `admin.platform_counts_auth()` (created by `postgres/ensure-admin-roles.sh`, each owned by a NOLOGIN role of its own schema, `bc_count_app` / `bc_count_auth`, with column-level SELECT on that schema only; never a superuser, they call only `pg_catalog` functions, no definer function may read tables of more than one owning role; the admin roles cannot read `app`/`auth`; `repositories/views.py` combines the answers as data). Admin writes are serialised by row locks (`admin.take_lock`, migration 0013), never advisory locks; the runner's audit rows go through `tasks.audit_append` / `settings.task_write_keyset` (migration 0015), the runner role has no access to `admin.audit_log`; settings history rows are never updated (re-wraps append to `settings.history_wraps`). Pages show a permanent reminder to back up `SETTINGS_MASTER_KEY`. Tests: `tests/admin/`.
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.
@@ -341,8 +341,7 @@ up new/changed templates the next time it restarts, no manual step required.
 
 Form-view analytics (`FormAnalyticsRouter` — `/{workspace_name}/forms/{slug}/{stats,pageviews,metrics}`) proxy a
 self-hosted [Umami](https://umami.is) instance via `services/umami_client.py`. It used to default to a
-BetterCollected-hosted Umami; that's gone — see `plans/umami-self-hosted-form-analytics.md` for the full rationale
-and architecture.
+BetterCollected-hosted Umami; that's gone, so no self-hosted deployment phones home.
 
 - **Debug mode:** `DEBUG` defaults to false (no HTML tracebacks on 500s). `backend/.env.example` sets `DEBUG="true"` for local development; deployments keep it off.
 - **Local dev:** `docker compose -f docker-compose.local.yml up` starts Umami at `http://localhost:3003` (default
@@ -789,7 +788,7 @@ one of ours; `services/image_urls.py` is the single allow-list:
 - **Jobs:** `services/temporal_service.py` starts the three background jobs — user deletion, scheduled response
   deletion (at the response's expiration), action-code execution — on Temporal (default) or, per job kind via
   `JOBS_BACKEND__<job>=postgres`, as procrastinate jobs (`backend/jobs/tasks.py`; `run_action` is deferred by name and
-  executed by `temporal/actions-executor`). See plans/postgres-consolidation.md §7.
+  executed by `temporal/actions-executor`). See `docs/postgres-cutover-runbook.md`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
   `DELETE /auth/user`) with the `api-key` header, checked by `get_api_key` (`user_service.py`) against
   `TEMPORAL_API_KEY` (`services/internal_job_key.py`): **503** while it is unset, empty or the old
