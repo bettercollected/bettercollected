@@ -46,9 +46,17 @@ def test_refuses_a_missing_or_weak_master_key_without_printing_it(value):
 
 
 def test_accepts_url_safe_base64_and_exactly_32_bytes():
-    raw = bytes([251, 255, 254] * 11)[:32]
+    raw = bytes([251, 255, 254, 250, 3, 77, 129, 200] * 4)[:32]
     assert parse_master_key(base64.urlsafe_b64encode(raw).decode()) == raw
     assert parse_master_key(base64.b64encode(raw).decode()) == raw
+
+
+@pytest.mark.parametrize("raw", [bytes(32), b"a" * 48, bytes([251, 255, 254] * 11)[:32]])
+def test_refuses_a_key_of_nearly_identical_bytes_without_showing_it(raw):
+    value = base64.b64encode(raw).decode()
+    with pytest.raises(AdminConfigError) as raised:
+        parse_master_key(value)
+    assert value not in str(raised.value) and "random" in str(raised.value)
 
 
 @pytest.mark.parametrize("url", [None, "", "mysql://u:p@h/db", "http://x"])

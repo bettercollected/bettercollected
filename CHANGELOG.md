@@ -69,6 +69,24 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- **Admin portal hardening from a security review.** Wrong email codes no longer
+  lock the genuine admin out (they count per email and address; the second factor
+  keeps its own lock), a flood against one sign-in cookie costs no database work and
+  no audit rows, and the code-request limits no longer collapse into one bucket behind
+  the Docker gateway address (which now also logs a startup warning). Replacing the
+  authenticator and making new recovery codes need a fresh code in the request, and
+  new recovery codes mail every admin. The setup token cannot be burned by a flood,
+  and a saved mail password is pinned to its TLS settings. Responses add HSTS (over
+  TLS) and a deny-all `Permissions-Policy`.
+- **The settings store checks key material when it is written.** Weak or malformed
+  `AUTH_JWT_SECRET`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`,
+  `AUTH_AES_HEX_KEY`, `MASTER_ENCRYPTION_KEYSET` and custom-domain keys are refused
+  on `settings-set`, `settings-import`, `bootstrap-keys` and in the portal (a legacy
+  short JWT secret must be replaced before it can be imported). With
+  `SETTINGS_STORE=required` a service refuses to start on a store older than its own
+  snapshot, and the admin integrity check flags a store behind what running services
+  report. The actions executor is no longer listed as a reader of the Fernet and
+  internal API keys.
 - **Temporal is no longer published on the host, and Umami's built-in login is
   replaced.** `docker-compose.deployment.yml` published Temporal's unauthenticated
   frontend on host port 7234; it is reachable on the compose network only now

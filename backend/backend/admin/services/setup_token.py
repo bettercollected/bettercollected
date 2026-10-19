@@ -148,10 +148,16 @@ async def issue(
     return token, bool(revoked)
 
 
-async def redeem(conn: AsyncConnection, master: bytes, token: str) -> bool:
+async def redeem(
+    conn: AsyncConnection, master: bytes, token: str, *, count_failures: bool = True
+) -> bool:
     """Consume the active token if ``token`` is it. A wrong token counts as a
     failed attempt; the 20th locks the token for good. Constant-time compare;
-    the same ``False`` for a wrong, expired, used, revoked or locked token."""
+    the same ``False`` for a wrong, expired, used, revoked or locked token.
+
+    ``count_failures=False`` (the caller's address is over its try limits) still
+    lets the right token through but does not let a wrong one use up the
+    token's tries, so a flood from an address cannot burn the token."""
     await _lock(conn)
     now = await _now(conn)
     row = (
@@ -177,6 +183,8 @@ async def redeem(conn: AsyncConnection, master: bytes, token: str) -> bool:
             update(setup_tokens).where(setup_tokens.c.id == row.id).values(consumed_at=now)
         )
         return True
+    if not count_failures:
+        return False
     failed = row.failed_attempts + 1
     values = {"failed_attempts": failed}
     if failed >= MAX_FAILED_ATTEMPTS:

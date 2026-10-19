@@ -7,6 +7,7 @@ A request that fails the first two gates gets a bare 404 and never reaches
 anything else: no routing, no application code, no database.
 """
 
+import ipaddress
 import logging
 import re
 import time
@@ -83,6 +84,9 @@ class GateMiddleware:
         self.checkers = dict(checkers or {})
         self.setup_checker = setup_checker
         self._routes = routes  # a list of routes or a callable returning one
+        self._proxy_nets = tuple(
+            ipaddress.ip_network(part) for part in settings.trusted_proxies.split(",") if part
+        )
         self._limiter = _LogLimiter()
 
     async def __call__(self, scope, receive, send):
@@ -97,13 +101,14 @@ class GateMiddleware:
         request_id = uuid.uuid4().hex
         scope.setdefault("state", {})["request_id"] = request_id
         started = False
+        https = self._is_https(scope)
 
         async def guarded_send(message):
             nonlocal started
             if message["type"] == "http.response.start":
                 started = True
                 message = dict(message)
-                headers = with_security_headers(message.get("headers", ()))
+                headers = with_security_headers(message.get("headers", ()), https=https)
                 headers.append((b"x-request-id", request_id.encode("ascii")))
                 message["headers"] = headers
             await send(message)
@@ -129,6 +134,23 @@ class GateMiddleware:
             )
             if not started:
                 await respond(500)
+
+    def _is_https(self, scope) -> bool:
+        """The request reached us over TLS: the ASGI scheme says so, or a trusted
+        proxy (``ADMIN_TRUSTED_PROXIES``) reports ``X-Forwarded-Proto: https``.
+        Anyone else's forwarded header is ignored."""
+        if scope.get("scheme") == "https":
+            return True
+        if not self.settings.trusted_proxies:
+            return False
+        peer = parse_address(scope["client"][0] if scope.get("client") else None)
+        if peer is None or not any(
+            peer.version == net.version and peer in net
+            for net in self._proxy_nets
+        ):
+            return False
+        values = _header_values(scope, b"x-forwarded-proto")
+        return bool(values) and values[-1].split(",")[-1].strip().lower() == "https"
 
     def _deny(self, scope, peer, client, reason, request_id):
         dropped = self._limiter.allow()

@@ -38,6 +38,8 @@ SUBJECT_FACTOR_RESET = "Security notice: a second factor was reset by an operato
 SUBJECT_SETUP_STARTED = "Security notice: the first-run setup of the admin portal was started"
 SUBJECT_SETUP_LOCKED = "Security notice: the first-run setup token was locked"
 SUBJECT_SETUP_FINISHED = "Security notice: the first-run setup of the admin portal was finished"
+SUBJECT_SURGE = "Security notice: many wrong sign-in codes for an admin account"
+SUBJECT_RECOVERY_REGENERATED = "Security notice: recovery codes of an admin account were replaced"
 SUBJECT_MAIL_TEST = "Test mail for the admin sign-in"
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f  ]+")
@@ -98,6 +100,28 @@ def lockout_message(account: str, ip: str, minutes: int) -> Message:
         "If this was not you, someone may be guessing codes.\n"
     )
     return Message(SUBJECT_LOCKOUT, body)
+
+
+def surge_message(account: str, count: int) -> Message:
+    body = (
+        f"There were {int(count)} wrong email codes for the admin account "
+        f"{clean(account)} within an hour, from one or several addresses.\n"
+        "Nobody was locked out by this notice and the account still works with a "
+        "valid code.\n\n"
+        "If this was not you, someone may be guessing codes: review the admin audit "
+        "log and who can reach the admin address.\n"
+    )
+    return Message(SUBJECT_SURGE, body)
+
+
+def recovery_regenerated_message(account: str, ip: str) -> Message:
+    body = (
+        f"The recovery codes of the admin account {clean(account)} were replaced "
+        f"from the address {clean(ip)}. The old codes no longer work.\n\n"
+        "If this was not expected, review the admin audit log and revoke the "
+        "account's sessions.\n"
+    )
+    return Message(SUBJECT_RECOVERY_REGENERATED, body)
 
 
 def new_address_message(account: str, ip: str) -> Message:
@@ -437,6 +461,14 @@ class AdminMailer:
         self, admins: Sequence[str], account: str, ip: str, minutes: int
     ) -> int:
         return await self._notify(admins, lockout_message(account, ip, minutes))
+
+    async def notify_surge(self, admins: Sequence[str], account: str, count: int) -> int:
+        return await self._notify(admins, surge_message(account, count))
+
+    async def notify_recovery_regenerated(
+        self, admins: Sequence[str], account: str, ip: str
+    ) -> int:
+        return await self._notify(admins, recovery_regenerated_message(account, ip))
 
     async def notify_new_address(
         self, admins: Sequence[str], account: str, ip: str

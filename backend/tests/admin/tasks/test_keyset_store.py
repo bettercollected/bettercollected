@@ -183,7 +183,7 @@ async def test_the_history_of_the_keyset_is_never_pruned(world, store, server, m
         )
         assert code == "42501" and "never pruned" in message
     # and the portal's own prune of other secrets still works
-    await settings_service(world.admin).import_once("TEMPORAL_API_KEY", "x" * 40, Actor("cli"))
+    await settings_service(world.admin).import_once("TEMPORAL_API_KEY", "3f9a1c7e5b2d48a6c0e1f7d3b9a5c2e84d6f1a0b7c3e9d5f2a8b4c6e0d1f3a79", Actor("cli"))
 
 
 async def test_the_runner_cannot_widen_who_reads_the_keyset(world, store, monkeypatch):
@@ -358,7 +358,7 @@ async def test_the_manifest_may_differ_in_this_key_only(world, store, monkeypatc
 
     # a second row so there is another key to tamper with
     await settings_service(world.admin).import_once(
-        "TEMPORAL_API_KEY", "x" * 40, Actor("cli")
+        "TEMPORAL_API_KEY", "3f9a1c7e5b2d48a6c0e1f7d3b9a5c2e84d6f1a0b7c3e9d5f2a8b4c6e0d1f3a79", Actor("cli")
     )
     monkeypatch.setattr(state, "sign_manifest", tamper)
     row, revision = await entry(world)
