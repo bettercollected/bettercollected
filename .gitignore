@@ -15,3 +15,11 @@ webapp/.yarn
 .env.deployment.pre-v4.*
 .env.*.pruned
 .env.deployment.pre-umami.*
+# Generated or operator-edited secret files. Every .env.* file is ignored except
+# the shipped examples/templates: the pruned exports (.env.pruned,
+# .env.deployment.pruned), per-service env files (.env.webapp, .env.worker,
+# .env.typeform), backups and the temp files a crashed run can leave behind
+# (.env.XXXXXX). .env.deployment is tracked; keep secrets out of commits.
+.env.*
+!.env.example
+!.env.deployment

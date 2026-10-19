@@ -81,7 +81,7 @@ def test_only_the_admin_service_is_on_the_edge_network():
 
 def test_the_runner_password_is_generated_once_and_passed_to_the_roles_script():
     assert re.search(r"for var in [^;\n]*\bBC_TASKS_PASSWORD\b", DEPLOY)
-    assert "grep -q \"^${var}=\"" in DEPLOY  # existing values are kept
+    assert 'file_assigns .env "$var"' in DEPLOY  # existing values are kept
     app_pg = COMPOSE["services"]["app-postgres"]["environment"]
     assert "BC_TASKS_PASSWORD" in app_pg
     assert "BC_TASKS_PASSWORD" in ROLES and "bc.tasks_pw" in ROLES
@@ -103,7 +103,7 @@ def test_the_data_role_passwords_are_generated_checked_and_never_printed():
     for name in ("BC_TASKS_DATA_APP_PASSWORD", "BC_TASKS_DATA_GOOGLE_PASSWORD"):
         assert re.search(rf"for var in [^;\n]*\b{name}\b", DEPLOY)
         assert re.search(
-            rf"for var in BC_ADMIN_PASSWORD[^;\n]*\b{name}\b[^;\n]*; do\n\s+value=", DEPLOY
+            rf"for var in BC_APP_PASSWORD[^;\n]*\bBC_ADMIN_PASSWORD[^;\n]*\b{name}\b[^;\n]*; do\n", DEPLOY
         )  # the URL-safe check covers it
         assert name in COMPOSE["services"]["app-postgres"]["environment"]
         for line in DEPLOY.splitlines():

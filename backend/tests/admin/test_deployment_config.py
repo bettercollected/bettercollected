@@ -73,8 +73,10 @@ def test_published_ports_are_the_intended_ones():
     assert all(p.startswith("127.0.0.1:") for p in published["admin"])
     assert published["backend"] == ["8000:8000"]
     assert published["webapp"] == ["3000:3000"]
-    assert published["umami"] == ["3003:3000"]  # respondents' browsers load its script
-    assert sorted(published["nginx"]) == ["3001:3001", "3002:3002"]
+    # Umami's dashboard and login: loopback only. Respondents' browsers load its
+    # tracker script and post events through nginx on 3003, which passes nothing else
+    assert published["umami"] == ["127.0.0.1:3004:3000"]
+    assert sorted(published["nginx"]) == ["3001:3001", "3002:3002", "3003:3003"]
 
 
 @pytest.mark.parametrize(
@@ -127,7 +129,10 @@ def test_mongo_takes_a_generated_root_password_on_a_new_volume():
     assert _env("mongodb")["MONGO_INITDB_ROOT_PASSWORD"] == "${BC_MONGO_ROOT_PASSWORD:-root}"
     assert _env("mongo-seed")["MONGO_ROOT_PASSWORD"] == "${BC_MONGO_ROOT_PASSWORD:-root}"
     seed = (ROOT / "Dockerfile.deployment.mongo-seed").read_text()
-    assert "root:root@" not in seed and "${MONGO_ROOT_PASSWORD:-root}" in seed
+    seed_js = (ROOT / "seed-data-deployment.js").read_text()
+    # the password reaches mongosh through its environment, never its command line
+    assert "root:root@" not in seed and "MONGO_ROOT_PASSWORD" not in seed.replace("# ", "").split("CMD")[1]
+    assert "--nodb" in seed and "process.env.MONGO_ROOT_PASSWORD" in seed_js and "mongodb://root" not in seed_js
     # the services' MONGO_URI is a store setting seeded by deploy.sh, not a file value
     assert not re.search(r"^MONGO_URI=", (ROOT / ".env.deployment").read_text(), re.M)
     assert "BC_MONGO_ROOT_PASSWORD" in DEPLOY and "seed_setting MONGO_URI" in DEPLOY
@@ -326,6 +331,23 @@ def test_env_is_ignored_in_every_backup_form():
     ignore = (ROOT / ".gitignore").read_text()
     for pattern in (".env.pre-v4.*", ".env.deployment.pre-v4.*", ".env.*.pruned", ".env.deployment.pre-umami.*"):
         assert pattern in ignore
+    # every other .env.* file is ignored too (.env.pruned, .env.XXXXXX leftovers, the
+    # per-service env files), except the shipped example and the tracked template
+    lines = ignore.splitlines()
+    assert ".env.*" in lines and "!.env.example" in lines and "!.env.deployment" in lines
+    assert lines.index(".env.*") < lines.index("!.env.example")
+
+
+@pytest.mark.skipif(not shutil.which("git"), reason="needs git")
+def test_generated_secret_files_are_git_ignored_and_the_templates_are_not():
+    def ignored(name):
+        return subprocess.run(["git", "check-ignore", "-q", name], cwd=ROOT).returncode == 0
+
+    for name in (".env", ".env.pruned", ".env.XXXXXX", ".env.deployment.pruned", ".env.deployment.AbC123",
+                 ".env.webapp", ".env.worker", ".env.typeform", ".env.pre-v4.20260101"):
+        assert ignored(name), name
+    for name in (".env.example", "webapp/.env.example", ".env.deployment"):
+        assert not ignored(name), name
 
 
 # ------------------------------------------------ the rendered config
@@ -380,3 +402,268 @@ def test_a_minimal_env_renders_a_bootable_config(tmp_path):
     assert rendered["admin"]["environment"]["PLATFORM_ADMIN_EMAILS"] == "ops@example.test"
     assert rendered["temporal"].get("ports") in (None, [])
     assert not any("7233" in str(p) or "7234" in str(p) for p in rendered["temporal"].get("ports") or [])
+
+
+# ------------------------------------------------ what each service receives
+
+
+# the services that read the settings store (they hold the master key, so they can read
+# every stored value anyway): the only ones that get the shared .env.deployment
+ENV_DEPLOYMENT_READERS = ("backend", "jobs-worker", "auth", "integrations-googleform")
+# the services with an env file of their own, written by deploy.sh from .env.deployment
+OWN_ENV_FILE = {
+    "webapp": ".env.webapp",
+    "worker": ".env.worker",
+    "integrations-typeform": ".env.typeform",
+}
+
+
+def _env_files(service: str) -> list:
+    out = []
+    for item in SERVICES[service].get("env_file") or []:
+        out.append(item["path"] if isinstance(item, dict) else item)
+    return out
+
+
+def test_only_the_store_readers_get_the_shared_env_file():
+    users = sorted(n for n in SERVICES if ".env.deployment" in _env_files(n))
+    assert users == sorted(ENV_DEPLOYMENT_READERS)
+    # the others read an env file of their own, optional (compose renders without it),
+    # or none at all
+    for name, path in OWN_ENV_FILE.items():
+        entries = SERVICES[name]["env_file"]
+        assert entries == [{"path": path, "required": False}], name
+    for name in SERVICES:
+        if name not in ENV_DEPLOYMENT_READERS and name not in OWN_ENV_FILE:
+            assert not _env_files(name), name
+
+
+def _inventory_readers() -> dict:
+    """{setting name: readers} from docs/settings-inventory.md."""
+    readers = {}
+    for line in (ROOT / "docs" / "settings-inventory.md").read_text().splitlines():
+        cells = [c.strip() for c in line.split("|")]
+        if len(cells) > 4 and re.fullmatch(r"`[A-Z][A-Z0-9_]+`", cells[1]):
+            readers[cells[1].strip("`")] = {r.strip() for r in cells[3].split(",")}
+    return readers
+
+
+def _deploy_list(name: str) -> list:
+    body = re.search(rf"^{name}=\((.*)\)$", DEPLOY, re.M).group(1)
+    return [item.strip("'") for item in body.split()]
+
+
+def _covered(key: str, items: list) -> bool:
+    return any(key.startswith(i[:-1]) if i.endswith("*") else key == i for i in items)
+
+
+def test_the_webapp_and_worker_env_files_cover_what_those_services_read():
+    """Every setting the inventory says the webapp or the Temporal worker reads reaches
+    it (from its own env file or from the compose file), and the lists name nothing
+    that is a secret of another service."""
+    inventory = _inventory_readers()
+    for service, reader, keys, skip in (
+        ("webapp", "webapp", _deploy_list("webapp_env_keys"), set()),
+        # AUTH_AES_HEX_KEY is listed for the worker only because its AES_HEX_KEY is a copy
+        ("worker", "temporal_worker", _deploy_list("worker_env_keys"), {"AUTH_AES_HEX_KEY"}),
+    ):
+        provided = list(keys) + list(_env(service))
+        for name, who in inventory.items():
+            if reader in who and name not in skip:
+                assert _covered(name, provided), (service, name)
+    never = (
+        "STRIPE_", "GOOGLE_CLIENT_SECRET", "MAIL_", "MONGO_URI", "MASTER_ENCRYPTION_KEYSET", "AUTH_JWT_SECRET",
+        "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY", "TEMPORAL_API_KEY", "SETTINGS_MASTER_KEY", "TYPEFORM_",
+        "UMAMI_PASSWORD", "DATABASE_URL",
+    )
+    for name in ("webapp_env_keys", "worker_env_keys"):
+        for item in _deploy_list(name):
+            assert not item.startswith(never), (name, item)
+
+
+def test_first_party_services_cannot_gain_privileges():
+    for name in ("webapp", "worker", "backend", "jobs-worker", "auth", "integrations-googleform", "integrations-typeform"):
+        assert "no-new-privileges:true" in SERVICES[name]["security_opt"], name
+    # the services that need no capability at all drop every one (the backend and jobs
+    # worker keep root's file access: they open the document sandbox's socket directory)
+    for name in ("webapp", "worker", "integrations-typeform"):
+        assert SERVICES[name]["cap_drop"] == ["ALL"], name
+    assert "cap_add" not in COMPOSE_TEXT
+    assert SERVICES["nginx"]["image"] == "nginx:1.28-alpine"
+
+
+def test_the_worker_image_does_not_resolve_dependencies_at_start():
+    dockerfile = (ROOT / "temporal" / "worker" / "Dockerfile").read_text()
+    cmd = [line for line in dockerfile.splitlines() if line.startswith("CMD")][-1]
+    assert "uv" not in cmd and "python" in cmd
+
+
+def test_umami_dashboard_is_private_and_nginx_passes_only_the_tracker():
+    conf = (ROOT / "nginx-deployment.conf").read_text()
+    block = conf[conf.index("listen 3003;") :]
+    assert "location = /script.js" in block and "location ~ ^/api/(send|batch)$" in block
+    assert "return 404" in block and "umami:3000" in block
+    # nothing but those three locations proxies to Umami
+    assert block.count("proxy_pass") == 2
+    assert "3000:3000" not in COMPOSE_TEXT.split("umami:", 1)[1]
+
+
+def test_the_shipped_env_template_is_free_of_insecure_and_inert_settings():
+    template = (ROOT / ".env.deployment").read_text()
+    active = [l for l in template.splitlines() if l.strip() and not l.lstrip().startswith("#")]
+    assert not any(l.startswith("OAUTHLIB_INSECURE_TRANSPORT") for l in active)
+    assert not any(l.startswith("ADMIN_") for l in active)  # compose reads those from the root .env
+    assert "ADMIN_ALLOWED_IPS" in template  # but the comment says where they go
+
+
+def test_dev_compose_publishes_every_port_on_loopback_only():
+    local = yaml.safe_load((ROOT / "docker-compose.local.yml").read_text())["services"]
+    published = [str(p) for svc in local.values() for p in svc.get("ports") or []]
+    assert published
+    assert all(p.startswith("127.0.0.1:") for p in published), published
+
+
+def test_secrets_are_not_passed_to_psql_or_mongosh_as_arguments():
+    init = (ROOT / "postgres" / "init" / "01-roles-schemas.sh").read_text()
+    assert "-v app_pw" not in init and "\\getenv app_pw BC_APP_PASSWORD" in init
+    assert "createUser" not in (ROOT / "seed-data-deployment.js").read_text()
+    assert "pwd:" not in (ROOT / "seed-data-deployment.js").read_text()
+    assert "dropUser('seeduser')" in (ROOT / "seed-data-deployment.js").read_text()
+
+
+def test_the_deploy_workflow_is_pinned_and_takes_no_untrusted_context_in_its_scripts():
+    workflows = ROOT / ".github" / "workflows"
+    for path in workflows.glob("*.yml"):
+        for line in path.read_text().splitlines():
+            m = re.search(r"uses:\s*(\S+)", line)
+            if m and not m.group(1).startswith("./"):
+                assert re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", m.group(1)), (path.name, m.group(1))
+    deploy = yaml.safe_load((workflows / "deploy.yml").read_text())
+    for job in deploy["jobs"].values():
+        for step in job["steps"]:
+            run = step.get("run", "")
+            # context values reach scripts only through env
+            assert "${{" not in run, (step.get("name"), run)
+    tags = deploy[True]["push"]["tags"]
+    assert tags and all(t.startswith("v[0-9]+") for t in tags)
+
+
+# --------------------------------------------- rendered with a populated .env.deployment
+
+DUMMY = {
+    "STRIPE_SECRET": "DUMMY-stripe-secret-1",
+    "STRIPE_WEBHOOK_SECRET": "DUMMY-stripe-webhook-2",
+    "GOOGLE_CLIENT_SECRET": "DUMMY-google-secret-3",
+    "MAIL_PASSWORD": "DUMMY-mail-password-4",
+    "MONGO_URI": "mongodb://root:DUMMY-mongo-root-5@mongodb:27017",
+    "MASTER_ENCRYPTION_KEYSET": "DUMMY-response-keyset-6",
+    "AUTH_JWT_SECRET": "DUMMY-jwt-secret-7",
+    "AUTH_AES_HEX_KEY": "DUMMY-aes-key-8",
+    "TYPEFORM_CLIENT_SECRET": "DUMMY-typeform-secret-9",
+}
+NEVER_TO_PUBLIC_OR_BROWSER_SERVICES = ("worker", "webapp")
+
+
+def _render(workdir: Path, extra_env: dict | None = None) -> dict:
+    env = workdir / "skeleton.env"
+    lines = [f"{name}=pw{n}" for n, name in enumerate(sorted(REQUIRED))] + ["UMAMI_APP_SECRET=x"]
+    env.write_text("\n".join(lines) + "\n")
+    names = set(re.findall(r"\$\{([A-Z][A-Z0-9_]*)", COMPOSE_TEXT)) | set(DUMMY)
+    hermetic = {k: v for k, v in os.environ.items() if k not in names}
+    done = subprocess.run(
+        ["docker", "compose", "--env-file", str(env), "-f", str(workdir / "docker-compose.deployment.yml"),
+         "config", "--format", "json"],
+        capture_output=True, text=True, cwd=workdir, env={**hermetic, **(extra_env or {})},
+    )
+    assert done.returncode == 0, done.stderr[-800:]
+    return json.loads(done.stdout)["services"]
+
+
+def _holders(rendered: dict) -> dict:
+    """{secret name: [services whose rendered config carries its dummy value]}"""
+    return {
+        name: sorted(svc for svc, body in rendered.items() if value in json.dumps(body))
+        for name, value in DUMMY.items()
+    }
+
+
+@pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
+def test_a_populated_env_deployment_reaches_only_the_store_readers(tmp_path):
+    """The rendered configuration, with every secret an operator may keep in
+    .env.deployment filled in (as an upgraded stack has them): the Chromium worker and the
+    public webapp hold none of them, and neither does any service outside the four that read
+    the settings store. The Typeform service gets only its own env file's contents."""
+    shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
+    (tmp_path / ".env.deployment").write_text("".join(f"{k}={v}\n" for k, v in DUMMY.items()))
+    holders = _holders(_render(tmp_path))
+    for name, services in holders.items():
+        assert set(services) <= set(ENV_DEPLOYMENT_READERS), (name, services)
+        for service in NEVER_TO_PUBLIC_OR_BROWSER_SERVICES + ("integrations-typeform", "nginx", "mongo-seed",
+                                                              "admin", "task-runner", "document-sandbox",
+                                                              "umami", "temporal", "mongodb"):
+            assert service not in services, (name, service)
+
+
+@pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
+def test_the_service_env_files_deploy_sh_writes_are_the_only_extra_input(tmp_path):
+    shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
+    (tmp_path / ".env.deployment").write_text("".join(f"{k}={v}\n" for k, v in DUMMY.items()))
+    (tmp_path / ".env.webapp").write_text("UNSPLASH_ACCESS_KEY=DUMMY-unsplash\n")
+    (tmp_path / ".env.worker").write_text("COOKIE_DOMAIN=example.test\n")
+    (tmp_path / ".env.typeform").write_text("TYPEFORM_CLIENT_ID=DUMMY-tid\n")
+    rendered = _render(tmp_path)
+    assert rendered["webapp"]["environment"]["UNSPLASH_ACCESS_KEY"] == "DUMMY-unsplash"
+    assert rendered["worker"]["environment"]["COOKIE_DOMAIN"] == "example.test"
+    assert rendered["integrations-typeform"]["environment"]["TYPEFORM_CLIENT_ID"] == "DUMMY-tid"
+    # the worker's whole environment: its own file plus the compose file's few values
+    assert set(rendered["worker"]["environment"]) == {"API_KEY", "AES_HEX_KEY", "TEMPORAL_SERVER_URL", "COOKIE_DOMAIN"}
+    for name, services in _holders(rendered).items():
+        for service in NEVER_TO_PUBLIC_OR_BROWSER_SERVICES:
+            assert service not in services, (name, service)
+        if name != "AUTH_JWT_SECRET" and name != "AUTH_AES_HEX_KEY" and name != "MASTER_ENCRYPTION_KEYSET":
+            assert "integrations-typeform" not in services, name
+    # the typeform service keeps exactly its three documented keys from the compose file
+    assert {"AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET"} <= set(
+        rendered["integrations-typeform"]["environment"]
+    )
+
+
+@pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
+@pytest.mark.parametrize("preference", ["", "both", "typeform", "googleform"])
+def test_up_starts_every_required_service_for_every_preference(tmp_path, preference):
+    """What `./deploy.sh [preference]` hands to `docker compose up -d`, run through
+    `up --dry-run`: every service the stack needs is created. A service that is not named
+    (and is not a dependency of one that is) is silently left stopped."""
+    shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
+    shutil.copy(ROOT / "docker-compose.sso-deployment.yml", tmp_path / "docker-compose.sso-deployment.yml")
+    shutil.copy(ROOT / "deploy.sh", tmp_path / "deploy.sh")
+    (tmp_path / "nginx-deployment.conf").write_text("")
+    (tmp_path / ".env.deployment").write_text("")
+    (tmp_path / "postgres" / "init").mkdir(parents=True)
+    (tmp_path / "deploy" / "seccomp").mkdir(parents=True)
+    (tmp_path / "deploy" / "seccomp" / "document-sandbox.json").write_text("{}")
+    _render(tmp_path)  # writes skeleton.env
+    (tmp_path / ".env").write_text((tmp_path / "skeleton.env").read_text())
+    listed = subprocess.run(
+        ["bash", "deploy.sh", "print-services", preference], cwd=tmp_path, capture_output=True, text=True,
+        env={**os.environ, "COMPOSE_PROJECT_NAME": "bcdry"},
+    )
+    assert listed.returncode == 0, listed.stderr
+    names = listed.stdout.split()
+    done = subprocess.run(
+        ["docker", "compose", "-p", "bcdry", "--env-file", str(tmp_path / ".env"), "-f", "docker-compose.deployment.yml",
+         "up", "--dry-run", "-d", *names],
+        cwd=tmp_path, capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "COMPOSE_PROJECT_NAME"},
+    )
+    assert done.returncode == 0, done.stderr[-800:]
+    output = done.stdout + done.stderr
+    created = set(re.findall(r"Container bcdry-([a-z-]+?)-\d+\s+(?:Creat|Recreat|Start|Runn)", output))
+    required = {
+        "mongodb", "mongo-seed", "webapp", "nginx", "backend", "auth", "postgresql", "temporal", "worker",
+        "umami-postgresql", "umami", "app-postgres", "admin", "jobs-worker", "document-sandbox", "task-runner",
+    }
+    assert required <= created, (sorted(required - created), output[-1500:])
+    extra = {"both": {"integrations-typeform", "integrations-googleform"}, "typeform": {"integrations-typeform"},
+             "googleform": {"integrations-googleform"}, "": set()}[preference]
+    assert extra <= created
+    assert ("integrations-typeform" in created) == ("integrations-typeform" in extra)

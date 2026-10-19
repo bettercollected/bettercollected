@@ -25,6 +25,16 @@ root_env="${1:-.env}"
 deployment_env="${2:-.env.deployment}"
 existing_stack="${BC_EXISTING_STACK:-false}"
 
+# The root .env is about to receive secrets: owner-only first, whatever mode an
+# operator-made file had (umask only applies to files created here), and a last
+# line without a newline must not swallow the first assignment appended below.
+if [ -f "$root_env" ]; then
+  chmod 600 "$root_env"
+  if [ -s "$root_env" ] && [ -n "$(tail -c 1 "$root_env")" ]; then
+    echo >> "$root_env"
+  fi
+fi
+
 # SHA-256 of values published for AUTH_JWT_SECRET / AUTH_AES_HEX_KEY, never the
 # values; the same list as common/common/configs/shipped_secrets.py.
 shipped_sha256="
