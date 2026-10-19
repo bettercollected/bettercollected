@@ -141,6 +141,22 @@ def _hook_after_batch(monkeypatch, world, run_id_box, *, after: int, act):
     monkeypatch.setattr(backfill_task, "backfill_store", wrapped)
 
 
+async def _copies(response_id: str) -> list:
+    """The workspace of every response row with this response id, sorted
+    (unstamped first); the table's row order is not defined."""
+    from sqlalchemy import select
+
+    from backend.db.models import FormResponseRow
+
+    async with container.pg_engine().connect() as conn:
+        rows = await conn.execute(
+            select(FormResponseRow.workspace_id).where(
+                FormResponseRow.response_id == response_id
+            )
+        )
+    return sorted((w for (w,) in rows), key=lambda w: (w is not None, w or ""))
+
+
 async def _later(world, seconds=1):
     world.clock.advance(seconds)
     return world.clock.now()
@@ -727,8 +743,9 @@ async def test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped(wor
     assert run["state"] == "succeeded", run  # the conflicting row does not fail the run
     got = backfill_meta.BackfillResult.model_validate(run["result"]).postgres
     assert got.responses.conflict == 1 and got.responses.stamped == 3
-    stamped = await _stamped(_stores()["postgres"])
-    assert stamped["dup"] == str(WS_A)  # the already-stamped copy; the other stays unstamped
+    # both copies of "dup" are read from the table: ``_stamped`` keys by response
+    # id, so with two rows the one it kept depended on the (unordered) scan order
+    assert await _copies("dup") == [None, str(WS_A)]  # the other copy stays unstamped
     # a second run finishes too, counting the same row again
     _, again = await _run(world, "responses.backfill_workspaces", params)
     assert again["state"] == "succeeded"
