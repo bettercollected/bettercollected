@@ -757,7 +757,9 @@ window: the deploy recreates every service and runs migrations.
 - The **application** schema: `0013` to `0016` (rate-limit counters, the AI notice stamp on
   responses, the workspace id on responses and deletion requests, API idempotency keys;
   there is no `0012`). Every one is expand-only, so a previous release keeps running on the
-  migrated schema.
+  migrated schema. Two of them, `0014` and `0015`, rewrite `app.form_responses` under an
+  exclusive lock: a few seconds on fast storage, longer on a large table. Reads and writes of
+  responses wait meanwhile, so upgrade at a quiet moment.
 - procrastinate's `jobs` schema, **auth** and **google**: no new revisions since 3.4.0, the
   commands run and find nothing to do.
 

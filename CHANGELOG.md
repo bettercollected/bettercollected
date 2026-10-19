@@ -259,6 +259,10 @@ first, and back up before you start.** The changes that need your attention:
   action's credentials keeps the other actions' secrets.
 - Local development: `API_PUBLIC_URL` unset no longer stops the stack from starting; the
   dev compose files bind every port to the loopback.
+- Upgrading from 3.4.0: the first run of the admin roles script no longer fails (it grants
+  only the columns that exist before the application migrations; the second run adds the
+  rest), and a service whose response keyset is only in the settings store reads it from
+  there instead of failing at start (an environment value still wins).
 
 ### Security
 
