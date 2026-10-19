@@ -53,7 +53,7 @@ class BadPayload(Exception):
 
 def _field(payload: Mapping[str, Any], name: str, pattern: "re.Pattern[str]") -> str:
     value = payload.get(name)
-    if not isinstance(value, str) or not pattern.match(value):
+    if not isinstance(value, str) or not pattern.fullmatch(value):
         raise BadPayload(name)
     return value
 
@@ -127,9 +127,9 @@ def _integrity(p: Mapping[str, Any]) -> Message:
             raise BadPayload("problems")
         key = item.get("key")
         reason = item.get("reason")
-        if key != "*" and not (isinstance(key, str) and _SETTING.match(key)):
+        if key != "*" and not (isinstance(key, str) and _SETTING.fullmatch(key)):
             raise BadPayload("problems")
-        if not isinstance(reason, str) or not re.match(r"^[a-z][a-z0-9_]{0,31}$", reason):
+        if not isinstance(reason, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,31}", reason):
             raise BadPayload("problems")
         lines.append(f"  {'settings manifest' if key == '*' else key}: {reason}")
     more = f"\n  and {count - len(lines)} more" if count > len(lines) else ""

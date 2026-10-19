@@ -254,7 +254,7 @@ def _queue_checkpoint(conn: AsyncConnection, seq: int, row_hash: bytes) -> None:
     sync_conn.info[_PENDING].append((seq, row_hash))
 
 
-async def write(
+async def _build(
     conn: AsyncConnection,
     action: str,
     target_type: Optional[str],
@@ -264,27 +264,31 @@ async def write(
     outcome: str,
     *,
     actor_kind: str,
-    actor_email: Optional[str] = None,
-    session_id: Any = None,
-    ip: Optional[str] = None,
-    ua: Optional[str] = None,
-    request_id: Optional[str] = None,
-    detail: Any = None,
-    key: Optional[bytes] = None,
-) -> AuditEntry:
-    """Append one audit row inside the caller's transaction (fail closed).
+    actor_email: Optional[str],
+    session_id: Any,
+    ip: Optional[str],
+    ua: Optional[str],
+    request_id: Optional[str],
+    detail: Any,
+    key: Optional[bytes],
+    runner: bool,
+    settings_lock: bool,
+) -> tuple[dict, Optional[int]]:
+    """The row with its chain link and hash, chain lock taken; ``(values, head_seq)``.
 
-    Raises :class:`AuditError` / :class:`AuditPayloadTooLarge` on bad input and
-    lets any database error propagate; the caller's transaction then rolls back.
-    ``before``/``after``/``detail`` are masked and bounded here, so callers pass
-    plain dicts. ``key`` defaults to the ``admin/audit`` subkey at ``AUDIT_KEY_VERSION``.
-    """
+    ``runner`` is the task runner's path: it has no access to the log itself, so
+    the lock, the chain head and the clock come from ``tasks.begin_audit`` (a
+    definer function; ``settings_lock`` also takes the settings writer's lock
+    first, the order the portal uses) and the row is appended by
+    ``tasks.audit_append`` or ``settings.task_write_keyset``."""
     if actor_kind not in ACTOR_KINDS:
         raise AuditError("unknown actor_kind")
     if outcome not in OUTCOMES:
         raise AuditError("unknown outcome")
     if not action or len(action) > 128:
         raise AuditError("action must be 1-128 characters")
+    if runner and (actor_kind != "system" or actor_email or session_id or ip or ua):
+        raise AuditError("the task runner writes system rows with no admin identity")
     ip_text = _ip_or_none(ip)
     session = _uuid_or_none(session_id)
 
@@ -307,17 +311,88 @@ async def write(
     }
 
     audit_key = key if key is not None else admin_key("audit", AUDIT_KEY_VERSION)
-    await repo.lock_chain(conn)
-    head, head_seq, now = await repo.head_and_now(conn)
+    if runner:
+        head, head_seq, now = await repo.runner_begin(conn, settings_lock)
+    else:
+        await repo.lock_chain(conn)
+        head, head_seq, now = await repo.head_and_now(conn)
     prev_hash = head if head is not None else GENESIS_HASH
     values["at"] = now
     values["prev_hash"] = prev_hash
     values["row_hash"] = compute_row_hash(audit_key, prev_hash, values)
-    seq = await repo.insert(conn, values)
+    return values, head_seq
+
+
+def _checkpoint(conn: AsyncConnection, seq: int, row_hash: bytes, head_seq: Optional[int]) -> None:
     # a multiple of 100 can be skipped by a rolled-back write: checkpoint on crossing
     if seq // CHECKPOINT_EVERY > (head_seq or 0) // CHECKPOINT_EVERY:
-        _queue_checkpoint(conn, seq, values["row_hash"])
+        _queue_checkpoint(conn, seq, row_hash)
+
+
+async def write(
+    conn: AsyncConnection,
+    action: str,
+    target_type: Optional[str],
+    target_id: Optional[str],
+    before: Any,
+    after: Any,
+    outcome: str,
+    *,
+    actor_kind: str,
+    actor_email: Optional[str] = None,
+    session_id: Any = None,
+    ip: Optional[str] = None,
+    ua: Optional[str] = None,
+    request_id: Optional[str] = None,
+    detail: Any = None,
+    key: Optional[bytes] = None,
+    runner: bool = False,
+) -> AuditEntry:
+    """Append one audit row inside the caller's transaction (fail closed).
+
+    Raises :class:`AuditError` / :class:`AuditPayloadTooLarge` on bad input and
+    lets any database error propagate; the caller's transaction then rolls back.
+    ``before``/``after``/``detail`` are masked and bounded here, so callers pass
+    plain dicts. ``key`` defaults to the ``admin/audit`` subkey at ``AUDIT_KEY_VERSION``.
+    ``runner=True`` is the task runner's path (see :func:`_build`).
+    """
+    values, head_seq = await _build(
+        conn, action, target_type, target_id, before, after, outcome,
+        actor_kind=actor_kind, actor_email=actor_email, session_id=session_id,
+        ip=ip, ua=ua, request_id=request_id, detail=detail, key=key,
+        runner=runner, settings_lock=False,
+    )
+    if runner:
+        seq = await repo.runner_append(conn, values)
+    else:
+        seq = await repo.insert(conn, values)
+    _checkpoint(conn, seq, values["row_hash"], head_seq)
     return AuditEntry(seq=seq, id=values["id"], row_hash=values["row_hash"])
+
+
+async def prepare_runner_row(
+    conn: AsyncConnection,
+    action: str,
+    target_type: Optional[str],
+    target_id: Optional[str],
+    before: Any,
+    after: Any,
+    outcome: str,
+    *,
+    detail: Any = None,
+    request_id: Optional[str] = None,
+    key: Optional[bytes] = None,
+) -> dict:
+    """A runner audit row built and hashed, not inserted: for
+    ``settings.task_write_keyset``, which writes the row itself. Takes the settings
+    writer's lock and the chain's lock; the caller's transaction must call the
+    function before it ends."""
+    values, _ = await _build(
+        conn, action, target_type, target_id, before, after, outcome,
+        actor_kind="system", actor_email=None, session_id=None, ip=None, ua=None,
+        request_id=request_id, detail=detail, key=key, runner=True, settings_lock=True,
+    )
+    return values
 
 
 # -- verifying -------------------------------------------------------------------
@@ -352,6 +427,77 @@ class VerifyResult:
             f"audit chain BROKEN: {self.total_breaks} break(s) in {self.rows} rows: "
             f"{listed}{tail}"
         )
+
+
+VERIFY_BATCH = 5000
+
+
+@dataclass(frozen=True)
+class ChainStep:
+    """One bounded pass of the automatic verification (see :func:`verify_step`)."""
+
+    ok: bool
+    scanned: int
+    verified_seq: int  # the checkpoint after this pass
+    breaks: tuple = ()  # (seq, reason), at most MAX_REPORTED_BREAKS
+
+    @property
+    def reasons(self) -> frozenset:
+        return frozenset(why for _, why in self.breaks)
+
+
+async def verify_step(
+    conn: AsyncConnection, key: Optional[bytes] = None, batch: int = VERIFY_BATCH
+) -> ChainStep:
+    """Verify the next ``batch`` rows of the chain from the stored checkpoint and
+    move the checkpoint forward when they are clean.
+
+    The checkpoint (``admin.audit_verify_state``: the last verified seq and that
+    row's hash) is first compared with the log: a missing row or a different hash
+    is reported (``checkpoint_missing`` / ``checkpoint_mismatch``) and the
+    checkpoint stays, so the alarm repeats on every pass. Rows after it are judged
+    on their link and their HMAC like :func:`verify_chain` does; a break is
+    reported and the checkpoint stays in front of it. Runs in the caller's
+    transaction (the integrity loop's)."""
+    state = await repo.get_verify_state(conn)
+    seq, expected_prev = (0, GENESIS_HASH) if state is None else (state[0], state[1])
+    if state is not None:
+        stored = await repo.row_hash_at(conn, seq)
+        if stored is None:
+            return ChainStep(False, 0, seq, ((seq, "checkpoint_missing"),))
+        if not hmac.compare_digest(stored, expected_prev):
+            return ChainStep(False, 0, seq, ((seq, "checkpoint_mismatch"),))
+    derived: dict[int, Optional[bytes]] = {}
+
+    def key_for(version: int) -> Optional[bytes]:
+        if key is not None:
+            return key
+        if version not in derived:
+            try:
+                derived[version] = admin_key("audit", version)
+            except ValueError:
+                derived[version] = None  # a tampered version number
+        return derived[version]
+
+    breaks: list[tuple[int, str]] = []
+    last_seq, last_hash, scanned = seq, expected_prev, 0
+    for row in await repo.rows_after(conn, seq, batch):
+        m = row._mapping
+        stored_prev, stored_hash = bytes(m["prev_hash"]), bytes(m["row_hash"])
+        row_key = key_for(m["key_version"])
+        recomputed = compute_row_hash(row_key, stored_prev, m) if row_key is not None else b""
+        if stored_prev != last_hash:
+            breaks.append((m["seq"], "prev_hash_mismatch"))
+        elif not hmac.compare_digest(recomputed, stored_hash):
+            breaks.append((m["seq"], "row_hash_mismatch"))
+        if breaks:
+            break  # the checkpoint stays in front of the first break
+        last_seq, last_hash, scanned = m["seq"], stored_hash, scanned + 1
+    if breaks:
+        return ChainStep(False, scanned, seq, tuple(breaks[:MAX_REPORTED_BREAKS]))
+    if scanned:
+        await repo.save_verify_state(conn, last_seq, last_hash, scanned)
+    return ChainStep(True, scanned, last_seq)
 
 
 async def verify_chain(

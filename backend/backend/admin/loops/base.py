@@ -1,11 +1,15 @@
 """A small runner for the admin service's background loops.
 
-One asyncio task per loop. Each loop is guarded by a Postgres session advisory
-lock held on a dedicated connection, so with several admin processes only one
-runs a given loop; the others stand by and retry. A loop never crashes the
-service: an exception is caught, logged by class name only, counted, and the
-loop backs off. Intervals are jittered. Cancellation is clean: the lock is
-released (or its connection thrown away) before the task ends.
+One asyncio task per loop. Each loop is guarded by a lease: a row in
+``admin.loop_leases`` (migration 0013) that the leader renews on every pass and
+that expires on its own, so with several admin processes only one runs a given
+loop; the others stand by and retry, and take over when a crashed leader's lease
+runs out. The lease table is writable by the admin role only: unlike a session
+advisory lock (one cluster-wide namespace every database login can use) no
+outsider can hold it to stop the loops. A loop never crashes the service: an
+exception is caught, logged by class name only, counted, and the loop backs off.
+Intervals are jittered. Cancellation is clean: the lease is released before the
+task ends.
 """
 
 from __future__ import annotations
@@ -13,19 +17,35 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import uuid
 from typing import Callable, Dict, Optional, Sequence
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.admin.loops.status import LoopStatus, StatusBoard
 from backend.admin.security.clock import Clock
 
 log = logging.getLogger("backend.admin.loops")
 
-# first key of the two-int advisory lock form; the second is the loop's own number
-LOCK_CLASS = 0x42434144
 MAX_BACKOFF_FACTOR = 8
+MIN_LEASE_SECONDS = 120.0
+
+# take the lease when it is free, expired or already ours (renewing it); no row
+# comes back when someone else holds an unexpired one
+_LEASE = text(
+    "INSERT INTO admin.loop_leases AS l (name, holder, acquired_at, expires_at) "
+    "VALUES (:n, :h, clock_timestamp(), clock_timestamp() + make_interval(secs => :ttl)) "
+    "ON CONFLICT (name) DO UPDATE SET holder = excluded.holder, "
+    "acquired_at = CASE WHEN l.holder = excluded.holder THEN l.acquired_at "
+    "ELSE excluded.acquired_at END, expires_at = excluded.expires_at "
+    "WHERE l.holder = excluded.holder OR l.expires_at < clock_timestamp() "
+    "RETURNING 1"
+)
+_RELEASE = text(
+    "UPDATE admin.loop_leases SET expires_at = clock_timestamp() "
+    "WHERE name = :n AND holder = :h"
+)
 JITTER = 0.1
 
 
@@ -50,6 +70,7 @@ class LoopRunner:
         board: Optional[StatusBoard] = None,
         *,
         standby_retry: float = 30.0,
+        lease_seconds: Optional[float] = None,
         jitter: Callable[[], float] = lambda: random.uniform(-JITTER, JITTER),
     ) -> None:
         numbers = [loop.lock_number for loop in loops]
@@ -60,6 +81,8 @@ class LoopRunner:
         self._loops = list(loops)
         self.board = board if board is not None else StatusBoard()
         self._standby_retry = standby_retry
+        self._lease_seconds = lease_seconds
+        self._holder = uuid.uuid4().hex
         self._jitter = jitter
         self._tasks: list = []
 
@@ -88,56 +111,29 @@ class LoopRunner:
         await asyncio.gather(*tasks, return_exceptions=True)
         self.board.running = False
 
-    # -------------------------------------------------------------- lock
+    # ------------------------------------------------------------- lease
 
-    async def _acquire(self, loop: Loop) -> Optional[AsyncConnection]:
-        conn = await self._engine.connect()
-        try:
-            got = (
-                await conn.execute(
-                    text("SELECT pg_try_advisory_lock(:c, :n)"),
-                    {"c": LOCK_CLASS, "n": loop.lock_number},
-                )
-            ).scalar_one()
-            await conn.commit()  # a session lock outlives the transaction
-        except BaseException:
-            await self._discard(conn)
-            raise
-        if got:
-            return conn
-        await conn.close()
-        return None
+    def _ttl(self, loop: Loop) -> float:
+        """Long enough that a leader that is slow (not dead) keeps its lease: three
+        intervals, never under two minutes, so a crash is noticed within that."""
+        if self._lease_seconds is not None:
+            return self._lease_seconds
+        return max(MIN_LEASE_SECONDS, loop.interval * 3)
 
-    async def _alive(self, conn: AsyncConnection) -> bool:
-        try:
-            await conn.execute(text("SELECT 1"))
-            await conn.commit()
-            return True
-        except Exception:  # noqa: BLE001
-            return False
-
-    async def _discard(self, conn: AsyncConnection) -> None:
-        try:
-            await conn.invalidate()  # closes the session, which frees its locks
-        except Exception:  # noqa: BLE001
-            pass
-        try:
-            await conn.close()
-        except Exception:  # noqa: BLE001
-            pass
-
-    async def _release(self, loop: Loop, conn: Optional[AsyncConnection]) -> None:
-        if conn is None:
-            return
-        try:
-            await conn.execute(
-                text("SELECT pg_advisory_unlock(:c, :n)"),
-                {"c": LOCK_CLASS, "n": loop.lock_number},
+    async def _lease(self, loop: Loop) -> bool:
+        """Take or renew the loop's lease; ``False`` when another holds it."""
+        async with self._engine.begin() as conn:
+            row = await conn.execute(
+                _LEASE, {"n": loop.name, "h": self._holder, "ttl": self._ttl(loop)}
             )
-            await conn.commit()
-            await conn.close()
+            return row.first() is not None
+
+    async def _release(self, loop: Loop) -> None:
+        try:
+            async with self._engine.begin() as conn:
+                await conn.execute(_RELEASE, {"n": loop.name, "h": self._holder})
         except BaseException:  # noqa: BLE001 - include a second cancellation
-            await self._discard(conn)
+            pass  # the lease simply expires
 
     # -------------------------------------------------------------- loop
 
@@ -146,20 +142,24 @@ class LoopRunner:
         return max(0.01, loop.interval * factor * (1 + self._jitter()))
 
     async def _run(self, loop: Loop) -> None:
-        conn: Optional[AsyncConnection] = None
         failures = 0
+        held = False
         try:
             while True:
                 delay = loop.interval
                 try:
-                    if conn is not None and not await self._alive(conn):
-                        await self._discard(conn)
-                        conn = None
-                    if conn is None:
-                        conn = await self._acquire(loop)
-                    if conn is None:
+                    held = await self._lease(loop)
+                    if not held:
+                        status = self.board.loops.get(loop.name)
                         self.board.update(
-                            loop.name, leader=False, last_outcome="standby"
+                            loop.name,
+                            leader=False,
+                            last_outcome="standby",
+                            standby_since=(
+                                status.standby_since
+                                if status is not None and status.standby_since
+                                else self._clock.now()
+                            ),
                         )
                         delay = self._standby_retry
                     else:
@@ -168,6 +168,7 @@ class LoopRunner:
                         self.board.update(
                             loop.name,
                             leader=True,
+                            standby_since=None,
                             last_run_at=self._clock.now(),
                             last_outcome=outcome,
                             last_ok=True,
@@ -186,7 +187,7 @@ class LoopRunner:
                     )
                     self.board.update(
                         loop.name,
-                        leader=conn is not None,
+                        leader=held,
                         last_run_at=self._clock.now(),
                         last_outcome=f"failed: {type(exc).__name__}"[:80],
                         last_ok=False,
@@ -196,5 +197,6 @@ class LoopRunner:
                     delay = self._delay(loop, failures)
                 await asyncio.sleep(delay)
         finally:
-            await self._release(loop, conn)
+            if held:
+                await self._release(loop)
             self.board.update(loop.name, leader=False)

@@ -540,6 +540,8 @@ class DropOld(_Base):
                 revision=stored.revision,
                 **out,
             )
+        # the scan can take hours: the consumers must still be ready NOW
+        await self._ready(ctx, params, parsed, stored)
         version, revision = await self._write(
             ctx, keys, stored, only_primary(parsed), "drop_old", {"dropped_count": len(old)}
         )

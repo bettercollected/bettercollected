@@ -11,12 +11,22 @@
 #                 access to the `app`, `auth`, `google` or `jobs` schemas.
 #   bc_tasks      the data task runner's role (TASKS_DATABASE_URL). Column-level
 #                 UPDATE on the runner-owned columns of tasks.runs, INSERT on
-#                 tasks.run_events / checkpoints, INSERT/DELETE on tasks.locks,
-#                 INSERT and SELECT on admin.audit_log; nothing else in `admin`
-#                 and nothing in the other services' schemas.
-#   admin.platform_counts()  one read-only SECURITY DEFINER function for the metrics
-#                 page, owned by bc_admin_counts (NOLOGIN, column-level SELECT on the
-#                 counted tables only); EXECUTE for bc_admin only.
+#                 tasks.run_events / checkpoints, INSERT/DELETE on tasks.locks;
+#                 NO access to admin.audit_log: its audit rows are written by
+#                 narrow SECURITY DEFINER functions (tasks.audit_append,
+#                 settings.task_write_keyset) owned by bc_tasks_def. Nothing else
+#                 in `admin` and nothing in the other services' schemas.
+#   bc_tasks_def  NOLOGIN owner of the runner's definer functions. It holds what
+#                 those functions need (INSERT on the audit log, the settings
+#                 tables, the notification outbox) and nobody can log in as it.
+#   admin.platform_counts_app(), admin.platform_counts_auth()
+#                 the metrics page's counts, ONE read-only SECURITY DEFINER function
+#                 per owning schema, each owned by a NOLOGIN role (bc_count_app,
+#                 bc_count_auth) that holds column-level SELECT on that schema's
+#                 tables only, i.e. nothing the schema's own owner role does not
+#                 already hold; EXECUTE for bc_admin only. The admin combines the
+#                 two results in Python and treats them as data. No definer
+#                 function reads tables of more than one owning role.
 #
 #   bc_tasks_data_app, bc_tasks_data_google
 #                 the task runner's DATA roles, ONE PER OWNING SCHEMA (the
@@ -68,12 +78,17 @@ done
 : "${POSTGRES_USER:?POSTGRES_USER must be set}"
 : "${POSTGRES_DB:?POSTGRES_DB must be set}"
 
-psql -v ON_ERROR_STOP=1 --quiet --output /dev/null --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
-    -v admin_pw="$BC_ADMIN_PASSWORD" \
-    -v mig_pw="$BC_ADMIN_MIG_PASSWORD" \
-    -v tasks_pw="$BC_TASKS_PASSWORD" \
-    -v tasks_data_app_pw="$BC_TASKS_DATA_APP_PASSWORD" \
-    -v tasks_data_google_pw="$BC_TASKS_DATA_GOOGLE_PASSWORD" <<'SQL'
+# The passwords reach psql through its environment (\getenv below), never as
+# `-v name=value` arguments, which any user of the host can read in the process
+# list while the command runs. (\getenv needs psql 15 or newer; compose uses 16.)
+export BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_APP_PASSWORD BC_TASKS_DATA_GOOGLE_PASSWORD
+
+psql -v ON_ERROR_STOP=1 --quiet --output /dev/null --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'SQL'
+\getenv admin_pw BC_ADMIN_PASSWORD
+\getenv mig_pw BC_ADMIN_MIG_PASSWORD
+\getenv tasks_pw BC_TASKS_PASSWORD
+\getenv tasks_data_app_pw BC_TASKS_DATA_APP_PASSWORD
+\getenv tasks_data_google_pw BC_TASKS_DATA_GOOGLE_PASSWORD
 SET log_statement = 'none';
 SET log_min_error_statement = 'panic';
 SELECT count(set_config('bc.admin_pw', :'admin_pw', false));
@@ -132,6 +147,17 @@ BEGIN
     END IF;
     ALTER SCHEMA settings OWNER TO bc_admin_mig;
     REVOKE ALL ON SCHEMA settings FROM PUBLIC;
+
+    -- the owner of the runner's definer functions: cannot log in, owns no table;
+    -- the migration role becomes a member so a revision can hand it a function
+    -- it created (ALTER FUNCTION ... OWNER TO needs membership), nothing more
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bc_tasks_def') THEN
+        CREATE ROLE bc_tasks_def NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE;
+    END IF;
+    ALTER ROLE bc_tasks_def NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+    ALTER ROLE bc_tasks_def SET search_path = pg_catalog;
+    GRANT bc_tasks_def TO bc_admin_mig;
+    GRANT USAGE ON SCHEMA admin, tasks, settings TO bc_tasks_def;
 
     -- login roles: created once, password re-synced on every run
     FOREACH r SLICE 1 IN ARRAY runtime_roles LOOP
@@ -218,9 +244,9 @@ BEGIN
         REVOKE ALL ON admin.audit_log FROM bc_admin;
         GRANT SELECT, INSERT ON admin.audit_log TO bc_admin;
         GRANT USAGE ON SEQUENCE admin.audit_log_seq_seq TO bc_admin;
+        -- the runner has NO access to the log: its rows go through definer functions
         REVOKE ALL ON admin.audit_log FROM bc_tasks;
-        GRANT SELECT, INSERT ON admin.audit_log TO bc_tasks;
-        GRANT USAGE ON SEQUENCE admin.audit_log_seq_seq TO bc_tasks;
+        REVOKE ALL ON SEQUENCE admin.audit_log_seq_seq FROM bc_tasks;
     END IF;
 
     -- the task runner's state (tables exist once the tasks revision has run)
@@ -284,10 +310,26 @@ BEGIN
         REVOKE ALL ON settings.entries, settings.history, settings.manifest,
             settings.service_state FROM bc_admin;
         GRANT SELECT, INSERT, UPDATE ON settings.entries TO bc_admin;
+        -- history rows are never changed by anyone: INSERT new versions, prune old
+        -- ones; a master-key re-wrap is appended to history_wraps
         GRANT SELECT, INSERT, DELETE ON settings.history TO bc_admin;
-        GRANT UPDATE (blob) ON settings.history TO bc_admin;
         GRANT SELECT, INSERT, UPDATE ON settings.manifest TO bc_admin;
         GRANT SELECT, DELETE ON settings.service_state TO bc_admin;
+    END IF;
+    IF to_regclass('settings.history_wraps') IS NOT NULL THEN
+        REVOKE ALL ON settings.history_wraps FROM bc_admin;
+        GRANT SELECT, INSERT ON settings.history_wraps TO bc_admin;
+        GRANT USAGE ON SEQUENCE settings.history_wraps_id_seq TO bc_admin;
+    END IF;
+    -- the portal's leases and the verification checkpoint (the lock rows have no
+    -- grant at all: admin.take_lock, a definer function, is the only way in)
+    IF to_regclass('admin.loop_leases') IS NOT NULL THEN
+        REVOKE ALL ON admin.loop_leases FROM bc_admin;
+        GRANT SELECT, INSERT ON admin.loop_leases TO bc_admin;
+        GRANT UPDATE (holder, acquired_at, expires_at) ON admin.loop_leases TO bc_admin;
+    END IF;
+    IF to_regclass('admin.lock_rows') IS NOT NULL THEN
+        REVOKE ALL ON admin.lock_rows FROM bc_admin, bc_tasks;
     END IF;
     -- Readers: their own two views and report_state, nothing else. Keep these
     -- {service, role} pairs equal to READER_SERVICES in
@@ -310,13 +352,85 @@ BEGIN
 END
 $do$;
 
+-- The runner's definer role and functions (they exist once the admin revisions
+-- 0013-0017 have run; this block repairs drift and is a no-op before that): the
+-- grants the functions need, the owner, and EXECUTE for the runner's role alone.
+DO $defn$
+DECLARE
+    f record;
+BEGIN
+    IF to_regclass('admin.audit_log') IS NOT NULL THEN
+        GRANT USAGE ON SCHEMA admin, tasks, settings TO bc_tasks_def;
+        GRANT INSERT ON admin.audit_log TO bc_tasks_def;
+        GRANT SELECT (seq, row_hash, request_id, action, actor_kind, target_type, target_id, detail)
+            ON admin.audit_log TO bc_tasks_def;
+        GRANT USAGE ON SEQUENCE admin.audit_log_seq_seq TO bc_tasks_def;
+    END IF;
+    IF to_regclass('tasks.runs') IS NOT NULL THEN
+        GRANT SELECT ON tasks.runs TO bc_tasks_def;
+    END IF;
+    IF to_regclass('settings.entries') IS NOT NULL THEN
+        GRANT SELECT ON settings.entries, settings.manifest, settings.reader_roles TO bc_tasks_def;
+        GRANT UPDATE (readers, blob, version, source, updated_by, updated_at, sig)
+            ON settings.entries TO bc_tasks_def;
+        GRANT UPDATE (revision, digest, entries, sig) ON settings.manifest TO bc_tasks_def;
+        GRANT SELECT, INSERT ON settings.history TO bc_tasks_def;
+    END IF;
+    IF to_regclass('admin.notifications') IS NOT NULL THEN
+        GRANT SELECT, INSERT ON admin.notifications TO bc_tasks_def;
+    END IF;
+    IF to_regprocedure('admin.take_lock(text)') IS NOT NULL THEN
+        REVOKE ALL ON FUNCTION admin.take_lock(text) FROM PUBLIC;
+        GRANT EXECUTE ON FUNCTION admin.take_lock(text) TO bc_admin, bc_tasks_def;
+    END IF;
+    FOR f IN
+        SELECT p.oid::regprocedure AS sig
+        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE (n.nspname, p.proname) IN (('tasks', 'begin_audit'), ('tasks', 'audit_append'),
+                                         ('settings', 'task_write_keyset'),
+                                         ('settings', 'task_notify_reencrypt'))
+    LOOP
+        EXECUTE format('ALTER FUNCTION %s OWNER TO bc_tasks_def', f.sig);
+        EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', f.sig);
+        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO bc_tasks', f.sig);
+    END LOOP;
+    IF to_regclass('admin.audit_verify_state') IS NOT NULL THEN
+        REVOKE ALL ON admin.audit_verify_state FROM bc_admin;
+        GRANT SELECT, INSERT ON admin.audit_verify_state TO bc_admin;
+        GRANT UPDATE (verified_seq, verified_hash, rows_verified, verified_at)
+            ON admin.audit_verify_state TO bc_admin;
+    END IF;
+END
+$defn$;
+
 -- Platform counts for the admin portal's metrics page: counts only, no
--- identifying value. The admin roles cannot read the `app` and `auth` schemas,
--- so this one read-only function is a SECURITY DEFINER owned by bc_admin_counts,
--- a role with SELECT on only the columns it reads (never a superuser), and is
--- executable by bc_admin alone. It never writes, takes no arguments and names its tables explicitly;
--- until the application migrations have run it fails and the page says so.
-CREATE OR REPLACE FUNCTION admin.platform_counts() RETURNS jsonb
+-- identifying value. The admin roles cannot read the `app` and `auth` schemas, so
+-- the counts come from ONE read-only SECURITY DEFINER function PER OWNING SCHEMA,
+-- each owned by a role that can log in nowhere and holds SELECT on that schema's
+-- columns only: nothing the schema's own owner role (bc_app, bc_auth) does not
+-- already hold. A table owner can replace a table with a view that runs its own
+-- code as whoever reads it; here that reader is a role with nothing beyond the
+-- owner's own rights, so there is nothing to steal. No definer function reads
+-- tables of more than one owning role; the admin service adds the two results up
+-- in Python and treats them as data. EXECUTE for bc_admin alone; the functions
+-- never write, take no arguments and name their tables explicitly; until the
+-- application migrations have run they fail and the page says so.
+DO $drop$
+BEGIN
+    -- the single cross-schema function this replaces (and its owner role)
+    IF to_regprocedure('admin.platform_counts()') IS NOT NULL THEN
+        DROP FUNCTION admin.platform_counts();
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bc_admin_counts') THEN
+        DROP OWNED BY bc_admin_counts;
+        DROP ROLE bc_admin_counts;
+    END IF;
+EXCEPTION WHEN dependent_objects_still_exist THEN
+    RAISE NOTICE 'bc_admin_counts still has dependencies elsewhere; it can log in nowhere and owns nothing here';
+END
+$drop$;
+
+CREATE OR REPLACE FUNCTION admin.platform_counts_app() RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET search_path = pg_catalog, pg_temp
 SET timezone = 'UTC' AS $fn$
@@ -328,17 +442,81 @@ DECLARE
     id30 text := lpad(to_hex(floor(extract(epoch FROM now() - interval '30 days'))::bigint), 8, '0')
                  || '0000000000000000';
     weekly jsonb;
-    result jsonb;
+BEGIN
+    SELECT jsonb_agg(jsonb_build_object(
+        'week_start', (b.lo AT TIME ZONE 'UTC')::date,
+        'new_organizations', (SELECT count(*) FROM app.workspaces w WHERE w.id >= b.lo_id AND w.id < b.hi_id),
+        'new_forms', (SELECT count(*) FROM app.workspace_forms f WHERE f.id >= b.lo_id AND f.id < b.hi_id),
+        'responses', (SELECT count(*) FROM app.form_responses r
+                      WHERE r.doc ? 'answers' AND r.created_at >= b.lo AND r.created_at < b.hi)
+    ) ORDER BY b.i)
+    INTO weekly
+    FROM (
+        SELECT g.i, w.lo, w.hi,
+               lpad(to_hex(floor(extract(epoch FROM w.lo))::bigint), 8, '0') || '0000000000000000' AS lo_id,
+               lpad(to_hex(floor(extract(epoch FROM w.hi))::bigint), 8, '0') || '0000000000000000' AS hi_id
+        FROM generate_series(0, 11) AS g(i),
+             LATERAL (SELECT first_week + g.i * interval '1 week' AS lo,
+                             first_week + (g.i + 1) * interval '1 week' AS hi) AS w
+    ) AS b;
+
+    RETURN jsonb_build_object(
+        'organizations', jsonb_build_object(
+            'total', (SELECT count(*) FROM app.workspaces),
+            'new_last_30_days', (SELECT count(*) FROM app.workspaces WHERE id >= id30),
+            'disabled', (SELECT count(*) FROM app.workspaces WHERE disabled IS TRUE)),
+        'forms', jsonb_build_object(
+            'total', (SELECT count(*) FROM app.workspace_forms),
+            'published', (SELECT count(*) FROM app.workspace_forms f
+                          WHERE EXISTS (SELECT 1 FROM app.form_versions v WHERE v.form_id = f.form_id)),
+            'new_last_30_days', (SELECT count(*) FROM app.workspace_forms WHERE id >= id30),
+            'by_provider', coalesce((
+                SELECT jsonb_object_agg(p.name, p.n)
+                FROM (SELECT left(coalesce(nullif(doc -> 'settings' ->> 'provider', ''), 'unknown'), 40) AS name,
+                             count(*) AS n
+                      FROM app.workspace_forms GROUP BY 1 ORDER BY 2 DESC LIMIT 20) AS p), '{}'::jsonb)),
+        'form_creators', jsonb_build_object(
+            'total', (SELECT count(DISTINCT user_id) FROM app.workspace_forms
+                      WHERE user_id IS NOT NULL AND user_id <> ''),
+            'active_last_30_days', (SELECT count(DISTINCT user_id) FROM app.workspace_forms
+                                    WHERE user_id IS NOT NULL AND user_id <> '' AND id >= id30)),
+        'responses', jsonb_build_object(
+            'total', (SELECT count(*) FROM app.form_responses WHERE doc ? 'answers'),
+            'last_7_days', (SELECT count(*) FROM app.form_responses
+                            WHERE doc ? 'answers' AND created_at >= since7),
+            'last_30_days', (SELECT count(*) FROM app.form_responses
+                             WHERE doc ? 'answers' AND created_at >= since30)),
+        'form_responders', jsonb_build_object(
+            'identified_responses', (SELECT count(*) FROM app.form_responses
+                                     WHERE doc ? 'answers' AND data_owner_identifier IS NOT NULL
+                                           AND data_owner_identifier <> ''),
+            'identified', (SELECT count(DISTINCT data_owner_identifier) FROM app.form_responses
+                           WHERE doc ? 'answers' AND data_owner_identifier IS NOT NULL
+                                 AND data_owner_identifier <> ''),
+            'anonymous_responses', (SELECT count(*) FROM app.form_responses
+                                    WHERE doc ? 'answers'
+                                          AND (data_owner_identifier IS NULL OR data_owner_identifier = ''))),
+        'weekly', coalesce(weekly, '[]'::jsonb));
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.platform_counts_auth() RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp
+SET timezone = 'UTC' AS $fn$
+DECLARE
+    first_week timestamptz :=
+        (date_trunc('week', now() AT TIME ZONE 'UTC') - interval '11 weeks') AT TIME ZONE 'UTC';
+    since30 timestamptz := now() - interval '30 days';
+    id30 text := lpad(to_hex(floor(extract(epoch FROM now() - interval '30 days'))::bigint), 8, '0')
+                 || '0000000000000000';
+    weekly jsonb;
     active_users bigint := 0;
     rec record;
 BEGIN
     SELECT jsonb_agg(jsonb_build_object(
         'week_start', (b.lo AT TIME ZONE 'UTC')::date,
-        'new_users', (SELECT count(*) FROM auth.users u WHERE u.id >= b.lo_id AND u.id < b.hi_id),
-        'new_organizations', (SELECT count(*) FROM app.workspaces w WHERE w.id >= b.lo_id AND w.id < b.hi_id),
-        'new_forms', (SELECT count(*) FROM app.workspace_forms f WHERE f.id >= b.lo_id AND f.id < b.hi_id),
-        'responses', (SELECT count(*) FROM app.form_responses r
-                      WHERE r.doc ? 'answers' AND r.created_at >= b.lo AND r.created_at < b.hi)
+        'new_users', (SELECT count(*) FROM auth.users u WHERE u.id >= b.lo_id AND u.id < b.hi_id)
     ) ORDER BY b.i)
     INTO weekly
     FROM (
@@ -390,12 +568,7 @@ BEGIN
         END LOOP;
     END;
 
-    SELECT jsonb_build_object(
-        'generated_at', now(),
-        'organizations', jsonb_build_object(
-            'total', (SELECT count(*) FROM app.workspaces),
-            'new_last_30_days', (SELECT count(*) FROM app.workspaces WHERE id >= id30),
-            'disabled', (SELECT count(*) FROM app.workspaces WHERE disabled IS TRUE)),
+    RETURN jsonb_build_object(
         'users', jsonb_build_object(
             'total', (SELECT count(*) FROM auth.users),
             'new_last_30_days', (SELECT count(*) FROM auth.users WHERE id >= id30),
@@ -403,86 +576,53 @@ BEGIN
             'by_plan', jsonb_build_object(
                 'FREE', (SELECT count(*) FROM auth.users WHERE coalesce(plan, 'FREE') = 'FREE'),
                 'PRO', (SELECT count(*) FROM auth.users WHERE plan = 'PRO'))),
-        'forms', jsonb_build_object(
-            'total', (SELECT count(*) FROM app.workspace_forms),
-            'published', (SELECT count(*) FROM app.workspace_forms f
-                          WHERE EXISTS (SELECT 1 FROM app.form_versions v WHERE v.form_id = f.form_id)),
-            'new_last_30_days', (SELECT count(*) FROM app.workspace_forms WHERE id >= id30),
-            'by_provider', coalesce((
-                SELECT jsonb_object_agg(p.name, p.n)
-                FROM (SELECT left(coalesce(nullif(doc -> 'settings' ->> 'provider', ''), 'unknown'), 40) AS name,
-                             count(*) AS n
-                      FROM app.workspace_forms GROUP BY 1 ORDER BY 2 DESC LIMIT 20) AS p), '{}'::jsonb)),
-        'form_creators', jsonb_build_object(
-            'total', (SELECT count(DISTINCT user_id) FROM app.workspace_forms
-                      WHERE user_id IS NOT NULL AND user_id <> ''),
-            'active_last_30_days', (SELECT count(DISTINCT user_id) FROM app.workspace_forms
-                                    WHERE user_id IS NOT NULL AND user_id <> '' AND id >= id30)),
-        'responses', jsonb_build_object(
-            'total', (SELECT count(*) FROM app.form_responses WHERE doc ? 'answers'),
-            'last_7_days', (SELECT count(*) FROM app.form_responses
-                            WHERE doc ? 'answers' AND created_at >= since7),
-            'last_30_days', (SELECT count(*) FROM app.form_responses
-                             WHERE doc ? 'answers' AND created_at >= since30)),
-        'form_responders', jsonb_build_object(
-            'identified_responses', (SELECT count(*) FROM app.form_responses
-                                     WHERE doc ? 'answers' AND data_owner_identifier IS NOT NULL
-                                           AND data_owner_identifier <> ''),
-            'identified', (SELECT count(DISTINCT data_owner_identifier) FROM app.form_responses
-                           WHERE doc ? 'answers' AND data_owner_identifier IS NOT NULL
-                                 AND data_owner_identifier <> ''),
-            'anonymous_responses', (SELECT count(*) FROM app.form_responses
-                                    WHERE doc ? 'answers'
-                                          AND (data_owner_identifier IS NULL OR data_owner_identifier = ''))),
-        'weekly', coalesce(weekly, '[]'::jsonb)
-    ) INTO result;
-    RETURN result;
+        'weekly', coalesce(weekly, '[]'::jsonb));
 END
 $fn$;
 
--- The function's owner: a role that cannot log in, owns nothing and can create
--- nothing, and may read only the columns the function reads. The function must
--- not be owned by a superuser: it reads tables owned by other services' roles,
--- and an owner with more rights than that would run whatever those roles put in
--- front of it. This block runs on every deploy, so the grants are re-applied
--- once the application migrations have created the tables.
+-- The functions' owners: one role per schema, NOLOGIN, owning only its function
+-- and holding column-level SELECT on that schema's tables. This block runs on
+-- every deploy, so the grants are re-applied once the application migrations
+-- have created the tables.
 DO $own$
 DECLARE
-    g text[];
+    r text[];
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bc_admin_counts') THEN
-        CREATE ROLE bc_admin_counts NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE;
-    END IF;
-    ALTER ROLE bc_admin_counts NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-    EXECUTE format('REVOKE ALL ON DATABASE %I FROM bc_admin_counts', current_database());
-    EXECUTE format('GRANT CONNECT ON DATABASE %I TO bc_admin_counts', current_database());
-    FOREACH g SLICE 1 IN ARRAY ARRAY[['app'], ['auth']] LOOP
-        IF to_regnamespace(g[1]) IS NOT NULL THEN
-            EXECUTE format('REVOKE ALL ON SCHEMA %I FROM bc_admin_counts', g[1]);
-            EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM bc_admin_counts', g[1]);
-            EXECUTE format('GRANT USAGE ON SCHEMA %I TO bc_admin_counts', g[1]);
+    FOREACH r SLICE 1 IN ARRAY ARRAY[['bc_count_app', 'app'], ['bc_count_auth', 'auth']] LOOP
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r[1]) THEN
+            EXECUTE format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE', r[1]);
+        END IF;
+        EXECUTE format('ALTER ROLE %I NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS', r[1]);
+        EXECUTE format('REVOKE ALL ON DATABASE %I FROM %I', current_database(), r[1]);
+        IF to_regnamespace(r[2]) IS NOT NULL THEN
+            EXECUTE format('REVOKE ALL ON SCHEMA %I FROM %I', r[2], r[1]);
+            EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM %I', r[2], r[1]);
+            EXECUTE format('GRANT USAGE ON SCHEMA %I TO %I', r[2], r[1]);
         END IF;
     END LOOP;
     IF to_regclass('app.workspaces') IS NOT NULL THEN
-        GRANT SELECT (id, disabled) ON app.workspaces TO bc_admin_counts;
+        GRANT SELECT (id, disabled) ON app.workspaces TO bc_count_app;
     END IF;
     IF to_regclass('app.workspace_forms') IS NOT NULL THEN
-        GRANT SELECT (id, doc, user_id, form_id) ON app.workspace_forms TO bc_admin_counts;
+        GRANT SELECT (id, doc, user_id, form_id) ON app.workspace_forms TO bc_count_app;
     END IF;
     IF to_regclass('app.form_versions') IS NOT NULL THEN
-        GRANT SELECT (form_id) ON app.form_versions TO bc_admin_counts;
+        GRANT SELECT (form_id) ON app.form_versions TO bc_count_app;
     END IF;
     IF to_regclass('app.form_responses') IS NOT NULL THEN
-        GRANT SELECT (doc, created_at, data_owner_identifier) ON app.form_responses TO bc_admin_counts;
+        GRANT SELECT (doc, created_at, data_owner_identifier) ON app.form_responses TO bc_count_app;
     END IF;
     IF to_regclass('auth.users') IS NOT NULL THEN
-        GRANT SELECT (id, doc, plan) ON auth.users TO bc_admin_counts;
+        GRANT SELECT (id, doc, plan) ON auth.users TO bc_count_auth;
     END IF;
 END
 $own$;
-ALTER FUNCTION admin.platform_counts() OWNER TO bc_admin_counts;
-REVOKE ALL ON FUNCTION admin.platform_counts() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION admin.platform_counts() TO bc_admin;
+ALTER FUNCTION admin.platform_counts_app() OWNER TO bc_count_app;
+ALTER FUNCTION admin.platform_counts_auth() OWNER TO bc_count_auth;
+REVOKE ALL ON FUNCTION admin.platform_counts_app() FROM PUBLIC;
+REVOKE ALL ON FUNCTION admin.platform_counts_auth() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin.platform_counts_app() TO bc_admin;
+GRANT EXECUTE ON FUNCTION admin.platform_counts_auth() TO bc_admin;
 
 RESET bc.admin_pw;
 RESET bc.mig_pw;

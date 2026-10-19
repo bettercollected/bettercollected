@@ -20,6 +20,16 @@ def build_runner(portal) -> LoopRunner:
     )
     service = SettingsService(portal.engine, registry, keys)
     cfg = portal.loop_settings
+
+    async def audit_step():
+        from backend.admin.services import audit
+
+        async with portal.engine.begin() as conn:
+            return await audit.verify_step(conn)
+
+    def known_keys() -> frozenset:
+        return frozenset(spec.key for spec in registry)
+
     loops = [
         NotificationSender(
             portal.engine,
@@ -43,6 +53,8 @@ def build_runner(portal) -> LoopRunner:
             service.verify,
             portal.board,
             interval=cfg.integrity_interval,
+            audit_step=audit_step,
+            known_keys=known_keys,
         ),
     ]
     return LoopRunner(portal.engine, portal.clock, loops, portal.board)

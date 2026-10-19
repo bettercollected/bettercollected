@@ -387,30 +387,42 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
     assert len(counts["weekly"]) == 12 and sum(w["responses"] for w in counts["weekly"]) == 4
     html = (await b.get("/metrics")).text
     assert "Platform counts are not available" not in html and "self" in html
-    # the owner is no superuser, can create nothing, and the other services' roles
-    # cannot change what the function calls (it calls nothing outside pg_catalog)
+    # one definer function per owning schema, each owned by a role that cannot log in,
+    # creates nothing, owns no table and reads only its own schema (the hostile-owner
+    # proofs are in test_db_privilege_model.py)
     async with superuser.connect() as conn:
-        owner = (await conn.execute(text(
-            "SELECT r.rolname, r.rolsuper, r.rolcanlogin, r.rolcreaterole, r.rolcreatedb, r.rolbypassrls "
-            "FROM pg_proc p JOIN pg_roles r ON r.oid = p.proowner WHERE p.proname = 'platform_counts'"))).one()
-        assert owner.rolname == f"bc_admin_counts_{server.suffix}"
-        assert not (owner.rolsuper or owner.rolcanlogin or owner.rolcreaterole or owner.rolcreatedb or owner.rolbypassrls)
-        creates = (await conn.execute(text(
-            "SELECT nspname FROM pg_namespace WHERE has_schema_privilege(:r, oid, 'CREATE')"),
-            {"r": owner.rolname})).all()
-        assert creates == []
-        owned = (await conn.execute(text(
-            "SELECT count(*) FROM pg_class c WHERE c.relowner = (SELECT oid FROM pg_roles WHERE rolname = :r)"),
-            {"r": owner.rolname})).scalar_one()
-        assert owned == 0
-        definition = (await conn.execute(text(
-            "SELECT pg_get_functiondef(p.oid) FROM pg_proc p WHERE p.proname = 'platform_counts'"))).scalar_one()
-        config = (await conn.execute(text(
-            "SELECT proconfig FROM pg_proc WHERE proname = 'platform_counts'"))).scalar_one()
-        assert "search_path=pg_catalog, pg_temp" in config
-        assert "SECURITY DEFINER" in definition
-        # no schema-qualified function call (tables are qualified, calls never are)
-        assert not re.search(r"[A-Za-z_]+\.[A-Za-z_]+\s*\(", definition.split("$function$")[1]), definition
+        for fn, owner_role, own, other in (
+            ("platform_counts_app", f"bc_count_app_{server.suffix}", "app", "auth"),
+            ("platform_counts_auth", f"bc_count_auth_{server.suffix}", "auth", "app"),
+        ):
+            owner = (await conn.execute(text(
+                "SELECT r.rolname, r.rolsuper, r.rolcanlogin, r.rolcreaterole, r.rolcreatedb, r.rolbypassrls "
+                "FROM pg_proc p JOIN pg_roles r ON r.oid = p.proowner WHERE p.proname = :f"), {"f": fn})).one()
+            assert owner.rolname == owner_role
+            assert not (owner.rolsuper or owner.rolcanlogin or owner.rolcreaterole or owner.rolcreatedb or owner.rolbypassrls)
+            creates = (await conn.execute(text(
+                "SELECT nspname FROM pg_namespace WHERE has_schema_privilege(:r, oid, 'CREATE')"),
+                {"r": owner.rolname})).all()
+            assert creates == []
+            owned = (await conn.execute(text(
+                "SELECT count(*) FROM pg_class c WHERE c.relowner = (SELECT oid FROM pg_roles WHERE rolname = :r)"),
+                {"r": owner.rolname})).scalar_one()
+            assert owned == 0
+            definition = (await conn.execute(text(
+                "SELECT pg_get_functiondef(p.oid) FROM pg_proc p WHERE p.proname = :f"), {"f": fn})).scalar_one()
+            config = (await conn.execute(text(
+                "SELECT proconfig FROM pg_proc WHERE proname = :f"), {"f": fn})).scalar_one()
+            assert "search_path=pg_catalog, pg_temp" in config
+            assert "SECURITY DEFINER" in definition
+            body = definition.split("$function$")[1]
+            # no schema-qualified function call (tables are qualified, calls never are)
+            assert not re.search(r"[A-Za-z_]+\.[A-Za-z_]+\s*\(", body), definition
+            # reads its own schema's tables and no other's
+            assert f"{other}." not in body.replace("jsonb_", "")
+        # the old cross-schema function and its owner role are gone
+        assert (await conn.execute(text("SELECT count(*) FROM pg_proc WHERE proname = 'platform_counts'"))).scalar_one() == 0
+        assert (await conn.execute(text(
+            "SELECT count(*) FROM pg_roles WHERE rolname = :r"), {"r": f"bc_admin_counts_{server.suffix}"})).scalar_one() == 0
         await conn.execute(text("DROP FUNCTION auth.bc_ts(jsonb)"))
         await conn.commit()
     for role in ("auth", "app"):
@@ -422,9 +434,10 @@ async def test_platform_counts_match_a_seeded_database(server, migrated, portal,
                         "CREATE FUNCTION auth.bc_ts(v jsonb) RETURNS timestamptz LANGUAGE plpgsql AS "
                         "$$ BEGIN RAISE EXCEPTION 'ran as the owner'; END $$"))
             for statement in (
-                "ALTER FUNCTION admin.platform_counts() OWNER TO CURRENT_USER",
-                "CREATE OR REPLACE FUNCTION admin.platform_counts() RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$",
-                "SELECT admin.platform_counts()",
+                "ALTER FUNCTION admin.platform_counts_app() OWNER TO CURRENT_USER",
+                "CREATE OR REPLACE FUNCTION admin.platform_counts_auth() RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$",
+                "SELECT admin.platform_counts_app()",
+                "SELECT admin.platform_counts_auth()",
             ):
                 with pytest.raises(Exception):
                     async with hostile.begin() as conn:
@@ -447,7 +460,9 @@ async def test_only_the_admin_role_may_run_the_counts_function(server, migrated)
         try:
             async with engine.connect() as conn:
                 with pytest.raises(Exception):
-                    await conn.execute(text("SELECT admin.platform_counts()"))
+                    await conn.execute(text("SELECT admin.platform_counts_app()"))
+                with pytest.raises(Exception):
+                    await conn.execute(text("SELECT admin.platform_counts_auth()"))
         finally:
             await engine.dispose()
 

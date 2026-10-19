@@ -19,7 +19,7 @@ from sqlalchemy.pool import NullPool
 
 from backend.admin.asgi import get_admin_application
 from backend.admin.gate.settings import GateSettings
-from backend.admin.loops.base import LOCK_CLASS, Loop, LoopRunner
+from backend.admin.loops.base import Loop, LoopRunner
 from backend.admin.loops.config import LoopSettings
 from backend.admin.loops.integrity import IntegrityMonitor
 from backend.admin.loops.notifications import (
@@ -367,18 +367,19 @@ async def wait_for(predicate, timeout=5.0):
     raise AssertionError("condition not reached")
 
 
-async def lock_free(engine, number) -> bool:
+async def lock_free(engine, name) -> bool:
+    """Whether nobody holds an unexpired lease on the loop ``name``."""
     async with engine.connect() as conn:
-        got = (
+        held = (
             await conn.execute(
-                text("SELECT pg_try_advisory_lock(:c, :n)"), {"c": LOCK_CLASS, "n": number}
+                text(
+                    "SELECT count(*) FROM admin.loop_leases "
+                    "WHERE name = :n AND expires_at > clock_timestamp()"
+                ),
+                {"n": name},
             )
         ).scalar_one()
-        if got:
-            await conn.execute(
-                text("SELECT pg_advisory_unlock(:c, :n)"), {"c": LOCK_CLASS, "n": number}
-            )
-        return bool(got)
+        return held == 0
 
 
 async def test_only_one_runner_runs_a_loop_and_the_other_takes_over(runtime_engine, now_clock):
@@ -392,12 +393,12 @@ async def test_only_one_runner_runs_a_loop_and_the_other_takes_over(runtime_engi
     assert b.runs == 0
     assert one.status()["counting"].leader and not two.status()["counting"].leader
     assert two.status()["counting"].last_outcome == "standby"
-    assert not await lock_free(runtime_engine, 41)
+    assert not await lock_free(runtime_engine, "counting")
     await one.stop()
     await wait_for(lambda: b.runs > 0)  # idle takeover
     assert two.status()["counting"].leader
     await two.stop()
-    assert await lock_free(runtime_engine, 41)  # released on cancel
+    assert await lock_free(runtime_engine, "counting")  # released on cancel
 
 
 async def test_a_failing_loop_is_counted_logged_by_class_and_never_crashes(
@@ -420,7 +421,7 @@ async def test_a_failing_loop_is_counted_logged_by_class_and_never_crashes(
     assert "ValueError" in caplog.text
     assert PLANT not in caplog.text and "admin@example.org" not in caplog.text
     await runner.stop()
-    assert await lock_free(runtime_engine, 42)
+    assert await lock_free(runtime_engine, "failing")
 
 
 async def test_a_loop_survives_database_errors_and_recovers(runtime_engine, now_clock):
@@ -493,8 +494,8 @@ async def test_the_portal_lifespan_starts_the_loops_and_shutdown_cancels_them(
     await run_lifespan(app, during)
     assert set(seen[0]) == {"notifications", "retention", "integrity"}
     assert loop_tasks() == [] and portal.runner is None
-    for number in (1, 2, 3):
-        assert await lock_free(runtime_engine, number)
+    for name in ("notifications", "retention", "integrity"):
+        assert await lock_free(runtime_engine, name)
 
 
 async def test_the_loops_can_be_switched_off(portal, app):

@@ -16,7 +16,8 @@ from typing import Dict, Optional, Tuple
 @dataclass(frozen=True)
 class LoopStatus:
     name: str
-    leader: bool = False  # this process holds the loop's advisory lock
+    leader: bool = False  # this process holds the loop's lease
+    standby_since: Optional[datetime] = None  # when it last lost or never won the lease
     last_run_at: Optional[datetime] = None
     last_outcome: str = "not run yet"  # a short fixed phrase with counts only
     last_ok: Optional[bool] = None

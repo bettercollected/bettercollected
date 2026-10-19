@@ -8,7 +8,8 @@ secret cannot reach the process, let alone a page.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import and_, func, or_, select, text
@@ -60,9 +61,101 @@ def parse_json(raw: Any) -> Any:
     return raw
 
 
+def _n(value: Any) -> int:
+    """A count from a definer function's answer: a whole number or 0. The
+    functions run as roles other services' owners could have put code in front of,
+    so their answers are data to be checked, never trusted for shape."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    return max(0, int(value))
+
+
+def _section(source: Any, name: str) -> dict:
+    value = source.get(name) if isinstance(source, dict) else None
+    return value if isinstance(value, dict) else {}
+
+
+def combine_counts(app: Any, auth: Any) -> dict:
+    """The metrics page's counts from the two per-schema answers
+    (``admin.platform_counts_app()`` and ``admin.platform_counts_auth()``),
+    rebuilt field by field from whole numbers: unknown fields are dropped."""
+    orgs, forms, creators = _section(app, "organizations"), _section(app, "forms"), _section(app, "form_creators")
+    responses, responders = _section(app, "responses"), _section(app, "form_responders")
+    users = _section(auth, "users")
+    plans = _section(users, "by_plan")
+    providers = forms.get("by_provider")
+    by_provider = {}
+    if isinstance(providers, dict):
+        for name, count in list(providers.items())[:20]:
+            if isinstance(name, str):
+                by_provider[name[:40]] = _n(count)
+
+    def week_start(value: Any) -> str:
+        return value if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) else ""
+
+    new_users = {}
+    auth_weeks = auth.get("weekly") if isinstance(auth, dict) else None
+    for week in (auth_weeks if isinstance(auth_weeks, list) else [])[:12]:
+        if isinstance(week, dict):
+            new_users[week_start(week.get("week_start"))] = _n(week.get("new_users"))
+    weekly = []
+    app_weeks = app.get("weekly") if isinstance(app, dict) else None
+    for week in (app_weeks if isinstance(app_weeks, list) else [])[:12]:
+        if not isinstance(week, dict):
+            continue
+        start = week_start(week.get("week_start"))
+        weekly.append(
+            {
+                "week_start": start,
+                "new_users": new_users.get(start, 0),
+                "new_organizations": _n(week.get("new_organizations")),
+                "new_forms": _n(week.get("new_forms")),
+                "responses": _n(week.get("responses")),
+            }
+        )
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "organizations": {
+            "total": _n(orgs.get("total")),
+            "new_last_30_days": _n(orgs.get("new_last_30_days")),
+            "disabled": _n(orgs.get("disabled")),
+        },
+        "users": {
+            "total": _n(users.get("total")),
+            "new_last_30_days": _n(users.get("new_last_30_days")),
+            "active_last_30_days": _n(users.get("active_last_30_days")),
+            "by_plan": {"FREE": _n(plans.get("FREE")), "PRO": _n(plans.get("PRO"))},
+        },
+        "forms": {
+            "total": _n(forms.get("total")),
+            "published": _n(forms.get("published")),
+            "new_last_30_days": _n(forms.get("new_last_30_days")),
+            "by_provider": by_provider,
+        },
+        "form_creators": {
+            "total": _n(creators.get("total")),
+            "active_last_30_days": _n(creators.get("active_last_30_days")),
+        },
+        "responses": {
+            "total": _n(responses.get("total")),
+            "last_7_days": _n(responses.get("last_7_days")),
+            "last_30_days": _n(responses.get("last_30_days")),
+        },
+        "form_responders": {
+            "identified_responses": _n(responders.get("identified_responses")),
+            "identified": _n(responders.get("identified")),
+            "anonymous_responses": _n(responders.get("anonymous_responses")),
+        },
+        "weekly": weekly,
+    }
+
+
 async def platform_counts(conn: AsyncConnection) -> dict:
-    """The counts of ``admin.platform_counts()`` (see postgres/ensure-admin-roles.sh)."""
-    return parse_json((await conn.execute(text("SELECT admin.platform_counts()"))).scalar_one())
+    """The platform counts: one definer function per owning schema, combined here
+    (see postgres/ensure-admin-roles.sh). No function reads tables of two owners."""
+    app = parse_json((await conn.execute(text("SELECT admin.platform_counts_app()"))).scalar_one())
+    auth = parse_json((await conn.execute(text("SELECT admin.platform_counts_auth()"))).scalar_one())
+    return combine_counts(app, auth)
 
 
 _AUDIT_COLUMNS = (
