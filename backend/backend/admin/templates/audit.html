@@ -27,7 +27,7 @@
     <input type="text" id="to" name="to" maxlength="40" value="{{ form.get('to', '') }}"></div>
   <div class="field"><label for="limit">{{ _("Rows per page (up to") }} {{ limit_max }})</label>
     <input type="text" id="limit" name="limit" inputmode="numeric" maxlength="3" value="{{ form.get('limit', '') }}"></div>
-  <button type="submit">{{ _("Filter") }}</button>
+  <button type="submit" class="secondary">{{ _("Filter") }}</button>
   <a href="/audit">{{ _("Clear") }}</a>
 </form>
 

@@ -61,8 +61,8 @@
       <input id="code" name="code" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="24">
     </div>
     <div class="actions">
-      {% if d.can_cancel %}<button type="submit" name="action" value="cancel">{{ _("Cancel the run...") }}</button>{% endif %}
-      {% if d.can_resume %}<button type="submit" name="action" value="resume">{{ _("Resume...") }}</button>{% endif %}
+      {% if d.can_cancel %}<button type="submit" name="action" value="cancel" class="secondary">{{ _("Cancel the run...") }}</button>{% endif %}
+      {% if d.can_resume %}<button type="submit" name="action" value="resume" class="secondary">{{ _("Resume...") }}</button>{% endif %}
     </div>
   </form>
   {% endif %}

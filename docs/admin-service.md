@@ -482,6 +482,18 @@ two seconds while the run is active, shows a "Live" indicator and reloads once
 when the run ends; it writes with `textContent` only. The content security
 policy stays `script-src 'self'`.
 
+### Look and fonts
+
+The portal follows the interface's design system (`DESIGN.md`): paper-mist ground,
+white panels on hairlines, one blue, Instrument Sans for text and JetBrains Mono
+for values (setting keys, ids, hashes, task parameters). The tokens are CSS custom
+properties on `:root` in `static/admin.css`, named like the webapp's; dark mode
+follows `prefers-color-scheme` from the same roles. The latin woff2 files live in
+`static/fonts/` (OFL-1.1, notices in `static/fonts/LICENSE`) and are served by
+`/static/fonts/<name>.woff2` with `font/woff2`, `nosniff` and a one-year immutable
+cache, the only response the portal lets a browser keep. Nothing is loaded from
+another origin, so the content security policy is unchanged.
+
 Starting a real run inserts the run row (state `queued`, signed as `tasks/request`)
 and the `task.run.requested` audit row in one transaction; a task that requires a
 prior dry run is refused unless a succeeded dry run of the same task, version and
