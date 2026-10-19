@@ -1,1 +1,0 @@
-export const PROVIDER_TAG_TYPES = 'PROVIDER_API';

@@ -15,6 +15,5 @@ class TemporalSettings(StoreBackedSettings):
     worker_queue: str = "default"
     action_queue: str = "actions"
     csv_queue: str = "csv_worker"
-    add_import_schedules: bool = False
 
     model_config = SettingsConfigDict(env_prefix='TEMPORAL_')

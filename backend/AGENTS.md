@@ -20,10 +20,9 @@ backend/
       repositories/   # data access wrapping Beanie documents
       schemas/        # Beanie Document definitions == MongoDB collections
       models/         # DTOs (dtos/), dataclasses/, enum/, types/, filter_queries/
-      core/           # provider plugin system: base/, factory/, loader/, plugins/{google,typeform}.py
       handlers/       # startup wiring: database.py (Beanie init), logging
       middlewares/    # DynamicCORSMiddleware, timing
-      schedulers/     # form_schedular.py: re-import + expired-response deletion, called by workers via /temporal
+      schedulers/     # form_schedular.py: expired-response deletion, called by workers via /temporal
       jobs/           # procrastinate app, tasks, worker and schema entrypoints (JOBS_BACKEND=postgres)
       container.py    # dependency-injector AppContainer (wires repos -> services)
       router.py       # aggregates all routers into root_api_router
@@ -801,8 +800,8 @@ one of ours; `services/image_urls.py` is the single allow-list:
   `TEMPORAL_API_KEY` (`services/internal_job_key.py`): **503** while it is unset, empty or the old
   `random_api_key`, **403** when wrong, constant-time compare. A new worker-only route takes
   `Depends(get_api_key)`; tests in `tests/app/controllers/test_internal_job_key.py`.
-- **Provider plugins:** `core/plugins/{google,typeform}.py` behind `plugin_proxy_service.py` — forwards standardized
-  requests to the external provider microservices (:8003 / :8002).
+- **Provider plugins:** `plugin_proxy_service.py` forwards standardized requests to the external provider
+  microservices (:8003 / :8002).
 - **Third-party services:** `aws_service.py` (S3), `stripe_service.py`, `openai_service.py` (prompts/AI form gen),
   `brevo_service.py` (email/events), `umami_client.py` + `analytics_service.py`.
 

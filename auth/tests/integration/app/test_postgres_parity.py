@@ -15,13 +15,8 @@ from beanie import PydanticObjectId
 from mongomock_motor import AsyncMongoMockClient
 
 from auth.app.container import container
-from auth.app.repositories.postgres import (
-    PostgresProviderRepository,
-    PostgresUserRepository,
-)
-from auth.app.repositories.provider_repository import ProviderRepository
+from auth.app.repositories.postgres import PostgresUserRepository
 from auth.app.repositories.user_repository import UserRepository
-from auth.app.schemas.provider import Provider
 from auth.app.schemas.user import UserDocument
 from auth.app.services.database_service import init_db
 from common.db.routing import normalise_result
@@ -107,21 +102,6 @@ async def test_users(stores):
     for repo in (mongo, postgres):
         with pytest.raises(NotFoundError):
             await repo.get_user_by_id(missing)
-
-
-async def test_providers(stores):
-    mongo, postgres = ProviderRepository(), PostgresProviderRepository(stores)
-    provider = Provider(
-        id=PydanticObjectId(), provider_name="google", oauth_url="http://o"
-    )
-    await provider.save()
-    await postgres.upsert(provider)
-    assert strip(await mongo.get_provider("google")) == strip(
-        await postgres.get_provider("google")
-    )
-    for repo in (mongo, postgres):
-        with pytest.raises(NotFoundError):
-            await repo.get_provider("nope")
 
 
 async def test_user_metrics(stores):

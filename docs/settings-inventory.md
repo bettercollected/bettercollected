@@ -203,7 +203,6 @@ environment, whatever the tier.
 | `AWS_PUBLIC_URL` | storage | backend | url |  | R | T3 |  |
 | `AWS_REGION` | storage | backend | str max 64 |  | R | T3 | `eu-central-1` |
 | `AWS_SECRET_ACCESS_KEY` | storage | backend | str | yes | R | T3 |  |
-| `TEMPORAL_ADD_IMPORT_SCHEDULES` | temporal | backend | bool |  | R | T2 | `false` |
 | `TYPEFORM_API_URI` | typeform | auth | url |  | R | T3 | `https://api.typeform.com` |
 | `TYPEFORM_AUTH_URI` | typeform | auth | url |  | R | T3 | `https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}` |
 | `TYPEFORM_CLIENT_ID` | typeform | auth | str max 300 |  | R | T3 |  |

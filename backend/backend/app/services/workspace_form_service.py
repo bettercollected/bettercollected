@@ -39,7 +39,6 @@ from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequest
 from backend.app.repositories.template import FormTemplateRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.models.template import StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
@@ -275,7 +274,6 @@ class WorkspaceFormService:
         form_service: FormService,
         workspace_form_repository: WorkspaceFormRepository,
         form_repo: FormRepository,
-        form_schedular: FormSchedular,
         form_import_service: FormImportService,
         form_response_service: FormResponseService,
         responder_groups_service: ResponderGroupsService,
@@ -296,7 +294,6 @@ class WorkspaceFormService:
         self.workspace_form_repository = workspace_form_repository
         self._form_repo = form_repo
         self.form_template_repo = form_template_repo
-        self.form_schedular = form_schedular
         self.form_import_service = form_import_service
         self.form_response_service = form_response_service
         self.responder_groups_service = responder_groups_service

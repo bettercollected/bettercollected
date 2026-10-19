@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any
 
-from beanie import PydanticObjectId
 from fastapi import HTTPException
 from pydantic.networks import EmailStr
 from pymongo.errors import (
@@ -167,12 +166,6 @@ class OauthCredentialRepository:
         self, document: Oauth2CredentialDocument
     ) -> Oauth2CredentialDocument:
         return await document.save()
-
-    @write_op
-    async def delete_credential(self, credential_id: PydanticObjectId) -> int:
-        """Remove one credential (a revoked one); the number removed."""
-        result = await Oauth2CredentialDocument.find({"_id": credential_id}).delete()
-        return result.deleted_count if result is not None else 0
 
     @write_op
     async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):

@@ -8,10 +8,9 @@ from pydantic import EmailStr
 from sqlalchemy import and_, func, select
 
 from auth.app.repositories.metric_periods import object_id_at, utc
-from auth.app.schemas.provider import Provider
 from auth.app.schemas.user import UserDocument
 from auth.db.base import SCHEMA
-from auth.db.models import ProviderRow, UserRow
+from auth.db.models import UserRow
 from common.db import PostgresRepositoryBase
 from common.enums.plan import Plans
 from common.enums.roles import Roles
@@ -207,14 +206,3 @@ class PostgresUserRepository(PostgresRepositoryBase):
         user_document = await self.one(UserRow.id == str(user_id))
         user_document.last_logged_in = datetime.datetime.now(datetime.timezone.utc)
         return await self.upsert(user_document)
-
-
-class PostgresProviderRepository(PostgresRepositoryBase):
-    row = ProviderRow
-    document = Provider
-
-    async def get_provider(self, provider_name: str) -> Provider:
-        return Provider.verify_doc_exists(
-            await self.one(ProviderRow.provider_name == provider_name),
-            Provider.provider_name == provider_name,
-        )

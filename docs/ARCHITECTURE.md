@@ -71,8 +71,7 @@ contract, defined in [common/common/constants/plugin_routes.py](../common/common
   to the right provider service, based on `FormPluginConfigDocument` rows in Mongo (`forms_plugin_configs`: enabled,
   provider_name, provider_url, auth_callback_url, type). `common/common/base/plugin.py` provides the registration base.
 - **Adding a new provider:** (1) build a microservice implementing the contract + StandardForm conversion, (2) add a
-  `forms_plugin_configs` document pointing at it, (3) register its plugin in `backend/app/core/plugins/`. No changes to
-  form storage or the webapp's form model are needed.
+  `forms_plugin_configs` document pointing at it. No changes to form storage or the webapp's form model are needed.
 
 ## Authentication flow
 
@@ -94,7 +93,7 @@ creates **Schedules** on the Temporal server (PostgreSQL-backed). Three worker s
 
 | Worker | Workflows | Activities | Purpose |
 |---|---|---|---|
-| `temporal/worker` | `ImportFormWorkflow`, `DeleteResponseWorkflow`, `DeleteUserWorkflow`, `SaveTemplatePreview` | `import_form`, `delete_response`, `delete_user`, `save_preview`, `get_preview_image` | Provider imports, GDPR-style response/user deletion, template preview screenshots (Selenium/Chrome) |
+| `temporal/worker` | `DeleteResponseWorkflow`, `DeleteUserWorkflow`, `SaveTemplatePreview` | `delete_response`, `delete_user`, `save_preview`, `get_preview_image` | GDPR-style response/user deletion, template preview screenshots (Selenium/Chrome) |
 | `temporal/csv-worker` | `ExportCSVWorkflow` | `export_as_csv` | Export form responses to CSV |
 | `temporal/actions-executor` | `RunActionCode` | `run_action_code` | Execute user-defined form-action / automation code |
 
@@ -107,10 +106,9 @@ Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACK
 
 **Importing a Google Form**
 1. Webapp calls backend `/{provider}/import/{form_id}` (RTK Query `importApi`).
-2. Backend `plugin_proxy` forwards to the google microservice (:8003), or enqueues an `ImportFormWorkflow` on Temporal.
-3. The google service (or the `import_form` activity) calls Google Forms + Drive APIs, converts the result via
+2. Backend `plugin_proxy` forwards to the google microservice (:8003).
+3. The google service calls Google Forms + Drive APIs, converts the result via
    `POST /google/convert/standard_form`, and the form is stored as a `StandardForm` (`FormDocument`) under the workspace.
-4. A re-import is triggered through the backend's `/temporal/import/{workspace_id}/form/{form_id}` callback.
 
 **Submitting a response (with consent)**
 1. Responder loads the public form (webapp `app/forms/[form_id]`), reviews the declared purpose/consent.

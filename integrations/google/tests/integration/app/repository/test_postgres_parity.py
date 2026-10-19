@@ -1,4 +1,4 @@
-"""The Postgres twins of the google repositories behave like the Mongo originals.
+"""The Postgres twin of the google credential repository behaves like the Mongo original.
 
 Mongo is the test database named by MONGO_URI/MONGO_DB (emptied here);
 Postgres is the test database named by DATABASE_URL.
@@ -8,22 +8,12 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from beanie import PydanticObjectId
 from pymongo import AsyncMongoClient
 
 from common.db.routing import WriteResult, normalise_result
-from common.enums.form_provider import FormProvider
 from googleform.app.containers import Container
-from googleform.app.repositories.form import FormRepository
-from googleform.app.repositories.form_response import FormResponseRepository
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
-from googleform.app.repositories.postgres import (
-    PostgresFormRepository,
-    PostgresFormResponseRepository,
-    PostgresOauthCredentialRepository,
-)
-from googleform.app.schemas.google_form import GoogleFormDocument
-from googleform.app.schemas.google_form_response import GoogleFormResponseDocument
+from googleform.app.repositories.postgres import PostgresOauthCredentialRepository
 from googleform.app.services import database_service
 from googleform.config import settings
 
@@ -62,61 +52,6 @@ async def stores(clean_postgres):
     await Container.pg_engine().dispose()
 
 
-def form(form_id, title):
-    return GoogleFormDocument(
-        id=PydanticObjectId(), formId=form_id, info={"title": title}
-    )
-
-
-def response(form_id, response_id):
-    return GoogleFormResponseDocument(
-        id=PydanticObjectId(), formId=form_id, responseId=response_id, answers={}
-    )
-
-
-async def test_forms(stores):
-    mongo, postgres = FormRepository(), PostgresFormRepository(stores)
-    await parity(
-        mongo,
-        postgres,
-        [
-            ("list", lambda: ()),
-            ("update", lambda: ("gf1", form("gf1", "One"))),
-            ("update", lambda: ("gf2", form("gf2", "Two"))),
-            ("update", lambda: ("gf1", form("gf1", "One, renamed"))),
-            ("list", lambda: ()),
-            ("get", lambda: ("gf1", FormProvider.GOOGLE)),
-            ("get", lambda: ("nope", FormProvider.GOOGLE)),
-            ("delete", lambda: ("gf1", FormProvider.GOOGLE)),
-        ],
-    )
-    assert len(await postgres.list()) == 2  # update by formId replaced, not duplicated
-
-
-async def test_form_responses(stores):
-    mongo, postgres = FormResponseRepository(), PostgresFormResponseRepository(stores)
-    added = [await repo.add(response("gf1", "r1")) for repo in (mongo, postgres)]
-    assert strip(added[0]) == strip(added[1])
-    for repo in (mongo, postgres):
-        await repo.add(response("gf1", "r2"))
-        await repo.add(response("gf2", "r3"))
-    await parity(
-        mongo,
-        postgres,
-        [
-            ("list", lambda: ()),
-            ("list_form_responses", lambda: ("gf1",)),
-            ("list_form_responses", lambda: ("none",)),
-            ("get", lambda: ("r2", FormProvider.GOOGLE)),
-            ("get", lambda: ("zz", FormProvider.GOOGLE)),
-            ("update", lambda: ("r2", response("gf1", "r2"))),
-            ("delete", lambda: ("r3",)),
-            ("delete", lambda: ("r3",)),
-            ("list", lambda: ()),
-        ],
-    )
-
-
 async def test_oauth_credentials(stores):
     mongo, postgres = OauthCredentialRepository(), PostgresOauthCredentialRepository(
         stores
@@ -146,17 +81,3 @@ async def test_oauth_credentials(stores):
         assert len(listed) == 1 and isinstance(listed[0].credentials, bytes)
         assert await repo.delete_oauth_credential_for_user("a@example.com", "u1")
         assert await repo.get("a@example.com") is None
-
-
-async def test_delete_one_credential(stores):
-    mongo, postgres = OauthCredentialRepository(), PostgresOauthCredentialRepository(
-        stores
-    )
-    creds = {"token": "t", "refresh_token": "r", "expiry": "2030-01-01T00:00:00Z"}
-    for repo in (mongo, postgres):
-        kept = await repo.add("keep@example.com", creds, user_id="u1")
-        gone = await repo.add("gone@example.com", creds, user_id="u2")
-        assert await repo.delete_credential(gone.id) == 1
-        assert await repo.delete_credential(gone.id) == 0
-        assert await repo.get("gone@example.com") is None
-        assert (await repo.get("keep@example.com")).id == kept.id

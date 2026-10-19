@@ -430,25 +430,6 @@
   "HIDDEN": "Private",
   "IMAGE": "Image",
   "IMAGE_SIZE_RESTRICTION": "Make sure your image is less than 100MB",
-  "IMPORT_FORM": {
-    "DEFAULT": "Import form",
-    "CHOICE": "Which form do you want to import ?",
-    "GOOGLE": {
-      "RESPONSE_OWNER_TAG_DESCRIPTION": "You do not have to select the field if you have “collect emails” enabled in your Google forms.",
-      "RESPONSE_OWNER_TAG_LABEL": "Select email field",
-      "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field"
-    },
-    "TYPEFORM": {
-      "RESPONSE_OWNER_TAG_DESCRIPTION": "",
-      "RESPONSE_OWNER_TAG_LABEL": "Select email field",
-      "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field"
-    },
-    "TEXT_LABEL": {
-      "GOOGLE_FORM": "Choose your google form",
-      "TYPEFORM": "Choose your Typeform"
-    },
-    "TITLE": "Select a form to import"
-  },
   "INVALID_DOMAIN": "Invalid domain",
   "INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
   "INVITATION": {
