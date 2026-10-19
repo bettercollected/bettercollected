@@ -281,7 +281,7 @@ async def test_headers_on_every_response_and_no_cors():
         assert h["cache-control"] == "no-store"
         assert h["cross-origin-opener-policy"] == "same-origin"
         assert h["cross-origin-resource-policy"] == "same-origin"
-        assert h["permissions-policy"] == ""
+        assert "camera=()" in h["permissions-policy"] and "geolocation=()" in h["permissions-policy"]
         assert h["x-request-id"]
         assert not any(k.startswith("access-control-") for k in h)
         assert "server" not in h

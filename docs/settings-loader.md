@@ -16,7 +16,11 @@ non-empty environment value, then the verified store row, then the default.
   each of backend, auth and integrations-googleform; mount a volume or tmpfs
   there too if you make the containers read-only. The directory is closed to mode
   700 and the file is mode 600. Secret values in it are sealed, non-secret values
-  are plain JSON. After restoring the database from a backup, remove it.
+  are plain JSON. After restoring the database from a backup, remove it: with
+  `SETTINGS_STORE=required` a service refuses to start on a store older than its
+  own snapshot (or on an empty one while the environment lacks its required keys),
+  which is how a restore or a wiped database shows up. See "Rollback and wipe
+  protection" in `docs/admin-service.md`.
 - Hot (class H) keys are read through `live().ai.X` / `live().api.X` at every
   call. `common.settings.loader.proven.LIVE_PROVEN` lists the keys whose consumers
   are proven to do so (tests in `backend/tests/app/services/test_live_settings_reads.py`

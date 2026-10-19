@@ -26,7 +26,7 @@ import secrets
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Awaitable, Callable, List, Optional
+from typing import Awaitable, Callable, Dict, List, Optional, Tuple
 
 from common.utils.client_ip import rate_limit_key
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -49,7 +49,56 @@ BLOCKED_AUDIT = Rule("blocked_audit", 1, 600)
 _DUMMY_SUBJECT = "nobody@invalid"
 _DUMMY_DIGEST = hashlib.sha256(b"bettercollected/admin/signin/dummy").digest()
 
+# the sign-in step guards (see ``_FloodGuard``)
+MAX_POSTS_PER_CHALLENGE = 8
+MAX_TRACKED_CHALLENGES = 4096
+REFUSAL_WORK_PER_WINDOW = 60
+REFUSAL_WINDOW_SECONDS = 10
+REFUSED_ONCE_SECONDS = 1200
+
 AfterResponse = Callable[[], Awaitable[object]]
+
+
+class _FloodGuard:
+    """In-process limits in front of the database for ``/login/code``, so a
+    flood against one signed challenge cookie costs memory only.
+
+    * ``admit``: at most ``MAX_POSTS_PER_CHALLENGE`` posts per challenge (five
+      attempts are all the database will ever count, plus room for typos); the
+      rest are refused with no database work and no audit row.
+    * ``refusal_work_allowed``: a global cap on how many refused challenges per
+      window may do database work (burn the challenge, one audit row); beyond it
+      they are refused cheaply too. Counters are per process, which is enough
+      because every challenge and address is also bounded in the database.
+    """
+
+    def __init__(self, clock: Clock) -> None:
+        self._clock = clock
+        self._posts: Dict[str, Tuple[int, float]] = {}
+        self._window = float("-inf")
+        self._work = 0
+
+    def admit(self, challenge_id: str, expires_at: float) -> bool:
+        now = self._clock.time()
+        entry = self._posts.get(challenge_id)
+        if entry is None or entry[1] <= now:
+            if len(self._posts) >= MAX_TRACKED_CHALLENGES:
+                for key in [k for k, (_, exp) in self._posts.items() if exp <= now]:
+                    del self._posts[key]
+                while len(self._posts) >= MAX_TRACKED_CHALLENGES:
+                    del self._posts[next(iter(self._posts))]  # oldest first
+            self._posts[challenge_id] = (1, expires_at)
+            return True
+        count = entry[0] + 1
+        self._posts[challenge_id] = (count, entry[1])
+        return count <= MAX_POSTS_PER_CHALLENGE
+
+    def refusal_work_allowed(self) -> bool:
+        now = self._clock.time()
+        if now - self._window >= REFUSAL_WINDOW_SECONDS:
+            self._window, self._work = now, 0
+        self._work += 1
+        return self._work <= REFUSAL_WORK_PER_WINDOW
 
 
 def _b64(raw: bytes) -> str:
@@ -100,6 +149,7 @@ class SignInService:
         self._sessions = sessions
         self._pepper = require_key(pepper, "sign-in pepper")
         self._cookie_key = require_key(cookie_key, "challenge cookie key")
+        self._guard = _FloodGuard(clock)
 
     # -- primitives ------------------------------------------------------------
     def _code_digest(self, challenge_id: str, code: str) -> bytes:
@@ -260,29 +310,44 @@ class SignInService:
         if not issued - 60 <= self._clock.time() <= issued + ttl + 60:
             self._code_digest("none", guess)  # long expired (or from the future): refuse cheaply
             return CodeCheck(None)
+        if not self._guard.admit(str(challenge_id), issued + ttl + 60):
+            # a flood against one cookie: no database work, no audit row
+            self._code_digest("none", guess)
+            return CodeCheck(None)
         async with self._engine.connect() as conn:
             row = await repo.get_challenge(conn, challenge_id)
         listed = row is not None and row.email is not None and self._settings.is_admin(row.email)
-        # a throwaway lock/failure key per challenge for everything that is not an admin's
-        subject = row.email if listed else f"nobody-{challenge_id}@invalid"
-        counter_expiry = datetime.fromtimestamp(issued + ttl, timezone.utc)
         email = row.email if listed else None
+        throwaway = f"nobody-{challenge_id}@invalid"
+        # The email-code step is not an admin's second factor: its failures count
+        # against (email, client address), never against the email alone, so
+        # someone who can only reach this page cannot lock the genuine admin out.
+        # Behind a shared address (every client looks alike) the pair would be the
+        # whole world, so there only the per-challenge limits apply.
+        locks_pair = listed and not self._limiter.is_shared(ip)
+        subject = self._limiter.pair_subject(row.email, ip) if locks_pair else throwaway
+        counter_expiry = datetime.fromtimestamp(issued + ttl, timezone.utc)
         after: List[AfterResponse] = []
 
-        # limiter order: breaker pause, email lock, per-challenge attempts
+        # limiter order: breaker pause, (email, address) lock, per-challenge attempts
         pause = await self._limiter.sign_in_pause()
-        lock = await self._limiter.lock_status(subject)
+        lock = await self._limiter.lock_status(subject, "signin")
         attempt = await self._limiter.challenge_attempt(str(challenge_id), counter_expiry)
         refused = pause.paused or lock.locked or not attempt.allowed
         if refused:
-            async with self._engine.begin() as conn:
-                if not attempt.allowed:
+            # one record per challenge, not one per request; the same statements
+            # for every kind of challenge and every reason
+            first = await self._limiter.first_for_challenge(
+                "code_refused", str(challenge_id), REFUSED_ONCE_SECONDS
+            )
+            if first and self._guard.refusal_work_allowed():
+                async with self._engine.begin() as conn:
                     await repo.burn_challenge(conn, challenge_id, now)
-                await self._audit_code(
-                    conn, "signin.code_failed", "denied", challenge_id, email, ip,
-                    user_agent, request_id,
-                    "paused" if pause.paused else "locked" if lock.locked else "attempts",
-                )
+                    await self._audit_code(
+                        conn, "signin.code_failed", "denied", challenge_id, email, ip,
+                        user_agent, request_id,
+                        "paused" if pause.paused else "locked" if lock.locked else "attempts",
+                    )
             return CodeCheck(None)
 
         usable = (
@@ -307,7 +372,7 @@ class SignInService:
                 else:
                     token = None
             if token is not None:
-                await self._limiter.record_success(row.email)
+                await self._limiter.record_success(subject, "signin")
                 return CodeCheck(token)
 
         # wrong, expired, reused or unknown: the same operations either way
@@ -317,7 +382,8 @@ class SignInService:
                 conn, "signin.code_failed", "failure", challenge_id, email, ip,
                 user_agent, request_id, "wrong_or_unusable",
             )
-        failure = await self._limiter.record_failure(subject)
+        failure = await self._limiter.record_failure(subject, "signin")
+        ceiling = await self._limiter.email_ceiling(row.email if listed else throwaway)
         breaker = (
             await self._limiter.record_global_failure(ip, True)
             if listed
@@ -325,16 +391,32 @@ class SignInService:
         )
         if failure.newly_locked:
             minutes = max(1, failure.retry_after // 60)
+            notice = await self._limiter.lock_notice(row.email if listed else throwaway)
             async with self._engine.begin() as conn:
                 await audit.write(
                     conn, "signin.locked", "account", None, None, None, "denied",
                     actor_kind="system", actor_email=email, ip=ip,
-                    request_id=request_id, detail={"minutes": minutes},
+                    request_id=request_id,
+                    detail={"minutes": minutes, "scope": "address"},
                 )
-            if listed:
+            if listed and notice.allowed:  # one lockout mail per email per hour
                 after.append(
                     lambda: self._mailer.notify_lockout(
                         self._admin_list(), row.email, ip or "unknown", minutes
+                    )
+                )
+        if ceiling.count == ceiling.limit:
+            # many failures for one email across addresses: an alert, never a lock
+            async with self._engine.begin() as conn:
+                await audit.write(
+                    conn, "signin.failure_surge", "account", None, None, None, "denied",
+                    actor_kind="system", actor_email=email, ip=ip, request_id=request_id,
+                    detail={"failures_per_hour": ceiling.limit},
+                )
+            if listed:
+                after.append(
+                    lambda: self._mailer.notify_surge(
+                        self._admin_list(), row.email, ceiling.limit
                     )
                 )
         if breaker.newly_tripped:

@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 MASTER_KEY_KEY = "SETTINGS_MASTER_KEY"
 MIN_MASTER_KEY_BYTES = 32
+MIN_DISTINCT_KEY_BYTES = 8  # 32 zero bytes, a repeated pattern: not a key
 KEY_BYTES = 32
 _SALT = b"bettercollected/admin/hkdf-salt/v1"
 _NAME = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
@@ -56,6 +57,11 @@ def parse_master_key(raw: Optional[str]) -> bytes:
         raise MasterKeyError(
             f"{MASTER_KEY_KEY} must decode to at least {MIN_MASTER_KEY_BYTES} bytes "
             f"(value not shown)."
+        )
+    if len(set(key)) < MIN_DISTINCT_KEY_BYTES:
+        raise MasterKeyError(
+            f"{MASTER_KEY_KEY} does not look random: it has too few different bytes "
+            f"(use `openssl rand -base64 48`; value not shown)."
         )
     return key
 

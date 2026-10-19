@@ -30,7 +30,8 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from backend.admin.repositories import settings as repo
 from backend.admin.services import audit
-from common.configs import shipped_secrets
+from common.configs import settings_registry
+from common.settings import secret_checks
 from common.settings.canonical import (
     SettingRow,
     canonical_json,
@@ -131,12 +132,47 @@ class RewrapResult:
 
 
 def shipped_secret_problems(key: str, value: str) -> list[str]:
-    return shipped_secrets.secret_problems(jwt_secrets={key: value})
+    """Published values, a malformed Fernet key and known placeholders, by key."""
+    return list(settings_registry.secret_problems(key, value))
+
+
+def keyset_problem(value: str):
+    """``(code, message)`` unless ``value`` is a Tink keyset Tink can build a
+    cipher from (base64 of the JSON keyset, or the JSON): at least one key, a
+    primary key id among them, every key id once, an enabled primary key and a
+    working AEAD."""
+    from common.services import keyset as keyset_module
+
+    try:
+        parsed = keyset_module.parse_keyset(value)
+    except keyset_module.KeysetError as exc:
+        return "bad_keyset", f"is not a usable Tink keyset ({exc})"
+    ids = [key.key_id for key in parsed.key]
+    if len(set(ids)) != len(ids):
+        return "bad_keyset", "is not a usable Tink keyset (a key id is repeated)"
+    primary = next(key for key in parsed.key if key.key_id == parsed.primary_key_id)
+    if primary.status != keyset_module.tink_pb2.ENABLED:
+        return "bad_keyset", "is not a usable Tink keyset (the primary key is not enabled)"
+    try:  # builds the real primitive: wrong key sizes or types fail here
+        import tink
+        from tink import aead, cleartext_keyset_handle
+
+        aead.register()
+        handle = cleartext_keyset_handle.read(tink.BinaryKeysetReader(parsed.SerializeToString()))
+        handle.primitive(aead.Aead).encrypt(b"x", b"x")
+    except Exception:  # noqa: BLE001 - tink errors can quote key bytes
+        return "bad_keyset", "is not a usable Tink keyset (no AEAD can be built from it)"
+    return None
 
 
 def store_registry() -> Registry:
-    """The registry the store validates with: strength checks for secrets."""
-    return default_registry(secret_problems=shipped_secret_problems)
+    """The registry the store validates with: strength checks for secrets, and
+    the per-key format checks (the services that only read the store use a
+    registry without them, so an older stored value never stops one starting)."""
+    return default_registry(
+        secret_problems=shipped_secret_problems,
+        format_checks={**secret_checks.FORMAT_CHECKS, "tink_keyset": keyset_problem},
+    )
 
 
 def value_digest(keys: SectionKeys, spec: SettingSpec, key: str, version: int, material: Any) -> str:

@@ -144,7 +144,7 @@ async def test_a_flood_of_login_requests_leaves_bounded_rows(portal, runtime_eng
     )
     attempt_rows = await rows(runtime_engine, "SELECT count(*) FROM admin.attempts")
     assert audit_rows[0][0] <= 12  # 10 allowed + one sample of the blocked ones
-    assert attempt_rows[0][0] <= 15  # address row, <= 10 email rows, one audit sample row
+    assert attempt_rows[0][0] <= 35  # address row, <= 10 x (pair + email) rows, one audit sample row
     assert len(cookies_seen) <= 11  # 10 fresh ids and one fixed id for everything blocked
 
 

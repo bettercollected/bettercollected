@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>{% block title %}{{ _("Admin") }}{% endblock %}</title>
+<link rel="preload" href="/static/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/instrument-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
 <a class="skip-link" href="#main">{{ _("Skip to content") }}</a>
 <header class="bar">
-  <span class="brand">{{ _("Admin") }}</span>
+  <span class="brand"><span class="brand-name">{{ _("bettercollected") }}</span> <span class="brand-sub">{{ _("admin") }}</span></span>
   {% block nav %}{% endblock %}
 </header>
 {% block banners %}{% endblock %}

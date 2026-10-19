@@ -243,9 +243,64 @@ def test_empty_never_written_store_is_trusted_and_empty(tmp_path, keys):
     from common.settings.loader.source import RawSnapshot
     from common.settings.signing import Manifest
 
-    rt = runtime(tmp_path, FakeSource(RawSnapshot([], Manifest(0, {}, ""))), mode="required")
+    # the environment supplies what the service cannot run without: nothing is expected
+    # of the empty store
+    rt = runtime(tmp_path, FakeSource(RawSnapshot([], Manifest(0, {}, ""))), mode="required",
+                 env={JWT: "env-value"})
     rt.start()
     assert rt.revision == 0 and rt.resolve_key(PORT) is None
+
+
+def test_required_refuses_an_empty_store_that_the_service_expected_to_hold_its_keys(tmp_path, keys):
+    from common.settings.loader.source import RawSnapshot
+    from common.settings.signing import Manifest
+
+    wiped = FakeSource(RawSnapshot([], Manifest(0, {}, "")))
+    with pytest.raises(StoreError) as err:
+        runtime(tmp_path, wiped, mode="required", env={}).start()
+    assert JWT in str(err.value) and "revision 0" in str(err.value)
+    # `auto` keeps starting on environment and defaults, as before
+    runtime(tmp_path, wiped, mode="auto", env={}).start()
+
+
+def test_required_refuses_a_store_behind_the_snapshot_floor_even_when_empty(tmp_path, keys):
+    from common.settings.loader.source import RawSnapshot
+    from common.settings.signing import Manifest
+
+    source = FakeSource(good(keys, revision=4))
+    runtime(tmp_path, source, mode="required", env={}).start()
+    source.raw = RawSnapshot([], Manifest(0, {}, ""))  # the database was wiped and re-created
+    with pytest.raises(StoreError) as err:
+        runtime(tmp_path, source, mode="required", env={JWT: "env-value"}).start()
+    assert "behind" in str(err.value) and "SETTINGS_SNAPSHOT_DIR" in str(err.value)
+    # the operator who intends it removes the snapshot directory
+    for f in (tmp_path / "snap").rglob("*"):
+        if f.is_file():
+            f.unlink()
+    runtime(tmp_path, source, mode="required", env={JWT: "env-value"}).start()
+
+
+def test_a_fresh_snapshot_dir_has_no_floor_and_says_so(tmp_path, keys, caplog):
+    """The residual risk, pinned: with no snapshot an older signed store is taken."""
+    source = FakeSource(good(keys, revision=2))
+    with caplog.at_level(logging.WARNING, logger="common.settings.loader"):
+        rt = runtime(tmp_path, source, mode="required", env={})
+        rt.start()
+    assert rt.revision == 2
+    assert any("rollback floor lives in a temporary directory" in r.getMessage() for r in caplog.records)
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="common.settings.loader"):
+        runtime(tmp_path, source, mode="required", env={}, snapshot_dir_explicit=True).start()
+    assert not any("rollback floor" in r.getMessage() for r in caplog.records)
+
+
+def test_the_floor_is_what_the_service_reports(tmp_path, keys):
+    source = FakeSource(good(keys, revision=5))
+    rt = runtime(tmp_path, source, env={})
+    rt.start()
+    source.raw = good(keys, revision=3)  # an older state is refused, the report stays at the floor
+    rt.poll_once()
+    assert rt.state().revision_applied == 5
 
 
 def test_rejected_or_deleted_row_keeps_the_last_good_value(tmp_path, keys):

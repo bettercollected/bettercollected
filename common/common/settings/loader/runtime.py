@@ -24,6 +24,14 @@ Failure policy
 * The highest manifest revision and row versions seen (also seeded from the
   disk snapshot, if it verifies) are never accepted downwards. After restoring
   the database from a backup, remove the snapshot directory.
+* A ``required`` service refuses to START on a store whose manifest revision is
+  below the floor its own signed snapshot recorded (a restored or replaced
+  database), and on a never-written store (revision 0) while the environment
+  lacks a key in ``required_env_keys`` (the service expected the store to hold
+  it: a wiped database looks like this). With no snapshot (a new container, no
+  volume) there is no floor here: set ``SETTINGS_SNAPSHOT_DIR`` to a volume.
+  The admin portal's integrity check is the floor that does not live in a
+  container: it flags a store behind what running services report.
 
 Messages name keys and versions, never values.
 """
@@ -334,19 +342,58 @@ class SettingsRuntime:
         if cfg.mode == "required" and not cfg.configured:
             raise StoreError("SETTINGS_STORE=required needs DATABASE_URL and SETTINGS_MASTER_KEY")
         self._seed_from_disk()
+        if cfg.mode == "required" and not cfg.snapshot_dir_explicit:
+            log.warning(
+                "settings: SETTINGS_SNAPSHOT_DIR is not set, so the rollback floor lives in a "
+                "temporary directory and is lost with the container; mount a volume for it"
+            )
         if self.source is None:
             return self._start_without_store("no database")
         try:
             raw = self._fetch()
         except SourceUnavailable:
             return self._start_from_snapshot()
+        self._refuse_rolled_back_store(raw)
         if self._apply(raw, startup=True, origin="store"):
+            self._refuse_empty_store()
             self._write_disk(raw)
         log.info(
             "settings loaded from the store: revision %d, %d overridden by the environment",
             self.revision,
             len(self.env_overrides()),
         )
+
+    def _refuse_rolled_back_store(self, raw: RawSnapshot) -> None:
+        """``required``: a store older than this service's own recorded floor is a
+        restored or replaced database; do not start on it."""
+        floor = self.tracker.revision
+        if (
+            self.config.mode == "required"
+            and raw.manifest is not None
+            and floor > 0
+            and raw.manifest.revision < floor
+        ):
+            raise StoreError(
+                f"settings store is behind this service's record (store revision "
+                f"{raw.manifest.revision}, recorded {floor}): the database was restored or "
+                "replaced. If that is intended, remove the settings snapshot directory "
+                "(SETTINGS_SNAPSHOT_DIR) and restart; otherwise restore the current database"
+            )
+
+    def _refuse_empty_store(self) -> None:
+        """``required``: a never-written store (revision 0) is fine for a service
+        whose environment supplies every key it cannot run without, and is a wiped
+        or wrong database for one that expected the store to hold them."""
+        if self.config.mode != "required" or self.revision != 0:
+            return
+        missing = [k for k in self.required_env_keys if not self._env_has(k)]
+        if missing:
+            raise StoreError(
+                "settings store is empty (revision 0) but this service expects it to hold: "
+                + ", ".join(sorted(missing))
+                + ". A new stack gets them from bootstrap-keys; an existing one from "
+                "settings-import; otherwise this is a wiped or wrong database"
+            )
 
     def _start_from_snapshot(self) -> None:
         try:
@@ -441,7 +488,9 @@ class SettingsRuntime:
         } | {r.key for r in self.last_rejections if _NAME.match(r.key)}
         return ServiceState(
             service=self.service,
-            revision_applied=max(self.revision, 0),
+            # the highest revision this process has accepted (its floor), so the
+            # admin portal can tell a store that fell behind its services
+            revision_applied=max(self.revision, self.tracker.revision, 0),
             env_overrides=self.env_overrides(),
             rejected_keys=tuple(sorted(rejected)),
             restart_pending=self.restart_pending,
