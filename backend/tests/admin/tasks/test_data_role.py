@@ -480,3 +480,39 @@ async def test_the_backfill_and_the_scans_work_with_only_these_grants(app, super
     assert await backfill.stamp("form_responses", unstamped[0]["key"], WS) == 1
     assert await backfill.stamp("responses_deletion_requests", HEX, WS) == 1
     assert await backfill.links() == {"f1": [WS]}
+
+
+async def test_the_first_run_of_an_upgrade_precedes_the_workspace_id_column(server):
+    """deploy.sh runs the script before the application's migrations. A stack
+    upgraded from a release that predates the response tables' ``workspace_id``
+    (app revision 0015) must not fail on it: the columns that exist are granted,
+    the run after the migrations grants the rest."""
+    name = await server.create_database(template=server.template)
+    await upgrade_schema(server.url(name, "reader:app"), APP_MIGRATIONS)
+    # the schema as the previous release left it
+    await _execute(
+        server.url(name, "reader:app"),
+        "ALTER TABLE app.form_responses DROP COLUMN workspace_id;"
+        "ALTER TABLE app.responses_deletion_requests DROP COLUMN workspace_id;",
+    )
+    await _roles(server, name)  # raised "column workspace_id does not exist" before
+    engine = create_async_engine(server.url(name), poolclass=NullPool)
+    try:
+        before = await held(engine, server.data_app_role)
+        assert ("app", "form_responses", "response_id", "SELECT") in before
+        assert ("app", "form_responses", "doc", "UPDATE") in before
+        assert not any(
+            column == "workspace_id" and table != "workspace_forms"
+            for _, table, column, _ in before
+        )
+        # the migration arrives, then the second run completes the grants
+        for table in ("form_responses", "responses_deletion_requests"):
+            await _execute(
+                server.url(name, "reader:app"),
+                f"ALTER TABLE app.{table} ADD COLUMN workspace_id TEXT "
+                "GENERATED ALWAYS AS (app.bc_text(doc -> 'workspace_id')) STORED",
+            )
+        await _roles(server, name)
+        assert await held(engine, server.data_app_role) == EXPECTED["app"]
+    finally:
+        await engine.dispose()
