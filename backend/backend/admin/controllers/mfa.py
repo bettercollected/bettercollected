@@ -25,7 +25,7 @@ from backend.admin.controllers.portal import (
     _field, _ip, _portal, _rid, _schedule, _ua,
 )
 from backend.admin.gate.levels import Level, RouteRegistry
-from backend.admin.gate.stepup import STEPUP_ATTR, ActionBound, PROMPT_PATH, require_stepup
+from backend.admin.gate.stepup import STEPUP_ATTR, ActionBound, PROMPT_PATH
 from backend.admin.portal import Portal
 from backend.admin.security import csrf
 from backend.admin.services import factors as fsvc
@@ -92,23 +92,37 @@ def register(reg: RouteRegistry) -> None:
         status = await portal.factors.status(session.email)
         if session.mfa_state == "email_ok" and status.confirmed:
             return _see("/mfa/verify")
-        if session.mfa_state == "mfa_ok" and not portal.sessions.stepup_fresh(session):
-            return _prompt("/mfa/enrol")
         return portal.render(
             "enrol_start.html", csrf_token=_csrf(portal, session), email=session.email,
-            replacing=status.confirmed,
+            replacing=status.confirmed, needs_code=session.mfa_state == "mfa_ok",
+            failed=False, locked_minutes=0,
         )
 
     @reg.route("/mfa/enrol", level=Level.ADMIN, methods=["POST"])
-    async def enrol_start(request: Request):
+    async def enrol_start(request: Request, background: BackgroundTasks):
         portal, session = _portal(request), _session(request)
-        result = await portal.factors.start_enrol(session, _ip(request), _ua(request), _rid(request))
+        result = await portal.factors.start_enrol(
+            session, _ip(request), _ua(request), _rid(request),
+            code=await _field(request, "code"),
+        )
         if isinstance(result, fsvc.Outcome):
-            return _prompt("/mfa/enrol") if result.reason == fsvc.STEPUP_REQUIRED else _see("/mfa/verify")
-        return portal.render(
+            _schedule(background, result.after)
+            if result.reason in (fsvc.WRONG, fsvc.LOCKED, fsvc.PAUSED):
+                response = _refused_page(
+                    portal, "enrol_start.html", session, result, replacing=True,
+                    needs_code=True,
+                )
+            else:  # not allowed to enrol (a factor exists) or a stale session
+                response = _see("/mfa/verify" if result.reason == fsvc.NOT_ALLOWED else "/mfa")
+            response.background = background
+            return response
+        _schedule(background, result.after)
+        response = portal.render(
             "enrol.html", csrf_token=_csrf(portal, session), factor_id=str(result.factor_id),
             secret=result.secret, qr=result.qr, failed=False, locked_minutes=0,
         )
+        response.background = background
+        return response
 
     @reg.route("/mfa/enrol/confirm", level=Level.ADMIN, methods=["POST"])
     async def enrol_confirm(request: Request, background: BackgroundTasks):
@@ -250,23 +264,32 @@ def register(reg: RouteRegistry) -> None:
         portal, session = _portal(request), _session(request)
         status = await portal.factors.status(session.email)
         return portal.render(
-            "recovery_manage.html", csrf_token=_csrf(portal, session), left=status.recovery_left
+            "recovery_manage.html", csrf_token=_csrf(portal, session),
+            left=status.recovery_left, failed=False, locked_minutes=0,
         )
 
-    @reg.route(
-        RECOVERY_PAGE, level=Level.SECOND_FACTOR, methods=["POST"],
-        stepup=require_stepup(max_age=300, return_to=RECOVERY_PAGE),
-    )
-    async def recovery_regenerate(request: Request):
+    @reg.route(RECOVERY_PAGE, level=Level.SECOND_FACTOR, methods=["POST"])
+    async def recovery_regenerate(request: Request, background: BackgroundTasks):
+        # a fresh factor code travels with this request: the step-up window that
+        # sign-in opens is not enough to replace the recovery codes
         portal, session = _portal(request), _session(request)
         result = await portal.factors.regenerate_codes(
-            session, _ip(request), _ua(request), _rid(request)
+            session, await _field(request, "code"), _ip(request), _ua(request), _rid(request)
         )
-        if not result.ok:
-            return _prompt(RECOVERY_PAGE) if result.reason == fsvc.STEPUP_REQUIRED else _see("/account")
-        return portal.render(
-            "recovery_codes.html", csrf_token=_csrf(portal, session), codes=result.codes
-        )
+        _schedule(background, result.after)
+        if result.ok:
+            response = portal.render(
+                "recovery_codes.html", csrf_token=_csrf(portal, session), codes=result.codes
+            )
+        elif result.reason in (fsvc.WRONG, fsvc.LOCKED, fsvc.PAUSED):
+            status = await portal.factors.status(session.email)
+            response = _refused_page(
+                portal, "recovery_manage.html", session, result, left=status.recovery_left
+            )
+        else:
+            response = _see("/account")
+        response.background = background
+        return response
 
     @reg.route("/mfa/recovery-codes/saved", level=Level.SECOND_FACTOR, methods=["POST"])
     async def recovery_saved(request: Request):

@@ -53,6 +53,7 @@ class LoaderConfig:
     master_key: str = ""
     master_key_previous: str = ""
     snapshot_dir: str = ""
+    snapshot_dir_explicit: bool = False  # SETTINGS_SNAPSHOT_DIR was set (a volume, hopefully)
     snapshot_max_age_days: float = 7.0
     connect_timeout: float = 3.0
     statement_timeout: float = 3.0
@@ -94,5 +95,6 @@ class LoaderConfig:
             master_key=_text(env, "SETTINGS_MASTER_KEY"),
             master_key_previous=_text(env, "SETTINGS_MASTER_KEY_PREVIOUS"),
             snapshot_dir=directory,
+            snapshot_dir_explicit=bool(_text(env, "SETTINGS_SNAPSHOT_DIR")),
             snapshot_max_age_days=_number(env, "SETTINGS_SNAPSHOT_MAX_AGE_DAYS", 7.0, 1.0),
         )

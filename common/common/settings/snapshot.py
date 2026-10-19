@@ -180,7 +180,7 @@ def verify_snapshot(
                 or row.is_secret != spec.is_secret
                 or str(getattr(row.reload_class, "value", row.reload_class))
                 != spec.reload_class.value
-                or not set(row.readers) <= set(spec.readers)
+                or not set(row.readers) <= set(spec.readers) | set(spec.retired_readers)
             ):
                 reject(row, RejectionReason.SPEC_MISMATCH)
                 continue

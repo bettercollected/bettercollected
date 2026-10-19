@@ -82,6 +82,7 @@ class EnrolStart:
     secret: str  # base32, grouped for typing into an app by hand
     uri: str
     qr: str  # data URI
+    after: List[AfterResponse] = field(default_factory=list)  # mail jobs of the code check
 
 
 @dataclass
@@ -219,10 +220,27 @@ class FactorService:
             return None if self._sessions.stepup_fresh(session) else STEPUP_REQUIRED
         return NOT_ALLOWED if has_confirmed else None
 
-    async def start_enrol(self, session: Session, ip, ua, rid) -> Outcome | EnrolStart:
+    async def start_enrol(
+        self, session: Session, ip, ua, rid, code: Optional[str] = None
+    ) -> Outcome | EnrolStart:
         """Draw and store a new pending factor. Returns an ``Outcome`` (refused)
-        or an ``EnrolStart``. A second start replaces the previous pending one."""
+        or an ``EnrolStart``. A second start replaces the previous pending one.
+
+        A signed-in session (adding or replacing a factor) must send a fresh
+        factor ``code`` in this very request: the 300 s step-up window that
+        sign-in itself opens is not enough, so a stolen session cookie alone
+        cannot start a replacement."""
         email = session.email
+        checked: List[AfterResponse] = []
+        if session.mfa_state == "mfa_ok":
+            fresh = await self.verify_stepup(session, code or "", ip, ua, rid)
+            if not fresh.ok:
+                return fresh
+            checked = fresh.after
+            reloaded = await self._sessions.reload(session)
+            if reloaded is None:
+                return Outcome(False, STALE)
+            session = reloaded
         now = self._clock.now()
         async with self._engine.begin() as conn:
             await repo.lock_for_update(conn, email)
@@ -239,7 +257,7 @@ class FactorService:
                 target_id=factor_id,
             )
         uri = totp.otpauth_uri(secret, email, self._settings.totp_issuer)
-        return EnrolStart(factor_id, group4(secret), uri, qr_data_uri(uri))
+        return EnrolStart(factor_id, group4(secret), uri, qr_data_uri(uri), checked)
 
     async def confirm_enrol(
         self, session: Session, session_token: str, factor_id: Optional[uuid.UUID],
@@ -394,12 +412,17 @@ class FactorService:
         return await self._verify(session, raw_code, ip, ua, rid, "mfa.stepup", mark)
 
     # -- recovery codes --------------------------------------------------------
-    async def regenerate_codes(self, session: Session, ip, ua, rid) -> Outcome:
+    async def regenerate_codes(
+        self, session: Session, raw_code: Optional[str], ip, ua, rid
+    ) -> Outcome:
         """Replace all recovery codes (the old set stops working). Needs a fresh
-        step-up; the new codes are in ``codes`` once."""
+        second-factor code sent with this request (not just the step-up window
+        sign-in opens), and mails every admin; the new codes are in ``codes``
+        once."""
         email = session.email
-        if not self._sessions.stepup_fresh(session):
-            return Outcome(False, STEPUP_REQUIRED)
+        fresh = await self.verify_stepup(session, raw_code or "", ip, ua, rid)
+        if not fresh.ok:
+            return fresh
         async with self._engine.begin() as conn:
             factor = await repo.get_confirmed(conn, email)
             if factor is None:
@@ -413,7 +436,14 @@ class FactorService:
                 conn, "mfa.recovery_regenerated", "success", session, email, ip, ua, rid,
                 target_id=factor.id, detail={"issued": len(issued.hashes)},
             )
-        return Outcome(True, codes=issued.reveal())
+        return Outcome(
+            True, codes=issued.reveal(),
+            after=fresh.after + [
+                lambda: self._mailer.notify_recovery_regenerated(
+                    self._admins(), email, ip or "unknown"
+                )
+            ],
+        )
 
     # -- break glass -----------------------------------------------------------
     async def reset_factor(self, email: str, os_user: str) -> Outcome:

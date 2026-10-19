@@ -280,32 +280,55 @@ async def test_wrong_token_and_wrong_address_look_alike(app, runtime_engine):
     assert (await b.get("/mfa/enrol")).status_code == 200
 
 
-async def test_five_tries_per_address_then_even_the_right_token_is_refused(
+async def test_wrong_tries_past_the_limit_are_not_counted_and_the_right_token_still_works(
     app, runtime_engine, clock
 ):
     token = await issue(runtime_engine)
     b = Browser(app)
-    for _ in range(5):
+    for _ in range(40):  # a flood from one address
         assert (await redeem(b, "WRONGWRONGWRONGWRONGWRONGWRONGWRONG")).headers["location"] == REFUSED
-    blocked = await redeem(b, token)
-    assert blocked.headers["location"] == REFUSED
-    assert (await rows(runtime_engine, "SELECT consumed_at FROM admin.setup_tokens"))[0][0] is None
-    clock.advance(16 * 60)  # the window ended
+    # only the first few counted against the token, which is nowhere near locked
+    failed, locked = (
+        await rows(runtime_engine, "SELECT failed_attempts, locked_at FROM admin.setup_tokens")
+    )[0]
+    assert failed <= 8 and locked is None
+    # and the operator with the right token still gets in from that same address
     assert (await redeem(b, token)).status_code == 303
+    assert (await b.get("/mfa/enrol")).status_code == 200
+    # refused tries past the limit wrote no audit rows
+    refused = (await actions(runtime_engine)).count("setup.token_refused")
+    assert refused <= 8
+
+
+async def test_a_flood_cannot_burn_the_token_across_windows(app, runtime_engine, clock):
+    token = await issue(runtime_engine)
+    b = Browser(app)
+    for _ in range(4):  # 20 attempts over the hour, as the old limit allowed
+        for _ in range(5):
+            await redeem(b, "WRONGWRONGWRONGWRONGWRONGWRONGWRONG")
+        clock.advance(16 * 60)
+    row = (await rows(runtime_engine, "SELECT failed_attempts, locked_at FROM admin.setup_tokens"))[0]
+    assert row[1] is None and row[0] < 20
 
 
 async def test_twenty_wrong_tries_lock_the_token_and_tell_the_admins(
-    app, runtime_engine, clock, transport
+    app, portal, runtime_engine, clock, transport
 ):
     token = await issue(runtime_engine)
     b = Browser(app)
-    for round_ in range(4):
+    form = await b.form_token("/setup")  # taken while the page was open
+    # twenty counted tries need several addresses now (each is capped well below 20)
+    for n in range(4):
         for _ in range(5):
-            assert (await redeem(b, "WRONGWRONGWRONGWRONGWRONGWRONGWRONG")).headers["location"] == REFUSED
-        clock.advance(16 * 60)
+            result = await portal.setup.redeem(
+                "WRONGWRONGWRONGWRONGWRONGWRONGWRONG", ADMIN, f"127.0.0.{n + 1}", UA, None
+            )
+            for job in result.after:
+                await job()
     # locked for good, the page is gone, the right token no longer works
     assert (await b.get("/setup")).status_code == 404
-    assert (await redeem(b, token, form="kept")).headers["location"] == REFUSED
+    again = await b.post("/setup", data={"token": token, "email": ADMIN, "csrf_token": form})
+    assert again.headers["location"] == REFUSED
     locked = (await rows(runtime_engine, "SELECT locked_at IS NOT NULL, failed_attempts FROM admin.setup_tokens"))[0]
     assert tuple(locked) == (True, 20)
     log = await actions(runtime_engine)
