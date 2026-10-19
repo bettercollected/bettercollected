@@ -1,0 +1,82 @@
+{
+ "Oauth2CredentialDocument/full": {
+  "checksum": "sha256:69cc1798b3948dc32e27ecf8be4312c4176c5ee816dc180e39977e6312458942",
+  "doc": {
+   "_id": {
+    "$oid": "d2d74281e4c704873a028bc5"
+   },
+   "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "credentials": {
+    "client_id": "Oauth2CredentialDocument.credentials.client_id tëxt ✓ \"quoted\" \\ line\nbreak",
+    "client_secret": "Oauth2CredentialDocument.credentials.client_secret tëxt ✓ \"quoted\" \\ line\nbreak",
+    "expiry": "Oauth2CredentialDocument.credentials.expiry tëxt ✓ \"quoted\" \\ line\nbreak",
+    "refresh_token": "Oauth2CredentialDocument.credentials.refresh_token tëxt ✓ \"quoted\" \\ line\nbreak",
+    "scopes": "Oauth2CredentialDocument.credentials.scopes tëxt ✓ \"quoted\" \\ line\nbreak",
+    "token": "Oauth2CredentialDocument.credentials.token tëxt ✓ \"quoted\" \\ line\nbreak",
+    "token_uri": "Oauth2CredentialDocument.credentials.token_uri tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "email": "Oauth2CredentialDocument.email tëxt ✓ \"quoted\" \\ line\nbreak",
+   "provider": "Oauth2CredentialDocument.provider tëxt ✓ \"quoted\" \\ line\nbreak",
+   "state": "Oauth2CredentialDocument.state tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": "2026-02-03T04:05:06.789012+00:00",
+   "user_id": "Oauth2CredentialDocument.user_id tëxt ✓ \"quoted\" \\ line\nbreak"
+  },
+  "document": "Oauth2CredentialDocument"
+ },
+ "Oauth2CredentialDocument/minimal": {
+  "checksum": "sha256:c938a6ba29205f8158dde2baefd47002a2a05bbe83c7938fd67b51fef33a6453",
+  "doc": {
+   "_id": {
+    "$oid": "136740da2f234a55b8698a83"
+   },
+   "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "credentials": null,
+   "email": null,
+   "provider": null,
+   "state": null,
+   "updated_at": "2026-02-03T04:05:06.789012+00:00",
+   "user_id": null
+  },
+  "document": "Oauth2CredentialDocument"
+ },
+ "Oauth2CredentialDocument/naive": {
+  "checksum": "sha256:ffccd14322c59171b4b3631240605a59de4d38424584cb059ce2aaaa9028b7fc",
+  "doc": {
+   "_id": {
+    "$oid": "f121165481788cdec1ab1a41"
+   },
+   "created_at": "2026-01-02T03:04:05.678901",
+   "credentials": {
+    "client_id": "Oauth2CredentialDocument.credentials.client_id tëxt ✓ \"quoted\" \\ line\nbreak",
+    "client_secret": "Oauth2CredentialDocument.credentials.client_secret tëxt ✓ \"quoted\" \\ line\nbreak",
+    "expiry": "Oauth2CredentialDocument.credentials.expiry tëxt ✓ \"quoted\" \\ line\nbreak",
+    "refresh_token": "Oauth2CredentialDocument.credentials.refresh_token tëxt ✓ \"quoted\" \\ line\nbreak",
+    "scopes": "Oauth2CredentialDocument.credentials.scopes tëxt ✓ \"quoted\" \\ line\nbreak",
+    "token": "Oauth2CredentialDocument.credentials.token tëxt ✓ \"quoted\" \\ line\nbreak",
+    "token_uri": "Oauth2CredentialDocument.credentials.token_uri tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "email": "Oauth2CredentialDocument.email tëxt ✓ \"quoted\" \\ line\nbreak",
+   "provider": "Oauth2CredentialDocument.provider tëxt ✓ \"quoted\" \\ line\nbreak",
+   "state": "Oauth2CredentialDocument.state tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": "2026-02-03T04:05:06.789012",
+   "user_id": "Oauth2CredentialDocument.user_id tëxt ✓ \"quoted\" \\ line\nbreak"
+  },
+  "document": "Oauth2CredentialDocument"
+ },
+ "Oauth2CredentialDocument/nulls": {
+  "checksum": "sha256:782dafa8c303a7fc9e3fcf3d460718c34d08c63f0878c459b5228c5609be551d",
+  "doc": {
+   "_id": {
+    "$oid": "060e7591513ed16340786d40"
+   },
+   "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "credentials": null,
+   "email": null,
+   "provider": null,
+   "state": null,
+   "updated_at": "2026-02-03T04:05:06.789012+00:00",
+   "user_id": null
+  },
+  "document": "Oauth2CredentialDocument"
+ }
+}

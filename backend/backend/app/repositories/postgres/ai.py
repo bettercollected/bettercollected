@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from backend.app.repositories.postgres.forms import _oid
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
+from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.schemas.api_idempotency_record import (
     IDEMPOTENCY_DONE,
     IDEMPOTENCY_PENDING,
@@ -23,6 +24,7 @@ from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.db.models import (
     AiPreferenceMemoryRow,
     ApiIdempotencyKeyRow,
+    CreateFormPromptRow,
     FormAiInsightRow,
     FormAiSessionRow,
     FormFlowEventRow,
@@ -93,7 +95,12 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
     ) -> bool:
         """The Mongo original's targeted update: the row is locked, so a
         chat turn saved at the same time waits and then keeps this change
-        only if it read the row afterwards (as with Mongo)."""
+        only if it read the row afterwards (as with Mongo).
+
+        Like the array-filtered ``$set``, every proposal record with this id
+        that passes the status filter is updated, and the answer is whether
+        anything changed (Mongo's ``modified_count``): setting values that are
+        already there is not an update."""
         locked = (
             select(FormAiSessionRow.doc)
             .where(FormAiSessionRow.id == str(session_id))
@@ -104,16 +111,20 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
             if doc is None:
                 return False
             document = from_row_doc(FormAISessionDocument, doc)
+            changed = False
             for message in document.messages or []:
                 record = message.get("proposal")
                 if not isinstance(record, dict) or record.get("id") != proposal_id:
                     continue
                 if only_if_status is not None and record.get("status") != only_if_status:
-                    return False
-                record.update(fields)
+                    continue
+                for key, value in fields.items():
+                    if key not in record or record[key] != value:
+                        record[key] = value
+                        changed = True
+            if changed:
                 await session.execute(self._upsert_statement(row_values(document)))
-                return True
-        return False
+        return changed
 
 
 class PostgresWorkspaceAIProfileRepository(PostgresRepositoryBase):
@@ -160,6 +171,19 @@ class PostgresMcpAuditLogRepository(PostgresRepositoryBase):
         self, workspace_id: PydanticObjectId
     ) -> List[MCPAuditLogDocument]:
         return await self.many(McpAuditLogRow.workspace_id == _oid(workspace_id))
+
+
+class PostgresCreateFormPromptRepository(PostgresRepositoryBase):
+    row = CreateFormPromptRow
+    document = CreateFormPrompt
+
+    async def add(self, prompt: CreateFormPrompt) -> CreateFormPrompt:
+        return await self.upsert(prompt)
+
+    async def list_by_form_id(
+        self, form_id: PydanticObjectId
+    ) -> List[CreateFormPrompt]:
+        return await self.many(CreateFormPromptRow.form_id == _oid(form_id))
 
 
 class PostgresRateLimitRepository(PostgresRepositoryBase):

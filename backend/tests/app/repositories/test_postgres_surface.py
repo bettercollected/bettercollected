@@ -11,6 +11,12 @@ import pytest
 
 from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.coupon_repository import CouponRepository
+from backend.app.repositories.create_form_prompt_repository import (
+    CreateFormPromptRepository,
+)
+from backend.app.repositories.price_suggestion_repository import (
+    PriceSuggestionRepository,
+)
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
@@ -40,6 +46,7 @@ from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.ai import (
     PostgresAIPreferenceMemoryRepository,
+    PostgresCreateFormPromptRepository,
     PostgresFlowEventRepository,
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
@@ -82,6 +89,7 @@ from backend.app.repositories.postgres.refdata import (
     PostgresAllowedOriginsRepository,
     PostgresCouponRepository,
     PostgresFormPluginProviderRepository,
+    PostgresPriceSuggestionRepository,
     PostgresUserFeedbackRepo,
 )
 from backend.app.repositories.session_repository import SessionRepository
@@ -112,6 +120,7 @@ PAIRS = [
     (FormPluginProviderRepository, PostgresFormPluginProviderRepository),
     (CouponRepository, PostgresCouponRepository),
     (UserFeedbackRepo, PostgresUserFeedbackRepo),
+    (PriceSuggestionRepository, PostgresPriceSuggestionRepository),
     (WorkspaceRepository, PostgresWorkspaceRepository),
     (WorkspaceUserRepository, PostgresWorkspaceUserRepository),
     (WorkspaceInvitationRepo, PostgresWorkspaceInvitationRepo),
@@ -141,6 +150,7 @@ PAIRS = [
     (WorkspaceAIProfileRepository, PostgresWorkspaceAIProfileRepository),
     (AIPreferenceMemoryRepository, PostgresAIPreferenceMemoryRepository),
     (McpAuditLogRepository, PostgresMcpAuditLogRepository),
+    (CreateFormPromptRepository, PostgresCreateFormPromptRepository),
     (IdempotencyRepository, PostgresIdempotencyRepository),
     (RateLimitRepository, PostgresRateLimitRepository),
 ]

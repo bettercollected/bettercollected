@@ -110,6 +110,49 @@ class PostgresUserRepository(PostgresRepositoryBase):
             )
         return await self.upsert(user_document)
 
+    async def set_user_otp(
+        self,
+        user_id: PydanticObjectId,
+        otp_code: str,
+        otp_expiry: int,
+        otp_code_for: Roles,
+    ) -> UserDocument:
+        user_document = await self.get_user_by_id(user_id)
+        user_document.otp_code = otp_code
+        user_document.otp_expiry = otp_expiry
+        user_document.otp_code_for = otp_code_for
+        return await self.upsert(user_document)
+
+    async def update_user_names(
+        self,
+        user_id: PydanticObjectId,
+        first_name: Optional[str],
+        last_name: Optional[str],
+    ) -> UserDocument:
+        user_document = await self.get_user_by_id(user_id)
+        user_document.first_name = first_name
+        user_document.last_name = last_name
+        return await self.upsert(user_document)
+
+    async def set_stripe_payment_id(
+        self, user_id: PydanticObjectId, stripe_payment_id: str
+    ) -> UserDocument:
+        user_document = await self.get_user_by_id(user_id)
+        user_document.stripe_payment_id = stripe_payment_id
+        return await self.upsert(user_document)
+
+    async def set_user_plan(
+        self,
+        user_id: PydanticObjectId,
+        plan: Plans,
+        stripe_customer_id: Optional[str] = None,
+    ) -> UserDocument:
+        user_document = await self.get_user_by_id(user_id)
+        if stripe_customer_id is not None:
+            user_document.stripe_customer_id = stripe_customer_id
+        user_document.plan = plan
+        return await self.upsert(user_document)
+
     async def clear_user_otp(self, user: UserDocument):
         user_roles = [Roles.FORM_RESPONDER]
         if user.otp_code_for == Roles.FORM_CREATOR:

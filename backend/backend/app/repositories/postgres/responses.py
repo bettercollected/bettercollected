@@ -849,6 +849,27 @@ class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
             )
         return await self.upsert(workspace_responder)
 
+    async def patch_responder(
+        self,
+        workspace_id: PydanticObjectId,
+        email: str,
+        metadata: Optional[Dict[str, str]] = None,
+        tags: Optional[List[PydanticObjectId]] = None,
+    ):
+        workspace_responder = await self.one(
+            WorkspaceResponderRow.workspace_id == _oid(workspace_id),
+            WorkspaceResponderRow.email == email,
+        )
+        if not workspace_responder:
+            workspace_responder = WorkspaceResponderDocument(
+                workspace_id=workspace_id, email=email
+            )
+        if metadata:
+            workspace_responder.metadata = metadata
+        if tags:
+            workspace_responder.tags = tags
+        return await self.upsert(workspace_responder)
+
 
 class PostgresResponderGroupsRepository(PostgresRepositoryBase):
     row = ResponderGroupRow

@@ -75,9 +75,7 @@ class UserService:
         return await self.user_repo.delete_user(user_id=user_id)
 
     async def upgrade_user_to_pro(self, user_id):
-        user = await self.user_repo.get_user_by_id(user_id=user_id)
-        user.plan = Plans.PRO
-        return await user.save()
+        return await self.user_repo.set_user_plan(user_id, Plans.PRO)
 
 
 def run_sync(func, *args, **kwargs):

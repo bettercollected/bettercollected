@@ -975,6 +975,14 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await self.one(FormTemplateRow.id == _oid(template_id))
 
+    async def get_v2_template_by_title(
+        self, title: str
+    ) -> Optional[FormTemplateDocument]:
+        return await self.one(
+            _text(FormTemplateRow.doc["title"]) == title,
+            _text(FormTemplateRow.doc["builder_version"]) == "v2",
+        )
+
     async def get_template_by_workspace_id_n_template_id(
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):

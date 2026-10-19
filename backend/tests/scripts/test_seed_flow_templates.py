@@ -49,11 +49,9 @@ async def _seed_broken_lead_qualification():
         fields=payload["fields"],
         settings={"is_public": True},
     )
-    # Stored in both places the seed looks: Mongo (its existence check) and
-    # the routed repository (its repair), whatever the persistence mode.
-    saved = await container.form_template_repo().save(doc)
-    await saved.save()
-    return saved
+    # Through the routed repository, where the seed looks, whatever the
+    # persistence mode.
+    return await container.form_template_repo().save(doc)
 
 
 def _stored_yes_no_choices(template):
@@ -98,12 +96,13 @@ async def test_an_existing_template_in_another_workspace_is_not_duplicated():
     assert "Lead qualification" in result["skipped"]
     assert result["repaired"] == ["Lead qualification"]
     titles = [
-        t.title
-        for t in await FormTemplateDocument.find(
-            FormTemplateDocument.title == "Lead qualification"
-        ).to_list()
+        t["title"]
+        for workspace_id in (WORKSPACE_ID, other_workspace)
+        for t in await repo.get_templates_with_creator(
+            v2=True, workspace_id=workspace_id
+        )
     ]
-    assert titles == ["Lead qualification"]
+    assert titles.count("Lead qualification") == 1
     assert _stored_yes_no_choices(await repo.get_template_by_id(broken.id)) == [
         ["Yes", "No"]
     ]

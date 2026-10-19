@@ -154,3 +154,36 @@ async def test_user_metrics(stores):
     for repo in (mongo, postgres):
         await repo.delete_user(users[1].id)
         assert await repo.count_users_by_plan() == {"FREE": 3, "PRO": 0}
+
+
+async def test_user_field_updates(stores):
+    """The targeted updates of an existing account (sign-in code, names,
+    Stripe ids, plan) store the same document on both."""
+    mongo, postgres = UserRepository(), PostgresUserRepository(stores)
+    users = [await repo.save_user("upd@example.com") for repo in (mongo, postgres)]
+
+    async def both(name, *args, **kwargs):
+        results = [
+            await getattr(repo, name)(user.id, *args, **kwargs)
+            for repo, user in zip((mongo, postgres), users)
+        ]
+        assert strip(results[0]) == strip(results[1]), f"{name} differs"
+        return results
+
+    after = await both("set_user_otp", "ABC-123", 99, "FORM_CREATOR")
+    assert after[1].otp_code == "ABC-123" and after[1].otp_code_for == "FORM_CREATOR"
+    after = await both("update_user_names", "Ada", None)
+    assert (after[1].first_name, after[1].last_name) == ("Ada", None)
+    after = await both("set_stripe_payment_id", "cs_1")
+    assert after[1].stripe_payment_id == "cs_1"
+    after = await both("set_user_plan", Plans.PRO, stripe_customer_id="cus_1")
+    assert (after[1].plan, after[1].stripe_customer_id) == (Plans.PRO, "cus_1")
+    after = await both("set_user_plan", Plans.FREE)
+    assert (after[1].plan, after[1].stripe_customer_id) == (Plans.FREE, "cus_1")
+    stored = [
+        await repo.get_user_by_email("upd@example.com") for repo in (mongo, postgres)
+    ]
+    assert strip(stored[0]) == strip(stored[1])
+    for repo in (mongo, postgres):
+        with pytest.raises(NotFoundError):
+            await repo.set_user_plan(PydanticObjectId(), Plans.PRO)

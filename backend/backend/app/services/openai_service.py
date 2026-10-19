@@ -11,6 +11,9 @@ from backend.app.services.openai_compatible_provider import OpenAICompatibleForm
 from backend.config import settings
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
+from backend.app.repositories.create_form_prompt_repository import (
+    CreateFormPromptRepository,
+)
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.services.ai_form_provider import AIFormProvider
 from backend.app.services.google_ai_provider import GoogleAIFormProvider
@@ -27,8 +30,10 @@ class OpenAIService:
         authorization_service=None,
         ai_consent_service: Optional[AIConsentService] = None,
         ai_usage_guard: Optional[AIUsageGuard] = None,
+        create_form_prompt_repo: Optional[CreateFormPromptRepository] = None,
     ):
         self.workspace_service: WorkspaceService = workspace_service
+        self.create_form_prompt_repo = create_form_prompt_repo
         self.authorization_service = authorization_service
         self.ai_consent_service = ai_consent_service
         self.ai_usage_guard = ai_usage_guard
@@ -124,13 +129,14 @@ class OpenAIService:
                 user,
                 requested_provider=create_form_ai.provider,
             )
-            create_form_prompt = CreateFormPrompt(
-                prompt=create_form_ai.prompt,
-                openai_response=outline.dump(),
-                created_form=form.model_dump(mode="json"),
-                form_id=PydanticObjectId(form.form_id),
+            await self.create_form_prompt_repo.add(
+                CreateFormPrompt(
+                    prompt=create_form_ai.prompt,
+                    openai_response=outline.dump(),
+                    created_form=form.model_dump(mode="json"),
+                    form_id=PydanticObjectId(form.form_id),
+                )
             )
-            await create_form_prompt.save()
             return form
         except HTTPException:
             raise

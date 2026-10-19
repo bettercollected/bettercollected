@@ -66,6 +66,15 @@ class FormTemplateRepository:
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await FormTemplateDocument.find_one({"_id": template_id})
 
+    async def get_v2_template_by_title(
+        self, title: str
+    ) -> Optional[FormTemplateDocument]:
+        """The first flow-builder (v2) template with this title, in any
+        workspace (the flow-template seed's existence check)."""
+        return await FormTemplateDocument.find_one(
+            {"title": title, "builder_version": "v2"}
+        )
+
     async def get_template_by_workspace_id_n_template_id(
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
