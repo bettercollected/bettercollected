@@ -116,6 +116,7 @@ DECLARE
     r text[];
     t text;
     s text;
+    cols text;
 BEGIN
     -- the migration role: owns schema `admin`; default search_path on purpose
     -- (every statement it runs is schema-qualified)
@@ -283,20 +284,37 @@ BEGIN
     -- read-only for everyone; `doc` and `_bc_checksum` are what a re-encryption
     -- or a workspace stamp changes. USAGE on the schema also reaches the
     -- generated columns' helper functions there, nothing more.
-    IF to_regclass('app.form_responses') IS NOT NULL THEN
-        GRANT USAGE ON SCHEMA app TO bc_tasks_data_app;
-        GRANT SELECT (id, form_id, response_id, workspace_id, doc) ON app.form_responses TO bc_tasks_data_app;
-        GRANT UPDATE (doc, _bc_checksum) ON app.form_responses TO bc_tasks_data_app;
-    END IF;
-    IF to_regclass('app.responses_deletion_requests') IS NOT NULL THEN
-        GRANT USAGE ON SCHEMA app TO bc_tasks_data_app;
-        GRANT SELECT (id, form_id, response_id, workspace_id, doc) ON app.responses_deletion_requests TO bc_tasks_data_app;
-        GRANT UPDATE (doc, _bc_checksum) ON app.responses_deletion_requests TO bc_tasks_data_app;
-    END IF;
-    IF to_regclass('app.workspace_forms') IS NOT NULL THEN
-        GRANT USAGE ON SCHEMA app TO bc_tasks_data_app;
-        GRANT SELECT (id, form_id, workspace_id, doc) ON app.workspace_forms TO bc_tasks_data_app;
-    END IF;
+    -- Only the columns that exist now are granted: this script runs BEFORE the
+    -- application's migrations on an upgrade, and `workspace_id` of the response
+    -- tables arrives with a later revision (app 0015). The run after the
+    -- migrations (deploy.sh) grants it.
+    FOREACH r SLICE 1 IN ARRAY ARRAY[
+        ['form_responses', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
+        ['responses_deletion_requests', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
+        ['workspace_forms', 'id,form_id,workspace_id,doc', '']
+    ] LOOP
+        IF to_regclass('app.' || r[1]) IS NOT NULL THEN
+            GRANT USAGE ON SCHEMA app TO bc_tasks_data_app;
+            SELECT string_agg(quote_ident(c), ', ') INTO cols
+              FROM unnest(string_to_array(r[2], ',')) AS c
+             WHERE EXISTS (SELECT 1 FROM pg_attribute a
+                            WHERE a.attrelid = to_regclass('app.' || r[1])
+                              AND a.attname = c AND a.attnum > 0 AND NOT a.attisdropped);
+            IF cols IS NOT NULL THEN
+                EXECUTE format('GRANT SELECT (%s) ON app.%I TO bc_tasks_data_app', cols, r[1]);
+            END IF;
+            IF r[3] <> '' THEN
+                SELECT string_agg(quote_ident(c), ', ') INTO cols
+                  FROM unnest(string_to_array(r[3], ',')) AS c
+                 WHERE EXISTS (SELECT 1 FROM pg_attribute a
+                                WHERE a.attrelid = to_regclass('app.' || r[1])
+                                  AND a.attname = c AND a.attnum > 0 AND NOT a.attisdropped);
+                IF cols IS NOT NULL THEN
+                    EXECUTE format('GRANT UPDATE (%s) ON app.%I TO bc_tasks_data_app', cols, r[1]);
+                END IF;
+            END IF;
+        END IF;
+    END LOOP;
     IF to_regclass('google.oauth_credentials') IS NOT NULL THEN
         GRANT USAGE ON SCHEMA google TO bc_tasks_data_google;
         GRANT SELECT (id, user_id, doc) ON google.oauth_credentials TO bc_tasks_data_google;
