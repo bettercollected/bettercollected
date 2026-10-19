@@ -149,3 +149,44 @@ def test_the_actions_executor_reads_no_key_material():
     for key in ("AUTH_AES_HEX_KEY", "API_KEY", "AES_HEX_KEY", "AUTH_JWT_SECRET", "TEMPORAL_API_KEY"):
         spec = next(s for s in inventory.all_specs() if s.key == key)
         assert inventory.EXECUTOR not in spec.readers, key
+
+
+# ----------------------------------------------- a retired reader in older rows
+
+
+def test_rows_written_before_a_reader_was_retired_are_still_accepted():
+    """AUTH_AES_HEX_KEY rows written while the actions executor was a registered
+    reader list it; readers must not refuse them as a changed spec."""
+    from settings_support import MASTER, MOMENT
+
+    from common.settings.canonical import SettingRow
+    from common.settings.keys import SectionKeys
+    from common.settings.registry import default_registry
+    from common.settings.signing import MonotonicTracker
+    from common.settings.snapshot import FakeSnapshot, verify_snapshot
+
+    keys = SectionKeys(MASTER, sections=["auth_keys"])
+    key = "AUTH_AES_HEX_KEY"
+
+    def row(readers):
+        return SettingRow(
+            key=key, section="auth_keys", readers=readers, is_secret=True, reload_class="R",
+            version=1, updated_at=MOMENT, blob=keys.seal("auth_keys", key, 1, fernet()),
+        )
+
+    registry = default_registry()
+    old = ("actions_executor", "auth", "backend", "google", "temporal_worker")
+    snap = FakeSnapshot.build([row(old)], keys, revision=2)
+    result = verify_snapshot(
+        snap.rows(), snap.manifest(), keys, MonotonicTracker(), registry=registry, service="backend"
+    )
+    assert key in result.accepted and result.rejections == []
+    # a name that was never a reader is still a changed spec
+    snap = FakeSnapshot.build([row(("auth", "backend", "intruder"))], keys, revision=2)
+    result = verify_snapshot(
+        snap.rows(), snap.manifest(), keys, MonotonicTracker(), registry=registry, service="backend"
+    )
+    assert {(r.key, r.reason) for r in result.rejections} == {(key, "spec_mismatch")}
+    # and the executor itself is not a reader of the current key
+    assert inventory.EXECUTOR not in registry.get(key).readers
+    assert registry.get(key).retired_readers == (inventory.EXECUTOR,)

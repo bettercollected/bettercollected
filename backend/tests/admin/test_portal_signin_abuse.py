@@ -154,6 +154,28 @@ async def test_refused_branch_runs_the_same_statements_for_admin_and_non_admin(
     assert counts["admin"] == counts["other"], counts
 
 
+async def test_a_locked_admin_pair_and_a_used_up_non_admin_challenge_cost_the_same(
+    portal, runtime_engine, transport
+):
+    """The refused branch must not tell a listed admin from anyone else: an admin whose
+    (email, address) is locked and a non-admin challenge with its attempts used up run
+    the same statements, first refusal and repeat alike."""
+    admin_first = await issue(portal, ADMIN, IP_A)
+    for _ in range(5):  # locks the pair
+        await portal.signin.verify_code(admin_first, "00000000", IP_A, "ua")
+    admin_second = await issue(portal, ADMIN, IP_A)  # a fresh challenge, same address
+    other = (await portal.signin.request_code(NON_ADMIN, IP_A, "ua")).cookie
+    for _ in range(5):
+        await portal.signin.verify_code(other, "00000000", IP_A, "ua")
+    seen = {"admin": [], "other": []}
+    for label, cookie in (("admin", admin_second), ("other", other)):
+        for _ in range(2):
+            with Counter(runtime_engine) as c:
+                await portal.signin.verify_code(cookie, "00000000", IP_A, "ua")
+            seen[label].append(c.count)
+    assert seen["admin"] == seen["other"], seen
+
+
 # -- WEB-02: locking the genuine admin out ------------------------------------------
 
 

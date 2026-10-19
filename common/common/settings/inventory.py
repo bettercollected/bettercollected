@@ -258,6 +258,7 @@ KEY_MATERIAL: Tuple[SettingSpec, ...] = (
     # The actions executor runs user-authored code, so it is NOT a reader of any key
     # material: it must not be handed this key (see docs/admin-service.md).
     _secret("AUTH_AES_HEX_KEY", readers=(BACKEND, AUTH, GOOGLE, WORKER), format="fernet",
+            retired_readers=(EXECUTOR,),  # rows written before it was dropped still list it
             description="Fernet key for state and secrets; rotated by a task. The workers call it AES_HEX_KEY.",
             **KEYS),
     _secret("AUTH_INTERNAL_NOTIFY_KEY", readers=(BACKEND, AUTH, GOOGLE), format="token",

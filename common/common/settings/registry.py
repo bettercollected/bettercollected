@@ -201,6 +201,10 @@ class SettingSpec:
     max_length: Optional[int] = None
     # for strings: "cidr_list" or "host"; for secrets one of ``secret_checks.SECRET_FORMATS``
     format: str = ""
+    # services that were once readers: rows written then still list them, and a
+    # reader accepts such a row (its signature covers the old list) instead of
+    # refusing it as a changed spec; the next write drops the name
+    retired_readers: Tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         def bad(msg: str) -> None:
@@ -214,6 +218,10 @@ class SettingSpec:
             bad("readers must be a non-empty tuple of service names")
         if len(set(self.readers)) != len(self.readers):
             bad("duplicate readers")
+        if any(not NAME_RE.match(r or "") for r in self.retired_readers) or set(
+            self.retired_readers
+        ) & set(self.readers):
+            bad("retired readers must be names that are not current readers")
         if not isinstance(self.type, ValueType):
             bad("unknown type")
         if not isinstance(self.reload_class, Reload):
