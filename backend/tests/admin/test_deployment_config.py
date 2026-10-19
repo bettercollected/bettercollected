@@ -73,6 +73,25 @@ def test_postgres_health_checks_use_tcp_not_the_init_socket():
     assert checked >= 4  # temporal's, the application's, Umami's and Polis's databases
 
 
+def test_nginx_waits_for_the_webapp_and_restarts():
+    """nginx resolves its `webapp` upstream at start and exits when the name is not known
+    yet. deploy.sh creates containers one at a time (COMPOSE_PARALLEL_LIMIT=1), so with no
+    dependency nginx started before the webapp existed and stayed down."""
+    nginx = SERVICES["nginx"]
+    assert nginx["depends_on"]["webapp"]["condition"] == "service_started"
+    assert nginx.get("restart") in ("unless-stopped", "always", "on-failure")
+
+
+def test_no_container_of_the_backend_image_inherits_the_image_health_check():
+    """The backend image's HEALTHCHECK probes port 8000. Every service started from it
+    that does not serve that port (the admin service, the task runner, the jobs worker,
+    the document sandbox) has to carry a health check of its own or turn it off, or it
+    is reported unhealthy for good."""
+    for name, service in SERVICES.items():
+        if service.get("image", "").startswith("bettercollected/backend:") and name != "backend":
+            assert "healthcheck" in service, name
+
+
 def _env(service: str) -> dict:
     env = SERVICES[service].get("environment") or {}
     if isinstance(env, list):

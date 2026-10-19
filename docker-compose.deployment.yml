@@ -230,6 +230,14 @@ services:
       # Umami's tracker script and event endpoints only (nginx-deployment.conf);
       # its dashboard and login are not reachable from the network
       - '3003:3003'
+    # nginx resolves the `webapp` upstream when it starts and exits when the name is
+    # not known yet. deploy.sh creates containers one at a time, so without this it
+    # started before the webapp existed and stayed down: wait for the webapp, and
+    # start again if it still goes down (a recreated webapp, a host reboot).
+    depends_on:
+      webapp:
+        condition: service_started
+    restart: unless-stopped
 
 
   backend:
@@ -420,6 +428,11 @@ services:
       DB_WRITE_MODE__RESPONSES: ${DB_WRITE_MODE__RESPONSES:-}
       DB_WRITE_MODE__GOOGLE: ${DB_WRITE_MODE__GOOGLE:-}
       GOOGLE_MONGO_DB: ${TASK_RUNNER_GOOGLE_MONGO_DB:-}
+    # The image's own HEALTHCHECK probes port 8000, which this service does not serve:
+    # left in place it reports the container unhealthy for good. It reports to the
+    # portal's /health page through its heartbeat instead.
+    healthcheck:
+      disable: true
     depends_on:
       app-postgres:
         condition: service_healthy
@@ -492,6 +505,10 @@ services:
     volumes:
       - doc-sandbox:/run/doc-sandbox
       - settings-snapshots-jobs:/var/lib/bc-settings
+    # the image's own HEALTHCHECK probes port 8000, which a queue worker does not serve:
+    # left in place it reports the container unhealthy for good
+    healthcheck:
+      disable: true
     depends_on:
       app-postgres:
         condition: service_healthy
