@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 
 import pytest
@@ -644,20 +645,26 @@ def test_up_starts_every_required_service_for_every_preference(tmp_path, prefere
     (tmp_path / "deploy" / "seccomp" / "document-sandbox.json").write_text("{}")
     _render(tmp_path)  # writes skeleton.env
     (tmp_path / ".env").write_text((tmp_path / "skeleton.env").read_text())
+    project = "bcdry" + uuid.uuid4().hex[:8]  # parallel workers never share a project
     listed = subprocess.run(
         ["bash", "deploy.sh", "print-services", preference], cwd=tmp_path, capture_output=True, text=True,
-        env={**os.environ, "COMPOSE_PROJECT_NAME": "bcdry"},
+        env={**os.environ, "COMPOSE_PROJECT_NAME": project},
     )
     assert listed.returncode == 0, listed.stderr
     names = listed.stdout.split()
-    done = subprocess.run(
-        ["docker", "compose", "-p", "bcdry", "--env-file", str(tmp_path / ".env"), "-f", "docker-compose.deployment.yml",
-         "up", "--dry-run", "-d", *names],
-        cwd=tmp_path, capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "COMPOSE_PROJECT_NAME"},
-    )
-    assert done.returncode == 0, done.stderr[-800:]
+    for _ in range(4):
+        done = subprocess.run(
+            ["docker", "compose", "-p", project, "--env-file", str(tmp_path / ".env"), "-f", "docker-compose.deployment.yml",
+             "up", "--dry-run", "-d", *names],
+            cwd=tmp_path, capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "COMPOSE_PROJECT_NAME"},
+        )
+        # Compose 2.24's dry run now and then reports "X is missing dependency Y" for a
+        # dependency it has just planned; the real `up` does not. Run it again.
+        if done.returncode == 0 or "is missing dependency" not in done.stderr:
+            break
+    assert done.returncode == 0, (done.stderr[:1200], done.stderr[-600:])
     output = done.stdout + done.stderr
-    created = set(re.findall(r"Container bcdry-([a-z-]+?)-\d+\s+(?:Creat|Recreat|Start|Runn)", output))
+    created = set(re.findall(rf"Container {project}-([a-z-]+?)-\d+\s+(?:Creat|Recreat|Start|Runn)", output))
     required = {
         "mongodb", "mongo-seed", "webapp", "nginx", "backend", "auth", "postgresql", "temporal", "worker",
         "umami-postgresql", "umami", "app-postgres", "admin", "jobs-worker", "document-sandbox", "task-runner",
