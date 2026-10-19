@@ -4,12 +4,12 @@
 {% macro problem(name) %}
   {% if errors.get(name) %}<p class="error" id="e-{{ name }}">{{ field_errors[errors.get(name)] }}</p>{% endif %}
 {% endmacro %}
-{% macro choice(name, label) %}
+{% macro choice(name, label, default="true") %}
   <div class="field">
     <label for="m-{{ name }}">{{ label }}</label>
     <select id="m-{{ name }}" name="{{ name }}"{% if errors.get(name) %} aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
-      <option value="true"{% if values[name] != "false" %} selected{% endif %}>{{ _("Yes") }}</option>
-      <option value="false"{% if values[name] == "false" %} selected{% endif %}>{{ _("No") }}</option>
+      <option value="true"{% if (values[name] or default) == "true" %} selected{% endif %}>{{ _("Yes") }}</option>
+      <option value="false"{% if (values[name] or default) == "false" %} selected{% endif %}>{{ _("No") }}</option>
     </select>
     {{ problem(name) }}
   </div>
@@ -39,8 +39,9 @@
     <input id="m-sender" name="sender" type="text" value="{{ values.sender }}" required maxlength="320" spellcheck="false" autocomplete="off"{% if errors.get("sender") %} aria-invalid="true" aria-describedby="e-sender"{% endif %}>
     {{ problem("sender") }}
   </div>
+  <p class="muted">{{ _("Default: STARTTLS on port 587. Use TLS from the start (usually port 465) only instead of STARTTLS, never both.") }}</p>
   {{ choice("starttls", _("Upgrade with STARTTLS")) }}
-  {{ choice("ssl_tls", _("Use TLS from the start")) }}
+  {{ choice("ssl_tls", _("Use TLS from the start"), "false") }}
   {{ choice("validate_certs", _("Verify the server certificate")) }}
   {{ choice("use_credentials", _("Log in to the server")) }}
   <div class="field">

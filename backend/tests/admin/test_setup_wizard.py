@@ -25,6 +25,7 @@ from tests.admin.test_portal_mfa import CODES_RE, FACTOR_RE, SECRET_RE, enrol_di
 pytestmark = needs_postgres
 
 MASTER = parse_master_key(MASTER_KEY)
+REFUSED = "/setup?failed=1"
 MAIL_FORM = {
     "server": "smtp.example.org",
     "port": "587",
@@ -63,8 +64,14 @@ async def issue(engine) -> str:
     return token
 
 
-async def redeem(b: Browser, token: str, email: str = ADMIN, **kw):
-    csrf = await b.form_token("/setup")
+async def redeem(b: Browser, token: str, email: str = ADMIN, form=None, **kw):
+    """Post the token form; ``form="kept"`` reuses the form token of an earlier page
+    (the page itself is gone once setup is closed)."""
+    if form == "kept":
+        csrf = b.__dict__.setdefault("_kept_form", None)
+    else:
+        csrf = await b.form_token("/setup")
+        b.__dict__["_kept_form"] = csrf
     return await b.post(
         "/setup", data={"token": token, "email": email, "csrf_token": csrf}, **kw
     )
@@ -112,7 +119,8 @@ async def start_mail(b: Browser, **overrides):
 async def test_setup_is_a_bare_404_without_a_token(app, browser):
     assert (await browser.get("/setup")).status_code == 404
     assert (await browser.get("/setup")).content == b""
-    assert (await browser.post("/setup", data={"token": "x", "email": ADMIN})).status_code == 404
+    # a post without the form token never reaches the handler
+    assert (await browser.post("/setup", data={"token": "x", "email": ADMIN})).status_code == 403
     for path in ("/setup/mail", "/setup/finish", "/setup/mail/test", "/setup/mail/confirm"):
         assert (await browser.get(path)).status_code == 404
 
@@ -244,33 +252,32 @@ async def test_skipping_mail_then_finishing(app, runtime_engine, clock):
 
 async def test_a_token_works_once(app, runtime_engine):
     token = await issue(runtime_engine)
+    second = Browser(app)
+    form = await second.form_token("/setup")  # a form token taken while the page was open
     first = Browser(app)
     assert (await redeem(first, token)).status_code == 303
-    second = Browser(app)
-    # the token page is gone (nothing left to redeem); a replay is the bare 404
+    # the page is gone (nothing left to redeem) and a replay is refused like any other try
     assert (await second.get("/setup")).status_code == 404
-    csrf = "x"
-    assert (await second.post("/setup", data={"token": token, "email": ADMIN, "csrf_token": csrf})).status_code == 404
+    replay = await second.post("/setup", data={"token": token, "email": ADMIN, "csrf_token": form})
+    assert replay.status_code == 303 and replay.headers["location"] == REFUSED
     sessions = await rows(runtime_engine, "SELECT mfa_state FROM admin.sessions")
     assert [r[0] for r in sessions] == ["setup"]
 
 
-async def test_wrong_token_and_wrong_address_look_alike_and_burn_nothing_for_the_address(
-    app, runtime_engine
-):
+async def test_wrong_token_and_wrong_address_look_alike(app, runtime_engine):
     token = await issue(runtime_engine)
     b = Browser(app)
     wrong_token = await redeem(b, "AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGGG-HHHH")
     unlisted = await redeem(b, token, "stranger@example.org")
-    assert wrong_token.status_code == unlisted.status_code == 403
-    strip = lambda html: TOKEN_RE.sub("", html)  # the per-page form token differs
-    assert strip(wrong_token.text) == strip(unlisted.text) and "was not accepted" in wrong_token.text
-    # the unlisted address did not consume the right token and did not count against it
+    for r in (wrong_token, unlisted):
+        assert r.status_code == 303 and r.headers["location"] == REFUSED and r.content == b""
+    page = await b.get(REFUSED)
+    assert "was not accepted" in page.text and "AAAA-BBBB" not in page.text
+    # the right token with an unlisted address was not consumed; both tries counted against it
     attempts = (await rows(runtime_engine, "SELECT failed_attempts, consumed_at FROM admin.setup_tokens"))[0]
-    assert tuple(attempts) == (1, None)
-    # a wrongly typed (but valid format) token never shows up in the response
-    assert "AAAA-BBBB" not in wrong_token.text
+    assert tuple(attempts) == (2, None)
     assert (await redeem(b, setup_token.display(token).lower())).status_code == 303  # dashes, case are free
+    assert (await b.get("/mfa/enrol")).status_code == 200
 
 
 async def test_five_tries_per_address_then_even_the_right_token_is_refused(
@@ -279,9 +286,9 @@ async def test_five_tries_per_address_then_even_the_right_token_is_refused(
     token = await issue(runtime_engine)
     b = Browser(app)
     for _ in range(5):
-        assert (await redeem(b, "WRONGWRONGWRONGWRONGWRONGWRONGWRONG")).status_code == 403
+        assert (await redeem(b, "WRONGWRONGWRONGWRONGWRONGWRONGWRONG")).headers["location"] == REFUSED
     blocked = await redeem(b, token)
-    assert blocked.status_code == 403
+    assert blocked.headers["location"] == REFUSED
     assert (await rows(runtime_engine, "SELECT consumed_at FROM admin.setup_tokens"))[0][0] is None
     clock.advance(16 * 60)  # the window ended
     assert (await redeem(b, token)).status_code == 303
@@ -294,11 +301,11 @@ async def test_twenty_wrong_tries_lock_the_token_and_tell_the_admins(
     b = Browser(app)
     for round_ in range(4):
         for _ in range(5):
-            assert (await redeem(b, "WRONGWRONGWRONGWRONGWRONGWRONGWRONG")).status_code == 403
+            assert (await redeem(b, "WRONGWRONGWRONGWRONGWRONGWRONGWRONG")).headers["location"] == REFUSED
         clock.advance(16 * 60)
     # locked for good, the page is gone, the right token no longer works
     assert (await b.get("/setup")).status_code == 404
-    assert (await b.post("/setup", data={"token": token, "email": ADMIN, "csrf_token": "x"})).status_code == 404
+    assert (await redeem(b, token, form="kept")).headers["location"] == REFUSED
     locked = (await rows(runtime_engine, "SELECT locked_at IS NOT NULL, failed_attempts FROM admin.setup_tokens"))[0]
     assert tuple(locked) == (True, 20)
     log = await actions(runtime_engine)
@@ -313,7 +320,7 @@ async def test_a_new_token_replaces_the_old_one(app, runtime_engine):
         new, replaced = await setup_token.issue(conn, MASTER, "tester", replace=True)
     assert replaced
     b = Browser(app)
-    assert (await redeem(b, old)).status_code == 403
+    assert (await redeem(b, old)).headers["location"] == REFUSED
     assert (await redeem(b, new)).status_code == 303
 
 
@@ -384,7 +391,7 @@ async def test_nobody_can_start_after_a_factor_exists(app, portal, runtime_engin
         )
     b = Browser(app)
     assert (await b.get("/setup")).status_code == 404
-    assert (await redeem_raw(b)).status_code == 404
+    assert (await redeem_raw(b)).status_code in (403, 404)  # no form token without the page
 
 
 async def redeem_raw(b):
@@ -614,14 +621,14 @@ def test_every_setup_route_declares_its_stage_and_nothing_else_does():
         if stage is not None:
             stages[(route.path, tuple(sorted(route.methods)))] = stage
     assert stages[("/setup", ("GET",))] is SetupStage.OPEN
-    assert stages[("/setup", ("POST",))] is SetupStage.OPEN
-    assert {s for s in stages.values()} == {SetupStage.OPEN, SetupStage.CHECKLIST}
+    assert stages[("/setup", ("POST",))] is SetupStage.ATTEMPT
+    assert {s for s in stages.values()} == {SetupStage.OPEN, SetupStage.ATTEMPT, SetupStage.CHECKLIST}
     # the open stage is the only one below the session levels
     for route in reg.router.routes:
         stage = getattr(route.endpoint, "admin_setup_stage", None)
         if stage is SetupStage.CHECKLIST:
             assert route.endpoint.admin_level == Level.SECOND_FACTOR
-        if stage is SetupStage.OPEN:
+        if stage in (SetupStage.OPEN, SetupStage.ATTEMPT):
             assert route.endpoint.admin_level == Level.ADDRESS
 
 
@@ -638,7 +645,7 @@ def test_the_registry_refuses_setup_routes_without_a_stage_and_stages_elsewhere(
     # a mutating wizard route needs a step-up or a reasoned exemption
     with pytest.raises(ValueError):
         reg.route("/setup/x", level=Level.ADDRESS, methods=["POST"], setup=SetupStage.OPEN)
-    reg.route("/setup/x", level=Level.ADDRESS, methods=["POST"], setup=SetupStage.OPEN, stepup_exempt="why")
+    reg.route("/setup/x", level=Level.ADDRESS, methods=["POST"], setup=SetupStage.ATTEMPT, stepup_exempt="why")
     reg.route(
         "/setup/y", level=Level.SECOND_FACTOR, methods=["POST"], setup=SetupStage.CHECKLIST,
         stepup=require_stepup(),
@@ -685,3 +692,109 @@ async def test_after_a_factor_reset_a_new_token_opens_the_wizard_again(
     assert (await again.get("/setup/mail")).status_code == 200
     await b.aclose()
     await again.aclose()
+
+
+# -- equal answers and equal database work for every refusal ----------------------------
+
+
+async def test_every_refusal_gives_the_same_answer_and_runs_the_same_statements(
+    app, portal, runtime_engine, owner_engine, clock
+):
+    from tests.admin.test_portal_hardening import Counter
+
+    token = await issue(runtime_engine)
+    b = Browser(app)
+    form = await b.form_token("/setup")  # taken while the page was open
+    seen = {}
+
+    async def attempt(label, token_text, email=ADMIN):
+        async with owner_engine.begin() as conn:  # a fresh rate-limit window for each try
+            await conn.execute(text("DELETE FROM admin.attempts WHERE key LIKE 'setup_try:%'"))
+        with Counter(runtime_engine) as counter:
+            r = await b.post(
+                "/setup", data={"token": token_text, "email": email, "csrf_token": form}
+            )
+        seen[label] = (
+            (r.status_code, r.headers.get("location"), r.content),
+            [st.strip().lower()[:24] for st in counter.statements],
+        )
+
+    await attempt("wrong address", token, "stranger@example.org")
+    await attempt("wrong token", "AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGGG-HHHH")
+    async with owner_engine.begin() as conn:
+        await conn.execute(text("UPDATE admin.setup_tokens SET expires_at = now() - interval '1 minute'"))
+    await attempt("expired", token)
+    new = await issue(runtime_engine)
+    async with owner_engine.begin() as conn:
+        await conn.execute(text("UPDATE admin.setup_tokens SET locked_at = now() WHERE consumed_at IS NULL AND locked_at IS NULL AND revoked_at IS NULL"))
+    await attempt("locked", new)
+    await enrol_direct(portal, clock, email=OTHER_ADMIN)
+    await attempt("setup over", new)
+
+    answers = {label: value[0] for label, value in seen.items()}
+    work = {label: value[1] for label, value in seen.items()}
+    assert len({repr(a) for a in answers.values()}) == 1, answers
+    assert answers["wrong token"] == (303, REFUSED, b"")
+    assert len({repr(w) for w in work.values()}) == 1, work
+
+
+# -- mail form: saved password and TLS defaults -------------------------------------------
+
+
+async def save_mail(b, transport):
+    coded = await start_mail(b)
+    code = SIX.search(transport.sent[-1].body).group(1)
+    blob = re.search(r'name="pending" value="([^"]+)"', coded.text).group(1)
+    ok = await b.post(
+        "/setup/mail/confirm",
+        data={"csrf_token": csrf_from(coded), "pending": blob, "mail_code": code},
+    )
+    assert ok.status_code == 303
+
+
+async def test_a_saved_password_is_never_sent_to_a_different_server(
+    app, runtime_engine, clock, transport
+):
+    b, *_ = await to_enrolled(app, runtime_engine, clock)
+    await save_mail(b, transport)
+    sent = len(transport.sent)
+    for overrides in (
+        {"server": "other.example.org"},
+        {"port": "2525"},
+        {"user": "someone-else"},
+    ):
+        r = await start_mail(b, password="", **overrides)
+        assert r.status_code == 400, overrides
+        assert "type the password again" in r.text
+        assert MAIL_FORM["password"] not in r.text
+    assert len(transport.sent) == sent  # nothing was sent anywhere
+    # unchanged server, port and user: a blank password keeps the saved one
+    assert (await start_mail(b, password="")).status_code == 200
+    # a new password typed for a new server is fine
+    assert (await start_mail(b, server="other.example.org", password="another-long-secret-8")).status_code == 200
+    await b.aclose()
+
+
+async def test_never_both_tls_modes_and_the_defaults_are_starttls_587(
+    app, runtime_engine, clock, transport
+):
+    b, *_ = await to_enrolled(app, runtime_engine, clock)
+    page = await b.get("/setup/mail")
+    assert re.search(r'<select id="m-starttls"[^>]*>\s*<option value="true" selected', page.text)
+    assert re.search(r'<select id="m-ssl_tls"[^>]*>\s*<option value="true">[^<]*</option>\s*<option value="false" selected', page.text)
+    assert 'placeholder="587"' in page.text
+    sent = len(transport.sent)
+    both = await start_mail(b, starttls="true", ssl_tls="true")
+    assert both.status_code == 400 and "not both" in both.text
+    # a client that leaves STARTTLS out inherits its default (on): still refused
+    page = await b.get("/setup/mail")
+    data = {**MAIL_FORM, "csrf_token": csrf_from(page), "ssl_tls": "true", "port": "465"}
+    del data["starttls"]
+    r = await b.post("/setup/mail/test", data=data)
+    assert r.status_code == 400 and "not both" in r.text
+    # implicit TLS alone needs its port stated
+    r = await start_mail(b, starttls="false", ssl_tls="true", port="")
+    assert r.status_code == 400 and "Enter the port" in r.text
+    assert len(transport.sent) == sent
+    assert (await start_mail(b, starttls="false", ssl_tls="true", port="465")).status_code == 200
+    await b.aclose()

@@ -102,10 +102,12 @@ def register(reg: RouteRegistry) -> None:
     # -- step 1: the token (no session yet) -------------------------------------------
     @reg.route("/setup", level=Level.ADDRESS, setup=SetupStage.OPEN)
     async def token_page(request: Request):
-        return _form_page(_portal(request), "setup.html", failed=False)
+        return _form_page(
+            _portal(request), "setup.html", failed=request.query_params.get("failed") == "1"
+        )
 
     @reg.route(
-        "/setup", level=Level.ADDRESS, methods=["POST"], setup=SetupStage.OPEN,
+        "/setup", level=Level.ADDRESS, methods=["POST"], setup=SetupStage.ATTEMPT,
         stepup_exempt=REDEEM_EXEMPT,
     )
     async def token_submit(request: Request, background: BackgroundTasks):
@@ -116,7 +118,8 @@ def register(reg: RouteRegistry) -> None:
         )
         _schedule(background, result.after)
         if not result.ok:
-            response = _form_page(portal, "setup.html", 403, failed=True)
+            # one answer for every refusal; the page itself is the bare 404 when setup is closed
+            response = _see("/setup?failed=1")
         else:
             response = _see("/mfa/enrol")  # the portal's own enrolment, then back here
             cookies.set_cookie(response, cookies.SESSION_COOKIE, result.session_token)

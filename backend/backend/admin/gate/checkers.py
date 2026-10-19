@@ -92,6 +92,8 @@ def build_setup_checker(wizard):
     async def setup_stage(scope, stage: SetupStage) -> bool:
         if stage is SetupStage.OPEN:
             return await wizard.is_open()
+        if stage is SetupStage.ATTEMPT:
+            return True
         if stage is SetupStage.CHECKLIST:
             session = scope["state"].get("session")
             return session is not None and await wizard.checklist_open(session)

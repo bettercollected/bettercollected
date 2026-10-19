@@ -291,8 +291,10 @@ bare 404 of an unknown path.
 2. Open `/setup` (through the SSH tunnel) and enter the token and one address from
    `PLATFORM_ADMIN_EMAILS`. The token travels in the POST body only, never in a URL.
    At most 5 tries per address and 15 minutes; 20 wrong tries lock the token for good
-   (every admin is mailed, if mail works). A wrong token, an unlisted address, a
-   spent token and a rate limit all look the same. A right token creates a
+   (every admin is mailed, if mail works). A wrong token, an unlisted address, an
+   expired or locked token, a finished setup and a rate limit all get the same
+   answer (a redirect back to `/setup`, which is the bare 404 when setup is closed)
+   and the same database work. A right token creates a
    `setup` session: 60 minutes, 15 idle, bound to address and browser, able to
    reach second-factor enrolment and sign-out only. Every admin is told it started.
 3. Enrol an authenticator on the portal's own enrolment pages and save the ten
@@ -303,7 +305,10 @@ bare 404 of an unknown path.
    six-digit code goes to your own address using exactly those settings; the
    `admin_mail` keys are saved (through the settings store, audited, with the
    delivered-test guard) only after you type the code. Saving needs a fresh
-   authenticator code. The environment (`ADMIN_MAIL_*`, then `MAIL_*`) wins over
+   authenticator code. Defaults are STARTTLS on port 587; STARTTLS and TLS from the
+   start are never both on (refused by the server too), and implicit TLS needs its
+   port stated. A saved password is never sent to a different server: if the server,
+   port or user name changed, the password must be typed again. The environment (`ADMIN_MAIL_*`, then `MAIL_*`) wins over
    saved settings; the service reloads saved ones at most once a minute. You can
    skip the step and run `settings-mail-apply` on the host later.
 5. **Finish** (`/setup/finish`): the master key fingerprint and a backup reminder

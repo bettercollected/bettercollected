@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Awaitable, Callable, List, Mapping, Optional
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.admin.portal_config import PortalSettings
@@ -68,6 +69,8 @@ MAIL_SEND_TIMEOUT_SECONDS = 20
 MAIL_SECTION = "admin_mail"
 MAX_TOKEN_FIELD = 200
 SEAL_ACTION = "setup.mail"
+_STAND_IN = "0"  # never equals a real token (160 bits of base32)
+_NO_OP_UPDATE = text("UPDATE admin.setup_tokens SET failed_attempts = failed_attempts WHERE false")
 
 # form field -> store key, in the order the page shows them
 MAIL_FIELDS = (
@@ -89,7 +92,16 @@ FIELD_ERRORS = {
     "invalid": "This value is not accepted.",
     "tls_both": "Choose STARTTLS or TLS from the start, not both.",
     "credentials": "Logging in needs a user name (and a saved or new password).",
+    "password_retype": (
+        "The server, port or user name changed: type the password again. "
+        "A saved password is never sent to a different server."
+    ),
+    "port_required": "Enter the port when you use TLS from the start (usually 465).",
 }
+DEFAULT_PORT = 587
+_SERVER, _PORT, _USER, _PASSWORD = (
+    "ADMIN_MAIL_SMTP_SERVER", "ADMIN_MAIL_SMTP_PORT", "ADMIN_MAIL_USER", "ADMIN_MAIL_PASSWORD",
+)
 
 
 @dataclass
@@ -202,19 +214,21 @@ class SetupWizard:
         decision = await self._limiter.hit(TOKEN_TRIES, self._limiter.ip_key(ip))
         if not decision.allowed:
             return RedeemResult(False)  # not audited: a refused try must not grow the log
-        if email not in self._settings.admin_emails or not setup_token.normalise(token):
-            # no token work for an address that cannot be an admin, but the same
-            # answer and a counted try; the token's own counter is not touched
-            hmac.compare_digest(b"x" * 32, b"y" * 32)
-            async with self._engine.begin() as conn:
-                await self._audit_refused(conn, ip, ua, rid)
-            return RedeemResult(False)
+        # Every refusal runs the same statements: the token is looked up whether or
+        # not the address is listed or setup is over (a stand-in value is checked
+        # then), and a refused try always writes the same audit row.
+        listed = email in self._settings.admin_emails and bool(setup_token.normalise(token))
         after: List[AfterResponse] = []
         async with self._engine.begin() as conn:
-            if await setup_token.enrolment_complete(conn):
-                return RedeemResult(False)
+            complete = await setup_token.enrolment_complete(conn)
             before = await setup_token.active(conn)
-            if not await setup_token.redeem(conn, self._master_key, token):
+            real = listed and not complete
+            ok = await setup_token.redeem(
+                conn, self._master_key, token if real else _STAND_IN
+            )
+            if not ok:
+                if before is None:  # same statement count as a counted wrong try
+                    await conn.execute(_NO_OP_UPDATE)
                 await self._audit_refused(conn, ip, ua, rid)
                 now_active = await setup_token.active(conn)
                 if (
@@ -294,20 +308,43 @@ class SetupWizard:
                 errors["ssl_tls"] = "tls_both"
         return MailForm(values, errors, {} if errors else typed)
 
+    @staticmethod
+    def _candidate_problem(saved: Mapping[str, Any], typed: Mapping[str, Any], candidate: Mapping[str, Any]) -> dict:
+        """Checks on the settings that would really be used (saved ones overlaid
+        with the form): never both TLS modes, a port for implicit TLS, a user for
+        a login, and a saved password only for the same server, port and user."""
+        problems: dict = {}
+        if candidate.get("ADMIN_MAIL_STARTTLS", True) and candidate.get("ADMIN_MAIL_SSL_TLS", False):
+            problems["ssl_tls"] = "tls_both"
+        elif candidate.get("ADMIN_MAIL_SSL_TLS", False) and _PORT not in typed:
+            problems["port"] = "port_required"
+        if candidate.get("ADMIN_MAIL_USE_CREDENTIALS", True) and not candidate.get(_USER):
+            problems["user"] = "credentials"
+        if _PASSWORD not in typed and _PASSWORD in saved:
+            same = (
+                candidate.get(_SERVER) == saved.get(_SERVER)
+                and candidate.get(_PORT, DEFAULT_PORT) == saved.get(_PORT, DEFAULT_PORT)
+                and candidate.get(_USER) == saved.get(_USER)
+            )
+            if not same:
+                problems["password"] = "password_retype"
+        return problems
+
     async def start_mail_test(self, session: Session, form: MailForm, ip, ua, rid) -> MailTestResult:
         """Send a six-digit code to the admin's own address using the candidate
         settings (the saved ones overlaid with the form). Nothing is saved."""
         if form.errors or not form.typed:
             return MailTestResult(False, "invalid", form=form)
-        decision = await self._limiter.hit(MAIL_SENDS, self._limiter.email_key(session.email))
-        if not decision.allowed:
-            return MailTestResult(False, "rate_limited", form=form)
         stored = await self._service.stored()
         candidate = {k: v for k, v in stored.values.items() if k in MAIL_KEYS}
         candidate.update(form.typed)
-        if candidate.get("ADMIN_MAIL_USE_CREDENTIALS", True) and not candidate.get("ADMIN_MAIL_USER"):
-            form.errors["user"] = "credentials"
+        refused = self._candidate_problem(stored.values, form.typed, candidate)
+        if refused:
+            form.errors.update(refused)
             return MailTestResult(False, "invalid", form=form)
+        decision = await self._limiter.hit(MAIL_SENDS, self._limiter.email_key(session.email))
+        if not decision.allowed:
+            return MailTestResult(False, "rate_limited", form=form)
         config = mail_config_from_settings(candidate)
         code = "".join(secrets.choice("0123456789") for _ in range(6))
         delivered = False

@@ -31,6 +31,9 @@ class SetupStage(Enum):
     the same bare 404 as an unknown path, whatever the reason."""
 
     OPEN = "open"  # the token page: no confirmed factor anywhere and a valid token waits
+    # a token attempt (POST): always passes the gate; the handler does the same work and
+    # gives the same answer whether the token is wrong, expired, locked or setup is over
+    ATTEMPT = "attempt"
     CHECKLIST = "checklist"  # after enrolment: the admin who redeemed the token, until finished
 
 
@@ -67,7 +70,7 @@ class RouteRegistry:
             raise ValueError(
                 f"route {path}: routes under {SETUP_PREFIX} declare a setup stage, and only they do"
             )
-        if setup is SetupStage.OPEN and level != Level.ADDRESS:
+        if setup in (SetupStage.OPEN, SetupStage.ATTEMPT) and level != Level.ADDRESS:
             raise ValueError(f"route {path}: the open setup stage is an ADDRESS-level page")
         if setup is SetupStage.CHECKLIST and level != Level.SECOND_FACTOR:
             raise ValueError(f"route {path}: the checklist stage needs the SECOND_FACTOR level")
