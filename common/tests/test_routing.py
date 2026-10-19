@@ -307,3 +307,42 @@ def test_outbox_row_ids_redact_addresses_and_keep_ids():
     )
     ids = failure_ids(failure)
     assert ids.startswith("6a9d7c30c3a01cadfd948543,email:") and "@" not in ids
+
+
+class StampingStore:
+    """Records the clock it reads while executing a write."""
+
+    def __init__(self):
+        self.seen = []
+
+    @write_op
+    async def stamp(self, key):
+        from common.clock import utcnow
+
+        self.seen.append(utcnow())
+        await asyncio.sleep(0.01)  # the mirror runs measurably later
+        self.seen.append(utcnow())
+        return key
+
+
+@pytest.mark.parametrize("mode", ["dual", "postgres_primary_dual"])
+async def test_a_re_executed_write_reads_one_clock_on_both_stores(mode):
+    m, p = StampingStore(), StampingStore()
+    r = repo({"DB_WRITE_MODE": mode}, mongo=m, postgres=p)
+    await r.stamp("a")
+    assert len(m.seen) == len(p.seen) == 2
+    assert len(set(m.seen + p.seen)) == 1
+    await r.stamp("b")
+    assert m.seen[-1] > m.seen[0]  # each write takes its own reading
+
+
+async def test_the_write_clock_is_fixed_only_inside_a_write():
+    from common.clock import utcnow, write_clock
+
+    with write_clock() as outer:
+        assert utcnow() == outer
+        with write_clock() as inner:  # a write nested in a write shares it
+            assert inner == outer
+        await asyncio.sleep(0.01)
+        assert utcnow() == outer
+    assert utcnow() > outer

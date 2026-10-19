@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any
 
@@ -16,6 +15,7 @@ from common.constants import MESSAGE_DATABASE_EXCEPTION
 from common.db import WriteResult, write_op
 from common.enums.form_provider import FormProvider
 from common.services.crypto_service import crypto_service
+from common.clock import utcnow
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 
@@ -90,8 +90,8 @@ class OauthCredentialRepository:
                 email=email,
                 provider=provider,
                 credentials=credentials,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=utcnow(),
+                updated_at=utcnow(),
             )
             return await oauth_credential_document.save()
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):

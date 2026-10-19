@@ -6,6 +6,7 @@ from pymongo.errors import DuplicateKeyError
 
 from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from common.db.routing import write_op
+from common.clock import utcnow
 
 
 class RateLimitRepository:
@@ -17,7 +18,7 @@ class RateLimitRepository:
         ``counter_id`` (24 hex characters), creating it to expire at
         ``expires_at``; returns the count including this request. Atomic, so
         requests reaching several replicas at once are all counted."""
-        now = dt.datetime.now(dt.timezone.utc)
+        now = utcnow()
         collection = RateLimitCounterDocument.get_pymongo_collection()
         for attempt in range(2):
             try:

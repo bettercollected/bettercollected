@@ -30,7 +30,7 @@ class PostgresActionRepository(PostgresRepositoryBase):
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
-        return await self.upsert(
+        return await self.save_document(
             ActionDocument(
                 **action.model_dump(mode="json"),
                 created_by=PydanticObjectId(user.id),
@@ -82,13 +82,13 @@ class PostgresActionRepository(PostgresRepositoryBase):
                 workspace_id=workspace_id, action_id=action_id
             )
         workspace_action.secrets = secrets
-        return await self.upsert(workspace_action, row=WorkspaceActionRow)
+        return await self.save_document(workspace_action, row=WorkspaceActionRow)
 
     async def create_global_action(self, action: ActionDto, user: User):
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
-        return await self.upsert(
+        return await self.save_document(
             ActionDocument(
                 **action.model_dump(mode="json"), created_by=PydanticObjectId(user.id)
             )

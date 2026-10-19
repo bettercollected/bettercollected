@@ -1,7 +1,6 @@
 """Postgres twin of the google integration's credential repository."""
 
 import json
-from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any
 
@@ -13,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from common.constants import MESSAGE_DATABASE_EXCEPTION
 from common.db import PostgresRepositoryBase, WriteResult
 from common.enums.form_provider import FormProvider
+from common.clock import utcnow
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.db.models import OAuthCredentialRow
@@ -56,14 +56,14 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
             credentials = OauthCredentialRepository.encrypt_token(
                 user_id=user_id, token=json.dumps(dict(credentials))
             )
-            return await self.upsert(
+            return await self.save_document(
                 Oauth2CredentialDocument(
                     user_id=user_id,
                     email=email,
                     provider=provider,
                     credentials=credentials,
-                    created_at=datetime.now(timezone.utc),
-                    updated_at=datetime.now(timezone.utc),
+                    created_at=utcnow(),
+                    updated_at=utcnow(),
                 )
             )
         except SQLAlchemyError:
@@ -82,7 +82,7 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
                 item.credentials = OauthCredentialRepository.encrypt_token(
                     user_id=document.user_id, token=json.dumps(dict(item.credentials))
                 )
-            await self.upsert(item)
+            await self.save_document(item)
             stored = item.model_copy(deep=True)
             item.credentials = credentials
             return WriteResult(item, [stored])
@@ -95,7 +95,7 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
     async def save(
         self, document: Oauth2CredentialDocument
     ) -> Oauth2CredentialDocument:
-        return await self.upsert(document)
+        return await self.save_document(document)
 
     async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
         return await self.delete_where(

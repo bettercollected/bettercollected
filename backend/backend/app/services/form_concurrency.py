@@ -20,6 +20,7 @@ from typing import Optional
 from pydantic import TypeAdapter, ValidationError
 
 from backend.app.exceptions import HTTPException
+from common.clock import utcnow
 
 FORM_CHANGED_CODE = "form_changed"
 FORM_CHANGED_MESSAGE = (
@@ -91,7 +92,7 @@ def next_updated_at(previous: Optional[dt.datetime]) -> dt.datetime:
     milliseconds (what every store keeps and every client sends back) and
     always at least a millisecond after ``previous``, so each save is a
     change for :func:`is_changed_since`, however close two saves are."""
-    now_ms = _in_ms(dt.datetime.now(dt.timezone.utc))
+    now_ms = _in_ms(utcnow())
     if previous is not None:
         now_ms = max(now_ms, _in_ms(previous) + 1)
     return _EPOCH + dt.timedelta(milliseconds=now_ms)

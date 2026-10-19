@@ -14,6 +14,7 @@ from auth.db.models import UserRow
 from common.db import PostgresRepositoryBase
 from common.enums.plan import Plans
 from common.enums.roles import Roles
+from common.clock import utcnow
 
 
 class PostgresUserRepository(PostgresRepositoryBase):
@@ -57,7 +58,7 @@ class PostgresUserRepository(PostgresRepositoryBase):
             otp_code_for = Roles.FORM_RESPONDER
             if creator:
                 otp_code_for = Roles.FORM_CREATOR
-            user_document = await self.upsert(
+            user_document = await self.save_document(
                 UserDocument(
                     email=email,
                     otp_code=otp_code,
@@ -67,7 +68,7 @@ class PostgresUserRepository(PostgresRepositoryBase):
             )
         if creator and Roles.FORM_CREATOR not in user_document.otp_code_for:
             user_document.otp_code_for = Roles.FORM_CREATOR
-            await self.upsert(user_document)
+            await self.save_document(user_document)
         return user_document
 
     async def save_user(
@@ -107,7 +108,7 @@ class PostgresUserRepository(PostgresRepositoryBase):
             user_document.profile_image = (
                 profile_image if profile_image else user_document.profile_image
             )
-        return await self.upsert(user_document)
+        return await self.save_document(user_document)
 
     async def set_user_otp(
         self,
@@ -120,7 +121,7 @@ class PostgresUserRepository(PostgresRepositoryBase):
         user_document.otp_code = otp_code
         user_document.otp_expiry = otp_expiry
         user_document.otp_code_for = otp_code_for
-        return await self.upsert(user_document)
+        return await self.save_document(user_document)
 
     async def update_user_names(
         self,
@@ -131,14 +132,14 @@ class PostgresUserRepository(PostgresRepositoryBase):
         user_document = await self.get_user_by_id(user_id)
         user_document.first_name = first_name
         user_document.last_name = last_name
-        return await self.upsert(user_document)
+        return await self.save_document(user_document)
 
     async def set_stripe_payment_id(
         self, user_id: PydanticObjectId, stripe_payment_id: str
     ) -> UserDocument:
         user_document = await self.get_user_by_id(user_id)
         user_document.stripe_payment_id = stripe_payment_id
-        return await self.upsert(user_document)
+        return await self.save_document(user_document)
 
     async def set_user_plan(
         self,
@@ -150,7 +151,7 @@ class PostgresUserRepository(PostgresRepositoryBase):
         if stripe_customer_id is not None:
             user_document.stripe_customer_id = stripe_customer_id
         user_document.plan = plan
-        return await self.upsert(user_document)
+        return await self.save_document(user_document)
 
     async def clear_user_otp(self, user: UserDocument):
         user_roles = [Roles.FORM_RESPONDER]
@@ -204,5 +205,5 @@ class PostgresUserRepository(PostgresRepositoryBase):
 
     async def update_last_logged_in(self, user_id: PydanticObjectId):
         user_document = await self.one(UserRow.id == str(user_id))
-        user_document.last_logged_in = datetime.datetime.now(datetime.timezone.utc)
-        return await self.upsert(user_document)
+        user_document.last_logged_in = utcnow()
+        return await self.save_document(user_document)
