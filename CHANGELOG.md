@@ -11,6 +11,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+### Added
+
+- **Host commands for the settings store.** The admin CLI gains `bootstrap-keys`
+  (generates a fresh install's own keys into the store without printing them),
+  `settings-import --from-compose-config [--dry-run]` (imports the compose
+  configuration once, reporting conflicts between services instead of choosing),
+  `settings-drift`, `settings-prune` (removes the settings the store already
+  holds from env files, so a stale environment value cannot override the store),
+  `settings-env-export`, `settings-set`, `settings-restore`, `settings-history`,
+  `setup-token` (a one-time, 60-minute first-run token shown on the console only,
+  stored hashed) and `master-key-fingerprint`. Every change is audited. The admin
+  sign-in mail gets its own `admin_mail` settings section, which can only be saved
+  after a test mail was delivered (`settings-mail-apply`).
+
 ### Removed
 
 - **The public app's platform metrics dashboard is gone.** Platform

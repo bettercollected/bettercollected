@@ -66,7 +66,20 @@ HOT_KEYS = frozenset(
 )
 
 # Registered ahead of the code that reads them (the store loader).
-NOT_READ_YET = frozenset({"SETTINGS_MASTER_KEY_PREVIOUS", "SETTINGS_STORE"})
+NOT_READ_YET = frozenset(
+    {
+        "SETTINGS_MASTER_KEY_PREVIOUS",
+        "SETTINGS_STORE",
+        # the admin sign-in mail section: saved by the host CLI first, read by the portal later
+        *(
+            f"ADMIN_MAIL_{n}"
+            for n in (
+                "USER", "PASSWORD", "SMTP_SERVER", "SMTP_PORT", "SENDER",
+                "STARTTLS", "SSL_TLS", "USE_CREDENTIALS", "VALIDATE_CERTS",
+            )
+        ),
+    }
+)
 
 
 # ------------------------------------------------------------ consistency

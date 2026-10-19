@@ -239,6 +239,44 @@ asks the step-up module to issue a token for, and passes the same
 A replayed token, or a form left open while someone else changed the setting,
 fails with `stale_version`.
 
+## Host commands for the settings store
+
+`python -m backend.admin <command>` runs on the host (in a one-off container that
+has `ADMIN_DATABASE_URL` and `SETTINGS_MASTER_KEY`). The operator holds the master
+key and the database role, so these commands need no second factor; every change
+is an audit row with actor kind `cli`, written in the same transaction. The
+commands print counts, setting names and short reason codes, never a value.
+
+| Command | What it does |
+|---|---|
+| `bootstrap-keys [--export-worker FILE] [--existing-stack] [--fill-missing]` | Fresh install: generates `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY` and the response keyset straight into the store, prints only the keyset's key-id fingerprint (the value services report as their keyset fingerprint) and the master-key fingerprint. Refused whatever the flags when the stack holds data (users or responses in `admin.platform_counts()`, or a non-empty `users` or `form_responses` collection in the Mongo server named by `MONGO_URI`) or when that cannot be established (fail closed): a new keyset could not read what the old one encrypted, so an existing stack imports its keys with `settings-import` instead. Also refused when `--existing-stack` is passed, when the environment already carries one of the keys (import instead), or when the store holds one (`--fill-missing` finishes an interrupted run and adds only the missing ones). `--export-worker FILE` writes `API_KEY` and `AES_HEX_KEY`, the two copies the Temporal worker keeps (it never gets the master key), to a new private file or appends them to a private env file that has neither; `--export-worker-only` skips generation. |
+| `settings-import --from-compose-config [--dry-run] [--prefer SERVICE]` | Reads `docker compose config --format json` on standard input (never written to disk) and imports each setting once, from the services that read it (`backend`, `jobs-worker`, `auth`, `integrations-googleform`, `admin`). Prints `would_import`, `already_in_store`, `empty`, `unknown`, `env_only`, `conflict` and `refused <key> <reason>` as counts and names. Services that disagree on a value are imported neither way until `--prefer SERVICE` picks one. Never overwrites. `--env-file PATH` (without the other options) is the older single-file import. |
+| `settings-drift [--from-compose-config \| --env-file PATH]` | Compares the same sources with the store: `equal`, `differs <key> <service>`, `env_only`, `store_only`. The workers' `API_KEY` and `AES_HEX_KEY` are compared with `TEMPORAL_API_KEY` and `AUTH_AES_HEX_KEY`. `MASTER_ENCRYPTION_KEYSET` counts as `differs` when the stored keyset lacks any key id of the environment's (ids compared, never values). Exit 1 when any value differs. |
+| `settings-prune --env-file PATH ... [--apply] [--swap] [--keep NAME]` | In 4.0 an environment value wins over the store, so a stale value left in `.env` silently overrides a portal change. Prune removes the settings the store already holds with the same value (comments and everything else stay). Without `--apply` it only reports. With `--apply` it writes `PATH.pruned` and a private backup `PATH.pre-v4.<time>` (both mode 600, never over an existing file); `--swap` then replaces the original with the pruned copy. A key whose value differs is never removed (exit 1: fix it first). Backups hold the old secrets: delete them when the stack runs well. Use `--keep` for a name something outside the store still reads (the Typeform service keeps `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` in its environment). |
+| `settings-env-export --keys A,B --out FILE` | Break-glass: writes the named settings, with values, to a new file (mode 600, refuses to overwrite). Audited by names. Delete the file when the incident is over. |
+| `settings-set KEY (--stdin \| --value V) [--confirm KEY] --yes` | Sets a setting of tier T1 to T3 from the host. A secret is read from standard input, never from an argument. A T3 setting needs `--confirm KEY` (the typed confirmation). Key material (T4) is managed by tasks and environment-only settings (T5) are refused. |
+| `settings-restore KEY --version N [--confirm KEY] --yes`, `settings-history KEY` | Restores a kept version as a new version; lists the versions (no values). |
+| `settings-mail-apply --env-file PATH --test-to ADDRESS` | Saves the admin sign-in mail settings (`ADMIN_MAIL_*`, section `admin_mail`) from an env file. A test mail with a random code goes to ADDRESS with the candidate settings (the stored ones overlaid with the file); the operator types the code from the mail; only then are the keys saved. See below. |
+| `setup-token [--new]` | Prints a one-time first-run setup token on the console only (refused when standard output is not a terminal unless `--allow-non-tty`). 160 bits, valid 60 minutes, one use; only a keyed hash is stored (the token is in no log and no audit row). A second call refuses while a token is active (it cannot be shown again): `--new` replaces it. Once any admin has a confirmed second factor the setup is closed and the command refuses; `reset-factor` is the only way back. |
+| `master-key-fingerprint` | A short non-reversible id of the master key (`abcd-ef01-2345`), computed offline. `settings-verify` and `bootstrap-keys` print it too. Write it down with the key backup: a restored key with another fingerprint is the wrong key. |
+
+**Admin sign-in mail.** The code that signs an admin in arrives by mail, so a
+mail setting that cannot deliver locks every admin out. The `admin_mail` section
+(`ADMIN_MAIL_USER`, `_PASSWORD`, `_SMTP_SERVER`, `_SMTP_PORT`, `_SENDER`,
+`_STARTTLS`, `_SSL_TLS`, `_USE_CREDENTIALS`, `_VALIDATE_CERTS`; tier T3, read by
+the admin service only, never the public `mail` section) therefore cannot be
+saved by `SettingsService.set` or `import_once` unless the caller passes
+`mail_verified=True`, its statement that a test mail was delivered with exactly
+these settings. `settings-mail-apply` does that after the code round trip;
+`settings-set` and `settings-import` cannot. Clearing and restoring an earlier
+(already tested) version stay possible. An environment value still wins over the
+store, which keeps `ADMIN_MAIL_*` in `.env` as the break-glass. The portal reading
+these keys, and its own test-and-confirm flow, come with the setup wizard.
+
+The setup token lives in `admin.setup_tokens` (migration `0011_setup_tokens`: one
+active token at a time, 20 wrong tries lock it). `services/setup_token.py` has the
+primitives the wizard will use (`issue`, `redeem`, `active`).
+
 ## Task runner: the responses data tasks
 
 The `task-runner` service (backend image, no published port, own database role)

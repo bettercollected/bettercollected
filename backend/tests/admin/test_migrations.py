@@ -28,7 +28,7 @@ pytestmark = needs_postgres
 
 BACKEND_ROOT = Path(admin_package.__file__).resolve().parents[2]
 INI = Path(admin_package.__file__).resolve().parent / "alembic.ini"
-HEAD = "0009_task_keyset_write"
+HEAD = "0011_setup_tokens"
 TABLES = sorted([t.name for t in metadata.sorted_tables] + ["alembic_version"])
 
 
@@ -82,6 +82,7 @@ def test_the_chain_is_linear_with_hand_named_revisions():
         "0008_report_state_prune",
         "0009_task_keyset_write",  # follows 0010: it merged second
         "0010_background_loops",
+        "0011_setup_tokens",
     ]
 
 
@@ -113,6 +114,7 @@ async def test_migrations_apply_from_empty_and_are_idempotent(server, unmigrated
         "0008_report_state_prune",
         "0010_background_loops",
         "0009_task_keyset_write",
+        "0011_setup_tokens",
     ]
     assert await _tables(owner) == TABLES
     assert await upgrade_schema(owner, MIGRATIONS) == []

@@ -160,7 +160,14 @@ class UnknownKeyError(ValidationError):
         super().__init__(key, "unknown_key", "not a known setting")
 
 
+# The admin sign-in mail settings (section ``admin_mail``) are the one family of
+# ``ADMIN_`` names that may live in the store; the environment still wins.
+STORE_PREFIXES = ("ADMIN_MAIL_",)
+
+
 def is_env_only(key: str) -> bool:
+    if key.startswith(STORE_PREFIXES):
+        return key in ENV_ONLY_KEYS
     return key in ENV_ONLY_KEYS or key.startswith(ENV_ONLY_PREFIXES)
 
 
