@@ -68,11 +68,9 @@ class WorkspaceRespondersService:
             user, Permission.PRIVACY_MANAGE, workspace_id
         )
 
-        workspace_responder = await self.workspace_responders_repo.get_responder_by_email_and_workspace_id(
-            workspace_id=workspace_id, email=email
+        return await self.workspace_responders_repo.patch_responder(
+            workspace_id=workspace_id,
+            email=email,
+            metadata=patch_request.metadata,
+            tags=patch_request.tags,
         )
-        if patch_request.metadata:
-            workspace_responder.metadata = patch_request.metadata
-        if patch_request.tags:
-            workspace_responder.tags = patch_request.tags
-        return await workspace_responder.save()

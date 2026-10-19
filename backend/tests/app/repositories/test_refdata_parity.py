@@ -8,6 +8,7 @@ Skipped unless DATABASE_URL points at a *_test database.
 from typing import Any
 
 import pytest
+from beanie import PydanticObjectId
 from pymongo.results import DeleteResult, UpdateResult
 
 from backend.app.container import container
@@ -21,11 +22,16 @@ from backend.app.repositories.postgres.refdata import (
     PostgresAllowedOriginsRepository,
     PostgresCouponRepository,
     PostgresFormPluginProviderRepository,
+    PostgresPriceSuggestionRepository,
     PostgresUserFeedbackRepo,
+)
+from backend.app.repositories.price_suggestion_repository import (
+    PriceSuggestionRepository,
 )
 from backend.app.repositories.user_feedback import UserFeedbackRepo
 from backend.app.schemas.coupon_codes import CouponCodeDocument, CouponStatus
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from backend.app.schemas.price_suggestion import PriceSuggestion
 from backend.app.schemas.user_feedback import UserFeedbackDocument
 from common.db.routing import normalise_result
 
@@ -144,6 +150,26 @@ async def test_user_feedback(sessions):
         UserFeedbackRepo(),
         PostgresUserFeedbackRepo(sessions),
         [("save_user_feedback", lambda: (feedback(),))],
+    )
+
+
+async def test_price_suggestions(sessions):
+    user_id, other = PydanticObjectId(), PydanticObjectId()
+
+    def suggestion(price):
+        return PriceSuggestion(user_id=user_id, email="u@example.com", price=price)
+
+    await parity(
+        PriceSuggestionRepository(),
+        PostgresPriceSuggestionRepository(sessions),
+        [
+            ("list_by_user_id", lambda: (user_id,)),
+            ("add", lambda: (suggestion(5),)),
+            ("add", lambda: (suggestion(9),)),
+            ("list_by_user_id", lambda: (user_id,)),
+            ("list_by_user_id", lambda: (str(user_id),)),
+            ("list_by_user_id", lambda: (other,)),
+        ],
     )
 
 

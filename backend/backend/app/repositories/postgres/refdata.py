@@ -1,5 +1,7 @@
 from typing import List, Optional
 
+from beanie import PydanticObjectId
+
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.models.types.coupon_code import CouponCode
 from backend.app.repositories.form_plugin_provider_repository import (
@@ -8,11 +10,13 @@ from backend.app.repositories.form_plugin_provider_repository import (
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.coupon_codes import CouponCodeDocument
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from backend.app.schemas.price_suggestion import PriceSuggestion
 from backend.app.schemas.user_feedback import UserFeedbackDocument
 from backend.db.models import (
     AllowedOriginRow,
     CouponCodeRow,
     FormPluginConfigRow,
+    PriceSuggestionRow,
     UserFeedbackRow,
 )
 from common.db import PostgresRepositoryBase
@@ -98,3 +102,14 @@ class PostgresUserFeedbackRepo(PostgresRepositoryBase):
 
     async def save_user_feedback(self, user_feedback: UserFeedbackDocument):
         return await self.upsert(user_feedback)
+
+
+class PostgresPriceSuggestionRepository(PostgresRepositoryBase):
+    row = PriceSuggestionRow
+    document = PriceSuggestion
+
+    async def add(self, suggestion: PriceSuggestion) -> PriceSuggestion:
+        return await self.upsert(suggestion)
+
+    async def list_by_user_id(self, user_id: PydanticObjectId) -> List[PriceSuggestion]:
+        return await self.many(PriceSuggestionRow.user_id == str(user_id))
