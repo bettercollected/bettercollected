@@ -72,6 +72,27 @@ async def test_permissions_policy_is_sent_with_a_value(portal):
     assert "camera=()" in value
 
 
+def test_startup_warns_when_every_client_is_the_edge_gateway(caplog):
+    import logging
+
+    from backend.admin.asgi import warn_shared_gateway
+
+    shared = GateSettings.from_env({"ADMIN_EDGE_GATEWAY": "172.30.77.1"})
+    with caplog.at_level(logging.WARNING, logger="backend.admin"):
+        assert warn_shared_gateway(shared) is True
+    text = " ".join(r.getMessage() for r in caplog.records)
+    assert "172.30.77.1" in text and "host port" in text and "proxy" in text
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="backend.admin"):
+        proxied = GateSettings.from_env(
+            {"ADMIN_EDGE_GATEWAY": "172.30.77.1", "ADMIN_TRUSTED_PROXIES": "10.0.0.0/8"}
+        )
+        assert warn_shared_gateway(proxied) is False  # real clients are reported
+        assert warn_shared_gateway(GateSettings.from_env({})) is False  # no gateway involved
+        assert warn_shared_gateway(None) is False
+    assert not caplog.records
+
+
 # -- pre-login form token ----------------------------------------------------------
 
 

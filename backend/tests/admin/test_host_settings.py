@@ -4,6 +4,7 @@ setup token, the master-key fingerprint and the admin mail guard."""
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import stat
@@ -750,7 +751,7 @@ async def test_the_fingerprint_is_offline_stable_and_shown_by_verify(server, mig
     assert MASTER_KEY not in offline.stdout
     verify = run_cli(server.url(migrated, "runtime"), "settings-verify")
     assert f"master_key_fingerprint {value}" in verify.stdout
-    other = run_cli("postgresql://nobody@127.0.0.1:1/none", "master-key-fingerprint", master="B" * 64)
+    other = run_cli("postgresql://nobody@127.0.0.1:1/none", "master-key-fingerprint", master=base64.b64encode(bytes(range(1, 49))).decode())
     assert other.stdout.split()[-1] != value
 
 

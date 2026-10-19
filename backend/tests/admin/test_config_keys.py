@@ -54,7 +54,7 @@ def test_accepts_url_safe_base64_and_exactly_32_bytes():
 @pytest.mark.parametrize("raw", [bytes(32), b"a" * 48, bytes([251, 255, 254] * 11)[:32]])
 def test_refuses_a_key_of_nearly_identical_bytes_without_showing_it(raw):
     value = base64.b64encode(raw).decode()
-    with pytest.raises(MasterKeyError) as raised:
+    with pytest.raises(AdminConfigError) as raised:
         parse_master_key(value)
     assert value not in str(raised.value) and "random" in str(raised.value)
 
