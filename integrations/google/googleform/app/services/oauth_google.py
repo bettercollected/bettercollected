@@ -4,7 +4,6 @@ from http import HTTPStatus
 from urllib import parse
 
 import google_auth_oauthlib.flow
-import requests
 from common.configs.crypto import Crypto
 from common.constants import (
     GOOGLE_DATETIME_FORMAT,
@@ -319,30 +318,6 @@ class OauthGoogleService:
             raise HTTPException(
                 status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
             )
-
-    @staticmethod
-    async def revoke(credentials: Oauth2CredentialDocument):
-        """
-        Static method that revokes a set of OAuth2 credentials.
-
-        Args:
-        credentials (Oauth2CredentialDocument) : The set of OAuth2 credentials to be revoked.
-
-        Returns:
-        bool : True if the credentials were successfully revoked, False otherwise.
-        """
-        cred = dict_to_credential(credentials.credentials.dict())
-        revoke = requests.post(
-            url=settings.GOOGLE_REVOKE_CREDENTIALS_URL,
-            params={"token": cred.token},
-            headers={"content-type": "application/x-www-vendors-urlencoded"},
-        )
-        # flake8: noqa
-        status_code = getattr(revoke, "status_code")
-        credentials_revoked = status_code == 200
-        if credentials_revoked:
-            await credentials.delete()
-        return credentials_revoked
 
     async def get_google_user(self, credentials):
         try:

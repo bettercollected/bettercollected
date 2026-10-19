@@ -3,16 +3,8 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from dependency_injector import containers, providers
 
 from common.services.http_client import HttpClient
-from googleform.app.repositories.form import FormRepository
-from googleform.app.repositories.form_response import FormResponseRepository
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
-from googleform.app.repositories.postgres import (
-    PostgresFormRepository,
-    PostgresFormResponseRepository,
-    PostgresOauthCredentialRepository,
-)
-from googleform.app.services.form import FormService
-from googleform.app.services.form_response import FormResponseService
+from googleform.app.repositories.postgres import PostgresOauthCredentialRepository
 from googleform.app.services.google import GoogleService
 from googleform.app.services.oauth_credential import OauthCredentialService
 from googleform.app.services.oauth_google import OauthGoogleService
@@ -55,40 +47,6 @@ class Container(containers.DeclarativeContainer):
         lambda s: s.mirror_timeout_ms / 1000, db_settings
     )
     routing_metrics = providers.Singleton(RoutingMetrics)
-
-    # Google form repository and service
-    form_repo = providers.Singleton(
-        RoutingRepository,
-        group="google",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(FormRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresFormRepository, pg_sessionmaker
-        ),
-    )
-    form_service = providers.Factory(
-        FormService, form_repo=form_repo
-    )  # Injecting form repo onto form service
-
-    # Google form response repository and service
-    form_response_repo = providers.Singleton(
-        RoutingRepository,
-        group="google",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(FormResponseRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresFormResponseRepository, pg_sessionmaker
-        ),
-    )
-    form_response_service = providers.Factory(
-        FormResponseService, form_response_repo=form_response_repo
-    )  # Injecting form response repo onto form response service
 
     # Google service
     google_service = providers.Factory(GoogleService)

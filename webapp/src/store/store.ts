@@ -9,7 +9,6 @@ import { couponCodeApi } from '@app/store/coupon-code/api';
 import formSlice from '@app/store/forms/slice';
 import { integrationApi } from '@app/store/integration-apis';
 import { plansApi } from '@app/store/plans/api';
-import { providerApi } from '@app/store/providers/api';
 import { formsApi } from '@app/store/redux/form-api';
 import { importApi } from '@app/store/redux/import-api';
 import { pdfImportApi } from '@app/store/redux/pdf-import-api';
@@ -26,13 +25,12 @@ import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
 // Add more middlewares here
-// const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
+// const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, workspacesApi.middleware];
 const middlewares = [
     priceSuggestionApi.middleware,
     authApi.middleware,
     membersNInvitationsApi.middleware,
     plansApi.middleware,
-    providerApi.middleware,
     workspacesApi.middleware,
     templateApi.middleware,
     apiActionsApi.middleware,
@@ -55,7 +53,6 @@ const reducers = {
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer,
-    [providerApi.reducerPath]: providerApi.reducer,
     [plansApi.reducerPath]: plansApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer,
     [apiActionsApi.reducerPath]: apiActionsApi.reducer,

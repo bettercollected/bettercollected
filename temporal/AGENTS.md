@@ -15,7 +15,7 @@ Each is a standalone Python service with its own `main.py`, `requirements.txt`, 
 
 | Dir | Workflows | Activities | Purpose |
 |---|---|---|---|
-| [worker/](worker/) | `ImportFormWorkflow`, `DeleteResponseWorkflow`, `DeleteUserWorkflow`, `SaveTemplatePreview` | `import_form`, `delete_response`, `delete_user`, `save_preview`, `get_preview_image` | Provider form imports; GDPR-style response/user deletion; template preview screenshots (Selenium/Chrome) |
+| [worker/](worker/) | `DeleteResponseWorkflow`, `DeleteUserWorkflow`, `SaveTemplatePreview` | `delete_response`, `delete_user`, `save_preview`, `get_preview_image` | GDPR-style response/user deletion; template preview screenshots (Selenium/Chrome) |
 | [csv-worker/](csv-worker/) | `ExportCSVWorkflow` | `export_as_csv` | Export form responses to CSV |
 | [actions-executor/](actions-executor/) | `RunActionCode` | `run_action_code` | Execute user-defined form-action / automation code |
 

@@ -3,11 +3,7 @@ from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
 from pymongo import AsyncMongoClient
 
-from auth.app.repositories.postgres import (
-    PostgresProviderRepository,
-    PostgresUserRepository,
-)
-from auth.app.repositories.provider_repository import ProviderRepository
+from auth.app.repositories.postgres import PostgresUserRepository
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.auth_service import AuthService
@@ -55,18 +51,6 @@ class AppContainer(containers.DeclarativeContainer):
     )
     routing_metrics = providers.Singleton(RoutingMetrics)
 
-    provider_repository: ProviderRepository = providers.Singleton(
-        RoutingRepository,
-        group="auth",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ProviderRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresProviderRepository, pg_sessionmaker
-        ),
-    )
     user_repository: UserRepository = providers.Singleton(
         RoutingRepository,
         group="auth",
