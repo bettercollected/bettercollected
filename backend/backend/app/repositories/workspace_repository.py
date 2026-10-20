@@ -1,6 +1,6 @@
 import datetime as dt
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from beanie import PydanticObjectId
 from beanie.odm.queries.update import UpdateResponse
@@ -67,6 +67,20 @@ class WorkspaceRepository(BaseRepository):
     ) -> Optional[WorkspaceDocument]:
         """The workspace that registered ``domain_id`` with the custom-domain service."""
         return await WorkspaceDocument.find_one({"custom_domain_id": domain_id})
+
+    async def list_custom_domain_references(self) -> List[Tuple[str, str]]:
+        """``(custom_domain, workspace id)`` of every workspace with a custom
+        domain that is not disabled, sorted by workspace id (the domain as
+        stored; the caller normalises it)."""
+        cursor = WorkspaceDocument.get_pymongo_collection().find(
+            {
+                "custom_domain": {"$nin": [None, ""]},
+                "custom_domain_disabled": {"$ne": True},
+            },
+            {"custom_domain": 1},
+        )
+        rows = [(d["custom_domain"], str(d["_id"])) async for d in cursor]
+        return sorted(rows, key=lambda row: row[1])
 
     async def get_or_404(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
         """Like ``find_by_id`` but raises the document layer's NotFoundError when missing."""

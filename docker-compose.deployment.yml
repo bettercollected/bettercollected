@@ -427,8 +427,9 @@ services:
       MONGO_URI: ${TASK_RUNNER_MONGO_URI:-}
       MONGO_DB: ${TASK_RUNNER_MONGO_DB:-}
       MASTER_ENCRYPTION_KEYSET: ${TASK_RUNNER_KEYSET:-}
-      # keyset.* tasks: which stores the services write (as their DB_WRITE_MODE)
-      # and the Google integration's Mongo database
+      # which stores the services write (their DB_WRITE_MODE, kept equal): what
+      # `stores: auto` and keyset.drop_old cover; unset, they refuse with
+      # write_mode_unknown. And the Google integration's Mongo database
       DB_WRITE_MODE: ${DB_WRITE_MODE:-}
       DB_WRITE_MODE__RESPONSES: ${DB_WRITE_MODE__RESPONSES:-}
       DB_WRITE_MODE__GOOGLE: ${DB_WRITE_MODE__GOOGLE:-}

@@ -13,7 +13,7 @@ import datetime as dt
 import json
 import re
 from http import HTTPStatus
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from uuid import uuid4
 
 from beanie import PydanticObjectId
@@ -757,6 +757,21 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def get_all_expiring_responses(self):
         return await self.many(FormResponseRow.expiration_type.in_(["date", "days"]))
+
+    async def list_expiration_schedules(self) -> List[Tuple[str, str]]:
+        expiration = FormResponseRow.doc["expiration"]
+        stmt = (
+            select(FormResponseRow.response_id, expiration.astext)
+            .where(
+                FormResponseRow.expiration_type.in_(["date", "days"]),
+                func.jsonb_typeof(expiration) == "string",
+                FormResponseRow.response_id.is_not(None),
+            )
+            .order_by(FormResponseRow.response_id)
+        )
+        async with self._session() as session:
+            rows = (await session.execute(stmt)).all()
+        return sorted((response_id, value) for response_id, value in rows)
 
     async def delete_response(self, response_id: str):
         await self.delete_one_where(FormResponseRow.response_id == response_id)

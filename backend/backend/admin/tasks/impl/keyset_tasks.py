@@ -108,7 +108,8 @@ class _Base:
 
     async def _ping_all(self, config, targets, choice) -> Dict[str, List[str]]:
         """Plan the stores of each target (``choice`` is a StoreChoice, or
-        ``"every"``: both stores or refuse) and check each answers."""
+        ``"every"``: every store the services write, never fewer, or refuse)
+        and check each answers."""
         plans: Dict[str, List[str]] = {}
         for target in targets:
             names = (
@@ -455,7 +456,8 @@ class DropOld(_Base):
                 raise Refusal("typeform_reporting")
         config = state.DataConfig.from_env()
         targets = state.selected_targets([])  # always every target
-        # EVERY store, whatever this runner's write mode says: both configured or refuse
+        # every store the services still write (the runner's DB_WRITE_MODE*: an
+        # unknown mode refuses), each configured, plus any other configured store
         plans = await self._ping_all(config, targets, "every")
         return keys, stored, value, parsed, config, targets, plans
 

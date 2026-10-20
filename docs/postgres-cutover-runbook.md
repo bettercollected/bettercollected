@@ -146,7 +146,9 @@ auth and google. For each group `g`:
 
 Jobs: `JOBS_BACKEND__delete_response=postgres` first (scheduled deletions; run
 `python -m backend.migrate jobs-sweep --backend postgres` afterwards so every pending
-expiration has a job regardless of which engine scheduled it), then `__delete_user`, then
+expiration has a job regardless of which engine scheduled it; it reads the responses through the
+routed repository, so from `DB_READ_SOURCE__responses`, and opens Mongo only while the `responses`
+group still uses it), then `__delete_user`, then
 `__run_action` with the actions-executor started with `JOBS_BACKEND=postgres`. Roll back a job
 kind with `JOBS_BACKEND__<job>=temporal` and `jobs-sweep --backend temporal`.
 
