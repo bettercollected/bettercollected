@@ -54,6 +54,19 @@ def _postgres_schema():
     _alembic_upgrade_head()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _schema_when_served_from_postgres():
+    """When the flags put a repository group on Postgres the app refuses to start
+    on an unmigrated schema. Migrate up front instead of relying on an earlier
+    test, or an earlier run against the same database, to have done it: each
+    persistence mode can then run alone on a fresh database (CI runs them as
+    parallel jobs)."""
+    from common.db.flags import load_flags
+
+    if _postgres_configured() and load_flags().requires_postgres():
+        _alembic_upgrade_head()
+
+
 @pytest_asyncio.fixture
 async def clean_postgres(_postgres_schema):
     """For tests that drive the Postgres repositories directly."""
