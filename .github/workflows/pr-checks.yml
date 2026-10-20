@@ -23,13 +23,33 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   submodules: "recursive"
+                  # the pull request's merge commit and its base parent
+                  fetch-depth: 2
+                  persist-credentials: false
+
+            # The image build repeats the install and `next build` that CI's
+            # webapp job already runs on every webapp change; what only the image
+            # can break is its Dockerfile, the dependencies and the files it
+            # copies by name. Build it when one of those changed (or when the
+            # diff cannot be read).
+            - name: Did the image's inputs change?
+              id: changes
+              run: |
+                  if ! files=$(git diff --name-only HEAD^1 HEAD); then
+                      echo "build=true" >> "$GITHUB_OUTPUT"
+                  elif grep -qE '^(webapp/(Dockerfile|\.dockerignore|package\.json|yarn\.lock|next\.config\.js|entrypoint\.sh)|\.dockerignore|\.gitmodules|\.github/workflows/pr-checks\.yml)$' <<<"$files"; then
+                      echo "build=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "build=false" >> "$GITHUB_OUTPUT"
+                      echo "No image input changed; the image build is skipped."
+                  fi
 
             # The image uses a public base (node:22-alpine) and this job only
             # builds (no push), so Docker Hub login is optional. Skip it when the
             # secret is unavailable — e.g. Dependabot PRs, which have no access to
             # repository secrets and would otherwise fail here.
             - name: Set up Docker
-              if: env.DOCKER_USERNAME != ''
+              if: steps.changes.outputs.build == 'true' && env.DOCKER_USERNAME != ''
               uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
               with:
                   registry: docker.io
@@ -38,8 +58,9 @@ jobs:
 
             - name: Build Docker image
               id: docker_build
+              if: steps.changes.outputs.build == 'true'
               env:
                   SERVICE_TAG: ${{ matrix.service }}
               run: |
                   SERVICE_TAG=${SERVICE_TAG//\//-}
-                  docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
+                  docker build -f ${{ matrix.service }}/Dockerfile -t "bettercollected/${SERVICE_TAG}:${{ github.sha }}" .

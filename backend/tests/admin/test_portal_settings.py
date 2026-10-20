@@ -13,8 +13,6 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.pool import NullPool
 
 import backend.admin as admin_package
 from backend.admin import cookies
@@ -25,6 +23,7 @@ from backend.admin.headers import CONTENT_SECURITY_POLICY
 from backend.admin.security import totp
 from backend.admin.services import settings_pages as sp
 from backend.admin.services.settings_store import HISTORY_KEEP
+from tests.admin.engines import fixture_engine
 from tests.admin.conftest import needs_postgres
 from tests.admin.portal_fixtures import ADMIN, TOKEN_RE, UA, Browser
 from tests.admin.test_portal_mfa import enrol_direct
@@ -36,7 +35,7 @@ pytestmark = needs_postgres
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def superuser(server, migrated):
-    engine = create_async_engine(server.url(migrated), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated))
     yield engine
     await engine.dispose()
 

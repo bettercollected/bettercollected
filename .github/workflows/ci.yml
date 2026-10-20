@@ -1,96 +1,84 @@
 name: CI
 
+# Pull requests run the Postgres persistence mode (what the service is moving
+# to) and only the suites their changes can affect; the backend suite is split
+# into shards that run in parallel. Every push to develop, the nightly run and a
+# manual run test everything: every suite, in the Mongo, dual and Postgres modes.
+# How the split works and how to refresh it: docs/ci.md.
 on:
     pull_request:
         branches:
             - master
             - develop
+    push:
+        branches:
+            - develop
+    schedule:
+        - cron: "23 2 * * *"
+    workflow_dispatch:
+        inputs:
+            scope:
+                description: "full: every suite in every mode; pr: what a pull request runs, for all suites"
+                type: choice
+                options:
+                    - full
+                    - pr
+                default: full
+            shards:
+                description: "Postgres backend shards (empty: the default in .github/scripts/ci-plan.sh)"
+                type: string
+                default: ""
 
 permissions:
     contents: read
 
 concurrency:
-    group: ci-${{ github.ref }}
-    cancel-in-progress: true
+    group: ci-${{ github.event_name }}-${{ github.ref }}
+    # a newer commit replaces a pull request's run; develop's runs all finish
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# uv compiles site-packages to bytecode once at install time, instead of every
+# pytest worker compiling the modules it imports.
+env:
+    UV_COMPILE_BYTECODE: "1"
 
 jobs:
-    # Picks the runner for the rest of the workflow: prefer a self-hosted runner
-    # when one is online, otherwise fall back to GitHub-hosted `ubuntu-latest`.
-    #
-    # Listing runners requires a token with "Administration: read" on the repo,
-    # which the default GITHUB_TOKEN does NOT have. Add a repo/org secret named
-    # RUNNER_READ_TOKEN (a fine-grained PAT with Administration:read, or a classic
-    # PAT with `repo`) to enable self-hosted selection. Without it, the check
-    # fails closed and everything runs on GitHub-hosted runners.
-    select-runner:
-        name: Select runner
+    plan:
+        name: Plan
         runs-on: ubuntu-latest
         outputs:
-            runner: ${{ steps.pick.outputs.runner }}
+            full: ${{ steps.plan.outputs.full }}
+            backend: ${{ steps.plan.outputs.backend }}
+            auth: ${{ steps.plan.outputs.auth }}
+            google: ${{ steps.plan.outputs.google }}
+            common: ${{ steps.plan.outputs.common }}
+            webapp: ${{ steps.plan.outputs.webapp }}
+            modes: ${{ steps.plan.outputs.modes }}
+            backend_matrix: ${{ steps.plan.outputs.backend_matrix }}
         steps:
-            - name: Prefer self-hosted when available
-              id: pick
-              env:
-                  GH_TOKEN: ${{ secrets.RUNNER_READ_TOKEN || github.token }}
-                  REPO: ${{ github.repository }}
-              run: |
-                  runner="ubuntu-latest"
-                  online=$(gh api "repos/$REPO/actions/runners" \
-                      --jq '[.runners[] | select(.status=="online")] | length' 2>/dev/null || echo "")
-                  if [ -n "$online" ] && [ "$online" -gt 0 ] 2>/dev/null; then
-                      runner="self-hosted"
-                  fi
-                  echo "Online self-hosted runners: ${online:-unknown (no access) }"
-                  echo "Selected runner: $runner"
-                  echo "runner=$runner" >> "$GITHUB_OUTPUT"
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  # a pull request's merge commit and its base parent
+                  fetch-depth: 2
+                  persist-credentials: false
 
-    # The three persistence modes run as parallel jobs: Mongo only, every group
-    # mirrored to Postgres (dual), and every group served from Postgres.
+            - name: Decide what to run
+              id: plan
+              env:
+                  EVENT: ${{ github.event_name }}
+                  SCOPE: ${{ inputs.scope }}
+                  SHARDS: ${{ inputs.shards }}
+              run: .github/scripts/ci-plan.sh
+
     backend-tests:
-        name: Backend tests (pytest, ${{ matrix.mode }})
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        name: Backend tests (${{ matrix.mode }} ${{ matrix.group }}/${{ matrix.splits }})
+        needs: plan
+        if: needs.plan.outputs.backend == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
         strategy:
             fail-fast: false
-            matrix:
-                include:
-                    - mode: mongo
-                      read_source: ""
-                      write_mode: ""
-                    - mode: dual
-                      read_source: ""
-                      write_mode: dual
-                    - mode: postgres
-                      read_source: postgres
-                      write_mode: postgres
-        # The backend tests talk to a real MongoDB (Beanie), so provide one.
-        # Without it, every DB call blocks on the ~30s ServerSelectionTimeout and
-        # the suite runs for many minutes.
-        services:
-            mongo:
-                image: mongo:7
-                ports:
-                    - 27017:27017
-                options: >-
-                    --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 10
-            # A throwaway test database: data on tmpfs, durability off below.
-            postgres:
-                image: postgres:16-alpine
-                env:
-                    POSTGRES_USER: postgres
-                    POSTGRES_PASSWORD: postgres
-                    POSTGRES_DB: bettercollected_test
-                ports:
-                    - 5432:5432
-                options: >-
-                    --tmpfs /var/lib/postgresql/data:rw
-                    --health-cmd "pg_isready -U postgres -d bettercollected_test"
-                    --health-interval 5s
-                    --health-timeout 5s
-                    --health-retries 10
+            matrix: ${{ fromJSON(needs.plan.outputs.backend_matrix) }}
         defaults:
             run:
                 working-directory: backend
@@ -106,18 +94,14 @@ jobs:
             MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
 
-            # Durability is pointless for a test database that lives for one job.
-            # These settings take effect on reload, no restart needed.
-            - name: Tune the test Postgres for speed
+            # The backend talks to a real MongoDB (Beanie) in every mode and to
+            # Postgres; both boot while the dependencies install.
+            - name: Start the test databases
               working-directory: .
-              run: |
-                  docker exec ${{ job.services.postgres.id }} psql -U postgres -d bettercollected_test -v ON_ERROR_STOP=1 \
-                      -c "ALTER SYSTEM SET fsync = off" \
-                      -c "ALTER SYSTEM SET synchronous_commit = off" \
-                      -c "ALTER SYSTEM SET full_page_writes = off" \
-                      -c "SELECT pg_reload_conf()" \
-                      -c "SHOW fsync" -c "SHOW synchronous_commit" -c "SHOW full_page_writes"
+              run: .github/scripts/test-dbs.sh start postgres mongo
 
             - name: Set up uv
               uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -129,43 +113,62 @@ jobs:
             - name: Install dependencies
               run: uv sync --frozen
 
-            - name: Run backend tests (${{ matrix.mode }})
+            # The xdist workers would otherwise each compile the same modules
+            # (site-packages are compiled by uv: UV_COMPILE_BYTECODE).
+            - name: Compile the sources
+              run: uv run --frozen python -m compileall -q -j 0 backend tests ../common/common
+
+            - name: Wait for the test databases
+              working-directory: .
+              run: .github/scripts/test-dbs.sh wait
+
+            # Four xdist workers (a hosted runner has 4 vCPUs; more measured
+            # slower), each with its own Mongo and Postgres database
+            # (tests/conftest.py). pytest-split picks this shard's tests from
+            # the recorded durations in .test_durations (docs/ci.md).
+            - name: Run backend tests (${{ matrix.mode }} ${{ matrix.group }}/${{ matrix.splits }})
               env:
                   DB_READ_SOURCE: ${{ matrix.read_source }}
                   DB_WRITE_MODE: ${{ matrix.write_mode }}
-              # Four pytest-xdist workers (a hosted runner has 4 vCPUs; more
-              # workers measured slower), each with its own Mongo and Postgres
-              # database (tests/conftest.py). Not "-n auto": that counts
-              # physical cores. loadgroup spreads tests one by one, except
-              # modules that share an expensive fixture.
-              run: uv run pytest -n 4 --dist loadgroup
+                  SPLITS: ${{ matrix.splits }}
+                  GROUP: ${{ matrix.group }}
+                  IGNORE: ${{ matrix.ignore }}
+              run: |
+                  extra=()
+                  if [ -n "$IGNORE" ]; then extra+=("$IGNORE"); fi
+                  uv run --frozen pytest -n 4 --dist loadgroup \
+                      --splits "$SPLITS" --group "$GROUP" --splitting-algorithm least_duration "${extra[@]}"
 
     auth-tests:
-        name: Auth tests (pytest)
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
-        # The auth suite uses an in-memory Mongo mock (mongomock-motor), so no Mongo
-        # service is needed. Postgres is provided for the repository layer that is
-        # replacing Mongo (plans/postgres-consolidation.md).
-        services:
-            postgres:
-                image: postgres:16-alpine
-                env:
-                    POSTGRES_USER: postgres
-                    POSTGRES_PASSWORD: postgres
-                    POSTGRES_DB: bettercollected_test
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd "pg_isready -U postgres -d bettercollected_test"
-                    --health-interval 5s
-                    --health-timeout 5s
-                    --health-retries 10
+        name: Auth tests (${{ matrix.mode }})
+        needs: plan
+        if: needs.plan.outputs.auth == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                mode: ${{ fromJSON(needs.plan.outputs.modes) }}
+        # The auth suite uses an in-memory Mongo mock (mongomock-motor), so no
+        # Mongo is needed; Postgres serves the repository layer.
         defaults:
             run:
                 working-directory: auth
+        env:
+            VIRTUAL_ENV: ""
+            DOTENV_PATH: /nonexistent.env
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+            AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+            ELASTIC_APM_DISABLE_SEND: "true"
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Start the test database
+              working-directory: .
+              run: .github/scripts/test-dbs.sh start postgres
 
             - name: Set up uv
               uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -175,76 +178,57 @@ jobs:
                   enable-cache: true
 
             - name: Install dependencies
-              env:
-                  VIRTUAL_ENV: ""
               run: uv sync --frozen
 
-            - name: Run auth tests
+            - name: Wait for the test database
+              working-directory: .
+              run: .github/scripts/test-dbs.sh wait
+
+            - name: Run auth tests (${{ matrix.mode }})
               env:
-                  VIRTUAL_ENV: ""
-                  DOTENV_PATH: /nonexistent.env
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  ELASTIC_APM_DISABLE_SEND: "true"
-              run: uv run pytest
-            - name: Run auth tests (mirrored to Postgres)
-              env:
-                  VIRTUAL_ENV: ""
-                  DOTENV_PATH: /nonexistent.env
-                  DB_WRITE_MODE: dual
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  ELASTIC_APM_DISABLE_SEND: "true"
-              run: uv run pytest
-            - name: Run auth tests (served from Postgres)
-              env:
-                  VIRTUAL_ENV: ""
-                  DOTENV_PATH: /nonexistent.env
-                  DB_READ_SOURCE: postgres
-                  DB_WRITE_MODE: postgres
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  ELASTIC_APM_DISABLE_SEND: "true"
-              run: uv run pytest
+                  MODE: ${{ matrix.mode }}
+              run: |
+                  case "$MODE" in
+                      dual) export DB_WRITE_MODE=dual ;;
+                      postgres) export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ;;
+                  esac
+                  uv run --frozen pytest
+
     google-tests:
-        name: Google integration tests (pytest)
+        name: Google integration tests (${{ matrix.mode }})
         # The google unit suite has pre-existing failures from aiohttp/pydantic API
         # drift (tests/unit/app/utils/test_aiohttp_client.py, tests/unit/app/views,
         # tests/unit/app/test_asgi.py) that predate the Postgres work and were never
         # run in CI. This job runs everything else; repairing those is a follow-up.
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
-        services:
-            mongo:
-                image: mongo:7
-                ports:
-                    - 27017:27017
-                options: >-
-                    --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
-            postgres:
-                image: postgres:16-alpine
-                env:
-                    POSTGRES_USER: postgres
-                    POSTGRES_PASSWORD: postgres
-                    POSTGRES_DB: bettercollected_test
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd "pg_isready -U postgres -d bettercollected_test"
-                    --health-interval 5s
-                    --health-timeout 5s
-                    --health-retries 10
+        needs: plan
+        if: needs.plan.outputs.google == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                mode: ${{ fromJSON(needs.plan.outputs.modes) }}
         defaults:
             run:
                 working-directory: integrations/google
+        env:
+            VIRTUAL_ENV: ""
+            DOTENV_PATH: /nonexistent.env
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+            AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+            ELASTIC_APM_DISABLE_SEND: "true"
+            MONGO_URI: mongodb://localhost:27017
+            MONGO_DB: bettercollected_google_test
+            MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Start the test databases
+              working-directory: .
+              run: .github/scripts/test-dbs.sh start postgres mongo
 
             - name: Set up uv
               uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -254,77 +238,44 @@ jobs:
                   enable-cache: true
 
             - name: Install dependencies
-              env:
-                  VIRTUAL_ENV: ""
               run: uv sync --frozen
 
-            - name: Run google tests
-              env:
-                  VIRTUAL_ENV: ""
-                  DOTENV_PATH: /nonexistent.env
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  ELASTIC_APM_DISABLE_SEND: "true"
-                  MONGO_URI: mongodb://localhost:27017
-                  MONGO_DB: bettercollected_google_test
-                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
-              run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
-            - name: Run google tests (mirrored to Postgres)
-              env:
-                  VIRTUAL_ENV: ""
-                  DOTENV_PATH: /nonexistent.env
-                  DB_WRITE_MODE: dual
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  ELASTIC_APM_DISABLE_SEND: "true"
-                  MONGO_URI: mongodb://localhost:27017
-                  MONGO_DB: bettercollected_google_test
-                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
-              run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
-            - name: Run google tests (served from Postgres)
-              env:
-                  VIRTUAL_ENV: ""
-                  DOTENV_PATH: /nonexistent.env
-                  DB_READ_SOURCE: postgres
-                  DB_WRITE_MODE: postgres
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  ELASTIC_APM_DISABLE_SEND: "true"
-                  MONGO_URI: mongodb://localhost:27017
-                  MONGO_DB: bettercollected_google_test
-                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+            - name: Wait for the test databases
+              working-directory: .
+              run: .github/scripts/test-dbs.sh wait
 
-              run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
+            - name: Run google tests (${{ matrix.mode }})
+              env:
+                  MODE: ${{ matrix.mode }}
+              run: |
+                  case "$MODE" in
+                      dual) export DB_WRITE_MODE=dual ;;
+                      postgres) export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ;;
+                  esac
+                  uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
 
     common-tests:
         name: Common tests (pytest)
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
-        # common/db is the Postgres foundation shared by the Python services
-        # (plans/postgres-consolidation.md); its integration tests need a live
-        # Postgres and skip themselves when DATABASE_URL is unset.
-        services:
-            postgres:
-                image: postgres:16-alpine
-                env:
-                    POSTGRES_USER: postgres
-                    POSTGRES_PASSWORD: postgres
-                    POSTGRES_DB: bettercollected_test
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd "pg_isready -U postgres -d bettercollected_test"
-                    --health-interval 5s
-                    --health-timeout 5s
-                    --health-retries 10
+        needs: plan
+        if: needs.plan.outputs.common == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        # common/db is the Postgres foundation shared by the Python services; its
+        # integration tests need a live Postgres and skip themselves without one.
         defaults:
             run:
                 working-directory: common
+        env:
+            VIRTUAL_ENV: ""
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Start the test database
+              working-directory: .
+              run: .github/scripts/test-dbs.sh start postgres
 
             - name: Set up uv
               uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -334,61 +285,125 @@ jobs:
                   enable-cache: true
 
             - name: Install dependencies
-              env:
-                  VIRTUAL_ENV: ""
               run: uv sync --frozen
 
+            - name: Wait for the test database
+              working-directory: .
+              run: .github/scripts/test-dbs.sh wait
+
             - name: Run common tests
-              env:
-                  VIRTUAL_ENV: ""
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
-              run: uv run pytest
+              run: uv run --frozen pytest
 
     webapp-build:
-        name: Webapp build & type-check
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        name: Webapp lint, build & type-check
+        needs: plan
+        if: needs.plan.outputs.webapp == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
         defaults:
             run:
                 working-directory: webapp
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
 
             - name: Set up Node
+              id: node
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
               with:
                   node-version-file: .nvmrc
-                  cache: yarn
-                  cache-dependency-path: webapp/yarn.lock
+
+            # node_modules itself (~260 MB compressed), keyed on the lockfile and
+            # the Node version: a hit skips `yarn install` entirely.
+            - name: Restore node_modules
+              id: modules
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: webapp/node_modules
+                  key: webapp-node-modules-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('webapp/yarn.lock') }}
 
             - name: Install dependencies
+              if: steps.modules.outputs.cache-hit != 'true'
               run: yarn install --frozen-lockfile
+
+            # Results per file content; the key follows the rules (config and
+            # plugin versions), so a rule change starts from an empty cache.
+            - name: Restore the ESLint cache
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: webapp/.eslintcache
+                  key: webapp-eslint-${{ hashFiles('webapp/yarn.lock', 'webapp/eslint.config.mjs') }}-${{ github.sha }}
+                  restore-keys: webapp-eslint-${{ hashFiles('webapp/yarn.lock', 'webapp/eslint.config.mjs') }}-
+
+            - name: Lint
+              run: yarn lint --cache --cache-strategy content --cache-location .eslintcache
 
             - name: Build (includes type-check)
               run: yarn build
 
     webapp-tests:
-        name: Webapp tests (vitest)
-        needs: select-runner
-        runs-on: ${{ needs.select-runner.outputs.runner }}
+        name: Webapp tests (vitest ${{ matrix.shard }}/2)
+        needs: plan
+        if: needs.plan.outputs.webapp == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2]
         defaults:
             run:
                 working-directory: webapp
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
 
             - name: Set up Node
+              id: node
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
               with:
                   node-version-file: .nvmrc
-                  cache: yarn
-                  cache-dependency-path: webapp/yarn.lock
+
+            - name: Restore node_modules
+              id: modules
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: webapp/node_modules
+                  key: webapp-node-modules-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('webapp/yarn.lock') }}
 
             - name: Install dependencies
+              if: steps.modules.outputs.cache-hit != 'true'
               run: yarn install --frozen-lockfile
 
-            - name: Lint
-              run: yarn lint
+            - name: Run tests (shard ${{ matrix.shard }}/2)
+              env:
+                  SHARD: ${{ matrix.shard }}
+              run: yarn test:run --shard="$SHARD/2"
 
-            - name: Run tests
-              run: yarn test:run
+    # One check that sums up the run: it fails when any job failed or was
+    # cancelled, and passes when every job passed or was not needed (the plan
+    # skips suites a pull request cannot affect). A skipped job never hides a
+    # failure: jobs are skipped only by a plan that itself succeeded. Make this
+    # the required check if checks become required.
+    ci-ok:
+        name: CI ok
+        if: always()
+        needs:
+            - plan
+            - backend-tests
+            - auth-tests
+            - google-tests
+            - common-tests
+            - webapp-build
+            - webapp-tests
+        runs-on: ubuntu-latest
+        steps:
+            - name: Every job passed or was not needed
+              env:
+                  RESULTS: ${{ toJSON(needs) }}
+              run: |
+                  echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+                  echo "$RESULTS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' >/dev/null
+                  echo "$RESULTS" | jq -e '.plan.result == "success"' >/dev/null

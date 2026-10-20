@@ -41,6 +41,7 @@ from common.services.keyset import (
     encode_keyset,
     parse_keyset,
 )
+from tests.admin.engines import fixture_engine
 from tests.admin.conftest import needs_postgres, roles_sql
 from tests.admin.tasks.keyset_support import generated_keyset
 from tests.app.db.test_auto_migrate import _execute
@@ -103,21 +104,21 @@ def role_of(server, which: str) -> str:
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def app(server, db):
-    engine = create_async_engine(server.url(db, "data_app"), poolclass=NullPool)
+    engine = fixture_engine(server.url(db, "data_app"))
     yield engine
     await engine.dispose()
 
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def google(server, db):
-    engine = create_async_engine(server.url(db, "data_google"), poolclass=NullPool)
+    engine = fixture_engine(server.url(db, "data_google"))
     yield engine
     await engine.dispose()
 
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def superuser(server, db):
-    engine = create_async_engine(server.url(db), poolclass=NullPool)
+    engine = fixture_engine(server.url(db))
     yield engine
     await engine.dispose()
 

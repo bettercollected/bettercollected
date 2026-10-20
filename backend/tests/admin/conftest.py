@@ -23,13 +23,12 @@ from pathlib import Path
 import asyncpg
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.pool import NullPool
 
 from backend.admin.config import MASTER_KEY_KEY
 from backend.admin.db import MIGRATIONS
 from common.db.engine import normalise_url
 from common.db.schema_guard import upgrade_schema
+from tests.admin.engines import fixture_engine
 from tests.app.db.test_auto_migrate import _execute, _with_database, init_sql
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -307,21 +306,21 @@ async def unmigrated(server):
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def owner_engine(server, migrated):
-    engine = create_async_engine(server.url(migrated, "owner"), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated, "owner"))
     yield engine
     await engine.dispose()
 
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def runtime_engine(server, migrated):
-    engine = create_async_engine(server.url(migrated, "runtime"), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated, "runtime"))
     yield engine
     await engine.dispose()
 
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def tasks_engine(server, migrated):
-    engine = create_async_engine(server.url(migrated, "reader:tasks"), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated, "reader:tasks"))
     yield engine
     await engine.dispose()
 
