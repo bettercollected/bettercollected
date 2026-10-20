@@ -463,6 +463,7 @@ async def test_refusals(world, seeded, monkeypatch, task, params):
         _, run = await _run(world, task, {**params, "stores": stores}, dry_run=dry)
         assert run["refusal_code"] == "store_not_configured", stores
     monkeypatch.setenv("MONGO_URI", "")
+    monkeypatch.setenv("DB_WRITE_MODE", "mongo")
     _, run = await _run(world, task, {**params, "stores": "auto"}, dry_run=dry)
     assert run["refusal_code"] == "store_not_configured"
 
@@ -611,6 +612,95 @@ async def test_check_counts_per_store_and_field(world, tiny_batches, store):
     _assert_no_content(recorded)
     for needle in ("legacy", "pii", "secret note"):
         assert needle not in recorded
+
+
+# ------------------------------------- auto: every store the services still write
+WRITTEN = {
+    "mongo": ["mongo"],
+    "dual": ["mongo", "postgres"],
+    "postgres_primary_dual": ["postgres", "mongo"],
+    "postgres": ["postgres"],
+}
+
+
+def _write_mode(monkeypatch, default=None, responses=None):
+    for name in list(os.environ):
+        if name.upper().startswith("DB_WRITE_MODE"):
+            monkeypatch.delenv(name)
+    if default is not None:
+        monkeypatch.setenv("DB_WRITE_MODE", default)
+    if responses is not None:
+        monkeypatch.setenv("DB_WRITE_MODE__responses", responses)
+
+
+@pytest.mark.parametrize("default", [None, *WRITTEN])
+@pytest.mark.parametrize("responses", [None, *WRITTEN])
+def test_auto_is_every_store_the_services_write_never_fewer(monkeypatch, default, responses):
+    from backend.admin.tasks.catalog.responses_common import StoreChoice
+    from backend.admin.tasks.spec import Refusal
+
+    _write_mode(monkeypatch, default, responses)
+    mode = responses or default
+    config = StoreConfig.from_env()
+    if mode is None:
+        with pytest.raises(Refusal) as caught:
+            config.resolve(StoreChoice.auto)
+        assert caught.value.code == "write_mode_unknown"
+        assert config.resolve(StoreChoice.both) == ["mongo", "postgres"]
+        return
+    written = WRITTEN[mode]
+    names = config.resolve(StoreChoice.auto)
+    # the written stores first (primary first), then any other configured store
+    assert names[: len(written)] == written and sorted(names) == ["mongo", "postgres"]
+    # only the written stores configured: exactly those
+    if written == ["postgres"]:
+        monkeypatch.setenv("MONGO_URI", "")
+    if written == ["mongo"]:
+        monkeypatch.setenv("DATABASE_URL", "")
+    assert StoreConfig.from_env().resolve(StoreChoice.auto) == written
+    # a written store the runner has no connection for: refused
+    for missing in written:
+        monkeypatch.setenv("MONGO_URI", "" if missing == "mongo" else TEST_MONGO_URI)
+        monkeypatch.setenv("DATABASE_URL", "" if missing == "postgres" else TEST_DATABASE_URL)
+        with pytest.raises(Refusal) as caught:
+            StoreConfig.from_env().resolve(StoreChoice.auto)
+        assert caught.value.code == "store_not_configured", missing
+
+
+@pytest.mark.parametrize("mode", list(WRITTEN))
+async def test_check_auto_follows_the_write_mode(world, monkeypatch, mode):
+    """Mongo gone after the cutover (postgres mode, no MONGO_URI), or no
+    Postgres yet (mongo mode): the check runs on what the services write."""
+    await _seed_scan()
+    _write_mode(monkeypatch, mode)
+    written = WRITTEN[mode]
+    if "mongo" not in written:
+        monkeypatch.setenv("MONGO_URI", "")
+    if "postgres" not in written:
+        monkeypatch.setenv("DATABASE_URL", "")
+    _, run = await _run(world, "responses.check_undecryptable", {})
+    assert run["state"] == "succeeded", run
+    assert [n for n in STORES if run["result"].get(n)] == sorted(written)
+
+
+@pytest.mark.parametrize(
+    "task", ["responses.backfill_workspaces", "responses.check_undecryptable"]
+)
+async def test_auto_refuses_without_the_services_write_mode(world, seeded, monkeypatch, task):
+    _write_mode(monkeypatch)
+    dry = task.endswith("workspaces")
+    _, run = await _run(world, task, {}, dry_run=dry)
+    assert run["state"] == "refused" and run["refusal_code"] == "write_mode_unknown"
+    # the runner says postgres, but the responses group still writes Mongo, which
+    # the runner cannot reach: refused, never fewer stores
+    _write_mode(monkeypatch, "postgres", "postgres_primary_dual")
+    monkeypatch.setenv("MONGO_URI", "")
+    _, run = await _run(world, task, {}, dry_run=dry)
+    assert run["state"] == "refused" and run["refusal_code"] == "store_not_configured"
+    # a named store needs no write mode
+    _write_mode(monkeypatch)
+    _, run = await _run(world, task, {"stores": "postgres"}, dry_run=dry)
+    assert run["state"] == "succeeded", run
 
 
 async def test_check_cancel_between_batches(world, tiny_batches, monkeypatch):

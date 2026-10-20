@@ -18,7 +18,7 @@ import hashlib
 import json
 import os
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, List, Mapping, Optional, Sequence
 
 from sqlalchemy import text
@@ -27,7 +27,13 @@ from backend.admin.config import parse_master_key
 from backend.admin.tasks.catalog.keyset import Targets
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.impl import keyset_core as core
-from backend.admin.tasks.impl.responses_common import ReadOnlyDatabase
+from backend.admin.tasks.impl.responses_common import (
+    STORE_NAMES,
+    ReadOnlyDatabase,
+    plan_task_stores,
+    write_mode_env,
+    written_stores,
+)
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
     KEYSET_ENV,
@@ -263,13 +269,14 @@ class Consumer:
     restart_pending: bool
     keyset_fp: str
     env_overrides: tuple
+    write_stores: str = ""  # "" when the service did not say (before admin 0018)
 
 
 async def consumers(conn, services: Sequence[str]) -> List[Consumer]:
     rows = await conn.execute(
         text(
             "SELECT service, instance, extract(epoch FROM (now() - reported_at)) AS age, "
-            "revision_applied, restart_pending, keyset_fp, env_overrides "
+            "revision_applied, restart_pending, keyset_fp, env_overrides, write_stores "
             "FROM settings.service_state WHERE service = ANY(CAST(:s AS text[])) "
             "ORDER BY service, instance"
         ),
@@ -284,9 +291,27 @@ async def consumers(conn, services: Sequence[str]) -> List[Consumer]:
             bool(r.restart_pending),
             r.keyset_fp,
             tuple(r.env_overrides or ()),
+            r.write_stores or "",
         )
         for r in rows
     ]
+
+
+async def check_consumers_off_mongo(conn) -> None:
+    """For ``drop_old`` with ``mongo_retired``: every live keyset consumer (the
+    backend and the Google integration, any instance seen within the retirement
+    window) reports that it writes Postgres alone. Refuses
+    ``consumer_writes_mongo`` when one still writes Mongo and
+    ``consumer_write_stores_unknown`` when one does not say (a build from
+    before the report existed): the runner's own write mode is not enough."""
+    live = [
+        c for c in await consumers(conn, ["backend", "google"])
+        if c.age_seconds <= RETIRED_AFTER_SECONDS
+    ]
+    if any("mongo" in c.write_stores.split(",") for c in live):
+        raise Refusal("consumer_writes_mongo")
+    if any(c.write_stores != "postgres" for c in live):
+        raise Refusal("consumer_write_stores_unknown")
 
 
 async def typeform_reporting(conn) -> bool:
@@ -348,7 +373,9 @@ class DataConfig:
     google_mongo_db: str
     database_url: Optional[str]
     google_database_url: Optional[str]
-    env: Mapping[str, str]
+    # the runner's DB_WRITE_MODE* only: the services' write mode, which decides
+    # the stores (responses_common.plan_task_stores)
+    env: Mapping[str, str] = field(default_factory=dict, repr=False)
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "DataConfig":
@@ -359,7 +386,7 @@ class DataConfig:
             google_mongo_db=env.get("GOOGLE_MONGO_DB", "bettercollected_googleform"),
             database_url=env.get("DATABASE_URL"),
             google_database_url=env.get("GOOGLE_DATABASE_URL"),
-            env=env,
+            env=write_mode_env(env),
         )
 
     def url_for(self, target: core.Target) -> Optional[str]:
@@ -373,39 +400,53 @@ class DataConfig:
             if ok
         ]
 
+    def written(self, target: core.Target) -> List[str]:
+        """The stores the services write for the target's group, primary first;
+        refuses ``write_mode_unknown`` when the runner has no write mode for it."""
+        return written_stores(target.group, self.env)
+
     def primary_store(self, target: core.Target) -> str:
-        """The store the services write first (their write mode; Mongo by default)."""
-        try:
-            return core.plan_stores(target, "auto", self.env)[0]
-        except Exception:  # noqa: BLE001 - a bad DB_WRITE_MODE; never echo it
-            return "mongo"
+        """The store the services write first (their write mode)."""
+        return self.written(target)[0]
 
     def stores_for(self, target: core.Target, choice: StoreChoice) -> List[str]:
-        """Store names, primary first. ``auto`` is EVERY configured store (what
-        the runner can reach, not what its own write mode says); the other
-        choices name stores and refuse when one is not configured."""
-        if choice is StoreChoice.auto:
-            names = self.configured(target)
-            primary = self.primary_store(target)
-            names.sort(key=lambda n: n != primary)
+        """Store names, primary first (``plan_task_stores``): ``auto`` is every
+        store the services still write for the target, plus any other configured
+        store; the other choices name stores. Refuses ``store_not_configured`` or
+        ``write_mode_unknown``."""
+        return plan_task_stores(choice, self.configured(target), target.group, self.env)
+
+    def mongo_retired(self) -> bool:
+        """Whether the runner's write mode is ``postgres`` for the default and
+        for every group a keyset target belongs to (an unset override follows
+        the default; an unset default is not retired)."""
+        try:
+            return all(
+                written_stores(group, self.env) == ["postgres"]
+                for group in ("*", *(t.group for t in core.TARGETS.values()))
+            )
+        except Refusal:
+            return False
+
+    def drop_old_stores(self, target: core.Target, mongo_retired: bool) -> List[str]:
+        """The stores ``drop_old`` scans, primary first. It does not trust the
+        runner's copy of the write mode to leave a store out: both Mongo and
+        Postgres must be configured (``store_not_configured``) unless the
+        operator signed ``mongo_retired``, which is refused
+        (``mongo_not_retired``) unless the runner's mode is ``postgres`` for
+        every group, and then scans Postgres alone. The write mode only orders
+        the stores (the primary is the one that must hold records); an unknown
+        one refuses."""
+        if mongo_retired:
+            if not self.mongo_retired():
+                raise Refusal("mongo_not_retired")
+            names = ["postgres"]
         else:
-            try:
-                names = core.plan_stores(target, choice.value, self.env)
-            except Exception:  # noqa: BLE001
-                raise Refusal("store_not_configured") from None
-            if any(n not in self.configured(target) for n in names):
-                raise Refusal("store_not_configured")
-        if not names:
+            names = self.written(target)
+            names += [n for n in STORE_NAMES if n not in names]
+        if any(name not in self.configured(target) for name in names):
             raise Refusal("store_not_configured")
         return names
-
-    def every_store(self, target: core.Target) -> List[str]:
-        """For a step that makes a key unreadable: both stores, always, or refuse."""
-        names = self.configured(target)
-        if len(names) != 2:
-            raise Refusal("store_not_configured")
-        primary = self.primary_store(target)
-        return sorted(names, key=lambda n: n != primary)
 
 
 def selected_targets(chosen: Sequence[Targets]) -> List[core.Target]:

@@ -46,6 +46,10 @@ class Refusals(str, enum.Enum):
     keyset_not_readable_by_runner = "keyset_not_readable_by_runner"
     keyset_unverified = "keyset_unverified"
     store_not_configured = "store_not_configured"
+    write_mode_unknown = "write_mode_unknown"
+    mongo_not_retired = "mongo_not_retired"
+    consumer_writes_mongo = "consumer_writes_mongo"
+    consumer_write_stores_unknown = "consumer_write_stores_unknown"
     store_unreachable = "store_unreachable"
     store_empty = "store_empty"
     typeform_not_acknowledged = "typeform_not_acknowledged"
@@ -109,8 +113,27 @@ class VerifyParams(Params):
 
 class DropOldParams(Params):
     # No target or store selection on purpose: a key is dropped only after a
-    # full scan of every target in every store the services write.
+    # full scan of every target in BOTH stores (Mongo and Postgres), unless the
+    # operator states that Mongo is retired (mongo_retired below).
     typeform_acknowledged: bool = False
+    # A signed, audited statement that no service writes Mongo any more: the
+    # scan then covers Postgres alone. Refused unless the runner's DB_WRITE_MODE,
+    # DB_WRITE_MODE__RESPONSES and DB_WRITE_MODE__GOOGLE all say postgres, and
+    # while any live backend or Google instance reports writing Mongo (or does
+    # not report its write stores).
+    mongo_retired: Annotated[
+        bool,
+        Field(
+            description=(
+                "Tick only when every service runs with DB_WRITE_MODE=postgres and "
+                "Mongo is retired: the scan then skips Mongo, and values still in "
+                "Mongo (or in a Mongo backup) become unreadable once the old key is "
+                "dropped. Refused unless the runner and every running service say "
+                "they write Postgres alone. Unticked, both Mongo and Postgres must "
+                "be configured and are scanned."
+            )
+        ),
+    ] = False
     google_in_use: bool = True
     # accept a Google credentials target that holds no records (the Google Forms
     # integration was never used). Responses are never accepted empty.

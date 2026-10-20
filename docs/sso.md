@@ -257,6 +257,10 @@ uv run python -m backend.scim resync --workspace <workspace id> --force   # past
 uv run python -m backend.membership_duplicates   # read-only; exit 1 and a list of ids when there are duplicates
 ```
 
+It checks Mongo while the `identity` group still reads or writes it (`DB_READ_SOURCE` /
+`DB_WRITE_MODE` and their `__identity` overrides) and Postgres when `DATABASE_URL` is set; a store
+it does not check is listed under `skipped`, so it keeps working once Mongo is retired.
+
 Resolve each pair by hand (keep the membership with the right role, delete the other; nothing is deleted automatically), then deploy. If duplicates remain, Postgres revision `0011` stops **before changing anything** with a message naming this command, and the backend logs an ERROR at startup instead of creating the Mongo index (it still starts; new inserts are deduplicated in code). Once resolved, the next migration and the next restart create the indexes.
 
 **Local development.** After `scripts/sso-dev-setup.sh`, the backend runs on the host and Polis in a container, so Polis needs the host's address for webhooks. On Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `polis` service (or use the gateway address of the `bettercollected_default` network, e.g. `docker network inspect bettercollected_default -f '{{(index .IPAM.Config 0).Gateway}}'`) and set `SCIM_WEBHOOK_URL=http://host.docker.internal:8000/api/v1/scim/webhook` in `backend/.env`. The backend must listen on `0.0.0.0` for the container to reach it.

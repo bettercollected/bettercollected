@@ -235,9 +235,49 @@ parameter, result, event, audit row or log: only key ids and counts.
 | 2 | (restart the services) | they pick up the new keyset and report its key ids in their heartbeat |
 | 3 | `keyset.promote` (`new_primary_id`) | makes that key the primary; refuses a key that was published |
 | 4 | (restart the services) | |
-| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: auto` (the default) is every store the runner is configured for (`MONGO_URI`, `DATABASE_URL`, `GOOGLE_DATABASE_URL`), the primary first as the services' write mode says, and the primary's new ciphertext is copied to the other; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
+| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: auto` (the default) follows the store rule below (every store the services still write, primary first, plus any other store the runner is configured for), and the primary's new ciphertext is copied to the other; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
 | 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`) |
-| 7 | `keyset.drop_old` | removes the other keys only when a full scan of EVERY target in EVERY store finds no value on them. It needs `MONGO_URI`, `DATABASE_URL` and `GOOGLE_DATABASE_URL` all configured (else `store_not_configured`), whatever the runner's own write mode says. The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). Only the primary store (the services' write mode: give the runner the same `DB_WRITE_MODE`) must hold records |
+| 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in BOTH stores (Mongo and Postgres, both configured, else `store_not_configured`) finds no value on them, whatever the runner's write mode says; Postgres alone only with `mongo_retired` (see "Dropping a key once Mongo is retired" below). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). Only the primary store must hold records |
+
+**The store rule.** The runner works out which stores the services write from its own copy of
+their write mode: `DB_WRITE_MODE__RESPONSES` (responses) or `DB_WRITE_MODE__GOOGLE` (Google
+credentials), else `DB_WRITE_MODE`, from the root `.env`. Give it the values the services run with,
+and change them together during the move to Postgres.
+
+| Write mode of the target's group | Stores the services write (primary first) | Runner needs |
+|---|---|---|
+| `mongo` | Mongo | `MONGO_URI` |
+| `dual` | Mongo, then Postgres | `MONGO_URI` and the Postgres URL |
+| `postgres_primary_dual` | Postgres, then Mongo | the Postgres URL and `MONGO_URI` |
+| `postgres` | Postgres | the Postgres URL (`DATABASE_URL` for responses, `GOOGLE_DATABASE_URL` for the Google credentials) |
+| unset or not a write mode | unknown | refused: `write_mode_unknown` |
+
+`stores: auto` (on `reencrypt`, `verify` and the `responses.*` tasks, group `responses`) covers
+every store in that list, each of which must be configured (else `store_not_configured`), and then
+any other store the runner is configured for. The runner never guesses an unset write mode, not
+even the services' default (`mongo`): set `DB_WRITE_MODE=mongo` in the root `.env` on a stack that
+never started the move. `stores: mongo`, `postgres` or `both` name the stores instead and need no
+write mode.
+
+**`drop_old` does not rely on the runner's copy of the write mode to leave a store out.** A copy
+that is wrong (the services still on `dual`, the runner told `postgres`, no Mongo connection for
+the runner) would otherwise scan Postgres alone and drop a key that values in Mongo still use. So
+`drop_old` scans BOTH stores, each configured and reachable, or refuses; the write mode only says
+which one is the primary (the store that must hold records, and an unknown mode refuses with
+`write_mode_unknown`).
+
+**Dropping a key once Mongo is retired.** After the move, when no service writes Mongo any more,
+tick `mongo_retired`: a signed, audited statement (it is part of the signed run request and of the
+request's audit row, and needs its own dry run). The runner accepts it only when its
+`DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES` and `DB_WRITE_MODE__GOOGLE` all say `postgres` (an
+unset override follows `DB_WRITE_MODE`; anything else refuses with `mongo_not_retired`) and
+when every live backend and Google integration instance reports, in its settings heartbeat, that it
+writes Postgres alone (`write_stores`, from the service's own `DB_WRITE_MODE*`; admin revision 0018).
+An instance that still writes Mongo refuses with `consumer_writes_mongo`, one that does not report
+it (a build from before) with `consumer_write_stores_unknown`; the check runs again right before
+the key is written. It then scans Postgres alone; Mongo is not needed. Values left in Mongo, or in a Mongo backup or archive,
+are unreadable once the old key is dropped: keep the old keyset for as long as such an archive is
+kept.
 
 `drop_old` has no target or store parameters on purpose, and a scan that did not finish (cancelled)
 refuses. A Google credentials store that is empty because the integration was never used needs

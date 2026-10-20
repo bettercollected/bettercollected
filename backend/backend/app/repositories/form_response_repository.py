@@ -1,7 +1,7 @@
 import datetime as dt
 import json
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 import fastapi_pagination.ext.beanie
@@ -610,6 +610,20 @@ class FormResponseRepository(BaseRepository):
         return await FormResponseDocument.find(
             {"expiration_type": {"$in": ["date", "days"]}}
         ).to_list()
+
+    async def list_expiration_schedules(self) -> List[Tuple[str, str]]:
+        """``(response_id, expiration)`` of every response with an expiration
+        (type ``date`` or ``days``, stored as text), sorted by response id: what
+        the deletion jobs are scheduled from, and nothing else (no answers)."""
+        cursor = FormResponseDocument.get_pymongo_collection().find(
+            {
+                "expiration_type": {"$in": ["date", "days"]},
+                "expiration": {"$type": "string"},
+                "response_id": {"$type": "string"},
+            },
+            {"_id": 0, "response_id": 1, "expiration": 1},
+        )
+        return sorted([(d["response_id"], d["expiration"]) async for d in cursor])
 
     @write_op
     async def delete_response(self, response_id: str):

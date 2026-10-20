@@ -14,7 +14,7 @@ import hashlib
 import os
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from backend.admin.tasks.catalog.responses_common import StoreChoice
@@ -91,11 +91,84 @@ def keyset_fingerprint(keyset: str) -> str:
 
 
 # ------------------------------------------------------------------- stores
+STORE_NAMES = ("mongo", "postgres")
+
+
+def _written_by_mode() -> Dict[str, List[str]]:
+    from common.db.flags import WriteMode
+
+    return {
+        WriteMode.MONGO.value: ["mongo"],
+        WriteMode.DUAL.value: ["mongo", "postgres"],
+        WriteMode.POSTGRES_PRIMARY_DUAL.value: ["postgres", "mongo"],
+        WriteMode.POSTGRES.value: ["postgres"],
+    }
+
+
+def written_stores(group: str, env: Mapping[str, str]) -> List[str]:
+    """The stores the services write for ``group``, primary first, from the
+    runner's copy of the services' write mode: ``DB_WRITE_MODE__<group>`` (any
+    case), else ``DB_WRITE_MODE``. Refuses (``write_mode_unknown``) when neither
+    is set or the value is not a write mode: the runner never guesses which
+    stores the services write (the services' own default does not count, it
+    is not the runner's to know). Never echoes the value."""
+    from common.db.flags import OVERRIDE_SEP, WRITE_KEY
+
+    override = f"{WRITE_KEY}{OVERRIDE_SEP}{group}".lower()
+    raw = ""
+    for key, value in env.items():
+        if key.lower() == override and value and value.strip():
+            raw = value
+    if not raw:
+        raw = env.get(WRITE_KEY) or ""
+    stores = _written_by_mode().get(raw.strip().lower())
+    if stores is None:
+        raise Refusal("write_mode_unknown")
+    return list(stores)
+
+
+def write_mode_env(env: Mapping[str, str]) -> Dict[str, str]:
+    """Only the ``DB_WRITE_MODE*`` variables of ``env``: what the store rule
+    reads, and nothing a config object could leak in a repr or a log."""
+    from common.db.flags import WRITE_KEY
+
+    return {k: v for k, v in env.items() if k.upper().startswith(WRITE_KEY)}
+
+
+def plan_task_stores(
+    choice: StoreChoice, configured: List[str], group: str, env: Mapping[str, str]
+) -> List[str]:
+    """The stores a task covers, primary first (the store rule shared by the
+    responses and keyset tasks):
+
+    * ``auto``: every store the services still write for ``group`` (the runner's
+      ``DB_WRITE_MODE*``; ``write_mode_unknown`` when unset), each of which must
+      be configured, then any other configured store (a store the runner can
+      reach is never skipped: a service whose mode differs from the runner's
+      copy may still write it). Never fewer stores than the services write.
+    * ``mongo``, ``postgres``: that store; ``both``: both (Mongo first, as
+      before). A named store must be configured and needs no write mode.
+
+    Refuses ``store_not_configured`` when a needed store has no connection."""
+    if choice is StoreChoice.auto:
+        names = written_stores(group, env)
+        names += [n for n in configured if n not in names]
+    elif choice is StoreChoice.both:
+        names = list(STORE_NAMES)
+    else:
+        names = [choice.value]
+    if not names or any(name not in configured for name in names):
+        raise Refusal("store_not_configured")
+    return names
+
+
 @dataclass(frozen=True)
 class StoreConfig:
     mongo_uri: Optional[str]
     mongo_db: str
     database_url: Optional[str]
+    # the runner's DB_WRITE_MODE* only (see write_mode_env)
+    env: Mapping[str, str] = field(default_factory=dict, repr=False)
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "StoreConfig":
@@ -104,25 +177,19 @@ class StoreConfig:
             mongo_uri=(env.get("MONGO_URI") or "").strip() or None,
             mongo_db=(env.get("MONGO_DB") or "").strip() or "bettercollected_backend",
             database_url=(env.get("DATABASE_URL") or "").strip() or None,
+            env=write_mode_env(env),
         )
 
-    def resolve(self, choice: StoreChoice) -> List[str]:
-        """The stores to cover. Refuses (``store_not_configured``) when a store
-        asked for is not configured, or when ``auto`` finds none."""
-        configured = [
+    def configured(self) -> List[str]:
+        return [
             name
             for name, ok in (("mongo", self.mongo_uri), ("postgres", self.database_url))
             if ok
         ]
-        wanted = {
-            StoreChoice.auto: configured,
-            StoreChoice.both: ["mongo", "postgres"],
-            StoreChoice.mongo: ["mongo"],
-            StoreChoice.postgres: ["postgres"],
-        }[choice]
-        if not wanted or any(name not in configured for name in wanted):
-            raise Refusal("store_not_configured")
-        return wanted
+
+    def resolve(self, choice: StoreChoice) -> List[str]:
+        """The stores to cover (:func:`plan_task_stores`, group ``responses``)."""
+        return plan_task_stores(choice, self.configured(), "responses", self.env)
 
 
 class ReadOnlyViolation(Exception):

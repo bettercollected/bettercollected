@@ -139,6 +139,13 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.
+- **Operator commands** that touch application data (`jobs-sweep`, `backend.custom_domain`,
+  `backend.membership_duplicates`) go through the routed repositories, booted with `backend/cli_store.py`
+  (Mongo only while one of their groups still uses it), never a raw Mongo collection, so they follow the read
+  source and write mode during and after the cutover. The admin tasks pick their stores with
+  `plan_task_stores` (`admin/tasks/impl/responses_common.py`): every store the services write, from the
+  runner's `DB_WRITE_MODE*`, never fewer; unknown mode refuses. `keyset.drop_old` never trusts that copy to skip
+  a store: both stores or refuse, Postgres alone only with the signed `mongo_retired` param.
 - **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,jobs-sweep}` (auth and
   google have `python -m auth.migrate` / `python -m googleform.migrate`), the engine in `common/db/migrate/`. Raw
   pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,

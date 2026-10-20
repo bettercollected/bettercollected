@@ -1,8 +1,11 @@
 """Duplicate workspace memberships: ``python -m backend.membership_duplicates``
 
 Lists every (workspace_id, user_id) pair with more than one ``workspace_users``
-membership, in Mongo (``MONGO_DB``) and, when ``DATABASE_URL`` is set, in the
-Postgres twin. Ids, roles and the disabled flag only, never names or emails.
+membership, in Mongo (``MONGO_DB``) while the ``identity`` group still reads or
+writes Mongo (``DB_READ_SOURCE`` / ``DB_WRITE_MODE`` and their ``__identity``
+overrides; once it is on Postgres alone Mongo is skipped and named under
+``skipped``), and, when ``DATABASE_URL`` is set, in the Postgres twin. Ids,
+roles and the disabled flag only, never names or emails.
 Read-only: it changes nothing. Exit status 1 when duplicates exist, so it can
 gate a deployment. Resolve them by hand (docs/sso.md, "Duplicate
 memberships"), then the unique index (Mongo at startup, Postgres revision
@@ -76,12 +79,30 @@ async def postgres_duplicates(url: str) -> list:
         await engine.dispose()
 
 
+GROUP = "identity"  # the repository group of workspace_users
+
+
+def mongo_in_use(env=os.environ) -> bool:
+    """Whether the identity group still reads from or writes to Mongo."""
+    from backend.cli_store import needs_mongo
+    from common.db import load_flags
+
+    return needs_mongo(load_flags(env), [GROUP])
+
+
 def main() -> int:
-    report = {"mongo": mongo_duplicates()}
+    report: dict = {}
+    skipped = []
+    if mongo_in_use():
+        report["mongo"] = mongo_duplicates()
+    else:
+        skipped.append("mongo")
     url = os.environ.get("DATABASE_URL")
     if url:
         report["postgres"] = asyncio.run(postgres_duplicates(url))
-    print(json.dumps(report, indent=2, default=str))
+    else:
+        skipped.append("postgres")
+    print(json.dumps({**report, "skipped": skipped}, indent=2, default=str))
     return 1 if any(report.values()) else 0
 
 

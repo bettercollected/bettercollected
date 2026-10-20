@@ -10,9 +10,11 @@ docs/response-keyset-rotation.md is carried over:
   the stored keyset's;
 * values are re-encrypted with a compare-and-swap write, checked to decrypt
   back before the write and read back after it before they are counted;
-* the old key is dropped only after a full scan of EVERY target in EVERY store
-  the services write found no value on it, and no store empty (no target or
-  store selection exists for it); with a scan that did not finish it refuses.
+* the old key is dropped only after a full scan of EVERY target in BOTH stores
+  found no value on it, and no primary store empty (no target or store
+  selection exists for it); Postgres alone only when the operator signs
+  ``mongo_retired`` and the runner's write mode is postgres for every group;
+  with a scan that did not finish it refuses.
 
 The keyset is never printed, logged, put in an event or a result: key ids and
 counts only.
@@ -106,14 +108,15 @@ class _Base:
                 google_in_use=params.google_in_use,
             )
 
-    async def _ping_all(self, config, targets, choice) -> Dict[str, List[str]]:
+    async def _ping_all(self, config, targets, choice, *, mongo_retired=False) -> Dict[str, List[str]]:
         """Plan the stores of each target (``choice`` is a StoreChoice, or
-        ``"every"``: both stores or refuse) and check each answers."""
+        ``"drop_old"``: both stores, or Postgres alone under a signed
+        ``mongo_retired``) and check each answers."""
         plans: Dict[str, List[str]] = {}
         for target in targets:
             names = (
-                config.every_store(target)
-                if choice == "every"
+                config.drop_old_stores(target, mongo_retired)
+                if choice == "drop_old"
                 else config.stores_for(target, choice)
             )
             plans[target.name] = names
@@ -453,10 +456,17 @@ class DropOld(_Base):
         async with ctx.connection() as conn:
             if await state.typeform_reporting(conn):
                 raise Refusal("typeform_reporting")
+        if params.mongo_retired:
+            # the services' own reports, not only the runner's copy of their mode
+            async with ctx.connection() as conn:
+                await state.check_consumers_off_mongo(conn)
         config = state.DataConfig.from_env()
         targets = state.selected_targets([])  # always every target
-        # EVERY store, whatever this runner's write mode says: both configured or refuse
-        plans = await self._ping_all(config, targets, "every")
+        # both stores, configured and reachable, whatever the runner's copy of the
+        # write mode says; Postgres alone only under a signed mongo_retired
+        plans = await self._ping_all(
+            config, targets, "drop_old", mongo_retired=params.mongo_retired
+        )
         return keys, stored, value, parsed, config, targets, plans
 
     async def precheck(self, ctx, params) -> None:
@@ -542,6 +552,9 @@ class DropOld(_Base):
             )
         # the scan can take hours: the consumers must still be ready NOW
         await self._ready(ctx, params, parsed, stored)
+        if params.mongo_retired:
+            async with ctx.connection() as conn:
+                await state.check_consumers_off_mongo(conn)
         version, revision = await self._write(
             ctx, keys, stored, only_primary(parsed), "drop_old", {"dropped_count": len(old)}
         )

@@ -810,3 +810,53 @@ async def test_report_state_prunes_only_the_callers_stale_rows(server, migrated,
         superuser,
         "SELECT has_function_privilege('public', 'settings.report_state(text, bigint, text[], text[], boolean, text)', 'EXECUTE')",
     )
+
+
+async def test_report_state_records_the_write_stores_and_keeps_the_old_signature(
+    server, migrated, superuser
+):
+    """Admin 0018: the seven-argument report_state records which data stores the
+    service writes; the six-argument one (services from before) still works and
+    records them as unknown (''). Only the four known values are accepted, and
+    both signatures stay callable by the store readers only."""
+    old = "SELECT settings.report_state(:i, 1, CAST('{}' AS text[]), CAST('{}' AS text[]), false, '')"
+    new = (
+        "SELECT settings.report_state(:i, 1, CAST('{}' AS text[]), CAST('{}' AS text[]), "
+        "false, '', :w)"
+    )
+    engine = create_async_engine(server.url(migrated, "reader:app"), poolclass=NullPool)
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text(new), {"i": "w-1", "w": "postgres"})
+            await conn.execute(text(new), {"i": "w-2", "w": "mongo,postgres"})
+            await conn.execute(text(old), {"i": "w-3"})
+        for bad in ("Postgres", "postgres,mongo", "mongo;drop", "x" * 40):
+            async with engine.connect() as conn:
+                with pytest.raises(DBAPIError, match="invalid write stores"):
+                    await conn.execute(text(new), {"i": "w-4", "w": bad})
+        async with engine.begin() as conn:  # a newer report replaces the value
+            await conn.execute(text(new), {"i": "w-3", "w": "mongo"})
+    finally:
+        await engine.dispose()
+    async with superuser.connect() as conn:
+        rows = (
+            await conn.execute(
+                text(
+                    "SELECT instance, write_stores FROM settings.service_state "
+                    "WHERE service = 'backend' AND instance LIKE 'w-%' ORDER BY instance"
+                )
+            )
+        ).all()
+    assert [tuple(r) for r in rows] == [("w-1", "postgres"), ("w-2", "mongo,postgres"), ("w-3", "mongo")]
+    for signature in (
+        "settings.report_state(text, bigint, text[], text[], boolean, text)",
+        "settings.report_state(text, bigint, text[], text[], boolean, text, text)",
+    ):
+        assert not await scalar(
+            superuser, f"SELECT has_function_privilege('public', '{signature}', 'EXECUTE')"
+        )
+        assert await scalar(
+            superuser,
+            "SELECT prosecdef FROM pg_proc WHERE oid = CAST(:s AS regprocedure)",
+            s=signature,
+        )
