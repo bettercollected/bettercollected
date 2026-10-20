@@ -53,19 +53,29 @@ async def heartbeat(
     env: tuple = (),
     age_seconds: float = 0,
     fp: str | None = None,
+    write_stores: str | None = None,
 ) -> None:
-    """A row in settings.service_state as a service's ``report_state`` leaves it."""
+    """A row in settings.service_state as a service's ``report_state`` leaves it.
+    ``write_stores`` defaults to what a service with this process's
+    ``DB_WRITE_MODE*`` reports."""
+    import os
+
+    from common.settings.write_stores import write_stores_report
+
+    if write_stores is None:
+        write_stores = write_stores_report(os.environ)
     ids = [k.key_id for k in parse_keyset(keyset_value).key]
     async with owner.begin() as conn:
         await conn.execute(
             text(
                 "INSERT INTO settings.service_state (service, instance, reported_at, "
-                "revision_applied, env_overrides, restart_pending, keyset_fp) "
+                "revision_applied, env_overrides, restart_pending, keyset_fp, write_stores) "
                 "VALUES (:s, :i, now() - make_interval(secs => :age), :r, "
-                "CAST(:e AS text[]), :p, :fp) "
+                "CAST(:e AS text[]), :p, :fp, :w) "
                 "ON CONFLICT (service, instance) DO UPDATE SET reported_at = excluded.reported_at, "
                 "revision_applied = excluded.revision_applied, env_overrides = excluded.env_overrides, "
-                "restart_pending = excluded.restart_pending, keyset_fp = excluded.keyset_fp"
+                "restart_pending = excluded.restart_pending, keyset_fp = excluded.keyset_fp, "
+                "write_stores = excluded.write_stores"
             ),
             {
                 "s": service,
@@ -75,5 +85,6 @@ async def heartbeat(
                 "e": list(env),
                 "p": restart_pending,
                 "fp": fp if fp is not None else keyset_fingerprint(ids),
+                "w": write_stores,
             },
         )

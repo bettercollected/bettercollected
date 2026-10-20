@@ -483,6 +483,8 @@ class SettingsRuntime:
         return self.keys.fingerprint if self.keys else ""
 
     def state(self) -> ServiceState:
+        from ..write_stores import write_stores_report
+
         rejected = {
             r.key for r in self.current.rejections if _NAME.match(r.key)
         } | {r.key for r in self.last_rejections if _NAME.match(r.key)}
@@ -495,6 +497,7 @@ class SettingsRuntime:
             rejected_keys=tuple(sorted(rejected)),
             restart_pending=self.restart_pending,
             keyset_fp=self.keyset_fp(),
+            write_stores=write_stores_report(),
         )
 
     def report(self) -> None:

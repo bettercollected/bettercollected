@@ -15,7 +15,26 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- `keyset.drop_old` has a `mongo_retired` parameter (off by default): a signed, audited statement
+  that no service writes Mongo any more. Only then does it scan Postgres alone, and only when the
+  task runner's `DB_WRITE_MODE*` say `postgres` for every group and every running backend and
+  Google integration instance reports writing Postgres alone. Without it, both Mongo and Postgres
+  must be configured and are scanned, as before.
+- Services report the data stores they write in their settings heartbeat (admin revision 0018,
+  `settings.service_state.write_stores`; the previous `report_state` signature keeps working).
+
 ### Changed
+
+- **Upgrade note:** the admin tasks' `stores: auto` (`keyset.reencrypt`, `keyset.verify`,
+  `responses.check_undecryptable`, `responses.backfill_workspaces`) now covers every store the
+  services still write, from the task runner's `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES` and
+  `DB_WRITE_MODE__GOOGLE` (root `.env`), plus any other configured store. With no write mode set
+  it refuses with `write_mode_unknown`, and so does `keyset.drop_old`: set `DB_WRITE_MODE=mongo`
+  (or the services' actual mode) in the root `.env`. Naming the stores (`mongo`, `postgres`,
+  `both`) still works without it.
+- `python -m backend.migrate jobs-sweep`, `python -m backend.custom_domain` and
+  `python -m backend.membership_duplicates` read through the routed repositories: they follow
+  `DB_READ_SOURCE` / `DB_WRITE_MODE` and open Mongo only while a group they use still needs it.
 
 ### Removed
 

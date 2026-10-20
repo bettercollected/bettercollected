@@ -177,3 +177,39 @@ def test_describe_reports_what_is_in_effect():
         "write_mode": "mongo",
     }
     assert described["jobs"] == {"delete_user": "postgres", "run_action": "temporal"}
+
+
+@pytest.mark.parametrize(
+    "env, expected",
+    [
+        ({}, "mongo"),
+        ({"DB_WRITE_MODE": "mongo"}, "mongo"),
+        ({"DB_WRITE_MODE": "dual"}, "mongo,postgres"),
+        ({"DB_WRITE_MODE": "postgres_primary_dual"}, "mongo,postgres"),
+        ({"DB_WRITE_MODE": "postgres"}, "postgres"),
+        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__responses": "dual"}, "mongo,postgres"),
+        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__identity": "postgres"}, "postgres"),
+        ({"DB_WRITE_MODE": "sideways"}, ""),
+        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__google": "nope"}, ""),
+    ],
+)
+def test_write_stores_report_is_every_store_any_group_writes(env, expected):
+    from common.settings.write_stores import write_stores_report
+
+    assert write_stores_report(env) == expected
+
+
+def test_write_stores_report_reads_the_flags_the_way_load_flags_does():
+    """The heartbeat's copy (common.settings stays free of common.db) agrees with
+    the flags on which stores each mode writes."""
+    from common.settings.write_stores import write_stores_report
+
+    for mode in WriteMode:
+        flags = load_flags({"DB_WRITE_MODE": mode.value, "DB_READ_SOURCE": "postgres"
+                            if mode is WriteMode.POSTGRES else "mongo"})
+        expected = {
+            store for store, writes in (
+                ("mongo", flags.writes_mongo("x")), ("postgres", flags.writes_postgres("x"))
+            ) if writes
+        }
+        assert write_stores_report({"DB_WRITE_MODE": mode.value}) == ",".join(sorted(expected))

@@ -144,7 +144,8 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   (Mongo only while one of their groups still uses it), never a raw Mongo collection, so they follow the read
   source and write mode during and after the cutover. The admin tasks pick their stores with
   `plan_task_stores` (`admin/tasks/impl/responses_common.py`): every store the services write, from the
-  runner's `DB_WRITE_MODE*`, never fewer; unknown mode refuses.
+  runner's `DB_WRITE_MODE*`, never fewer; unknown mode refuses. `keyset.drop_old` never trusts that copy to skip
+  a store: both stores or refuse, Postgres alone only with the signed `mongo_retired` param.
 - **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,jobs-sweep}` (auth and
   google have `python -m auth.migrate` / `python -m googleform.migrate`), the engine in `common/db/migrate/`. Raw
   pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,
