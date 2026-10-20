@@ -24,6 +24,10 @@ on:
                     - full
                     - pr
                 default: full
+            shards:
+                description: "Postgres backend shards (empty: the default in .github/scripts/ci-plan.sh)"
+                type: string
+                default: ""
 
 permissions:
     contents: read
@@ -63,6 +67,7 @@ jobs:
               env:
                   EVENT: ${{ github.event_name }}
                   SCOPE: ${{ inputs.scope }}
+                  SHARDS: ${{ inputs.shards }}
               run: .github/scripts/ci-plan.sh
 
     backend-tests:

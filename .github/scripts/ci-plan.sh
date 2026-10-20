@@ -15,8 +15,12 @@
 # diff against its base, HEAD^1..HEAD).
 set -euo pipefail
 
-BACKEND_SHARDS=8 # see docs/ci.md: ~1 min per shard on a hosted runner
+BACKEND_SHARDS=8 # see docs/ci.md
 SIDE_SHARDS=2    # mongo and dual on develop/nightly, without the admin suite
+# a manual run may try another count (to measure)
+if [[ "${SHARDS:-}" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 16 ]; then
+    BACKEND_SHARDS=$SHARDS
+fi
 
 full=false
 case "${EVENT:-pull_request}" in
