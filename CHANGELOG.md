@@ -15,6 +15,22 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [4.0.2] - 2026-10-20
+
+Groundwork for running on Postgres only (4.1): every write now reaches both data stores through
+the routed repositories, the two copies of a mirrored write are identical, and operators get the
+tools to verify and switch the stores group by group.
+
+### Added
+
 - `keyset.drop_old` has a `mongo_retired` parameter (off by default): a signed, audited statement
   that no service writes Mongo any more. Only then does it scan Postgres alone, and only when the
   task runner's `DB_WRITE_MODE*` say `postgres` for every group and every running backend and
@@ -22,6 +38,16 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   must be configured and are scanned, as before.
 - Services report the data stores they write in their settings heartbeat (admin revision 0018,
   `settings.service_state.write_stores`; the previous `report_state` signature keeps working).
+- The migration commands (`python -m backend.migrate`, `auth.migrate`, `googleform.migrate`) record
+  a "migration verified" marker after a fully clean `verify` (app revision 0017, auth 0003, google
+  0003, table `store_migration`). `--group <name>` limits backfill, verify and reconcile to one
+  repository group, and `status --json` gives counts per store, outbox depth, mirror failures, the
+  last clean verify and the marker.
+- Golden fixtures pin the exact bytes of every document stored in Postgres, and parity tests now
+  cover the actions and AI repositories.
+- A unique `(workspace_id, user_id)` index on `ai_preference_memories` in Postgres, as Mongo already
+  has (app revision 0018). **Upgrade note:** the migration refuses to run while duplicate pairs
+  exist and reports their number only; the cutover runbook shows how to find and resolve them.
 
 ### Changed
 
@@ -35,10 +61,39 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - `python -m backend.migrate jobs-sweep`, `python -m backend.custom_domain` and
   `python -m backend.membership_duplicates` read through the routed repositories: they follow
   `DB_READ_SOURCE` / `DB_WRITE_MODE` and open Mongo only while a group they use still needs it.
+- On groups where Postgres is the primary store, saves move `updated_at` the way Mongo saves always
+  have.
+- The break-glass script `scripts/rotate_response_keyset.py` follows the same store rule as the
+  keyset tasks: `drop-old` needs both stores configured unless `--mongo-retired` is given, which is
+  refused unless every write mode is `postgres`.
+- Pull-request checks run the Postgres mode in parallel shards (a few minutes became about two);
+  every push to `develop`, a nightly run and a manual run test all suites in every storage mode.
 
 ### Removed
 
+- Unused code: the old provider plugin loader, the scheduled re-import of Google Forms (nothing
+  scheduled it) and its Temporal route and worker activity, the unused Google form and response
+  caches, auth's unused providers repository, unused webapp provider APIs and strings, and the
+  setting `TEMPORAL_ADD_IMPORT_SCHEDULES`. No table was dropped.
+
 ### Fixed
+
+- Writes that went straight to Mongo now go through the routed repositories, so Postgres sees them
+  in the dual-write modes: the sign-in code of an existing user, the name update after sign-in,
+  Stripe checkout and plan changes, workspace responder updates, AI form prompts, price suggestions
+  and the flow-template seed. A test now fails on any new direct database call outside the
+  repositories.
+- A mirrored write stores exactly what the primary wrote: one clock reading per write, an exact
+  replay into Mongo, and Postgres saves that move `updated_at` like Mongo's. `verify` is clean right
+  after a write in both dual-write modes.
+- `verify` and `reconcile --direction postgres->mongo` no longer miss rows that exist only in
+  Postgres between batches.
+- Postgres twins: workspace action credentials are stored like Mongo's, and `update_proposal`
+  updates every matching record and reports changes like Mongo.
+- Aware datetimes with a non-UTC offset are stored as the UTC instant, so their checksum matches
+  the Mongo copy.
+- Tests no longer use generated secrets as test names, and a check keeps key-like strings out of
+  the recorded test durations.
 
 ### Security
 
@@ -770,7 +825,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.1...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.2...HEAD
+[4.0.2]: https://github.com/bettercollected/bettercollected/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/bettercollected/bettercollected/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/bettercollected/bettercollected/compare/v3.4.0...v4.0.0
 [3.4.0]: https://github.com/bettercollected/bettercollected/compare/v3.3.2...v3.4.0
