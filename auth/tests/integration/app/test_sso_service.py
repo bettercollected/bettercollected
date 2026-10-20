@@ -389,7 +389,12 @@ def test_an_idp_error_returns_the_context():
     assert content(excinfo)["context"] == CONTEXT
 
 
-@pytest.mark.parametrize("state", ["garbage", "", sso_module.crypto.encrypt("{}")])
+@pytest.mark.parametrize(
+    "state",
+    ["garbage", "", sso_module.crypto.encrypt("{}")],
+    # ids name the case, never the value (a fresh ciphertext each run)
+    ids=["garbage", "empty", "encrypted-empty-object"],
+)
 def test_tampered_state_is_refused(state):
     with pytest.raises(HTTPException) as excinfo:
         asyncio.run(service().callback("code", state))
