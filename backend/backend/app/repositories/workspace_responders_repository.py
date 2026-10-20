@@ -1,3 +1,5 @@
+from typing import Dict, List, Optional
+
 from beanie import PydanticObjectId
 
 from backend.app.schemas.workspace_responder import (
@@ -31,4 +33,27 @@ class WorkspaceRespondersRepository:
             workspace_responder = WorkspaceResponderDocument(
                 workspace_id=workspace_id, email=email
             )
+        return await workspace_responder.save()
+
+    @write_op(replay=True)
+    async def patch_responder(
+        self,
+        workspace_id: PydanticObjectId,
+        email: str,
+        metadata: Optional[Dict[str, str]] = None,
+        tags: Optional[List[PydanticObjectId]] = None,
+    ):
+        """The responder's metadata and tags; only the given (non-empty) ones
+        change. Creates the responder record when there is none yet."""
+        workspace_responder = await WorkspaceResponderDocument.find_one(
+            {"workspace_id": workspace_id, "email": email}
+        )
+        if not workspace_responder:
+            workspace_responder = WorkspaceResponderDocument(
+                workspace_id=workspace_id, email=email
+            )
+        if metadata:
+            workspace_responder.metadata = metadata
+        if tags:
+            workspace_responder.tags = tags
         return await workspace_responder.save()

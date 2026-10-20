@@ -10,6 +10,7 @@ from backend.app.schemas.action_document import ActionDocument, WorkspaceActions
 from backend.db.models import ActionRow, WorkspaceActionRow
 from common.configs.crypto import Crypto
 from common.db import PostgresRepositoryBase
+from common.models.standard_form import ParameterValue
 from common.models.user import User
 
 
@@ -29,7 +30,7 @@ class PostgresActionRepository(PostgresRepositoryBase):
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
-        return await self.upsert(
+        return await self.save_document(
             ActionDocument(
                 **action.model_dump(mode="json"),
                 created_by=PydanticObjectId(user.id),
@@ -73,19 +74,21 @@ class PostgresActionRepository(PostgresRepositoryBase):
         workspace_action = await self.get_workspace_action(workspace_id, action_id)
         secrets = None
         if credentials:
-            secrets = [{"name": "Credentials", "value": credentials}]
+            # a model, not a dict: what is stored is what save() hands back
+            # (Beanie re-reads the document) and what a replayed mirror writes
+            secrets = [ParameterValue(name="Credentials", value=credentials)]
         if workspace_action is None:
             workspace_action = WorkspaceActionsDocument(
                 workspace_id=workspace_id, action_id=action_id
             )
         workspace_action.secrets = secrets
-        return await self.upsert(workspace_action, row=WorkspaceActionRow)
+        return await self.save_document(workspace_action, row=WorkspaceActionRow)
 
     async def create_global_action(self, action: ActionDto, user: User):
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
-        return await self.upsert(
+        return await self.save_document(
             ActionDocument(
                 **action.model_dump(mode="json"), created_by=PydanticObjectId(user.id)
             )

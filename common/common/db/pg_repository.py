@@ -14,6 +14,8 @@ from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from common.clock import utcnow
+from common.configs.mongo_document import MongoDocument
 from common.db.beanie_bridge import from_row_doc, row_values
 
 
@@ -159,6 +161,18 @@ class PostgresRepositoryBase:
         async with self._session() as session, session.begin():
             await session.execute(self._upsert_statement(values, row))
         return document
+
+    async def save_document(
+        self, document: Any, row: Optional[Type[Any]] = None
+    ) -> Any:
+        """The twin of ``MongoDocument.save()``: move ``updated_at`` to now,
+        then store. For the methods whose Mongo original saves the document;
+        those that insert or update fields leave ``updated_at`` as it is and
+        use :meth:`upsert`. Within a routed write ``utcnow()`` is the reading
+        both stores share, so the two copies stay identical."""
+        if isinstance(document, MongoDocument):
+            document.updated_at = utcnow()
+        return await self.upsert(document, row)
 
     async def upsert_many(
         self, documents: Iterable[Any], row: Optional[Type[Any]] = None

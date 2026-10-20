@@ -9,6 +9,7 @@ from pymongo.errors import DuplicateKeyError
 
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from common.db.routing import write_op
+from common.clock import utcnow
 
 # per-workspace start locks (Mongo only; the Postgres twin uses an advisory
 # lock): one short-lived document per workspace, its _id the unique key
@@ -196,7 +197,7 @@ async def _workspace_lock(workspace_id):
     key, token = str(workspace_id), secrets.token_hex(12)
     deadline = asyncio.get_running_loop().time() + lock_wait_s()
     while True:
-        now = dt.datetime.now(dt.timezone.utc)
+        now = utcnow()
         try:
             await locks.update_one(
                 {"_id": key, "expires_at": {"$lt": now}},

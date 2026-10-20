@@ -1,8 +1,11 @@
-"""python -m backend.migrate {preflight,backfill,verify,reconcile,status,jobs-sweep}
+"""python -m backend.migrate [--group G] {preflight,backfill,verify,reconcile,status,jobs-sweep}
 
 Runs as the backend's role against schema ``app`` and Mongo database
-``MONGO_DB``. ``jobs-sweep`` (re)creates the scheduled response deletions on
-the chosen jobs backend — independent of any queue's memory (plans §7, §9).
+``MONGO_DB``. ``--group`` selects the collections of repository groups
+(``backend.db.groups.COLLECTION_GROUPS``); a clean ``verify`` records the
+"migration verified" marker (``common.db.marker``). ``jobs-sweep``
+(re)creates the scheduled response deletions on the chosen jobs backend —
+independent of any queue's memory (plans §7, §9).
 """
 
 import os
@@ -10,12 +13,14 @@ import sys
 
 from bson import ObjectId
 
+import backend
 from backend.config import settings
 from backend.db.base import SCHEMA, Base
-from backend.db.models import MigrationProgress
+from backend.db.groups import COLLECTION_GROUPS
+from backend.db.models import MigrationProgress, StoreMigration
 import backend.db.models  # noqa: F401 — registers every row
 from common.db.migrate import Target
-from common.db.migrate.cli import main
+from common.db.migrate.cli import code_version, main
 
 
 def _tables():
@@ -71,15 +76,23 @@ async def jobs_sweep(backend: str) -> dict:
     }
 
 
-if __name__ == "__main__":
-    target = Target(
+def build_target(database_url: str) -> Target:
+    return Target(
         schema=SCHEMA,
         tables=_tables(),
         progress=MigrationProgress.__table__,
         mongo_uri=settings.mongo_settings.URI,
         mongo_db=settings.mongo_settings.DB,
-        database_url=os.environ["DATABASE_URL"],
+        database_url=database_url,
         application_name="bettercollected-migrate-backend",
         extras={"jobs_sweep": jobs_sweep},
+        service="backend",
+        groups=COLLECTION_GROUPS,
+        marker=StoreMigration.__table__,
+        code_version=code_version(backend, SCHEMA),
     )
+
+
+if __name__ == "__main__":
+    target = build_target(os.environ["DATABASE_URL"])
     sys.exit(main(sys.argv[1:], target, prog="python -m backend.migrate"))

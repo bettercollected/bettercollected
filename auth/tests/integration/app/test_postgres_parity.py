@@ -15,13 +15,8 @@ from beanie import PydanticObjectId
 from mongomock_motor import AsyncMongoMockClient
 
 from auth.app.container import container
-from auth.app.repositories.postgres import (
-    PostgresProviderRepository,
-    PostgresUserRepository,
-)
-from auth.app.repositories.provider_repository import ProviderRepository
+from auth.app.repositories.postgres import PostgresUserRepository
 from auth.app.repositories.user_repository import UserRepository
-from auth.app.schemas.provider import Provider
 from auth.app.schemas.user import UserDocument
 from auth.app.services.database_service import init_db
 from common.db.routing import normalise_result
@@ -109,21 +104,6 @@ async def test_users(stores):
             await repo.get_user_by_id(missing)
 
 
-async def test_providers(stores):
-    mongo, postgres = ProviderRepository(), PostgresProviderRepository(stores)
-    provider = Provider(
-        id=PydanticObjectId(), provider_name="google", oauth_url="http://o"
-    )
-    await provider.save()
-    await postgres.upsert(provider)
-    assert strip(await mongo.get_provider("google")) == strip(
-        await postgres.get_provider("google")
-    )
-    for repo in (mongo, postgres):
-        with pytest.raises(NotFoundError):
-            await repo.get_provider("nope")
-
-
 async def test_user_metrics(stores):
     """The platform-metrics counts: users dated by ObjectId, activity by
     last_logged_in (an ISO string in Mongo), a missing plan counted as FREE."""
@@ -174,3 +154,36 @@ async def test_user_metrics(stores):
     for repo in (mongo, postgres):
         await repo.delete_user(users[1].id)
         assert await repo.count_users_by_plan() == {"FREE": 3, "PRO": 0}
+
+
+async def test_user_field_updates(stores):
+    """The targeted updates of an existing account (sign-in code, names,
+    Stripe ids, plan) store the same document on both."""
+    mongo, postgres = UserRepository(), PostgresUserRepository(stores)
+    users = [await repo.save_user("upd@example.com") for repo in (mongo, postgres)]
+
+    async def both(name, *args, **kwargs):
+        results = [
+            await getattr(repo, name)(user.id, *args, **kwargs)
+            for repo, user in zip((mongo, postgres), users)
+        ]
+        assert strip(results[0]) == strip(results[1]), f"{name} differs"
+        return results
+
+    after = await both("set_user_otp", "ABC-123", 99, "FORM_CREATOR")
+    assert after[1].otp_code == "ABC-123" and after[1].otp_code_for == "FORM_CREATOR"
+    after = await both("update_user_names", "Ada", None)
+    assert (after[1].first_name, after[1].last_name) == ("Ada", None)
+    after = await both("set_stripe_payment_id", "cs_1")
+    assert after[1].stripe_payment_id == "cs_1"
+    after = await both("set_user_plan", Plans.PRO, stripe_customer_id="cus_1")
+    assert (after[1].plan, after[1].stripe_customer_id) == (Plans.PRO, "cus_1")
+    after = await both("set_user_plan", Plans.FREE)
+    assert (after[1].plan, after[1].stripe_customer_id) == (Plans.FREE, "cus_1")
+    stored = [
+        await repo.get_user_by_email("upd@example.com") for repo in (mongo, postgres)
+    ]
+    assert strip(stored[0]) == strip(stored[1])
+    for repo in (mongo, postgres):
+        with pytest.raises(NotFoundError):
+            await repo.set_user_plan(PydanticObjectId(), Plans.PRO)

@@ -68,6 +68,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
+from common.clock import utcnow
 from camel_converter import to_camel, to_snake
 
 
@@ -550,7 +551,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         return responses + requests
 
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
-        return await self.upsert(response)
+        return await self.save_document(response)
 
     async def find_deletion_request_by_response_id(
         self, response_id: str
@@ -583,7 +584,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def add_deletion_request(
         self, response: FormResponseDocument, response_id: str
     ) -> FormResponseDeletionRequest:
-        return await self.upsert(
+        return await self.save_document(
             FormResponseDeletionRequest(
                 form_id=response.form_id,
                 response_id=response_id,
@@ -681,10 +682,10 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         response_document.provider = "self"
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
-        now = dt.datetime.now(dt.timezone.utc)
+        now = utcnow()
         response_document.created_at = now
         response_document.updated_at = now
-        return await self.upsert(response_document)
+        return await self.save_document(response_document)
 
     async def patch_form_response(
         self,
@@ -738,12 +739,12 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         )
         # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
-        response_document.updated_at = dt.datetime.now(dt.timezone.utc)
+        response_document.updated_at = utcnow()
         # the workspace it was collected in stays; one stored before #768
         # gets the workspace the caller checked it against
         if response_document.workspace_id is None:
             response_document.workspace_id = PydanticObjectId(workspace_id)
-        return await self.upsert(response_document)
+        return await self.save_document(response_document)
 
     async def delete_form_response(self, response: FormResponseDocument):
         response_id = response.response_id
@@ -751,7 +752,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         deletion_request = await self.find_deletion_request_for(response)
         if deletion_request:
             deletion_request.status = DeletionRequestStatus.SUCCESS
-            await self.upsert(deletion_request, row=ResponseDeletionRequestRow)
+            await self.save_document(deletion_request, row=ResponseDeletionRequestRow)
         return response_id
 
     async def get_all_expiring_responses(self):
@@ -841,7 +842,7 @@ class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
         )
         if not workspace_tag:
             workspace_tag = WorkspaceTags(workspace_id=workspace_id, title=title)
-        return await self.upsert(workspace_tag, row=WorkspaceTagRow)
+        return await self.save_document(workspace_tag, row=WorkspaceTagRow)
 
     async def get_workspace_tags(self, workspace_id: PydanticObjectId):
         return await self.many(
@@ -861,7 +862,28 @@ class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
             workspace_responder = WorkspaceResponderDocument(
                 workspace_id=workspace_id, email=email
             )
-        return await self.upsert(workspace_responder)
+        return await self.save_document(workspace_responder)
+
+    async def patch_responder(
+        self,
+        workspace_id: PydanticObjectId,
+        email: str,
+        metadata: Optional[Dict[str, str]] = None,
+        tags: Optional[List[PydanticObjectId]] = None,
+    ):
+        workspace_responder = await self.one(
+            WorkspaceResponderRow.workspace_id == _oid(workspace_id),
+            WorkspaceResponderRow.email == email,
+        )
+        if not workspace_responder:
+            workspace_responder = WorkspaceResponderDocument(
+                workspace_id=workspace_id, email=email
+            )
+        if metadata:
+            workspace_responder.metadata = metadata
+        if tags:
+            workspace_responder.tags = tags
+        return await self.save_document(workspace_responder)
 
 
 class PostgresResponderGroupsRepository(PostgresRepositoryBase):
@@ -905,7 +927,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
     ):
         if description and len(description) > 280:
             return {"message": "description should be less than 280 characters"}
-        return await self.upsert(
+        return await self.save_document(
             ResponderGroupDocument(
                 name=name,
                 workspace_id=workspace_id,
@@ -939,7 +961,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             if description:
                 responder_group.description = description
             responder_group.regex = regex
-        return await self.upsert(responder_group)
+        return await self.save_document(responder_group)
 
     async def get_group_in_workspace(
         self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
@@ -1059,7 +1081,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             ResponderGroupFormRow.group_id == _oid(group_id),
         )
         if not existing:
-            return await self.upsert(
+            return await self.save_document(
                 self.link(group_id, form_id), row=ResponderGroupFormRow
             )
 

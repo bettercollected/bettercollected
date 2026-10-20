@@ -20,7 +20,7 @@ import hashlib
 import json
 from typing import Any, Mapping
 
-from datetime import timezone
+from datetime import datetime, timezone
 
 from bson import json_util
 from bson.json_util import RELAXED_JSON_OPTIONS
@@ -33,18 +33,35 @@ CHECKSUM_PREFIX = "sha256:"
 _RESTORE_OPTIONS = RELAXED_JSON_OPTIONS.with_options(tz_aware=True, tzinfo=timezone.utc)
 
 
-def _reject_unordered(value: Any, path: str = "$") -> None:
-    """``bson.json_util`` silently turns sets into lists in arbitrary order, which would make
-    the checksum unstable. Mongo itself cannot encode a set, so refuse them the same way.
+def _prepare(value: Any, path: str = "$") -> Any:
+    """Make ``value`` encode the way Mongo would store it, copying only what changes.
+
+    * ``bson.json_util`` silently turns sets into lists in arbitrary order, which
+      would make the checksum unstable. Mongo itself cannot encode a set, so
+      refuse them the same way.
+    * A BSON date is a UTC instant, but ``json_util`` writes an aware datetime
+      with its own offset (``...+0200``), so the same instant would encode two
+      ways: as written by the application, and as read back from Mongo (UTC,
+      ``...Z``). Convert to UTC first, so both give the same bytes.
     """
     if isinstance(value, (set, frozenset)):
         raise TypeError(f"cannot canonicalise a set at {path}; use a list")
+    if isinstance(value, datetime):
+        offset = value.utcoffset()
+        if offset:
+            return value.astimezone(timezone.utc)
+        return value
     if isinstance(value, Mapping):
-        for key, item in value.items():
-            _reject_unordered(item, f"{path}.{key}")
-    elif isinstance(value, (list, tuple)):
-        for index, item in enumerate(value):
-            _reject_unordered(item, f"{path}[{index}]")
+        items = {key: _prepare(item, f"{path}.{key}") for key, item in value.items()}
+        if all(items[key] is item for key, item in value.items()):
+            return value
+        return items
+    if isinstance(value, (list, tuple)):
+        prepared = [_prepare(item, f"{path}[{i}]") for i, item in enumerate(value)]
+        if all(new is old for new, old in zip(prepared, value)):
+            return value
+        return prepared
+    return value
 
 
 def canonical_document(doc: Mapping[str, Any]) -> dict[str, Any]:
@@ -56,7 +73,7 @@ def canonical_document(doc: Mapping[str, Any]) -> dict[str, Any]:
     document that would not have round-tripped through Mongo fails loudly here
     instead of drifting between the stores.
     """
-    _reject_unordered(doc)
+    doc = _prepare(doc)
     return json.loads(json_util.dumps(doc, json_options=RELAXED_JSON_OPTIONS))
 
 

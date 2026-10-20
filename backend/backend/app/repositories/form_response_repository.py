@@ -40,6 +40,7 @@ from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from beanie.odm.queries.update import UpdateResponse
 from common.db import to_bson_dict
 from common.db.routing import write_op
+from common.clock import utcnow
 
 
 class FormResponseRepository(BaseRepository):
@@ -527,7 +528,7 @@ class FormResponseRepository(BaseRepository):
         response_document.provider = "self"
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
-        now = dt.datetime.now(dt.timezone.utc)
+        now = utcnow()
         response_document.created_at = now
         response_document.updated_at = now
         return await response_document.save()
@@ -586,7 +587,7 @@ class FormResponseRepository(BaseRepository):
         )
         # only answers are merged: the AI notice stamp stays as submitted (#752)
         # an edit keeps the submission time and records when it changed
-        response_document.updated_at = dt.datetime.now(dt.timezone.utc)
+        response_document.updated_at = utcnow()
         # the workspace it was collected in stays; one stored before #768
         # gets the workspace the caller checked it against
         if response_document.workspace_id is None:

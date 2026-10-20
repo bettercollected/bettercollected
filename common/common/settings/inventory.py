@@ -555,14 +555,9 @@ PDF_IMPORT: Tuple[SettingSpec, ...] = (
           "*/10 * * * *", tier=T2, max_length=64),
 )
 
-TEMPORAL: Tuple[SettingSpec, ...] = (
-    _bool("TEMPORAL_ADD_IMPORT_SCHEDULES", "temporal", (BACKEND,), False,
-          "Registers the import schedules at startup.", tier=T2),
-)
-
 INVENTORY: Tuple[SettingSpec, ...] = (
     SERVER + RATE_LIMITS + NETWORK + SESSION + KEY_MATERIAL + AI + STORAGE + SSO_SPECS
-    + MAIL_BILLING + GOOGLE_OAUTH + SERVICES + PDF_IMPORT + TEMPORAL
+    + MAIL_BILLING + GOOGLE_OAUTH + SERVICES + PDF_IMPORT
 )
 
 # Keys read at import time (or captured when the container is built): they stay
@@ -573,8 +568,8 @@ TODO_LIVE: Dict[str, str] = {
     "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
     "API_ROOT_PATH": "backend/backend/app/asgi.py:193",
     "API_DOCS_ENABLED": "backend/backend/app/asgi.py:193",
-    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:647",
-    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:648",
+    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:668",
+    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:669",
 }
 
 # ------------------------------------------------------- environment only

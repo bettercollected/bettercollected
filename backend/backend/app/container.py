@@ -27,6 +27,7 @@ from backend.db.session import (
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.ai import (
     PostgresAIPreferenceMemoryRepository,
+    PostgresCreateFormPromptRepository,
     PostgresFlowEventRepository,
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
@@ -68,6 +69,7 @@ from backend.app.repositories.postgres.refdata import (
     PostgresAllowedOriginsRepository,
     PostgresCouponRepository,
     PostgresFormPluginProviderRepository,
+    PostgresPriceSuggestionRepository,
     PostgresUserFeedbackRepo,
 )
 
@@ -86,6 +88,12 @@ from backend.app.repositories.workspace_domain_repository import (
 from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.coupon_repository import CouponRepository
+from backend.app.repositories.create_form_prompt_repository import (
+    CreateFormPromptRepository,
+)
+from backend.app.repositories.price_suggestion_repository import (
+    PriceSuggestionRepository,
+)
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
@@ -619,6 +627,19 @@ class AppContainer(containers.DeclarativeContainer):
             postgres_repository, PostgresMcpAuditLogRepository, pg_sessionmaker
         ),
     )
+    # the prompts AI-generated forms were built from (services/openai_service.py)
+    create_form_prompt_repo: CreateFormPromptRepository = providers.Singleton(
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(CreateFormPromptRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresCreateFormPromptRepository, pg_sessionmaker
+        ),
+    )
     # the public API's Idempotency-Key records (services/idempotency.py)
     idempotency_repo: IdempotencyRepository = providers.Singleton(
         RoutingRepository,
@@ -716,12 +737,8 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_schedular = providers.Singleton(
         FormSchedular,
-        form_provider_service=form_provider_service,
-        form_import_service=form_import_service,
-        jwt_service=jwt_service,
         temporal_service=temporal_service,
         form_response_service=form_response_service,
-        workspace_form_repo=workspace_form_repo,
     )
 
     responder_groups_service = providers.Singleton(
@@ -751,7 +768,6 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
         workspace_form_repository=workspace_form_repo,
         form_repo=form_repo,
-        form_schedular=form_schedular,
         form_import_service=form_import_service,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
@@ -869,6 +885,7 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         ai_consent_service=ai_consent_service,
         ai_usage_guard=ai_usage_guard,
+        create_form_prompt_repo=create_form_prompt_repo,
     )
 
     form_outline_service: FormOutlineService = providers.Singleton(
@@ -1143,10 +1160,24 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
     )
 
+    price_suggestion_repo: PriceSuggestionRepository = providers.Singleton(
+        RoutingRepository,
+        group="refdata",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        postgres=providers.Singleton(
+            postgres_repository, PostgresPriceSuggestionRepository, pg_sessionmaker
+        ),
+        mongo=providers.Singleton(PriceSuggestionRepository),
+    )
+
     price_suggestion_service = providers.Singleton(
         PriceSuggestionService,
         auth_service=auth_service,
         workspace_service=workspace_service,
+        price_suggestion_repo=price_suggestion_repo,
     )
 
     media_library_repo = providers.Singleton(

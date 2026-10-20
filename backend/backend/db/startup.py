@@ -16,13 +16,13 @@ from loguru import logger
 
 import backend
 from backend.db.base import SCHEMA
+from backend.db.groups import GROUPS
 from backend.jobs.app import JOB_NAMES
 from backend.jobs.schema import JOBS_SCHEMA
 from common.db import MigrationTarget
 from common.db import check_postgres_at_startup as _check
 from common.db import dispose_engine
 
-GROUPS = ("refdata", "identity", "forms", "responses", "actions", "ai", "analytics")
 MIGRATIONS = MigrationTarget.for_package(backend, SCHEMA, service="backend")
 
 

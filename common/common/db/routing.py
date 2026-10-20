@@ -32,6 +32,7 @@ from typing import Any, Callable, Optional
 
 from pydantic import BaseModel
 
+from common.clock import write_clock
 from common.db.flags import DbFlags, ReadSource
 
 logger = logging.getLogger(__name__)
@@ -241,11 +242,14 @@ class RoutingRepository:
         async def method(*args, **kwargs):
             self._metrics.calls[(self._group, name)] += 1
             primary = self._flags.primary_store(self._group)
-            result = await self._impl(primary, name)(*args, **kwargs)
-            mirror = self._flags.mirror_store(self._group)
-            if mirror is not None and self._stores[mirror] is not None:
-                documents = persisted_documents(result) if replay else []
-                await self._mirror(name, mirror, args, kwargs, documents)
+            # One clock reading for the primary and its mirror: a re-executed
+            # write stamps the same created_at/updated_at in both stores.
+            with write_clock():
+                result = await self._impl(primary, name)(*args, **kwargs)
+                mirror = self._flags.mirror_store(self._group)
+                if mirror is not None and self._stores[mirror] is not None:
+                    documents = persisted_documents(result) if replay else []
+                    await self._mirror(name, mirror, args, kwargs, documents)
             return result.value if isinstance(result, WriteResult) else result
 
         return method
@@ -256,8 +260,16 @@ class RoutingRepository:
         if hook is not None:
             await hook(documents)
             return
-        for document in documents:  # a Beanie repository: save() is an upsert by id
-            await document.save()
+        # A Beanie repository: store each document exactly as the primary
+        # persisted it. ``save()`` would re-stamp updated_at and only $set the
+        # fields, leaving keys the primary no longer holds.
+        from common.db.beanie_bridge import is_beanie_document, store_exactly
+
+        for document in documents:
+            if is_beanie_document(document):
+                await store_exactly(document)
+            else:
+                await document.save()
 
     async def _mirror(
         self, name: str, store: ReadSource, args, kwargs, documents: list = ()
