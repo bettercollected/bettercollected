@@ -53,6 +53,31 @@ def _num(value):
     return {"type": "number", "number": value}
 
 
+def _places_holding(value, node, path="$"):
+    """Where ``value`` appears in decoded JSON: as a number, or as a whole
+    string (so a hidden result is caught however it is serialised, while ids,
+    uuids and timestamps that merely contain its digits are not)."""
+    if isinstance(node, dict):
+        return [
+            hit
+            for key, child in node.items()
+            for hit in _places_holding(value, child, f"{path}.{key}")
+        ]
+    if isinstance(node, list):
+        return [
+            hit
+            for index, child in enumerate(node)
+            for hit in _places_holding(value, child, f"{path}[{index}]")
+        ]
+    if isinstance(node, bool):
+        return []
+    if isinstance(node, (int, float)) and node == value:
+        return [path]
+    if isinstance(node, str) and node.strip() == str(value):
+        return [path]
+    return []
+
+
 # --- cap, placement, Required -------------------------------------------------
 
 
@@ -415,7 +440,7 @@ async def test_hidden_calculations_never_reach_the_respondent(client, workspace)
     assert mine.status_code == 200
     answers = mine.json()["response"]["answers"]
     assert answers["total"]["number"] == 6
-    assert "risk" not in answers and "3333" not in mine.text
+    assert "risk" not in answers and _places_holding(3333, mine.json()) == []
     # nor its definition (title, formula): the view shows answers only
     assert _field_ids(mine.json()["form"]) == ["p0", "qty", "total"]
     assert "Risk score" not in mine.text
@@ -424,7 +449,7 @@ async def test_hidden_calculations_never_reach_the_respondent(client, workspace)
         f"/api/v1/workspaces/{workspace.id}/submissions/by-uuid/{response.submission_uuid}"
     )
     assert receipt.status_code == 200
-    assert "3333" not in receipt.text
+    assert _places_holding(3333, receipt.json()) == []
     assert _field_ids(receipt.json()["form"]) == ["p0", "qty", "total"]
     assert "Risk score" not in receipt.text
 
@@ -444,11 +469,13 @@ async def test_hidden_calculations_never_reach_the_respondent(client, workspace)
     )
     assert page.items
     for item in page.items:
-        dumped = json.dumps(
-            item.model_dump(mode="json") if hasattr(item, "model_dump") else item,
-            default=str,
+        dumped = json.loads(
+            json.dumps(
+                item.model_dump(mode="json") if hasattr(item, "model_dump") else item,
+                default=str,
+            )
         )
-        assert "3333" not in dumped
+        assert _places_holding(3333, dumped) == []
 
     # staff see it
     staff = await client.get(
@@ -456,3 +483,5 @@ async def test_hidden_calculations_never_reach_the_respondent(client, workspace)
         cookies=_cookies(testUser),
     )
     assert staff.json()["response"]["answers"]["risk"]["number"] == 3333
+    # the search above finds the value where it is present
+    assert _places_holding(3333, staff.json()) == ["$.response.answers.risk.number"]
