@@ -38,10 +38,13 @@ others in the CI log), from `backend/` with the test databases running:
 
 ```sh
 DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres \
-  uv run pytest -n 4 --dist loadgroup --store-durations
+  uv run pytest -n 4 --dist loadgroup --store-durations --clean-durations
 ```
 
-and commit `backend/.test_durations`. Running one shard locally:
+and commit `backend/.test_durations`. The file holds every test id, so a
+parametrized test must not put its values in its id: give it `ids=` that name
+the case (`tests/test_durations_file.py` fails when an id looks like a key or
+token). Running one shard locally:
 
 ```sh
 uv run pytest -n 4 --dist loadgroup --splits 12 --group 3 --splitting-algorithm least_duration
