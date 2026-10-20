@@ -15,19 +15,25 @@
 # diff against its base, HEAD^1..HEAD).
 set -euo pipefail
 
-BACKEND_SHARDS=8 # see docs/ci.md
-SIDE_SHARDS=2    # mongo and dual on develop/nightly, without the admin suite
-# a manual run may try another count (to measure)
-if [[ "${SHARDS:-}" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 16 ]; then
-    BACKEND_SHARDS=$SHARDS
-fi
-
 full=false
 case "${EVENT:-pull_request}" in
 pull_request) ;;
 workflow_dispatch) [ "${SCOPE:-full}" = full ] && full=true ;;
 *) full=true ;;
 esac
+
+# Postgres backend shards. A shard job has ~45 s of fixed cost on a hosted
+# runner (setup, database start, pytest start-up and collection), so more
+# shards help less and less, and every job counts against the organisation's
+# 20 concurrent jobs. Measured PR wall time: 8 shards ~140 s, 12 ~107 s.
+# Full runs are not waited on, so they use fewer, longer shards.
+BACKEND_SHARDS=12
+[ "$full" = true ] && BACKEND_SHARDS=8
+SIDE_SHARDS=2 # mongo and dual (full runs), without the admin suite
+# a manual run may try another count (to measure)
+if [[ "${SHARDS:-}" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 16 ]; then
+    BACKEND_SHARDS=$SHARDS
+fi
 
 backend=false auth=false google=false common=false webapp=false
 everything() { backend=true auth=true google=true common=true webapp=true; }

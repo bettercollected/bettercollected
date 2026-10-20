@@ -23,7 +23,9 @@ app on every webapp change.
 
 ## Backend shards
 
-The backend suite runs in 8 parallel jobs. [pytest-split] gives each job a
+The backend suite runs in 12 parallel jobs on a pull request (8 in the full
+runs; the count is set in `ci-plan.sh`, and a manual run can try another one
+with its `shards` input). [pytest-split] gives each job a
 share of the tests with about the same total time, from the per-test durations
 recorded in `backend/.test_durations` (tests missing from the file count as the
 average, so new tests are fine until the next refresh). In the full runs the
@@ -42,7 +44,7 @@ DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres \
 and commit `backend/.test_durations`. Running one shard locally:
 
 ```sh
-uv run pytest -n 4 --dist loadgroup --splits 8 --group 3 --splitting-algorithm least_duration
+uv run pytest -n 4 --dist loadgroup --splits 12 --group 3 --splitting-algorithm least_duration
 ```
 
 [pytest-split]: https://github.com/jerry-git/pytest-split
