@@ -51,9 +51,17 @@ keyset the services run with: the primary key of ``--keyset-file`` must be the
 primary of ``MASTER_ENCRYPTION_KEYSET`` in the environment, so nothing is ever
 re-encrypted under a key the services do not have.
 
-``drop-old`` always scans every target in every store of that rule
-(``--target`` / ``--store`` are refused). It refuses, writing nothing, while
-any value still uses a key other than the primary, or while a store the
+``drop-old`` always scans every target (``--target`` / ``--store`` are
+refused) in BOTH stores, Mongo and Postgres, each configured, or refuses
+(``store_not_configured``), as ``keyset.drop_old`` does
+(``keyset_state.DataConfig.drop_old_stores``): the write mode in this
+environment only orders them (an unknown one refuses), it never leaves a store
+out, since a wrong copy of it would leave values in the other store on the
+dropped key. ``--mongo-retired`` scans Postgres alone and is refused
+(``mongo_not_retired``) unless ``DB_WRITE_MODE``, ``DB_WRITE_MODE__RESPONSES``
+and ``DB_WRITE_MODE__GOOGLE`` all say ``postgres`` (an unset override follows
+``DB_WRITE_MODE``; an unset default refuses). It refuses, writing nothing,
+while any value still uses a key other than the primary, or while a store the
 services write holds no records at all: a wrong or empty database would
 otherwise pass as clean (``--allow-empty`` when that is really so). Otherwise
 it writes a keyset holding the primary key only.
@@ -81,8 +89,10 @@ from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     run_reencrypt,
     scan,
 )
+from backend.admin.tasks.impl.keyset_state import DataConfig
 from backend.admin.tasks.impl.responses_common import (
     plan_task_stores,
+    write_mode_env,
     written_stores,
 )
 from backend.admin.tasks.spec import Refusal
@@ -219,6 +229,14 @@ def _parse(argv: List[str]) -> argparse.Namespace:
         action="store_true",
         help="accept a store that holds no records (e.g. Google Forms never used)",
     )
+    drop_old.add_argument(
+        "--mongo-retired",
+        action="store_true",
+        help="no service writes Mongo any more: scan Postgres alone (refused "
+        "unless DB_WRITE_MODE, DB_WRITE_MODE__RESPONSES and "
+        "DB_WRITE_MODE__GOOGLE are all postgres); values left in Mongo or its "
+        "backups become unreadable",
+    )
     return parser.parse_args(argv)
 
 
@@ -243,18 +261,48 @@ STORE_REFUSALS = {
     ),
     "store_not_configured": (
         "a store it needs is not configured here (MONGO_URI, or {url_setting} "
-        "for Postgres)"
+        "for Postgres); drop-old needs both Mongo and Postgres unless "
+        "--mongo-retired"
+    ),
+    "mongo_not_retired": (
+        "--mongo-retired needs DB_WRITE_MODE, DB_WRITE_MODE__RESPONSES and "
+        "DB_WRITE_MODE__GOOGLE all set to postgres here (an unset override "
+        "follows DB_WRITE_MODE), as the services run"
     ),
 }
 
 
 def plan_stores(target: Target, store_choice: str, env=os.environ) -> List[str]:
     """Store names for ``target``, primary first, by the keyset tasks' store
-    rule (``responses_common.plan_task_stores``). Raises ``Refusal``
-    (``write_mode_unknown`` / ``store_not_configured``)."""
+    rule (``responses_common.plan_task_stores``), for ``reencrypt``. Raises
+    ``Refusal`` (``write_mode_unknown`` / ``store_not_configured``)."""
     uri, _, url = _target_settings(target, env)
     configured = [name for name, ok in (("mongo", uri), ("postgres", url)) if ok]
     return plan_task_stores(StoreChoice(store_choice), configured, target.group, env)
+
+
+def _data_config(env=os.environ) -> DataConfig:
+    """This environment as ``keyset.drop_old`` sees its runner's (with this
+    script's fallback of the Google credentials to ``DATABASE_URL``)."""
+    uri, mongo_db, url = _target_settings(RESPONSES, env)
+    _, google_mongo_db, google_url = _target_settings(GOOGLE_CREDENTIALS, env)
+    return DataConfig(
+        mongo_uri=uri or None,
+        mongo_db=mongo_db,
+        google_mongo_db=google_mongo_db,
+        database_url=url or None,
+        google_database_url=google_url or None,
+        env=write_mode_env(env),
+    )
+
+
+def plan_drop_old(target: Target, mongo_retired: bool, env=os.environ) -> List[str]:
+    """The stores ``drop-old`` scans, primary first: exactly
+    ``keyset.drop_old``'s rule (``DataConfig.drop_old_stores``). Both stores,
+    each configured, unless ``mongo_retired``, which is refused unless the
+    write mode is ``postgres`` for every group. Raises ``Refusal``
+    (``store_not_configured`` / ``write_mode_unknown`` / ``mongo_not_retired``)."""
+    return _data_config(env).drop_old_stores(target, mongo_retired)
 
 
 def store_refusal_message(refusal: Refusal, target: Target) -> str:
@@ -338,8 +386,9 @@ async def _main(argv: List[str]) -> int:
             return 2
     if args.command == "drop-old" and (args.target or args.store != "auto"):
         print(
-            "drop-old always checks every target in every store the services "
-            "write: run it without --target and --store. Dropping a key after "
+            "drop-old always checks every target in every store (Mongo and "
+            "Postgres, unless --mongo-retired): run it without --target and "
+            "--store. Dropping a key after "
             "checking only part of the data would make the rest unreadable.",
             file=sys.stderr,
         )
@@ -350,9 +399,11 @@ async def _main(argv: List[str]) -> int:
     written: Dict[str, List[str]] = {}
     for target in targets:
         try:
-            plans[target.name] = plan_stores(target, args.store)
             if args.command == "drop-old":
+                plans[target.name] = plan_drop_old(target, args.mongo_retired)
                 written[target.name] = written_stores(target.group, os.environ)
+            else:
+                plans[target.name] = plan_stores(target, args.store)
         except Refusal as refusal:
             print(store_refusal_message(refusal, target), file=sys.stderr)
             return 2

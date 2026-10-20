@@ -91,8 +91,17 @@ for the Google credentials). An unset or unknown write mode stops it before anyt
 container has none (the services read it from the settings store), add
 `-e DB_WRITE_MODE=<the services' value>` (and any override they use) to `rotate`. For
 `reencrypt`, `--target` and `--store mongo|postgres|both` narrow or override that; a named store
-needs no write mode, only its connection. `drop-old` refuses both options: it always checks every
-target in every store of the rule, and refuses an empty store only when the services write it.
+needs no write mode, only its connection. `drop-old` refuses both options and follows
+`keyset.drop_old`'s rule instead (see "`drop_old` does not rely on the runner's copy of the write
+mode" below): it checks every target in BOTH stores, Mongo and Postgres, each configured, or
+refuses (`store_not_configured`); the write mode only orders them, and it refuses an empty store
+only when the services write it. `--mongo-retired` scans Postgres alone and is refused
+(`mongo_not_retired`) unless `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES` and
+`DB_WRITE_MODE__GOOGLE` in the container all say `postgres` (an unset override follows
+`DB_WRITE_MODE`; an unset default refuses). Unlike the task, the script cannot check the services'
+heartbeats (`write_stores` in `settings.service_state`) itself: before passing `--mongo-retired`,
+check there that no live backend or Google integration instance still writes Mongo (or reports
+nothing), for example with a dry run of `keyset.drop_old` with `mongo_retired`, which checks it.
 
 **The script only writes with the deployed keyset.** `reencrypt` (other than `--dry-run`) and
 `drop-old` check that the primary key of `--keyset-file` is the primary of the
