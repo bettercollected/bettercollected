@@ -159,3 +159,48 @@ def test_duplicate_memberships_stop_0011_before_it_changes_anything(scratch_url)
         )
     )
     command.upgrade(config, "head")
+
+
+def _memory(oid: str, user_id: str) -> str:
+    return (
+        "INSERT INTO app.ai_preference_memories (id, doc, _bc_checksum) VALUES "
+        f"('{oid}', jsonb_build_object('_id', jsonb_build_object('$oid', '{oid}'), "
+        "'workspace_id', jsonb_build_object('$oid', '6ac000000000000000000001'), "
+        f"'user_id', '{user_id}'), 'x') RETURNING id"
+    )
+
+
+def test_duplicate_ai_memories_stop_0018_before_it_changes_anything(scratch_url):
+    """Revision 0018's unique (workspace_id, user_id) index refuses, with counts
+    only and before any change, while duplicates exist; nothing is deleted."""
+    config = _config(scratch_url)
+    command.upgrade(config, "0017")
+    for oid in ("a" * 24, "b" * 24):
+        asyncio.run(_execute(scratch_url, _memory(oid, "user-1")))
+    asyncio.run(_execute(scratch_url, _memory("c" * 24, "user-2")))
+
+    with pytest.raises(RuntimeError) as refused:
+        command.upgrade(config, "head")
+    message = str(refused.value)
+    assert "1 (workspace_id, user_id) pairs held by 2 rows" in message
+    assert "user-1" not in message and "a" * 24 not in message
+
+    rows = asyncio.run(
+        _execute(scratch_url, "SELECT id FROM app.ai_preference_memories")
+    )
+    assert len(rows) == 3
+    version = asyncio.run(
+        _execute(scratch_url, "SELECT version_num FROM app.alembic_version")
+    )
+    assert version == [("0017",)]
+    # resolved by hand: it goes through, and the index holds from then on
+    asyncio.run(
+        _execute(
+            scratch_url,
+            f"DELETE FROM app.ai_preference_memories WHERE id = '{'b' * 24}' "
+            "RETURNING id",
+        )
+    )
+    command.upgrade(config, "head")
+    with pytest.raises(Exception, match="uq_ai_preference_memories_workspace_user"):
+        asyncio.run(_execute(scratch_url, _memory("d" * 24, "user-1")))

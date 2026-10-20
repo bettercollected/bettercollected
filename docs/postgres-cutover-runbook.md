@@ -205,6 +205,27 @@ group, then run `verify` again. Also under `postgres_primary_dual`: a write repl
 saved with a fresh `updated_at`, so `verify` can report it as mismatched;
 `reconcile --direction postgres->mongo` rewrites it from the row.
 
+## Duplicate AI preference memories
+
+Revision `0018` makes (`workspace_id`, `user_id`) unique in `app.ai_preference_memories`, as
+Mongo's `workspace_user_unique` already is. It is a plain `CREATE UNIQUE INDEX` in the migration's
+transaction (not `CONCURRENTLY`, which `DB_AUTO_MIGRATE` cannot run; the table is small), so it
+goes through `deploy.sh` and `DB_AUTO_MIGRATE` alike. While Mongo is written first its unique index
+keeps Postgres free of duplicates; only a stack that already wrote `postgres` or
+`postgres_primary_dual` for the `ai` group could hold some. Then the migration refuses before
+changing anything, naming only the counts, and the service does not start until they are resolved.
+Nothing is merged automatically (two rows hold separate learned entries and consent times). List
+them by id:
+
+```sql
+SELECT workspace_id, user_id, array_agg(id ORDER BY updated_at DESC) AS ids
+FROM app.ai_preference_memories
+GROUP BY workspace_id, user_id HAVING count(*) > 1;
+```
+
+Keep the row Mongo holds if Mongo is still written, else the most recently updated one, delete the
+others (by `id`), and migrate again.
+
 ## Phase 3 — remove Mongo and Temporal
 
 Only after two weeks fully on Postgres with everything at `postgres`/`postgres`:

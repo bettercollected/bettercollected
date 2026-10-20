@@ -97,7 +97,7 @@ async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(t
         "postgres": 2,
     }
     assert set(marker.collections) == set(_tables())
-    assert "+schema.0017" in marker.code_version
+    assert "+schema.0018" in marker.code_version
     assert marker.run_id == runner.run_id
     rows = await marker_rows()
     assert sorted(r["scope"] for r in rows) == [SCOPE_GROUP] * len(GROUPS) + [
