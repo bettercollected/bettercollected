@@ -240,8 +240,7 @@ class PgSnapshotSource:
         async def go() -> None:
             conn = await self._connect()
             try:
-                await conn.execute(
-                    "SELECT settings.report_state($1, $2, $3, $4, $5, $6)",
+                args = (
                     instance,
                     int(report["revision_applied"]),
                     list(report["env_overrides"]),
@@ -249,6 +248,20 @@ class PgSnapshotSource:
                     bool(report["restart_pending"]),
                     str(report["keyset_fp"]),
                 )
+                try:
+                    await conn.execute(
+                        "SELECT settings.report_state($1, $2, $3, $4, $5, $6, $7)",
+                        *args,
+                        str(report.get("write_stores", "")),
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    # a store from before admin revision 0018 (rolling deploy):
+                    # report without the write stores
+                    if getattr(exc, "sqlstate", None) != "42883":  # undefined_function
+                        raise
+                    await conn.execute(
+                        "SELECT settings.report_state($1, $2, $3, $4, $5, $6)", *args
+                    )
             finally:
                 await conn.close()
 

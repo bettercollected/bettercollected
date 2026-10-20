@@ -46,7 +46,8 @@
   </fieldset>
   {% elif f.kind == "bool" %}
   <div class="field">
-    <label class="check" for="{{ f.input_name }}"><input type="checkbox" id="{{ f.input_name }}" name="{{ f.input_name }}"{% if values[f.input_name] %} checked{% endif %}{% if err %} aria-invalid="true"{% endif %}> {{ f.label }}</label>
+    <label class="check" for="{{ f.input_name }}"><input type="checkbox" id="{{ f.input_name }}" name="{{ f.input_name }}"{% if values[f.input_name] %} checked{% endif %}{% if f.description %} aria-describedby="{{ f.input_name }}-hint"{% endif %}{% if err %} aria-invalid="true"{% endif %}> {{ f.label }}</label>
+    {% if f.description %}<p class="hint" id="{{ f.input_name }}-hint">{{ f.description }}</p>{% endif %}
     {% if err %}<p class="error">{{ _("Not accepted.") }}</p>{% endif %}
   </div>
   {% else %}

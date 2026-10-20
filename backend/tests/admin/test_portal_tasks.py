@@ -798,6 +798,22 @@ async def test_keyset_form_renders_checkboxes_and_promote_needs_a_dry_run_first(
     assert (await ctx.runs("keyset.add_key"))[0]["params"] == {} and empty
 
 
+async def test_drop_old_form_offers_mongo_retired_unticked_and_signs_and_audits_it(ctx):
+    """Retiring Mongo is an explicit decision: an unticked checkbox with its
+    explanation, bound into the signed request and recorded in the audit row."""
+    html = (await ctx.b.get("/tasks/keyset.drop_old")).text
+    assert 'name="p_mongo_retired"' in html
+    assert re.search(r'name="p_mongo_retired" checked', html) is None
+    assert "DB_WRITE_MODE=postgres" in html
+    await ctx.dry_run("keyset.drop_old", {"typeform_acknowledged": "on", "mongo_retired": "on"})
+    (row,) = await ctx.runs("keyset.drop_old")
+    assert row["params"]["mongo_retired"] is True and signing.verify_request(dict(row))
+    (entry,) = await ctx.audit_rows("task.run.requested")
+    assert entry["after"]["params"]["mongo_retired"] is True
+    tampered = {**dict(row), "params": {**row["params"], "mongo_retired": False}}
+    assert not signing.verify_request(tampered)
+
+
 async def test_refused_confirmation_comes_back_with_one_fixed_notice(ctx):
     page = await ctx.b.get(f"/tasks/{SLOW}?notice=step_up_required")
     assert "confirmation did not work" in page.text

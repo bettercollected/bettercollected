@@ -262,6 +262,8 @@ class ServiceState:
     rejected_keys: Tuple[str, ...] = ()
     restart_pending: bool = False
     keyset_fp: str = ""
+    # the data stores the process writes (common.db.flags.write_stores_report)
+    write_stores: str = ""
 
     def to_report(self) -> Mapping[str, object]:
         return {
@@ -271,6 +273,7 @@ class ServiceState:
             "rejected_keys": sorted(self.rejected_keys),
             "restart_pending": self.restart_pending,
             "keyset_fp": self.keyset_fp,
+            "write_stores": self.write_stores,
         }
 
     @classmethod

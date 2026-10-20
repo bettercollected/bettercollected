@@ -160,6 +160,7 @@ def test_messages_and_reports_carry_no_values(snap, keys):
         "rejected_keys": ["MAIL_PASSWORD", "MAIL_SMTP_PORT"],
         "restart_pending": False,
         "keyset_fp": "abc",
+        "write_stores": "",
     }
 
 
