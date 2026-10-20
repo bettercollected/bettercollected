@@ -28,7 +28,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
-from common.db.flags import WriteMode
+from common.db.flags import ReadSource, WriteMode
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from httpx import AsyncClient
@@ -1122,17 +1122,20 @@ def _allowed(case: Case) -> FrozenSet[str]:
     return case.allowed
 
 
-# The matrix tests authorization, not storage. It runs in the Mongo mode and
-# in the Postgres-served mode, so every endpoint x role check runs against
-# each store; in the mirrored-writes mode (DB_WRITE_MODE=dual) it would only
-# repeat the Mongo run with a mirror behind it, at most of that job's time.
-skip_when_mirrored = pytest.mark.skipif(
-    container.flags().default_write is WriteMode.DUAL,
-    reason="authorization, not storage: covered by the mongo and postgres modes",
+# The matrix tests authorization, not storage, and seeding a workspace for each
+# of its ~1,450 cases is the slowest part of the app suite. It runs once, in the
+# Postgres-served mode (the store the service is moving to); in the Mongo and
+# mirrored modes it would only repeat the same endpoint x role checks.
+only_when_served_from_postgres = pytest.mark.skipif(
+    not (
+        container.flags().default_read is ReadSource.POSTGRES
+        and container.flags().default_write is WriteMode.POSTGRES
+    ),
+    reason="authorization, not storage: covered by the postgres mode",
 )
 
 
-@skip_when_mirrored
+@only_when_served_from_postgres
 @pytest.mark.parametrize("role", ROLES)
 @pytest.mark.parametrize("case", CASES, ids=[case.name for case in CASES])
 async def test_permission_matrix(
