@@ -21,6 +21,14 @@ export default defineConfig({
         // isolated). The default pool built jsdom once per file: 162 times,
         // a third of the run's time.
         pool: 'vmThreads',
+        deps: {
+            optimizer: {
+                // html-react-parser is CommonJS that requires an ES module
+                // (domhandler); Node 22 cannot load that inside a VM context.
+                // Pre-bundled by Vite it is one ES module.
+                client: { enabled: true, include: ['html-react-parser'] }
+            }
+        },
         setupFiles: ['./vitest.setup.ts'],
         include: ['src/**/*.{test,spec}.{ts,tsx}'],
         css: false,
