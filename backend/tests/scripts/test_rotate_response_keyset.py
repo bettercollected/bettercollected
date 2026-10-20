@@ -13,6 +13,7 @@ from beanie import PydanticObjectId
 from bson import ObjectId
 from sqlalchemy import text
 
+from backend.admin.tasks.spec import Refusal
 from backend.app.container import container
 from backend.app.repositories.postgres.forms import PostgresWorkspaceFormRepository
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
@@ -33,6 +34,7 @@ from scripts.rotate_response_keyset import (
     MongoStore,
     PostgresStore,
     _main,
+    plan_stores,
 )
 from tests.conftest import (
     TEST_MONGO_DB,
@@ -281,6 +283,21 @@ async def stores(request, google_table, monkeypatch):
     monkeypatch.setenv("DB_WRITE_MODE", write)
     monkeypatch.setenv("DB_READ_SOURCE", read)
     return request.param
+
+
+@pytest.fixture(autouse=True)
+def _only_the_chosen_stores(request, monkeypatch):
+    """For this script's tests: only the chosen stores are configured, since
+    ``auto`` also covers any other configured store (see
+    test_drop_old_scans_a_configured_store_the_services_no_longer_write)."""
+    if "stores" not in request.fixturenames:
+        return
+    choice = request.getfixturevalue("stores")
+    if choice == "mongo":
+        monkeypatch.setenv("DATABASE_URL", "")
+        monkeypatch.setenv("GOOGLE_DATABASE_URL", "")
+    elif choice == "postgres":
+        monkeypatch.setenv("MONGO_URI", "")
 
 
 async def seed(store_choice, data):
@@ -704,3 +721,138 @@ async def test_refuses_to_reencrypt_under_a_published_primary(capsys, monkeypatc
 async def test_a_written_keyset_reads_as_the_services_read_it():
     value = encode_keyset(parse_keyset(os.environ["MASTER_ENCRYPTION_KEYSET"]))
     assert CryptoService(value).primary_key_id == OLD_KEY
+
+
+# --- the store rule (as the keyset tasks: responses_common.plan_task_stores) ---
+
+PG_URL = "postgresql+asyncpg://user@db.invalid/app"
+
+
+def _env(**values):
+    base = {"MONGO_URI": "mongodb://db.invalid", "DATABASE_URL": PG_URL}
+    return {k: v for k, v in {**base, **values}.items() if v is not None}
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("mongo", ["mongo", "postgres"]),
+        ("dual", ["mongo", "postgres"]),
+        ("postgres_primary_dual", ["postgres", "mongo"]),
+        ("postgres", ["postgres", "mongo"]),
+        ("DUAL", ["mongo", "postgres"]),
+    ],
+)
+async def test_auto_follows_the_write_mode_primary_first(mode, expected):
+    """The written stores, primary first, then any other configured store."""
+    assert plan_stores(RESPONSES, "auto", _env(DB_WRITE_MODE=mode)) == expected
+    only_mongo = _env(DB_WRITE_MODE=mode, DATABASE_URL=None)
+    if mode == "mongo":
+        assert plan_stores(RESPONSES, "auto", only_mongo) == ["mongo"]
+    else:  # a store the services write is not configured
+        with pytest.raises(Refusal, match="store_not_configured"):
+            plan_stores(RESPONSES, "auto", only_mongo)
+
+
+async def test_auto_reads_the_group_override_first():
+    env = _env(DB_WRITE_MODE__responses="postgres", DB_WRITE_MODE="mongo")
+    assert plan_stores(RESPONSES, "auto", env)[0] == "postgres"
+    assert plan_stores(GOOGLE_CREDENTIALS, "auto", env)[0] == "mongo"
+    # the Google credentials' Postgres URL falls back to DATABASE_URL
+    env = _env(DB_WRITE_MODE__GOOGLE="postgres", MONGO_URI=None)
+    assert plan_stores(GOOGLE_CREDENTIALS, "auto", env) == ["postgres"]
+    with pytest.raises(Refusal, match="write_mode_unknown"):
+        plan_stores(RESPONSES, "auto", env)
+
+
+@pytest.mark.parametrize("mode", [None, "", "  ", "mongodb", "both"])
+async def test_auto_refuses_an_unknown_write_mode(mode):
+    """Unset is never guessed as the services' default (mongo)."""
+    with pytest.raises(Refusal, match="write_mode_unknown"):
+        plan_stores(RESPONSES, "auto", _env(DB_WRITE_MODE=mode))
+
+
+async def test_a_named_store_needs_no_write_mode_but_a_connection():
+    env = _env()
+    assert plan_stores(RESPONSES, "mongo", env) == ["mongo"]
+    assert plan_stores(RESPONSES, "postgres", env) == ["postgres"]
+    assert plan_stores(RESPONSES, "both", env) == ["mongo", "postgres"]
+    with pytest.raises(Refusal, match="store_not_configured"):
+        plan_stores(RESPONSES, "postgres", _env(DATABASE_URL=""))
+    with pytest.raises(Refusal, match="store_not_configured"):
+        plan_stores(RESPONSES, "both", _env(MONGO_URI=None))
+
+
+def _no_write_mode(monkeypatch):
+    for name in list(os.environ):
+        if name.upper().startswith("DB_WRITE_MODE"):
+            monkeypatch.delenv(name)
+
+
+@pytest.mark.parametrize("command", ["reencrypt", "drop-old"])
+async def test_the_cli_refuses_an_unset_write_mode_before_opening_anything(
+    command, tmp_path, capsys, monkeypatch
+):
+    rotated_file, _, _ = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+    _no_write_mode(monkeypatch)
+    monkeypatch.setenv("MONGO_URI", "mongodb://db.invalid:1")
+    final_file = tmp_path / "final.keyset"
+    args = [command, "--keyset-file", str(rotated_file)]
+    if command == "drop-old":
+        args += ["--out", str(final_file)]
+    code, err = await cli(capsys, *args)
+    assert code == 2
+    assert "write_mode_unknown" in err and "DB_WRITE_MODE" in err
+    assert "db.invalid" not in err
+    assert not final_file.exists()
+
+
+async def test_a_named_store_runs_without_a_write_mode(capsys, monkeypatch):
+    _no_write_mode(monkeypatch)
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+    args = ["reencrypt", "--dry-run", "--store", "mongo", "--target", "responses"]
+    code, report = await cli(capsys, *args)
+    assert code == 0 and list(report["targets"]["responses"]) == ["mongo"]
+
+
+async def test_drop_old_scans_a_configured_store_the_services_no_longer_write(
+    google_table, tmp_path, capsys, monkeypatch
+):
+    """Services on ``mongo`` only, Postgres still reachable and holding old
+    values: drop-old refuses until that store is re-encrypted too. An empty
+    store the services do not write does not count as a wrong database."""
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+    monkeypatch.setenv("GOOGLE_MONGO_DB", TEST_MONGO_DB)
+    monkeypatch.setenv("GOOGLE_DATABASE_URL", os.environ.get("DATABASE_URL", ""))
+    _no_write_mode(monkeypatch)
+    monkeypatch.setenv("DB_WRITE_MODE", "mongo")
+    await seed("both", Data())
+    rotated_file, _, new_key = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+    final_file = tmp_path / "final.keyset"
+    drop = ["drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)]
+
+    # only the store the services write is re-encrypted
+    code, _ = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--store", "mongo"
+    )
+    assert code == 0
+    code, refused = await cli(capsys, *drop)
+    assert code == 1 and refused["values_stale"] > 0
+    assert refused["targets"]["responses"]["postgres"]["values_stale"] > 0
+    assert refused["targets"]["responses"]["mongo"]["values_stale"] == 0
+    assert not final_file.exists()
+
+    # auto covers it (Mongo first, as written); then the Postgres responses are
+    # emptied: an empty store the services do not write is not refused
+    code, _ = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 0
+    await _truncate_postgres()
+    code, dropped = await cli(capsys, *drop)
+    assert code == 0, dropped
+    assert dropped["records"]["responses"]["postgres"] == 0
+    assert [k.key_id for k in parse_keyset(final_file.read_text()).key] == [new_key]

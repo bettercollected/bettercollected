@@ -82,10 +82,17 @@ rotate() {
 ```
 
 Each command prints a JSON report with key ids and counts only, and logs record ids and counts.
-By default it covers both targets and the stores the services write, following `DB_WRITE_MODE`
-and its `__responses` / `__google` overrides. For `reencrypt`, `--target` and
-`--store mongo|postgres|both` narrow or override that. `drop-old` refuses both options: it always
-checks every target in every store the services write.
+By default (`--store auto`) it covers both targets and follows the same store rule as the keyset
+tasks ("The store rule" below): every store the services write, from `DB_WRITE_MODE` and its
+`__RESPONSES` / `__GOOGLE` overrides in the container's environment, primary first, then any
+other store the container is configured for (`MONGO_URI`; `DATABASE_URL`, or `GOOGLE_DATABASE_URL`
+for the Google credentials). An unset or unknown write mode stops it before anything is opened
+(`write_mode_unknown`): it is never guessed, not even as the services' default `mongo`. If the
+container has none (the services read it from the settings store), add
+`-e DB_WRITE_MODE=<the services' value>` (and any override they use) to `rotate`. For
+`reencrypt`, `--target` and `--store mongo|postgres|both` narrow or override that; a named store
+needs no write mode, only its connection. `drop-old` refuses both options: it always checks every
+target in every store of the rule, and refuses an empty store only when the services write it.
 
 **The script only writes with the deployed keyset.** `reencrypt` (other than `--dry-run`) and
 `drop-old` check that the primary key of `--keyset-file` is the primary of the

@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -439,7 +438,9 @@ async def verify_store(
             contexts = target.contexts(record, links)
             for _, value in values:
                 context, _plain = rotation._open(contexts, value)
-                counts["values_openable" if context is not None else "values_unopenable"] += 1
+                counts[
+                    "values_openable" if context is not None else "values_unopenable"
+                ] += 1
         if on_batch is not None and await on_batch(counts["records"]):
             counts["stopped"] = 1
             break
@@ -541,24 +542,6 @@ async def _read_back(store, record_id: str, updates: Sequence[Update]) -> bool:
     return True
 
 
-def plan_stores(target: Target, store_choice: str, env=os.environ) -> List[str]:
-    """Store names, primary first, as the services write the target's group."""
-    if store_choice == "mongo":
-        return ["mongo"]
-    if store_choice == "postgres":
-        return ["postgres"]
-    if store_choice == "both":
-        return ["mongo", "postgres"]
-    from common.db.flags import load_flags
-
-    flags = load_flags(env)
-    stores = [flags.primary_store(target.group).value]
-    mirror = flags.mirror_store(target.group)
-    if mirror is not None:
-        stores.append(mirror.value)
-    return stores
-
-
 async def run_reencrypt(
     target: Target,
     stores: Sequence,
@@ -586,4 +569,3 @@ async def run_reencrypt(
         )
     report["last_id"] = last
     return report
-

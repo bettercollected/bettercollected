@@ -34,22 +34,29 @@ resumed by running it again (``--start-after <id>`` skips the ids done). A
 value is decrypted with the full keyset, encrypted with the primary key,
 checked to decrypt back to the same bytes and written only if the stored value
 is still the one read (a value the application changed meanwhile is counted
-and left for the next run). Which stores it writes follows the write mode
-(``DB_WRITE_MODE``, as the services use it): in a dual mode the primary
-store's new ciphertext is copied unchanged to the mirror, so the two stores
-stay identical. ``--dry-run`` counts only.
+and left for the next run). Which stores it covers follows the store rule of
+the keyset tasks (docs/response-keyset-rotation.md, "The store rule"): with
+``--store auto`` (the default), every store the services write for the
+target's group (``DB_WRITE_MODE__RESPONSES`` / ``DB_WRITE_MODE__GOOGLE``, else
+``DB_WRITE_MODE``), primary first, then any other store configured here
+(``MONGO_URI``; ``DATABASE_URL``, or ``GOOGLE_DATABASE_URL`` for the Google
+credentials). An unset or unknown write mode is refused
+(``write_mode_unknown``), never guessed; ``--store mongo|postgres|both``
+names the stores instead and needs no write mode. The primary store's new
+ciphertext is copied unchanged to the other, so the stores stay identical.
+``--dry-run`` counts only.
 
 ``reencrypt`` (apart from ``--dry-run``) and ``drop-old`` only work with the
 keyset the services run with: the primary key of ``--keyset-file`` must be the
 primary of ``MASTER_ENCRYPTION_KEYSET`` in the environment, so nothing is ever
 re-encrypted under a key the services do not have.
 
-``drop-old`` always scans every target in every store the services write
+``drop-old`` always scans every target in every store of that rule
 (``--target`` / ``--store`` are refused). It refuses, writing nothing, while
-any value still uses a key other than the primary, or while any store holds no
-records at all: a wrong or empty database would otherwise pass as clean
-(``--allow-empty`` when that is really so). Otherwise it writes a keyset
-holding the primary key only.
+any value still uses a key other than the primary, or while a store the
+services write holds no records at all: a wrong or empty database would
+otherwise pass as clean (``--allow-empty`` when that is really so). Otherwise
+it writes a keyset holding the primary key only.
 """
 
 from __future__ import annotations
@@ -60,8 +67,9 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     GOOGLE_CREDENTIALS,
     RESPONSES,
@@ -70,10 +78,14 @@ from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     PostgresStore,
     Rotation,
     Target,
-    plan_stores,
     run_reencrypt,
     scan,
 )
+from backend.admin.tasks.impl.responses_common import (
+    plan_task_stores,
+    written_stores,
+)
+from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
     KEYSET_ENV,
     KeysetError,
@@ -172,7 +184,8 @@ def _parse(argv: List[str]) -> argparse.Namespace:
             "--store",
             choices=("auto", "mongo", "postgres", "both"),
             default="auto",
-            help="auto = as DB_WRITE_MODE has the services write the target",
+            help="auto = every store the services write (DB_WRITE_MODE*; refused "
+            "when unset), then any other configured store",
         )
         command.add_argument("--batch-size", type=int, default=200)
 
@@ -210,15 +223,51 @@ def _parse(argv: List[str]) -> argparse.Namespace:
 
 
 def _target_settings(target: Target, env=os.environ) -> Tuple[str, str, str]:
-    """Mongo URI, Mongo database and Postgres URL a target lives in."""
-    uri = env.get("MONGO_URI", "mongodb://localhost")
+    """Mongo URI, Mongo database and Postgres URL a target lives in (an empty
+    URI or URL: that store is not configured here)."""
+    uri = (env.get("MONGO_URI") or "").strip()
     if target is GOOGLE_CREDENTIALS:
         database = env.get("GOOGLE_MONGO_DB", "bettercollected_googleform")
-        url = env.get("GOOGLE_DATABASE_URL") or env.get("DATABASE_URL", "")
+        url = env.get("GOOGLE_DATABASE_URL") or env.get("DATABASE_URL") or ""
     else:
         database = env.get("MONGO_DB", "bettercollected_backend")
-        url = env.get("DATABASE_URL", "")
-    return uri, database, url
+        url = env.get("DATABASE_URL") or ""
+    return uri, database, url.strip()
+
+
+STORE_REFUSALS = {
+    "write_mode_unknown": (
+        "no write mode for {group}: set DB_WRITE_MODE__{GROUP} or DB_WRITE_MODE "
+        "to the value the services run with (mongo, dual, postgres_primary_dual "
+        "or postgres), or name the stores with --store"
+    ),
+    "store_not_configured": (
+        "a store it needs is not configured here (MONGO_URI, or {url_setting} "
+        "for Postgres)"
+    ),
+}
+
+
+def plan_stores(target: Target, store_choice: str, env=os.environ) -> List[str]:
+    """Store names for ``target``, primary first, by the keyset tasks' store
+    rule (``responses_common.plan_task_stores``). Raises ``Refusal``
+    (``write_mode_unknown`` / ``store_not_configured``)."""
+    uri, _, url = _target_settings(target, env)
+    configured = [name for name, ok in (("mongo", uri), ("postgres", url)) if ok]
+    return plan_task_stores(StoreChoice(store_choice), configured, target.group, env)
+
+
+def store_refusal_message(refusal: Refusal, target: Target) -> str:
+    """The reason, naming settings only (never their values)."""
+    url_setting = (
+        "GOOGLE_DATABASE_URL / DATABASE_URL"
+        if target is GOOGLE_CREDENTIALS
+        else "DATABASE_URL"
+    )
+    template = STORE_REFUSALS.get(refusal.code, "")
+    return f"{target.name}: refused ({refusal.code}): " + template.format(
+        group=target.group, GROUP=target.group.upper(), url_setting=url_setting
+    )
 
 
 async def _open_stores(target: Target, names: List[str], closers: list) -> List:
@@ -296,6 +345,17 @@ async def _main(argv: List[str]) -> int:
         )
         return 2
     targets = [TARGETS[name] for name in (args.target or sorted(TARGETS))]
+    # every target's stores are planned before anything is opened or written
+    plans: Dict[str, List[str]] = {}
+    written: Dict[str, List[str]] = {}
+    for target in targets:
+        try:
+            plans[target.name] = plan_stores(target, args.store)
+            if args.command == "drop-old":
+                written[target.name] = written_stores(target.group, os.environ)
+        except Refusal as refusal:
+            print(store_refusal_message(refusal, target), file=sys.stderr)
+            return 2
     report: Dict[str, Any] = {
         "command": args.command,
         "keyset": describe_keyset(keyset),
@@ -304,9 +364,7 @@ async def _main(argv: List[str]) -> int:
     closers: list = []
     try:
         for target in targets:
-            stores = await _open_stores(
-                target, plan_stores(target, args.store), closers
-            )
+            stores = await _open_stores(target, plans[target.name], closers)
             if args.command == "reencrypt":
                 report["mode"] = "dry-run" if args.dry_run else "apply"
                 report["targets"][target.name] = await run_reencrypt(
@@ -339,11 +397,13 @@ async def _main(argv: List[str]) -> int:
             for counts in stores.values()
         )
         report["values_stale"] = stale
+        # a store the services write must hold records; another configured
+        # store (one they no longer write) may be empty
         empty = [
             f"{target} in {store}"
             for target, stores in report["records"].items()
             for store, records in stores.items()
-            if records == 0
+            if records == 0 and store in written[target]
         ]
         if stale:
             report["refused"] = (
