@@ -32,6 +32,7 @@ from common.settings.keys import SectionKeys
 from common.settings.registry import Tier
 from common.settings.signing import Manifest
 from common.settings.snapshot import verify_snapshot
+from tests.admin.engines import fixture_engine
 from tests.admin.conftest import MASTER_KEY, ROLES_SCRIPT, needs_postgres
 
 pytestmark = needs_postgres
@@ -59,7 +60,7 @@ def make_keys(previous: str | None = None, master: str = MASTER_KEY) -> SectionK
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def svc(server, migrated):
-    engine = create_async_engine(server.url(migrated, "runtime"), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated, "runtime"))
     service = SettingsService(engine, store_registry(), make_keys())
     yield service
     await engine.dispose()
@@ -67,7 +68,7 @@ async def svc(server, migrated):
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def superuser(server, migrated):
-    engine = create_async_engine(server.url(migrated), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated))
     yield engine
     await engine.dispose()
 

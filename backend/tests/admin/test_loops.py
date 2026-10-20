@@ -14,8 +14,6 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.pool import NullPool
 
 from backend.admin.asgi import get_admin_application
 from backend.admin.gate.settings import GateSettings
@@ -37,6 +35,7 @@ from backend.admin.security.mailer import (
     FakeTransport,
 )
 from backend.admin.services.settings_store import SettingsService, store_registry
+from tests.admin.engines import fixture_engine
 from tests.admin.conftest import _execute, needs_postgres, roles_sql
 from tests.admin.test_settings_store import (
     PLANT,
@@ -56,7 +55,7 @@ ADMINS = ["first@example.org", "second@example.org"]
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def superuser(server, migrated):
-    engine = create_async_engine(server.url(migrated), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated))
     yield engine
     await engine.dispose()
 

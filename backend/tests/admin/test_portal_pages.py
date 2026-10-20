@@ -21,6 +21,7 @@ from backend.admin.gate.levels import LEVEL_ATTR, Level
 from backend.admin.headers import CONTENT_SECURITY_POLICY
 from backend.admin.services import audit
 from backend.admin.services import pages as pg
+from tests.admin.engines import fixture_engine
 from tests.admin.conftest import needs_postgres
 from tests.admin.portal_fixtures import ADMIN, OTHER_ADMIN, UA, Browser
 from tests.admin.test_settings_store import ADMIN as ACTOR
@@ -42,7 +43,7 @@ async def signed_in(portal, app, email=ADMIN, state="mfa_ok") -> Browser:
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def superuser(server, migrated):
-    engine = create_async_engine(server.url(migrated), poolclass=NullPool)
+    engine = fixture_engine(server.url(migrated))
     yield engine
     await engine.dispose()
 

@@ -33,6 +33,7 @@ from backend.admin.security.clock import FakeClock
 from backend.admin.security.keys import admin_key
 from backend.admin.services import audit
 from backend.admin.services.settings_store import Actor, SettingsService, store_registry
+from tests.admin.engines import fixture_engine
 from tests.admin.conftest import _execute, needs_postgres, roles_sql
 from tests.admin.tasks.keyset_support import KEY, generated_keyset, import_keyset
 from tests.admin.test_host_settings import seed_stack
@@ -60,7 +61,7 @@ OLD_LOOP_CLASS = 0x42434144
 
 @asynccontextmanager
 async def as_role(server, database, role):
-    engine = create_async_engine(server.url(database, role), poolclass=NullPool)
+    engine = fixture_engine(server.url(database, role))
     try:
         yield engine
     finally:
@@ -359,7 +360,28 @@ async def test_an_outsider_holding_the_old_lock_keys_stalls_nothing(svc, server,
             await engine.dispose()
 
 
+async def _shorten_lock_timeouts(server, migrated, to: str) -> None:
+    """The admin lock functions carry their own ``lock_timeout`` (5 s, revision
+    0013). Check that, then shorten it in this test's database copy: what the
+    test proves (a stuck holder makes the writer fail with lock_not_available
+    within the lock timeout, and the monitor raises the alarm) does not depend
+    on the length, and two 5 s waits made this the suite's slowest test."""
+    functions = ("admin.take_lock(text)", "admin.audit_log_check_chain()")
+    async with as_role(server, migrated, "superuser") as sup:
+        async with sup.begin() as conn:
+            for fn in functions:
+                config = (
+                    await conn.execute(
+                        text("SELECT proconfig FROM pg_proc WHERE oid = CAST(:fn AS regprocedure)"),
+                        {"fn": fn},
+                    )
+                ).scalar_one()
+                assert "lock_timeout=5s" in (config or []), (fn, config)
+                await conn.execute(text(f"ALTER FUNCTION {fn} SET lock_timeout = '{to}'"))
+
+
 async def test_a_stuck_lock_fails_fast_and_raises_the_integrity_alarm(svc, server, migrated, runtime_engine):
+    await _shorten_lock_timeouts(server, migrated, "300ms")
     clock = FakeClock(time.time())
     board = StatusBoard()
     monitor = IntegrityMonitor(runtime_engine, clock, svc.verify, board)
@@ -370,7 +392,9 @@ async def test_a_stuck_lock_fails_fast_and_raises_the_integrity_alarm(svc, serve
         with pytest.raises(DBAPIError) as caught:
             async with runtime_engine.begin() as conn:
                 await audit.write(conn, "blocked.test", None, None, None, None, "success", actor_kind="cli")
-        assert time.monotonic() - started < 9  # the 5 s lock timeout, not the 10 s statement one
+        # the function's lock timeout (300 ms here, 5 s as migrated), not a hang
+        # or the 10 s statement timeout
+        assert time.monotonic() - started < 3
         orig = caught.value.orig
         assert (getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)) == "55P03"
         # the monitor names it on the shell banner (its mail needs the audit log, so the
