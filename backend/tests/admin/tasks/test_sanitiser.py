@@ -117,21 +117,23 @@ def _planted():
         return rng.randbytes(n)
 
     out = [
-        hexs(16),
-        hexs(32),
-        base64.b64encode(raw(32)).decode(),
-        base64.urlsafe_b64encode(raw(33)).decode().rstrip("="),
-        "Bearer abcdefghijklmnopqrstuvwx1234",
-        "sk-" + base64.urlsafe_b64encode(raw(30)).decode().rstrip("="),
-        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijklmnop",
-        "password-hunter2",
-        "api_key_value",
-        "my-secret-thing",
-        "Fernet-gAAAAAB" + base64.urlsafe_b64encode(raw(30)).decode().rstrip("="),
+        ("hex-16", hexs(16)),
+        ("hex-32", hexs(32)),
+        ("base64-32", base64.b64encode(raw(32)).decode()),
+        ("base64url-33", base64.urlsafe_b64encode(raw(33)).decode().rstrip("=")),
+        ("bearer", "Bearer abcdefghijklmnopqrstuvwx1234"),
+        ("api-key-prefixed", "sk-" + base64.urlsafe_b64encode(raw(30)).decode().rstrip("=")),
+        ("jwt", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijklmnop"),
+        ("password-word", "password-hunter2"),
+        ("api-key-word", "api_key_value"),
+        ("secret-word", "my-secret-thing"),
+        ("fernet", "Fernet-gAAAAAB" + base64.urlsafe_b64encode(raw(30)).decode().rstrip("=")),
     ]
-    for _ in range(200):
-        out.append("".join(rng.choice(string.hexdigits) for _ in range(rng.randint(24, 80))))
-    return out
+    for i in range(200):
+        out.append((f"random-hex-{i}", "".join(rng.choice(string.hexdigits) for _ in range(rng.randint(24, 80)))))
+    # the ids name the kind, never the value: a test id is printed, stored in
+    # .test_durations and committed, and must not look like a leaked key
+    return [pytest.param(value, id=kind) for kind, value in out]
 
 
 @pytest.mark.parametrize("secret", _planted())

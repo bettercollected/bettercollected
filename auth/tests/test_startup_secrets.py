@@ -60,6 +60,8 @@ def test_starts_with_its_own_values():
         ),
         (GOOD_JWT, "not-a-key", "AUTH_AES_HEX_KEY is not a Fernet key"),
     ],
+    # ids name the case, never the values (they would look like keys)
+    ids=["jwt-unset", "fernet-unset", "jwt-published", "jwt-published-quoted", "fernet-malformed"],
 )
 def test_refuses_to_start(jwt_secret, fernet_key, problem):
     result = start(jwt_secret, fernet_key)

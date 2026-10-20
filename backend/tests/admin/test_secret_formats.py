@@ -54,22 +54,28 @@ def refused(key: str, value: str) -> str:
 # ------------------------------------------------------------- refusals
 
 
+WEAK_VALUES = [
+    ("AUTH_JWT_SECRET", "abc", "too_short"),
+    ("AUTH_JWT_SECRET", "12345678", "too_short"),
+    ("AUTH_JWT_SECRET", "k" * 40, "low_entropy"),
+    ("AUTH_INTERNAL_NOTIFY_KEY", "x", "too_short"),
+    ("TEMPORAL_API_KEY", "random_api_key", "weak_secret"),  # the known placeholder
+    ("AUTH_AES_HEX_KEY", "notafernetkey", "weak_secret"),
+    ("AUTH_AES_HEX_KEY", base64.urlsafe_b64encode(bytes(32)).decode(), "low_entropy"),
+    ("MASTER_ENCRYPTION_KEYSET", "junk", "bad_keyset"),
+    ("MASTER_ENCRYPTION_KEYSET", base64.b64encode(b'{"key": []}').decode(), "bad_keyset"),
+    ("MASTER_ENCRYPTION_KEYSET", base64.b64encode(b'{"primaryKeyId": 5, "key": [{"keyId": 6}]}').decode(), "bad_keyset"),
+    ("CUSTOM_DOMAIN_ASSERTION_KEYS", "just-a-secret-without-an-id", "bad_pairs"),
+    ("CUSTOM_DOMAIN_WEBHOOK_SECRETS", "short", "bad_list"),
+]
+
+
+# ids name the setting and the reason, never the value: test ids are printed,
+# stored in .test_durations and committed
 @pytest.mark.parametrize(
     "key, value, reason",
-    [
-        ("AUTH_JWT_SECRET", "abc", "too_short"),
-        ("AUTH_JWT_SECRET", "12345678", "too_short"),
-        ("AUTH_JWT_SECRET", "k" * 40, "low_entropy"),
-        ("AUTH_INTERNAL_NOTIFY_KEY", "x", "too_short"),
-        ("TEMPORAL_API_KEY", "random_api_key", "weak_secret"),  # the known placeholder
-        ("AUTH_AES_HEX_KEY", "notafernetkey", "weak_secret"),
-        ("AUTH_AES_HEX_KEY", base64.urlsafe_b64encode(bytes(32)).decode(), "low_entropy"),
-        ("MASTER_ENCRYPTION_KEYSET", "junk", "bad_keyset"),
-        ("MASTER_ENCRYPTION_KEYSET", base64.b64encode(b'{"key": []}').decode(), "bad_keyset"),
-        ("MASTER_ENCRYPTION_KEYSET", base64.b64encode(b'{"primaryKeyId": 5, "key": [{"keyId": 6}]}').decode(), "bad_keyset"),
-        ("CUSTOM_DOMAIN_ASSERTION_KEYS", "just-a-secret-without-an-id", "bad_pairs"),
-        ("CUSTOM_DOMAIN_WEBHOOK_SECRETS", "short", "bad_list"),
-    ],
+    WEAK_VALUES,
+    ids=[f"{key}-{reason}-{i}" for i, (key, _, reason) in enumerate(WEAK_VALUES)],
 )
 def test_weak_or_malformed_key_material_is_refused(key, value, reason):
     assert refused(key, value) == reason

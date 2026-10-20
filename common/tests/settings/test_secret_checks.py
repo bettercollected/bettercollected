@@ -23,6 +23,8 @@ def fernet() -> str:
 @pytest.mark.parametrize(
     "value",
     [secrets.token_hex(32), secrets.token_urlsafe(48), "stable-strong-secret-value-0123456789abcdef"],
+    # ids name the kind, never the value (the values are random)
+    ids=["token-hex-32", "token-urlsafe-48", "operator-chosen"],
 )
 def test_token_accepts_what_the_deploy_scripts_and_operators_generate(value):
     assert sc.check_token(value) is None
