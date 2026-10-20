@@ -406,7 +406,13 @@ class AiPreferenceMemoryRow(Base, BaseRow):
     workspace_id = S.text("workspace_id")
     user_id = S.text("user_id")
     __table_args__ = (
-        Index("ix_ai_preference_memories_workspace_user", "workspace_id", "user_id"),
+        # one memory per workspace and user, as Mongo's workspace_user_unique (0018)
+        Index(
+            "uq_ai_preference_memories_workspace_user",
+            "workspace_id",
+            "user_id",
+            unique=True,
+        ),
     )
 
 

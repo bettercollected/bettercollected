@@ -270,11 +270,6 @@ async def test_ai_preference_memories(sessions):
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="ai_preference_memories has no unique (workspace_id, user_id) index in "
-    "Postgres yet (Mongo's workspace_user_unique); needs a migration",
-)
 async def test_one_memory_per_workspace_and_user_in_postgres(sessions):
     repo = PostgresAIPreferenceMemoryRepository(sessions)
     await repo.save(UserAIPreferenceMemoryDocument(workspace_id=WORKSPACE, user_id="u"))
