@@ -17,6 +17,8 @@ vi.mock('@app/store/redux/form-api', async (importOriginal) => {
 });
 const openDialogMock = vi.fn();
 vi.mock('@app/lib/hooks/use-dialog-modal', () => ({ useDialogModal: () => ({ openDialogModal: openDialogMock }) }));
+const reloadMock = vi.fn();
+vi.mock('@app/utils/reload-page', () => ({ reloadPage: () => reloadMock() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => '/ws/dashboard/forms/form-1/edit' }));
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -176,27 +178,21 @@ describe('AutoSaveForm', () => {
 
     it('a form changed elsewhere is never overwritten: it offers to reload the latest', async () => {
         patchFormMock.mockResolvedValueOnce({ error: { status: 409, data: { code: 'form_changed' } } });
-        const reload = vi.fn();
-        const location = window.location;
-        Object.defineProperty(window, 'location', { configurable: true, value: { ...location, reload } });
-        try {
-            renderEditor();
-            await act(async () => editor.fields!.updateDescription(0, 0, 'mine'));
-            await advance(1000);
-            expect(screen.getByRole('dialog', { name: 'This form changed elsewhere' })).toBeInTheDocument();
-            expect(editor.status).toBe('conflict');
+        reloadMock.mockClear();
+        renderEditor();
+        await act(async () => editor.fields!.updateDescription(0, 0, 'mine'));
+        await advance(1000);
+        expect(screen.getByRole('dialog', { name: 'This form changed elsewhere' })).toBeInTheDocument();
+        expect(editor.status).toBe('conflict');
 
-            await act(async () => editor.fields!.updateDescription(0, 0, 'mine, more'));
-            await advance(60_000);
-            expect(patchFormMock).toHaveBeenCalledTimes(1);
+        await act(async () => editor.fields!.updateDescription(0, 0, 'mine, more'));
+        await advance(60_000);
+        expect(patchFormMock).toHaveBeenCalledTimes(1);
 
-            fireEvent.click(screen.getByRole('button', { name: 'Reload latest' }));
-            expect(reload).toHaveBeenCalledTimes(1);
-            // reloading on purpose is not stopped by the unsaved-changes guard
-            expect(beforeUnloadPrevented()).toBe(false);
-        } finally {
-            Object.defineProperty(window, 'location', { configurable: true, value: location });
-        }
+        fireEvent.click(screen.getByRole('button', { name: 'Reload latest' }));
+        expect(reloadMock).toHaveBeenCalledTimes(1);
+        // reloading on purpose is not stopped by the unsaved-changes guard
+        expect(beforeUnloadPrevented()).toBe(false);
     });
 });
 

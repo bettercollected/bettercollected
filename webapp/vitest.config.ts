@@ -17,6 +17,10 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
+        // One jsdom per worker, each test file in its own VM context (still
+        // isolated). The default pool built jsdom once per file: 162 times,
+        // a third of the run's time.
+        pool: 'vmThreads',
         setupFiles: ['./vitest.setup.ts'],
         include: ['src/**/*.{test,spec}.{ts,tsx}'],
         css: false,

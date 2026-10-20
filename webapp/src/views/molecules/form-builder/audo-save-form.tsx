@@ -17,6 +17,7 @@ import { adoptSavedLanguageAtom, formLanguageAtom } from '@app/store/jotai/form-
 import { usePatchV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FlushResult, SaveOutcome, SaveQueue } from '@app/utils/autosave-queue';
+import { reloadPage } from '@app/utils/reload-page';
 
 /** Quiet time after the last edit before it is saved. */
 export const AUTOSAVE_DEBOUNCE_MS = 1000;
@@ -251,7 +252,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
 
     const reloadLatest = () => {
         allowLeaveRef.current = true;
-        window.location.reload();
+        reloadPage();
     };
 
     return (
