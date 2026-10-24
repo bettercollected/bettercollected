@@ -1,7 +1,8 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import Choice from '@app/views/atoms/choice';
+import Choice, { optionIndexForKey, optionKeys, showsOptionKeys } from '@app/views/atoms/choice';
+import { KeyboardEvent } from 'react';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -46,6 +47,19 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
         selectedValues.length ? addFieldChoicesAnswer(field.id, selectedValues) : removeAnswer(field.id);
     };
 
+    // On a theme that shows option keys, each option carries its letter, and
+    // pressing one while an option has focus ticks or unticks that option and
+    // moves focus to it.
+    const keys = showsOptionKeys(theme) ? optionKeys(field.properties?.choices?.length ?? 0) : [];
+    const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+        const index = optionIndexForKey(event, keys);
+        if (index < 0) return;
+        event.preventDefault();
+        const option = event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-option-key="${keys[index]}"]`);
+        option?.focus();
+        option?.click();
+    };
+
     return (
         <QuestionWrapper field={field}>
             <div className="w-full space-y-2 p-0">
@@ -61,7 +75,7 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
                         <div role="group" {...group} className={tokens.ruledChoices ? '' : 'space-y-2'}>
                             {field.properties?.choices?.map((choice, index) => {
                                 const isSelected = selectedValues.includes(choice.id);
-                                return <Choice key={choice.id} kind="checkbox" isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} lang={contentLang} />;
+                                return <Choice key={choice.id} kind="checkbox" isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} lang={contentLang} keyHint={keys[index]} onKeyDown={onKeyDown} />;
                             })}
                         </div>
                     )}

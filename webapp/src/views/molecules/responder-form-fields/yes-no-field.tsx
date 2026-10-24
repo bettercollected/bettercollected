@@ -7,6 +7,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { initialKeys } from '@app/views/atoms/choice';
 import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
 import { yesNoChoices } from '@app/utils/yes-no-choices';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
@@ -24,6 +25,10 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
 
     // null (not undefined) when unanswered, so the RadioGroup stays controlled.
     const getValue = () => formResponse?.answers?.[field.id]?.boolean ?? null;
+    // The stored values stay "Yes"/"No" (they map to true/false); only the label follows the respondent's language.
+    const choices = yesNoChoices(field).map((choice) => ({ value: choice.value === 'Yes', label: choice.value === 'Yes' ? t('FIELD.YES') : choice.value === 'No' ? t('FIELD.NO') : choice.value }));
+    // Where the theme shows option keys, lettered by their own initials: Y and N (J and N in Dutch).
+    const keys = initialKeys(choices.map((choice) => choice.label ?? ''));
 
     return (
         <QuestionWrapper field={field}>
@@ -34,15 +39,10 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                         theme={theme}
                         value={getValue()}
                         className={tokens.ruledChoices ? 'flex w-full flex-col' : 'flex w-full max-w-xs flex-col gap-2'}
-                        // The stored values stay "Yes"/"No" (they map to true/false); only the label follows the respondent's language.
-                        options={yesNoChoices(field).map((choice, index) => ({
-                            key: String(index),
-                            value: choice.value === 'Yes',
-                            label: choice.value === 'Yes' ? t('FIELD.YES') : choice.value === 'No' ? t('FIELD.NO') : choice.value
-                        }))}
-                        onChange={(value, { viaArrowKeys }) => {
+                        options={choices.map((choice, index) => ({ ...choice, key: String(index), keyHint: keys[index] }))}
+                        onChange={(value, { viaKeys }) => {
                             addFieldBooleanAnswer(field.id, !!value);
-                            if (viaArrowKeys) return;
+                            if (viaKeys) return;
                             setTimeout(() => {
                                 if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                             }, 200);

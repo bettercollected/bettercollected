@@ -197,7 +197,7 @@
     "WIDE_TITLES": "Wide titles",
     "WIDE_TITLES_HINT": "Sets titles a quarter wider, in Archivo's wide cut.",
     "RADIUS": "Corners",
-    "RADIUS_HINT": "Of fields, answer options and buttons.",
+    "RADIUS_HINT": "Of fields, answer options and buttons. Any choice but Default also letters the answer options (A, B, C) so they can be chosen with a key.",
     "RADIUS_DEFAULT": "Default",
     "RADIUS_SHARP": "Sharp",
     "RADIUS_SOFT": "Soft",

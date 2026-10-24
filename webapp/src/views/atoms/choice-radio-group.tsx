@@ -2,7 +2,7 @@ import { AriaAttributes, KeyboardEvent, ReactNode, useRef } from 'react';
 
 import { FormTheme } from '@app/constants/theme';
 
-import { ChoiceContent, choiceRowStyle } from './choice';
+import { ChoiceContent, choiceRowStyle, optionIndexForKey, optionKeys, showsOptionKeys } from './choice';
 
 export interface RadioOption<T> {
     value: T;
@@ -10,6 +10,8 @@ export interface RadioOption<T> {
     key: string;
     /** The label's language, when it is not the page's. */
     lang?: string;
+    /** Its key letter, when not the next of A, B, C… (see initialKeys). */
+    keyHint?: string;
 }
 
 /**
@@ -19,9 +21,13 @@ export interface RadioOption<T> {
  * question's full name, description and state). Every option is the
  * shared choice row (atoms/choice.tsx).
  *
- * `onChange` says whether the choice came from the arrow keys, so callers
- * can skip moving on to the next question while the respondent is still
- * stepping through the options.
+ * On a theme that shows option keys (showsOptionKeys), each option carries
+ * its letter, and pressing a letter while the group has focus chooses that
+ * option and moves focus to it.
+ *
+ * `onChange` says whether the choice came from the keyboard (an arrow key
+ * or a letter), so callers can skip moving on to the next question while
+ * the respondent is still at the options.
  */
 export default function ChoiceRadioGroup<T>({
     options,
@@ -34,7 +40,7 @@ export default function ChoiceRadioGroup<T>({
 }: {
     options: Array<RadioOption<T>>;
     value: T | null | undefined;
-    onChange: (value: T, meta: { viaArrowKeys: boolean }) => void;
+    onChange: (value: T, meta: { viaKeys: boolean }) => void;
     theme?: Partial<FormTheme>;
     labelledBy?: string;
     labelProps?: AriaAttributes;
@@ -43,14 +49,21 @@ export default function ChoiceRadioGroup<T>({
     const refs = useRef<Array<HTMLButtonElement | null>>([]);
     const selectedIndex = options.findIndex((option) => option.value === value);
     const tabStop = selectedIndex >= 0 ? selectedIndex : 0;
+    const letters = optionKeys(options.length);
+    const keys = showsOptionKeys(theme) ? options.map((option, index) => option.keyHint ?? letters[index]) : [];
+
+    const choose = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+        event.preventDefault();
+        refs.current[index]?.focus();
+        onChange(options[index].value, { viaKeys: true });
+    };
 
     const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+        const lettered = optionIndexForKey(event, keys);
+        if (lettered >= 0) return choose(event, lettered);
         const step = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0;
         if (!step || options.length === 0) return;
-        event.preventDefault();
-        const next = (index + step + options.length) % options.length;
-        refs.current[next]?.focus();
-        onChange(options[next].value, { viaArrowKeys: true });
+        choose(event, (index + step + options.length) % options.length);
     };
 
     return (
@@ -68,12 +81,14 @@ export default function ChoiceRadioGroup<T>({
                         role="radio"
                         aria-checked={checked}
                         tabIndex={index === tabStop ? 0 : -1}
-                        onClick={() => onChange(option.value, { viaArrowKeys: false })}
+                        aria-keyshortcuts={keys[index]}
+                        data-option-key={keys[index]}
+                        onClick={() => onChange(option.value, { viaKeys: false })}
                         onKeyDown={(event) => onKeyDown(event, index)}
                         className={row.className}
                         style={row.style}
                     >
-                        <ChoiceContent kind="radio" selected={checked} theme={theme} solid={row.solid} lang={option.lang}>
+                        <ChoiceContent kind="radio" selected={checked} theme={theme} solid={row.solid} lang={option.lang} keyHint={keys[index]}>
                             {option.label}
                         </ChoiceContent>
                     </button>
