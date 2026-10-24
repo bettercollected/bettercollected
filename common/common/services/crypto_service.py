@@ -1,10 +1,22 @@
 """The process-wide cipher for stored responses, from ``MASTER_ENCRYPTION_KEYSET``.
 
 Every service that encrypts or decrypts stored data with the keyset (the
-backend, its jobs worker, the Google Forms integration) loads it here, once,
-at startup, and is warned here when it holds a key published in the
-repository (common.services.keyset).
+backend, its jobs worker, the Google Forms integration) uses ``crypto_service``
+from here, and is warned here when it holds a key published in the repository
+(common.services.keyset).
+
+``crypto_service`` is built on first use, not when this module is imported: the
+keyset may live only in the settings store, which a service reads when its
+configuration is imported, and that can come after this module in the import
+order. The first use without a keyset (neither in the environment nor in the
+store) raises; nothing is ever encrypted without one. Services also build it at
+startup (``crypto_service.load()``), so a missing keyset still stops them there.
 """
+
+from __future__ import annotations
+
+import threading
+from typing import Callable, Optional
 
 from common.services.keyset_source import configured_keyset
 from common.services.keyset import (
@@ -41,4 +53,53 @@ def default_crypto_service():
     return service
 
 
-crypto_service = default_crypto_service()
+class LazyCryptoService:
+    """The process-wide :class:`CryptoService`, built by ``factory`` on first use.
+
+    Thread-safe (one build, double-checked under a lock; the build never awaits,
+    so it is safe from coroutines too). A build that fails is not remembered:
+    every use raises until a keyset can be resolved."""
+
+    def __init__(self, factory: Callable[[], CryptoService]):
+        self._factory = factory
+        self._lock = threading.Lock()
+        self._service: Optional[CryptoService] = None
+
+    def load(self) -> CryptoService:
+        """The cipher, built now if it was not yet. Raises when there is no keyset."""
+        service = self._service
+        if service is None:
+            with self._lock:
+                service = self._service
+                if service is None:
+                    service = self._factory()
+                    self._service = service
+        return service
+
+    @property
+    def loaded(self) -> bool:
+        return self._service is not None
+
+    def reset(self) -> None:
+        """Forget the cipher; the next use builds it again (tests, keyset reloads)."""
+        with self._lock:
+            self._service = None
+
+    def encrypt(self, workspace_id, form_id, data, context: bytes = b""):
+        return self.load().encrypt(workspace_id, form_id, data, context)
+
+    def decrypt(self, workspace_id, form_id, data, context: bytes = b""):
+        return self.load().decrypt(workspace_id, form_id, data, context)
+
+    def __getattr__(self, name):
+        # only reached for attributes not defined here (primary_key_id,
+        # published_key_in_keyset, keyset, ...)
+        if name.startswith("__") or name in ("_factory", "_lock", "_service"):
+            raise AttributeError(name)
+        return getattr(self.load(), name)
+
+    def __repr__(self) -> str:
+        return f"<LazyCryptoService {'loaded' if self.loaded else 'not loaded'}>"
+
+
+crypto_service = LazyCryptoService(default_crypto_service)

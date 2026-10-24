@@ -14,6 +14,8 @@ Resources:
     https://pydantic-docs.helpmanual.io/
 
 """
+# Configuration first: it loads the settings snapshot everything below reads.
+import googleform.config  # noqa: F401
 from googleform.app.asgi import get_application
 
 

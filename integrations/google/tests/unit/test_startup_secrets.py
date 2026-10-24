@@ -88,7 +88,7 @@ def test_refuses_to_start(jwt_secret, fernet_key, problem):
 # about, not refused: a new keyset could not read what is stored
 # (docs/response-keyset-rotation.md).
 def load_keyset(keyset_value):
-    """A fresh process importing what loads the keyset at startup."""
+    """A fresh process loading the keyset as the startup hook does."""
     env = {k: v for k, v in os.environ.items() if not k.startswith("AUTH_")}
     env.update(
         AUTH_JWT_SECRET=GOOD_JWT,
@@ -97,7 +97,13 @@ def load_keyset(keyset_value):
         DOTENV_PATH=str(SERVICE_DIR / "no-such-dir" / ".env"),
     )
     return subprocess.run(
-        [sys.executable, "-c", "import googleform.app.repositories.oauth_credential"],
+        [
+            sys.executable,
+            "-c",
+            "import googleform.app.repositories.oauth_credential\n"
+            "from common.services.crypto_service import crypto_service\n"
+            "crypto_service.load()",
+        ],
         cwd=SERVICE_DIR,
         env=env,
         capture_output=True,
