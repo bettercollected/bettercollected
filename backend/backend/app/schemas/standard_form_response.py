@@ -32,9 +32,20 @@ class DeletionRequestStatus(str, enum.Enum):
 
 
 DELETION_REQUEST_INDEX = "uq_deletion_requests_form_response_provider_workspace"
+# One request per response, provider and workspace (as Postgres, app revision
+# 0020): each workspace holding a copy of a provider response files its own. A
+# missing or null workspace_id (a request stored before #768) indexes as null,
+# so two of those for the same response still collide, as NULLS NOT DISTINCT
+# does in Postgres. Built at startup after Beanie (handlers/database.py).
+DELETION_REQUEST_INDEX_MODEL = IndexModel(
+    [("form_id", 1), ("response_id", 1), ("provider", 1), ("workspace_id", 1)],
+    unique=True,
+    name=DELETION_REQUEST_INDEX,
+)
 # The unique (form_id, response_id, provider) key from before requests were
-# per workspace, under Mongo's default name. Beanie never drops an index, so a
-# database from before still holds it: drop_legacy_deletion_request_index.
+# per workspace, under Mongo's default name (Beanie built it from the
+# document's settings, and never drops an index): dropped at startup by
+# drop_legacy_deletion_request_index.
 LEGACY_DELETION_REQUEST_INDEX = "form_id_1_response_id_1_provider_1"
 
 
@@ -68,24 +79,10 @@ class FormResponseDeletionRequest(MongoDocument):
     deleted_at: Optional[str] = None
 
     class Settings:
+        # No indexes here: DELETION_REQUEST_INDEX_MODEL is built (and the
+        # legacy index dropped) after Beanie, by handlers/database.py, so
+        # neither can stop the service from starting.
         name = "responses_deletion_requests"
-        # One request per response, provider and workspace (as Postgres, app
-        # revision 0020): each workspace holding a copy of a provider response
-        # files its own. A missing or null workspace_id (a request stored
-        # before #768) indexes as null, so two of those for the same response
-        # still collide, as NULLS NOT DISTINCT does in Postgres.
-        indexes = [
-            IndexModel(
-                [
-                    ("form_id", 1),
-                    ("response_id", 1),
-                    ("provider", 1),
-                    ("workspace_id", 1),
-                ],
-                unique=True,
-                name=DELETION_REQUEST_INDEX,
-            )
-        ]
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),

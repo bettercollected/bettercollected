@@ -32,18 +32,15 @@ from backend.app.repositories.metric_periods import (
     mongo_counts_per_period,
 )
 from backend.app.schemas.standard_form_response import (
-    LEGACY_DELETION_REQUEST_INDEX,
     FormResponseDocument,
     FormResponseDeletionRequest,
     DeletionRequestStatus,
-    drop_legacy_deletion_request_index,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from beanie.odm.queries.update import UpdateResponse
 from common.db import to_bson_dict
 from common.db.routing import write_op
 from common.clock import utcnow
-from pymongo.errors import DuplicateKeyError
 
 # In a $lookup of a response's deletion request (``let: {workspace_id}`` the
 # response copy's, null when it has none): the request of that copy's
@@ -444,11 +441,6 @@ class FormResponseRepository(BaseRepository):
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await response.save()
 
-    async def find_deletion_request_by_response_id(
-        self, response_id: str
-    ) -> Optional[FormResponseDeletionRequest]:
-        return await FormResponseDeletionRequest.find_one({"response_id": response_id})
-
     async def find_deletion_request_for(
         self, response: FormResponseDocument
     ) -> Optional[FormResponseDeletionRequest]:
@@ -466,7 +458,7 @@ class FormResponseRepository(BaseRepository):
     async def add_deletion_request(
         self, response: FormResponseDocument, response_id: str
     ) -> FormResponseDeletionRequest:
-        request = FormResponseDeletionRequest(
+        return await FormResponseDeletionRequest(
             form_id=response.form_id,
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
@@ -474,19 +466,7 @@ class FormResponseRepository(BaseRepository):
             provider=response.provider,
             workspace_id=response.workspace_id,
             deleted_at=None,
-        )
-        try:
-            return await request.save()
-        except DuplicateKeyError as error:
-            # A database from before still has the per-response key, which
-            # refuses this workspace's request because another workspace has
-            # one for its copy of the response: drop it (once) and store.
-            if LEGACY_DELETION_REQUEST_INDEX not in str(error):
-                raise
-            await drop_legacy_deletion_request_index(
-                FormResponseDeletionRequest.get_pymongo_collection()
-            )
-            return await request.save()
+        ).save()
 
     @write_op
     async def delete_by_form_id_except(
