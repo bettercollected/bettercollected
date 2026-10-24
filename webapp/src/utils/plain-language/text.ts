@@ -60,6 +60,22 @@ export function plainTextForCheck(value: unknown): string {
     return '';
 }
 
+/**
+ * A short fingerprint of some text (FNV-1a, 32 bits, 8 hex digits) over its
+ * words, case-insensitive. Hint ids use it instead of the text itself, so a
+ * dismissed hint is remembered without keeping question wording in storage,
+ * and the same words keep the same fingerprint wherever they appear.
+ */
+export function textFingerprint(text: string): string {
+    const normalized = tokenize(text).join(' ').toLowerCase();
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < normalized.length; i++) {
+        hash ^= normalized.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
 /** Words, counting a pipe as one word. Hyphenated and apostrophe words stay whole. */
 export function tokenize(text: string): string[] {
     return text.match(/[\p{L}\p{N}\uE000](?:[\p{L}\p{N}\p{M}\uE000]|['’-](?=[\p{L}\p{N}]))*/gu) ?? [];
