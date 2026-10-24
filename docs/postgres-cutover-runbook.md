@@ -61,7 +61,8 @@ table lock, so a stuck migration fails and restarts instead of hanging. A newer 
 image knows (a rollback past a migration) is left alone with a warning — nothing is migrated
 backwards automatically. Migrations run in a single transaction: one that needs non-transactional
 DDL (`CREATE INDEX CONCURRENTLY`, an `autocommit_block`) can't go through `DB_AUTO_MIGRATE` and must
-be run by hand before the release.
+be run by hand before the release. The whole cutover on such a stack, stage by stage, is in
+"Running the cutover on an orchestrated (Docker Swarm) stack" below.
 
 ## R1 — release with everything still on Mongo
 
@@ -233,6 +234,303 @@ Only after two weeks fully on Postgres with everything at `postgres`/`postgres`:
 env, docs). Keep the Mongo volume and dump for 30 days. Regression after removal: redeploy the
 R2 images (they still know both stores) and `reconcile --direction postgres->mongo` to catch
 Mongo up from the dump plus the outbox.
+
+## Running the cutover on an orchestrated (Docker Swarm) stack
+
+A Swarm stack has no `deploy.sh`. The phases above still apply; on Swarm each step is one of three
+things:
+
+- **an edit to the stack definition**, deployed through whatever manages the stack
+  (`docker stack deploy -c <stack file> <stack>` or your stack manager). Every flag here is
+  environment-only (tier T5 in `docs/settings-inventory.md`): neither the settings store nor the
+  admin portal can change it;
+- **a one-off command** (the migration CLI), run in a container of the running service or as a
+  one-off Swarm job on the stack's network;
+- **an admin task** in the portal, where one exists (`responses.*`, `keyset.verify`). `verify` and
+  `reconcile` are not tasks: they run from the CLI only.
+
+The stages: **Stage 0** is Phase 1 plus a week of shadow reads. For each group, **A** (read
+switch) and **B** (primary switch) split Phase 2 step 1 into two restarts, so each restart changes
+one thing. **C**, **D** and **decommission** take Phase 3 in three steps. The jobs flips run
+alongside A and B. Placeholders: `<stack>` is the stack name and `<g>` a group. Services have their
+compose names (`backend`, `jobs-worker`, `auth`, `integrations-googleform`, `task-runner`, `admin`,
+`mongodb`), plus `actions-executor` for the Temporal actions executor; use your own names if
+they differ.
+
+### Ground rules
+
+- **The stored stack definition is the source of truth.** Make every change by editing it and
+  deploying it, and note the values you replace: they are the rollback. Anything changed with
+  `docker service update --env-add` (in an incident, say) is undone by the next deploy, including
+  the image updates CI pushes, so copy it into the stored definition straight away. Before each
+  stage, compare the flags the running services have with the stored ones:
+
+  ```bash
+  # DB_* and JOBS_BACKEND* only: flags, never credentials
+  docker service inspect <stack>_backend \
+    --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}' \
+    | jq -r '.[] | select(startswith("DB_") or startswith("JOBS_BACKEND"))'
+  ```
+- **`backend` and `jobs-worker` carry identical `DB_*` and `JOBS_BACKEND*` flags.** The jobs worker
+  runs the backend's repositories (deleting a user touches every group). Keep the flags in one block
+  that both services read (a shared `env_file`, or a YAML anchor if your tooling supports merge
+  keys), and always deploy the two together.
+- **The task runner's `DB_WRITE_MODE`, `DB_WRITE_MODE__responses` and `DB_WRITE_MODE__google`
+  follow the services' values** (the backend's for the default and `responses`, the Google
+  integration's for `google`) and change in the same deploy. If they are unset, the responses and
+  keyset tasks refuse with `write_mode_unknown` (docs/admin-service.md, "Task runner").
+- **Migrations:** `DB_AUTO_MIGRATE=true` on `backend`, `jobs-worker`, `auth` and
+  `integrations-googleform`, from Stage 0 on ("Who runs the migrations"). A release whose notes
+  name a migration with non-transactional DDL is migrated by hand first (one-off commands below).
+- **Let Swarm roll back a service that refuses to start.** A bad flag combination, a broken
+  cutover-order rule or a schema behind the code stops the process at boot. With
+  `update_config: {parallelism: 1, order: start-first, failure_action: rollback, monitor: 60s}`, the
+  old tasks keep serving and Swarm puts the previous spec back. The stored definition still holds
+  the rejected values: correct it before the next deploy.
+- **Old and new flags run side by side while a service rolls.** Every transition below keeps both
+  stores written during that window, so this is safe. Don't run `backfill`, `verify` or
+  `reconcile` while a service is rolling, and don't redeploy a service while a long CLI run is
+  going on inside one of its containers. (Every command resumes, but a verify cut off by a restart
+  records nothing.)
+- **Keyset freeze, from Stage 0 to decommission:** no `keyset.reencrypt` and no `keyset.drop_old`,
+  neither as tasks nor through `scripts.rotate_response_keyset`. A re-encryption racing a store
+  switch, or a dropped key that Mongo or its archive still needs, is how values become unreadable
+  in the middle of the move. `responses.check_undecryptable` and `keyset.verify` are read-only and
+  allowed. A compromised key overrides the freeze: rotate as in
+  [response-keyset-rotation.md](response-keyset-rotation.md) with both stores configured, then take
+  a fresh Mongo dump.
+
+### One-off commands
+
+Run the migration CLI inside a running task of the service. That task has the service's role,
+flags, settings and networks, and runs the same image tag. That tag matters: the verified marker
+records the code version, and the CLI checks the schema head it knows.
+
+```bash
+docker service ps <stack>_backend --filter desired-state=running   # which node runs a task
+# on that node:
+C=$(docker ps -q -f name=<stack>_backend. | head -n1)
+docker exec "$C" /api/backend/.venv/bin/python -m backend.migrate status
+docker exec "$C" /api/backend/.venv/bin/python -m backend.migrate --group refdata verify
+docker exec "$C" /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini current
+# auth and the Google integration, the same way:
+#   <stack>_auth                    /api/auth/.venv/bin/python -m auth.migrate …
+#   <stack>_integrations-googleform /api/integrations/google/.venv/bin/python -m googleform.migrate …
+```
+
+A long `backfill` can run as a one-off Swarm job (Docker 20.10 or later), so a rolling service
+does not cut it off:
+
+```bash
+docker service create --name bc-migrate --mode replicated-job --restart-condition none \
+  --network <stack>_<network reaching Postgres and Mongo> --env-file <backend env, mode 0600> \
+  <backend image>:<tag the service runs> \
+  /api/backend/.venv/bin/python -m backend.migrate backfill --max-minutes 30
+docker service logs -f bc-migrate
+docker service rm bc-migrate     # then delete the env file
+```
+
+The env file holds the service's own environment (its `DATABASE_URL`, `MONGO_URI`/`MONGO_DB` or
+the settings-store variables the service reads them through, and the `DB_*` flags).
+`docker service inspect` shows those values for as long as the job exists, so remove it when it is
+done.
+
+### Watching a stage
+
+- **Every replica restarted with the new flags.** `docker service ps <stack>_<service>` shows every
+  task running on the new spec. `docker service logs --since <deploy time> <stack>_<service> 2>&1 |
+  grep 'persistence flags'` prints one line per replica. As an admin,
+  `GET /api/v1/persistence/status` → `flags` shows the backend's flags.
+- **Portal → Health** (stacks that run the admin service and the settings store): every instance
+  is "reporting" and nothing is behind or waiting for a restart. Instances replaced by the deploy
+  show as "stopped" once they miss two minutes of reports. Each instance also reports which stores
+  it writes. The page doesn't show that column; read it as the admin service's role or a superuser:
+
+  ```sql
+  SELECT service, instance, write_stores, now() - reported_at AS age
+  FROM settings.service_state ORDER BY service, instance;
+  ```
+
+  `mongo,postgres` from Stage 0 through B, `postgres` after C.
+- **Shadow diffs and mirror failures.** The counters in `/persistence/status` belong to the one
+  backend replica that answered, and a restart resets them. To cover every replica, count the log
+  lines on `backend`, `jobs-worker`, `auth` and `integrations-googleform`:
+
+  ```bash
+  docker service logs --since <stage start> <stack>_backend 2>&1 \
+    | grep -cE 'shadow read differs|shadow read failed|mirror write failed'
+  ```
+
+  Each line names the group, repository and method, never a payload. The durable record is the
+  outbox: `migrate status --json` → `outbox` and `mirror_failures.<store>.unresolved`, per service.
+- **`verify --group <g>`** exits 0 (for `auth` and `google`, `auth.migrate verify` and
+  `googleform.migrate verify`).
+- **5xx rate and p95 latency**, from your proxy or APM, against a baseline taken before the stage.
+  Watch Postgres connections against `max_connections` as well: shadow reads add load.
+
+Exit criteria for every A and B: 0 unexplained shadow diffs, from at least 1000 shadow reads of the
+group or the whole soak for a low-volume group; 5xx at baseline; p95 at most 1.2× baseline;
+`verify --group <g>` clean; 0 mirror failures for the group.
+
+### Stage 0 — mirror, backfill, verify, shadow
+
+Before you start: a `mongodump --archive --gzip` of every Mongo database (backend, auth, the
+Google integration, and Typeform's if you have one), encrypted, kept off the host, and its restore
+tested by counts. On a stack with responses older than `workspace_id`, also run
+`responses.backfill_workspaces` (dry run, then apply) and `responses.check_undecryptable` from the
+portal.
+
+| service | change |
+|---|---|
+| `backend`, `jobs-worker`, `auth`, `integrations-googleform` | `DB_WRITE_MODE=dual`, `DB_AUTO_MIGRATE=true` |
+| `task-runner` | `DB_WRITE_MODE=dual`; its Mongo and Postgres connections configured |
+
+1. Deploy all of these at once. Each service migrates its schema before it serves: look for
+   `DB_AUTO_MIGRATE: schema '…' migrated` in the logs, or `alembic current` in a one-off.
+2. For backend, auth and google, run Phase 1 steps 2–5 as one-off commands: `preflight` (fix
+   duplicates as in step 2), `backfill`, `verify`, `reconcile`, then `verify` again. Repeat `verify`
+   24 h later. Two clean runs write the marker (`status --json` → `marker` is not `null`).
+3. Shadow reads: add `DB_SHADOW_READ_SAMPLE=0.1` (0.1 to 0.25) to `backend`, `jobs-worker`, `auth`
+   and `integrations-googleform`. Deploy, then soak for 7 days.
+
+Exit: `verify` clean twice, 24 h apart, on every service; 7 days of shadow reads with 0 diffs,
+0 mirror failures and 0 unresolved outbox entries.
+Rollback: `DB_WRITE_MODE=mongo` on all five services and `DB_SHADOW_READ_SAMPLE` removed, then
+redeploy. `DB_AUTO_MIGRATE` can stay.
+Stored definition: save it with Stage 0's values; it is the base for every group.
+
+### Per group: A, then B
+
+Order: `refdata`, `analytics`, `ai`, `actions`, `google`, `identity`, `auth`, `forms`,
+`responses`. Take one group at a time, and start the next group's A only after the previous
+group's B meets the exit criteria.
+
+| group | services | A adds | B adds |
+|---|---|---|---|
+| `refdata`, `analytics`, `ai`, `actions`, `identity`, `forms` | `backend` + `jobs-worker` | `DB_READ_SOURCE__<g>=postgres` | `DB_WRITE_MODE__<g>=postgres_primary_dual` |
+| `responses` | `backend` + `jobs-worker`; for B also `task-runner` | `DB_READ_SOURCE__responses=postgres` | `DB_WRITE_MODE__responses=postgres_primary_dual` |
+| `google` | `integrations-googleform`; for B also `task-runner` | `DB_READ_SOURCE__google=postgres` | `DB_WRITE_MODE__google=postgres_primary_dual` |
+| `auth` | `auth` | `DB_READ_SOURCE__auth=postgres` | `DB_WRITE_MODE__auth=postgres_primary_dual` |
+
+**A, the read switch.** Add the read override and redeploy the service(s). Writes stay on `dual`,
+so Mongo stays primary. Shadow reads stay on and now compare Postgres answers with Mongo's. Soak
+at least 48 h, or 72 h for `identity`, `auth`, `forms` and `responses`. Before `auth`'s A, run a
+full `auth.migrate reconcile` and a clean `auth.migrate verify`: before 4.0.2 some auth writes
+skipped the mirror. Rollback: remove the override and redeploy.
+
+**B, the primary switch.** Add the write override (and the `task-runner`'s for `responses` and
+`google`), then redeploy. Postgres is now authoritative for the group, and the reverse mirror keeps
+Mongo current: failures now land under `mirror_failures.mongo`. Soak at least 72 h. In `verify`, a
+record replayed into Mongo can show as mismatched ("Reconcile and deleted rows"). Rollback: run
+`reconcile --group <g> --direction postgres->mongo`, after removing stray copies of deleted records
+by hand as that section describes. Then set `DB_WRITE_MODE__<g>=dual`, keep the read on Postgres,
+and redeploy. Undo A afterwards if needed. Never move a group from `mongo` straight to `postgres`,
+and never set `postgres` for a group at this stage.
+
+A and B use only `dual` and `postgres_primary_dual`, so the cutover-order check at boot never
+fires here; it matters at C. Stored definition: save it after every A and every B, so a routine
+image deploy never reverts a group.
+
+### Jobs flips (alongside A and B, done before D)
+
+`jobs-worker` must run (at least one replica, the backend's flags). `DB_AUTO_MIGRATE` on the
+backend creates procrastinate's `jobs` tables, or run `python -m backend.jobs.schema` once as a
+one-off. Temporal and its worker stay in the stack: this cutover removes neither.
+
+1. `JOBS_BACKEND__delete_response=postgres` on `backend` + `jobs-worker`. Deploy, then run
+   `migrate jobs-sweep --backend postgres` as a one-off in a backend task.
+2. `JOBS_BACKEND__delete_user=postgres` on `backend` + `jobs-worker`. Deploy.
+3. `run_action`: add a second actions-executor service. Copy the existing one's definition and
+   add `JOBS_BACKEND=postgres` and
+   `DATABASE_URL=postgresql://bc_jobs_exec:<password>@<postgres host>:5432/<database>` (the role
+   that reaches the `jobs` schema only; `JOBS_CONCURRENCY` and `JOBS_POOL_MAX` as needed). Deploy
+   it; it waits on an empty queue. Then set `JOBS_BACKEND__run_action=postgres` on `backend` +
+   `jobs-worker` and deploy. When Temporal shows no running `run_action` workflow, scale the
+   Temporal-mode executor to `replicas: 0`, and keep it in the definition for rollback.
+
+Watch the queue: `SELECT queue_name, status, count(*) FROM jobs.procrastinate_jobs GROUP BY 1, 2`
+(no growing `failed`), the `jobs-worker` and executor logs, and one real run of each kind (a
+response expiring, an account deletion, an action on a test submission). Rollback for one kind:
+`JOBS_BACKEND__<job>=temporal` on `backend` + `jobs-worker` and redeploy. For `delete_response`,
+then run `jobs-sweep --backend temporal`. For `run_action`, scale the Temporal-mode executor back
+up first. Leave the Postgres workers running until their queues are empty.
+
+### C — stop writing Mongo
+
+Start when every group, including `auth` and `google`, has passed B and its soak.
+
+1. **Make Mongo a full copy; this is the soft point of no return.** For backend, auth and google:
+   read the outbox (`status --json`), remove stray copies of deleted records by hand, run
+   `reconcile --direction postgres->mongo`, then `verify` until clean. After C, Mongo falls behind.
+2. **Edit the definition.** On `backend` + `jobs-worker`, `auth` and `integrations-googleform`:
+   remove every `DB_READ_SOURCE__*` and `DB_WRITE_MODE__*` (a leftover override wins over the
+   default), then set `DB_READ_SOURCE=postgres` and `DB_WRITE_MODE=postgres`, and set
+   `DB_SHADOW_READ_SAMPLE=0` (a shadow read would now compare against a Mongo that nothing writes).
+   On `task-runner`: `DB_WRITE_MODE=postgres`, and remove its `__responses` and `__google`.
+3. **Deploy all backend groups together.** Because of the cutover-order rule, `backend` and
+   `jobs-worker` take every group in one deploy. `auth` and `integrations-googleform` can go in the
+   same deploy.
+
+Watch: one `persistence flags` line per replica, `write_stores = postgres` on every live instance,
+5xx and p95 against the baseline, and the jobs. Soak for 14 days.
+Rollback during the soak: put `postgres_primary_dual` back for every group, keep shadow reads off,
+and redeploy. Then, per service, run `reconcile --direction postgres->mongo`. Records deleted
+during C are still in Mongo (`verify` → `missing_in_postgres`; reconcile never deletes): remove
+them by hand before going back any further.
+Stored definition: save it with C's values, and drop the per-group overrides there too.
+
+### Backups and a restore test before D
+
+After D, Postgres is the only copy.
+
+- Confirm that base backups and WAL archiving (point-in-time recovery) cover the application
+  database, are kept off the database host, and have a known retention. On a shared cluster, check
+  that this database can be restored on its own.
+- Restore it to a scratch instance at a chosen point in time. Check that every schema (`app`,
+  `auth`, `google`, `jobs`, `admin`, `settings`, `tasks`) is at its expected Alembic revision and
+  that row counts per table match the live database at that time (counts only). Record how long
+  the restore took.
+- Check the connection budget: for every service, replicas × (`DB_POOL_SIZE` + `DB_MAX_OVERFLOW`),
+  plus the job pools (`JOBS_POOL_MAX`), the admin service and the task runner, must stay below the
+  cluster's `max_connections`, with headroom for anything else on it. `DB_STATEMENT_TIMEOUT_MS`
+  must be set.
+
+### D — Mongo off
+
+Before D: C has soaked for 14 days; the backups above are verified; a final `mongodump` is taken
+(Mongo has not changed since C); and the images are a release whose notes say the services start
+without Mongo when no group uses it. Older images still open Mongo at boot, so they keep
+`MONGO_URI`.
+
+1. Remove `MONGO_URI`, `MONGO_DB` and any other `MONGO_*` from `backend`, `jobs-worker`, `auth` and
+   `integrations-googleform`. If the settings store holds `MONGO_URI`, clear it in the portal
+   (Settings → `MONGO_URI`) as well, or the services keep reading it from the store. On
+   `task-runner`, remove its `MONGO_URI`, `MONGO_DB` and `GOOGLE_MONGO_DB`. Deploy, and wait until
+   every service is healthy and reporting.
+2. Set `mongodb` (and `mongo-seed`, if present) to `deploy.replicas: 0` and deploy. Keep the volume,
+   and keep it in the definition.
+
+Watch: the services serve normally; Health shows every instance reporting, and
+`settings.service_state` shows `write_stores = postgres` for each; `responses.check_undecryptable` (`stores: postgres`) finds 0; 5xx, p95 and the jobs at
+baseline. Soak for 7 days.
+Rollback: set `mongodb` back to `replicas: 1`, restore the `MONGO_*` variables (and the store
+value) and redeploy. Mongo then holds the data as it was at C: to read or mirror from it again,
+follow C's rollback.
+Stored definition: save it with `replicas: 0` and without `MONGO_*`. A stale copy that still sets
+`MONGO_URI` brings Mongo back into the services on the next deploy.
+
+### Decommission (Postgres-only release stable for 30 days)
+
+1. Take a final encrypted `mongodump`, store it off the host, and restore-test it (counts only).
+   Delete the Typeform and Google credential databases before archiving, or keep that archive only
+   briefly.
+2. Remove `mongodb`, `mongo-seed` and every `MONGO_*` from the stored stack definition, and from the
+   settings store if it holds any. Keep the volume until its retention ends. Deleting the volume
+   is the hard point of no return.
+3. The keyset freeze ends here. `keyset.drop_old` with `mongo_retired` is accepted once every live
+   backend and Google instance reports `write_stores = postgres`. Don't drop a key that the retained
+   Mongo archive still needs until that archive is deleted.
+4. Delete the Typeform developer app, if you had one.
 
 ## Quick reference
 
