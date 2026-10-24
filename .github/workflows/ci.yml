@@ -97,11 +97,21 @@ jobs:
               with:
                   persist-credentials: false
 
-            # The backend talks to a real MongoDB (Beanie) in every mode and to
-            # Postgres; both boot while the dependencies install.
+            # Postgres always, MongoDB where the entry uses it (the Mongo and
+            # dual modes, and the tests that drive Mongo themselves). The
+            # Postgres shards run without it: with every group on Postgres the
+            # backend must start and serve with Mongo unreachable. Both boot
+            # while the dependencies install.
             - name: Start the test databases
               working-directory: .
-              run: .github/scripts/test-dbs.sh start postgres mongo
+              env:
+                  MONGO: ${{ matrix.mongo }}
+              run: |
+                  if [ "$MONGO" = absent ]; then
+                      .github/scripts/test-dbs.sh start postgres
+                  else
+                      .github/scripts/test-dbs.sh start postgres mongo
+                  fi
 
             - name: Set up uv
               uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -126,6 +136,10 @@ jobs:
             # slower), each with its own Mongo and Postgres database
             # (tests/conftest.py). pytest-split picks this shard's tests from
             # the recorded durations in .test_durations (docs/ci.md).
+            # Without Mongo, MONGO_URI points at a closed port: anything that
+            # tries to reach Mongo fails at once instead of finding a server.
+            # MARKER "not mongo" leaves out the tests that drive Mongo
+            # themselves; "mongo" runs only those (tests/conftest.py).
             - name: Run backend tests (${{ matrix.mode }} ${{ matrix.group }}/${{ matrix.splits }})
               env:
                   DB_READ_SOURCE: ${{ matrix.read_source }}
@@ -133,9 +147,15 @@ jobs:
                   SPLITS: ${{ matrix.splits }}
                   GROUP: ${{ matrix.group }}
                   IGNORE: ${{ matrix.ignore }}
+                  MONGO: ${{ matrix.mongo }}
+                  MARKER: ${{ matrix.marker }}
               run: |
                   extra=()
                   if [ -n "$IGNORE" ]; then extra+=("$IGNORE"); fi
+                  if [ -n "$MARKER" ]; then extra+=(-m "$MARKER"); fi
+                  if [ "$MONGO" = absent ]; then
+                      export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
+                  fi
                   uv run --frozen pytest -n 4 --dist loadgroup \
                       --splits "$SPLITS" --group "$GROUP" --splitting-algorithm least_duration "${extra[@]}"
 
@@ -150,7 +170,9 @@ jobs:
             matrix:
                 mode: ${{ fromJSON(needs.plan.outputs.modes) }}
         # The auth suite uses an in-memory Mongo mock (mongomock-motor), so no
-        # Mongo is needed; Postgres serves the repository layer.
+        # Mongo is needed; Postgres serves the repository layer. In the
+        # Postgres mode MONGO_URI points at a closed port: the service starts
+        # without Mongo (tests/test_startup_without_mongo.py boots it so).
         defaults:
             run:
                 working-directory: auth
@@ -190,7 +212,10 @@ jobs:
               run: |
                   case "$MODE" in
                       dual) export DB_WRITE_MODE=dual ;;
-                      postgres) export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ;;
+                      postgres)
+                          export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres
+                          export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
+                          ;;
                   esac
                   uv run --frozen pytest
 
@@ -226,9 +251,20 @@ jobs:
               with:
                   persist-credentials: false
 
+            # In the Postgres mode the suite runs before Mongo exists, with
+            # MONGO_URI on a closed port: the service must start and serve
+            # without it. Mongo then starts for the few tests that drive it
+            # themselves (marker "mongo", tests/conftest.py).
             - name: Start the test databases
               working-directory: .
-              run: .github/scripts/test-dbs.sh start postgres mongo
+              env:
+                  MODE: ${{ matrix.mode }}
+              run: |
+                  if [ "$MODE" = postgres ]; then
+                      .github/scripts/test-dbs.sh start postgres
+                  else
+                      .github/scripts/test-dbs.sh start postgres mongo
+                  fi
 
             - name: Set up uv
               uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -248,11 +284,30 @@ jobs:
               env:
                   MODE: ${{ matrix.mode }}
               run: |
+                  extra=()
                   case "$MODE" in
                       dual) export DB_WRITE_MODE=dual ;;
-                      postgres) export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ;;
+                      postgres)
+                          export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres
+                          export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
+                          extra=(-m "not mongo")
+                          ;;
                   esac
-                  uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
+                  uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py "${extra[@]}"
+
+            - name: Start MongoDB for the tests that drive it
+              if: matrix.mode == 'postgres'
+              working-directory: .
+              run: |
+                  .github/scripts/test-dbs.sh start mongo
+                  .github/scripts/test-dbs.sh wait
+
+            - name: Run the google tests that drive Mongo (postgres)
+              if: matrix.mode == 'postgres'
+              env:
+                  DB_READ_SOURCE: postgres
+                  DB_WRITE_MODE: postgres
+              run: uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py -m mongo
 
     common-tests:
         name: Common tests (pytest)

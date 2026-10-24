@@ -21,6 +21,26 @@ from googleform.db.base import SCHEMA, Base
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "")
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 
+#: Test files that drive a Mongo server themselves, whatever the flags (store
+#: parity, the migration CLI). They get the ``mongo`` marker: CI runs the
+#: Postgres mode without Mongo and ``-m "not mongo"`` (docs/ci.md).
+MONGO_DRIVEN = (
+    "tests/integration/app/repository/test_postgres_parity.py",
+    "tests/integration/test_migrate_marker.py",
+)
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "mongo: the test drives a Mongo server itself, whatever the flags"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        if item.nodeid.partition("::")[0] in MONGO_DRIVEN:
+            item.add_marker(pytest.mark.mongo)
+
 
 def _postgres_configured() -> bool:
     if not TEST_DATABASE_URL:

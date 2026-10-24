@@ -42,7 +42,7 @@ async def parity(mongo, postgres, steps):
 
 @pytest_asyncio.fixture
 async def stores(clean_postgres):
-    await database_service.init_db()
+    await database_service.init_db(required=True)
     client = AsyncMongoClient(settings.mongo_settings.URI)
     await client.drop_database(settings.mongo_settings.DB)
     yield Container.pg_sessionmaker()
