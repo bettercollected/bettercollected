@@ -1,4 +1,9 @@
+import base64
+import hashlib
+import hmac
 import json
+import logging
+import os
 from datetime import datetime, timedelta
 from http import HTTPStatus
 from urllib import parse
@@ -16,8 +21,8 @@ from common.models.user import UserInfo
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from oauthlib.oauth1 import InvalidClientError
-from oauthlib.oauth2 import InvalidGrantError
+from cryptography.fernet import InvalidToken
+from oauthlib.oauth2 import InvalidClientError, InvalidGrantError, OAuth2Error
 from pydantic import EmailStr
 from starlette.requests import Request
 
@@ -29,7 +34,80 @@ from googleform.app.utils import AiohttpClient
 from googleform.app.utils.google import dict_to_credential
 from googleform.config import settings
 
+log = logging.getLogger(__name__)
+
 _crypto = Crypto(settings.AUTH_AES_HEX_KEY)
+
+# oauthlib refuses a token whose scopes differ from the requested ones ("Scope
+# has changed") unless OAUTHLIB_RELAX_TOKEN_SCOPE is set in the process
+# environment; the settings store cannot supply it. Google always answers with
+# a different set (the email/profile aliases, scopes granted earlier through
+# include_granted_scopes), so the relaxed mode is set here and the scopes this
+# service needs are checked explicitly after the exchange
+# (_refuse_missing_scopes).
+if not os.environ.get("OAUTHLIB_RELAX_TOKEN_SCOPE"):
+    os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+
+_SCOPE_PREFIX = "https://www.googleapis.com/auth/"
+# Short names Google may return for the scopes requested as full URLs.
+_SCOPE_ALIASES = {
+    "email": _SCOPE_PREFIX + "userinfo.email",
+    "profile": _SCOPE_PREFIX + "userinfo.profile",
+}
+# What the Google Forms import cannot work without: reading the form, its
+# responses, and the account's email (the credential is stored under it).
+REQUIRED_FORMS_SCOPES = (
+    _SCOPE_PREFIX + "forms.body.readonly",
+    _SCOPE_PREFIX + "forms.responses.readonly",
+    _SCOPE_PREFIX + "userinfo.email",
+)
+MESSAGE_OAUTH_SCOPES_NOT_GRANTED = (
+    "Google did not grant access to your forms. Connect again and allow "
+    "access to your Google Forms and their responses."
+)
+MESSAGE_OAUTH_INVALID_STATE = "The authorization request is invalid or has expired."
+
+
+def pkce_code_verifier(state: str) -> str:
+    """The PKCE code verifier of the authorization request carrying ``state``.
+
+    google-auth-oauthlib (1.3+) sends a PKCE challenge with every authorization
+    URL, and the token exchange must present the matching verifier. The two
+    steps run in different requests (and possibly different replicas), so the
+    verifier is derived from the request's state with a server-side key instead
+    of being kept anywhere: the same state gives the same verifier, and without
+    the key an intercepted code and state are not enough to exchange the code.
+    43 characters from the unreserved set (RFC 7636 section 4.1).
+    """
+    digest = hmac.new(
+        settings.AUTH_AES_HEX_KEY.encode(),
+        b"google-oauth-pkce-v1|" + state.encode(),
+        hashlib.sha256,
+    ).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+
+
+def granted_scopes(token: dict, requested) -> set:
+    """The scopes Google granted, aliases expanded. A token response without
+    ``scope`` grants what was requested (RFC 6749 section 5.1)."""
+    scope = token.get("scope") if token else None
+    if scope is None:
+        scope = requested
+    if isinstance(scope, str):
+        scope = scope.split()
+    return {_SCOPE_ALIASES.get(s, s) for s in scope or ()}
+
+
+def _refuse_missing_scopes(granted: set, required) -> None:
+    missing = [s for s in required if s not in granted]
+    if missing:
+        log.warning(
+            "google token exchange: required scopes not granted (%s)",
+            ", ".join(s.removeprefix(_SCOPE_PREFIX) for s in missing),
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_OAUTH_SCOPES_NOT_GRANTED
+        )
 
 
 class OauthGoogleService:
@@ -85,6 +163,8 @@ class OauthGoogleService:
                     if is_integration
                     else settings.GOOGLE_SCOPES
                 ),
+                code_verifier=pkce_code_verifier(state),
+                autogenerate_code_verifier=False,
             )
 
             flow.redirect_uri = (
@@ -134,19 +214,24 @@ class OauthGoogleService:
         Raises:
             HTTPException: If there is an error during the authorization process.
         """
+        tmp = str(request.url)
+        authorization_response = (
+            tmp if tmp[0:5] == "https" else tmp.replace(tmp[0:4], "https", 1)
+        )
+        state = dict(
+            parse.parse_qsl(parse.urlparse(authorization_response).query)
+        ).get("state", "")
+        # the state is checked before the code is spent on the token exchange
         try:
-            tmp = str(request.url)
-            authorization_response = (
-                tmp if tmp[0:5] == "https" else tmp.replace(tmp[0:4], "https", 1)
-            )
-            state = dict(
-                parse.parse_qsl(parse.urlparse(authorization_response).query)
-            ).get("state", "")
-            credentials = self.fetch_token(
-                auth_code=authorization_response, state=state
-            )
-            json_credentials = credentials.to_json()
             state_json = dict(json.loads(_crypto.decrypt(state)))
+        except (InvalidToken, TypeError, ValueError):
+            log.warning("google oauth callback: state refused")
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, content=MESSAGE_OAUTH_INVALID_STATE
+            )
+        credentials = self.fetch_token(auth_code=authorization_response, state=state)
+        try:
+            json_credentials = credentials.to_json()
             user = await self.get_google_user(credentials)
             email = user.get("email")
             if user.get("email") == state_json.get("email"):
@@ -196,17 +281,18 @@ class OauthGoogleService:
             google.oauth2.credentials.Credentials: The OAuth 2.0 credentials.
 
         Raises:
-            HTTPException: If there is an error during the authorization process.
+            HTTPException: If there is an error during the authorization process,
+                or when Google did not grant a scope the Forms import needs.
         """
+        scopes = settings.GOOGLE_SHEET_SCOPE if is_integration else settings.GOOGLE_SCOPES
         try:
             flow = google_auth_oauthlib.flow.Flow.from_client_config(
                 client_config=self.client_config,
-                scopes=(
-                    settings.GOOGLE_SHEET_SCOPE
-                    if is_integration
-                    else settings.GOOGLE_SCOPES
-                ),
+                scopes=scopes,
                 state=state,
+                # the verifier of the challenge sent by authorize() for this state
+                code_verifier=pkce_code_verifier(state),
+                autogenerate_code_verifier=False,
             )
             flow.redirect_uri = (
                 settings.GOOGLE_SHEET_REDIRECT_URL
@@ -219,11 +305,25 @@ class OauthGoogleService:
                 else flow.fetch_token(authorization_response=auth_code)
             )
             credentials = flow.credentials
-            return credentials
-        except InvalidGrantError:
+        except InvalidGrantError as error:
+            log.warning("google token exchange refused: %s", error.error)
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
                 content=MESSAGE_OAUTH_INVALID_GRANT,
+            )
+        except InvalidClientError as error:
+            log.warning("google token exchange refused: %s", error.error)
+            raise HTTPException(
+                status_code=HTTPStatus.EXPECTATION_FAILED,
+                content=MESSAGE_OAUTH_INVALID_CLIENT,
+            )
+        except OAuth2Error as error:
+            # any other error Google answers with (redirect_uri_mismatch,
+            # unauthorized_client, ...) or a malformed callback
+            log.warning("google token exchange refused: %s", error.error)
+            raise HTTPException(
+                status_code=HTTPStatus.EXPECTATION_FAILED,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
         except HttpError as error:
             raise HTTPException(
@@ -234,11 +334,12 @@ class OauthGoogleService:
                 status_code=HTTPStatus.EXPECTATION_FAILED,
                 content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
-        except InvalidClientError:
-            raise HTTPException(
-                status_code=HTTPStatus.EXPECTATION_FAILED,
-                content=MESSAGE_OAUTH_INVALID_CLIENT,
+        if not is_integration:
+            _refuse_missing_scopes(
+                granted_scopes(flow.oauth2session.token, scopes.split()),
+                REQUIRED_FORMS_SCOPES,
             )
+        return credentials
 
     async def fetch_oauth_token(self, oauth_credential: Oauth2CredentialDocument):
         """
