@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Backend for bettercollected"
 readme = "README.md"
 authors = [{ name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.143.0",
     "uvicorn[standard]>=0.54.0",
@@ -48,7 +48,7 @@ dependencies = [
     "pypdf>=6.21.2",
     "pdfplumber>=0.11",
     "pypdfium2>=5.14.0",
-    "pillow>=11",
+    "pillow>=13.0.0",
     "dnspython>=2.8",
     "idna>=3.20",
     "publicsuffixlist>=1.1.0.20261010",

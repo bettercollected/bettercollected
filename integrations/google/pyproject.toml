@@ -3,7 +3,7 @@ name = "googleform"
 version = "0.1.0"
 description = "Google Form integration"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "no" }
 authors = [
     { name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }
