@@ -631,10 +631,6 @@
       "OTP_DESCRIPTION": "We make sure that the responders can access their form responses and can request deletion of their responses whenever they choose to do so."
     }
   },
-  "SIRETO_FOOTER": {
-    "PRODUCT_OF": "A product of Sireto B.V.",
-    "TRADEMARK": "Sireto® is a registered trademark of Sireto B.V."
-  },
   "SLUG": {
     "DEFAULT": "Slug",
     "VALIDATION_MESSAGE": "Enter valid slug"
