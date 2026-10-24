@@ -15,6 +15,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
+  which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
+  flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
+  changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
+  the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
+  keyset freeze and the backup and restore test to do before Mongo is turned off.
+
 ### Changed
 
 - The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
@@ -39,6 +46,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   a form, and no importer at all on forms imported by someone other than the searching member. The forms
   list's response counts count distinct workspaces in MongoDB as Postgres does, so a form linked twice
   to the same workspace still counts that workspace's older responses.
+- Form builder: "Add Option" puts the cursor in the new option. The Flow view no longer opens by itself
+  when a form gets its first logic while being edited (forms that already branch still open in it).
+  Renaming a form titles its welcome page in the same undo step, and autosave no longer rewrites the
+  welcome page's title on every save; the outline's Welcome row shows the form's title.
+- Flow view: a page node's "+N more" counts only the questions it does not show (it counted one too
+  many, the question that names the node). "Start with AI" opens on phones and small tablets too
+  (its dialog fits a 375px screen); only "Create New Form" is marked desktop-only.
 
 ### Security
 

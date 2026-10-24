@@ -6,7 +6,7 @@ import { useFormState } from '@app/store/jotai/form';
 import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { ArrowDown } from '@Components/icons/arrow-down';
 import { PlusIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@app/shadcn/util/lib';
 import { ChoiceIndicator, choiceRowStyle } from '@app/views/atoms/choice';
@@ -17,6 +17,17 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
     const { addChoiceField, removeChoiceField } = useBuilderActions();
     const { theme } = useFormState();
     const [backspaceCount, setBackspaceCount] = useState(0);
+    // The option Add Option just made: the cursor goes into it once it shows.
+    const [focusChoiceId, setFocusChoiceId] = useState<string | null>(null);
+    const listRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!focusChoiceId) return;
+        const inputs = listRef.current?.querySelectorAll<HTMLInputElement>('input[data-choice-id]') ?? [];
+        const input = Array.from(inputs).find((element) => element.dataset.choiceId === focusChoiceId);
+        if (!input) return;
+        input.focus();
+        setFocusChoiceId(null);
+    }, [focusChoiceId, field.properties?.choices]);
     const rowTheme = slide.properties?.theme?.secondary ? { ...theme, ...slide.properties.theme } : theme;
     const isChoiceList = field.type === FieldTypes.MULTIPLE_CHOICE;
     return (
@@ -46,7 +57,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
             )}
             {/* WYSIWYG: each option wears the respondent's row (control, ruled
                 or boxed per style), with the label editable in place. */}
-            <div className={cn('flex w-full flex-col', !isChoiceList || !styleTokens(rowTheme?.style).ruledChoices ? 'gap-2' : '')}>
+            <div ref={listRef} className={cn('flex w-full flex-col', !isChoiceList || !styleTokens(rowTheme?.style).ruledChoices ? 'gap-2' : '')}>
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         const row = choiceRowStyle(rowTheme, false);
@@ -59,6 +70,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                 className={isChoiceList ? 'min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-base' : 'flex justify-between rounded-md border p-2 px-4 text-base'}
                                 style={{ color: isChoiceList ? rowTheme?.primary : rowTheme?.secondary }}
                                 isOptionsInput
+                                data-choice-id={choice.id}
                             />
                         );
                         return (
@@ -103,7 +115,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                     color: slide?.properties?.theme?.secondary || theme?.secondary,
                     background: 'transparent'
                 }}
-                onClick={() => addChoiceField(field.index, slide.index)}
+                onClick={() => setFocusChoiceId(addChoiceField(field.index, slide.index))}
                 className="p2-new mt-4 flex items-center gap-2 rounded font-semibold! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]"
             >
                 <PlusIcon className="h-4 w-4" aria-hidden="true" />
