@@ -13,6 +13,8 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.5] - 2026-10-24
+
 ### Fixed
 
 - The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
