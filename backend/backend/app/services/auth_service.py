@@ -123,13 +123,15 @@ class AuthService:
                 status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Read Timeout"
             )
 
-    async def send_otp_for_creator(self, receiver_email: EmailStr):
+    async def send_otp_for_creator(
+        self, receiver_email: EmailStr, locale: Optional[str] = None
+    ):
         if self.sso_policy is not None:
             await self.sso_policy.check_code_sign_in(receiver_email)
-        await workspaces_service.request_code_mail(
-            self.http_client,
-            {"receiver_email": receiver_email, "creator": True},
-        )
+        params = {"receiver_email": receiver_email, "creator": True}
+        if locale:
+            params["locale"] = locale
+        await workspaces_service.request_code_mail(self.http_client, params)
         return {"message": "Otp sent successfully"}
 
     async def validate_otp(

@@ -15,6 +15,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- The sign-in code, invitation and submission-update mails are available in Dutch. The backend endpoints
+  that send them take an optional `locale` (`nl`, or a tag such as `nl-NL`; anything else gets
+  English), and the submission-update notice follows the form's language. The invitation now names the
+  workspace as "<workspace> via <instance name>". It names the inviter with the role they offer and
+  says that the name is the one the inviter chose.
+
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment

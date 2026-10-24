@@ -197,6 +197,38 @@ class TestCodeMailFailures:
             )
         assert response.status_code == 200, response.text
         assert sent.call_args.kwargs["params"]["workspace_title"] == workspace.title
+        assert "locale" not in sent.call_args.kwargs["params"]
+
+
+class TestMailLanguage:
+    """The mail's language reaches auth when the caller names one."""
+
+    async def test_workspace_code(self, client: AsyncClient, workspace):
+        sent = AsyncMock(return_value={"message": "Email set to be sent"})
+        with patch("common.services.http_client.HttpClient.get", sent):
+            response = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/auth/otp/send",
+                params={"receiver_email": "someone@example.com", "locale": "nl"},
+            )
+        assert response.status_code == 200, response.text
+        assert sent.call_args.kwargs["params"]["locale"] == "nl"
+
+    async def test_creator_code(self, client: AsyncClient):
+        sent = AsyncMock(return_value={"message": "Email set to be sent"})
+        with patch("common.services.http_client.HttpClient.get", sent):
+            response = await client.post(
+                "/api/v1/auth/creator/otp/send",
+                params={"receiver_email": "someone@example.com", "locale": "nl-NL"},
+            )
+        assert response.status_code == 200, response.text
+        assert sent.call_args.kwargs["params"]["locale"] == "nl-NL"
+
+    async def test_an_over_long_locale_is_refused(self, client: AsyncClient):
+        response = await client.post(
+            "/api/v1/auth/creator/otp/send",
+            params={"receiver_email": "someone@example.com", "locale": "x" * 36},
+        )
+        assert response.status_code == 422
 
 
 class FakeAuth:
