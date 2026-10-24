@@ -549,3 +549,81 @@ async def test_a_bulk_delete_is_left_to_verify(target, monkeypatch):
     assert not repo.metrics.mirror_failures
     for form in forms:
         assert await both_copies(form.form_id) == (None, None)
+
+
+# -- 4.0.7 follow-ups: an unchecked copy needs a clean verify; an overall cap --
+
+
+@pytest.mark.allow_mirror_failures
+async def test_a_copy_whose_recheck_fails_stays_open_until_a_clean_verify(
+    target, monkeypatch
+):
+    """The mirror got a copy but the re-check after it failed: the copy may
+    come from a stale read. Its outbox entry survives a full reconcile and is
+    resolved only by a clean full verify."""
+    repo, _ = forms_repo("dual", "save_form")
+    created = await new_form(repo)
+    document = await repo.get_form_document_by_id(created.form_id)
+    document.title = "Changed"
+    real_read = convergence._read
+    reads = []
+
+    async def read(entry, ids, store):
+        reads.append(store)
+        if len(reads) == 2:
+            return {}  # the mirror looks stale: a copy is made
+        if len(reads) == 3:
+            raise ConnectionError("primary unreachable for the re-check")
+        return await real_read(entry, ids, store)
+
+    monkeypatch.setattr(convergence, "_read", read)
+    await repo.save_form(document)
+    monkeypatch.setattr(convergence, "_read", real_read)
+
+    assert repo.metrics.mirror_failures[("forms", "save_form")] == 1
+    (entry,) = await MirrorWriteFailureDocument.find_all().to_list()
+    assert entry.error.startswith("CopyUnverified:")
+
+    from backend.migrate.__main__ import build_target
+
+    async with Runner(build_target(os.environ["DATABASE_URL"])) as runner:
+        await runner.reconcile(direction="mongo->postgres")
+        assert (await runner.status())["outbox"]["mongo"] == 1  # still open
+        outcome = await runner.record_verify(await runner.verify())
+        assert outcome["marker"] == "written"
+        assert (await runner.status())["outbox"]["mongo"] == 0
+
+
+@pytest.mark.parametrize("mode", MODES)
+async def test_a_hung_copy_is_cut_off_and_still_rechecked(target, mode, monkeypatch):
+    """An overall cap bounds the whole step, writes included; the re-check
+    still runs after a cut-off copy, and the copy is reported unverified."""
+    repo, _ = forms_repo(mode, "save_form")
+    created = await new_form(repo)
+    await make_mirror_stale(mode, created)
+    real_read = convergence._read
+    reads_after_write = []
+    wrote = []
+
+    async def read(entry, ids, store):
+        if wrote:
+            reads_after_write.append(store)
+        return await real_read(entry, ids, store)
+
+    async def hung_write(entry, copies, store):
+        wrote.append(store)
+        await asyncio.sleep(30)
+
+    monkeypatch.setattr(convergence, "_read", read)
+    monkeypatch.setattr(convergence, "_write", hung_write)
+    started = time.monotonic()
+    with pytest.raises(convergence.CopyUnverified):
+        await convergence.converge(
+            touched_form(created),
+            primary_of(mode),
+            deadline=started + 0.1,
+            read_timeout=2,
+            cap=started + 0.3,
+        )
+    assert time.monotonic() - started < 5
+    assert reads_after_write == [primary_of(mode), convergence._other(primary_of(mode))]

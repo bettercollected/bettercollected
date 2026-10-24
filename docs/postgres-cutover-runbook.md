@@ -99,7 +99,11 @@ Start on staging; repeat on production only after the staging gate.
    than 500 documents (a bulk delete) is not read back (`metrics.<group>.mirror_converge_skipped`):
    `verify` covers it. Collections Mongo expires by a TTL index (sessions, rate-limit counters,
    idempotency keys, flow events) treat an expired copy as absent, so one store's expiry is never
-   copied back from the other.
+   copied back from the other. The whole step, copies included, is capped at twice the mirror
+   timeout, so a hung store can't hold a request longer; a copy cut off by the cap is still
+   re-checked. When a copy was made but its re-check failed (or it was cut off), the outbox entry
+   reads `CopyUnverified: …`. `reconcile` leaves such entries open; only a clean full `verify`
+   (one that writes the marker) resolves them.
 2. **Preflight:** `python -m backend.migrate preflight` (and for auth/google). Non-zero exit means
    documents with non-ObjectId ids or duplicate unique keys (constraints *and* unique indexes;
    null and empty-string keys never collide); fix the data in Mongo first — backfill skips invalid

@@ -334,12 +334,16 @@ class RoutingRepository:
                 count,
             )
             return
+        started = time.monotonic()
         try:
             repaired = await converge(
                 touched,
                 primary,
-                deadline=time.monotonic() + self._mirror_timeout_s,
+                deadline=started + self._mirror_timeout_s,
                 read_timeout=self._mirror_timeout_s,
+                # writes included: a hung store holds the request at most
+                # about this long, plus the re-check
+                cap=started + 2 * self._mirror_timeout_s,
             )
         except BaseException as exc:  # noqa: BLE001 — never fails the request
             if isinstance(exc, (KeyboardInterrupt, SystemExit)):
