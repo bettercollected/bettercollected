@@ -12,7 +12,6 @@ from auth.config.mail_settings import MailSettings
 from auth.config.sentry_setting import SentrySettings
 from auth.config.sso_settings import SSOSettings
 from auth.config.stripe import StripeSettings
-from auth.config.typeform_settings import TypeformSettings
 from auth.version import __version__
 from common.configs.shipped_secrets import require_secrets
 from common.settings.loader import ensure_poller, load_snapshot
@@ -57,7 +56,6 @@ class Application(StoreBackedSettings):
     apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()
     google_settings: GoogleSettings = GoogleSettings()
-    typeform_settings: TypeformSettings = TypeformSettings()
     mail_settings: MailSettings = MailSettings()
     stripe_settings: StripeSettings = StripeSettings()
     sentry_settings: SentrySettings = SentrySettings()

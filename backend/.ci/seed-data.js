@@ -24,13 +24,6 @@ if (collectionNames.indexOf('forms_plugin_configs') !== -1) {
     db.forms_plugin_configs.insertMany([
         {
             enabled: true,
-            provider_name: 'typeform',
-            provider_url: 'http://integrations-typeform:8000/api/v1',
-            auth_callback_url: 'http://integrations-typeform:8000/api/v1/typeform/oauth/callback',
-            type: 'oauth2'
-        },
-        {
-            enabled: true,
             provider_name: 'google',
             provider_url: 'http://integrations-googleform:8000/api/v1',
             auth_callback_url: 'http://integrations-googleform:8000/api/v1/google/oauth/callback',

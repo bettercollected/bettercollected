@@ -64,7 +64,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     // Privacy officer deletes without reading the answers).
     const canDeleteResponses = can(WorkspacePermission.RESPONSE_DELETE) || can(WorkspacePermission.PRIVACY_MANAGE);
     const googleFormHostUrl = 'https://docs.google.com/';
-    const typeFormHostUrl = 'https://admin.typeform.com/';
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
@@ -110,8 +109,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         switch (response.provider) {
             case 'google':
                 return `${googleFormHostUrl}forms/d/${response.formId}/edit?pli=1#response=${response.responseId}`;
-            case 'typeform':
-                return `${typeFormHostUrl}form /${response.formId}/results#responses`;
             default:
                 return `/${workspace.workspaceName}/dashboard/forms/${response.formId}?view=Responses&sub_id=${response.responseId}`;
         }

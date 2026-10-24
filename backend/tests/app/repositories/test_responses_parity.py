@@ -233,6 +233,7 @@ async def test_response_listings_compose_over_forms(sessions):
         lambda: mongo.list(ids, False, data_subjects=True),
         lambda: postgres.list(ids, False, data_subjects=True),
     )
+    stored = {r: await mongo.get_response(r) for r in ("r1", "r2", "r3")}
     await parity(
         mongo,
         postgres,
@@ -248,8 +249,9 @@ async def test_response_listings_compose_over_forms(sessions):
             ("list_recent_by_form_id", lambda: (f1, 2)),
             ("list_deletion_requests_for_form_ids", lambda: (ids,)),
             ("list_by_form_id", lambda: (f2,)),
-            ("find_deletion_request_by_response_id", lambda: ("r3",)),
-            ("find_deletion_request_by_response_id", lambda: ("r1",)),
+            ("find_deletion_request_for", lambda: (stored["r3"],)),
+            ("find_deletion_request_for", lambda: (stored["r1"],)),
+            ("find_deletion_request_for", lambda: (stored["r2"],)),
             ("get_all_expiring_responses", lambda: ()),
             ("get_response", lambda: ("r2",)),
             ("get_response", lambda: ("nope",)),
@@ -284,7 +286,7 @@ async def test_response_listings_compose_over_forms(sessions):
                 "mark_deletion_requests_success_except",
                 lambda: (f1, None, ["zzz"], at(9)),
             ),
-            ("find_deletion_request_by_response_id", lambda: ("r3",)),
+            ("find_deletion_request_for", lambda: (stored["r3"],)),
             ("delete_form_response", lambda: (r1,)),
             ("get_response", lambda: ("r1",)),
             ("delete_by_form_id_except", lambda: (f1, ["r2"])),
@@ -328,9 +330,7 @@ async def test_workspace_responders_and_tags(sessions):
         ],
     )
     for repo in (mongo, postgres):
-        stored = await repo.get_responder_by_email_and_workspace_id(
-            ws, "a@example.com"
-        )
+        stored = await repo.get_responder_by_email_and_workspace_id(ws, "a@example.com")
         assert (stored.metadata, stored.tags) == ({"team": "x"}, [tag_id])
 
 

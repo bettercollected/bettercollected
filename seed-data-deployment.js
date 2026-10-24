@@ -19,10 +19,8 @@ try {
 const collectionNames = db.getCollectionNames();
 
 const googleEnabled = process.env.GOOGLE_ENABLED === "true"
-const typeformEnabled = process.env.TYPEFORM_ENABLED === "true"
 
 console.log("Google", googleEnabled)
-console.log("Typeform", typeformEnabled)
 
 
 if (collectionNames.indexOf('allowed_origins') !== -1) {
@@ -38,13 +36,6 @@ if (collectionNames.indexOf('forms_plugin_configs') !== -1) {
     // replace `auth_callback_url` with `localhost:<PORT>` instead of `integrations-<PROVIDER>`
     db.createCollection('forms_plugin_configs');
     db.forms_plugin_configs.insertMany([
-        {
-            enabled: typeformEnabled,
-            provider_name: 'typeform',
-            provider_url: 'http://integrations-typeform:8000/api/v1',
-            auth_callback_url: 'http://integrations-typeform:8000/api/v1/typeform/oauth/callback',
-            type: 'oauth2'
-        },
         {
             enabled: googleEnabled,
             provider_name: 'google',

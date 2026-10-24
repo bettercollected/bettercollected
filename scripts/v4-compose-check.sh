@@ -564,7 +564,7 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   expect "no secret value in docker inspect (command, labels, mounts) or docker top of any container" "0" "$leaks"
   expect "no secret value is in the setup token's logs (every container's log)" "0" "$(for id in $(dc ps -aq); do docker logs "$id" 2>&1; done > "$work/fresh.logs"; secret_hits "$work/fresh.secrets" "$work/fresh.logs")"
   expect "the setup token is in no container log" "0" "$(grep -c -F "$FRESH_TOKEN" "$work/fresh.logs")"
-  # per-service env scoping: webapp, worker (and the Typeform file) without secrets
+  # per-service env scoping: webapp and worker without secrets
   local name
   for name in webapp worker; do
     id="$(dc ps -q "$name" | head -n 1)"
@@ -579,15 +579,8 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
     expect "$name has no master key and no database URL" "0" "$(grep -cE '^(SETTINGS_MASTER_KEY|DATABASE_URL|MONGO_URI|STRIPE_[A-Z_]*|GOOGLE_CLIENT_SECRET|MAIL_PASSWORD)=' "$work/fresh.env.$name")"
   done
   expect "the worker's two keys are the only secrets in its env" "AES_HEX_KEY API_KEY" "$(grep -E '^(API_KEY|AES_HEX_KEY)=.' "$work/fresh.env.worker" | cut -d= -f1 | sort | tr '\n' ' ' | sed 's/ $//')"
-  # the Typeform service is a separate image that is not started here: its environment is checked as rendered
-  local tf
-  tf="$(dc config --format json 2>/dev/null | docker run --rm -i --entrypoint /api/backend/.venv/bin/python "$img_backend" -I -c '
-import json, sys
-s = json.load(sys.stdin)["services"]["integrations-typeform"]
-env = s.get("environment") or {}
-print(",".join(sorted(k for k in env if k in ("SETTINGS_MASTER_KEY", "DATABASE_URL", "STRIPE_SECRET", "GOOGLE_CLIENT_SECRET", "MAIL_PASSWORD") or k.endswith("_PASSWORD") or k.startswith("BC_"))) + "|" + ",".join(sorted(k for k in env if k.startswith(("AUTH_", "MASTER_")))))' 2>/dev/null)"
-  expect "the Typeform service (rendered, not started) gets its three keys and no master key, database URL or secret of the backend" "|AUTH_AES_HEX_KEY,AUTH_JWT_SECRET,MASTER_ENCRYPTION_KEYSET" "$tf"
-  check "the env files deploy.sh wrote are owner-only (mode 600)" test "$(stat -c %a "$S_DIR/.env" "$S_DIR/.env.webapp" "$S_DIR/.env.worker" "$S_DIR/.env.typeform" | sort -u | tr -d '\n')" = 600
+  expect "no Typeform service in the rendered stack (removed in 4.1)" "0" "$(dc config --services 2>/dev/null | grep -c '^integrations-typeform$')"
+  check "the env files deploy.sh wrote are owner-only (mode 600)" test "$(stat -c %a "$S_DIR/.env" "$S_DIR/.env.webapp" "$S_DIR/.env.worker" | sort -u | tr -d '\n')" = 600
   # umami: the built-in login is gone
   local umami_code
   umami_code="$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"username":"admin","password":"umami"}' "http://127.0.0.1:$S_UMAMI/api/auth/login")"
@@ -716,7 +709,7 @@ negatives_runtime() {
   expect "docker inspect: the master key is in the four store readers' environment (those running), the admin service and the task runner only" \
     "$(printf '%s\n' admin auth backend $google_service jobs-worker task-runner | sort | tr '\n' ' ' | sed 's/ $//')" "$holders"
   local fileholders=""
-  for f in .env.webapp .env.worker .env.typeform .env.deployment; do
+  for f in .env.webapp .env.worker .env.deployment; do
     grep -qF "$key" "$S_DIR/$f" 2>/dev/null && fileholders="$fileholders $f"
   done
   expect "no env file except the root .env holds the master key" "" "$fileholders"
@@ -752,7 +745,7 @@ print("published=" + ",".join(sorted("%s=%s:%s" % (n, p.get("host_ip") or "*", p
 print("holders=" + ",".join(sorted(n for n in s if "SETTINGS_MASTER_KEY" in env(n))))
 print("worker=" + ",".join(sorted(env("worker"))))
 print("webapp_secret_names=" + ",".join(sorted(k for k in env("webapp") if k.endswith(("SECRET", "PASSWORD", "KEY")) or k in ("DATABASE_URL", "MONGO_URI"))))
-print("typeform_master_key=%s" % ("SETTINGS_MASTER_KEY" in env("integrations-typeform")))
+print("typeform_service=%s" % ("integrations-typeform" in s))
 print("store_required=" + ",".join(sorted(n for n in s if env(n).get("SETTINGS_STORE") == "required")))' 2>/dev/null)"
   gotp() { printf '%s\n' "$props" | grep "^$1="; }
   expect "rendered (unmodified compose file): the published ports are exactly the documented ones; 7234, 27017 and 5432 are not among them, 3004 and the admin port are on 127.0.0.1" \
@@ -771,7 +764,7 @@ print("store_required=" + ",".join(sorted(n for n in s if env(n).get("SETTINGS_S
 import json, sys
 s = json.load(sys.stdin)["services"]
 print(",".join(sorted(n for n, b in s.items() if "DUMMY-env-deployment-secret" in json.dumps(b))))' 2>/dev/null)"
-  expect "rendered: Typeform has no master key" "typeform_master_key=False" "$(gotp typeform_master_key)"
+  expect "rendered: no Typeform service (removed in 4.1)" "typeform_service=False" "$(gotp typeform_service)"
   expect "rendered: the four store readers require the store" "store_required=auth,backend,integrations-googleform,jobs-worker" "$(gotp store_required)"
   # the literal four-variable file (the operator's two, the master key and one password) is refused by design
   local four="$work/four.env" err
@@ -964,7 +957,7 @@ SQL
   expect "settings-prune (dry run) prints no secret value" "0" "$(secret_hits "$work/upgrade.secrets" "$work/prune.out")"
   expect "the dry run changed neither .env nor .env.deployment" "$env_sum $dep_sum" "$(sha256sum "$S_DIR/.env" | cut -d' ' -f1) $(sha256sum "$S_DIR/.env.deployment" | cut -d' ' -f1)"
   expect "the dry run left no .pruned or .pre-v4 file" "0" "$(find "$S_DIR" -maxdepth 1 \( -name "*.pruned" -o -name "*.pre-v4.*" \) | wc -l | tr -d " ")"
-  expect "the MAIL, SSO and typeform-only values are kept (never offered for removal)" "0" "$(grep -cE '^ +would_prune (MAIL_|SSO_)' "$work/prune.out")"
+  expect "the MAIL and SSO values are kept (never offered for removal)" "0" "$(grep -cE '^ +would_prune (MAIL_|SSO_)' "$work/prune.out")"
   # conflicts are reported, never chosen: the two readers of SENTRY_DEBUG disagree (a hand-edited compose file)
   cp "$S_DIR/docker-compose.deployment.yml" "$work/compose.good"
   sed -i -E '/^  backend:/,/^    env_file:/ s/^    environment:$/&\n      SENTRY_DEBUG: "false"/; /^  auth:/,/^    env_file:/ s/^    environment:$/&\n      SENTRY_DEBUG: "true"/' "$S_DIR/docker-compose.deployment.yml"

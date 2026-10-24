@@ -9,16 +9,20 @@ Tools deliberately reuse the same services/pipelines as the product —
 ``update_form`` goes through the exact ops engine the builder chat uses.
 """
 
+import functools
 import json
+import logging
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional
+from importlib.metadata import version as package_version
+from typing import Any, Callable, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
-from mcp.server.fastmcp import FastMCP
-from starlette.concurrency import run_in_threadpool
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH, CreateFormWithAI
@@ -57,20 +61,43 @@ current_api_key: ContextVar[Optional[WorkspaceAPIKeyDocument]] = ContextVar(
     "current_api_key", default=None
 )
 
-mcp = FastMCP(
+
+class _BetterCollectedMCP(MCPServer):
+    """MCPServer whose tools report a refusal in words, as they always have.
+
+    mcp 2.x passes only ``ToolError`` text to the client and turns any other
+    exception into a bare "Error executing tool <name>". The tools here refuse
+    with ``ValueError`` (pydantic's ValidationError included) or the product's
+    ``HTTPException``; both still reach the client with their message, exactly
+    as under mcp 1.x. Anything else is a crash, whose text stays on the server.
+    """
+
+    def add_tool(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+        @functools.wraps(fn)
+        async def run(*call_args: Any, **call_kwargs: Any) -> Any:
+            try:
+                return await fn(*call_args, **call_kwargs)
+            except (ValueError, HTTPException) as e:
+                raise ToolError(str(e)) from e
+
+        super().add_tool(run, *args, **kwargs)
+
+
+mcp = _BetterCollectedMCP(
     "bettercollected",
     instructions=(
         "BetterCollected is a privacy-first form builder. Tools operate on the "
         "workspace your API key belongs to. Respect the workspace's AI profile "
         "(get_ai_profile) when creating or editing forms."
     ),
-    stateless_http=True,
-    streamable_http_path="/",
-    # Host pinning (DNS-rebinding protection) is for unauthenticated localhost
-    # servers; this endpoint requires a Bearer API key and is deployed under
-    # arbitrary hostnames, so the Host allowlist can't be known here.
-    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+    # serverInfo.version: the SDK's version, as mcp 1.x reported by default.
+    version=package_version("mcp"),
 )
+
+# mcp 2.x logs every refused call's message at INFO. A refusal can quote the
+# caller's input (form text from an op), and 1.x never logged it; crashes
+# are still logged, at ERROR.
+logging.getLogger("mcp.server.mcpserver.server").setLevel(logging.WARNING)
 
 
 async def _key(scope: str) -> WorkspaceAPIKeyDocument:
@@ -619,6 +646,23 @@ class MCPAuthMiddleware:
             current_api_key.reset(ctx_token)
 
 
+@functools.cache
+def _streamable_http_app():
+    # Built once: each build makes a new session manager, and the app's
+    # lifespan runs the one ``mcp.session_manager`` returns.
+    return mcp.streamable_http_app(
+        stateless_http=True,
+        streamable_http_path="/",
+        # Host pinning (DNS-rebinding protection) is for unauthenticated
+        # localhost servers; this endpoint requires a Bearer API key and is
+        # deployed under arbitrary hostnames, so the Host allowlist can't be
+        # known here.
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=False
+        ),
+    )
+
+
 def build_mcp_asgi_app():
     """The auth-wrapped MCP ASGI app, ready to mount at /mcp."""
-    return MCPAuthMiddleware(mcp.streamable_http_app())
+    return MCPAuthMiddleware(_streamable_http_app())

@@ -35,14 +35,15 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 
 ## Auth providers & flows
 
-- **Provider factory** — `services/auth_provider_factory.py` (`get_auth_provider`) wires **Google** and **Typeform**
-  OAuth providers (`google_auth_provider.py`, `typeform_auth_provider.py`, both extending `base_auth_provider.py`).
-  Add a new login provider by implementing `base_auth_provider` and registering it in the factory.
+- **Provider factory** — `services/auth_provider_factory.py` (`get_auth_provider`) wires the **Google** OAuth
+  provider (`google_auth_provider.py`, extending `base_auth_provider.py`); the routes take
+  `common.enums.login_provider.LoginProvider` (google only). Typeform sign-in was removed in 4.1. Add a new login
+  provider by implementing `base_auth_provider`, adding it to `LoginProvider` and registering it in the factory.
 - **Account linking** (#758) — accounts are keyed by email, so a provider sign-in may use or create the account for
   an email only when the provider verified it: go through `services/provider_sign_in.py`
-  (`account_for_provider_sign_in`), never `save_user` directly. Google needs `verified_email`; Typeform's `/me`
-  email is unproven, so Typeform sign-in is always refused (existing and new accounts alike — a new one would squat
-  the address). A refusal returns the state without `user` plus `error`/`provider`; the backend redirects to the
+  (`account_for_provider_sign_in`), never `save_user` directly. Google needs `verified_email`; a provider whose
+  email is unproven is always refused (existing and new accounts alike — a new one would squat the address). A
+  refusal returns the state without `user` plus `error`/`provider`; the backend redirects to the
   login page with `login_error=unverified_email&login_provider=…`, which the webapp explains. `GET /callback` (the
   backend's import-OAuth token exchange) never creates accounts, and the backend only sends it the signed-in user's
   own email.
@@ -64,7 +65,7 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
 - **Platform admins** (`ADMIN` role, not workspace admins — and *every* platform-admin power behind the backend's
   `get_logged_admin`: operator-only endpoints such as coupons, actions and plugin providers): `PLATFORM_ADMIN_EMAILS` (comma-separated) adds ADMIN to those users' token
   roles via `services/platform_admins.py:roles_for`, **only for sessions whose email was verified at sign-in**: OTP
-  login, and Google when userinfo reports `verified_email`. Typeform's `/me` email never gets it; the `/callback` JWT
+  login, and Google when userinfo reports `verified_email`. An unproven email never gets it; the `/callback` JWT
   exchange (import OAuth re-issuing the signed-in session's token, same email) gets it only when the backend passes
   that session's `email_verified=true`. The session's `email_verified` claim lives in the backend-issued tokens (`common.models.user.User`);
   on refresh the backend passes it to `GET /status?email_verified=`, which grants only when it is true. Never stored,
@@ -102,7 +103,7 @@ google `services/migration_service.py`. Never put the key on a shared HTTP clien
 
 - Issues JWTs that the **backend** wraps into cookie sessions (backend owns the sessions and their revocation, not
   auth; a refresh asks `/auth/status`, and a 404 there ends the session).
-- Login OAuth here is distinct from provider *import* OAuth in `integrations/google` (:8003) / typeform (:8002).
+- Login OAuth here is distinct from provider *import* OAuth in `integrations/google` (:8003).
 - Emails (OTP, invites) go out via `mail_service.py` (SMTP / fastapi-mail); templates in `app/templates/`.
   **Workspace titles never reach a header (#761):** the From display name is always `ORGANIZATION_NAME`
   (`MailService` takes no sender-name argument), subjects are fixed wording, and a workspace title, form title or
@@ -139,7 +140,7 @@ poetry run flake8 . # lint
 
 - **Stripe secrets & webhook signature:** `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRODUCT_ID`,
   `STRIPE_*_URL` come from env — verify webhook signatures in `stripe_service.py`; never trust unsigned webhook bodies.
-- **OAuth redirect URIs** must match what's registered with Google/Typeform (`*_REDIRECT_URI`, `GOOGLE_BASIC_AUTH_REDIRECT`);
+- **OAuth redirect URIs** must match what's registered with Google (`*_REDIRECT_URI`, `GOOGLE_BASIC_AUTH_REDIRECT`);
   a mismatch fails silently at the provider. See [../docs/RUNNING_INTEGRATIONS.md](../docs/RUNNING_INTEGRATIONS.md).
 - **JWT/crypto secrets** (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`) are shared contract with the backend — changing them
   breaks existing sessions across services.

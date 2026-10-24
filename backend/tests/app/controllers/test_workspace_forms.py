@@ -8,7 +8,7 @@ from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 
 from backend.app.container import container
-from tests.app.response_helpers import unlinked_scope
+from tests.app.response_helpers import deletion_request_of, unlinked_scope
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -292,10 +292,8 @@ class TestWorkspaceForm:
 
         delete_form = await client.delete(workspace_form_url, cookies=test_user_cookies)
 
-        actual_request_response_deletion = (
-            await container.form_response_repo().find_deletion_request_by_response_id(
-                workspace_form_response["response_id"]
-            )
+        actual_request_response_deletion = await deletion_request_of(
+            workspace.id, published_form.form_id, workspace_form_response["response_id"]
         )
         expected_request_response_deletion = None
         assert actual_request_response_deletion == expected_request_response_deletion
@@ -418,6 +416,7 @@ class TestWorkspaceForm:
         client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_url: str,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
         published_form: Coroutine[Any, Any, FormDocument],
         workspace_form_response: Coroutine[Any, Any, dict],
     ):
@@ -429,10 +428,8 @@ class TestWorkspaceForm:
             delete_response_url, cookies=test_user_cookies
         )
 
-        actual_form_response_deletion_request = (
-            await container.form_response_repo().find_deletion_request_by_response_id(
-                workspace_form_response["response_id"]
-            )
+        actual_form_response_deletion_request = await deletion_request_of(
+            workspace.id, published_form.form_id, workspace_form_response["response_id"]
         )
         expected_form_response_deletion_request = None
         assert (
