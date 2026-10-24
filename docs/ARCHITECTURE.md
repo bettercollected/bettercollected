@@ -26,7 +26,7 @@ Deep reference for how bettercollected fits together. For day-to-day agent guida
                         │      ┌───────▼───────┐  │   ┌──────▼───────────────┐
                         │      │ integrations/ │  │   │ temporal workers:     │
                         │      │ google (:8003)│  │   │  worker / csv-worker /│
-                        │      │ typeform(:8002)│ │   │  actions-executor     │
+                        │      │               │  │   │  actions-executor     │
                         │      └───────┬───────┘  │   └──────┬───────────────┘
                         ▼              ▼          ▼          ▼
                  ┌──────────────────────────────────────────────────────┐
@@ -40,8 +40,8 @@ Deep reference for how bettercollected fits together. For day-to-day agent guida
 ## Core domain model: StandardForm
 
 [common/common/models/standard_form.py](../common/common/models/standard_form.py) is the single canonical form
-representation. Everything — forms built natively in the drag-and-drop builder **and** forms imported from Google or
-Typeform — is normalized into a `StandardForm`. Key pieces:
+representation. Everything — forms built natively in the drag-and-drop builder **and** forms imported from Google
+Forms (and, before 4.1, from Typeform) — is normalized into a `StandardForm`. Key pieces:
 
 - **Fields** (`StandardFormFieldType` / `FormBuilderTagTypes`): a rich set — short/long text, markdown, multiple
   choice, multiselect, checkboxes, email, number, phone, link, date/time (+ ranges), dropdown, rating, linear scale,
@@ -55,7 +55,7 @@ to this model rather than introducing a parallel structure.
 
 ## The provider plugin/proxy system
 
-External form providers (Google, Typeform) are integrated as **interchangeable plugins** that all implement one route
+External form providers (today Google Forms; Typeform was removed in 4.1) are integrated as **interchangeable plugins** that all implement one route
 contract, defined in [common/common/constants/plugin_routes.py](../common/common/constants/plugin_routes.py):
 
 ```
@@ -65,12 +65,13 @@ contract, defined in [common/common/constants/plugin_routes.py](../common/common
 /{provider}/forms/{form_id}/responses    /{provider}/forms/{form_id}/responses/{response_id}
 ```
 
-- Each provider is a **standalone FastAPI microservice** (`integrations/google` on :8003, typeform on :8002) that
+- Each provider is a **standalone FastAPI microservice** (`integrations/google` on :8003) that
   implements this contract and exposes a `POST /{provider}/convert/standard_form` transform.
 - The **backend** exposes a `plugin_proxy` controller + `plugin_proxy_service.py` that forwards standardized requests
   to the right provider service, based on `FormPluginConfigDocument` rows in Mongo (`forms_plugin_configs`: enabled,
   provider_name, provider_url, auth_callback_url, type). `common/common/base/plugin.py` provides the registration base.
-- **Adding a new provider:** (1) build a microservice implementing the contract + StandardForm conversion, (2) add a
+- **Adding a new provider:** (1) build a microservice implementing the contract + StandardForm conversion, (2) add it to
+  `common.enums.form_provider.FormProvider` (the routes accept only listed providers), (3) add a
   `forms_plugin_configs` document pointing at it. No changes to form storage or the webapp's form model are needed.
 
 ## Authentication flow

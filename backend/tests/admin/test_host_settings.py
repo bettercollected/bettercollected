@@ -72,10 +72,10 @@ async def test_import_plan_classifies_every_name_and_dry_run_changes_nothing(svc
                 "API_DOCS_ENABLED": "true",
             },
             auth={T4: STRONG, "STRIPE_SECRET": "weak"},
-            typeform={"AUTH_JWT_SECRET": "ignored"},
+            umami={"AUTH_JWT_SECRET": "ignored"},
         )
     )
-    assert "typeform" not in config
+    assert "umami" not in config
     plan = await host.plan_import(svc, config)
     assert plan.counts() == {
         "would_import": 4,  # T1, API_DOCS_ENABLED, STRIPE_SECRET and T4 (the same value in two readers)

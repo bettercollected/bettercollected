@@ -290,15 +290,12 @@ dummies=(
 printf '%s\n' "${dummies[@]}" > "$render/.env.deployment"
 printf 'UNSPLASH_ACCESS_KEY=DUMMY-unsplash\n' > "$render/.env.webapp"
 printf 'COOKIE_DOMAIN=example.test\n' > "$render/.env.worker"
-printf 'TYPEFORM_CLIENT_ID=DUMMY-tid\n' > "$render/.env.typeform"
 holders_py='
 import json, sys
 c = json.load(sys.stdin)["services"]
 dummy = dict(a.split("=", 1) for a in sys.argv[1:])
 store = {"backend", "jobs-worker", "auth", "integrations-googleform"}
 outside = sorted({"%s>%s" % (k, s) for k, v in dummy.items() for s, b in c.items() if v in json.dumps(b) and s not in store})
-# the Typeform service legitimately gets its own three keys from the compose file
-outside = [o for o in outside if not (o.endswith(">integrations-typeform") and o.split(">")[0] in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET"))]
 print("outside_store=" + ",".join(outside))
 env = lambda n: ",".join(sorted((c[n].get("environment") or {}).keys()))
 print("worker_env=" + env("worker"))
@@ -313,9 +310,9 @@ goth() { printf '%s\n' "$holders" | grep "^$1="; }
 expect "no secret of .env.deployment reaches a service outside the store readers" "outside_store=" "$(goth outside_store)"
 expect "the Chromium worker's whole environment" "worker_env=AES_HEX_KEY,API_KEY,COOKIE_DOMAIN,TEMPORAL_SERVER_URL" "$(goth worker_env)"
 expect "the webapp reads its own env file" "webapp_own_file=DUMMY-unsplash" "$(goth webapp_own_file)"
-expect "the worker, webapp and Typeform services drop every capability" "caps_dropped=admin,document-sandbox,integrations-typeform,task-runner,webapp,worker" "$(goth caps_dropped)"
+expect "the worker and webapp services drop every capability" "caps_dropped=admin,document-sandbox,task-runner,webapp,worker" "$(goth caps_dropped)"
 expect "every first-party service is barred from gaining privileges" \
-  "no_new_privileges=admin,auth,backend,document-sandbox,integrations-googleform,integrations-typeform,jobs-worker,task-runner,webapp,worker" "$(goth no_new_privileges)"
+  "no_new_privileges=admin,auth,backend,document-sandbox,integrations-googleform,jobs-worker,task-runner,webapp,worker" "$(goth no_new_privileges)"
 
 # --- (j) nginx passes Umami's tracker and nothing else ---------------------------------
 echo "== (j) the public Umami port passes only the tracker script and the event endpoint"

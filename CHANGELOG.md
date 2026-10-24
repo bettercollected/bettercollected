@@ -64,6 +64,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   longer reported. A stored `typeform` provider row is no longer offered or called, so account deletion
   no longer depends on the Typeform service. The keyset tasks accept and ignore `typeform_acknowledged`
   and no longer wait for a Typeform heartbeat.
+- **Typeform** (deployment): the `integrations-typeform` compose service, `.env.typeform`, the
+  `TYPEFORM_*` lines of `.env.deployment.example` and the Typeform seed row are gone.
+  `./deploy.sh typeform` and `./deploy.sh both` still work, with a warning, and start the stack
+  without Typeform (with Google Forms for `both`); `settings-prune` ignores `--typeform` and
+  `--no-typeform`. `deploy.sh` warns when an `integrations-typeform` container from an earlier
+  release still exists and never removes it; existing `.env.typeform` files are left alone.
 
 ### Fixed
 

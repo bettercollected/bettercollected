@@ -16,7 +16,7 @@ body:
         - webapp (frontend)
         - backend (core API)
         - auth (identity / billing)
-        - integrations (google / typeform)
+        - integrations (google)
         - temporal (workers)
         - infra / deployment
         - not sure
