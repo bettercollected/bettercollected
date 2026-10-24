@@ -24,6 +24,14 @@ export const importApi = createApi({
         credentials: 'include'
     }),
     endpoints: (builder) => ({
+        // The form providers this instance offers; Google carries its import
+        // mode (lib/hooks/use-google-forms-import-mode.ts).
+        getProviders: builder.query<Array<{ providerName: string; importMode?: string | null }>, void>({
+            query: () => ({
+                url: '/providers',
+                method: 'GET'
+            })
+        }),
         verifyFormToken: builder.mutation<any, any>({
             query: ({ provider }) => ({
                 url: `/${provider}/oauth/verify`,
@@ -72,4 +80,4 @@ export const importApi = createApi({
     })
 });
 
-export const { useVerifyFormTokenMutation, useLazyGetSingleFormFromProviderQuery, useImportFormMutation } = importApi;
+export const { useGetProvidersQuery, useVerifyFormTokenMutation, useLazyGetSingleFormFromProviderQuery, useImportFormMutation } = importApi;

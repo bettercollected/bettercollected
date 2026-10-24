@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 import ImportFormLoading from '@Components/import-form/import-form-loading';
 import ImportSuccessfulComponent from '@Components/import-form/import-successful-component';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 
+import GoogleFormsImportNotice from '@app/components/form-integrations/google-forms-import-notice';
 import ImportErrorView from '@app/components/form-integrations/import-error-view';
 import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import { buttonConstant } from '@app/constants/locales/button';
+import { googleFormsRefusal, useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { initFormState } from '@app/store/forms/slice';
 
@@ -28,7 +33,13 @@ export default function ImportFormModal() {
 
     const workspace = useAppSelector(selectWorkspace);
 
+    const { t } = useTranslation();
     const [verifyToken, { isLoading, data, error }] = useVerifyFormTokenMutation();
+    // GOOGLE_FORMS_IMPORT: nothing is asked of Google unless imports are on;
+    // a refusal from the backend (403 readonly, 410 off) says the same.
+    const { mode, isLoading: modeLoading } = useGoogleFormsImportMode();
+    const [refused, setRefused] = useState<'readonly' | 'off' | null>(null);
+    const blocked = refused ?? googleFormsRefusal(error) ?? (mode === 'readonly' || mode === 'off' ? mode : null);
 
     const [openPicker] = useDrivePicker();
 
@@ -41,14 +52,21 @@ export default function ImportFormModal() {
     const [singleFormFromProviderTrigger, singleFormFromProviderResult] = useLazyGetSingleFormFromProviderQuery();
 
     useEffect(() => {
+        if (modeLoading || mode === 'readonly' || mode === 'off') return;
         verifyToken({ provider: 'google' });
-    }, []);
+    }, [modeLoading, mode]);
 
     const handleImportForm = async (formId: string) => {
         const singleForm: any = await singleFormFromProviderTrigger({ provider: 'google', formId: formId });
         const form: any = { ...singleForm?.data, provider: 'google' };
         delete form['clientFormItems'];
         if (singleForm.error) {
+            const refusal = googleFormsRefusal(singleForm.error);
+            if (refusal) {
+                setFormTitle('');
+                setRefused(refusal);
+                return;
+            }
             toast({ description: 'Error fetching form', variant: 'destructive' });
             return;
             closeModal();
@@ -58,6 +76,11 @@ export default function ImportFormModal() {
             provider: 'google',
             workspaceId: workspace.id
         });
+        if (response.error && googleFormsRefusal(response.error)) {
+            setFormTitle('');
+            setRefused(googleFormsRefusal(response.error));
+            return;
+        }
         if (response.error) {
             toast({ description: 'Something went wrong!!', variant: 'destructive' });
             closeModal();
@@ -116,7 +139,18 @@ export default function ImportFormModal() {
         }
     }, [form]);
 
-    if (isLoading) return <FullScreenLoader />;
+    if (blocked) {
+        return (
+            <div className="flex w-full flex-col gap-4 rounded-md bg-white p-6 md:max-w-[480px]">
+                <GoogleFormsImportNotice mode={blocked} />
+                <Button variant="v2Button" size="sm" className="self-end" onClick={() => closeModal()}>
+                    {t(buttonConstant.close)}
+                </Button>
+            </div>
+        );
+    }
+
+    if (isLoading || modeLoading) return <FullScreenLoader />;
 
     if (error) return <ImportErrorView provider={'google'} unauthorizedScopes={(error as any)?.data?.unauthorizedScopes} />;
 

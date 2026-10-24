@@ -10,10 +10,13 @@ import useDrivePicker from '@fyelci/react-google-drive-picker';
 import cn from 'classnames';
 import { useSetAtom } from 'jotai';
 import { FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { useModal } from '@app/components/modal-views/context';
 import ImportPdfDialog from '@app/components/pdf-import/import-pdf-dialog';
 import { defaultForm } from '@app/constants/form';
+import { googleFormsImport } from '@app/constants/locales/google-forms-import';
+import { useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
@@ -50,6 +53,11 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const isMobile = useIsMobile();
     const { can, isLoading: permissionsLoading } = useWorkspacePermissions();
     const canCreate = can(WorkspacePermission.FORM_CREATE);
+    const { t } = useTranslation();
+    // Google Forms imports only while the instance allows them
+    // (GOOGLE_FORMS_IMPORT=on); unknown (the provider list failed): as before.
+    const { mode: googleImportMode, isLoading: googleImportModeLoading } = useGoogleFormsImportMode();
+    const showGoogleImport = !googleImportModeLoading && (googleImportMode === undefined || googleImportMode === 'on');
 
     // Reviewers, Viewers and Privacy officers don't create forms.
     useEffect(() => {
@@ -122,14 +130,16 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                             </Sheet>
                         )}
 
-                        <Card
-                            variant={'purple'}
-                            icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-brand-500" />}
-                            content={'Import Google Form'}
-                            onClick={() => {
-                                openModal('IMPORT_FORMS', { nonClosable: true });
-                            }}
-                        />
+                        {showGoogleImport && (
+                            <Card
+                                variant={'purple'}
+                                icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-brand-500" />}
+                                content={'Import Google Form'}
+                                onClick={() => {
+                                    openModal('IMPORT_FORMS', { nonClosable: true });
+                                }}
+                            />
+                        )}
                         <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-brand-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
                         <Card
                             variant={'pink'}
@@ -139,6 +149,8 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                             onClick={() => openDialogModal('START_WITH_AI')}
                         />
                     </div>
+
+                    {googleImportMode === 'readonly' && <p className="mt-4 text-sm text-black-700">{t(googleFormsImport.readonly.createPage)}</p>}
 
                     <ImportPdfDialog open={pdfImportOpen} onOpenChange={setPdfImportOpen} workspaceId={workspace?.id} workspaceName={workspace?.workspaceName} />
                     {!isMobile && (

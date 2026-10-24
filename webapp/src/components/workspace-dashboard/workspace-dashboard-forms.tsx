@@ -10,9 +10,11 @@ import StyledPagination from '@Components/common/pagination';
 import SearchInput from '@Components/common/search-input';
 import EmptyFormIcon from '@Components/icons/empty-form';
 
+import GoogleFormsImportNotice from '@app/components/form-integrations/google-forms-import-notice';
 import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import globalConstants from '@app/constants/global';
+import { useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
@@ -20,6 +22,9 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import NewFormButton from '@app/views/atoms/new-form-button';
+
+/** Imported from Google Forms (also once converted to a form of ours that keeps the link). */
+export const isGoogleForm = (form: StandardFormDto) => form?.settings?.provider === 'google' || !!form?.importedFormId;
 
 function EmptyFormsView() {
     const { t } = useTranslation();
@@ -73,6 +78,10 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
     }, [workspace.id]);
 
     const [searchWorkspaceForms] = useLazySearchWorkspaceFormsQuery();
+    // Forms imported from Google Forms stay when the instance makes imports
+    // read-only or turns them off; say why they no longer sync.
+    const { mode: googleImportMode } = useGoogleFormsImportMode();
+    const listsGoogleForms = (workspaceForms?.data?.items ?? []).some(isGoogleForm);
     const handleSearch = async (event: any) => {
         if (!event.target.value) {
             setShowSearchedResults(false);
@@ -105,6 +114,7 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
         <div className="mb-10 flex h-fit w-full flex-col gap-5">
             {workspaceForms?.data?.total > 0 ? (
                 <>
+                    {listsGoogleForms && (googleImportMode === 'readonly' || googleImportMode === 'off') && <GoogleFormsImportNotice mode={googleImportMode} className="max-w-[720px]" />}
                     {/* The page heading lives in the top navbar (getHeader). The toolbar
                         leads with a real-width search (the flex parent previously never
                         grew, collapsing the w-full input to ~200px) and carries the count

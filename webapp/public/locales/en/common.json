@@ -383,6 +383,18 @@
     }
   },
   "GO_TO_RESPONSE": "Go To Response",
+  "GOOGLE_FORMS_IMPORT": {
+    "READONLY": {
+      "TITLE": "Google Forms import is read-only",
+      "DESCRIPTION": "Forms and responses imported from Google Forms earlier stay here and can still be managed. New imports and re-syncs from Google Forms are no longer possible.",
+      "CREATE_PAGE": "Importing from Google Forms is no longer available. Forms imported earlier stay in your forms list."
+    },
+    "OFF": {
+      "TITLE": "Google Forms import is turned off",
+      "DESCRIPTION": "This instance no longer connects to Google Forms. Forms and responses imported earlier stay here.",
+      "SHEETS": "Google Sheets cannot be connected: this instance has turned off its Google Forms service, which the Google Sheets action still goes through."
+    }
+  },
   "GROUP": {
     "DEFAULT": "Group",
     "GROUPS": "Groups",
