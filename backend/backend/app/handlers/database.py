@@ -18,8 +18,12 @@ from backend.app.schemas.responder_group import (
 )
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
+    DELETION_REQUEST_INDEX,
+    DELETION_REQUEST_INDEX_MODEL,
+    LEGACY_DELETION_REQUEST_INDEX,
     FormResponseDeletionRequest,
     FormResponseDocument,
+    drop_legacy_deletion_request_index,
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import (
@@ -125,6 +129,7 @@ async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
         return
     await ensure_membership_unique_index(db)
     await ensure_workspace_form_unique_index(db)
+    await ensure_deletion_request_indexes(db)
     logger.info("Database connected successfully.")
 
 
@@ -206,6 +211,51 @@ async def ensure_workspace_form_unique_index(db) -> bool:
             "unknown" if pairs is None else pairs,
         )
         return False
+
+
+async def ensure_deletion_request_indexes(db) -> bool:
+    """Deletion requests per workspace (``responses_deletion_requests``, app
+    revision 0020 in Postgres): drop the superseded per-response unique index
+    a database from before still has (it refuses a workspace's request, or
+    its mirrored copy, while another workspace has one for the same
+    response), then build the per-workspace one. Neither stops the service:
+    a failure is logged as an ERROR and the start goes on. True when both
+    are in place."""
+    collection = db["responses_deletion_requests"]
+    done = True
+    try:
+        if await drop_legacy_deletion_request_index(collection):
+            logger.info(
+                "Dropped the superseded index {} from responses_deletion_requests.",
+                LEGACY_DELETION_REQUEST_INDEX,
+            )
+    except PyMongoError as error:
+        done = False
+        logger.error(
+            "Could not drop the superseded index {} from responses_deletion_requests "
+            "({}): while it exists, a workspace's deletion request for a response "
+            "another workspace already has one for is refused. Drop it by hand: "
+            "db.responses_deletion_requests.dropIndex('{}').",
+            LEGACY_DELETION_REQUEST_INDEX,
+            type(error).__name__,
+            LEGACY_DELETION_REQUEST_INDEX,
+        )
+    try:
+        await collection.create_indexes([DELETION_REQUEST_INDEX_MODEL])
+    except PyMongoError as error:
+        done = False
+        pairs = await _duplicate_pairs(
+            collection, ("form_id", "response_id", "provider", "workspace_id"), {}
+        )
+        logger.error(
+            "The unique index {} on responses_deletion_requests was not created "
+            "({}); requests filed more than once for the same response, provider "
+            "and workspace: {}. The service runs without it.",
+            DELETION_REQUEST_INDEX,
+            type(error).__name__,
+            "unknown" if pairs is None else pairs,
+        )
+    return done
 
 
 async def close_db(client: AsyncMongoClient):

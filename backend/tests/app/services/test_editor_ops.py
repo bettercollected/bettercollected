@@ -122,7 +122,7 @@ async def test_the_mcp_tools_never_mention_editor_ops():
     tools = await mcp.list_tools()
     assert tools
     for tool in tools:
-        text = (tool.description or "") + json.dumps(tool.inputSchema)
+        text = (tool.description or "") + json.dumps(tool.input_schema)
         for name in EDITOR_ONLY_OPS:
             assert not _mentions(text, name), (tool.name, name)
 

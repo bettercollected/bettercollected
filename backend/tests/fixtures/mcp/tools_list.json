@@ -1,0 +1,481 @@
+{
+  "instructions": "BetterCollected is a privacy-first form builder. Tools operate on the workspace your API key belongs to. Respect the workspace's AI profile (get_ai_profile) when creating or editing forms.",
+  "tools": [
+    {
+      "description": "List the workspace's forms: id, title, share slug and publish state.",
+      "inputSchema": {
+        "properties": {},
+        "title": "list_formsArguments",
+        "type": "object"
+      },
+      "name": "list_forms",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "list_formsOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Get a form's full structure (pages, fields, settings) as JSON.",
+      "inputSchema": {
+        "properties": {
+          "form_id": {
+            "title": "Form Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ],
+        "title": "get_formArguments",
+        "type": "object"
+      },
+      "name": "get_form",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "get_formOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Create a blank draft form (one empty page) — for building precisely\n    with update_form ops. Use create_form_with_ai when you want the platform\n    to design the form from a prompt instead.",
+      "inputSchema": {
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "create_formArguments",
+        "type": "object"
+      },
+      "name": "create_form",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "create_formOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Create a new draft form from a natural-language prompt. Generation is\n    grounded in the workspace's AI profile (guidelines + compliance).",
+      "inputSchema": {
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "title": "create_form_with_aiArguments",
+        "type": "object"
+      },
+      "name": "create_form_with_ai",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "create_form_with_aiOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Step 1 of two-step AI form creation: the platform's outline of a form\n    for a prompt (and optionally the text of a document to base it on):\n    title, language, pages with section titles, the questions of each page\n    (key, label, type, required, whyWeAsk, choices, validation), show/hide\n    rules (\"logic\") and page jumps (\"jumps\", \"to\": a page key or \"end\").\n    Nothing is created. Review or edit the outline, then pass it to\n    build_form_from_outline. Same AI opt-in and limits as create_form_with_ai.",
+      "inputSchema": {
+        "properties": {
+          "document_text": {
+            "default": "",
+            "title": "Document Text",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "title": "create_form_outlineArguments",
+        "type": "object"
+      },
+      "name": "create_form_outline",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "create_form_outlineOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Step 2: build an outline (from create_form_outline, edited or not)\n    into a new draft form, through the same ops engine as update_form, all\n    or nothing. With fill_gaps the platform's AI suggests what the outline\n    leaves out (choices of a choice question, the \"why we ask\" reason of an\n    identity question); nothing you wrote is changed. Returns the formId,\n    quality findings (codes and ids) and notes on what was adjusted.",
+      "inputSchema": {
+        "properties": {
+          "fill_gaps": {
+            "default": true,
+            "title": "Fill Gaps",
+            "type": "boolean"
+          },
+          "outline": {
+            "additionalProperties": true,
+            "title": "Outline",
+            "type": "object"
+          }
+        },
+        "required": [
+          "outline"
+        ],
+        "title": "build_form_from_outlineArguments",
+        "type": "object"
+      },
+      "name": "build_form_from_outline",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "build_form_from_outlineOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Edit a form with typed operations — the same pipeline the builder's AI\n    chat uses. Reference page/field ids from get_form. Op shapes (camelCase):\n    {\"op\":\"add_field\",\"pageId\":str,\"field\":{\"title\":str,\"type\":str,\"required\"?:bool,\n    \"placeholder\"?:str,\"choices\"?:[str],\"steps\"?:int,\"internal\"?:bool},\"afterFieldId\"?:str,\"index\"?:int} ·\n    (\"internal\": a staff-only \"for office use\" field, never shown to respondents;\n    logic cannot depend on it; not allowed inside a repeating group)\n    (or \"groupId\" instead of \"pageId\": add into a repeating group) ·\n    {\"op\":\"add_group\",\"pageId\":str,\"title\":str,\"itemLabel\":str,\"minItems\":int,\"maxItems\":int,\n    \"itemTitle\"?:str,\"exportLayout\"?:\"columns\"|\"rows\",\"fields\":[field]} (repeating group:\n    questions filled once per item, e.g. per applicant; no nesting, no file_upload inside) ·\n    {\"op\":\"update_field\",\"fieldId\":str,\"patch\":{...same keys as field}} (a date question's\n    patch may also set \"label\":str and \"dateRules\":[{\"comparison\":\"before\"|\"after\"|\"on_or_before\"|\n    \"on_or_after\",\"target\":\"date\"|\"today\"|\"field\",\"date\"?:\"YYYY-MM-DD\",\"fieldId\"?:str}], max 5,\n    [] clears; \"fieldId\" is another date question of the same level or the same group) ·\n    {\"op\":\"remove_field\",\"fieldId\":str} ·\n    {\"op\":\"move_field\",\"fieldId\":str,\"toPageId\"?:str,\"toGroupId\"?:str,\"index\":int} ·\n    {\"op\":\"add_page\",\"index\"?:int,\"fields\"?:[field]} · {\"op\":\"remove_page\",\"pageId\":str} ·\n    {\"op\":\"update_form_info\",\"title\"?:str,\"description\"?:str} ·\n    {\"op\":\"update_form_settings\",\"patch\":{\"purpose\"?:str,\"retentionText\"?:str,\n    \"privacyPolicyUrl\"?:str,\"requireVerifiedIdentity\"?:bool,\"allowEditingResponse\"?:bool,\n    \"showSubmissionNumber\"?:bool}} (trust metadata; \"\" clears a text value) ·\n    {\"op\":\"set_field_logic\",\"fieldId\":str,\"logic\":{\"action\":\"SHOW\"|\"HIDE\",\"operator\":\"AND\"|\"OR\",\n    \"conditions\":[{\"fieldId\":str,\"comparison\":\"IS_EQUAL\"|\"IS_NOT_EQUAL\"|\"CONTAINS\"|\"IS_EMPTY\"|...,\n    \"value\"?:any}]}|null} (conditional visibility; choice values use the LABEL, yes/no uses \"Yes\"/\"No\";\n    a repeating group is referenced as a whole: \"groupMode\":\"COUNT\"|\"ANY\"|\"ALL\", with\n    \"childFieldId\" for ANY/ALL; siblings inside a group refer to the same item) ·\n    {\"op\":\"set_page_jumps\",\"pageId\":str,\"jumps\":[{\"operator\":\"AND\"|\"OR\",\"conditions\":[...],\n    \"target\":\"<page id or __SUBMIT__>\",\"endingId\"?:str}]|null} (branching; \"__SUBMIT__\"\n    submits and shows the default ending, or the ending \"endingId\" names) ·\n    {\"op\":\"add_ending\",\"name\"?:str,\"title\"?:str,\"message\"?:str,\"buttonText\"?:str,\n    \"buttonLink\"?:str,\"isDefault\"?:bool,\"index\"?:int} (a page shown after submitting; \"name\"\n    is internal, at most 60 characters) ·\n    {\"op\":\"update_ending\",\"endingId\":str,\"patch\":{...same keys}} (\"\" clears a text;\n    \"isDefault\":true makes it the ending a plain submit shows) ·\n    {\"op\":\"remove_ending\",\"endingId\":str} (never the last one; its jumps then show the\n    default ending) ·\n    {\"op\":\"duplicate_page\",\"pageId\":str,\"index\"?:int} (clone a page, fresh ids) ·\n    {\"op\":\"set_section_title\",\"pageId\"?:str,\"pageIndex\"?:int,\"title\":str|null} (a question\n    page's section title, shown by the Leaflet style in the section bar and the welcome\n    page's contents list; give pageId or pageIndex (0-based among the question pages); a few\n    plain words, at most 120 characters; null or \"\" clears; not for the welcome page or ending) ·\n    {\"op\":\"move_page\",\"pageId\":str,\"index\":int} (0-based among the question pages) ·\n    {\"op\":\"set_field_validation\",\"fieldId\":str,\"validation\":{\"required\"?:bool,\"minLength\"?:int,\n    \"maxLength\"?:int,\"minValue\"?:num,\"maxValue\"?:num,\"minChoices\"?:int,\"maxChoices\"?:int,\n    \"pattern\"?:str,\"preset\"?:\"digits\"|\"letters\"|\"alphanumeric\"}} (absent = unchanged, null clears;\n    lengths/pattern: text questions, values: number, choices: multiple choice with several answers) ·\n    {\"op\":\"set_question_numbering\",\"pageId\"?:str,\"show\":bool} (no pageId: every page) ·\n    {\"op\":\"set_form_language\",\"language\":str|null} (the language the form's own text is\n    written in, so respondent pages mark it for screen readers: nl, en, de, fr, es, it, pt,\n    pl, da, sv, nb or fi; null clears) ·\n    {\"op\":\"set_theme_preset\",\"name\":str,\"style\"?:\"classic\"|\"sheet\"|\"studio\"|\"leaflet\"} (the\n    look: a theme preset by name, any case: Leaflet (the default for new forms), Default, Paper,\n    Ocean, Forest, Cherry, Mono, Sunset, Lavender, Slate, Blossom, Twilight, Honey, Mint, Sky,\n    Rose (Blue, Green, Red, Black, Orange, Purple mean the nearest of these), and the complete\n    looks Kantlijn and Raster (faces, corners, buttons, background and the welcome layout too);\n    no style = the preset's own (Leaflet, Kantlijn, Raster) or the current one) ·\n    {\"op\":\"update_theme\",\"theme\":{\"title\":str,\"primary\":str,\"secondary\":str,\"tertiary\":str,\n    \"accent\":str,\"style\"?:str,\"background\"?:{...}}} (exact colours of your own).\n    References: add_page, add_field, add_group, duplicate_page and add_ending (and the fields inside\n    add_page/add_group) take \"ref\":\"<name>\"; later ops in the same call may use \"$ref:<name>\"\n    wherever a page or field id is expected (pageId, fieldId, groupId, afterFieldId, toPageId,\n    toGroupId, childFieldId, a jump's target, endingId), conditions and jumps included. Each result\n    reports the \"createdId\". atomic=true applies all ops or none (any error: nothing is stored,\n    every error is returned); the default applies what it can. Preview with dry_run_ops.\n    At most 200 ops per call.\n    Field types: short_text, long_text, email, number, url, phone_number, date,\n    yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text.",
+      "inputSchema": {
+        "properties": {
+          "atomic": {
+            "default": false,
+            "title": "Atomic",
+            "type": "boolean"
+          },
+          "form_id": {
+            "title": "Form Id",
+            "type": "string"
+          },
+          "ops": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Ops",
+            "type": "array"
+          }
+        },
+        "required": [
+          "form_id",
+          "ops"
+        ],
+        "title": "update_formArguments",
+        "type": "object"
+      },
+      "name": "update_form",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "update_formOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Get a form as a form spec v1 document (docs/spec/README.md): what\n    its creator controls, without server-owned data. Page-based forms\n    only.",
+      "inputSchema": {
+        "properties": {
+          "form_id": {
+            "title": "Form Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ],
+        "title": "get_form_specArguments",
+        "type": "object"
+      },
+      "name": "get_form_spec",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "get_form_specOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Check a form spec v1 document without storing anything. Returns\n    {\"valid\",\"errors\":[{\"path\",\"message\"}],\"warnings\",\"compliance\"}; paths\n    are JSON pointers into the document. The organisation's compliance rules\n    need an AI review and are not checked here. At most 1 MB, 200 pages and\n    2000 fields.",
+      "inputSchema": {
+        "properties": {
+          "spec": {
+            "additionalProperties": true,
+            "title": "Spec",
+            "type": "object"
+          }
+        },
+        "required": [
+          "spec"
+        ],
+        "title": "validate_formArguments",
+        "type": "object"
+      },
+      "name": "validate_form",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "validate_formOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Preview update_form: apply the same ops to a copy of the form and\n    return {\"ok\",\"applied\",\"atomic\",\"form\" (the resulting spec document),\n    \"diff\" (pages and fields added, removed, moved, changed, with paths),\n    \"results\"}. Nothing is stored. Op shapes: see update_form\n    (at most 200 ops).",
+      "inputSchema": {
+        "properties": {
+          "atomic": {
+            "default": false,
+            "title": "Atomic",
+            "type": "boolean"
+          },
+          "form_id": {
+            "title": "Form Id",
+            "type": "string"
+          },
+          "ops": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Ops",
+            "type": "array"
+          }
+        },
+        "required": [
+          "form_id",
+          "ops"
+        ],
+        "title": "dry_run_opsArguments",
+        "type": "object"
+      },
+      "name": "dry_run_ops",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "dry_run_opsOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Publish a form so it can accept responses. Returns the share slug.",
+      "inputSchema": {
+        "properties": {
+          "form_id": {
+            "title": "Form Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "form_id"
+        ],
+        "title": "publish_formArguments",
+        "type": "object"
+      },
+      "name": "publish_form",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "publish_formOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "List a form's responses (most recent first): response id, submission\n    time, answer count and any deletion request's status. Use get_response\n    for full answers.",
+      "inputSchema": {
+        "properties": {
+          "form_id": {
+            "title": "Form Id",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "form_id"
+        ],
+        "title": "list_responsesArguments",
+        "type": "object"
+      },
+      "name": "list_responses",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "list_responsesOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "Get one response's full answers.",
+      "inputSchema": {
+        "properties": {
+          "response_id": {
+            "title": "Response Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "response_id"
+        ],
+        "title": "get_responseArguments",
+        "type": "object"
+      },
+      "name": "get_response",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "get_responseOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "List pending response-deletion requests across the workspace — the\n    privacy queue an operator (or agent) should act on.",
+      "inputSchema": {
+        "properties": {},
+        "title": "list_deletion_requestsArguments",
+        "type": "object"
+      },
+      "name": "list_deletion_requests",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "list_deletion_requestsOutput",
+        "type": "object"
+      }
+    },
+    {
+      "description": "The workspace's AI profile: about, form guidelines and compliance\n    requirements. Respect these when creating or editing forms.",
+      "inputSchema": {
+        "properties": {},
+        "title": "get_ai_profileArguments",
+        "type": "object"
+      },
+      "name": "get_ai_profile",
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "get_ai_profileOutput",
+        "type": "object"
+      }
+    }
+  ]
+}

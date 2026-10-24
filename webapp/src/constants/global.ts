@@ -2,7 +2,7 @@
 const globalConstants = {
     appName: 'Better Collected',
     appDesc:
-        'If you use any form solutions like Google Forms or Typeform then Better Collected is a right platform for addressing the data rights of your form respondents. Better Collected integrates with those form solutions and opens up a portal for your users to view all of their data collected using forms and let them exercise the data rights like request for data deletion. This all happens without disrupting your normal workflow how you use the existing form solution. Better collected makes you a better data collector and help you prevent GDPR and CCPA fines.',
+        'If you use any form solutions like Google Forms then Better Collected is a right platform for addressing the data rights of your form respondents. Better Collected integrates with those form solutions and opens up a portal for your users to view all of their data collected using forms and let them exercise the data rights like request for data deletion. This all happens without disrupting your normal workflow how you use the existing form solution. Better collected makes you a better data collector and help you prevent GDPR and CCPA fines.',
     title: 'Better Collected',
     favIcon: 'favIcon',
     twitterHandle: '@BetterCollected',
@@ -11,7 +11,7 @@ const globalConstants = {
         url: `https://bettercollected.com`,
         title: 'BetterCollected.',
         desc:
-            'If you use any form solutions like Google Forms or Typeform then Better Collected is a right platform for addressing the data rights of your form respondents. Better Collected integrates with those form solutions and opens up a portal for your users to view all of their data collected using forms and let them exercise the data rights like request for data deletion. This all happens without disrupting your normal workflow how you use the existing form solution. Better collected makes you a better data collector and help you prevent GDPR and CCPA fines.',
+            'If you use any form solutions like Google Forms then Better Collected is a right platform for addressing the data rights of your form respondents. Better Collected integrates with those form solutions and opens up a portal for your users to view all of their data collected using forms and let them exercise the data rights like request for data deletion. This all happens without disrupting your normal workflow how you use the existing form solution. Better collected makes you a better data collector and help you prevent GDPR and CCPA fines.',
         image: 'https://s3.eu-central-1.wasabisys.com/bettercollected/public/better-collected-social.png'
     },
     consoleWarningTitle: `%cStop!`,

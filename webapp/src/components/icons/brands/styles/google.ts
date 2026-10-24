@@ -24,12 +24,6 @@ export const darkStyle = {
     ...baseStyle
 };
 
-export const typeformDarkStyle = {
-    backgroundColor: '#000000',
-    color: '#ffffff',
-    ...baseStyle
-};
-
 export const lightStyle = {
     backgroundColor: '#ffffff',
     color: 'rgba(0,0,0,.54)',

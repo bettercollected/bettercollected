@@ -19,6 +19,7 @@ from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
 from backend.app.schemas.workspace_responder import WorkspaceTags
 from tests.app.repositories.test_forms_parity import form, sessions  # noqa: F401
+from tests.app.response_helpers import unlinked_scope
 
 
 def responses_repo():
@@ -42,8 +43,10 @@ async def test_a_deletion_request_is_mirrored_to_its_table(sessions):
         id=PydanticObjectId(), form_id="f-del", response_id="r-del", provider="self"
     )
     await pg.replay_write([request])
-    stored = await pg.find_deletion_request_by_response_id("r-del")
-    assert stored is not None and stored.form_id == "f-del"
+    (stored,) = await pg.list_deletion_requests_for_form_ids(
+        unlinked_scope(PydanticObjectId(), "f-del")
+    )
+    assert stored.response_id == "r-del" and stored.form_id == "f-del"
 
 
 async def test_a_workspace_tag_is_mirrored_to_its_table(sessions):
