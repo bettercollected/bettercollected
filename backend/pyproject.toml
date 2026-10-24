@@ -22,7 +22,7 @@ dependencies = [
     "httpx>=0.28.1",
     # images/import and the Unsplash route pin connections (services/image_fetch.py)
     "httpcore>=1.0.9",
-    "certifi>=2026.7.22",
+    "certifi>=2026.10.19",
     "classy-fastapi==0.7.0",
     "pyjwt>=2.15.1",
     "boto3>=1.43.112",
