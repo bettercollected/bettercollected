@@ -128,7 +128,8 @@
   "DASHBOARD_DRAWER": {
     "COLLABORATOR": "Collaborator",
     "OWNER": "Owner",
-    "MANAGE_URLS": "Manage Links"
+    "MANAGE_URLS": "Manage Links",
+    "READ_ONLY": "Read-only"
   },
   "DELETE": {
     "DEFAULT": "Delete",
