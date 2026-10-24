@@ -34,7 +34,7 @@ import { ResolvedFormLogo } from '@app/utils/form-logo';
 import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
 import { firstPageWithError, historyBackTo, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
@@ -284,8 +284,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         // after the page change has rendered; as onNext does
         if (firstKey)
             setTimeout(() => {
-                if (parseScopedFieldId(firstKey)) document.getElementById(firstKey)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-                else scrollToDivById(firstKey);
+                if (parseScopedFieldId(firstKey)) focusQuestionInGroup(firstKey);
+                else scrollToDivById(firstKey, undefined, { focusControl: true });
             }, 600);
         return true;
     };
@@ -315,8 +315,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             // inside a group item sit in nested containers, so let the browser
             // find their scroll position.
             const firstKey = Object.keys(invalidations)[0];
-            if (parseScopedFieldId(firstKey)) document.getElementById(firstKey)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-            else scrollToDivById(firstKey);
+            // Focus goes to the first question with a problem, so a keyboard or
+            // screen reader user lands on it and hears its error.
+            if (parseScopedFieldId(firstKey)) focusQuestionInGroup(firstKey);
+            else scrollToDivById(firstKey, undefined, { focusControl: true });
             return;
         }
 
