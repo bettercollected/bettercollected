@@ -120,6 +120,32 @@ function choiceTokens(chosen: string, source?: StandardFormFieldDto): string[] {
 }
 
 /**
+ * A choice answer as the respondent saw it, for display (answer piping): the
+ * text of each chosen option, as the question shows it (its text, else its
+ * label, else "Item <n>"), then the text typed as "Other". An id the question
+ * no longer has is shown as stored. Undefined when nothing is chosen.
+ * Several answers give a list; one answer a string.
+ */
+export function choiceAnswerText(answer: any, field: StandardFormFieldDto | undefined): string | string[] | undefined {
+    const choices = field?.properties?.choices ?? [];
+    const text = (chosen: string): string => {
+        const index = choices.findIndex((c) => c?.id === chosen);
+        if (index < 0) return chosen;
+        const choice = choices[index];
+        return filledText(choice.value) ? String(choice.value) : filledText(choice.label) ? String(choice.label) : `Item ${index + 1}`;
+    };
+    const many = answer?.choices;
+    if (many && typeof many === 'object' && !Array.isArray(many)) {
+        const texts = (Array.isArray(many.values) ? many.values : []).filter(filledText).map((v: string | number) => text(String(v)));
+        if (filledText(many.other)) texts.push(String(many.other));
+        return texts.length ? texts : undefined;
+    }
+    const one = answer?.choice;
+    if (filledText(one?.value)) return text(String(one.value));
+    return filledText(one?.other) ? String(one.other) : undefined;
+}
+
+/**
  * A condition on a choice question. The answer holds option ids (and the text
  * typed as "Other"); the condition names an option by its text or its id.
  * Several answers: one list of everything the chosen options answer to, plus
