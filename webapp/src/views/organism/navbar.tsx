@@ -11,10 +11,11 @@ import { Sheet, SheetClose, SheetContent, SheetTitle, SheetFooter, SheetTrigger 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { defaultViewKey, useFlowViewAutoOpen } from '@app/lib/hooks/use-flow-view-auto-open';
 import { useInsertField } from '@app/lib/hooks/use-insert-field';
 import useFormFieldsAtom, { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { builderFieldsAtom, canRedoAtom, canUndoAtom } from '@app/store/jotai/form-document';
+import { canRedoAtom, canUndoAtom } from '@app/store/jotai/form-document';
 import { autosaveStatusLabel, isAutosaveProblem, useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
@@ -28,11 +29,9 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { PlusOutlined } from '@Components/icons/plus-outlined';
 import { TextOutlinedIcon } from '@Components/icons/text-outlined';
-import { hasBuildReport } from '@app/utils/ai-build-report';
-import { slideHasLogic } from '@app/utils/conditional-logic';
 import { PlayIcon, Redo2, Undo2 } from 'lucide-react';
-import { ComponentProps, useEffect, useRef, useState } from 'react';
-import { useAtomValue, useStore } from 'jotai';
+import { ComponentProps, useEffect, useState } from 'react';
+import { useAtomValue } from 'jotai';
 import dynamic from 'next/dynamic';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
 import BackButton from '../molecules/form-builder/back-button';
@@ -56,7 +55,6 @@ const Navbar = () => {
     const { undo, redo, getFormFields } = useBuilderActions();
     const canUndo = useAtomValue(canUndoAtom);
     const canRedo = useAtomValue(canRedoAtom);
-    const store = useStore();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
     const { toast } = useToast();
@@ -98,32 +96,13 @@ const Navbar = () => {
         resetFormResponseAnswer();
     };
 
-    // Default-view heuristic: forms that already branch open in the Flow view
-    // (once per form — closing it remembers the preference in localStorage).
-    const flowAutoOpened = useRef(false);
-    useEffect(() => {
-        const formId = standardForm?.formId;
-        // Checked now and after every change of the form, without re-rendering for it.
-        const check = () => {
-            if (!formId || flowAutoOpened.current) return;
-            const formFields = store.get(builderFieldsAtom);
-            // Defensive: the atom can transiently hold non-array state (e.g. a stale
-            // reset from another route) before this editor re-initializes it.
-            if (!Array.isArray(formFields) || !formFields.some((slide) => slideHasLogic(slide))) return;
-            if (localStorage.getItem(`bc-default-view-${formId}`)) return;
-            // A form just built from an AI outline opens on its checklist first.
-            if (hasBuildReport(formId)) return;
-            flowAutoOpened.current = true;
-            setFlowViewOpen(true);
-        };
-        check();
-        return store.sub(builderFieldsAtom, check);
-    }, [standardForm?.formId, store]);
+    // Forms that already branch open in the Flow view (see the hook).
+    useFlowViewAutoOpen(standardForm?.formId, () => setFlowViewOpen(true));
 
     const handleFlowViewOpenChange = (open: boolean) => {
         setFlowViewOpen(open);
         // Closing counts as choosing the page view; don't auto-open this form again.
-        if (!open && standardForm?.formId) localStorage.setItem(`bc-default-view-${standardForm.formId}`, 'page');
+        if (!open && standardForm?.formId) localStorage.setItem(defaultViewKey(standardForm.formId), 'page');
     };
 
     // Builder-wide undo/redo shortcuts. Text inputs and the Tiptap title editors

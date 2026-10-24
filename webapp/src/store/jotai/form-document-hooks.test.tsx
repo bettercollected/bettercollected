@@ -99,7 +99,8 @@ describe('the builder hooks on the form document', () => {
         await typeRun(['New', 'New ', 'New t', 'New ti', 'New tit', 'New title'], (title) => seen.form!.setFormTitle(title));
         expect(steps()).toHaveLength(1);
         // The last keystroke's ops, the first keystroke's inverse: no growth.
-        expect(steps()[0].forward.map((op) => op.op)).toEqual(['update_form_info', 'update_welcome_page']);
+        // A rename is one op (it titles the welcome page too).
+        expect(steps()[0].forward.map((op) => op.op)).toEqual(['update_form_info']);
         expect(steps()[0].inverse).toHaveLength(firstInverse);
         vi.advanceTimersByTime(UNDO_COALESCE_MS);
         await typeRun(['T', 'Th', 'Tha', 'Than', 'Thank', 'Thanks', 'Thanks!', 'Thanks!!'], (title) => seen.form!.setThankYouPageTitle(0, title));
