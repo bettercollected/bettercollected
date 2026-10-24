@@ -29,6 +29,7 @@ from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
 from backend.app.repositories.postgres.forms import _fold, _oid, _sort_terms, _text
 from backend.app.repositories.response_scope import ResponseScope
+from backend.app.utils.hash import hash_string
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupFormDocument,
@@ -297,6 +298,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
+        anonymous_identity: Optional[str] = None,
     ):
         """DeletionRequestsRepository.get_deletion_requests, composed."""
         titles = await self._form_titles(list(scope.form_ids))
@@ -308,8 +310,13 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             dr.form_id.in_(known),
             *_filter_terms(dr.doc, filter_query),
         ]
+        owner = []
         if data_owner_identifier is not None:
-            where.append(dr.data_owner_identifier == data_owner_identifier)
+            owner.append(dr.data_owner_identifier == data_owner_identifier)
+        if anonymous_identity is not None:
+            owner.append(dr.anonymous_identity == anonymous_identity)
+        if owner:
+            where.append(or_(*owner))
         # the copy in the request's workspace (any for a request without one)
         response_doc = (
             select(r.doc)
@@ -368,9 +375,12 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def get_user_submissions(
         self, scope: ResponseScope, user: User, request_for_deletion: bool = False
     ):
+        # see FormResponseRepository.get_user_submissions
         if request_for_deletion:
             return await self.get_deletion_requests(
-                scope, data_owner_identifier=user.sub
+                scope,
+                data_owner_identifier=user.sub,
+                anonymous_identity=hash_string(user.sub),
             )
         else:
             return await self.get_form_responses(scope, data_owner_identifier=user.sub)

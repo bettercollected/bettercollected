@@ -27,6 +27,7 @@ from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
 from backend.app.repositories.response_scope import ResponseScope
+from backend.app.utils.hash import hash_string
 from backend.app.repositories.metric_periods import (
     iso_second,
     mongo_counts_per_period,
@@ -231,13 +232,19 @@ class FormResponseRepository(BaseRepository):
     async def get_user_submissions(
         self, scope: ResponseScope, user: User, request_for_deletion: bool = False
     ):
-        # Deliberately NOT matching anonymous_identity here: anonymity means a
-        # signed-in account listing must not link anonymous submissions back to
-        # the account. The submission number (receipt) is the only key to an
-        # anonymous response — which is exactly what the portal promises.
+        # The submissions list deliberately does NOT match anonymous_identity:
+        # anonymity means a signed-in account listing must not link anonymous
+        # submissions back to the account. The submission number (receipt) is
+        # the only key to an anonymous response — which is exactly what the
+        # portal promises. A deletion request is different: its status is the
+        # answer to the respondent's own request, so their requests list also
+        # shows requests for responses they submitted without their address
+        # (matched by the same one-way hash; nothing else is stored).
         if request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(
-                scope, data_owner_identifier=user.sub
+                scope,
+                data_owner_identifier=user.sub,
+                anonymous_identity=hash_string(user.sub),
             )
         else:
             return await self.get_form_responses(scope, data_owner_identifier=user.sub)

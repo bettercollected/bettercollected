@@ -18,13 +18,21 @@ class DeletionRequestsRepository:
         data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
+        anonymous_identity: Optional[str] = None,
     ):
-        """Deletion requests in ``scope`` (optionally one responder's), each
-        carrying its form's title, who imported it into the scope's workspace
-        and the response's submission uuid."""
+        """Deletion requests in ``scope`` (optionally one responder's: by
+        their address, or by the anonymous identity hash on requests for
+        responses they submitted without it), each carrying its form's title,
+        who imported it into the scope's workspace and the response's
+        submission uuid."""
         find_query = scope.mongo_filter()
+        owner = []
         if data_owner_identifier is not None:
-            find_query["dataOwnerIdentifier"] = data_owner_identifier
+            owner.append({"dataOwnerIdentifier": data_owner_identifier})
+        if anonymous_identity is not None:
+            owner.append({"anonymous_identity": anonymous_identity})
+        if owner:
+            find_query["$or"] = owner
         aggregate_query = [
             {
                 "$lookup": {
