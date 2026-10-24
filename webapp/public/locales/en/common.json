@@ -921,6 +921,20 @@
     "INVITE_DESCRIPTION": "Choose what they can do in this workspace. You can change it later.",
     "DELETED_ACCOUNT": "Deleted account"
   },
+  "WORKSPACE_SECTIONS": {
+    "THEMES": "Themes",
+    "SSO": "Single sign-on",
+    "DOMAINS": "Domains",
+    "AI": "AI",
+    "AI_PROFILE": "Profile",
+    "AI_MEMORY": "Memory",
+    "AI_MCP": "MCP",
+    "AI_SETTINGS": "Settings",
+    "MEMBERS_SECTIONS": "Members sections",
+    "SSO_SECTIONS": "Single sign-on sections",
+    "AI_SECTIONS": "AI sections",
+    "VERIFY_DOMAIN": "Verify a domain"
+  },
   "SCIM": {
     "TITLE": "Directory sync (SCIM)",
     "DESCRIPTION": "Your identity provider adds people to this workspace, deactivates them when they leave and sets their role from their groups. Only addresses on your verified domains are synced.",

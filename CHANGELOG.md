@@ -17,6 +17,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed
 
+- The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
+  holds the Single sign-on and Domains tabs (only Domains, named so, when single sign-on is off on the
+  instance); AI holds the Profile, Memory, MCP (endpoint and API keys) and Settings tabs, each shown only
+  to members who may use it, and opens on the first of them. Every tab has its own address
+  (`/dashboard/sso/domains`, `/dashboard/ai/memory`, ...); the old addresses (`/ai-settings`,
+  `/ai-profile`, `/ai-memory`, `/api-keys`, `/domains`) redirect permanently. Members, Single sign-on
+  and AI share one tab bar: a named navigation of links marking the current tab with
+  `aria-current="page"`, with 44px targets, a visible focus ring, and sideways scrolling on small screens.
+
 ### Removed
 
 ### Fixed

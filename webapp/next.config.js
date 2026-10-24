@@ -1,3 +1,12 @@
+// [old page, its tab now] under /<workspace>/dashboard/.
+const LEGACY_WORKSPACE_SECTIONS = [
+    ['ai-settings', 'ai/settings'],
+    ['ai-profile', 'ai/profile'],
+    ['ai-memory', 'ai/memory'],
+    ['api-keys', 'ai/mcp'],
+    ['domains', 'sso/domains']
+];
+
 const nextConfig = {
     productionBrowserSourceMaps: true,
     compress: true,
@@ -14,6 +23,17 @@ const nextConfig = {
             { source: '/.well-known/custom-domain-workspace', destination: '/api/custom-domain/workspace' },
             { source: '/.well-known/custom-domain-origin-verification', destination: '/api/custom-domain/origin-verification' }
         ];
+    },
+    async redirects() {
+        // Workspace settings pages that became tabs of the Single sign-on and
+        // AI sections (src/lib/workspace-sections.ts). Permanent, so
+        // bookmarks, docs and links in mails keep working; the query string
+        // is kept.
+        return LEGACY_WORKSPACE_SECTIONS.map(([from, to]) => ({
+            source: `/:workspace_name/dashboard/${from}`,
+            destination: `/:workspace_name/dashboard/${to}`,
+            permanent: true
+        }));
     },
     async headers() {
         return [

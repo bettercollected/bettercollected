@@ -1,44 +1,19 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import WorkspaceScimSection from '@app/components/workspace-sso/workspace-scim-section';
-import WorkspaceSsoSection from '@app/components/workspace-sso/workspace-sso-section';
-import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
-import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
-import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { readRuntimeFlags } from '@app/lib/runtime-flags';
+import { workspaceSectionUrls } from '@app/lib/workspace-sections';
+
+import WorkspaceSsoPage from './_components/sso-page-client';
 
 /**
- * Single sign-on (docs/sso.md): connect the organisation's identity provider
- * (SAML or OIDC) for its verified email domains, and optionally require it;
- * and directory sync (SCIM), which provisions and deprovisions members.
+ * The Single sign-on tab. Without SSO on this instance (SSO_ENABLED, read per
+ * request) the section is only Domains, so this address goes there instead of
+ * a "not available" page.
  */
-export default function WorkspaceSsoPage() {
-    const ssoEnabled = useSsoEnabled();
-    const { can } = useWorkspacePermissions();
-
-    if (!ssoEnabled) {
-        return (
-            <div className="px-5 py-6 lg:px-10">
-                <p className="text-sm text-black-600">Single sign-on is not enabled on this instance.</p>
-            </div>
-        );
+export default async function Page({ params }: { params: Promise<{ workspace_name: string }> }) {
+    const { workspace_name } = await params;
+    if (!readRuntimeFlags().ssoEnabled) {
+        redirect(workspaceSectionUrls(workspace_name).domains);
     }
-
-    if (!can(WorkspacePermission.SECURITY_MANAGE)) {
-        return (
-            <div className="px-5 py-6 lg:px-10">
-                <p className="text-sm text-black-600">Only workspace admins can manage single sign-on.</p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex w-full max-w-[860px] flex-col gap-8 px-5 py-6 lg:px-10">
-            <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">
-                Let your members sign in with your organisation&apos;s identity provider. People who sign in this way for the first time join this workspace automatically, as long as there is a free seat. Your identity provider decides who that is, so only
-                connect one you control.
-            </p>
-            <WorkspaceSsoSection />
-            <WorkspaceScimSection />
-        </div>
-    );
+    return <WorkspaceSsoPage />;
 }

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
+import { isNavItemActive } from '@app/lib/nav-items';
 import { INavbarItem } from '@app/models/props/navbar';
 import { cn } from '@app/shadcn/util/lib';
 import { isValidRelativeURL } from '@app/utils/url-utils';
@@ -25,13 +26,9 @@ export default function NavigationList({ navigationList, className = '', sx = {}
     return (
         <ul className={cn("flex flex-col gap-1 p-0 m-0 list-none", className)}>
             {navigationList?.map((element) => {
-                // Prefix match, not equality — nested routes (e.g.
-                // /responders-groups/all-responders, /members/collaborators)
-                // left the whole sidebar with nothing selected. Items whose URL
-                // prefixes everything (the dashboard root) opt into exact match;
-                // items whose active state isn't a route (Site settings is a
-                // view on the dashboard root) pass it in directly.
-                const active = element.isActive ?? (pathname === element.url || (!element.exactMatch && pathname?.startsWith(element.url + '/')));
+                // Prefix match (lib/nav-items.ts): nested routes such as
+                // /members/collaborators or /ai/memory keep their item selected.
+                const active = isNavItemActive(pathname, element);
                 return (
                     <li key={element.key}
                         className={cn(

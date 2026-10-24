@@ -1,34 +1,30 @@
 'use client';
 
-import cn from 'classnames';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 
 import MembersIcon from '@Components/icons/members';
-import { members } from '@app/constants/locales/members';
+import { useTranslation } from 'react-i18next';
 
-export default function MembersLayout({
-    children,
-    params
-}: {
-    children: React.ReactNode;
-    params: { workspace_name: string }
-}) {
+import RouteTabBar from '@app/components/ui/route-tab-bar';
+import { members } from '@app/constants/locales/members';
+import { workspaceSectionLabels } from '@app/lib/workspace-sections';
+
+export default function MembersLayout({ children, params }: { children: React.ReactNode; params: { workspace_name: string } }) {
     const { t } = useTranslation();
-    const pathname = usePathname();
+    const base = `/${params?.workspace_name}/dashboard/members`;
 
     const tabs = [
         {
+            key: 'collaborators',
             icon: <MembersIcon />,
-            title: t(members.collaborators.default),
-            path: 'collaborators'
+            label: t(members.collaborators.default),
+            href: `${base}/collaborators`
         },
         {
+            key: 'pending-requests',
             icon: <MembersIcon />,
-            title: t(members.pendingRequests.default),
-            path: 'pending-requests'
+            label: t(members.pendingRequests.default),
+            href: `${base}/pending-requests`
         }
     ];
 
@@ -36,29 +32,8 @@ export default function MembersLayout({
     // section below ("Collaborators (N)") carries the specifics. Selection is
     // the trust-blue underline used across the app.
     return (
-        <div className="flex flex-col">
-            <div className="mb-[38px]">
-                <div className="border-black-400 flex space-x-1 overflow-x-auto border-b pb-0">
-                    {tabs.map((tab) => {
-                        const isActive = pathname?.includes(`/${tab.path}`);
-                        return (
-                            <Link
-                                key={tab.path}
-                                href={`/${params?.workspace_name}/dashboard/members/${tab.path}`}
-                                className={cn(
-                                    'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors',
-                                    isActive
-                                        ? 'border-brand-500 text-brand-500'
-                                        : 'text-black-600 hover:text-black-800 border-transparent'
-                                )}
-                            >
-                                {tab.icon}
-                                {tab.title}
-                            </Link>
-                        );
-                    })}
-                </div>
-            </div>
+        <div className="flex min-w-0 flex-col">
+            <RouteTabBar ariaLabel={t(workspaceSectionLabels.membersSections)} tabs={tabs} />
             <div>{children}</div>
         </div>
     );

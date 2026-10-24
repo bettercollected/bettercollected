@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { Sparkles } from 'lucide-react';
 
+import { workspaceSectionUrls } from '@app/lib/workspace-sections';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useAppSelector } from '@app/store/hooks';
 import { WorkspaceAISettings, useGetAISettingsQuery, useUpdateAISettingsMutation } from '@app/store/workspaces/api';
@@ -18,7 +19,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
  * disclosure naming the provider and what is sent.
  */
 
-export const aiSettingsUrl = (workspaceName?: string) => `/${workspaceName ?? ''}/dashboard/ai-settings`;
+export const aiSettingsUrl = (workspaceName?: string) => workspaceSectionUrls(workspaceName).aiSettings;
 
 export function useWorkspaceAI() {
     const workspace = useAppSelector(selectWorkspace);

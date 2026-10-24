@@ -106,9 +106,9 @@ The script generates throwaway secrets in `.sso-dev/` (gitignored), creates the 
 
 ## For workspace admins
 
-Settings → **Single sign-on**. Owners and Admins (`security.manage`) see the page and can **test** a connection, which never signs anyone in. **Only owners** (any owner of the workspace) create, enable, disable and delete connections and change "require single sign-on" and the default role.
+In the dashboard sidebar, Workspace → **Single sign-on** (`/<workspace>/dashboard/sso`). Owners and Admins (`security.manage`) see the page and can **test** a connection, which never signs anyone in. **Only owners** (any owner of the workspace) create, enable, disable and delete connections and change "require single sign-on" and the default role.
 
-1. **Verify your domain** under Settings → Domains first.
+1. **Verify your domain** first, on the **Domains** tab next to it (`/<workspace>/dashboard/sso/domains`).
 2. **Register BetterCollected at your IdP** with the values the page shows: for SAML the **ACS URL** (reply URL) and the **entity ID** (audience), or the SP metadata URL; for OIDC the **redirect URI**. The IdP must send the user's email address (SAML NameID or an email attribute; OIDC `email` claim).
 3. **Add a connection** (it needs a verified domain first, so a workspace can't register another organisation's public IdP metadata and squat its entity ID in Polis; refused with 409 `sso_domain_required` otherwise): SAML from the IdP's metadata URL (https and public only) or its metadata XML, or OIDC from the discovery URL plus the client ID and secret. The secret goes to Polis, encrypted there, and is never shown again or stored by BetterCollected. If the IdP's entity ID is already connected to another workspace (for example registered first by someone else), creating it fails with `idp_already_connected` and a message to contact support, who can check who owns it and release it.
 4. **Test connection**: you sign in at the IdP once. A SAML IdP is asked for a fresh sign-in (`ForceAuthn`), so it asks you to sign in instead of silently reusing the browser's IdP session. An OIDC IdP may reuse the browser's current session (see the security note on parameter forwarding): test in a private window or sign out of the IdP first (Microsoft: `https://login.microsoftonline.com/logout.srf`). The result comes back to the page. It passes when the IdP vouched for an address on one of your verified domains. A failed test also shows what it saw: for a wrong domain, the **domain** of the address the IdP sent, next to your verified domains; and the **names** of the claims the IdP sent (see [Troubleshooting](#troubleshooting)). Testing never signs anyone in and never creates accounts or members.
@@ -267,7 +267,7 @@ Resolve each pair by hand (keep the membership with the right role, delete the o
 
 ### For workspace admins
 
-Settings → **Single sign-on** → **Directory sync (SCIM)**. Owners and Admins see its status; **only owners** create, rotate and delete the directory, map groups and resync (a directory decides who joins and with which role, Admin included). A directory needs a verified domain, like SSO.
+Workspace → **Single sign-on** → **Directory sync (SCIM)**. Owners and Admins see its status; **only owners** create, rotate and delete the directory, map groups and resync (a directory decides who joins and with which role, Admin included). A directory needs a verified domain, like SSO.
 
 1. **Create the directory**: choose your identity provider (Okta, Microsoft Entra ID, OneLogin, JumpCloud or generic SCIM 2.0). The page shows the **SCIM base URL** and the **bearer token once**: copy both now. The token is never shown again or stored by BetterCollected; if it is lost, rotate it.
 2. **At the identity provider** (the generic steps):

@@ -6,6 +6,7 @@ import AppVersionCaption from '@app/components/sidebar/app-version-caption';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { visibleNavItems } from '@app/lib/nav-items';
 import { IDrawerProps } from '@app/models/props/navbar';
 import WorkspaceMenuDropdown from '@Components/workspace/workspace-menu-dropdown';
 
@@ -29,7 +30,7 @@ const Drawer = ({ navGroups, can }: any) => {
                             "everyone" vs "admins", which separated Site from
                             Site settings. Labels carry what dividers implied. */}
                         {navGroups?.map((group: any) => {
-                            const items = group.items.filter((item: any) => (!item.permission || can(item.permission)) && (!item.anyPermission || item.anyPermission.some((permission: any) => can(permission))));
+                            const items = visibleNavItems(group.items, can);
                             if (!items.length) return null;
                             return (
                                 <div key={group.label} className="pb-1">

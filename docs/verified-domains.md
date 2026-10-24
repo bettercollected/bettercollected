@@ -6,7 +6,7 @@ This is not the custom domain a workspace serves its forms on. That feature is d
 
 ## Who
 
-Only the workspace Owner and Admins can list, claim, verify or remove domains. This is the `security.manage` permission in [enterprise-access-model.md](enterprise-access-model.md). Collaborators and non-members get 403, and requests without a session get 401. The check is made in one place, `WorkspaceDomainService._authorize`, so it can switch to `authorize(user, "security.manage", workspace_id)` once the permission service lands.
+In the dashboard the domains are the **Domains** tab of Workspace → **Single sign-on** (`/<workspace>/dashboard/sso/domains`; the section shows as **Domains** when single sign-on is off on the instance). Only the workspace Owner and Admins can list, claim, verify or remove domains. This is the `security.manage` permission in [enterprise-access-model.md](enterprise-access-model.md). Collaborators and non-members get 403, and requests without a session get 401. The check is made in one place, `WorkspaceDomainService._authorize`, so it can switch to `authorize(user, "security.manage", workspace_id)` once the permission service lands.
 
 ## API
 

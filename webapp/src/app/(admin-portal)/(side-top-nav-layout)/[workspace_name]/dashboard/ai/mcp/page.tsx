@@ -51,8 +51,9 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 /**
- * Workspace API keys — the credentials external AI tools (Claude, ChatGPT,
- * anything MCP-capable) use to work with this workspace (plan §2.5).
+ * The MCP tab of the AI section: the MCP endpoint and the workspace API keys,
+ * the credentials external AI tools (Claude, ChatGPT, anything MCP-capable),
+ * the public REST API and the SDKs use to work with this workspace.
  * The token is shown exactly once at creation; only its prefix is kept.
  */
 export default function APIKeysPage() {
@@ -103,17 +104,17 @@ export default function APIKeysPage() {
 
     if (!canManageKeys) {
         return (
-            <div className="px-5 py-6 lg:px-10">
+            <div className="pb-10">
                 <p className="text-black-600 text-sm">Only workspace admins can manage API keys.</p>
             </div>
         );
     }
 
     return (
-        <div className="flex w-full max-w-[760px] flex-col gap-8 px-5 py-6 lg:px-10">
+        <div className="flex w-full max-w-[760px] flex-col gap-8 pb-10">
             <div className="flex flex-col gap-1.5">
                 <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
-                    API keys let external AI tools — Claude, ChatGPT, or anything that speaks MCP — work with this workspace: create and edit forms, read responses, and check deletion requests. Every action a key takes is scoped, attributed, and logged.
+                    API keys let external AI tools — Claude, ChatGPT, or anything that speaks MCP — work with this workspace: create and edit forms, read responses, and check deletion requests. The same keys authenticate the public REST API and the SDKs. Every action a key takes is scoped, attributed, and logged.
                 </p>
             </div>
 

@@ -9,6 +9,7 @@ import { AlertTriangle, Check, CircleCheck, Copy, KeyRound, LifeBuoy, ShieldChec
 
 import environments from '@app/configs/environments';
 import { navigateWithReferrer, ssoTestMessage } from '@app/lib/sso';
+import { workspaceSectionUrls } from '@app/lib/workspace-sections';
 import { SsoConnectionDto, SsoConnectionType, SsoOverviewDto, SsoServiceProviderDto } from '@app/models/dtos/workspace-sso-dto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -184,7 +185,7 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
 
 function DomainsLink({ workspaceName }: { workspaceName?: string }) {
     return (
-        <Link className="text-brand-500 underline" href={`/${workspaceName}/dashboard/domains`}>
+        <Link className="text-brand-500 underline" href={workspaceSectionUrls(workspaceName).domains}>
             Verify your organisation&apos;s domain
         </Link>
     );
@@ -511,9 +512,7 @@ export default function WorkspaceSsoSection() {
                 ) : (
                     <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">
                         No verified domain yet.{' '}
-                        <Link className="text-brand-500 underline" href={`/${workspace?.workspaceName}/dashboard/domains`}>
-                            Verify your organisation&apos;s domain
-                        </Link>{' '}
+                        <DomainsLink workspaceName={workspace?.workspaceName} />{' '}
                         first.
                     </p>
                 )}

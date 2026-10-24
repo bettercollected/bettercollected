@@ -920,6 +920,20 @@
     "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. Je kunt het later wijzigen.",
     "DELETED_ACCOUNT": "Verwijderd account"
   },
+  "WORKSPACE_SECTIONS": {
+    "THEMES": "Thema's",
+    "SSO": "Single sign-on",
+    "DOMAINS": "Domeinen",
+    "AI": "AI",
+    "AI_PROFILE": "Profiel",
+    "AI_MEMORY": "Geheugen",
+    "AI_MCP": "MCP",
+    "AI_SETTINGS": "Instellingen",
+    "MEMBERS_SECTIONS": "Onderdelen van Leden",
+    "SSO_SECTIONS": "Onderdelen van Single sign-on",
+    "AI_SECTIONS": "Onderdelen van AI",
+    "VERIFY_DOMAIN": "Verifieer een domein"
+  },
   "SCIM": {
     "TITLE": "Synchronisatie met gebruikersbeheer (SCIM)",
     "DESCRIPTION": "Uw identiteitsprovider voegt mensen toe aan deze werkruimte, deactiveert ze wanneer ze vertrekken en bepaalt hun rol op basis van hun groepen. Alleen adressen op uw geverifieerde domeinen worden gesynchroniseerd.",

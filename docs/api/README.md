@@ -21,7 +21,8 @@ Send a workspace API key as a Bearer token:
 Authorization: Bearer bc_...
 ```
 
-A workspace admin creates keys under the workspace's API key settings. A key
+A workspace admin creates keys on the dashboard's **AI → MCP** tab
+(`/<workspace>/dashboard/ai/mcp`). A key
 works in its own workspace only. Cookies are never read, so a browser session
 cannot be used against this API.
 

@@ -63,7 +63,7 @@ export default function AIProfilePage() {
     };
 
     return (
-        <div className="flex w-full max-w-[760px] flex-col gap-8 px-5 py-6 lg:px-10">
+        <div className="flex w-full max-w-[760px] flex-col gap-8 pb-10">
             <div className="flex flex-col gap-1.5">
                 <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
                     Everything here is given to the AI whenever it creates or edits a form in this workspace. It’s a plain document you own — what you see below is exactly what the AI is told, nothing hidden.

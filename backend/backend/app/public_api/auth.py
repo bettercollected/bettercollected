@@ -32,8 +32,8 @@ bearer = HTTPBearer(
     auto_error=False,
     scheme_name="apiKey",
     bearerFormat="bc_<64 hex characters>",
-    description="A workspace API key, created by a workspace admin under "
-    "Settings > API keys: `Authorization: Bearer bc_...`.",
+    description="A workspace API key, created by a workspace admin on the "
+    "dashboard's AI > MCP tab: `Authorization: Bearer bc_...`.",
 )
 
 

@@ -11,7 +11,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
  * `GET /workspaces/{id}/permissions`. `can(permission)` is false until the
  * permissions have loaded (and when the request fails), so admin controls
  * never flash for members. The cache is per user and is dropped when the
- * signed-in user changes or signs out.
+ * signed-in user changes or signs out. `ready` turns true once the answer has
+ * arrived, for choices that must not be made on the empty set.
  */
 export function useWorkspacePermissions() {
     const dispatch = useAppDispatch();
@@ -28,12 +29,15 @@ export function useWorkspacePermissions() {
         }
     }, [dispatch, userId]);
 
-    const { data, isLoading, isError } = useGetWorkspacePermissionsQuery({ workspaceId: workspaceId as string, userId }, {
+    const { data, isLoading, isError, isSuccess } = useGetWorkspacePermissionsQuery({ workspaceId: workspaceId as string, userId }, {
         skip: !workspaceId || !userId,
         // one fetch per workspace: every list row asks
         refetchOnMountOrArgChange: false
     });
     const permissions = useMemo(() => new Set<WorkspacePermission>(!userId || isError ? [] : (data?.permissions ?? [])), [data, isError, userId]);
     const can = useCallback((permission: WorkspacePermission) => permissions.has(permission), [permissions]);
-    return { can, permissions, isLoading };
+    // Settled: the answer for this workspace and user has arrived (or failed,
+    // which grants nothing). False while the workspace or user is unknown.
+    const ready = !!workspaceId && !!userId && (isSuccess || isError);
+    return { can, permissions, isLoading, ready };
 }
