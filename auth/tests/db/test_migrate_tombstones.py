@@ -3,8 +3,8 @@ deleted in one store whose copy survives in the other is deleted there, never
 copied back, in both directions.
 
 This suite otherwise runs on an in-memory Mongo; these tests need a real one
-(``MONGO_URI``, a scratch database) and the test Postgres, and skip without
-either."""
+(``MONGO_URI``, a scratch database) and the test Postgres. They carry the
+``mongo`` marker (tests/conftest.py), and CI runs them with a Mongo server."""
 
 import dataclasses
 import datetime as dt
@@ -26,22 +26,9 @@ from common.db.migrate import Runner
 COLLECTION = "users"
 
 
-async def _mongo_reachable(uri: str) -> bool:
-    client = AsyncMongoClient(uri, serverSelectionTimeoutMS=1000)
-    try:
-        await client.admin.command("ping")
-        return True
-    except Exception:  # noqa: BLE001 — any failure: no server to test against
-        return False
-    finally:
-        await client.close()
-
-
 @pytest_asyncio.fixture
 async def target(clean_postgres):
     base = build_target(os.environ["DATABASE_URL"])
-    if not await _mongo_reachable(base.mongo_uri):
-        pytest.skip("no Mongo server at MONGO_URI")
     target = dataclasses.replace(
         base, mongo_db=f"auth_tombstones_{uuid.uuid4().hex[:8]}_test"
     )

@@ -23,6 +23,24 @@ from auth.db.base import SCHEMA, Base
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "")
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 
+#: Test files that drive a real Mongo server themselves (the migration CLI),
+#: unlike the rest of the suite, which runs on mongomock. They get the
+#: ``mongo`` marker: CI runs the suite with ``-m "not mongo"`` and these in a
+#: second step of the Postgres job, with a Mongo server (docs/ci.md).
+MONGO_DRIVEN = ("tests/db/test_migrate_tombstones.py",)
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "mongo: the test drives a Mongo server itself, whatever the flags"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        if item.nodeid.partition("::")[0] in MONGO_DRIVEN:
+            item.add_marker(pytest.mark.mongo)
+
 
 def _postgres_configured() -> bool:
     if not TEST_DATABASE_URL:
