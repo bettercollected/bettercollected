@@ -117,6 +117,11 @@ MONGO_DRIVEN = {
         "test_the_keyset_comes_from_the_settings_store_when_the_runner_has_none",
         "test_the_run_checkpoints_and_reports_progress",
     },
+    "tests/app/controllers/test_deletion_requests_per_workspace.py": {
+        "test_mongo_one_request_per_response_provider_and_workspace",
+        "test_startup_drops_the_superseded_key_and_builds_the_new_one",
+        "test_index_failures_are_logged_and_the_start_goes_on",
+    },
     "tests/app/controllers/test_scim_review.py": {
         "test_a_legacy_row_in_both_stores",
         "test_the_unique_index_and_the_duplicate_report",
@@ -142,6 +147,14 @@ MONGO_DRIVEN = {
     "tests/app/repositories/test_scim_parity.py": ALL,
     "tests/app/repositories/test_sso_connection_parity.py": ALL,
     "tests/app/repositories/test_workspace_domain_parity.py": ALL,
+    "tests/app/repositories/test_workspace_form_links_unique.py": {
+        "test_mongo_refuses_a_second_link_of_the_same_form",
+        "test_mongo_links_without_a_workspace_are_not_indexed",
+        "test_mongo_save_workspace_form_returns_the_existing_link",
+        "test_a_workspaces_links_keep_their_order_in_both_stores",
+        "test_the_index_is_built_after_beanie_and_skipped_on_duplicates",
+        "test_a_mongo_holding_duplicate_links_still_starts",
+    },
     "tests/app/test_operator_tools.py": {
         "test_custom_domain_references_are_the_same_on_both_stores",
         "test_expiration_schedules_are_the_same_on_both_stores",

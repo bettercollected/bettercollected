@@ -14,6 +14,7 @@ from common.models.user import User
 from httpx import AsyncClient
 
 from backend.app.container import container
+from backend.app.handlers.database import ensure_workspace_form_unique_index
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import FormResponseDocument
@@ -168,7 +169,12 @@ async def test_a_duplicated_link_still_counts_the_workspaces_own_responses(
             form_id=form.form_id, response_id="importers-unstamped", answers={}
         )
     )
+    links = None
     if container.flags().writes_mongo("forms"):
+        # a Mongo database holding a duplicate has no unique link index
+        # (startup skips it and logs an error): drop it for this test
+        links = WorkspaceFormDocument.get_pymongo_collection()
+        await links.drop_index("uq_workspace_forms_workspace_form")
         await WorkspaceFormDocument(
             id=PydanticObjectId(),
             workspace_id=workspace.id,
@@ -176,9 +182,14 @@ async def test_a_duplicated_link_still_counts_the_workspaces_own_responses(
             user_id=testUser.id,
         ).insert()
 
-    listed = await client.get(
-        f"/api/v1/workspaces/{workspace.id}/forms", cookies=test_user_cookies
-    )
+    try:
+        listed = await client.get(
+            f"/api/v1/workspaces/{workspace.id}/forms", cookies=test_user_cookies
+        )
+    finally:
+        if links is not None:
+            await links.delete_many({"form_id": form.form_id})
+            assert await ensure_workspace_form_unique_index(links.database)
 
     assert listed.status_code == 200, listed.text
     counts = [

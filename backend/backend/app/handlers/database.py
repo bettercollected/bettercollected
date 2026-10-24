@@ -1,9 +1,10 @@
 import inspect
+from typing import Optional
 
 from dependency_injector import providers
 from loguru import logger
 from pymongo import AsyncMongoClient
-from pymongo.errors import InvalidOperation
+from pymongo.errors import InvalidOperation, PyMongoError
 
 from backend.app.schemas.allowed_origin import (
     AllowedOriginsDocument,
@@ -17,11 +18,17 @@ from backend.app.schemas.responder_group import (
 )
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
+    DELETION_REQUEST_INDEX,
+    DELETION_REQUEST_INDEX_MODEL,
+    LEGACY_DELETION_REQUEST_INDEX,
     FormResponseDeletionRequest,
     FormResponseDocument,
+    drop_legacy_deletion_request_index,
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import (
+    WORKSPACE_FORM_INDEX,
+    WORKSPACE_FORM_INDEX_FILTER,
     WorkspaceFormDocument,
 )
 from backend.app.schemas.workspace_invitation import (
@@ -121,6 +128,8 @@ async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
         logger.info("Mongo is not used by any repository group; not connected.")
         return
     await ensure_membership_unique_index(db)
+    await ensure_workspace_form_unique_index(db)
+    await ensure_deletion_request_indexes(db)
     logger.info("Database connected successfully.")
 
 
@@ -153,6 +162,100 @@ async def ensure_membership_unique_index(db) -> bool:
             type(error).__name__,
         )
         return False
+
+
+async def _duplicate_pairs(collection, keys, match) -> Optional[int]:
+    """How many ``keys`` combinations more than one document of ``collection``
+    (among those matching ``match``) holds; None when that can't be counted.
+    Counts only: no ids or values."""
+    try:
+        cursor = await collection.aggregate(
+            [
+                {"$match": match},
+                {"$group": {"_id": {k: f"${k}" for k in keys}, "n": {"$sum": 1}}},
+                {"$match": {"n": {"$gt": 1}}},
+                {"$count": "pairs"},
+            ]
+        )
+        found = await cursor.to_list(1)
+        return found[0]["pairs"] if found else 0
+    except PyMongoError:
+        return None
+
+
+async def ensure_workspace_form_unique_index(db) -> bool:
+    """One link per workspace and form (``workspace_forms``, app revision
+    0019 in Postgres). Created here, after Beanie and not in the document's
+    settings, so a database that still holds duplicate links starts anyway:
+    it logs an ERROR with the number of duplicate pairs and how to find them,
+    and ``save_workspace_form`` keeps returning the existing link. Nothing is
+    ever deleted here."""
+    collection = db["workspace_forms"]
+    try:
+        await collection.create_indexes([WORKSPACE_FORM_INDEX])
+        return True
+    except PyMongoError as error:
+        pairs = await _duplicate_pairs(
+            collection, ("workspace_id", "form_id"), WORKSPACE_FORM_INDEX_FILTER
+        )
+        logger.error(
+            "The unique index {} on workspace_forms was not created ({}); "
+            "(workspace_id, form_id) pairs linked more than once: {}. The "
+            "service runs without it. List them (read-only) with "
+            'db.workspace_forms.aggregate([{{$group: {{_id: {{w: "$workspace_id", '
+            'f: "$form_id"}}, n: {{$sum: 1}}, ids: {{$push: "$_id"}}}}}}, '
+            "{{$match: {{n: {{$gt: 1}}}}}}]), keep one link per pair (in both "
+            "stores) and restart.",
+            WORKSPACE_FORM_INDEX.document["name"],
+            type(error).__name__,
+            "unknown" if pairs is None else pairs,
+        )
+        return False
+
+
+async def ensure_deletion_request_indexes(db) -> bool:
+    """Deletion requests per workspace (``responses_deletion_requests``, app
+    revision 0020 in Postgres): drop the superseded per-response unique index
+    a database from before still has (it refuses a workspace's request, or
+    its mirrored copy, while another workspace has one for the same
+    response), then build the per-workspace one. Neither stops the service:
+    a failure is logged as an ERROR and the start goes on. True when both
+    are in place."""
+    collection = db["responses_deletion_requests"]
+    done = True
+    try:
+        if await drop_legacy_deletion_request_index(collection):
+            logger.info(
+                "Dropped the superseded index {} from responses_deletion_requests.",
+                LEGACY_DELETION_REQUEST_INDEX,
+            )
+    except PyMongoError as error:
+        done = False
+        logger.error(
+            "Could not drop the superseded index {} from responses_deletion_requests "
+            "({}): while it exists, a workspace's deletion request for a response "
+            "another workspace already has one for is refused. Drop it by hand: "
+            "db.responses_deletion_requests.dropIndex('{}').",
+            LEGACY_DELETION_REQUEST_INDEX,
+            type(error).__name__,
+            LEGACY_DELETION_REQUEST_INDEX,
+        )
+    try:
+        await collection.create_indexes([DELETION_REQUEST_INDEX_MODEL])
+    except PyMongoError as error:
+        done = False
+        pairs = await _duplicate_pairs(
+            collection, ("form_id", "response_id", "provider", "workspace_id"), {}
+        )
+        logger.error(
+            "The unique index {} on responses_deletion_requests was not created "
+            "({}); requests filed more than once for the same response, provider "
+            "and workspace: {}. The service runs without it.",
+            DELETION_REQUEST_INDEX,
+            type(error).__name__,
+            "unknown" if pairs is None else pairs,
+        )
+    return done
 
 
 async def close_db(client: AsyncMongoClient):

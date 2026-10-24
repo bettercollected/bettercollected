@@ -22,6 +22,30 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
   the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
   stays open).
+### Changed
+
+- A form is linked to a workspace once: (`workspace_id`, `form_id`) is unique in `workspace_forms`, in
+  Postgres (app revision `0019`, replacing the plain index) and in Mongo (`uq_workspace_forms_workspace_form`,
+  built at startup while Mongo is used; links without a workspace or form are left out, as Postgres treats
+  NULLs as distinct). Saving a link that already exists (another importer, two imports racing) returns
+  the existing link unchanged instead of adding a second one. Existing duplicates are never merged
+  automatically: the migration refuses before changing anything, naming the counts; a Mongo database
+  holding duplicates still starts, without the index, and logs an error with the number of duplicate
+  pairs. Check before upgrading (read-only): in Postgres `SELECT workspace_id, form_id, count(*),
+  array_agg(id) FROM app.workspace_forms WHERE workspace_id IS NOT NULL AND form_id IS NOT NULL GROUP BY
+  workspace_id, form_id HAVING count(*) > 1;`, in Mongo
+  `db.workspace_forms.aggregate([{$group: {_id: {w: "$workspace_id", f: "$form_id"}, n: {$sum: 1}, ids:
+  {$push: "$_id"}}}, {$match: {n: {$gt: 1}}}])`; keep one link per pair, in both stores.
+- Deletion requests are per workspace. A provider response imported into two workspaces is stored once in
+  each, and each workspace now files, sees and completes its own deletion request for its copy: a request
+  filed in one workspace no longer refuses the other's, and no longer shows as the status of the other
+  workspace's copy or in its responders' counts. The unique key becomes (`form_id`, `response_id`,
+  `provider`, `workspace_id`): app revision `0020` in Postgres (nulls not distinct, replacing the
+  per-response constraint) and `uq_deletion_requests_form_response_provider_workspace` in Mongo, built at
+  startup while Mongo is used, where the old `form_id_1_response_id_1_provider_1` index is dropped at the
+  same time (a failure of either is logged and the service starts anyway). Filing twice for the same copy
+  is refused as before, and a request stored before requests carried a workspace is still found for the
+  response.
 
 ## [4.0.5] - 2026-10-24
 
