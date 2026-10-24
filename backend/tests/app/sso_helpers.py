@@ -41,6 +41,10 @@ class FakePolisAdmin:
         self.calls: List[tuple] = []
         self.connections: Dict[str, dict] = {}
         self.fail: Optional[PolisError] = None
+        # a failing tenant deletion (a deleted workspace's connections)
+        self.fail_tenant: Optional[PolisError] = None
+        # what GET /api/v1/sso?entityId= answers
+        self.entity_holders: List[dict] = []
         self._n = 0
 
     def _new(self, tenant, kind, **extra):
@@ -72,6 +76,12 @@ class FakePolisAdmin:
 
     async def delete_tenant(self, tenant):
         self.calls.append(("delete_tenant", tenant))
+        if self.fail_tenant:
+            raise self.fail_tenant
+
+    async def find_by_entity_id(self, entity_id):
+        self.calls.append(("find_by_entity_id", entity_id))
+        return list(self.entity_holders)
 
 
 class FakeAuth:

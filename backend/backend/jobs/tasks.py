@@ -119,6 +119,21 @@ async def scim_reconcile(timestamp: int) -> str:
     return f"{result['directories']} resynced, {result['failed']} failed"
 
 
+@app.periodic(cron="47 3 * * *", periodic_id="sso_release_retry")
+@app.task(
+    name="sso_release_retry",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="sso_release_retry",
+)
+async def sso_release_retry(timestamp: int) -> str:
+    """Daily: delete in Polis the SSO connections of deleted workspaces that
+    a failed Polis call left behind, so they never keep holding an identity
+    provider's entity ID (docs/sso.md). ``python -m backend.sso
+    release-pending`` does the same by hand."""
+    result = await _container().sso_connection_service().retry_pending_releases()
+    return f"{result['released']} released, {result['failed']} failed"
+
+
 DOMAIN_RECHECK_BATCH = 100
 DOMAIN_RECHECK_MAX_BATCHES = 20
 

@@ -23,6 +23,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   longer brings back a response whose deletion request was completed. `completed` is refused (409) while a copy
   of the response that the workspace may own cannot be attributed to it. Respondents see a declined request as
   "Not deleted: <reason>" (English and Dutch), never as deleted.
+- Single sign-on: a deleted workspace's connections that the identity bridge (Polis) could not delete
+  are no longer dropped silently. They are kept as `release_pending`, never sign anyone in, and a daily
+  job (`sso_release_retry`) deletes them in Polis, so they stop holding the identity provider's entity
+  ID. A support command, `python -m backend.sso entity-id <entity id>`, shows which connections hold an
+  entity ID and, with `--apply`, releases orphaned ones (a named workspace's only on request). The SSO
+  docs now say that a workspace's identity provider controls the whole account of users on its
+  verified domains, their other workspaces included.
 - The sign-in code, invitation and submission-update mails are available in Dutch. The backend endpoints
   that send them take an optional `locale` (`nl`, or a tag such as `nl-NL`; anything else gets
   English), and the submission-update notice follows the form's language. The invitation now names the
