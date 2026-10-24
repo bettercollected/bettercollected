@@ -98,14 +98,25 @@ def test_the_job_worker_starts_without_mongo_when_every_group_is_on_postgres():
 
 @pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
 def test_one_group_still_on_mongo_keeps_mongo_required(program):
-    # analytics joins no other group, so it may stay on Mongo alone
+    # ai joins no other group, so it may stay on Mongo alone
     result = boot(
         program,
         {
             **ALL_POSTGRES,
-            "DB_READ_SOURCE__analytics": "mongo",
-            "DB_WRITE_MODE__analytics": "dual",
+            "DB_READ_SOURCE__ai": "mongo",
+            "DB_WRITE_MODE__ai": "dual",
         },
     )
     assert result.returncode != 0
     assert "ServerSelectionTimeoutError" in result.stderr
+
+
+@pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
+def test_a_stale_flag_for_a_postgres_only_group_refuses_the_start(program):
+    """refdata and analytics have no Mongo store since 4.1: a flag left from
+    the cutover that sends one of them elsewhere stops the start, naming it."""
+    result = boot(program, {"DB_WRITE_MODE__analytics": "dual"})
+    assert result.returncode != 0
+    assert "FlagError" in result.stderr
+    assert "DB_WRITE_MODE__analytics='dual'" in result.stderr
+    assert "served from Postgres only" in result.stderr

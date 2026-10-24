@@ -140,8 +140,6 @@ MONGO_DRIVEN = {
     "tests/app/repositories/test_idempotency_parity.py": ALL,
     "tests/app/repositories/test_identity_parity.py": ALL,
     "tests/app/repositories/test_platform_metrics_parity.py": ALL,
-    "tests/app/repositories/test_rate_limit_parity.py": ALL,
-    "tests/app/repositories/test_refdata_parity.py": ALL,
     "tests/app/repositories/test_responses_parity.py": ALL,
     "tests/app/repositories/test_scim_parity.py": ALL,
     "tests/app/repositories/test_sso_connection_parity.py": ALL,

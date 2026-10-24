@@ -50,7 +50,7 @@ from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from tests.app.repositories.test_identity_parity import both_raise
-from tests.app.repositories.test_refdata_parity import parity, strip
+from tests.app.repositories.parity import parity, strip
 
 T0 = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
 

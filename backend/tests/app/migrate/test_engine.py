@@ -10,9 +10,6 @@ from beanie import PydanticObjectId
 from sqlalchemy import select, text
 
 from backend.app.container import container
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
-from backend.app.repositories.postgres.refdata import PostgresAllowedOriginsRepository
-from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.config import settings
 from backend.db.base import SCHEMA
@@ -20,6 +17,11 @@ from backend.db.models import AllowedOriginRow, MigrationProgress, WorkspaceRow
 from backend.migrate.__main__ import _tables
 from common.db.base import SOURCE_APP, SOURCE_BACKFILL
 from common.db.migrate import Runner, Target
+from tests.app.db.beanie_originals import (
+    AllowedOriginsDocument,
+    AllowedOriginsRepository,
+    PostgresAllowedOriginsRepository,
+)
 
 
 @pytest.fixture

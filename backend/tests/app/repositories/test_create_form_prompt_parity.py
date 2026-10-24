@@ -8,7 +8,7 @@ from backend.app.repositories.create_form_prompt_repository import (
 )
 from backend.app.repositories.postgres.ai import PostgresCreateFormPromptRepository
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
-from tests.app.repositories.test_refdata_parity import parity, sessions  # noqa: F401
+from tests.app.repositories.parity import parity, sessions  # noqa: F401
 
 
 async def test_create_form_prompts(sessions):
