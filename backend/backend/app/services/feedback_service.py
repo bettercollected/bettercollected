@@ -1,10 +1,10 @@
 from backend.app.models.dtos.user_feedback import UserFeedbackDto
-from backend.app.repositories.user_feedback import UserFeedbackRepo
+from backend.app.repositories.postgres.refdata import PostgresUserFeedbackRepo
 from backend.app.schemas.user_feedback import UserFeedbackDocument
 
 
 class UserFeedbackService:
-    def __init__(self, user_feedback_repo: UserFeedbackRepo):
+    def __init__(self, user_feedback_repo: PostgresUserFeedbackRepo):
         self.user_feedback_repo = user_feedback_repo
 
     async def save_user_feedback(self, user_feedback: UserFeedbackDto):

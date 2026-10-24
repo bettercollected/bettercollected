@@ -9,16 +9,8 @@ import inspect
 
 import pytest
 
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
-from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.create_form_prompt_repository import (
     CreateFormPromptRepository,
-)
-from backend.app.repositories.price_suggestion_repository import (
-    PriceSuggestionRepository,
-)
-from backend.app.repositories.form_plugin_provider_repository import (
-    FormPluginProviderRepository,
 )
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
@@ -36,23 +28,19 @@ from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.ai_preference_memory_repository import (
     AIPreferenceMemoryRepository,
 )
-from backend.app.repositories.flow_event_repository import FlowEventRepository
 from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
 from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
 from backend.app.repositories.idempotency_repository import IdempotencyRepository
-from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.ai import (
     PostgresAIPreferenceMemoryRepository,
     PostgresCreateFormPromptRepository,
-    PostgresFlowEventRepository,
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
     PostgresIdempotencyRepository,
     PostgresMcpAuditLogRepository,
-    PostgresRateLimitRepository,
     PostgresWorkspaceAIProfileRepository,
 )
 from backend.app.repositories.postgres.responses import (
@@ -85,15 +73,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
 )
-from backend.app.repositories.postgres.refdata import (
-    PostgresAllowedOriginsRepository,
-    PostgresCouponRepository,
-    PostgresFormPluginProviderRepository,
-    PostgresPriceSuggestionRepository,
-    PostgresUserFeedbackRepo,
-)
 from backend.app.repositories.session_repository import SessionRepository
-from backend.app.repositories.user_feedback import UserFeedbackRepo
 from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
@@ -115,12 +95,9 @@ from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from common.db import is_write_op
 
+# The groups served from Postgres only (backend.db.groups.POSTGRES_ONLY_GROUPS)
+# have no Mongo original left.
 PAIRS = [
-    (AllowedOriginsRepository, PostgresAllowedOriginsRepository),
-    (FormPluginProviderRepository, PostgresFormPluginProviderRepository),
-    (CouponRepository, PostgresCouponRepository),
-    (UserFeedbackRepo, PostgresUserFeedbackRepo),
-    (PriceSuggestionRepository, PostgresPriceSuggestionRepository),
     (WorkspaceRepository, PostgresWorkspaceRepository),
     (WorkspaceUserRepository, PostgresWorkspaceUserRepository),
     (WorkspaceInvitationRepo, PostgresWorkspaceInvitationRepo),
@@ -144,7 +121,6 @@ PAIRS = [
     (ResponderGroupsRepository, PostgresResponderGroupsRepository),
     (WorkspaceRespondersRepository, PostgresWorkspaceRespondersRepository),
     (ActionRepository, PostgresActionRepository),
-    (FlowEventRepository, PostgresFlowEventRepository),
     (FormAIInsightRepository, PostgresFormAIInsightRepository),
     (FormAISessionRepository, PostgresFormAISessionRepository),
     (WorkspaceAIProfileRepository, PostgresWorkspaceAIProfileRepository),
@@ -152,7 +128,6 @@ PAIRS = [
     (McpAuditLogRepository, PostgresMcpAuditLogRepository),
     (CreateFormPromptRepository, PostgresCreateFormPromptRepository),
     (IdempotencyRepository, PostgresIdempotencyRepository),
-    (RateLimitRepository, PostgresRateLimitRepository),
 ]
 
 

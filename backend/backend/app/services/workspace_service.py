@@ -30,7 +30,9 @@ from backend.app.models.workspace import (
     WorkspaceResponseDto,
     WorkspaceThemeDto,
 )
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
+from backend.app.repositories.postgres.refdata import (
+    PostgresAllowedOriginsRepository,
+)
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -114,7 +116,7 @@ class WorkspaceService:
         http_client: HttpClient,
         workspace_repo: WorkspaceRepository,
         workspace_user_repo: WorkspaceUserRepository,
-        allowed_origins_repo: AllowedOriginsRepository,
+        allowed_origins_repo: PostgresAllowedOriginsRepository,
         aws_service: AWSS3Service,
         workspace_user_service: WorkspaceUserService,
         workspace_form_service: WorkspaceFormService,
@@ -486,7 +488,10 @@ class WorkspaceService:
         ]
 
     async def send_otp_for_workspace(
-        self, workspace_id: PydanticObjectId, receiver_email: EmailStr
+        self,
+        workspace_id: PydanticObjectId,
+        receiver_email: EmailStr,
+        locale: Optional[str] = None,
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         if self._sso_policy is not None:
@@ -502,6 +507,7 @@ class WorkspaceService:
                 "workspace_title": workspace.title or "",
                 "workspace_profile_image": workspace.profile_image or "",
                 "creator": False,
+                **({"locale": locale} if locale else {}),
             },
         )
         return {"message": "Otp sent successfully"}

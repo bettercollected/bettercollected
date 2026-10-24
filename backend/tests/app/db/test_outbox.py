@@ -1,6 +1,6 @@
 from backend.app.container import container
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from common.db import MirrorWriteFailureDocument, RoutingRepository, load_flags
+from tests.app.db.beanie_originals import AllowedOriginsRepository
 
 
 class BrokenPostgres:

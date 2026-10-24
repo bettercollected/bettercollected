@@ -18,7 +18,7 @@ from backend.app.schemas.sso_connection import (
     SsoConnectionType,
 )
 from tests.app.repositories.test_identity_parity import both_raise
-from tests.app.repositories.test_refdata_parity import parity
+from tests.app.repositories.parity import parity
 
 
 @pytest.fixture

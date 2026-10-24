@@ -4,7 +4,7 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, delete, get, patch, post, put
 from common.models.user import User
-from fastapi import Depends, Form, UploadFile
+from fastapi import Depends, Form, Query, UploadFile
 from pydantic import EmailStr
 
 from backend.app.container import container
@@ -312,9 +312,11 @@ class WorkspaceRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         receiver_email: EmailStr,
+        # the mail's language (the form's); English unless Dutch
+        locale: Optional[str] = Query(None, max_length=35),
     ):
         return await self.workspace_service.send_otp_for_workspace(
-            workspace_id, receiver_email
+            workspace_id, receiver_email, locale=locale
         )
 
     @delete(

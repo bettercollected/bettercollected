@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from fastapi_mail import ConnectionConfig, FastMail
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from auth.app.services.mail_text import DEFAULT_LOCALE, texts
 from auth.config import settings
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
@@ -57,6 +58,9 @@ def render(template_name: str, **context) -> str:
     """A mail body from ``templates/``; every value is HTML-escaped. The
     footer's copyright year is the year the mail is sent."""
     context.setdefault("year", datetime.now(timezone.utc).year)
+    # the words, English unless the caller chose a language (mail_text)
+    context.setdefault("t", texts(None))
+    context.setdefault("lang", DEFAULT_LOCALE)
     return _environment.get_template(template_name).render(**context)
 
 

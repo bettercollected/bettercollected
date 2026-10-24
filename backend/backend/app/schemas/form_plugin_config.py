@@ -1,10 +1,10 @@
 import datetime as dt
 
 from backend.app.models.form_plugin_config import FormProviderConfigDto
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 
 
-class FormPluginConfigDocument(MongoDocument, FormProviderConfigDto):
+class FormPluginConfigDocument(Record, FormProviderConfigDto):
     class Settings:
         name = "forms_plugin_configs"
         bson_encoders = {

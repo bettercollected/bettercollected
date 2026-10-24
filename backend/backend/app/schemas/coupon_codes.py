@@ -1,18 +1,16 @@
 import datetime as dt
-from typing import Annotated, Optional
+from typing import Optional
 
-from beanie import Indexed
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 from pydantic import EmailStr
 
-from backend.app.handlers.database import entity
 from backend.app.models.enum.coupon_status import CouponStatus
 from backend.app.models.types.coupon_code import CouponCode
 
 
-@entity
-class CouponCodeDocument(MongoDocument):
-    code: Annotated[CouponCode, Indexed(unique=True)]
+class CouponCodeDocument(Record):
+    # unique in Postgres (app migration 0001)
+    code: CouponCode
     status: CouponStatus = CouponStatus.ACTIVE
     used_by: Optional[EmailStr] = None
     activated_at: Optional[dt.datetime] = None

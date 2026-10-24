@@ -24,6 +24,7 @@ from auth.app.services.mail_service import (  # noqa: F401 — one_line re-expor
     one_line,
     render,
 )
+from auth.app.services.mail_text import mail_locale, texts
 from auth.config import settings
 
 SUBMISSION_UPDATE_TEMPLATE = "submission_update.html"
@@ -77,12 +78,25 @@ def is_allowed_submission_link(link: str) -> bool:
 
 
 def render_submission_update(
-    form_title: str, workspace_title: Optional[str], link: str
+    form_title: str,
+    workspace_title: Optional[str],
+    link: str,
+    locale: Optional[str] = None,
 ) -> str:
+    t = texts(locale)
+    workspace_title = one_line(workspace_title)
     return render(
         SUBMISSION_UPDATE_TEMPLATE,
+        t=t,
+        lang=mail_locale(locale),
         form_title=one_line(form_title),
-        workspace_title=one_line(workspace_title),
+        workspace_title=workspace_title,
+        # a plain string, autoescaped as a whole
+        update_from_workspace=(
+            t["update_from_workspace"].format(workspace=workspace_title)
+            if workspace_title
+            else None
+        ),
         link=link,
     )
 
@@ -108,6 +122,7 @@ class NotificationService:
         form_title: str,
         workspace_title: Optional[str],
         link: str,
+        locale: Optional[str] = None,
     ) -> None:
         """Email ``recipient`` that their submission has an update. Runs after
         the response was sent: failures are logged without the address."""
@@ -115,9 +130,11 @@ class NotificationService:
             message = MessageSchema(
                 # fixed wording: the form and workspace titles are chosen by
                 # the workspace and appear only in the body (#761)
-                subject="Update on your submission",
+                subject=texts(locale)["update_subject"],
                 recipients=[recipient],
-                body=render_submission_update(form_title, workspace_title, link),
+                body=render_submission_update(
+                    form_title, workspace_title, link, locale
+                ),
                 subtype="html",
             )
             # The sender name is always this instance's (MailService): a

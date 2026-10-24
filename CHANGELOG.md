@@ -22,6 +22,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   entity ID and, with `--apply`, releases orphaned ones (a named workspace's only on request). The SSO
   docs now say that a workspace's identity provider controls the whole account of users on its
   verified domains, their other workspaces included.
+- The sign-in code, invitation and submission-update mails are available in Dutch. The backend endpoints
+  that send them take an optional `locale` (`nl`, or a tag such as `nl-NL`; anything else gets
+  English), and the submission-update notice follows the form's language. The invitation now names the
+  workspace as "<workspace> via <instance name>". It names the inviter with the role they offer and
+  says that the name is the one the inviter chose.
+- Two SQL scripts for the Umami database, `scripts/umami/email-data-count.sql` (read-only) and
+  `scripts/umami/email-data-purge.sql` (a dry run unless `-v apply=1`), count and delete the `email`
+  event-data property that the web app sent before it stopped sending the signed-in user's email to
+  analytics. They print counts only.
 
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
@@ -29,6 +38,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
   the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
   keyset freeze and the backup and restore test to do before Mongo is turned off.
+- `GOOGLE_FORMS_IMPORT=on|readonly|off` (backend and Google Forms service; default `on`). `readonly` keeps
+  imported forms and responses readable but refuses new imports, re-syncs, account connections and every
+  other call to Google with a Google Forms credential (403 `google_forms_readonly`); `off` answers 410
+  `google_forms_off` and never calls the Google Forms service. `GET /providers` reports the mode
+  (`importMode`). See `docs/RUNNING_INTEGRATIONS.md`.
 
 ### Changed
 
@@ -92,6 +106,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Importing from Google Forms works again after Google's consent screen. The Google Forms service sent a PKCE
+  challenge with the authorization URL (the default of google-auth-oauthlib since 1.3) but exchanged the code
+  without its verifier, so Google refused the exchange (`invalid_grant`). The verifier is now derived from the
+  request's state with a server-side key, so the callback presents the matching one.
+- The Google Forms service no longer depends on `OAUTHLIB_RELAX_TOKEN_SCOPE` in its environment: it relaxes
+  oauthlib's scope comparison itself (Google always returns aliases and earlier grants) and instead checks that
+  the scopes the import needs were granted, refusing with a clear message when the user unticked one.
+  `invalid_client` and other OAuth errors from Google now answer with a message instead of a server error, and a
+  callback whose state does not decrypt is refused before the code is used.
+- Errors from a form provider service now reach the user with that service's own status and message (an expired
+  authorization, a missing permission) instead of "Could not fetch data from proxy server."; the API logs the
+  upstream status and error code.
+- After the consent screen, an import that started without a `Referer` returns to the workspace's forms page
+  instead of failing, and the picker flag is added to the return URL as a proper query parameter.
 - The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
   scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
   HTMX swaps or task progress updates.

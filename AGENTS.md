@@ -129,7 +129,7 @@ yarn storybook      # component explorer on :6006
   Google, CSV export, response editing, etc. A feature may be code-complete but flagged off — check the flag
   before assuming behavior.
 - **Multi-host routing.** The webapp serves three logical hosts (admin `:3000`, client `:3001/{workspace_handle}`,
-  custom domain `:3002`) behind nginx; `allowed_origins` in Mongo controls CORS. Custom-domain and workspace routing
+  custom domain `:3002`) behind nginx; `allowed_origins` (Postgres) controls CORS. Custom-domain and workspace routing
   are load-bearing — see [docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md).
 - **Auth is cookie-based** on revocable server-side sessions (backend `services/session_service.py`, `sessions`
   collection): short access tokens checked without a database read, refresh checked against the session (see

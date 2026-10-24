@@ -30,7 +30,8 @@ forms, responses), in a pull request of its own:
    ``PydanticObjectId`` with ``RecordId`` in the group's models, DTOs and
    services. ``RecordId`` equals a ``PydanticObjectId`` of the same value,
    so a group can move while its neighbours still use Beanie.
-2. **Repositories.** The Postgres twin becomes the repository: it encodes
+2. **Repositories.** The Postgres twin becomes the repository, built on
+   :class:`common.records.repository.RecordRepository`: it encodes
    with :func:`row_values` / :func:`decode` instead of the bridge, calls
    ``record.touch()`` where the Mongo original called ``save()``, and
    ``derived_id`` where it called ``derived_object_id``. The Mongo
@@ -40,7 +41,9 @@ forms, responses), in a pull request of its own:
    :mod:`common.records.golden` pass for the group's classes before the
    switch.
 
-Nothing in this package imports Beanie or ``common.db``; ``bson`` stays
+Nothing in this package imports Beanie or ``common.db`` except
+:mod:`common.records.repository` (the repository base, built on
+``common.db``'s while Beanie groups remain; not imported here); ``bson`` stays
 (ObjectId and the Extended JSON encoding) until the Mongo import path is
 removed in 5.0.
 """
