@@ -34,6 +34,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- A document import running in the API process that stops on an unexpected error (outside the import's
+  own error handling, such as a database error while failing it) now fails the import with code
+  `failed` and removes its empty draft, instead of leaving it running until it expires. Its task no longer
+  ends with an exception nobody retrieves, which asyncio logged later with the whole traceback.
+
 ### Security
 
 ## [4.0.3] - 2026-10-24
