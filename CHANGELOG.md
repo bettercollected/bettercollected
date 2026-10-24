@@ -15,9 +15,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
-- The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
-  scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
-  HTMX swaps or task progress updates.
 - Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
   mirror store in the opposite order and leave it with the older version. After its mirror write,
   each write now brings the mirror's copy of the rows it touched in line with the primary's
@@ -25,6 +22,28 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
   the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
   stays open).
+
+## [4.0.5] - 2026-10-24
+
+### Fixed
+
+- The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
+  scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
+  HTMX swaps or task progress updates.
+- Importing from Google Forms works again after Google's consent screen. The Google Forms service sent a PKCE
+  challenge with the authorization URL (the default of google-auth-oauthlib since 1.3) but exchanged the code
+  without its verifier, so Google refused the exchange (`invalid_grant`). The verifier is now derived from the
+  request's state with a server-side key, so the callback presents the matching one.
+- The Google Forms service no longer depends on `OAUTHLIB_RELAX_TOKEN_SCOPE` in its environment: it relaxes
+  oauthlib's scope comparison itself (Google always returns aliases and earlier grants) and instead checks that
+  the scopes the import needs were granted, refusing with a clear message when the user unticked one.
+  `invalid_client` and other OAuth errors from Google now answer with a message instead of a server error, and a
+  callback whose state does not decrypt is refused before the code is used.
+- Errors from a form provider service now reach the user with that service's own status and message (an expired
+  authorization, a missing permission) instead of "Could not fetch data from proxy server."; the API logs the
+  upstream status and error code.
+- After the consent screen, an import that started without a `Referer` returns to the workspace's forms page
+  instead of failing, and the picker flag is added to the return URL as a proper query parameter.
 
 ## [4.0.4] - 2026-10-24
 
