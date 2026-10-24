@@ -41,6 +41,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- A document import running in the API process that stops on an unexpected error (outside the import's
+  own error handling, such as a database error while failing it) now fails the import with code
+  `failed` and removes its empty draft, instead of leaving it running until it expires. Its task no longer
+  ends with an exception nobody retrieves, which asyncio logged later with the whole traceback.
 - Form builder: "Add Option" puts the cursor in the new option. The Flow view no longer opens by itself
   when a form gets its first logic while being edited (forms that already branch still open in it).
   Renaming a form titles its welcome page in the same undo step, and autosave no longer rewrites the
