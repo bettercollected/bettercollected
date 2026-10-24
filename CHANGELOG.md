@@ -52,12 +52,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   "bettercollected" for screen readers, and email logos now say "bettercollected" instead of "logo".
 - A form is linked to a workspace once: (`workspace_id`, `form_id`) is unique in `workspace_forms`, in
   Postgres (app revision `0019`, replacing the plain index) and in Mongo (`uq_workspace_forms_workspace_form`,
-  built at startup). Saving a link that already exists (another importer, two imports racing) returns
+  built at startup while Mongo is used; links without a workspace or form are left out, as Postgres treats
+  NULLs as distinct). Saving a link that already exists (another importer, two imports racing) returns
   the existing link unchanged instead of adding a second one. Existing duplicates are never merged
-  automatically: the migration refuses before changing anything, naming the counts, and a Mongo database
-  holding duplicates refuses to start with a duplicate-key error naming the index. Check before upgrading
-  (read-only): in Postgres `SELECT workspace_id, form_id, count(*), array_agg(id) FROM app.workspace_forms
-  GROUP BY workspace_id, form_id HAVING count(*) > 1;`, in Mongo
+  automatically: the migration refuses before changing anything, naming the counts; a Mongo database
+  holding duplicates still starts, without the index, and logs an error with the number of duplicate
+  pairs. Check before upgrading (read-only): in Postgres `SELECT workspace_id, form_id, count(*),
+  array_agg(id) FROM app.workspace_forms WHERE workspace_id IS NOT NULL AND form_id IS NOT NULL GROUP BY
+  workspace_id, form_id HAVING count(*) > 1;`, in Mongo
   `db.workspace_forms.aggregate([{$group: {_id: {w: "$workspace_id", f: "$form_id"}, n: {$sum: 1}, ids:
   {$push: "$_id"}}}, {$match: {n: {$gt: 1}}}])`; keep one link per pair, in both stores.
 

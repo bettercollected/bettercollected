@@ -8,6 +8,26 @@ from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.models.workspace import WorkspaceFormSettings
 from common.configs.mongo_document import MongoDocument
 
+# One link per workspace and form, as Postgres (app revision 0019). Built at
+# startup after Beanie (handlers/database.py), never in the document's
+# settings: a database still holding duplicates must start anyway.
+#
+# Partial on both keys being set (a workspace id, as ObjectId or string, and a
+# string form id): a link without one is not indexed, as Postgres treats NULLs
+# as distinct. Mongo's planner can't use a partial index for a query that does
+# not state that filter, so every read keeps the plan (and the natural order)
+# it had without this index; the index only enforces uniqueness.
+WORKSPACE_FORM_INDEX_FILTER = {
+    "workspace_id": {"$type": ["objectId", "string"]},
+    "form_id": {"$type": "string"},
+}
+WORKSPACE_FORM_INDEX = IndexModel(
+    [("workspace_id", 1), ("form_id", 1)],
+    unique=True,
+    name="uq_workspace_forms_workspace_form",
+    partialFilterExpression=WORKSPACE_FORM_INDEX_FILTER,
+)
+
 
 class WorkspaceFormDocument(MongoDocument):
     """
@@ -34,25 +54,10 @@ class WorkspaceFormDocument(MongoDocument):
     last_update_status: Optional[UpdateStatus] = None
 
     class Settings:
+        # No indexes here: the unique link index is built after Beanie, by
+        # handlers/database.py (WORKSPACE_FORM_INDEX), so a database still
+        # holding duplicate links starts anyway.
         name = "workspace_forms"
-        # One link per workspace and form, as Postgres (app revision 0019).
-        # Beanie builds it at startup: a database still holding duplicate
-        # links refuses to start with a DuplicateKeyError that names this
-        # index and one duplicate pair; resolve them by hand first (keep one
-        # link per pair; the CHANGELOG entry gives the read-only query).
-        # Partial on form_id existing: every link has one, so it holds for all
-        # links, and a query that does not name form_id (a workspace's links,
-        # a user's imports) can't use it. Those unsorted reads keep returning
-        # links in natural (insertion) order, as their Postgres twins order
-        # them (created_at, id), so the stores' results stay identical.
-        indexes = [
-            IndexModel(
-                [("workspace_id", 1), ("form_id", 1)],
-                unique=True,
-                name="uq_workspace_forms_workspace_form",
-                partialFilterExpression={"form_id": {"$exists": True}},
-            )
-        ]
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),

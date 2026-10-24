@@ -65,8 +65,9 @@ def upgrade() -> None:
             f"{SCHEMA}.{TABLE} has {pairs} (workspace_id, form_id) pairs linked by "
             f"{rows} rows, so the unique index can't be created. Nothing was "
             "changed. List them (read-only) with: SELECT workspace_id, form_id, "
-            f"count(*), array_agg(id) FROM {SCHEMA}.{TABLE} GROUP BY workspace_id, "
-            "form_id HAVING count(*) > 1; keep one link per pair and migrate again "
+            f"count(*), array_agg(id) FROM {SCHEMA}.{TABLE} WHERE workspace_id IS "
+            "NOT NULL AND form_id IS NOT NULL GROUP BY workspace_id, form_id HAVING "
+            "count(*) > 1; keep one link per pair and migrate again "
             "(see the docstring of revision 0019)."
         )
     op.create_index(NEW, TABLE, ["workspace_id", "form_id"], unique=True, schema=SCHEMA)

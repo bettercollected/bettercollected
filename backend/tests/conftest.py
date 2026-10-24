@@ -141,6 +141,14 @@ MONGO_DRIVEN = {
     "tests/app/repositories/test_scim_parity.py": ALL,
     "tests/app/repositories/test_sso_connection_parity.py": ALL,
     "tests/app/repositories/test_workspace_domain_parity.py": ALL,
+    "tests/app/repositories/test_workspace_form_links_unique.py": {
+        "test_mongo_refuses_a_second_link_of_the_same_form",
+        "test_mongo_links_without_a_workspace_are_not_indexed",
+        "test_mongo_save_workspace_form_returns_the_existing_link",
+        "test_a_workspaces_links_keep_their_order_in_both_stores",
+        "test_the_index_is_built_after_beanie_and_skipped_on_duplicates",
+        "test_a_mongo_holding_duplicate_links_still_starts",
+    },
     "tests/app/test_operator_tools.py": {
         "test_custom_domain_references_are_the_same_on_both_stores",
         "test_expiration_schedules_are_the_same_on_both_stores",
