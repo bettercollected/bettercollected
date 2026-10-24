@@ -627,3 +627,87 @@ async def test_a_hung_copy_is_cut_off_and_still_rechecked(target, mode, monkeypa
         )
     assert time.monotonic() - started < 5
     assert reads_after_write == [primary_of(mode), convergence._other(primary_of(mode))]
+
+
+@pytest.mark.allow_mirror_failures
+async def test_a_cut_off_copy_is_reported_even_when_the_recheck_is_clean(
+    target, monkeypatch
+):
+    """The cap cuts a copy off after it was sent: the re-check may find the
+    stores alike, yet the write can still land later. It is reported."""
+    flags = load_flags({"DB_WRITE_MODE": "dual", "DB_READ_SOURCE": "mongo"})
+    repo = RoutingRepository(
+        group="forms",
+        flags=flags,
+        mongo=FormRepository(),
+        postgres=PostgresFormRepository(
+            container.pg_sessionmaker(),
+            container.responder_groups_repository(),
+            container.form_response_repo(),
+        ),
+        on_mirror_failure=container.outbox_recorder(),
+        mirror_timeout_s=0.3,
+    )
+    created = await new_form(repo)
+    document = await repo.get_form_document_by_id(created.form_id)
+    document.title = "Changed"
+    real_read, real_write = convergence._read, convergence._write
+    reads = []
+
+    async def read(entry, ids, store):
+        reads.append(store)
+        if len(reads) == 2:
+            return {}  # the mirror looks stale: a copy is made
+        return await real_read(entry, ids, store)
+
+    async def slow_write(entry, copies, store):
+        await real_write(entry, copies, store)  # it lands...
+        await asyncio.sleep(5)  # ...but is not acknowledged before the cap
+
+    monkeypatch.setattr(convergence, "_read", read)
+    monkeypatch.setattr(convergence, "_write", slow_write)
+    await repo.save_form(document)
+
+    assert repo.metrics.mirror_failures[("forms", "save_form")] == 1
+    (entry,) = await MirrorWriteFailureDocument.find_all().to_list()
+    assert entry.error.startswith("CopyUnverified:")
+
+
+async def test_any_failure_after_a_copy_is_an_unverified_copy(target, monkeypatch):
+    repo, _ = forms_repo("dual", "save_form")
+    created = await new_form(repo)
+    await make_mirror_stale("dual", created)
+    real_write = convergence._write
+
+    async def write_then_fail(entry, copies, store):
+        await real_write(entry, copies, store)
+        raise RuntimeError("connection reset after the copy")
+
+    monkeypatch.setattr(convergence, "_write", write_then_fail)
+    with pytest.raises(convergence.CopyUnverified):
+        await convergence.converge(touched_form(created), ReadSource.MONGO)
+
+
+async def test_a_clean_verify_resolves_only_unverified_copies_recorded_before_it(
+    target,
+):
+    from backend.migrate.__main__ import build_target
+
+    async def unverified(row_id):
+        await MirrorWriteFailureDocument(
+            table_name="FormRepository",
+            row_id=row_id,
+            op="save_form",
+            error="CopyUnverified: forms: test",
+        ).insert()
+
+    await unverified("before")
+    async with Runner(build_target(os.environ["DATABASE_URL"])) as runner:
+        reports = await runner.verify()
+        await unverified("during")  # recorded while that verify ran
+        outcome = await runner.record_verify(reports)
+    assert outcome["marker"] == "written"
+    open_entries = await MirrorWriteFailureDocument.find(
+        MirrorWriteFailureDocument.resolved_at == None  # noqa: E711 — Beanie query
+    ).to_list()
+    assert [e.row_id for e in open_entries] == ["during"]

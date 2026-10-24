@@ -182,8 +182,9 @@ async def converge(
     ``cap`` (a ``time.monotonic()`` reading after ``deadline``) bounds the
     whole step, writes included, so a hung store cannot stall the request:
     a write still running at the cap is cut off, and the re-check still runs
-    (bounded by ``read_timeout``). When a copy was written but its re-check
-    failed, or a write was cut off, :class:`CopyUnverified` is raised.
+    (bounded by ``read_timeout``). :class:`CopyUnverified` is raised when a
+    write was cut off (even if the re-check then finds the stores alike: the
+    write may still land) and when anything fails after a copy was made.
     """
     rounds = ROUNDS if rounds is None else rounds
     rewritten = 0
@@ -237,57 +238,71 @@ async def _converge_ids(
     rewritten = 0
     attempt = 0
     capped = False
-    while True:
-        # the primary first: a copy read from it is never older than the
-        # mirror's copy read after it
-        try:
+
+    async def rounds_of_copies() -> int:
+        nonlocal ids, rewritten, attempt, capped
+        while True:
+            # the primary first: a copy read from it is never older than the
+            # mirror's copy read after it
             source = await read(primary)
             target = await read(mirror)
-        except (
-            Exception
-        ) as exc:  # noqa: BLE001 — re-raised, marked when a copy is unchecked
-            if copied:
-                raise CopyUnverified(
-                    f"{name}: the re-check after a copy failed "
-                    f"({type(exc).__name__}); verify must show these documents clean"
-                ) from exc
-            raise
-        ids = [
-            i
-            for i in ids
-            if (source.get(i) or (None,))[0] != (target.get(i) or (None,))[0]
-        ]
-        if not ids:
-            return rewritten
-        now = time.monotonic()
-        out_of_time = capped or (deadline is not None and now >= deadline)
-        if attempt >= rounds or out_of_time:
-            # stop copying, but never leave a copy of a row the primary no
-            # longer holds: deleting it cannot bring data back
-            gone = {i: None for i in ids if i not in source}
-            if gone:
-                if cap is not None and now >= cap:
-                    # past the cap: the delete gets the read's bound
-                    await asyncio.wait_for(
-                        _write(entry, gone, mirror), timeout=read_timeout
-                    )
-                elif not await write(gone):
-                    raise CopyUnverified(f"{name}: a delete was cut off by the cap")
-                rewritten += len(gone)
-            left = [i for i in ids if i in source]
-            if not left:
+            ids = [
+                i
+                for i in ids
+                if (source.get(i) or (None,))[0] != (target.get(i) or (None,))[0]
+            ]
+            if not ids:
                 return rewritten
-            if capped:
-                raise CopyUnverified(
-                    f"{name}: {len(left)} document(s) still differ after a copy "
-                    "was cut off by the cap"
+            now = time.monotonic()
+            out_of_time = capped or (deadline is not None and now >= deadline)
+            if attempt >= rounds or out_of_time:
+                # stop copying, but never leave a copy of a row the primary no
+                # longer holds: deleting it cannot bring data back
+                gone = {i: None for i in ids if i not in source}
+                if gone:
+                    if cap is not None and now >= cap:
+                        # past the cap: the delete gets the read's bound
+                        await asyncio.wait_for(
+                            _write(entry, gone, mirror), timeout=read_timeout
+                        )
+                    elif not await write(gone):
+                        raise CopyUnverified(f"{name}: a delete was cut off by the cap")
+                    rewritten += len(gone)
+                left = [i for i in ids if i in source]
+                if not left:
+                    return rewritten
+                if capped:
+                    raise CopyUnverified(
+                        f"{name}: {len(left)} document(s) still differ after a copy "
+                        "was cut off by the cap"
+                    )
+                why = "the mirror timeout passed" if out_of_time else f"{rounds} copies"
+                raise Diverged(
+                    f"{name}: {len(left)} document(s) still differ after {why}"
                 )
-            why = "the mirror timeout passed" if out_of_time else f"{rounds} copies"
-            raise Diverged(f"{name}: {len(left)} document(s) still differ after {why}")
-        if not await write({i: source.get(i) for i in ids}):
-            capped = True  # re-check what landed, then stop
-        rewritten += len(ids)
-        attempt += 1
+            if not await write({i: source.get(i) for i in ids}):
+                capped = True  # re-check what landed, then stop
+            rewritten += len(ids)
+            attempt += 1
+
+    try:
+        done = await rounds_of_copies()
+    except Diverged:
+        raise  # the stores were read after the last copy: what differs is known
+    except Exception as exc:  # noqa: BLE001 — re-raised, marked once a copy was made
+        if copied:
+            raise CopyUnverified(
+                f"{name}: {type(exc).__name__} after a copy; verify must show these "
+                "documents clean"
+            ) from exc
+        raise
+    if capped:
+        # the stores look alike now, but the cut-off write may still land
+        raise CopyUnverified(
+            f"{name}: a copy was cut off by the cap and may still land; verify must "
+            "show these documents clean"
+        )
+    return done
 
 
 async def _read(

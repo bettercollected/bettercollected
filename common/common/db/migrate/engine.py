@@ -572,6 +572,8 @@ class Runner:
         """Tier 1 counts; tier 2 checksum merge-join over ids in batches; tier 3 a
         round-trip deep compare of the first ``deep_per_batch`` rows of each
         batch. ``sample_every=k`` checks every k-th batch (large collections)."""
+        # what a clean result can vouch for: only what existed when it started
+        self._verify_started = datetime.now(timezone.utc)
         reports = []
         for name, table in self.tables_for(collections).items():
             report = CollectionReport(name)
@@ -1089,12 +1091,21 @@ class Runner:
             await self._resolve_outbox(only_unverified=False)
 
     async def _resolve_unverified(self) -> None:
-        """A clean full verify: the stores agree, unverified copies included."""
-        await self._resolve_outbox(only_unverified=True)
+        """A clean full verify: the stores agree, unverified copies included,
+        but only those recorded before that verify started (one recorded
+        while it ran may concern a copy it read before the copy landed)."""
+        started = getattr(self, "_verify_started", None)
+        if started is None:
+            logger.info("unverified copies not resolved: no verify ran in this run")
+            return
+        await self._resolve_outbox(only_unverified=True, before=started)
 
-    async def _resolve_outbox(self, *, only_unverified: bool) -> None:
+    async def _resolve_outbox(
+        self, *, only_unverified: bool, before: Optional[datetime] = None
+    ) -> None:
         now = datetime.now(timezone.utc)
         unverified = UNVERIFIED_ERROR + "%"
+        created = "" if before is None else " AND created_at < :before"
         async with self.engine.begin() as conn:
             table = f'"{self.target.schema}"."mirror_write_failures"'
             exists = (
@@ -1106,8 +1117,9 @@ class Runner:
                     text(
                         f"UPDATE {table} SET resolved_at = :now "
                         f"WHERE resolved_at IS NULL AND error {which} :unverified"
+                        f"{created}"
                     ),
-                    {"now": now, "unverified": unverified},
+                    {"now": now, "unverified": unverified, "before": before},
                 )
                 logger.info("outbox (postgres): resolved %d", result.rowcount)
         pattern = {"$regex": "^" + UNVERIFIED_ERROR}
@@ -1115,6 +1127,8 @@ class Runner:
             "resolved_at": None,
             "error": pattern if only_unverified else {"$not": pattern},
         }
+        if before is not None:
+            selector["created_at"] = {"$lt": before}
         result = await self.collection("mirror_write_failures").update_many(
             selector, {"$set": {"resolved_at": now}}
         )
