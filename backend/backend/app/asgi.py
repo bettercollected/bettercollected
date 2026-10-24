@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from backend.config import settings
 import common.exceptions.http
 from common.exceptions.validation import request_validation_error_handler
+from common.services.crypto_service import crypto_service
 from fastapi.exceptions import RequestValidationError
 import sentry_sdk
 from dependency_injector import providers
@@ -44,6 +45,9 @@ async def lifespan(app: FastAPI):
     logger.info("Execute FastAPI startup event handler.")
     log_if_internal_key_missing()
     log_if_job_api_key_missing()
+    # the response keyset (environment or settings store): fail at startup,
+    # not on the first response read, when there is none
+    crypto_service.load()
 
     AiohttpClient.get_aiohttp_client()
 

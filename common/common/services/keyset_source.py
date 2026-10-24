@@ -2,8 +2,8 @@
 
 The environment (an operator's override, also what a stack that predates the
 settings store has) wins; otherwise the settings store's verified row. Kept
-apart from ``crypto_service``, which builds the process-wide cipher when it is
-imported: a service's configuration registers ``configured_key_ids`` before the
+apart from ``crypto_service`` (the process-wide cipher, built on first use):
+a service's configuration registers ``configured_key_ids`` before the
 settings snapshot is loaded, so importing this module must have no side effects.
 """
 

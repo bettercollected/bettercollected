@@ -566,8 +566,8 @@ TODO_LIVE: Dict[str, str] = {
     "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/schemas/flow_event.py:14",
     "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py:90",
     "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
-    "API_ROOT_PATH": "backend/backend/app/asgi.py:193",
-    "API_DOCS_ENABLED": "backend/backend/app/asgi.py:193",
+    "API_ROOT_PATH": "backend/backend/app/asgi.py:197",
+    "API_DOCS_ENABLED": "backend/backend/app/asgi.py:197",
     "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:668",
     "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:669",
 }

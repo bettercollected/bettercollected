@@ -21,6 +21,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- The Google Forms integration no longer fails to start with "MASTER_ENCRYPTION_KEYSET is set
+  neither in the environment nor in the settings store" when the response keyset is held only in
+  the settings store (after `bootstrap-keys` or `settings-prune`). The shared response cipher
+  (`common.services.crypto_service`) was built when the module was imported, which could happen
+  before the service had loaded its settings snapshot; it is now built on first use, so the import
+  order no longer matters. The backend, its jobs worker and the integration still build it at
+  startup and refuse to start when no keyset exists in either place.
+
 ### Security
 
 ## [4.0.2] - 2026-10-24

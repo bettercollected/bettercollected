@@ -19,6 +19,7 @@ from googleform.app.exceptions.http import (
 from googleform.app.router import root_api_router
 from googleform.app.services.database_service import close_db, init_db
 from common.exceptions.validation import request_validation_error_handler
+from common.services.crypto_service import crypto_service
 from fastapi.exceptions import RequestValidationError
 from common.db import MigrationTarget, check_postgres_at_startup, dispose_engine
 from googleform.app.services.migration_service import (
@@ -48,6 +49,9 @@ async def on_startup():
     """
     log.debug("Execute FastAPI startup event handler.")
     log_if_internal_key_missing()
+    # the response keyset (environment or settings store): fail here, not on
+    # the first credential read, when there is none
+    crypto_service.load()
 
     AiohttpClient.get_aiohttp_client()
     log.info(
