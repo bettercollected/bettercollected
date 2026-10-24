@@ -202,15 +202,16 @@ def metrics_snapshot(metrics) -> dict:
     return out
 
 
-async def outbox_backlog(session_factory, row_cls) -> dict:
-    """Unresolved mirror-write failures in both stores (the outbox to drain)."""
+async def outbox_backlog(session_factory, row_cls, *, mongo_used: bool = True) -> dict:
+    """Unresolved mirror-write failures in both stores (the outbox to drain).
+    A store the process does not use reports ``None``."""
     from sqlalchemy import func, select
 
-    backlog = {
-        "mongo": await MirrorWriteFailureDocument.find(
+    backlog: dict = {"mongo": None}
+    if mongo_used:
+        backlog["mongo"] = await MirrorWriteFailureDocument.find(
             MirrorWriteFailureDocument.resolved_at == None  # noqa: E711 — Beanie query
         ).count()
-    }
     if session_factory is None:
         backlog["postgres"] = None
         return backlog

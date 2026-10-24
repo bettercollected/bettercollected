@@ -14,6 +14,7 @@ from auth.app.services.user_service import UserService
 from auth.config import settings
 from auth.db.models import MirrorWriteFailure
 from common.db import (
+    SERVICE_GROUPS,
     DatabaseSettings,
     OutboxRecorder,
     RoutingMetrics,
@@ -21,23 +22,29 @@ from common.db import (
     build_engine,
     build_sessionmaker,
     load_flags,
+    mongo_client,
+    mongo_required,
     postgres_repository,
 )
 
 
 class AppContainer(containers.DeclarativeContainer):
-    # Beanie 2.x uses pymongo's native async client, not motor. Instantiated
-    # inside on_startup (a running event loop) via container.database_client().
-    database_client: AsyncMongoClient = providers.Singleton(
-        AsyncMongoClient, settings.mongo_settings.URI
-    )
-
     # Define non-decorated objects here
     http_client: HttpClient = providers.Singleton(HttpClient)
 
     # Postgres runtime (plans/postgres-consolidation.md): everything is None
     # without DATABASE_URL, and the routing layer treats the store as absent.
     flags = providers.Singleton(load_flags)
+
+    # Whether the auth group still uses Mongo; once it is on Postgres for reads
+    # and writes the service starts without Mongo (common/db/mongo.py).
+    uses_mongo = providers.Callable(mongo_required, flags, SERVICE_GROUPS["auth"])
+    # Beanie 2.x uses pymongo's native async client, not motor. Instantiated
+    # inside on_startup (a running event loop) via container.database_client();
+    # it never connects while Mongo is not used.
+    database_client: AsyncMongoClient = providers.Singleton(
+        mongo_client, settings.mongo_settings.URI, required=uses_mongo
+    )
     db_settings = providers.Singleton(DatabaseSettings.from_env)
     pg_engine = providers.Singleton(
         build_engine, db_settings, application_name="bettercollected-auth"

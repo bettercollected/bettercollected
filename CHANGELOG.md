@@ -15,7 +15,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
+  which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
+  flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
+  changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
+  the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
+  keyset freeze and the backup and restore test to do before Mongo is turned off.
+
 ### Changed
+
+- Once every repository group is on Postgres for reads and writes (`DB_READ_SOURCE=postgres`,
+  `DB_WRITE_MODE=postgres`, no group override back to Mongo, no shadow reads), the backend, its job worker,
+  auth and the Google Forms service start and serve without MongoDB: no connection is made, `MONGO_URI` may be
+  unset, and the backend's persistence status reports Mongo as "not used". While any group still uses Mongo,
+  startup is unchanged and fails on an unreachable Mongo. CI's Postgres runs now go without a Mongo server.
 
 - The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
   holds the Single sign-on and Domains tabs (only Domains, named so, when single sign-on is off on the
@@ -44,7 +57,36 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- The forms list and form search ask the auth service about each importer once, instead of once per
+  form on the page. Search now shows each form's own importer: it could show another member's name on
+  a form, and no importer at all on forms imported by someone other than the searching member. The forms
+  list's response counts count distinct workspaces in MongoDB as Postgres does, so a form linked twice
+  to the same workspace still counts that workspace's older responses.
+- A document import running in the API process that stops on an unexpected error (outside the import's
+  own error handling, such as a database error while failing it) now fails the import with code
+  `failed` and removes its empty draft, instead of leaving it running until it expires. Its task no longer
+  ends with an exception nobody retrieves, which asyncio logged later with the whole traceback.
+- Form builder: "Add Option" puts the cursor in the new option. The Flow view no longer opens by itself
+  when a form gets its first logic while being edited (forms that already branch still open in it).
+  Renaming a form titles its welcome page in the same undo step, and autosave no longer rewrites the
+  welcome page's title on every save; the outline's Welcome row shows the form's title.
+- Flow view: a page node's "+N more" counts only the questions it does not show (it counted one too
+  many, the question that names the node). "Start with AI" opens on phones and small tablets too
+  (its dialog fits a 375px screen); only "Create New Form" is marked desktop-only.
+
 ### Security
+
+- Searching a workspace's draft forms (`POST /workspaces/{id}/forms/search` without `published=true`)
+  now needs permission to read the workspace's forms, as the forms list already did. Any signed-in
+  account got 403 from the list but could search another workspace's drafts. Importer details (the
+  importing member's name and email) are only ever attached for members who may read the workspace's
+  forms: never in published search, and no longer when a non-member reads a single form. A single form's
+  importer is now the member who imported it, not the first user the auth service returned.
+- Reading one unpublished form (`GET /workspaces/{id}/forms/{form_id}` without `published=true`, by id
+  or custom URL) now needs permission to read the workspace's forms, as the forms list and search do;
+  anyone else gets 403, the same answer whether or not the form exists. `published=true&draft=true`
+  falls back to a never-published form's draft for those members only; for everyone else it reads the
+  published form, as `published=true` does. Published forms stay readable by anyone, as before.
 
 ## [4.0.3] - 2026-10-24
 

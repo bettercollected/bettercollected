@@ -202,11 +202,15 @@ async def test_refused_events_count_towards_the_limit(
 
 async def _stored_counter_text() -> str:
     """Everything the counters hold, in whichever stores are written."""
-    parts = [
-        repr(doc)
-        async for doc in RateLimitCounterDocument.get_pymongo_collection().find({})
-    ]
     flags = container.flags()
+    parts = (
+        [
+            repr(doc)
+            async for doc in RateLimitCounterDocument.get_pymongo_collection().find({})
+        ]
+        if flags.writes_mongo("analytics")
+        else []
+    )
     if flags.requires_postgres():
         from backend.db.models import RateLimitCounterRow
 

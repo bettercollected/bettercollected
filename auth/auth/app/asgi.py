@@ -44,7 +44,7 @@ async def on_startup():
     log.debug("Execute FastAPI startup event handler.")
     log_if_internal_key_missing()
     database_client = container.database_client()
-    await init_db(database_client)
+    await init_db(database_client, required=container.uses_mongo())
     log.info(
         "persistence flags: %s",
         json.dumps(container.flags().describe(["auth"]), sort_keys=True),

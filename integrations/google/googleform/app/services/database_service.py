@@ -1,11 +1,17 @@
 import inspect
 import logging
+from typing import Optional
 
-from beanie import init_beanie
 from pymongo import AsyncMongoClient
 
 from googleform.config import settings
-from common.db import MirrorWriteFailureDocument
+from common.db import (
+    SERVICE_GROUPS,
+    MirrorWriteFailureDocument,
+    init_documents,
+    mongo_client,
+    mongo_required,
+)
 
 log = logging.getLogger(__name__)
 mongo_settings = settings.mongo_settings
@@ -24,14 +30,29 @@ def entity(cls):
     return cls
 
 
-async def init_db():
+def uses_mongo() -> bool:
+    """Whether the google group still uses Mongo (the routing flags decide)."""
+    from googleform.app.containers import Container  # the container imports the schemas
+
+    return mongo_required(Container.flags(), SERVICE_GROUPS["google"])
+
+
+async def init_db(required: Optional[bool] = None):
+    """Beanie on the service's client. ``required`` defaults to the flags: once
+    the google group is on Postgres only, nothing is sent to Mongo (no
+    ``buildInfo``, no indexes) and the client never connects."""
     global _client
-    _client = AsyncMongoClient(mongo_settings.URI)
+    if required is None:
+        required = uses_mongo()
+    _client = mongo_client(mongo_settings.URI, required=required)
     db = _client[mongo_settings.DB]
-    await init_beanie(
-        database=db, document_models=[*document_models, MirrorWriteFailureDocument]
+    await init_documents(
+        db, [*document_models, MirrorWriteFailureDocument], required=required
     )
-    log.info("Database connected successfully.")
+    if required:
+        log.info("Database connected successfully.")
+    else:
+        log.info("Mongo is not used by the google group; not connected.")
 
 
 async def close_db():

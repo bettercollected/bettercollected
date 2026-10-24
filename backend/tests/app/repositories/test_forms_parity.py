@@ -246,6 +246,47 @@ async def test_form_listings_search_and_versions(sessions):
     )
 
 
+async def test_listing_counts_distinct_workspaces_not_link_rows(sessions):
+    """Mongo holds the form's link to ``ws`` twice; Postgres once (one link
+    per workspace and form). Either way the form is linked to ``ws`` only, so
+    its unstamped response counts there, in both stores."""
+    ws = PydanticObjectId()
+    groups, responses = ResponderGroupsRepository(), FormResponseRepository(
+        crypto=container.crypto()
+    )
+    mongo = FormRepository()
+    postgres = PostgresFormRepository(sessions, groups, responses)
+    document = form("dup", "Duplicated link", 1)
+    await seed_both((mongo, postgres), "save_form", document)
+    await seed_both((mongo, postgres), "save_form_version", version(document, 1))
+    link = workspace_form(ws, "dup", "u1", 1)
+    await seed_both(
+        (WorkspaceFormRepository(), PostgresWorkspaceFormRepository(sessions, groups)),
+        "save",
+        link,
+    )
+    await workspace_form(ws, "dup", "u1", 2).insert()  # the Mongo duplicate
+    for response_id, workspace_id in (("d1", ws), ("d2", None)):
+        await FormResponseDocument(
+            form_id="dup",
+            response_id=response_id,
+            answers={},
+            workspace_id=workspace_id,
+        ).save()
+    await FormResponseDeletionRequest(form_id="dup", response_id="d2").save()
+
+    def counts(rows):
+        return {(r["form_id"], r["responses"], r["deletion_requests"]) for r in rows}
+
+    expected = {("dup", 2, 1)}
+    for listing, args in (
+        ("get_forms_in_workspace", (ws, ["dup"], True)),
+        ("get_published_forms_in_workspace", (ws, ["dup"])),
+    ):
+        assert counts(await getattr(mongo, listing)(*args)) == expected, listing
+        assert counts(await getattr(postgres, listing)(*args)) == expected, listing
+
+
 # ----------------------------------------------------------------- workspace forms
 async def test_workspace_form_visibility(sessions):
     ws, other = PydanticObjectId(), PydanticObjectId()
