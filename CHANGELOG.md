@@ -15,6 +15,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Two SQL scripts for the Umami database, `scripts/umami/email-data-count.sql` (read-only) and
+  `scripts/umami/email-data-purge.sql` (a dry run unless `-v apply=1`), count and delete the `email`
+  event-data property that the web app sent before it stopped sending the signed-in user's email to
+  analytics. They print counts only.
+
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
