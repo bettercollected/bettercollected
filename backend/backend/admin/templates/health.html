@@ -12,27 +12,47 @@
 <h2>{{ _("Schema migrations") }}</h2>
 <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Schema migrations') }}">
 <table>
-  <caption>{{ _("Alembic revision of each schema") }}</caption>
+  <caption>{{ _("Alembic revision of each schema against the head the deployed code expects") }}</caption>
   <thead><tr><th scope="col">{{ _("Schema") }}</th><th scope="col">{{ _("State") }}</th><th scope="col">{{ _("Current") }}</th><th scope="col">{{ _("Expected head") }}</th></tr></thead>
   <tbody>
-  {% if health.admin_schema %}
-  {% set s = health.admin_schema %}
+  {% set schemas = ([health.admin_schema] if health.admin_schema else []) + health.other_schemas %}
+  {% for s in schemas %}
   <tr><th scope="row">{{ s.schema }}</th>
-    <td>{% if s.state == "current" %}<span class="ok">{{ _("current") }}</span>{% else %}<span class="bad">{{ s.state }}</span>{% endif %}</td>
-    <td>{{ s.current }}</td><td>{{ s.expected }}</td></tr>
-  {% endif %}
-  {% for s in health.other_schemas %}
-  <tr><th scope="row">{{ s.schema }}</th>
-    {% if s.state == "unavailable" %}
-    <td colspan="3">{{ _("not available to this role") }}</td>
-    {% else %}
-    <td>{{ _("readable") }}</td><td>{{ s.current }}</td><td>-</td>
-    {% endif %}
-  </tr>
+    <td>{% if s.state == "current" %}<span class="ok">{{ _("current") }}</span>
+      {% elif s.state == "ahead" %}<span class="warn">{{ _("ahead") }}</span>
+      {% elif s.state == "unavailable" %}<span class="bad">{{ _("not available") }}</span>
+      {% elif s.state == "unknown" %}<span class="warn">{{ _("expected head unknown") }}</span>
+      {% else %}<span class="bad">{{ s.state }}</span>{% endif %}</td>
+    <td>{{ s.current or "-" }}</td><td>{{ s.expected or "-" }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
+{% if health.other_schemas | selectattr("state", "equalto", "unavailable") | list %}
+<p>{{ _("A schema that is not available has no revision function yet: run postgres/ensure-admin-roles.sh once after deploying this release.") }}</p>
+{% endif %}
+
+<h2>{{ _("Mirror outbox") }}</h2>
+{% if health.outbox %}
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Mirror outbox') }}">
+<table>
+  <caption>{{ _("Mirror writes that failed and wait for a reconcile, per service and store") }}</caption>
+  <thead><tr><th scope="col">{{ _("Service") }}</th><th scope="col">{{ _("Store") }}</th><th scope="col">{{ _("State") }}</th><th scope="col">{{ _("Unresolved") }}</th><th scope="col">{{ _("Total") }}</th></tr></thead>
+  <tbody>
+  {% for o in health.outbox %}
+  <tr><th scope="row">{{ o.service }}</th><td>{{ _("PostgreSQL") if o.store == "postgres" else o.store }}</td>
+    <td>{% if o.state == "clean" %}<span class="ok">{{ _("clean") }}</span>
+      {% elif o.state == "pending" %}<span class="bad">{{ _("unresolved rows") }}</span>
+      {% elif o.state == "missing" %}{{ _("no outbox table yet") }}
+      {% else %}<span class="bad">{{ _("not available") }}</span>{% endif %}</td>
+    <td>{% if o.unresolved is none %}-{% elif o.unresolved > 0 %}<span class="bad">{{ o.unresolved }}</span>{% else %}{{ o.unresolved }}{% endif %}</td>
+    <td>{{ o.total if o.total is not none else "-" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+<p>{{ _("MongoDB outboxes are not shown: the admin service has no access to MongoDB. Check them with the status command of each service's migrate tool (python -m backend.migrate status, auth.migrate, googleform.migrate).") }}</p>
 
 <h2>{{ _("Services") }}</h2>
 {% if health.heartbeats %}

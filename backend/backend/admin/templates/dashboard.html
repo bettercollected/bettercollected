@@ -9,7 +9,9 @@
     <p class="bad">{{ _("The admin database is not reachable.") }}</p>
     {% else %}
     <p>{{ health.services_alive }} {{ _("services reporting") }}{% if health.services_stopped %}, <span class="bad">{{ health.services_stopped }} {{ _("stopped") }}</span>{% endif %}.</p>
-    {% if health.admin_schema %}<p>{{ _("Admin schema:") }} {{ health.admin_schema.state }}.</p>{% endif %}
+    {% if health.schemas_not_current %}<p class="bad">{{ _("Schemas not at their expected head:") }} {{ health.schemas_not_current }}.</p>
+    {% else %}<p>{{ _("Every schema at its expected head.") }}</p>{% endif %}
+    {% if health.outbox_unresolved %}<p class="bad">{{ _("Unresolved mirror writes:") }} {{ health.outbox_unresolved }}.</p>{% endif %}
     {% endif %}
   </li>
   <li class="card">

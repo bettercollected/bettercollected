@@ -27,6 +27,13 @@
 #                 already hold; EXECUTE for bc_admin only. The admin combines the
 #                 two results in Python and treats them as data. No definer
 #                 function reads tables of more than one owning role.
+#   admin.schema_revision_{app,auth,google}(), admin.outbox_counts_{app,auth,google}()
+#                 the Health page's view of the other schemas: the Alembic
+#                 revision(s) and the mirror outbox's unresolved/total counts,
+#                 same model (owned by bc_count_app, bc_count_auth and
+#                 bc_count_google, column-level SELECT on version_num and
+#                 resolved_at only, EXECUTE for bc_admin only). The admin role
+#                 itself still has no access to those schemas.
 #
 #   bc_tasks_data_app, bc_tasks_data_google
 #                 the task runner's DATA roles, ONE PER OWNING SCHEMA (the
@@ -598,15 +605,91 @@ BEGIN
 END
 $fn$;
 
--- The functions' owners: one role per schema, NOLOGIN, owning only its function
--- and holding column-level SELECT on that schema's tables. This block runs on
+-- The Health page's migration and outbox state, the same way: per owning schema,
+-- one function returning the schema's Alembic revision(s) and one returning the
+-- mirror outbox's unresolved and total row counts (counts only, never a row).
+-- Owned by that schema's count role, which gets column-level SELECT on
+-- alembic_version.version_num and mirror_write_failures.resolved_at only.
+-- Before the schema's migrations have created a table the function answers NULL.
+CREATE OR REPLACE FUNCTION admin.schema_revision_app() RETURNS text[]
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regclass('app.alembic_version') IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN ARRAY(SELECT v.version_num::text FROM app.alembic_version v ORDER BY 1 LIMIT 8);
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.schema_revision_auth() RETURNS text[]
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regclass('auth.alembic_version') IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN ARRAY(SELECT v.version_num::text FROM auth.alembic_version v ORDER BY 1 LIMIT 8);
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.schema_revision_google() RETURNS text[]
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regclass('google.alembic_version') IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN ARRAY(SELECT v.version_num::text FROM google.alembic_version v ORDER BY 1 LIMIT 8);
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.outbox_counts_app(OUT unresolved bigint, OUT total bigint)
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regclass('app.mirror_write_failures') IS NULL THEN
+        RETURN;
+    END IF;
+    SELECT count(*) FILTER (WHERE f.resolved_at IS NULL), count(*)
+    INTO unresolved, total FROM app.mirror_write_failures f;
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.outbox_counts_auth(OUT unresolved bigint, OUT total bigint)
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regclass('auth.mirror_write_failures') IS NULL THEN
+        RETURN;
+    END IF;
+    SELECT count(*) FILTER (WHERE f.resolved_at IS NULL), count(*)
+    INTO unresolved, total FROM auth.mirror_write_failures f;
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.outbox_counts_google(OUT unresolved bigint, OUT total bigint)
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regclass('google.mirror_write_failures') IS NULL THEN
+        RETURN;
+    END IF;
+    SELECT count(*) FILTER (WHERE f.resolved_at IS NULL), count(*)
+    INTO unresolved, total FROM google.mirror_write_failures f;
+END
+$fn$;
+
+-- The functions' owners: one role per schema, NOLOGIN, owning only its schema's
+-- functions and holding column-level SELECT on that schema's tables. This block runs on
 -- every deploy, so the grants are re-applied once the application migrations
 -- have created the tables.
 DO $own$
 DECLARE
     r text[];
 BEGIN
-    FOREACH r SLICE 1 IN ARRAY ARRAY[['bc_count_app', 'app'], ['bc_count_auth', 'auth']] LOOP
+    FOREACH r SLICE 1 IN ARRAY ARRAY[['bc_count_app', 'app'], ['bc_count_auth', 'auth'],
+                                     ['bc_count_google', 'google']] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r[1]) THEN
             EXECUTE format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE', r[1]);
         END IF;
@@ -633,6 +716,25 @@ BEGIN
     IF to_regclass('auth.users') IS NOT NULL THEN
         GRANT SELECT (id, doc, plan) ON auth.users TO bc_count_auth;
     END IF;
+    -- the Health page's revision and outbox functions
+    IF to_regclass('app.alembic_version') IS NOT NULL THEN
+        GRANT SELECT (version_num) ON app.alembic_version TO bc_count_app;
+    END IF;
+    IF to_regclass('auth.alembic_version') IS NOT NULL THEN
+        GRANT SELECT (version_num) ON auth.alembic_version TO bc_count_auth;
+    END IF;
+    IF to_regclass('google.alembic_version') IS NOT NULL THEN
+        GRANT SELECT (version_num) ON google.alembic_version TO bc_count_google;
+    END IF;
+    IF to_regclass('app.mirror_write_failures') IS NOT NULL THEN
+        GRANT SELECT (resolved_at) ON app.mirror_write_failures TO bc_count_app;
+    END IF;
+    IF to_regclass('auth.mirror_write_failures') IS NOT NULL THEN
+        GRANT SELECT (resolved_at) ON auth.mirror_write_failures TO bc_count_auth;
+    END IF;
+    IF to_regclass('google.mirror_write_failures') IS NOT NULL THEN
+        GRANT SELECT (resolved_at) ON google.mirror_write_failures TO bc_count_google;
+    END IF;
 END
 $own$;
 ALTER FUNCTION admin.platform_counts_app() OWNER TO bc_count_app;
@@ -641,6 +743,18 @@ REVOKE ALL ON FUNCTION admin.platform_counts_app() FROM PUBLIC;
 REVOKE ALL ON FUNCTION admin.platform_counts_auth() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admin.platform_counts_app() TO bc_admin;
 GRANT EXECUTE ON FUNCTION admin.platform_counts_auth() TO bc_admin;
+ALTER FUNCTION admin.schema_revision_app() OWNER TO bc_count_app;
+ALTER FUNCTION admin.schema_revision_auth() OWNER TO bc_count_auth;
+ALTER FUNCTION admin.schema_revision_google() OWNER TO bc_count_google;
+ALTER FUNCTION admin.outbox_counts_app() OWNER TO bc_count_app;
+ALTER FUNCTION admin.outbox_counts_auth() OWNER TO bc_count_auth;
+ALTER FUNCTION admin.outbox_counts_google() OWNER TO bc_count_google;
+REVOKE ALL ON FUNCTION admin.schema_revision_app(), admin.schema_revision_auth(),
+    admin.schema_revision_google(), admin.outbox_counts_app(), admin.outbox_counts_auth(),
+    admin.outbox_counts_google() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin.schema_revision_app(), admin.schema_revision_auth(),
+    admin.schema_revision_google(), admin.outbox_counts_app(), admin.outbox_counts_auth(),
+    admin.outbox_counts_google() TO bc_admin;
 
 RESET bc.admin_pw;
 RESET bc.mig_pw;
