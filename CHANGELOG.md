@@ -15,6 +15,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Deleting an account now also erases its Brevo marketing contact (`DELETE /v3/contacts/{email}`), with
+  a separate Brevo API key, `BREVO_CONTACTS_API_KEY` (never the tracker key). Without the key the
+  erasure is skipped. It never holds up the deletion, and the log names only the user id. For accounts
+  deleted earlier, `python -m auth.brevo_contacts` (auth container) counts the Brevo contacts that have
+  no account. With `--apply` it deletes those that are on no Brevo list (`--include-listed` deletes
+  the rest too). It prints counts only.
+
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment

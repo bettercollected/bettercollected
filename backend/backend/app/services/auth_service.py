@@ -28,6 +28,7 @@ from backend.app.services.session_service import (
     session_roles,
 )
 from backend.app.services.brevo_service import event_logger_service
+from loguru import logger
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
@@ -333,6 +334,12 @@ class AuthService:
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
         await self.delete_user_form_auth(user=user)
         await self.session_service.delete_all_for_user(user.id)
+        # GDPR erasure of the marketing contact made at sign-up; best effort
+        # (never fails the deletion), logs the user id only
+        try:
+            await event_logger_service.delete_contact(user.sub, str(user.id))
+        except Exception:  # noqa: BLE001
+            logger.warning(f"Brevo contact erasure failed for user {user.id}")
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
