@@ -17,6 +17,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed
 
+- Once every repository group is on Postgres for reads and writes (`DB_READ_SOURCE=postgres`,
+  `DB_WRITE_MODE=postgres`, no group override back to Mongo, no shadow reads), the backend, its job worker,
+  auth and the Google Forms service start and serve without MongoDB: no connection is made, `MONGO_URI` may be
+  unset, and the backend's persistence status reports Mongo as "not used". While any group still uses Mongo,
+  startup is unchanged and fails on an unreachable Mongo. CI's Postgres runs now go without a Mongo server.
+
 - The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
   holds the Single sign-on and Domains tabs (only Domains, named so, when single sign-on is off on the
   instance); AI holds the Profile, Memory, MCP (endpoint and API keys) and Settings tabs, each shown only
