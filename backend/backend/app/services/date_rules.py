@@ -36,6 +36,7 @@ from backend.app.services.repeating_groups import (
     group_items,
     is_hidden_by_logic,
     iter_repeating_groups,
+    logic_sources,
 )
 
 DATE = StandardFormFieldType.DATE.value
@@ -128,6 +129,7 @@ def _check_field(
     answers: Dict[str, Any],
     siblings: Dict[str, Any],
     today: TodayRange,
+    sources: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """Problems with one date question's answer against its rules.
     ``answers`` is the scope the question is answered in (the item's
@@ -137,7 +139,7 @@ def _check_field(
     if not rules or _type_value(field.type) != DATE:
         return []
     raw = answers.get(field.id)
-    if raw is None or is_hidden_by_logic(field, answers):
+    if raw is None or is_hidden_by_logic(field, answers, sources):
         return []
     value = _date_value(raw)
     if value is None:
@@ -158,7 +160,7 @@ def _check_field(
             ref = siblings.get(rule.field_id)
             if ref is None or _type_value(ref.type) != DATE:
                 continue
-            if is_hidden_by_logic(ref, answers):
+            if is_hidden_by_logic(ref, answers, sources):
                 continue
             bound = _date_value(answers.get(ref.id))
             if bound is None:
@@ -207,18 +209,19 @@ def validate_date_rule_answers(
         return bool(ids & changed_ids)
 
     problems: List[str] = []
+    sources = logic_sources(form.fields)
     questions = _page_questions(form)
     top_level = {q.id: q for q in questions if q.id}
     for question in questions:
         if _rules(question) and relevant(question):
-            problems.extend(_check_field(question, answers, top_level, today))
+            problems.extend(_check_field(question, answers, top_level, today, sources))
 
     for group in iter_repeating_groups(form):
         children = (group.properties.fields if group.properties else None) or []
         ruled = [c for c in children if _rules(c)]
         if not ruled or group.id not in answers:
             continue
-        if is_hidden_by_logic(group, answers):
+        if is_hidden_by_logic(group, answers, sources):
             continue
         siblings = {c.id: c for c in children if c.id}
         label = group.properties.repeat.item_label or "Item"
@@ -232,6 +235,6 @@ def validate_date_rule_answers(
                     continue
                 problems.extend(
                     f"{label} {position}: {problem}"
-                    for problem in _check_field(child, scope, siblings, today)
+                    for problem in _check_field(child, scope, siblings, today, sources)
                 )
     return problems

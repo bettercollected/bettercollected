@@ -154,7 +154,93 @@ def group_items(answer: Any) -> List[Dict[str, Any]]:
     )
 
 
-def evaluate_condition(answers: Dict[str, Any], condition: Any) -> bool:
+def logic_sources(fields: Any) -> Dict[str, Any]:
+    """The questions of a form by id (page questions and the questions of
+    groups), where a condition on a choice question reads its options.
+    ``fields``: the form's top-level fields (its pages). Twin of the
+    webapp's ``logicSourcesById``."""
+    by_id: Dict[str, Any] = {}
+
+    def add(field: Any) -> None:
+        if getattr(field, "id", None):
+            by_id[str(field.id)] = field
+
+    for top in fields or []:
+        props = getattr(top, "properties", None)
+        for field in (getattr(props, "fields", None) if props else None) or []:
+            add(field)
+            if _type_value(field.type) == GROUP and field.properties is not None:
+                for child in field.properties.fields or []:
+                    add(child)
+    return by_id
+
+
+CHOICE_TYPES = ("multiple_choice", "dropdown")
+NEGATED_COMPARISONS = ("IS_NOT_EQUAL", "DOES_NOT_CONTAIN")
+
+
+def _filled_text(value: Any) -> bool:
+    """A string or number to compare (JavaScript's ``filledText``)."""
+    if isinstance(value, bool):
+        return False
+    return (isinstance(value, str) and value != "") or isinstance(value, (int, float))
+
+
+def _choice_tokens(chosen: str, source: Any) -> List[str]:
+    """What a chosen option answers to: its id, its text and its label (an
+    unknown id: itself)."""
+    props = getattr(source, "properties", None) if source is not None else None
+    for choice in (getattr(props, "choices", None) if props else None) or []:
+        choice = _as_dict(choice)
+        if isinstance(choice, dict) and choice.get("id") == chosen:
+            tokens: List[str] = []
+            for token in (chosen, choice.get("value"), choice.get("label")):
+                if _filled_text(token) and _text(token) not in tokens:
+                    tokens.append(_text(token))
+            return tokens
+    return [chosen]
+
+
+def _evaluate_choice_condition(
+    answer: Any, source: Any, comparison: Optional[str], target: Any
+) -> bool:
+    """A condition on a choice question. The answer holds option ids (and
+    the text typed as "Other"); the condition names an option by its text or
+    its id. Twin of the webapp's ``evaluateChoiceCondition``."""
+    answer = _as_dict(answer)
+    answer = answer if isinstance(answer, dict) else {}
+    many = _as_dict(answer.get("choices"))
+    if isinstance(many, dict):
+        values = many.get("values")
+        tokens = [
+            token
+            for value in (values if isinstance(values, list) else [])
+            if _filled_text(value)
+            for token in _choice_tokens(_text(value), source)
+        ]
+        if _filled_text(many.get("other")):
+            tokens.append(_text(many["other"]))
+        return compare(tokens, comparison, target)
+    one = _as_dict(answer.get("choice"))
+    one = one if isinstance(one, dict) else {}
+    tokens = (
+        _choice_tokens(_text(one["value"]), source)
+        if _filled_text(one.get("value"))
+        else []
+    )
+    if _filled_text(one.get("other")):
+        tokens.append(_text(one["other"]))
+    if not tokens:
+        return compare(None, comparison, target)
+    results = [compare(token, comparison, target) for token in tokens]
+    return all(results) if comparison in NEGATED_COMPARISONS else any(results)
+
+
+def evaluate_condition(
+    answers: Dict[str, Any],
+    condition: Any,
+    sources: Optional[Dict[str, Any]] = None,
+) -> bool:
     condition = _as_dict(condition) or {}
     get = lambda snake, camel: condition.get(snake, condition.get(camel))  # noqa: E731
     field_id = get("field_id", "fieldId")
@@ -173,21 +259,32 @@ def evaluate_condition(answers: Dict[str, Any], condition: Any) -> bool:
         }
         if not child["field_id"]:
             return False
-        matches = [evaluate_condition({**answers, **item}, child) for item in items]
+        matches = [
+            evaluate_condition({**answers, **item}, child, sources) for item in items
+        ]
         if group_mode == "ANY":
             return any(matches)
         if group_mode == "ALL":
             return bool(matches) and all(matches)
         return False
-    value = comparable_answer_value(
-        answers.get(field_id), get("field_type", "fieldType")
-    )
+    field_type = get("field_type", "fieldType")
+    if field_type in CHOICE_TYPES:
+        return _evaluate_choice_condition(
+            answers.get(field_id), (sources or {}).get(field_id), comparison, target
+        )
+    value = comparable_answer_value(answers.get(field_id), field_type)
     return compare(value, comparison, target)
 
 
 def evaluate_conditions(
-    operator: Optional[str], conditions: Any, answers: Dict[str, Any]
+    operator: Optional[str],
+    conditions: Any,
+    answers: Dict[str, Any],
+    sources: Optional[Dict[str, Any]] = None,
 ) -> bool:
+    """Fold conditions with AND/OR. ``sources``: the form's questions by id
+    (``logic_sources``), which a condition on a choice question needs to
+    match an option's text; without it, only option ids match."""
     valid = [
         c
         for c in (_as_dict(c) for c in (conditions or []))
@@ -195,15 +292,17 @@ def evaluate_conditions(
     ]
     if not valid:
         return False
-    results = [evaluate_condition(answers, c) for c in valid]
+    results = [evaluate_condition(answers, c, sources) for c in valid]
     return any(results) if operator == "OR" else all(results)
 
 
-def is_hidden_by_logic(field: Any, answers: Dict[str, Any]) -> bool:
+def is_hidden_by_logic(
+    field: Any, answers: Dict[str, Any], sources: Optional[Dict[str, Any]] = None
+) -> bool:
     logic = field.properties.logic if field.properties else None
     if logic is None or not logic.action or not logic.conditions:
         return False
-    met = evaluate_conditions(logic.operator, logic.conditions, answers)
+    met = evaluate_conditions(logic.operator, logic.conditions, answers, sources)
     return not met if logic.action == "SHOW" else met
 
 
@@ -234,6 +333,7 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
         return []
     answers = {k: _as_dict(v) for k, v in answers.items()}
     problems: List[str] = []
+    sources = logic_sources(form.fields)
     groups = {group.id: group for group in iter_repeating_groups(form)}
     # ``items`` belongs to repeating groups only (not to other questions,
     # nor to imported non-repeating groups).
@@ -279,7 +379,7 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
             continue
         # A group hidden by its own rule is dropped before saving
         # (``drop_hidden_group_answers``): no minimum, nothing required.
-        if is_hidden_by_logic(group, answers):
+        if is_hidden_by_logic(group, answers, sources):
             continue
         if len(items) < repeat.effective_min:
             problems.append(
@@ -289,7 +389,7 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
             scope = {**answers, **item}
             for child in children:
                 required = bool(child.validations and child.validations.required)
-                if not required or is_hidden_by_logic(child, scope):
+                if not required or is_hidden_by_logic(child, scope, sources):
                     continue
                 if not has_answer_value(item.get(child.id)):
                     problems.append(
@@ -305,10 +405,11 @@ def drop_hidden_group_answers(form: StandardForm, answers: Any) -> Any:
     if not isinstance(answers, dict):
         return answers
     plain = {k: _as_dict(v) for k, v in answers.items()}
+    sources = logic_sources(form.fields)
     hidden = {
         group.id
         for group in iter_repeating_groups(form)
-        if group.id in answers and is_hidden_by_logic(group, plain)
+        if group.id in answers and is_hidden_by_logic(group, plain, sources)
     }
     if not hidden:
         return answers

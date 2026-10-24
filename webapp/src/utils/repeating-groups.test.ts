@@ -194,6 +194,32 @@ describe('conditional logic', () => {
         expect(resolveJumpTargetId(slide, answers)).toBe('__SUBMIT__');
     });
 
+    it("matches a sibling choice by the option's text, and drops a group a choice hid", () => {
+        const delivery: StandardFormFieldDto = { id: 'delivery', index: 1, type: FieldTypes.DROP_DOWN, title: 'Delivery', properties: { choices: [{ id: 'd-pickup', value: 'Pick up' }, { id: 'd-ship', value: 'Ship' }] } };
+        const address: StandardFormFieldDto = {
+            id: 'address',
+            index: 2,
+            type: FieldTypes.SHORT_TEXT,
+            validations: { required: true },
+            properties: { logic: { action: 'SHOW', operator: LogicalOperator.AND, conditions: [{ fieldId: 'delivery', fieldType: FieldTypes.DROP_DOWN, comparison: Comparison.IS_EQUAL, value: 'Ship' }] } }
+        };
+        const orders = group({}, [name, delivery, address]);
+        const picked = (id: string) => ({ name: text('A'), delivery: { type: 'choice', choice: { value: id } } });
+        const items = answersWith(picked('d-pickup'), picked('d-ship'));
+        // The group's own questions are known without the rest of the form.
+        expect(getItemHiddenChildIds(orders, items, 0).has('address')).toBe(true);
+        expect(getItemHiddenChildIds(orders, items, 1).has('address')).toBe(false);
+        expect(validateGroupAnswer(orders, items)).toEqual({ [scopedFieldId('address', 1)]: ['REQUIRED'] });
+
+        const kind: StandardFormFieldDto = { id: 'kind', index: 0, type: FieldTypes.MULTIPLE_CHOICE, title: 'Kind', properties: { choices: [{ id: 'k-solo', value: 'Just me' }, { id: 'k-family', value: 'Family' }] } };
+        const family = group();
+        family.properties!.logic = { action: 'SHOW', operator: LogicalOperator.AND, conditions: [{ fieldId: 'kind', fieldType: FieldTypes.MULTIPLE_CHOICE, comparison: Comparison.IS_EQUAL, value: 'Family' }] };
+        const form: StandardFormFieldDto[] = [{ id: 's1', index: 0, type: FieldTypes.SLIDE, properties: { fields: [kind, family] } }];
+        const filled = { g: { type: 'group', items: [{ name: text('A') }] } };
+        expect(normalizeGroupAnswersForSubmit(form, { ...filled, kind: { type: 'choice', choice: { value: 'k-solo' } } }).g).toBeUndefined();
+        expect(normalizeGroupAnswersForSubmit(form, { ...filled, kind: { type: 'choice', choice: { value: 'k-family' } } }).g.items).toHaveLength(1);
+    });
+
     it('prunes conditions on deleted group questions', () => {
         const target: StandardFormFieldDto = {
             id: 't',

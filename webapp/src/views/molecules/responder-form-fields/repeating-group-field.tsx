@@ -13,6 +13,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { GroupItemScopeContext } from '@app/store/jotai/group-item-scope';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
+import { logicSourcesById } from '@app/utils/conditional-logic';
 import {
     addGroupItem,
     canAddItem,
@@ -59,7 +60,9 @@ function GroupItem({
     const childIds = children.map((c) => c.id).join('|');
     // Stable per item, so the scoped answers view is memoised correctly.
     const scope: ItemScope = useMemo(() => ({ groupId: group.id, index, childIds: childIds ? childIds.split('|') : [] }), [group.id, index, childIds]);
-    const hidden = getItemHiddenChildIds(group, formResponse.answers, index);
+    // A condition on a choice question elsewhere in the form reads its options.
+    const logicSources = logicSourcesById(useAppSelector(selectForm)?.fields);
+    const hidden = getItemHiddenChildIds(group, formResponse.answers, index, logicSources);
     const headingId = `group-item-${group.id}-${index}`;
     // One level under the page's own heading: the form title (h1), or the
     // Leaflet section bar (h2).
