@@ -802,7 +802,7 @@ one of ours; `services/image_urls.py` is the single allow-list:
   (`services/internal_auth.py`, the shared `AUTH_INTERNAL_NOTIFY_KEY`); `tests/app/services/test_auth_call_sites.py`
   fails on a call without it. Never add the key to a shared client — it also calls third parties.
 - **Sessions** (`services/session_service.py`, `sessions` collection, identity group): every sign-in
-  (`SessionService.start`: OTP, Google/Typeform basic sign-in) creates a session whose id is the tokens' `sid`.
+  (`SessionService.start`: OTP, Google basic sign-in) creates a session whose id is the tokens' `sid`.
   Tokens carry `typ` (`access`/`refresh`); an access token is accepted without a database read only with `typ=access`
   and a `sid`, so `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` (default 15; never the old 43200) bounds how long a revoked
   session keeps working. The refresh path (`get_logged_user` when the access token expired, and `POST /auth/refresh`)

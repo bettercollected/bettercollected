@@ -2,6 +2,7 @@ from http import HTTPStatus
 from typing import List
 
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_PROVIDER_IS_NOT_ENABLED
+from common.enums.form_provider import FormProvider
 from common.models.user import User
 
 from backend.app.exceptions import HTTPException
@@ -17,7 +18,12 @@ class FormPluginProviderService:
         self._form_provider_repo = form_provider_repo
 
     async def get_providers(self, user: User = None, get_all: bool = False):
-        providers: List[FormProviderConfigDto] = await self._form_provider_repo.list()
+        # a stored row of a removed integration (typeform) is not offered
+        providers: List[FormProviderConfigDto] = [
+            p
+            for p in await self._form_provider_repo.list()
+            if p.provider_name in FormProvider.list_providers()
+        ]
         if (user and user.is_admin()) or get_all:
             return providers
         return [

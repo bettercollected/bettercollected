@@ -314,13 +314,6 @@ async def check_consumers_off_mongo(conn) -> None:
         raise Refusal("consumer_write_stores_unknown")
 
 
-async def typeform_reporting(conn) -> bool:
-    """Whether a Typeform integration instance reports a heartbeat (seen within
-    the retirement window): it may still need the old key."""
-    found = await consumers(conn, ["typeform"])
-    return any(c.age_seconds <= RETIRED_AFTER_SECONDS for c in found)
-
-
 def required_services(google_in_use: bool) -> List[str]:
     return ["backend", "google"] if google_in_use else ["backend"]
 
