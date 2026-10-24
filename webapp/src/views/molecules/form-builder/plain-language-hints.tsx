@@ -23,12 +23,32 @@ const STORAGE_PREFIX = 'bc.plainLanguage.dismissed';
 // Fallback when localStorage is unavailable (private mode, blocked storage):
 // dismissals then last for this page session.
 const memoryDismissals = new Map<string, string[]>();
+// Dismissals kept per field; the oldest go first.
+const MAX_DISMISSALS = 100;
+
+/**
+ * Whether a stored id is in today's format. Older versions keyed long
+ * sentences by position and passive voice by the words themselves (question
+ * text in storage); both now end in an 8-hex fingerprint.
+ */
+const isCurrentId = (id: string) => !/^(long-sentence|passive):/.test(id) || /:[0-9a-f]{8}$/.test(id);
 
 function readDismissed(key: string): string[] {
     try {
         const raw = window.localStorage.getItem(key);
         const parsed = raw ? JSON.parse(raw) : null;
-        if (Array.isArray(parsed)) return parsed.filter((value): value is string => typeof value === 'string');
+        if (Array.isArray(parsed)) {
+            const ids = parsed.filter((value): value is string => typeof value === 'string');
+            const current = ids.filter(isCurrentId);
+            // Drop old-format entries from storage for good.
+            if (current.length !== parsed.length) {
+                if (current.length) window.localStorage.setItem(key, JSON.stringify(current));
+                else window.localStorage.removeItem(key);
+            }
+            return current;
+        }
+        // Readable storage is the record, even when it holds nothing.
+        return [];
     } catch {
         // Storage blocked or corrupt: use the in-memory copy.
     }
@@ -95,8 +115,10 @@ export default function PlainLanguageHints({ id, value, formId, formLanguage, de
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [signature]);
 
+    // Earlier dismissals are kept even while their tips aren't showing (the
+    // text may come back), up to MAX_DISMISSALS.
     const dismiss = (hintId: string) => {
-        const next = [...dismissed.filter((existing) => hints.some((hint) => hint.id === existing)), hintId];
+        const next = [...dismissed.filter((existing) => existing !== hintId), hintId].slice(-MAX_DISMISSALS);
         setDismissed(next);
         writeDismissed(storageKey, next);
     };

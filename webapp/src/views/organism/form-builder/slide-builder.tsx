@@ -328,7 +328,7 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                             )}
                             {/* A question's title in the theme's title face, as respondents see it (theme-root.ts). */}
                             <div className={cn('contents', field.type !== FieldTypes.TEXT && 'form-title-face')}>
-                                <RichTextEditor field={field} slide={slide} isRequired={field?.validations?.required} describedById={titleHintsId} />
+                                <RichTextEditor field={field} slide={slide} isRequired={field?.validations?.required} describedById={showHints ? titleHintsId : undefined} />
                             </div>
                         </div>
                         {showHints && <PlainLanguageHints id={titleHintsId} value={field.title} {...plainLanguage} />}

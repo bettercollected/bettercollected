@@ -80,6 +80,15 @@ pull requests do not conflict on the changelog. The `Changelog fragment` PR chec
 requires one when a PR changes code (label `no-changelog` when nothing notable
 changed) and refuses direct CHANGELOG.md edits outside `docs/changelog-*` branches.
 
+## Merging a release branch forward
+
+Fixes released from a `release/X.Y` branch reach `develop` through one merge, not per-PR
+ports. Merge-forwards use a branch named `merge/release-<x>-into-develop` (e.g.
+`merge/release-4.0-into-develop`), made from `develop`, into which `release/X.Y` is merged.
+In CHANGELOG.md, the release branch's dated sections go under develop's `## [Unreleased]`,
+and the entries and fragments on develop that those releases already list are removed. The
+`Changelog fragment` check treats such a branch as a branch sync, like `release/*`.
+
 ## Future automation
 
 Candidates when the cadence justifies it: `release-please` or
