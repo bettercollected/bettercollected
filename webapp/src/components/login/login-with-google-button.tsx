@@ -3,7 +3,7 @@ import ProviderLoginButton from './provider-login-btn';
 interface ConnectWithProviderButtonProps {
     text: string;
     url: string;
-    type?: 'light' | 'dark' | 'typeform';
+    type?: 'light' | 'dark';
     creator?: boolean;
     disabled?: boolean;
     fromProPlan?: string | string[] | undefined;

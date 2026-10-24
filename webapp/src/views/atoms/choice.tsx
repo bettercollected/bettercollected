@@ -1,8 +1,8 @@
-import { CSSProperties, ReactNode, forwardRef } from 'react';
+import { CSSProperties, KeyboardEvent, ReactNode, forwardRef } from 'react';
 
 import { Check } from 'lucide-react';
 
-import { FormTheme } from '@app/constants/theme';
+import { FormTheme, THEME_RADII } from '@app/constants/theme';
 import { FieldChoice } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { themed } from '@app/views/molecules/theme/theme-root';
@@ -98,14 +98,99 @@ export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: 
     };
 }
 
-/** The row's content: control, then the label. */
-export function ChoiceContent({ kind, selected, theme, solid, lang, children }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; solid?: boolean; lang?: string; children: ReactNode }) {
+/**
+ * Whether a theme draws its answer options as lettered cards: a key letter
+ * (A, B, C…) at the start of each option, which the respondent can press to
+ * choose it, and a check mark at the end of a chosen one. Themes that set
+ * their own corners (`radius`, the shape of fields, option cards and
+ * buttons) do, the complete looks among them; a theme without one keeps the
+ * ring and box it always had, so stored forms don't change.
+ */
+export function showsOptionKeys(theme?: Partial<FormTheme> | null): boolean {
+    return !!theme?.radius && (THEME_RADII as readonly string[]).includes(theme.radius);
+}
+
+/** The key letters of `count` options: A to Z, none past the 26th. */
+export function optionKeys(count: number): Array<string | undefined> {
+    return Array.from({ length: count }, (_, index) => (index < 26 ? String.fromCharCode(65 + index) : undefined));
+}
+
+/**
+ * Key letters for a short list of labels (Yes and No): their own first
+ * letters (Y and N, J and N in Dutch) when those are distinct letters, else
+ * A, B, C.
+ */
+export function initialKeys(labels: string[]): Array<string | undefined> {
+    const initials = labels.map((label) => label.trim().charAt(0).toUpperCase());
+    const usable = initials.every((initial) => /^[A-Z]$/.test(initial)) && new Set(initials).size === initials.length;
+    return usable ? initials : optionKeys(labels.length);
+}
+
+/**
+ * The option a key press names: the index of its letter among `keys`, or -1.
+ * Only a plain letter counts (no Ctrl, Alt or Meta, so browser and screen
+ * reader shortcuts pass through), and only while focus is on an option
+ * itself, never in a text field: the letters are shortcuts of the focused
+ * group alone (WCAG 2.1.4).
+ */
+export function optionIndexForKey(event: KeyboardEvent<HTMLElement>, keys: Array<string | undefined>): number {
+    if (event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1) return -1;
+    const target = event.target as HTMLElement;
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) return -1;
+    return keys.indexOf(event.key.toUpperCase());
+}
+
+const KEY_CORNER: Record<string, string> = { sharp: '0px', soft: '4px', round: '9999px' };
+
+/**
+ * The key letter at the start of a lettered option card (showsOptionKeys):
+ * an outlined square in the theme's corners at rest (the tertiary edge, the
+ * letter in ink), filled in the chosen colour with its own ink once chosen.
+ * On a solid chosen row (studio) it is drawn in the row's ink instead.
+ * Decorative for assistive tech: the option carries `aria-keyshortcuts`.
+ */
+export function OptionKeyHint({ letter, selected, theme, inverted = false }: { letter: string; selected?: boolean; theme?: Partial<FormTheme>; inverted?: boolean }) {
+    const solidInk = 'var(--form-highlight-solid-ink, #ffffff)';
+    const colours: CSSProperties = inverted
+        ? { borderColor: solidInk, color: solidInk }
+        : selected
+          ? { borderColor: themed('--form-highlight-edge', theme?.secondary), background: themed('--form-highlight-solid', theme?.secondary), color: solidInk }
+          : { borderColor: theme?.tertiary, color: theme?.primary };
+    return (
+        <span
+            aria-hidden="true"
+            data-option-key-hint
+            className="flex h-7 w-7 shrink-0 items-center justify-center border font-mono text-[13px] font-semibold leading-none transition-colors duration-150"
+            style={{ ...colours, borderRadius: KEY_CORNER[theme?.radius ?? 'soft'] ?? '4px' }}
+        >
+            {letter}
+        </span>
+    );
+}
+
+/**
+ * The row's content: control, then the label. With a key letter (a theme
+ * that shows option keys) the letter stands where the control was, and a
+ * chosen row ends in a check mark, so the choice reads in a shape as well as
+ * in colour and weight; the mark pops in gently unless reduced motion is
+ * asked for (`form-choice-pop`, tailwind.css).
+ */
+export function ChoiceContent({ kind, selected, theme, solid, lang, keyHint, children }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; solid?: boolean; lang?: string; keyHint?: string; children: ReactNode }) {
     return (
         <>
-            <ChoiceIndicator kind={kind} selected={selected} theme={theme} inverted={solid} />
+            {keyHint ? <OptionKeyHint letter={keyHint} selected={selected} theme={theme} inverted={solid} /> : <ChoiceIndicator kind={kind} selected={selected} theme={theme} inverted={solid} />}
             <span className="min-w-0 flex-1 [overflow-wrap:anywhere]" lang={lang}>
                 {children}
             </span>
+            {keyHint && selected && (
+                <Check
+                    aria-hidden="true"
+                    data-choice-check
+                    className="form-choice-pop h-5 w-5 shrink-0"
+                    strokeWidth={2.5}
+                    style={{ color: solid ? 'var(--form-highlight-solid-ink, #ffffff)' : themed('--form-highlight-edge', theme?.secondary) }}
+                />
+            )}
         </>
     );
 }
@@ -120,6 +205,9 @@ interface ChoiceProps {
     kind?: ChoiceKind;
     /** The option's language, when it is not the page's (see useFormContentLanguage). */
     lang?: string;
+    /** Its key letter, on a theme that shows option keys (showsOptionKeys). */
+    keyHint?: string;
+    onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -127,12 +215,12 @@ interface ChoiceProps {
  * (role="checkbox" + aria-checked); single-answer lists outside a radio group
  * (the dropdown's options) stay toggle buttons with aria-pressed.
  */
-const Choice = forwardRef<HTMLButtonElement, ChoiceProps>(({ isSelected = false, theme, index, choice, onClick, kind = 'radio', lang }, ref) => {
+const Choice = forwardRef<HTMLButtonElement, ChoiceProps>(({ isSelected = false, theme, index, choice, onClick, kind = 'radio', lang, keyHint, onKeyDown }, ref) => {
     const row = choiceRowStyle(theme, isSelected);
     const semantics = kind === 'checkbox' ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-pressed': isSelected };
     return (
-        <button ref={ref} type="button" {...semantics} style={row.style} className={row.className} key={choice.id} onClick={() => onClick && onClick(choice.id || '')}>
-            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid} lang={choice.value ? lang : undefined}>
+        <button ref={ref} type="button" {...semantics} aria-keyshortcuts={keyHint} data-option-key={keyHint} style={row.style} className={row.className} key={choice.id} onClick={() => onClick && onClick(choice.id || '')} onKeyDown={onKeyDown}>
+            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid} lang={choice.value ? lang : undefined} keyHint={keyHint}>
                 {choice.value ? choice.value : `Item ${index + 1}`}
             </ChoiceContent>
         </button>

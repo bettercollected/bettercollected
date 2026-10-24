@@ -4,7 +4,7 @@ A listed email gets the ADMIN role, and with it every platform-admin power
 (``get_logged_admin`` in the backend). So the grant
 needs proof the user owns the address: it applies only to sessions whose email
 was verified at sign-in (OTP, or Google reporting it verified), never to a
-provider that merely returns an email (Typeform) or to an unverified one.
+provider that merely returns an email or to an unverified one.
 
 The role is added when roles go into a token (login, and ``/auth/status``,
 which the backend refreshes access tokens from, told whether the session was

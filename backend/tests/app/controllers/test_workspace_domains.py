@@ -452,6 +452,43 @@ class TestHelpersAndRechecks:
         assert listed[0]["verificationLostAt"] is None
         assert listed[0]["failedChecks"] == 0
 
+    async def test_the_hourly_job_rechecks_due_domains_in_batches(
+        self,
+        client: AsyncClient,
+        workspace,
+        test_user_cookies,
+        fake_dns,
+        monkeypatch,
+    ):
+        from backend.jobs import tasks
+
+        body = await self._verified(client, workspace, test_user_cookies, fake_dns)
+        # just verified: not due
+        assert await tasks.recheck_verified_domains.func(0) == (
+            "0 checked, 0 passed, 0 failed, 0 lost"
+        )
+
+        await _age_last_check(body["id"])
+        fake_dns.clear(RECORD)
+        assert await tasks.recheck_verified_domains.func(0) == (
+            "1 checked, 0 passed, 1 failed, 0 lost"
+        )
+
+        # a full batch asks for the next one; a short one ends the run
+        service = container.workspace_domain_service()
+        calls = []
+
+        async def batch(limit):
+            calls.append(limit)
+            checked = limit if len(calls) < 3 else 1
+            return {"checked": checked, "passed": checked, "failed": 0, "lost": 0}
+
+        monkeypatch.setattr(service, "recheck_verified_domains", batch)
+        assert await tasks.recheck_verified_domains.func(0) == (
+            "201 checked, 201 passed, 0 failed, 0 lost"
+        )
+        assert calls == [tasks.DOMAIN_RECHECK_BATCH] * 3
+
     async def test_verify_now_on_a_verified_domain_rechecks_it(
         self,
         client: AsyncClient,

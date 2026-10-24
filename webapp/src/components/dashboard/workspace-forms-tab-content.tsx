@@ -86,19 +86,25 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
         return (
             // <SearchByUUIDWrapper>
-            <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="pb-[20px]!" />
+            <div lang={searchLanguage}>
+                <ZeroElement
+                    title={audience === 'team' ? t(workspaceConstant.preview.emptyFormTitle) : searchText.t('PORTAL.NO_FORMS_TITLE')}
+                    description={audience === 'team' ? t(workspaceConstant.preview.emptyFormDescription) : searchText.t('PORTAL.NO_FORMS_TEXT')}
+                    className="pb-[20px]!"
+                />
+            </div>
             // </SearchByUUIDWrapper>
         );
 
     return (
         // <SearchByUUIDWrapper>
         <div className="flex w-full flex-col gap-6">
-            {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} publicBaseUrl={publicBaseUrl} />}
+            {pinnedForms?.items?.length !== 0 && <FormCards title={audience === 'team' ? t(formConstant.pinnedforms) : searchText.t('PORTAL.PINNED_FORMS')} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} publicBaseUrl={publicBaseUrl} />}
             {pinnedForms?.items?.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`} lang={searchLanguage}>
                 <SearchInput placeholder={searchText.t('PORTAL.SEARCH_FORMS')} handleSearch={handleSearch} />
             </div>
-            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} publicBaseUrl={publicBaseUrl} />}
+            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? (audience === 'team' ? t(formConstant.all) : searchText.t('PORTAL.ALL_FORMS')) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} publicBaseUrl={publicBaseUrl} />}
         </div>
         // </SearchByUUIDWrapper>
     );
