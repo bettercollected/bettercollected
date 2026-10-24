@@ -761,6 +761,7 @@ NOT_A_SETTING: Dict[str, str] = {
     "GOOGLE_ENABLED": "compose profile switch",
     "APP_POSTGRES_PASSWORD": "database role password used by the deploy scripts",
     "POLIS_IMAGE": "compose image selection",
+    "POLIS_EGRESS_SUBNET": "compose subnet of the identity bridge's egress network",
     "POLIS_CLIENT_SECRET_VERIFIER": "read by the identity bridge container",
     "POLIS_DB_ENCRYPTION_KEY": "read by the identity bridge container",
     "POLIS_NEXTAUTH_SECRET": "read by the identity bridge container",

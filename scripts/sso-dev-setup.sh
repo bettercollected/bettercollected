@@ -5,17 +5,16 @@
 #
 # 1. Generates throwaway secrets and the mock IdP's signing key pair in
 #    .sso-dev/ (gitignored, never commit it). Re-runs reuse them.
-# 2. Creates the `polis` database in app-postgres (docker-compose.local.yml
-#    must be up) if it doesn't exist. Nothing else in Postgres is touched.
-# 3. Optionally (--seed-workspace) seeds a demo workspace with its owner in the
+# 2. Optionally (--seed-workspace) seeds a demo workspace with its owner in the
 #    local Mongo and marks --domain (default example.com) as *verified* for it,
 #    or (--workspace <id>) marks the domain verified for an existing workspace.
 #    This is a local-only shortcut: the mock IdP only issues @example.com /
 #    @example.org addresses, which the domain verification refuses to claim
 #    (documentation domains), and there is no DNS to publish a TXT record in.
 #    Idempotent; it never touches a domain verified by another workspace.
-# 4. Starts Polis + the mock SAML IdP (docker-compose.sso.yml).
-# 5. Prints the SSO_* settings for backend/.env and auth/.env.
+# 3. Starts Polis (with its own Postgres) + the mock SAML IdP
+#    (docker-compose.sso.yml).
+# 4. Prints the SSO_* settings for backend/.env and auth/.env.
 #
 # Connections are NOT created here: add one in the app (workspace settings ->
 # Single sign-on -> Add connection -> SAML -> paste the XML from
@@ -34,11 +33,6 @@ WORKSPACE_ID=""
 SEED=0
 BACKEND_URL=${BACKEND_URL:-http://localhost:8000}
 REDIRECT_URI="$BACKEND_URL/api/v1/auth/sso/callback"
-PG_CONTAINER=${PG_CONTAINER:-bettercollected-app-postgres-1}
-# Polis's database in app-postgres (for a new .sso-dev/ only). Its rows are
-# encrypted with the DB_ENCRYPTION_KEY in .sso-dev/polis.env, so new secrets
-# need a new (or emptied) database.
-POLIS_DB=${POLIS_DB:-polis}
 MONGO_CONTAINER=${MONGO_CONTAINER:-bettercollected-mongodb-1}
 
 while [ $# -gt 0 ]; do
@@ -68,7 +62,6 @@ EOF
 if [ ! -f "$DEV/polis.env" ]; then
   cat > "$DEV/polis.env" <<EOF
 JACKSON_API_KEYS=$(openssl rand -hex 24)
-DB_URL=postgres://bettercollected:bettercollected@app-postgres:5432/$POLIS_DB
 DB_ENCRYPTION_KEY=$(openssl rand -hex 16)
 NEXTAUTH_SECRET=$(openssl rand -hex 32)
 NEXTAUTH_ADMIN_CREDENTIALS=admin@example.com:$(openssl rand -hex 12)
@@ -76,15 +69,7 @@ CLIENT_SECRET_VERIFIER=$(openssl rand -hex 24)
 EOF
 fi
 
-# -- 2. polis database ---------------------------------------------------------
-POLIS_DB=$(grep -E '^DB_URL=' "$DEV/polis.env" | sed 's#.*/##')
-if ! docker exec "$PG_CONTAINER" psql -U bettercollected -d postgres -Atc \
-    "select 1 from pg_database where datname = '$POLIS_DB'" | grep -q 1; then
-  docker exec "$PG_CONTAINER" psql -U bettercollected -d postgres -c "create database \"$POLIS_DB\"" >/dev/null
-  echo "created database $POLIS_DB"
-fi
-
-# -- 3. demo workspace and a verified domain (optional, local only) -----------
+# -- 2. demo workspace and a verified domain (optional, local only) -----------
 if [ -n "$WORKSPACE_ID" ]; then
   MONGO_URI=${MONGO_URI:-$(grep -E "^MONGO_URI=" "$ROOT/backend/.env" | cut -d= -f2-)}
   BACKEND_DB=${BACKEND_DB:-$(grep -E '^MONGO_DB=' "$ROOT/backend/.env" | cut -d= -f2-)}
@@ -120,7 +105,7 @@ if [ -n "$WORKSPACE_ID" ]; then
   "
 fi
 
-# -- 4. Polis + mock IdP --------------------------------------------------------
+# -- 3. Polis + mock IdP --------------------------------------------------------
 docker compose -f "$ROOT/docker-compose.sso.yml" --project-name bettercollected-sso up -d
 for url in "$POLIS/api/health" "$MOCK/api/health"; do
   for _ in $(seq 1 60); do curl -fsS "$url" >/dev/null 2>&1 && break; sleep 2; done
@@ -142,5 +127,5 @@ Settings for auth/.env:
   SSO_REDIRECT_URI=$REDIRECT_URI
 Webapp (webapp/.env): SSO_ENABLED=true
 Teardown: docker compose -f docker-compose.sso.yml -p bettercollected-sso down
-(and drop the $POLIS_DB database to wipe Polis's data)
+(add -v to wipe Polis's data; new secrets in .sso-dev/ need that)
 EOF
