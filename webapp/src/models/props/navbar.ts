@@ -9,6 +9,10 @@ export interface INavbarItem {
     /** Highlight only on an exact pathname match — for items whose URL is a
      *  prefix of every other route (e.g. the dashboard root). */
     exactMatch?: boolean;
+    /** The section this item opens, when `url` is one page inside it (e.g.
+     *  AI opens a tab under /ai): the item stays active, and titles the page,
+     *  on every route under this path. Defaults to `url`. */
+    activePath?: string;
     /** Only rendered for users holding this workspace permission. */
     permission?: WorkspacePermission;
     /** Only rendered for users holding at least one of these. */

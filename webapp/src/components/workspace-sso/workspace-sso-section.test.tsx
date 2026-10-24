@@ -155,7 +155,7 @@ describe('WorkspaceSsoSection', () => {
         expect(screen.queryByRole('button', { name: 'Add connection' })).toBeNull();
         expect(screen.getByText(/A connection needs a verified email domain/)).toBeTruthy();
         const links = screen.getAllByRole('link', { name: /Verify your organisation/ });
-        expect(links.every((l) => l.getAttribute('href') === '/acme/dashboard/domains')).toBe(true);
+        expect(links.every((l) => l.getAttribute('href') === '/acme/dashboard/sso/domains')).toBe(true);
     });
 
     it('links to Domains when the server refuses a connection without one', async () => {
@@ -167,7 +167,7 @@ describe('WorkspaceSsoSection', () => {
         fireEvent.change(screen.getByLabelText('Metadata XML'), { target: { value: '<EntityDescriptor/>' } });
         fireEvent.click(screen.getByRole('button', { name: 'Create connection' }));
         await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Verify your domain first.'));
-        expect(within(screen.getByRole('alert')).getByRole('link').getAttribute('href')).toBe('/acme/dashboard/domains');
+        expect(within(screen.getByRole('alert')).getByRole('link').getAttribute('href')).toBe('/acme/dashboard/sso/domains');
     });
 
     it('explains a test result from the URL', () => {

@@ -103,6 +103,7 @@ describe('WorkspaceScimSection', () => {
         query.data = overview({ directory: null, hasVerifiedDomain: false });
         renderSection();
         expect((screen.getByRole('button', { name: 'Create directory' }) as HTMLButtonElement).disabled).toBe(true);
+        expect(screen.getByRole('link', { name: 'Verify a domain' })).toHaveAttribute('href', '/acme/dashboard/sso/domains');
     });
 
     it('shows status, failures and the group mapping', () => {

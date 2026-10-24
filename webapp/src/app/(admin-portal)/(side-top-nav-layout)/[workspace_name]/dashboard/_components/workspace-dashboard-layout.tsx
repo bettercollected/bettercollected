@@ -11,17 +11,15 @@ import { TemplateIcon } from '@app/components/icons/template';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { ProLogo } from '@app/components/ui/logo';
 import { FormIcon } from '@Components/icons/form-icon';
-import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
-import { BookOpen, KeyRound, LockKeyhole, Palette, Settings, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import { Settings, Trash2 } from 'lucide-react';
 import { useWorkspaceSettingsView } from '@app/store/jotai/workspace-settings-view';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { members } from '@app/constants/locales/members';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
@@ -31,9 +29,13 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import DashboardDrawer from '@Components/sidebar/dashboard-drawer';
+import { workspaceNavItems } from '@Components/sidebar/workspace-nav-items';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { navItemForPath } from '@app/lib/nav-items';
 
 const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ssoEnabled = useSsoEnabled();
+    const { can } = useWorkspacePermissions();
     const drawerWidth = 289;
 
     const auth = useAppSelector(selectAuth);
@@ -151,71 +153,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
         },
         {
             label: 'Workspace',
-            items: [
-                {
-                    key: 'themes',
-                    name: 'Themes',
-                    url: `${commonWorkspaceUrl}/themes`,
-                    permission: WorkspacePermission.WORKSPACE_MANAGE,
-                    icon: <Palette className="h-5 w-5 stroke-2" />
-                },
-                {
-                    // For every member: they see whether AI is on and set
-                    // their own "Learn my preferences"; only admins change
-                    // the workspace opt-in (#715).
-                    key: 'ai-settings',
-                    name: 'AI settings',
-                    url: `${commonWorkspaceUrl}/ai-settings`,
-                    icon: <Sparkles className="h-5 w-5 stroke-2" />
-                },
-                {
-                    key: 'ai-profile',
-                    name: 'AI profile',
-                    url: `${commonWorkspaceUrl}/ai-profile`,
-                    permission: WorkspacePermission.AI_MANAGE,
-                    icon: <Sparkles className="h-5 w-5 stroke-2" />
-                },
-                {
-                    // Per-user, deliberately for every member — every creator can
-                    // see and edit what the AI remembers about them (trust).
-                    key: 'ai-memory',
-                    name: 'AI Memory',
-                    url: `${commonWorkspaceUrl}/ai-memory`,
-                    icon: <BookOpen className="h-5 w-5 stroke-2" />
-                },
-                {
-                    key: 'api-keys',
-                    name: 'API keys',
-                    url: `${commonWorkspaceUrl}/api-keys`,
-                    permission: WorkspacePermission.SECURITY_MANAGE,
-                    icon: <KeyRound className="h-5 w-5 stroke-2" />
-                },
-                {
-                    key: 'domains',
-                    name: 'Domains',
-                    url: `${commonWorkspaceUrl}/domains`,
-                    permission: WorkspacePermission.SECURITY_MANAGE,
-                    icon: <ShieldCheck className="h-5 w-5 stroke-2" />
-                },
-                ...(ssoEnabled
-                    ? [
-                          {
-                              key: 'sso',
-                              name: 'Single sign-on',
-                              url: `${commonWorkspaceUrl}/sso`,
-                              permission: WorkspacePermission.SECURITY_MANAGE,
-                              icon: <LockKeyhole className="h-5 w-5 stroke-2" />
-                          }
-                      ]
-                    : []),
-                {
-                    key: 'members',
-                    name: t(members.default),
-                    url: `${commonWorkspaceUrl}/members`,
-                    permission: WorkspacePermission.MEMBERS_MANAGE,
-                    icon: <MembersIcon />
-                }
-            ]
+            items: workspaceNavItems({ workspaceName: workspace?.workspaceName, t, can, ssoEnabled })
         }
     ];
 
@@ -223,11 +161,12 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const getHeader = () => {
         if (!pathname) return 'My Workspace';
-        // Longest matching URL wins — the Site item's URL (the dashboard root)
-        // is a prefix of every other route.
-        const matchingNavList = allNavList.filter((item) => pathname?.includes(item.url)).sort((a, b) => b.url.length - a.url.length);
-        if (matchingNavList.length > 0) {
-            return matchingNavList[0]?.key === 'site' ? (settingsViewOpen ? 'Site settings' : 'Your site') : matchingNavList[0]?.name;
+        // Longest matching path wins (lib/nav-items.ts): the Site item's URL
+        // (the dashboard root) is a prefix of every other route, and a
+        // section such as AI titles every one of its tabs.
+        const current = navItemForPath(pathname, allNavList);
+        if (current) {
+            return current.key === 'site' ? (settingsViewOpen ? 'Site settings' : 'Your site') : current.name;
         }
         // Routes not represented in the sidebar nav still need a correct title.
         if (pathname.includes('/dashboard/templates')) return 'Templates';

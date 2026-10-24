@@ -56,11 +56,11 @@ export default function AISettingsPage() {
     };
 
     if (isLoading || !settings) {
-        return <div className="px-5 py-6 text-sm text-black-600 lg:px-10">Loading…</div>;
+        return <div className="pb-10 text-sm text-black-600">Loading…</div>;
     }
 
     return (
-        <div className="flex w-full max-w-[760px] flex-col gap-8 px-5 py-6 lg:px-10">
+        <div className="flex w-full max-w-[760px] flex-col gap-8 pb-10">
             <div className="flex flex-col gap-2">
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">
                     AI features send content from this workspace to an external AI provider. They stay off until a workspace admin turns them on here, and they only ever use the provider named below.

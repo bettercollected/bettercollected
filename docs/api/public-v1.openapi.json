@@ -4148,7 +4148,7 @@
     "securitySchemes": {
       "apiKey": {
         "type": "http",
-        "description": "A workspace API key, created by a workspace admin under Settings > API keys: `Authorization: Bearer bc_...`.",
+        "description": "A workspace API key, created by a workspace admin on the dashboard's AI > MCP tab: `Authorization: Bearer bc_...`.",
         "scheme": "bearer",
         "bearerFormat": "bc_<64 hex characters>"
       }

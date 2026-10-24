@@ -3,11 +3,13 @@
 import { FormEvent, useState } from 'react';
 
 import { TFunction } from 'i18next';
+import Link from 'next/link';
 import { AlertTriangle, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { CopyField, Section, errorMessage, formatTime, inputClass } from '@app/components/workspace-sso/workspace-sso-section';
 import { scim } from '@app/constants/locales/scim';
+import { workspaceSectionLabels, workspaceSectionUrls } from '@app/lib/workspace-sections';
 import { ScimCredentialsDto, ScimGroupDto, ScimOverviewDto } from '@app/models/dtos/workspace-scim-dto';
 import { roleLocale, toWorkspaceRole } from '@app/models/enums/workspace-role';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -48,7 +50,7 @@ function Credentials({ credentials, onDone }: { credentials: ScimCredentialsDto;
     );
 }
 
-function CreateDirectoryForm({ overview, workspaceId, onCreated }: { overview: ScimOverviewDto; workspaceId: string; onCreated: (c: ScimCredentialsDto) => void }) {
+function CreateDirectoryForm({ overview, workspaceId, workspaceName, onCreated }: { overview: ScimOverviewDto; workspaceId: string; workspaceName?: string; onCreated: (c: ScimCredentialsDto) => void }) {
     const { t } = useTranslation();
     const [create, { isLoading }] = useCreateScimDirectoryMutation();
     const [type, setType] = useState(overview.types[0]?.type ?? 'generic-scim-v2');
@@ -77,7 +79,14 @@ function CreateDirectoryForm({ overview, workspaceId, onCreated }: { overview: S
                     ))}
                 </select>
             </label>
-            {!overview.hasVerifiedDomain && <p className="text-xs text-black-600">{t(scim.VERIFY_DOMAIN_FIRST)}</p>}
+            {!overview.hasVerifiedDomain && (
+                <p className="text-xs text-black-600">
+                    {t(scim.VERIFY_DOMAIN_FIRST)}{' '}
+                    <Link className="text-brand-500 underline" href={workspaceSectionUrls(workspaceName).domains}>
+                        {t(workspaceSectionLabels.verifyDomain)}
+                    </Link>
+                </p>
+            )}
             {error && (
                 <p role="alert" className="text-xs text-[#C43D3D]">
                     {error}
@@ -224,7 +233,7 @@ export default function WorkspaceScimSection() {
 
             {!directory ? (
                 overview.canManage ? (
-                    <CreateDirectoryForm overview={overview} workspaceId={workspaceId} onCreated={setCredentials} />
+                    <CreateDirectoryForm overview={overview} workspaceId={workspaceId} workspaceName={workspace?.workspaceName} onCreated={setCredentials} />
                 ) : (
                     <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">{t(scim.NO_DIRECTORY)}</p>
                 )
