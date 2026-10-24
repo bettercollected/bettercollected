@@ -59,10 +59,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   filed in one workspace no longer refuses the other's, and no longer shows as the status of the other
   workspace's copy or in its responders' counts. The unique key becomes (`form_id`, `response_id`,
   `provider`, `workspace_id`): app revision `0020` in Postgres (nulls not distinct, replacing the
-  per-response constraint) and `uq_deletion_requests_form_response_provider_workspace` in Mongo, where a
-  database from before drops the old `form_id_1_response_id_1_provider_1` index the first time it refuses
-  another workspace's request. Filing twice for the same copy is refused as before, and a request stored
-  before requests carried a workspace is still found for the response.
+  per-response constraint) and `uq_deletion_requests_form_response_provider_workspace` in Mongo, built at
+  startup while Mongo is used, where the old `form_id_1_response_id_1_provider_1` index is dropped at the
+  same time (a failure of either is logged and the service starts anyway). Filing twice for the same copy
+  is refused as before, and a request stored before requests carried a workspace is still found for the
+  response.
 
 ### Removed
 

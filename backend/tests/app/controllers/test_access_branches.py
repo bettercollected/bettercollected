@@ -20,6 +20,7 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.form_service import FormService
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import invited_user, testUser, testUser1, testUser2
+from tests.app.response_helpers import deletion_request_of
 from tests.app.services.test_internal_fields import NAME, REFERENCE, _form_payload
 
 admin_user = User(id=str(PydanticObjectId()), sub="branches-admin@example.com")
@@ -178,8 +179,8 @@ async def test_staff_may_file_a_deletion_request_for_any_response(
         assert refused.status_code == 403, user.sub
     filed = await client.delete(url, cookies=_cookies(admin_user))
     assert filed.status_code == 200, filed.text
-    assert await container.form_response_repo().find_deletion_request_by_response_id(
-        response.response_id
+    assert await deletion_request_of(
+        workspace.id, response.form_id, response.response_id
     )
 
 

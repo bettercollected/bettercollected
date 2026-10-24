@@ -14,6 +14,7 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser1, testUser2
 from tests.app.controllers.test_form_ai_insights import _seed_form_and_responses
+from tests.app.response_helpers import deletion_request_of
 
 officer = User(id=str(PydanticObjectId()), sub="officer@example.com")
 SECRET = "my landlord's name is Mallory"
@@ -108,8 +109,8 @@ async def test_a_privacy_officer_completes_a_deletion_request(
     assert deleted.status_code == 200, deleted.text
     responses = container.form_response_repo()
     assert await responses.get_response(requested["response"]) is None
-    request = await responses.find_deletion_request_by_response_id(
-        requested["response"]
+    request = await deletion_request_of(
+        requested["ws"], requested["form"], requested["response"]
     )
     assert request.status == DeletionRequestStatus.SUCCESS
     # done: a second delete of the same response is no longer a pending request

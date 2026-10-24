@@ -16,6 +16,7 @@ from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.response_scope import ResponseScope
 from tests.app.controllers.data import testUser, testUser1, testUser2
 from tests.app.controllers.test_mcp_server import _call_tool, _make_key, _tool_text
+from tests.app.response_helpers import deletion_requests_of
 from tests.conftest import access_token
 
 FORM_ID = "1FAIpQLSe-shared-provider-form"
@@ -94,6 +95,16 @@ def _url(workspace) -> str:
 
 async def _stored(response_id):
     return await container.form_response_repo().get_response(response_id)
+
+
+async def _requests_for(response_id, *workspaces):
+    """The deletion requests of ``response_id`` stored in each of ``workspaces``
+    (or without a workspace), without duplicates."""
+    found = {}
+    for workspace in workspaces:
+        for request in await deletion_requests_of(workspace.id, FORM_ID, response_id):
+            found[str(request.id)] = request
+    return list(found.values())
 
 
 class TestStaffReads:
@@ -183,9 +194,7 @@ class TestStaffReads:
             )
         assert refused.value.status_code == 404
         assert await _stored("rb1") is not None
-        assert not await container.form_response_repo().find_deletion_request_by_response_id(
-            "rb1"
-        )
+        assert await _requests_for("rb1", *shared) == []
 
     async def test_deletion_requests_are_per_workspace(
         self, client: AsyncClient, shared, test_user_cookies, test_user_cookies_1
@@ -195,11 +204,7 @@ class TestStaffReads:
             f"{_url(b)}/submissions/rb1", cookies=test_user_cookies_1
         )
         assert filed.status_code == 200, filed.text
-        assert (
-            await container.form_response_repo().find_deletion_request_by_response_id(
-                "rb1"
-            )
-        ).workspace_id == b.id
+        assert [r.workspace_id for r in await _requests_for("rb1", a, b)] == [b.id]
         for workspace, cookies, expected in (
             (a, test_user_cookies, set()),
             (b, test_user_cookies_1, {"rb1"}),
@@ -259,9 +264,7 @@ class TestRespondentReads:
         assert (
             await client.delete(f"{base}/submissions/by-uuid/uuid-rb1")
         ).status_code == 404
-        assert not await container.form_response_repo().find_deletion_request_by_response_id(
-            "rb1"
-        )
+        assert await _requests_for("rb1", *shared) == []
 
 
 class TestMcp:

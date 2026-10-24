@@ -165,8 +165,10 @@ async def test_anonymous_owner_can_request_deletion(workspace, published_form):
     stored_response = await container.form_response_repo().get_response(
         response.response_id
     )
-    request = await container.form_response_repo().find_deletion_request_by_response_id(
-        response.response_id
+    from tests.app.response_helpers import deletion_request_of
+
+    request = await deletion_request_of(
+        workspace.id, published_form.form_id, response.response_id
     )
     assert request is not None
     # Attribution survives: the request carries the same anonymous hash the

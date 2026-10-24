@@ -571,15 +571,6 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await self.save_document(response)
 
-    async def find_deletion_request_by_response_id(
-        self, response_id: str
-    ) -> Optional[FormResponseDeletionRequest]:
-        return await self.one_of(
-            ResponseDeletionRequestRow,
-            FormResponseDeletionRequest,
-            ResponseDeletionRequestRow.response_id == response_id,
-        )
-
     async def find_deletion_request_for(
         self, response: FormResponseDocument
     ) -> Optional[FormResponseDeletionRequest]:
