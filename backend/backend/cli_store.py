@@ -14,38 +14,38 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import Iterable
 
-from common.db.flags import DbFlags, ReadSource
+from common.db.flags import DbFlags
 
 
 def needs_mongo(flags: DbFlags, groups: Iterable[str]) -> bool:
-    """Whether any of ``groups`` still reads from or writes to Mongo."""
-    return any(
-        flags.read_source(group) is ReadSource.MONGO or flags.writes_mongo(group)
-        for group in groups
-    )
+    """Whether any of ``groups`` still reads from, writes to or shadow-reads Mongo
+    (:meth:`common.db.flags.DbFlags.uses_mongo`, the services' own decision)."""
+    groups = tuple(groups)
+    return bool(groups) and flags.uses_mongo(groups)
 
 
 @asynccontextmanager
 async def routed_repositories(*groups: str):
     """Yields the container, ready for the routed repositories of ``groups``;
     closes what it opened on exit."""
-    from dependency_injector import providers
-    from pymongo import AsyncMongoClient
-
     from backend.app.container import container
-    from backend.app.handlers.database import close_db, init_db
+    from backend.app.handlers.database import close_db, open_mongo
     from backend.config import settings
     from backend.db.startup import dispose_postgres
 
-    flags = container.flags()
-    client = None
-    if needs_mongo(flags, groups):
-        client = AsyncMongoClient(settings.mongo_settings.URI)
-        container.database_client.override(providers.Object(client))
-        await init_db(settings.mongo_settings.DB, client)
+    # Beanie is set up either way (documents are built from Postgres rows
+    # too), on a client of this command's own; it connects only while one of
+    # the groups uses Mongo.
+    container.database_client.reset_override()
+    client = await open_mongo(
+        container,
+        settings.mongo_settings.URI,
+        settings.mongo_settings.DB,
+        required=needs_mongo(container.flags(), groups),
+    )
     try:
         yield container
     finally:
-        if client is not None:
-            await close_db(client)
+        await close_db(client)
+        container.database_client.reset_override()
         await dispose_postgres(container)

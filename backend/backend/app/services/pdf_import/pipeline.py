@@ -224,21 +224,40 @@ class ImportPipeline:
     async def give_up(self, import_id: PydanticObjectId) -> FormImportDocument:
         """Retries are exhausted: the sandbox stayed unreachable. Fail the
         import so it no longer holds the workspace's import slot."""
+        record, failed = await self._fail(
+            import_id, CODE_UNAVAILABLE, MESSAGE_UNAVAILABLE, refused=True
+        )
+        if failed:
+            logger.error("form import {} gave up waiting for the sandbox", import_id)
+        return record
+
+    async def fail(self, import_id: PydanticObjectId) -> FormImportDocument:
+        """The import's job stopped on an error outside the run's own handling:
+        fail it as the run fails one ("failed"), so it no longer holds the
+        workspace's import slot and its empty draft goes."""
+        record, _ = await self._fail(import_id, CODE_FAILED, MESSAGE_FAILED)
+        return record
+
+    async def _fail(
+        self, import_id: PydanticObjectId, code: str, message: str, refused=False
+    ):
+        """(the record, whether this call failed it): an import that already
+        ended is left as it is."""
         record = await self._repo.get(import_id)
         if record is None or record.status in (
             ImportStatus.COMPLETED,
             ImportStatus.FAILED,
         ):
-            return record
+            return record, False
         record.status = ImportStatus.FAILED
-        record.error = MESSAGE_UNAVAILABLE
-        record.error_code = CODE_UNAVAILABLE
-        record.report["refused"] = CODE_UNAVAILABLE
+        record.error = message
+        record.error_code = code
+        if refused:
+            record.report["refused"] = code
         record.finished_at = _now()
         await self.discard_draft(record)
         await self._repo.save(record)
-        logger.error("form import {} gave up waiting for the sandbox", import_id)
-        return record
+        return record, True
 
     async def _render(self, record: FormImportDocument, data: bytes) -> dict:
         """Page images for the model and the review screen, stored next to the

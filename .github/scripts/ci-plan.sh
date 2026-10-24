@@ -67,17 +67,27 @@ fi
 
 # Backend matrix: Postgres in shards always; Mongo and dual (without the admin
 # suite, which does not depend on the mode) only on full runs.
+#
+# The Postgres shards run without Mongo (no server, MONGO_URI on a closed
+# port): every group is on Postgres, so the services must start and serve
+# without it. The tests that drive Mongo themselves (marker "mongo": store
+# parity, the migration CLI, store-wide tasks) run in one more Postgres job,
+# with Mongo.
+entry() { # mode read_source write_mode group splits ignore mongo(present|absent) marker
+    echo "{\"mode\":\"$1\",\"read_source\":\"$2\",\"write_mode\":\"$3\",\"group\":$4,\"splits\":$5,\"ignore\":\"$6\",\"mongo\":\"$7\",\"marker\":\"$8\"}"
+}
 entries=()
 for g in $(seq 1 "$BACKEND_SHARDS"); do
-    entries+=("{\"mode\":\"postgres\",\"read_source\":\"postgres\",\"write_mode\":\"postgres\",\"group\":$g,\"splits\":$BACKEND_SHARDS,\"ignore\":\"\"}")
+    entries+=("$(entry "postgres, no Mongo" postgres postgres "$g" "$BACKEND_SHARDS" "" absent "not mongo")")
 done
+entries+=("$(entry "postgres, Mongo-driven tests" postgres postgres 1 1 "" present mongo)")
 modes='["postgres"]'
 if [ "$full" = true ]; then
     for mode in mongo dual; do
         write=""
         [ "$mode" = dual ] && write=dual
         for g in $(seq 1 "$SIDE_SHARDS"); do
-            entries+=("{\"mode\":\"$mode\",\"read_source\":\"\",\"write_mode\":\"$write\",\"group\":$g,\"splits\":$SIDE_SHARDS,\"ignore\":\"--ignore=tests/admin\"}")
+            entries+=("$(entry "$mode" "" "$write" "$g" "$SIDE_SHARDS" "--ignore=tests/admin" present "")")
         done
     done
     modes='["mongo","dual","postgres"]'

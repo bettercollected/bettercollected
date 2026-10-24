@@ -16,14 +16,16 @@ import json
 import sys
 
 from beanie import PydanticObjectId
-from dependency_injector import providers
-from pymongo import AsyncMongoClient
 
 from backend.app.container import container
-from backend.app.handlers.database import close_db, init_db
+from backend.app.handlers.database import close_db, open_mongo
 from backend.app.utils import AiohttpClient
 from backend.config import settings
-from backend.db.startup import check_postgres_at_startup, dispose_postgres
+from backend.db.startup import (
+    check_postgres_at_startup,
+    dispose_postgres,
+    mongo_required,
+)
 
 
 async def _resync(workspace_id: str | None, force: bool = False) -> dict:
@@ -57,9 +59,12 @@ async def main(argv) -> int:
     args = parser.parse_args(argv)
 
     AiohttpClient.get_aiohttp_client()
-    client = AsyncMongoClient(settings.mongo_settings.URI)
-    container.database_client.override(providers.Object(client))
-    await init_db(settings.mongo_settings.DB, client)
+    client = await open_mongo(
+        container,
+        settings.mongo_settings.URI,
+        settings.mongo_settings.DB,
+        required=mongo_required(container),
+    )
     await check_postgres_at_startup(container)
     try:
         result = await _resync(

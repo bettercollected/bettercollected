@@ -9,13 +9,11 @@ from common.exceptions.validation import request_validation_error_handler
 from common.services.crypto_service import crypto_service
 from fastapi.exceptions import RequestValidationError
 import sentry_sdk
-from dependency_injector import providers
 from elasticapm.contrib.starlette import ElasticAPM, make_apm_client
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from fastapi_utils.timing import add_timing_middleware
 from loguru import logger
-from pymongo import AsyncMongoClient
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
@@ -23,8 +21,12 @@ from sentry_sdk.integrations.loguru import LoguruIntegration
 from backend.app.container import container
 from backend.app.exceptions import HTTPException, http_exception_handler
 from backend.app.handlers import init_logging
-from backend.app.handlers.database import close_db, init_db
-from backend.db.startup import check_postgres_at_startup, dispose_postgres
+from backend.app.handlers.database import close_db, open_mongo
+from backend.db.startup import (
+    check_postgres_at_startup,
+    dispose_postgres,
+    mongo_required,
+)
 from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
@@ -54,12 +56,14 @@ async def lifespan(app: FastAPI):
     # Use a pre-configured client (e.g. AsyncMongoMockClient injected by tests)
     # if one has already been set on the container; otherwise create a real one
     # inside the running event loop to avoid the
-    # "AsyncMongoClient in different event loop" RuntimeError.
-    client = container.database_client()
-    if client is None:
-        client = AsyncMongoClient(settings.mongo_settings.URI)
-        container.database_client.override(providers.Object(client))
-    await init_db(settings.mongo_settings.DB, client)
+    # "AsyncMongoClient in different event loop" RuntimeError. Once every
+    # repository group is on Postgres, Mongo is not connected at all.
+    client = await open_mongo(
+        container,
+        settings.mongo_settings.URI,
+        settings.mongo_settings.DB,
+        required=mongo_required(container),
+    )
     await check_postgres_at_startup(container)
     jobs_on_postgres = postgres_jobs_enabled(container.flags())
     if jobs_on_postgres:

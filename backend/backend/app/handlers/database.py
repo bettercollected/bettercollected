@@ -1,6 +1,6 @@
 import inspect
 
-from beanie import init_beanie
+from dependency_injector import providers
 from loguru import logger
 from pymongo import AsyncMongoClient
 from pymongo.errors import InvalidOperation
@@ -43,7 +43,7 @@ from backend.app.schemas.scim import (
 from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.api_idempotency_record import ApiIdempotencyRecordDocument
-from common.db import MirrorWriteFailureDocument
+from common.db import MirrorWriteFailureDocument, init_documents, mongo_client
 
 document_models = []
 
@@ -53,15 +53,35 @@ def entity(cls):
     return cls
 
 
-async def init_db(db: str, client: AsyncMongoClient):
+async def open_mongo(container, uri: str, db: str, *, required: bool):
+    """The container's Mongo client with Beanie initialised on it.
+
+    A client already set on the container (a test's) is used as it is;
+    otherwise one is created here, inside the running event loop. While no
+    repository group uses Mongo (``required`` false, see
+    ``backend.db.startup.mongo_required``) nothing connects: Beanie is set up
+    without a request to the server and the client never opens.
+    """
+    client = container.database_client()
+    if client is None:
+        client = mongo_client(uri, required=required)
+        container.database_client.override(providers.Object(client))
+    await init_db(db, client, required=required)
+    return client
+
+
+async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
     """
     Asynchronously initializes the database connection and beanie for the app.
 
     This function initializes beanie using the specified database and document models.
+    With ``required`` false (no repository group uses Mongo) nothing is sent to
+    the server: no ``buildInfo``, no index creation.
 
     Args:
         db: Database name
         client: AsyncMongoClient instance
+        required: whether Mongo is used (and so must answer)
 
     Returns:
         None
@@ -96,10 +116,10 @@ async def init_db(db: str, client: AsyncMongoClient):
             MirrorWriteFailureDocument,
         ]
     )
-    await init_beanie(
-        database=db,
-        document_models=document_models,
-    )
+    await init_documents(db, document_models, required=required)
+    if not required:
+        logger.info("Mongo is not used by any repository group; not connected.")
+        return
     await ensure_membership_unique_index(db)
     logger.info("Database connected successfully.")
 

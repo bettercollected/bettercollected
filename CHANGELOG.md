@@ -24,6 +24,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed
 
+- Once every repository group is on Postgres for reads and writes (`DB_READ_SOURCE=postgres`,
+  `DB_WRITE_MODE=postgres`, no group override back to Mongo, no shadow reads), the backend, its job worker,
+  auth and the Google Forms service start and serve without MongoDB: no connection is made, `MONGO_URI` may be
+  unset, and the backend's persistence status reports Mongo as "not used". While any group still uses Mongo,
+  startup is unchanged and fails on an unreachable Mongo. CI's Postgres runs now go without a Mongo server.
+
 - The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
   holds the Single sign-on and Domains tabs (only Domains, named so, when single sign-on is off on the
   instance); AI holds the Profile, Memory, MCP (endpoint and API keys) and Settings tabs, each shown only
@@ -46,6 +52,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   a form, and no importer at all on forms imported by someone other than the searching member. The forms
   list's response counts count distinct workspaces in MongoDB as Postgres does, so a form linked twice
   to the same workspace still counts that workspace's older responses.
+- A document import running in the API process that stops on an unexpected error (outside the import's
+  own error handling, such as a database error while failing it) now fails the import with code
+  `failed` and removes its empty draft, instead of leaving it running until it expires. Its task no longer
+  ends with an exception nobody retrieves, which asyncio logged later with the whole traceback.
 - Form builder: "Add Option" puts the cursor in the new option. The Flow view no longer opens by itself
   when a form gets its first logic while being edited (forms that already branch still open in it).
   Renaming a form titles its welcome page in the same undo step, and autosave no longer rewrites the
