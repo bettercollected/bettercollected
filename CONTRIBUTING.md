@@ -114,8 +114,15 @@ input"). Conventional Commit prefixes (`feat:`, `fix:`, `docs:`, `chore:`,
 `refactor:`, `test:`) are encouraged and help us generate release notes — see
 [RELEASING.md](RELEASING.md) for the conventions and release process.
 
-For user-facing changes, add a line under `## [Unreleased]` in
-[CHANGELOG.md](CHANGELOG.md) as part of your PR.
+### Changelog
+
+Don't edit [CHANGELOG.md](CHANGELOG.md). For a user- or operator-facing change, add a
+file `changelog.d/<pr-number-or-branch-slug>.<category>.md` (category: `added`,
+`changed`, `deprecated`, `removed`, `fixed` or `security`) holding the bullet as it
+should appear in the changelog. The fragments are assembled into CHANGELOG.md when a
+release is cut. A PR check asks for one when your PR changes code; a maintainer adds
+the `no-changelog` label when nothing notable changed. Details:
+[changelog.d/README.md](changelog.d/README.md).
 
 ## License
 
