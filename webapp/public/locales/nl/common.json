@@ -159,6 +159,29 @@
       "7": "Iets anders"
     }
   },
+  "DELETION_REQUEST": {
+    "MARK_DELETED": "Markeren als verwijderd",
+    "DECLINE": "Weigeren",
+    "MARK_DELETED_TITLE": "Dit verzoek markeren als verwijderd?",
+    "MARK_DELETED_DESCRIPTION": "De kopie van deze reactie die hier is opgeslagen, wordt definitief verwijderd en het verzoek wordt als afgehandeld gemarkeerd. Een reactie die uit Google Forms is geïmporteerd, blijft in Google Forms staan: verwijder die daar ook.",
+    "DECLINE_TITLE": "Dit verwijderverzoek weigeren?",
+    "DECLINE_DESCRIPTION": "Er wordt niets verwijderd. De respondent ziet dat de reactie niet is verwijderd, met de reden die u kiest. Weiger alleen als u de reactie wettelijk mag bewaren.",
+    "REASON_LABEL": "Reden",
+    "REASON": {
+      "LEGAL_OBLIGATION": "Een wettelijke plicht vereist bewaren",
+      "LEGAL_CLAIMS": "Het is nodig voor een juridische claim",
+      "PUBLIC_INTEREST": "Het wordt bewaard in het algemeen belang",
+      "IDENTITY_NOT_VERIFIED": "De identiteit van de aanvrager kon niet worden vastgesteld",
+      "OTHER": "Een andere reden"
+    },
+    "NOT_DELETED": "Niet verwijderd",
+    "MARKED_DELETED": "Verzoek gemarkeerd als verwijderd",
+    "DECLINED": "Verzoek geweigerd",
+    "ALREADY_CLOSED": "Dit verzoek was al afgehandeld.",
+    "COPY_UNRESOLVED": "Een opgeslagen kopie van deze reactie kon niet aan deze werkruimte worden gekoppeld. Er is niets verwijderd en het verzoek blijft open.",
+    "FAILED": "Het verzoek kon niet worden bijgewerkt. Probeer het opnieuw.",
+    "REASON_REQUIRED": "Kies een reden."
+  },
   "DELETED_ON": "Verwijderd op",
   "DELETION_REMAINING": "verwijdering resterend",
   "DESCRIPTION": "Beschrijving",
@@ -220,6 +243,7 @@
     "RESPONSE_ID": "Reactie-ID",
     "STATUS_DELETED": "Verwijderd",
     "STATUS_PENDING": "In behandeling",
+    "STATUS_DECLINED": "Geweigerd",
     "SUBMISSION_DATE": "Indieningsdatum",
     "SUBMITTED_FORMS": "Ingediende formulieren",
     "PREVIEW": "Voorbeeld",

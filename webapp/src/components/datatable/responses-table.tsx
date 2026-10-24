@@ -21,6 +21,8 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { deletionRequestLocale } from '@app/constants/locales/deletion-request';
+import { isDeclineReason, isDeclinedRequest, isPendingRequest } from '@app/models/enums/deletion-request';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
@@ -63,6 +65,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     // Completing a pending deletion request is also privacy.manage (a
     // Privacy officer deletes without reading the answers).
     const canDeleteResponses = can(WorkspacePermission.RESPONSE_DELETE) || can(WorkspacePermission.PRIVACY_MANAGE);
+    // Closing a request by hand (mark as deleted, decline) is privacy.manage.
+    const canCloseRequests = can(WorkspacePermission.PRIVACY_MANAGE);
     const googleFormHostUrl = 'https://docs.google.com/';
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
@@ -114,14 +118,30 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         }
     };
 
-    const Status = ({ status }: { status: string }) => <StatusBadge status={status} />;
+    // A declined request carries its reason (a fixed code) under the chip.
+    const Status = ({ status, response }: { status: string; response?: StandardFormResponseDto }) => {
+        const reason = response?.declineReason;
+        return (
+            <div className="flex flex-col items-start gap-1 py-1">
+                <StatusBadge status={status} />
+                {isDeclinedRequest(response?.status) && <span className="text-black-600 whitespace-normal text-xs leading-snug">{t(deletionRequestLocale.reason(isDeclineReason(reason) ? reason : 'other'))}</span>}
+            </div>
+        );
+    };
 
-    const DeletedOn = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
+    const DeletedOn = ({ response }: { response: StandardFormResponseDto }) => {
         // "Not deleted yet" restated the Pending chip one column over; a quiet
         // dash keeps the column for the fact it actually holds — the date.
+        // A declined request was not deleted: never a date here.
         return (
             <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
-                {status.toLowerCase() === 'pending' ? <span className="text-black-600 text-sm">—</span> : <span className="text-black-700 text-sm font-medium">{utcToLocalDateTIme(response.updatedAt)}</span>}
+                {isPendingRequest(response?.status) ? (
+                    <span className="text-black-600 text-sm">—</span>
+                ) : isDeclinedRequest(response?.status) ? (
+                    <span className="text-black-600 text-sm">{t(deletionRequestLocale.notDeleted)}</span>
+                ) : (
+                    <span className="text-black-700 text-sm font-medium">{utcToLocalDateTIme(response.updatedAt)}</span>
+                )}
             </div>
         );
     };
@@ -130,10 +150,10 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     // carries the action that completes it — deleting the response — next to
     // a quiet way to review what would be deleted first. The delete goes
     // through the DELETE_RESPONSE confirmation; it is permanent.
-    const RequestActions = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
+    const RequestActions = ({ response }: { response: StandardFormResponseDto }) => {
         const isSelf = response.provider === 'self' || response.formImportedBy === user.id;
 
-        if (status.toLowerCase() !== 'pending' || !isSelf) return <></>;
+        if (!isPendingRequest(response?.status)) return <></>;
 
         if (requestForDeletion && response.provider === 'self') {
             // A Privacy officer completes the request without seeing its
@@ -165,6 +185,33 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 </div>
             );
         }
+
+        // A response of an imported form (Google Forms): the request used to
+        // close only when the response was deleted at the source and synced
+        // again. Staff with privacy.manage close it here: mark it deleted
+        // (the copy stored here goes) or decline it for a fixed reason.
+        if (requestForDeletion && canCloseRequests) {
+            return (
+                <div className="flex flex-wrap items-center gap-1">
+                    <Button
+                        variant="dangerGhost"
+                        className="px-2!"
+                        onClick={() => openConfirmModal('CLOSE_DELETION_REQUEST', { workspace, formId: response.formId, responseId: response.responseId, outcome: 'completed' })}
+                    >
+                        {t(deletionRequestLocale.markDeleted)}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        className="px-2!"
+                        onClick={() => openConfirmModal('CLOSE_DELETION_REQUEST', { workspace, formId: response.formId, responseId: response.responseId, outcome: 'declined' })}
+                    >
+                        {t(deletionRequestLocale.decline)}
+                    </Button>
+                </div>
+            );
+        }
+
+        if (!isSelf) return <></>;
 
         return (
             <div className="truncate">
@@ -209,9 +256,12 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         const statusToAdd = [
             {
                 name: t(localesCommon.status),
+                // room for a declined request's reason under the chip
+                minWidth: '200px',
                 selector: (row: StandardFormResponseDto) =>
                     Status({
-                        status: row?.status || t(formConstant.status.pending)
+                        status: row?.status || t(formConstant.status.pending),
+                        response: row
                     }),
                 style: {
                     color: '#344054',
@@ -223,7 +273,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 name: t('DELETED_ON'),
                 selector: (row: StandardFormResponseDto) =>
                     DeletedOn({
-                        status: row?.status || t(formConstant.status.pending),
                         response: row
                     }),
                 style: {
@@ -237,7 +286,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 minWidth: '250px',
                 selector: (row: StandardFormResponseDto) =>
                     RequestActions({
-                        status: row?.status || t(formConstant.status.pending),
                         response: row
                     }),
                 style: {
