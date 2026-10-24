@@ -15,6 +15,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
+  which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
+  flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
+  changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
+  the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
+  keyset freeze and the backup and restore test to do before Mongo is turned off.
+
 ### Changed
 
 - The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
