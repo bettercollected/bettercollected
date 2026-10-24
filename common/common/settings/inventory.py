@@ -750,6 +750,7 @@ NOT_A_SETTING: Dict[str, str] = {
     "GOOGLE_MONGO_DB": "the Google integration's Mongo database, read by the keyset rotation tasks and script",
     "TASK_RUNNER_GOOGLE_MONGO_DB": "the task-runner compose service's name for GOOGLE_MONGO_DB",
     "NODE_ENV": "set by the Node.js tooling",
+    "NEXT_PUBLIC_APP_VERSION": "build-time version, set by the image build (never stored)",
     "OAUTHLIB_INSECURE_TRANSPORT": "read by the oauthlib library",
     "OAUTHLIB_RELAX_TOKEN_SCOPE": "read by the oauthlib library",
     "BC_RENDER_MAX_SIDE": "set by the import runner for its own sandbox child",

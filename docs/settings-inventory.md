@@ -336,6 +336,7 @@ environment, whatever the tier.
 | `GOOGLE_ENABLED` | compose profile switch |
 | `GOOGLE_MONGO_DB` | the Google integration's Mongo database, read by the keyset rotation tasks and script |
 | `MOCK_SAML_IMAGE` | compose image selection for the development identity provider |
+| `NEXT_PUBLIC_APP_VERSION` | build-time version, set by the image build (never stored) |
 | `NODE_ENV` | set by the Node.js tooling |
 | `OAUTHLIB_INSECURE_TRANSPORT` | read by the oauthlib library |
 | `OAUTHLIB_RELAX_TOKEN_SCOPE` | read by the oauthlib library |
