@@ -23,7 +23,7 @@ from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import and_, exists, func, not_, or_, select, text, update
-from sqlalchemy.exc import DBAPIError, SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, IntegrityError, SQLAlchemyError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.consent import ConsentCamelModel
@@ -656,7 +656,13 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
                 workspace_id=workspace_id, form_id=form_id, user_id=user_id
             )
         workspace_form.settings = workspace_form_settings
-        return await self.save_document(workspace_form)
+        try:
+            return await self.save_document(workspace_form)
+        except IntegrityError:  # uq_workspace_forms_workspace_form: linked meanwhile
+            existing = await self.find_workspace_form(workspace_id, form_id)
+            if existing is None:
+                raise
+            return existing
 
     @staticmethod
     def _settings():
