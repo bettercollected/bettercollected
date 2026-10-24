@@ -1,7 +1,7 @@
 import json
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from bson import ObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
@@ -12,7 +12,7 @@ from cryptography.fernet import InvalidToken
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.models.enum.permission import Permission
-from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -31,7 +31,7 @@ class IntegrationService:
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
         authorization_service: AuthorizationService,
-        action_repository: ActionRepository,
+        action_repository: PostgresActionRepository,
     ):
         self._crypto = crypto
         self._workspace_form_repo = workspace_form_repo
@@ -97,7 +97,7 @@ class IntegrationService:
         """The action must exist and be an action of this integration."""
         action = (
             await self._action_repository.get_action_by_id(
-                action_id=PydanticObjectId(action_id)
+                action_id=RecordId(action_id)
             )
             if ObjectId.is_valid(action_id)
             else None

@@ -11,6 +11,7 @@ from sqlalchemy import delete, select
 
 from backend.app.container import container
 from backend.app.handlers.database import document_models
+from backend.app.schemas.action_document import ActionDocument, WorkspaceActionsDocument
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.api_idempotency_record import ApiIdempotencyRecordDocument
@@ -59,6 +60,8 @@ RECORD_CLASSES = (
     MCPAuditLogDocument,
     CreateFormPrompt,
     ApiIdempotencyRecordDocument,
+    ActionDocument,
+    WorkspaceActionsDocument,
 )
 
 # Values the synthesizer cannot guess (a field validator with a checksum).

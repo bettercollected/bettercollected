@@ -13,7 +13,7 @@ from beanie import PydanticObjectId
 
 from backend.app.container import container
 from backend.app.models.workspace import WorkspaceFormSettings
-from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.forms import (
@@ -57,7 +57,9 @@ async def seed(repositories, method, *documents):
 
 async def test_workspace_counts(sessions):
     mongo = WorkspaceRepository()
-    postgres = PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None))
+    postgres = PostgresWorkspaceRepository(
+        sessions, PostgresActionRepository(sessions, None)
+    )
     owner = str(PydanticObjectId())
 
     def workspace(name, created, **extra):

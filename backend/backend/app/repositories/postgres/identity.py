@@ -5,12 +5,12 @@ including its quirks (404 vs None, the document layer's NotFoundError), so the
 RoutingRepository can serve either store. Queries use the spine columns of the
 rows in :mod:`backend.db.models`; documents cross the boundary unchanged.
 
-One method crosses a group boundary: ``get_workspace_with_action_by_id`` is a
-``$lookup`` from workspaces (identity) into workspace_actions (actions) in
-Mongo. Groups cut over independently, so the twin composes the two reads
-through the *routed* actions repository instead of a SQL join — whichever
-store currently serves actions is the one consulted. Joins stay SQL only
-within a group; R3 can collapse this one once both groups live in Postgres.
+One method crosses a group boundary: ``get_workspace_with_action_by_id``
+reads workspaces (identity) and workspace_actions (actions). In 4.0 Mongo
+joined them with ``$lookup``; the actions group is served from Postgres only
+since 4.1, so both workspace repositories compose the two reads through the
+actions repository instead of a join. Joins stay SQL only within a group;
+this one can become SQL once identity lives in Postgres only too.
 """
 
 import datetime
@@ -33,6 +33,7 @@ from backend.app.repositories.metric_periods import (
     postgres_counts_per_period,
 )
 from backend.app.repositories.sso_connection_repository import SsoConnectionExists
+from backend.app.repositories.workspace_repository import with_workspace_action
 from backend.app.repositories.sso_used_state_repository import StateAlreadyUsed
 from backend.app.repositories.scim_repository import (
     ScimDirectoryExists,
@@ -88,7 +89,6 @@ from common.db import (
     from_canonical_document,
     from_row_doc,
     row_values,
-    to_bson_dict,
 )
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.clock import utcnow
@@ -268,10 +268,9 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
     async def get_workspace_with_action_by_id(
         self, workspace_id: PydanticObjectId, action_id: PydanticObjectId
     ):
-        """The raw-document shape of the Mongo aggregation: the workspace with
-        ``parameters.<action_id>`` / ``secrets.<action_id>`` from its
-        workspace_actions entry and ``id`` set. See the module docstring for
-        why the second read goes through the routed actions repository."""
+        """The workspace with its copy of the action, read through the actions
+        repository (``with_workspace_action``, shared with the Mongo original;
+        see the module docstring)."""
         async with self._session() as session:
             raw = (
                 await session.execute(
@@ -280,23 +279,12 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
                     )
                 )
             ).scalar_one_or_none()
-        workspace_action = (
-            None
-            if raw is None
-            else await self._actions.get_workspace_action(
-                workspace_id=PydanticObjectId(_oid(workspace_id)),
-                action_id=PydanticObjectId(_oid(action_id)),
-            )
+        return await with_workspace_action(
+            self._actions,
+            None if raw is None else from_canonical_document(raw),
+            workspace_id,
+            action_id,
         )
-        if raw is None or workspace_action is None:
-            raise HTTPException(status_code=404, content="Workspace not found")
-        workspace = from_canonical_document(raw)
-        action = to_bson_dict(workspace_action)
-        for key in ("parameters", "secrets"):
-            if key in action:  # $set of a missing path adds nothing
-                workspace.setdefault(key, {})[str(action_id)] = action[key]
-        workspace["id"] = PydanticObjectId(_oid(workspace_id))
-        return workspace
 
 
 class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
