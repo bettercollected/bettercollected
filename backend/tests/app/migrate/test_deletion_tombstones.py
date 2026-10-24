@@ -377,20 +377,17 @@ async def test_a_delete_racing_reconcile_is_not_copied_back(target):
 async def test_reconcile_never_copies_an_expired_ttl_record(target):
     """Mongo's TTL index removes an expired counter on its own schedule and
     the twin drops it when it counts; reconcile must not copy it back."""
-    from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
-
-    expired = RateLimitCounterDocument(
-        id=PydanticObjectId(),
-        hits=1,
-        expires_at=dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=5),
-    )
-    await RateLimitCounterDocument.get_pymongo_collection().insert_one(
+    # a 4.0 Mongo: the collection and its TTL index (no Beanie class any more)
+    counters = FormDocument.get_pymongo_collection().database["rate_limit_counters"]
+    await counters.create_index("expires_at", expireAfterSeconds=0)
+    now = dt.datetime.now(dt.timezone.utc)
+    await counters.insert_one(
         {
-            "_id": expired.id,
+            "_id": PydanticObjectId(),
             "hits": 1,
-            "expires_at": expired.expires_at,
-            "created_at": expired.created_at,
-            "updated_at": expired.updated_at,
+            "expires_at": now - dt.timedelta(minutes=5),
+            "created_at": now - dt.timedelta(hours=1),
+            "updated_at": now - dt.timedelta(hours=1),
         }
     )
     async with Runner(target) as runner:
@@ -405,7 +402,6 @@ async def test_a_record_written_again_in_the_deleting_write_is_not_deleted(targe
     the tombstone and both copies carry the same clock reading: microseconds
     in Postgres, milliseconds where Mongo stores a BSON date. Compared at
     millisecond precision, neither copy is a deleted record."""
-    from backend.app.schemas.allowed_origin import AllowedOriginsDocument
     from backend.db.models import AllowedOriginRow
     from common.db.canonical import canonical_document, checksum
 
@@ -416,7 +412,9 @@ async def test_a_record_written_again_in_the_deleting_write_is_not_deleted(targe
         "created_at": at.replace(microsecond=123000),
         "updated_at": at.replace(microsecond=123000),  # Mongo keeps milliseconds
     }
-    await AllowedOriginsDocument.get_pymongo_collection().insert_one(dict(document))
+    await FormDocument.get_pymongo_collection().database["allowed_origins"].insert_one(
+        dict(document)
+    )
     doc = canonical_document(document)
     async with container.pg_sessionmaker()() as session, session.begin():
         session.add(

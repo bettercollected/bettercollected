@@ -30,10 +30,6 @@ from backend.db.models import FormRow, MigrationProgress
 from backend.migrate.__main__ import _tables
 import common.db.convergence as convergence
 import common.db.routing as routing
-from backend.app.repositories.postgres.ai import PostgresRateLimitRepository
-from backend.app.repositories.rate_limit_repository import RateLimitRepository
-from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
-from backend.db.models import RateLimitCounterRow
 from common.db import ReadSource, RoutingRepository, load_flags
 from common.db.outbox import MirrorWriteFailureDocument
 from common.db.beanie_bridge import store_exactly
@@ -496,46 +492,6 @@ async def test_a_reconcile_that_skipped_copies_keeps_the_outbox_open(target):
         result = await runner.reconcile(direction="mongo->postgres")
         assert result["forms"]["skipped"] == 1
         assert (await runner.status())["outbox"]["mongo"] == 1
-
-
-async def test_an_expired_counter_is_not_copied_back(target):
-    """Mongo expires counters by TTL, on its own schedule; the twin deletes
-    expired ones when it counts. Convergence must not copy one back."""
-    flags = load_flags({"DB_WRITE_MODE": "dual"})
-    repo = RoutingRepository(
-        group="ai",
-        flags=flags,
-        mongo=RateLimitRepository(),
-        postgres=PostgresRateLimitRepository(container.pg_sessionmaker()),
-        on_mirror_failure=container.outbox_recorder(),
-    )
-    past = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
-    expired = str(PydanticObjectId())
-    # stored before it expired, in both stores
-    await repo.hit(expired, dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1))
-    await RateLimitCounterDocument.get_pymongo_collection().update_one(
-        {"_id": PydanticObjectId(expired)}, {"$set": {"expires_at": past}}
-    )
-    raw = await RateLimitCounterDocument.get_pymongo_collection().find_one(
-        {"_id": PydanticObjectId(expired)}
-    )
-    async with container.pg_sessionmaker()() as session, session.begin():
-        row = await session.get(RateLimitCounterRow, expired)
-        row.doc = canonical_document(raw)
-    async with container.pg_sessionmaker()() as session:
-        row = await session.get(RateLimitCounterRow, expired)
-        assert row.expires_at <= dt.datetime.now(dt.timezone.utc)
-
-    # a new counter: the twin deletes the expired one, Mongo still has it
-    await repo.hit(
-        str(PydanticObjectId()),
-        dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1),
-    )
-
-    async with container.pg_sessionmaker()() as session:
-        assert await session.get(RateLimitCounterRow, expired) is None
-    assert not repo.metrics.mirror_failures
-    assert not repo.metrics.mirror_repairs
 
 
 async def test_a_bulk_delete_is_left_to_verify(target, monkeypatch):
