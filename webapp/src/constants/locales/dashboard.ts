@@ -2,7 +2,8 @@ const dashboardConstants = {
     drawer: {
         collaborator: 'DASHBOARD_DRAWER.COLLABORATOR',
         owner: 'DASHBOARD_DRAWER.OWNER',
-        manageURLs: 'DASHBOARD_DRAWER.MANAGE_URLS'
+        manageURLs: 'DASHBOARD_DRAWER.MANAGE_URLS',
+        readOnly: 'DASHBOARD_DRAWER.READ_ONLY'
     },
     preview: 'DASHBOARD.PREVIEW'
 };

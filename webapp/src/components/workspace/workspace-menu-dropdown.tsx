@@ -25,6 +25,13 @@ import { toEndDottedStr, trimTooltipTitle } from '@app/utils/string-utils';
 import { ChevronRight } from 'lucide-react';
 
 
+/**
+ * A disabled workspace (its billing owner's plan was downgraded) stays
+ * reachable for its owners: they get the read-only dashboard and can upgrade
+ * or export from there. Other members' access is switched off with it.
+ */
+export const canOpenWorkspace = (space: WorkspaceDto | undefined) => !!space && (!space.disabled || !!space.isOwner);
+
 interface IWorkspaceMenuDropdownProps {
     fullWidth?: boolean;
 }
@@ -43,7 +50,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
 
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
-        if (!space?.disabled) {
+        if (canOpenWorkspace(space)) {
             router.push(`/${space.workspaceName}/dashboard/forms`);
             setOpen(false);
         }
@@ -129,7 +136,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             return (
                                 <div
                                     key={space.id}
-                                    className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${space?.disabled && 'cursor-not-allowed'}`}
+                                    className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 ${canOpenWorkspace(space) ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleChangeWorkspace(space);
@@ -146,7 +153,10 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                             <Tooltip label={trimTooltipTitle(space?.title)}>
                                                 <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
-                                            <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(space)}</p>
+                                            <p className="text-black-700 text-[12px] leading-none">
+                                                {getWorkspaceRole(space)}
+                                                {space?.disabled && <> · {t(dashboardConstants.drawer.readOnly)}</>}
+                                            </p>
                                         </div>
                                     </div>
                                     {workspace.id === space.id && <Check color="#123FC9" />}
