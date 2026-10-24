@@ -171,6 +171,47 @@ def test_startup_warnings_only_with_sso(monkeypatch):
     assert config.warnings(sso_enabled=True) == []
 
 
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("1.1.1.1,9.9.9.9", ["1.1.1.1", "9.9.9.9"]),
+        ("  1.1.1.1 , 2620:fe::fe ", ["1.1.1.1", "2620:fe::fe"]),
+        ("2606:4700:4700::1111", ["2606:4700:4700::1111"]),
+    ],
+)
+def test_nameservers_take_ip_addresses(monkeypatch, raw, expected):
+    from backend.config.verified_domain_settings import VerifiedDomainSettings
+
+    monkeypatch.setenv("VERIFIED_DOMAINS_NAMESERVERS", raw)
+    assert VerifiedDomainSettings().nameservers == expected
+
+
+def test_empty_nameservers_mean_the_system_resolver(monkeypatch):
+    from backend.config.verified_domain_settings import VerifiedDomainSettings
+
+    monkeypatch.setenv("VERIFIED_DOMAINS_NAMESERVERS", "")
+    assert VerifiedDomainSettings().nameservers == []
+    assert VerifiedDomainSettings(NAMESERVERS="  ").nameservers == []
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["dns.google", "1.1.1.1,dns.quad9.net", "1.1.1.1;9.9.9.9", "1.1.1.1 9.9.9.9", "1.1.1.1:53"],
+)
+def test_nameservers_that_are_not_ip_addresses_stop_the_settings_load(monkeypatch, raw):
+    """A host name or a `;` made every re-check fail; now the setting is
+    refused when the settings load, with its name in the message."""
+    from pydantic import ValidationError
+
+    from backend.config.verified_domain_settings import VerifiedDomainSettings
+
+    monkeypatch.setenv("VERIFIED_DOMAINS_NAMESERVERS", raw)
+    with pytest.raises(ValidationError) as raised:
+        VerifiedDomainSettings()
+    assert "VERIFIED_DOMAINS_NAMESERVERS" in str(raised.value)
+    assert "IP addresses" in str(raised.value)
+
+
 def test_canonical_domain_does_not_apply_claim_policy():
     assert canonical_domain("Gmail.com") == "gmail.com"
     assert registrable_domain("eng.acme.co.uk") == "acme.co.uk"

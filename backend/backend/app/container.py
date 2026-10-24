@@ -9,9 +9,6 @@ from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
 from pymongo import AsyncMongoClient
 
-from backend.app.repositories.ai_preference_memory_repository import (
-    AIPreferenceMemoryRepository,
-)
 from common.db import DatabaseSettings, RoutingMetrics
 from common.db.routing import RoutingRepository
 
@@ -75,12 +72,6 @@ from backend.app.repositories.postgres.refdata import (
     PostgresUserFeedbackRepo,
 )
 
-from backend.app.repositories.action_repository import ActionRepository
-from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
-from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
-from backend.app.repositories.workspace_ai_profile_repository import (
-    WorkspaceAIProfileRepository,
-)
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
 )
@@ -88,15 +79,10 @@ from backend.app.repositories.workspace_domain_repository import (
     WorkspaceDomainRepository,
 )
 from backend.app.repositories.session_repository import SessionRepository
-from backend.app.repositories.create_form_prompt_repository import (
-    CreateFormPromptRepository,
-)
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.form_import_repository import FormImportRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
-from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
-from backend.app.repositories.idempotency_repository import IdempotencyRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -230,18 +216,10 @@ class AppContainer(containers.DeclarativeContainer):
         UserTagsService, user_tags_repo=user_tags_repo
     )
     crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
-    # defined early: the workspace twin composes over it (identity → actions)
-    action_repository = providers.Singleton(
-        RoutingRepository,
-        group="actions",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ActionRepository, crypto=crypto),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresActionRepository, pg_sessionmaker, crypto
-        ),
+    # defined early: both workspace repositories compose over it (identity →
+    # actions, WorkspaceRepository.get_workspace_with_action_by_id)
+    action_repository: PostgresActionRepository = providers.Singleton(
+        PostgresActionRepository, pg_sessionmaker, crypto
     )
 
     # Repositories
@@ -268,7 +246,9 @@ class AppContainer(containers.DeclarativeContainer):
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
         metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceRepository),
+        mongo=providers.Singleton(
+            WorkspaceRepository, action_repository=action_repository
+        ),
         postgres=providers.Singleton(
             postgres_repository,
             PostgresWorkspaceRepository,
@@ -298,41 +278,14 @@ class AppContainer(containers.DeclarativeContainer):
     rate_limit_repo: PostgresRateLimitRepository = providers.Singleton(
         PostgresRateLimitRepository, pg_sessionmaker
     )
-    form_ai_insight_repo = providers.Singleton(
-        RoutingRepository,
-        group="ai",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(FormAIInsightRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresFormAIInsightRepository, pg_sessionmaker
-        ),
+    form_ai_insight_repo: PostgresFormAIInsightRepository = providers.Singleton(
+        PostgresFormAIInsightRepository, pg_sessionmaker
     )
-    form_ai_session_repo = providers.Singleton(
-        RoutingRepository,
-        group="ai",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(FormAISessionRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresFormAISessionRepository, pg_sessionmaker
-        ),
+    form_ai_session_repo: PostgresFormAISessionRepository = providers.Singleton(
+        PostgresFormAISessionRepository, pg_sessionmaker
     )
-    workspace_ai_profile_repo = providers.Singleton(
-        RoutingRepository,
-        group="ai",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceAIProfileRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresWorkspaceAIProfileRepository, pg_sessionmaker
-        ),
+    workspace_ai_profile_repo: PostgresWorkspaceAIProfileRepository = providers.Singleton(
+        PostgresWorkspaceAIProfileRepository, pg_sessionmaker
     )
     form_import_repo = providers.Singleton(
         RoutingRepository,
@@ -454,17 +407,8 @@ class AppContainer(containers.DeclarativeContainer):
             postgres_repository, PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
         ),
     )
-    ai_preference_memory_repo = providers.Singleton(
-        RoutingRepository,
-        group="ai",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(AIPreferenceMemoryRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresAIPreferenceMemoryRepository, pg_sessionmaker
-        ),
+    ai_preference_memory_repo: PostgresAIPreferenceMemoryRepository = providers.Singleton(
+        PostgresAIPreferenceMemoryRepository, pg_sessionmaker
     )
 
     form_provider_repo: PostgresFormPluginProviderRepository = providers.Singleton(
@@ -562,43 +506,16 @@ class AppContainer(containers.DeclarativeContainer):
     integration_action_service: IntegrationActionService = providers.Singleton(
         IntegrationActionService, form_repo=form_repo
     )
-    mcp_audit_log_repo: McpAuditLogRepository = providers.Singleton(
-        RoutingRepository,
-        group="ai",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(McpAuditLogRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresMcpAuditLogRepository, pg_sessionmaker
-        ),
+    mcp_audit_log_repo: PostgresMcpAuditLogRepository = providers.Singleton(
+        PostgresMcpAuditLogRepository, pg_sessionmaker
     )
     # the prompts AI-generated forms were built from (services/openai_service.py)
-    create_form_prompt_repo: CreateFormPromptRepository = providers.Singleton(
-        RoutingRepository,
-        group="ai",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(CreateFormPromptRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresCreateFormPromptRepository, pg_sessionmaker
-        ),
+    create_form_prompt_repo: PostgresCreateFormPromptRepository = providers.Singleton(
+        PostgresCreateFormPromptRepository, pg_sessionmaker
     )
     # the public API's Idempotency-Key records (services/idempotency.py)
-    idempotency_repo: IdempotencyRepository = providers.Singleton(
-        RoutingRepository,
-        group="ai",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(IdempotencyRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresIdempotencyRepository, pg_sessionmaker
-        ),
+    idempotency_repo: PostgresIdempotencyRepository = providers.Singleton(
+        PostgresIdempotencyRepository, pg_sessionmaker
     )
 
     temporal_service = providers.Singleton(

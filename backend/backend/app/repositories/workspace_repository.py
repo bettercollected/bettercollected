@@ -12,11 +12,42 @@ from backend.app.repositories.metric_periods import (
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from common.base.repo import BaseRepository, T, U
+from common.records import RecordId, to_bson
 from common.enums.form_provider import FormProvider
 from common.db.routing import write_op
 
 
+async def with_workspace_action(
+    actions, workspace: Optional[Dict[str, Any]], workspace_id, action_id
+) -> Dict[str, Any]:
+    """``workspace`` (a stored workspace document, or ``None``) as the action
+    runner gets it: ``parameters.<action_id>`` / ``secrets.<action_id>`` set
+    from the workspace's copy of the action (read through ``actions``) and
+    ``id`` set. 404 when there is no such workspace or copy. The shape of the
+    4.0 ``$lookup`` aggregation, which both workspace repositories keep."""
+    workspace_action = (
+        None
+        if workspace is None
+        else await actions.get_workspace_action(
+            workspace_id=RecordId(str(workspace_id)),
+            action_id=RecordId(str(action_id)),
+        )
+    )
+    if workspace is None or workspace_action is None:
+        raise HTTPException(status_code=404, content="Workspace not found")
+    action = to_bson(workspace_action)
+    for key in ("parameters", "secrets"):
+        if key in action:  # $set of a missing path adds nothing
+            workspace.setdefault(key, {})[str(action_id)] = action[key]
+    workspace["id"] = PydanticObjectId(str(workspace_id))
+    return workspace
+
+
 class WorkspaceRepository(BaseRepository):
+    def __init__(self, action_repository=None):
+        # the actions repository (Postgres): get_workspace_with_action_by_id
+        self._actions = action_repository
+
     async def list(self) -> List[T]:
         pass
 
@@ -175,32 +206,13 @@ class WorkspaceRepository(BaseRepository):
     async def get_workspace_with_action_by_id(
         self, workspace_id: PydanticObjectId, action_id: PydanticObjectId
     ):
-        workspaces = (
-            await WorkspaceDocument.find({"_id": workspace_id})
-            .aggregate(
-                [
-                    {
-                        "$lookup": {
-                            "from": "workspace_actions",
-                            "localField": "_id",
-                            "foreignField": "workspace_id",
-                            "as": "actions",
-                        }
-                    },
-                    {"$unwind": "$actions"},
-                    {"$match": {"actions.action_id": action_id}},
-                    {
-                        "$set": {
-                            f"parameters.{action_id}": "$actions.parameters",
-                            f"secrets.{action_id}": "$actions.secrets",
-                            "id": workspace_id,
-                        }
-                    },
-                    {"$unset": "actions"},
-                ]
-            )
-            .to_list()
+        """The stored workspace with ``parameters.<action_id>`` /
+        ``secrets.<action_id>`` from its copy of the action and ``id`` set;
+        404 without either. The copy is read from the actions repository
+        (Postgres only since 4.1), where it was once a ``$lookup``."""
+        raw = await WorkspaceDocument.get_pymongo_collection().find_one(
+            {"_id": workspace_id}
         )
-        if len(workspaces) == 0:
-            raise HTTPException(status_code=404, content="Workspace not found")
-        return workspaces[0]
+        return await with_workspace_action(
+            self._actions, raw, workspace_id, action_id
+        )

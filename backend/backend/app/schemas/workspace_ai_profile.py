@@ -1,14 +1,10 @@
 import datetime as dt
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from beanie import Indexed, PydanticObjectId
-from common.configs.mongo_document import MongoDocument
-
-from backend.app.handlers.database import entity
+from common.records import Record, RecordId
 
 
-@entity
-class WorkspaceAIProfileDocument(MongoDocument):
+class WorkspaceAIProfileDocument(Record):
     """The workspace's AI profile — the org context every AI call is grounded
     in (see plans/ai-native-form-builder.md §2.3).
 
@@ -23,7 +19,8 @@ class WorkspaceAIProfileDocument(MongoDocument):
     auditability matters more than storage.
     """
 
-    workspace_id: Annotated[PydanticObjectId, Indexed(unique=True)]
+    # unique in Postgres (app migration 0001)
+    workspace_id: RecordId
     about: str = ""
     guidelines: str = ""
     compliance: str = ""

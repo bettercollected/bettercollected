@@ -764,6 +764,8 @@ if [ "$sso_enabled" = true ]; then
     echo "POLIS_DB_ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
     echo "Generated a new POLIS_DB_ENCRYPTION_KEY in .env (first run with SSO)."
   fi
+  echo "NOTE: SSO is on. Polis's egress must not reach private addresses (RFC 1918, link-local,"
+  echo "      loopback, the Docker networks): see 'Polis egress' in docs/sso.md for the firewall rule."
 fi
 
 chmod 600 .env

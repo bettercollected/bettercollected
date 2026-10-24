@@ -19,7 +19,6 @@ from common.models.standard_form import (
 )
 
 from backend.app.container import container
-from backend.app.schemas.mcp_audit_log import MCPAuditLogDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto

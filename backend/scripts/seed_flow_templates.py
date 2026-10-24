@@ -29,6 +29,7 @@ import os
 import uuid
 
 from backend.app.schemas.template import FormTemplateDocument
+from scripts.dutch_first_templates import BILINGUAL_BUILDERS
 
 THEME = {
     "title": "Default",
@@ -210,7 +211,15 @@ def job_screening() -> dict:
 
 # Add new flow-native templates here — each is a zero-arg builder returning the
 # payload shape above. Startup seeding and the CLI both iterate this tuple.
-TEMPLATE_BUILDERS = (support_triage, lead_qualification, job_screening)
+# The Dutch-first templates and their English twins are written in
+# scripts/dutch_first_templates.py; their payloads also carry the template's
+# language, welcome page and ending.
+TEMPLATE_BUILDERS = (
+    support_triage,
+    lead_qualification,
+    job_screening,
+    *BILINGUAL_BUILDERS,
+)
 
 
 async def seed_flow_templates(workspace_id, template_repo) -> dict:
@@ -249,9 +258,10 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
             description=payload["description"],
             fields=payload["fields"],
             theme=THEME,
-            welcome_page={"title": payload["title"], "layout": LAYOUT, "buttonText": "Start"},
-            thankyou_page=[{"layout": LAYOUT}],
-            settings={"is_public": True},
+            welcome_page=payload.get("welcome_page")
+            or {"title": payload["title"], "layout": LAYOUT, "buttonText": "Start"},
+            thankyou_page=payload.get("thankyou_page") or [{"layout": LAYOUT}],
+            settings={"is_public": True, "language": payload.get("language")},
         )
         await template_repo.save(template)
         seeded.append(payload["title"])

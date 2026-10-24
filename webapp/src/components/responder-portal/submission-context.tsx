@@ -9,6 +9,9 @@ interface SubmissionContextType {
     handleRequestForDeletion: () => void;
     hasCustomDomain: boolean;
     workspaceName?: string;
+    /** The id (or, with isUUID, the submission number) in the page's URL. */
+    submissionId?: string;
+    isUUID?: boolean;
 }
 
 const SubmissionContext = createContext<SubmissionContextType | undefined>(undefined);

@@ -1,13 +1,12 @@
-"""Postgres twins of the ai-group repositories."""
+"""The ai group's repositories: Postgres only (its Mongo collections are read
+only by the import from 4.0)."""
 
 import datetime as dt
 from typing import List, Optional
 
-from beanie import PydanticObjectId
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from backend.app.repositories.postgres.forms import _oid
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.schemas.api_idempotency_record import (
@@ -28,19 +27,20 @@ from backend.db.models import (
     McpAuditLogRow,
     WorkspaceAiProfileRow,
 )
-from common.db import PostgresRepositoryBase, from_row_doc, row_values
 from common.clock import utcnow
+from common.records import RecordId, decode, row_values
+from common.records.repository import RecordRepository
 
 
-class PostgresFormAIInsightRepository(PostgresRepositoryBase):
+class PostgresFormAIInsightRepository(RecordRepository):
     row = FormAiInsightRow
     document = FormAIInsightDocument
 
     async def find(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ) -> Optional[FormAIInsightDocument]:
         return await self.one(
-            FormAiInsightRow.workspace_id == _oid(workspace_id),
+            FormAiInsightRow.workspace_id == str(workspace_id),
             FormAiInsightRow.form_id == form_id,
         )
 
@@ -48,11 +48,12 @@ class PostgresFormAIInsightRepository(PostgresRepositoryBase):
         return await self.save_document(document)
 
 
-class PostgresFormAISessionRepository(PostgresRepositoryBase):
+class PostgresFormAISessionRepository(RecordRepository):
     row = FormAiSessionRow
     document = FormAISessionDocument
 
-    async def get_or_404(self, session_id: PydanticObjectId) -> FormAISessionDocument:
+    async def get_or_404(self, session_id: RecordId) -> FormAISessionDocument:
+        """The session, or ``NotFoundError`` when there is none."""
         return await self.get_or_raise(session_id)
 
     async def save(self, session: FormAISessionDocument) -> FormAISessionDocument:
@@ -60,19 +61,19 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
 
     async def update_proposal(
         self,
-        session_id: PydanticObjectId,
+        session_id: RecordId,
         proposal_id: str,
         fields: dict,
         only_if_status: Optional[str] = None,
     ) -> bool:
-        """The Mongo original's targeted update: the row is locked, so a
-        chat turn saved at the same time waits and then keeps this change
-        only if it read the row afterwards (as with Mongo).
+        """Set ``fields`` on one proposal of a session's turns and nothing
+        else. The row is locked, so a chat turn saved at the same time waits
+        and then keeps this change only if it read the row afterwards. With
+        ``only_if_status``, only while the proposal has that status.
 
-        Like the array-filtered ``$set``, every proposal record with this id
-        that passes the status filter is updated, and the answer is whether
-        anything changed (Mongo's ``modified_count``): setting values that are
-        already there is not an update."""
+        Every proposal record with this id that passes the status filter is
+        updated, and the answer is whether anything changed: setting values
+        that are already there is not an update."""
         locked = (
             select(FormAiSessionRow.doc)
             .where(FormAiSessionRow.id == str(session_id))
@@ -82,7 +83,7 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
             doc = (await session.execute(locked)).scalar_one_or_none()
             if doc is None:
                 return False
-            document = from_row_doc(FormAISessionDocument, doc)
+            document = decode(FormAISessionDocument, doc)
             changed = False
             for message in document.messages or []:
                 record = message.get("proposal")
@@ -99,14 +100,14 @@ class PostgresFormAISessionRepository(PostgresRepositoryBase):
         return changed
 
 
-class PostgresWorkspaceAIProfileRepository(PostgresRepositoryBase):
+class PostgresWorkspaceAIProfileRepository(RecordRepository):
     row = WorkspaceAiProfileRow
     document = WorkspaceAIProfileDocument
 
     async def find_by_workspace(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> Optional[WorkspaceAIProfileDocument]:
-        return await self.one(WorkspaceAiProfileRow.workspace_id == _oid(workspace_id))
+        return await self.one(WorkspaceAiProfileRow.workspace_id == str(workspace_id))
 
     async def save(
         self, document: WorkspaceAIProfileDocument
@@ -114,15 +115,15 @@ class PostgresWorkspaceAIProfileRepository(PostgresRepositoryBase):
         return await self.save_document(document)
 
 
-class PostgresAIPreferenceMemoryRepository(PostgresRepositoryBase):
+class PostgresAIPreferenceMemoryRepository(RecordRepository):
     row = AiPreferenceMemoryRow
     document = UserAIPreferenceMemoryDocument
 
     async def find(
-        self, workspace_id: PydanticObjectId, user_id: str
+        self, workspace_id: RecordId, user_id: str
     ) -> Optional[UserAIPreferenceMemoryDocument]:
         return await self.one(
-            AiPreferenceMemoryRow.workspace_id == _oid(workspace_id),
+            AiPreferenceMemoryRow.workspace_id == str(workspace_id),
             AiPreferenceMemoryRow.user_id == user_id,
         )
 
@@ -132,7 +133,7 @@ class PostgresAIPreferenceMemoryRepository(PostgresRepositoryBase):
         return await self.save_document(document)
 
 
-class PostgresMcpAuditLogRepository(PostgresRepositoryBase):
+class PostgresMcpAuditLogRepository(RecordRepository):
     row = McpAuditLogRow
     document = MCPAuditLogDocument
 
@@ -140,12 +141,12 @@ class PostgresMcpAuditLogRepository(PostgresRepositoryBase):
         return await self.save_document(MCPAuditLogDocument(**fields))
 
     async def list_by_workspace(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> List[MCPAuditLogDocument]:
-        return await self.many(McpAuditLogRow.workspace_id == _oid(workspace_id))
+        return await self.many(McpAuditLogRow.workspace_id == str(workspace_id))
 
 
-class PostgresCreateFormPromptRepository(PostgresRepositoryBase):
+class PostgresCreateFormPromptRepository(RecordRepository):
     row = CreateFormPromptRow
     document = CreateFormPrompt
 
@@ -153,22 +154,27 @@ class PostgresCreateFormPromptRepository(PostgresRepositoryBase):
         return await self.save_document(prompt)
 
     async def list_by_form_id(
-        self, form_id: PydanticObjectId
+        self, form_id: RecordId
     ) -> List[CreateFormPrompt]:
-        return await self.many(CreateFormPromptRow.form_id == _oid(form_id))
+        return await self.many(CreateFormPromptRow.form_id == str(form_id))
 
 
-class PostgresIdempotencyRepository(PostgresRepositoryBase):
+class PostgresIdempotencyRepository(RecordRepository):
     row = ApiIdempotencyKeyRow
     document = ApiIdempotencyRecordDocument
 
     async def find(self, record_id: str) -> Optional[ApiIdempotencyRecordDocument]:
+        """The record, unless it expired (expired rows linger until the next
+        claim sweeps them)."""
         return await self.one(
             ApiIdempotencyKeyRow.id == str(record_id),
             ApiIdempotencyKeyRow.expires_at > dt.datetime.now(dt.timezone.utc),
         )
 
     async def claim(self, record: ApiIdempotencyRecordDocument) -> bool:
+        """Store ``record`` unless a live record has its id; True when this
+        call stored it. Atomic: of two requests with the same key, one
+        claims it."""
         now = utcnow()
         names = self._column_names()
         values = row_values(record)
@@ -199,6 +205,7 @@ class PostgresIdempotencyRepository(PostgresRepositoryBase):
         body: str,
         etag: Optional[str] = None,
     ) -> None:
+        """Keep the response of the request that claimed ``record_id``."""
         locked = (
             select(ApiIdempotencyKeyRow.doc)
             .where(ApiIdempotencyKeyRow.id == str(record_id))
@@ -208,7 +215,7 @@ class PostgresIdempotencyRepository(PostgresRepositoryBase):
             doc = (await session.execute(locked)).scalar_one_or_none()
             if doc is None:
                 return
-            record = from_row_doc(ApiIdempotencyRecordDocument, doc)
+            record = decode(ApiIdempotencyRecordDocument, doc)
             if record.state != IDEMPOTENCY_PENDING:
                 return
             record.state = IDEMPOTENCY_DONE
@@ -219,6 +226,7 @@ class PostgresIdempotencyRepository(PostgresRepositoryBase):
             await session.execute(self._upsert_statement(row_values(record)))
 
     async def release(self, record_id: str) -> None:
+        """Forget a claim whose request failed on our side, so a retry runs."""
         record = await self.one(ApiIdempotencyKeyRow.id == str(record_id))
         if record is not None and record.state == IDEMPOTENCY_PENDING:
             await self.delete_where(ApiIdempotencyKeyRow.id == str(record_id))

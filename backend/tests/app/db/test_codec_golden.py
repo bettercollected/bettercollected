@@ -11,13 +11,21 @@ from sqlalchemy import delete, select
 
 from backend.app.container import container
 from backend.app.handlers.database import document_models
+from backend.app.schemas.action_document import ActionDocument, WorkspaceActionsDocument
+from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
+from backend.app.schemas.api_idempotency_record import ApiIdempotencyRecordDocument
 from backend.app.schemas.coupon_codes import CouponCodeDocument
+from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.schemas.flow_event import FlowEventDocument
+from backend.app.schemas.form_ai_insight import FormAIInsightDocument
+from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from backend.app.schemas.mcp_audit_log import MCPAuditLogDocument
 from backend.app.schemas.price_suggestion import PriceSuggestion
 from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.user_feedback import UserFeedbackDocument
+from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.db.base import Base
 from common.db import BaseRow, PostgresRepositoryBase, canonical_json, checksum
 from common.db.codec_golden import (
@@ -45,6 +53,15 @@ RECORD_CLASSES = (
     UserFeedbackDocument,
     FlowEventDocument,
     RateLimitCounterDocument,
+    UserAIPreferenceMemoryDocument,
+    FormAISessionDocument,
+    FormAIInsightDocument,
+    WorkspaceAIProfileDocument,
+    MCPAuditLogDocument,
+    CreateFormPrompt,
+    ApiIdempotencyRecordDocument,
+    ActionDocument,
+    WorkspaceActionsDocument,
 )
 
 # Values the synthesizer cannot guess (a field validator with a checksum).

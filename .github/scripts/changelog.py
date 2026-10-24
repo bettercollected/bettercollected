@@ -43,7 +43,10 @@ REPO_URL = re.compile(r"^(?P<base>https://github\.com/[^/]+/[^/]+)/(?:compare|re
 NO_CHANGELOG_LABEL = "no-changelog"
 ASSEMBLY_BRANCH_PREFIX = "docs/changelog-"
 # Pull requests that only move already-reviewed changes between long-lived branches.
-SYNC_BRANCH = re.compile(r"^(develop|master|main|release/.+)$")
+# Branch syncs carry changes (and released changelog sections) that already have their
+# entries: the long-lived branches, and a merge-forward of a release branch into develop
+# (merge/release-<x>-into-develop, see RELEASING.md).
+SYNC_BRANCH = re.compile(r"^(develop|master|main|release/.+|merge/release-.+)$")
 BOT_AUTHORS = {"dependabot[bot]"}
 
 

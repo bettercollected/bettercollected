@@ -1,18 +1,14 @@
 import datetime as dt
 from typing import Dict, Any
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
-
-from backend.app.handlers.database import entity
+from common.records import Record, RecordId
 
 
-@entity
-class CreateFormPrompt(MongoDocument):
+class CreateFormPrompt(Record):
     prompt: str
     openai_response: Dict[str, Any]
     created_form: Dict[str, Any]
-    form_id: PydanticObjectId
+    form_id: RecordId
 
     class Settings:
         name = "create_form_prompts"

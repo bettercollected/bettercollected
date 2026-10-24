@@ -43,7 +43,9 @@ Then run `./deploy.sh`. With `SSO_ENABLED=true` it:
 
 - checks that `SSO_POLIS_URL`, `SSO_REDIRECT_URI` and `SSO_SAML_AUDIENCE` are set;
 - generates Polis's secrets into `.env` (once): `BC_POLIS_PASSWORD`, `SSO_POLIS_API_KEY` (Polis's `JACKSON_API_KEYS`), `POLIS_CLIENT_SECRET_VERIFIER`, `POLIS_NEXTAUTH_SECRET` and a 32-character `POLIS_DB_ENCRYPTION_KEY`. Keep them and back them up: losing `POLIS_DB_ENCRYPTION_KEY` loses every connection;
-- adds the overlay `docker-compose.sso-deployment.yml`, which starts `polis` and its own `polis-postgres` and puts the backend, the jobs worker and auth on Polis's network.
+- adds the overlay `docker-compose.sso-deployment.yml`, which starts `polis` and its own `polis-postgres` and gives the backend, the jobs worker and auth each a network of its own with Polis.
+
+**Before the first sign-in on a hosted stack, filter Polis's egress** ([Polis egress](#polis-egress-required-on-a-hosted-stack), below). This step is required: the compose files cannot do it for you.
 
 Polis lives only in that overlay, so a deployment without SSO reads none of it and needs none of its values. The overlay requires them (`${VAR:?}`), so an SSO deployment refuses to start with an empty key. Running compose by hand with SSO:
 
@@ -53,9 +55,55 @@ docker compose -f docker-compose.deployment.yml -f docker-compose.sso-deployment
 
 Polis runs with `IDP_ENABLED=false` (no IdP-initiated sign-in), `OPENID_REDIRECT_EXACT_MATCH=true` (the redirect URI must match exactly), a random `CLIENT_SECRET_VERIFIER` (never Polis's default `dummy`) and `DB_ENCRYPTION_KEY`. The image is pinned by digest to 26.2.0, the version tested; override it with `POLIS_IMAGE` in `.env` only after testing another.
 
-**Network isolation.** Polis fetches nothing an admin typed in (we fetch metadata and discovery documents ourselves, see "SSRF" below), but it does call the IdPs' token, userinfo and JWKS endpoints. So it runs on its own networks, defined in the overlay: `polis-db` (internal, Polis and its Postgres only) and `sso` (Polis, the backend, the jobs worker and auth, with internet egress). It cannot reach Mongo, `app-postgres`, Temporal, Umami or the other services. The backend and auth can reach it, and it can reach their HTTP ports in turn (auth's API needs the internal key). Local development (`docker-compose.sso.yml`) is simpler: Polis joins the local stack's network and keeps its data in `app-postgres`.
+**Network isolation.** Polis fetches nothing an admin typed in (we fetch metadata and discovery documents ourselves, see "SSRF" below), but it does call the IdPs' token, userinfo and JWKS endpoints. So it runs on networks of its own, defined in the overlay, and shares each with at most one other service:
+
+| Network | Members | Egress | Used for |
+|---|---|---|---|
+| `polis-egress` | Polis only | yes | the IdPs' endpoints, and Polis's published port. Subnet `POLIS_EGRESS_SUBNET` (default `172.30.78.0/29`), pinned so a firewall rule can name it |
+| `polis-db` | Polis, `polis-postgres` | no (internal) | Polis's database |
+| `sso-backend` | Polis, backend | no (internal) | the admin API and SCIM resync; Polis posts SCIM events back to the backend |
+| `sso-jobs` | Polis, jobs worker | no (internal) | the nightly SCIM resync and releasing deleted workspaces' connections |
+| `sso-auth` | Polis, auth | no (internal) | the token and userinfo calls of the sign-in |
+
+Polis cannot reach Mongo, `app-postgres`, Temporal, Umami or the other services, and the callers do not reach each other through Polis's networks. A network is symmetric, though: Polis can reach the HTTP ports of its three callers (auth's API needs the internal key). The callers are tested (`backend/tests/admin/test_sso_compose_networks.py` renders the compose files and checks who is on which network): add a service to Polis's networks only if it calls Polis, and then on a network of its own. Local development (`docker-compose.sso.yml`) is set up the same way: Polis keeps its data in its own `polis-postgres` and shares no network with the local stack, whose backend and auth reach it on `localhost:5225`.
 
 The webapp's SSO screens follow the webapp container's own `SSO_ENABLED`, read at runtime: the same image serves deployments with and without SSO, no rebuild needed. Set it with the backend's and auth's.
+
+### Polis egress (required on a hosted stack)
+
+The compose networks keep Polis away from the other containers' networks, but its egress network still routes to everything the host can reach: the host's own ports, other Docker networks' addresses through the host, the cloud provider's metadata service (`169.254.169.254`) and the private network the host sits in. The IdP endpoints Polis calls are checked to be public when a connection is saved, but their names are resolved again at each sign-in (see "SSRF" below), so a changed DNS answer could point Polis at a private address. **Before SSO is enabled on a hosted stack**, deny Polis's egress to:
+
+- the RFC 1918 ranges `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` (they include Docker's default address pools; add any pool of your own `default-address-pools` outside them),
+- link-local `169.254.0.0/16`, which includes cloud metadata endpoints,
+- loopback `127.0.0.0/8`, and CGNAT `100.64.0.0/10` (VPNs such as Tailscale),
+- the host itself (its own services are reached over the network's gateway, not forwarded),
+- and the IPv6 equivalents (`fc00::/7`, `fe80::/10`, `::1`) if Docker IPv6 is enabled.
+
+With iptables (also iptables-nft), as root on the Docker host, after the stack is up. Traffic Polis forwards goes through Docker's `DOCKER-USER` chain, which Docker keeps in front of its own rules; traffic to the host itself goes through `INPUT`:
+
+```bash
+POLIS_NET=172.30.78.0/29   # POLIS_EGRESS_SUBNET
+# new connections from Polis to private ranges (replies to connections made to Polis pass)
+for range in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 127.0.0.0/8 100.64.0.0/10; do
+  iptables -I DOCKER-USER -s "$POLIS_NET" -d "$range" -m conntrack --ctstate NEW -j REJECT
+done
+# If the host's DNS resolver has a private address (cloud VPC resolvers usually do), let
+# Polis reach it on port 53, or it can't resolve the IdPs. -I puts it above the rules above:
+#   iptables -I DOCKER-USER -s "$POLIS_NET" -d 10.0.0.2 -p udp --dport 53 -j RETURN
+#   iptables -I DOCKER-USER -s "$POLIS_NET" -d 10.0.0.2 -p tcp --dport 53 -j RETURN
+# the host itself: replies to connections the host opened (your reverse proxy) still pass
+iptables -I INPUT -s "$POLIS_NET" -j REJECT
+iptables -I INPUT -s "$POLIS_NET" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+```
+
+Make the rules survive a reboot (`iptables-persistent` / `netfilter-persistent save`, or a systemd unit that runs after `docker.service`), and check them from inside Polis; each private target must be refused and an IdP still reachable:
+
+```bash
+docker compose -f docker-compose.deployment.yml -f docker-compose.sso-deployment.yml exec polis \
+  node -e 'for (const u of ["http://169.254.169.254/", "http://172.30.78.1:8000/", "http://backend:8000/", "https://login.microsoftonline.com/"]) fetch(u, {signal: AbortSignal.timeout(5000)}).then(r => console.log(u, "reachable", r.status), e => console.log(u, "blocked", e.cause?.code || e.name))'
+```
+
+`backend:8000` stays reachable (the internal `sso-backend` network, which these rules don't touch); the metadata address and the backend's port through the host's gateway (reachable without the rules) must be blocked. An egress proxy that only lets Polis reach public addresses works as well, as long as Polis has no other route out. Cloud hosts can add a provider firewall rule, but it does not replace these: it never sees traffic that stays on the host.
 
 ### Exposing Polis
 
@@ -73,7 +121,7 @@ server {
 }
 ```
 
-`/api/oauth/saml` (the SAML ACS) and `/api/oauth/oidc` (the OIDC redirect) receive the IdPs' answers through the browser; `/api/oauth/authorize` starts a sign-in; `/api/oauth/token` and `/api/oauth/userinfo` are called by the auth service, which uses `http://polis:5225` inside the compose network. Deleting a connection sends Polis the connection's own client secret as a query parameter (the only form Polis's admin DELETE accepts); that request stays on the internal `sso` network, and the admin API must never be exposed.
+`/api/oauth/saml` (the SAML ACS) and `/api/oauth/oidc` (the OIDC redirect) receive the IdPs' answers through the browser; `/api/oauth/authorize` starts a sign-in; `/api/oauth/token` and `/api/oauth/userinfo` are called by the auth service, which uses `http://polis:5225` inside the compose network. Deleting a connection sends Polis the connection's own client secret as a query parameter (the only form Polis's admin DELETE accepts); that request stays on the internal `sso-backend` network (`sso-jobs` for the jobs worker), and the admin API must never be exposed.
 
 ### Settings
 
@@ -102,7 +150,7 @@ docker compose -f docker-compose.local.yml up -d     # Mongo + app-postgres
 scripts/sso-dev-setup.sh --seed-workspace            # Polis :5225, mock SAML IdP :4000, demo workspace
 ```
 
-The script generates throwaway secrets in `.sso-dev/` (gitignored), creates the `polis` database, starts `docker-compose.sso.yml` and prints the `SSO_*` lines for `backend/.env` and `auth/.env` (`SSO_POLIS_API_KEY` is `JACKSON_API_KEYS` from `.sso-dev/polis.env`). The mock IdP only issues `@example.com` and `@example.org` addresses, which domain verification refuses to claim, and there is no DNS to publish a record in. So `--seed-workspace` (or `--workspace <id>`) marks `example.com` verified for the workspace **directly in the local Mongo**; this is a local-only shortcut. Then, signed in as a workspace owner (`owner@example.com`, email code), open the workspace's Single sign-on settings, add a SAML connection by pasting the XML from `http://localhost:4000/api/saml/metadata` (a `localhost` metadata URL is refused by design), test it, enable it, and sign out. "Sign in with SSO" with any `@example.com` address then goes through the mock IdP; pick `@example.org` there to see the domain refusal. Both containers listen on `127.0.0.1` only, and mock-saml is pinned to 1.4.2 (by digest). Teardown: `docker compose -f docker-compose.sso.yml -p bettercollected-sso down`, and drop the `polis` database to wipe Polis.
+The script generates throwaway secrets in `.sso-dev/` (gitignored), starts `docker-compose.sso.yml` (Polis with its own Postgres, and the mock IdP) and prints the `SSO_*` lines for `backend/.env` and `auth/.env` (`SSO_POLIS_API_KEY` is `JACKSON_API_KEYS` from `.sso-dev/polis.env`). The mock IdP only issues `@example.com` and `@example.org` addresses, which domain verification refuses to claim, and there is no DNS to publish a record in. So `--seed-workspace` (or `--workspace <id>`) marks `example.com` verified for the workspace **directly in the local Mongo**; this is a local-only shortcut. Then, signed in as a workspace owner (`owner@example.com`, email code), open the workspace's Single sign-on settings, add a SAML connection by pasting the XML from `http://localhost:4000/api/saml/metadata` (a `localhost` metadata URL is refused by design), test it, enable it, and sign out. "Sign in with SSO" with any `@example.com` address then goes through the mock IdP; pick `@example.org` there to see the domain refusal. Both containers listen on `127.0.0.1` only, and mock-saml is pinned to 1.4.2 (by digest). Teardown: `docker compose -f docker-compose.sso.yml -p bettercollected-sso down` (`-v` also wipes Polis's data). Setups from before Polis had its own Postgres kept it in a `polis` database in `app-postgres`; that database is no longer used and can be dropped.
 
 ## For workspace admins
 
@@ -171,7 +219,7 @@ Users need an email address in Entra ID. Test in a private window or sign out of
 - **Connection tests.** A failed test is recorded on the connection only for the browser that started it (its nonce) and only while that admin may still manage SSO, so a replayed test state can't mark a connection as failed. What a failed test records for diagnosis is the domain of the address the IdP sent (only for `sso_email_domain_not_allowed`, never the address or its local part) and the names of the claims it sent (never their values); auth reports claim names only for a test (the `test` flag in its encrypted state), the backend sanitises both again, neither is logged, and a passed test or a configuration change clears them. Regular sign-ins record nothing of this.
 - **Platform admins.** An SSO session never has the platform-admin role: not from `PLATFORM_ADMIN_EMAILS` (the backend tells auth the session is not admin-eligible on sign-in, on every refresh and in the import-OAuth token exchange) and not one stored on the account either (auth leaves it out of the SSO sign-in and the backend strips it on every refresh). On top of that, the platform admins' domains (and `VERIFIED_DOMAINS_RESERVED`) can't be claimed, and a domain that becomes reserved after it was verified is no longer used for SSO.
 - **Email case.** SSO compares emails case-insensitively: `bob@acme.com` signs in to an existing `Bob@Acme.com` account instead of creating a second one. Several accounts differing only in case are refused (`sso_account_conflict`). The other sign-in paths still match exactly (a central normalisation is a follow-up).
-- **SSRF.** Polis is never handed a URL an admin typed. A SAML metadata URL is fetched by the backend (every redirect hop checked, at most 3, 512 KB cap) and Polis gets the XML. An OIDC discovery document is fetched the same way, and every endpoint it lists (`issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`) must be `https` and resolve only to public addresses; Polis gets those checked endpoints as the connection's metadata (it never fetches the discovery URL), and they are checked again before each test. "Public" means no private, loopback, link-local, CGNAT, multicast, reserved or unspecified ranges, IPv4 or IPv6, and no credentials in the URL. **Residual risk:** names are resolved for the check and again for the request (by the backend, and by Polis when it calls the token, userinfo and JWKS endpoints at sign-in), so a name whose DNS answer changes after the check (rebinding, or a later DNS change at the IdP) is not covered. That is why Polis runs on its own networks (above).
+- **SSRF.** Polis is never handed a URL an admin typed. A SAML metadata URL is fetched by the backend (every redirect hop checked, at most 3, 512 KB cap) and Polis gets the XML. An OIDC discovery document is fetched the same way, and every endpoint it lists (`issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`) must be `https` and resolve only to public addresses; Polis gets those checked endpoints as the connection's metadata (it never fetches the discovery URL), and they are checked again before each test. "Public" means no private, loopback, link-local, CGNAT, multicast, reserved or unspecified ranges, IPv4 or IPv6, and no credentials in the URL. **Residual risk:** names are resolved for the check and again for the request (by the backend, and by Polis when it calls the token, userinfo and JWKS endpoints at sign-in), so a name whose DNS answer changes after the check (rebinding, or a later DNS change at the IdP) is not covered. That is why Polis runs on its own networks and its egress to private addresses must be filtered (above).
 - **Secrets.** The Polis API key is used server-side only. OIDC client secrets pass through the backend to Polis and are never stored or logged by BetterCollected; Polis encrypts its store with `DB_ENCRYPTION_KEY`.
 - **Entity IDs left in Polis.** Deleting a connection deletes it in Polis first (the request fails if Polis is unreachable). Deleting a workspace deletes its Polis tenant; if Polis is unreachable (or SSO is switched off on the instance) at that moment, the workspace's connections are kept with status `release_pending` (they never sign anyone in) and the daily `sso_release_retry` job (03:47 UTC, on the jobs worker) deletes them in Polis and then here. It takes the least recently tried first (a failed attempt moves a workspace's connections to the back), and logs an error for each deleted workspace whose connections have waited 7 days or more. A connection Polis created but we failed to record is deleted in Polis at once, unless one of our records names that Polis connection (Polis updates an existing connection for the same IdP in place and answers with its clientID) or that record can't be checked: then Polis is left alone. See [Releasing an entity ID](#releasing-an-entity-id) for the support tool.
 - **Not covered:** IdP-initiated sign-in (off in Polis), and single logout (signing out of BetterCollected does not sign out of the IdP). Without a directory, removing someone at the IdP stops new sign-ins, and their existing sessions run until they expire or are revoked; [directory sync](#directory-sync-scim) disables the membership and revokes the sessions. Removing the member from the workspace takes away their access at once.
@@ -217,6 +265,7 @@ Collection `sso_connections` (`SsoConnectionDocument`) with its Postgres twin `a
 
 - auth: `tests/integration/app/test_sso_service.py` (PKCE and state, tenant/product/connection mismatch, case-insensitive matching, `sso_email_missing`, a test's fresh sign-in and claim names, the assertion, no platform-admin role, the internal key), `test_postgres_parity.py` (the case-insensitive lookup in both stores).
 - backend: `tests/app/controllers/test_sso_login.py` (unverified, lost, reserved and other workspaces' domains, tenant mismatch, seat cap before the account exists, never downgrading, sessions, redirects, connection tests and their recorded domain and claim names), `test_sso_admin.py` (admin API, owner only, enabling needs a test, SSRF with redirect hops and OIDC endpoints, SSO required, break-glass, Google, revocation), `test_sso_review.py` (crafted workspace handles, the nonce cookie and single-use states, disabled memberships, the seat race, no stored admin role, sessions ending at refresh, respondent-scoped sessions), `test_sso_release.py` (pending releases and their retry, the entity-ID support command), `tests/app/services/test_sso_url_guard.py`, `tests/app/repositories/test_sso_connection_parity.py`, and a row per endpoint in `test_permission_matrix.py`. Polis and auth are stand-ins (`tests/app/sso_helpers.py`); nothing calls a real IdP or resolves real names.
+- deployment: `backend/tests/admin/test_sso_compose_networks.py` (Polis's networks in the SSO overlay and the local file, as written and as `docker compose config` renders them: one internal network per caller, egress for Polis alone, its database's network for the two of them, and only the services configured to call Polis on them).
 
 ## Directory sync (SCIM)
 
@@ -224,7 +273,7 @@ Single sign-on adds people when they first sign in and never notices when they l
 
 ```
 IdP (Okta, Entra ID, ...) ─ SCIM 2.0, bearer token ─▶ Polis /api/scim/v2.0/<directory>
-Polis ─ POST, BoxyHQ-Signature ─▶ backend /api/v1/scim/webhook/<our directory id>   (internal `sso` network)
+Polis ─ POST, BoxyHQ-Signature ─▶ backend /api/v1/scim/webhook/<our directory id>   (internal `sso-backend` network)
 backend: verify ─▶ dedupe ─▶ account (auth, verified domains only) ─▶ membership, role, sessions
 nightly / "Resync now" / CLI: backend ─ GET /api/v1/dsync/users|groups ─▶ Polis, then the same rules
 ```
@@ -235,7 +284,7 @@ Directory sync needs single sign-on on the instance (`SSO_ENABLED` and the rest,
 
 | Service | Setting | Default | Meaning |
 |---|---|---|---|
-| backend | `SCIM_WEBHOOK_URL` | | Where Polis delivers events: the backend's `/api/v1/scim/webhook` **as Polis reaches it**. `docker-compose.sso-deployment.yml` sets `http://backend:8000/api/v1/scim/webhook` (the internal `sso` network). Each directory's own id is appended. Unset: directory sync is off |
+| backend | `SCIM_WEBHOOK_URL` | | Where Polis delivers events: the backend's `/api/v1/scim/webhook` **as Polis reaches it**. `docker-compose.sso-deployment.yml` sets `http://backend:8000/api/v1/scim/webhook` (the internal `sso-backend` network). Each directory's own id is appended. Unset: directory sync is off |
 | backend | `SCIM_SIGNATURE_TOLERANCE_SECONDS` | `300` | How old (or early) a signed event may be |
 | backend | `SCIM_EVENT_RETENTION_SECONDS` | `86400` | How long accepted events are remembered against replays |
 | backend | `SCIM_MAX_WEBHOOK_BYTES` | `1000000` | Largest webhook body (Polis sends at most 1 MB) |
@@ -252,7 +301,7 @@ Directory sync needs single sign-on on the instance (`SSO_ENABLED` and the rest,
 
 The SCIM base URL shown to admins is `SSO_POLIS_URL/api/scim/v2.0/<directory id>` (Polis builds it from its `EXTERNAL_URL`).
 
-**The webhook.** Polis posts over the internal `sso` network, so nothing about it has to be public. It is still safe to expose (behind `api.example.org` it is `/api/v1/scim/webhook/<id>`): it is authenticated by the signature alone, and the URL Polis gets always comes from `SCIM_WEBHOOK_URL`, never from a request. If you run Polis outside compose, point `SCIM_WEBHOOK_URL` at an address Polis can reach.
+**The webhook.** Polis posts over the internal `sso-backend` network, so nothing about it has to be public. It is still safe to expose (behind `api.example.org` it is `/api/v1/scim/webhook/<id>`): it is authenticated by the signature alone, and the URL Polis gets always comes from `SCIM_WEBHOOK_URL`, never from a request. If you run Polis outside compose, point `SCIM_WEBHOOK_URL` at an address Polis can reach.
 
 **The nightly resync** runs on the procrastinate jobs worker (`python -m backend.jobs.worker`, the `jobs-worker` compose service), wherever it runs; it needs the same `SSO_*` settings and `SCIM_WEBHOOK_URL` as the backend (the SSO overlay sets both). Without it, use the "Resync now" button, or the CLI from `backend/`:
 
@@ -276,7 +325,7 @@ it does not check is listed under `skipped`, so it keeps working once Mongo is r
 
 Resolve each pair by hand (keep the membership with the right role, delete the other; nothing is deleted automatically), then deploy. If duplicates remain, Postgres revision `0011` stops **before changing anything** with a message naming this command, and the backend logs an ERROR at startup instead of creating the Mongo index (it still starts; new inserts are deduplicated in code). Once resolved, the next migration and the next restart create the indexes.
 
-**Local development.** After `scripts/sso-dev-setup.sh`, the backend runs on the host and Polis in a container, so Polis needs the host's address for webhooks. On Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `polis` service (or use the gateway address of the `bettercollected_default` network, e.g. `docker network inspect bettercollected_default -f '{{(index .IPAM.Config 0).Gateway}}'`) and set `SCIM_WEBHOOK_URL=http://host.docker.internal:8000/api/v1/scim/webhook` in `backend/.env`. The backend must listen on `0.0.0.0` for the container to reach it.
+**Local development.** After `scripts/sso-dev-setup.sh`, the backend runs on the host and Polis in a container, so Polis needs the host's address for webhooks. On Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `polis` service (or use the gateway address of Polis's `polis-egress` network, e.g. `docker network inspect bettercollected-sso_polis-egress -f '{{(index .IPAM.Config 0).Gateway}}'`) and set `SCIM_WEBHOOK_URL=http://host.docker.internal:8000/api/v1/scim/webhook` in `backend/.env`. The backend must listen on `0.0.0.0` for the container to reach it.
 
 ### For workspace admins
 

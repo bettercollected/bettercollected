@@ -17,7 +17,7 @@ import pytest
 from beanie import PydanticObjectId
 
 from backend.app.container import container
-from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
@@ -162,7 +162,9 @@ async def test_jobs_sweep_schedules_through_the_jobs_backend(sessions, monkeypat
 
 async def test_custom_domain_references_are_the_same_on_both_stores(sessions):
     mongo = WorkspaceRepository()
-    postgres = PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None))
+    postgres = PostgresWorkspaceRepository(
+        sessions, PostgresActionRepository(sessions, None)
+    )
     rows = workspaces()
     for document in rows:
         await document.save()
@@ -182,7 +184,9 @@ async def test_export_reference_map_reads_the_workspaces_from_the_read_source(
     from backend.custom_domain import __main__ as command
 
     mongo = WorkspaceRepository()
-    postgres = PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None))
+    postgres = PostgresWorkspaceRepository(
+        sessions, PostgresActionRepository(sessions, None)
+    )
     in_mongo = workspace("m", custom_domain="m.example")
     in_postgres = workspace("p", custom_domain="P.Example.")
     await in_mongo.save()

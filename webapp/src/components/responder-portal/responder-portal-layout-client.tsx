@@ -27,6 +27,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { portalBase, portalPath } from '@app/utils/portal-path';
 import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 import SearchBySubmissionNumber from './search-by-submission-number';
@@ -74,7 +75,7 @@ export default function ResponderPortalLayoutClient({
         });
     }
 
-    const basePath = hasCustomDomain ? '' : `/${workspace.workspaceName}`;
+    const basePath = portalBase(workspace.workspaceName, hasCustomDomain);
     // A ?lang=nl|en from the link stays on the tab links, so the next page
     // (and a reload of it) is in the same language.
     const langQuery = respondentLangQuery(useSearchParams()?.get('lang'));
@@ -104,7 +105,9 @@ export default function ResponderPortalLayoutClient({
         // only the central content column scrolls, the tab bar stays affixed,
         // and a stable scrollbar gutter stops the layout flicker that used to
         // happen the moment content grew past a screenful.
-        <div className={`max-w-screen bg-[#F5F7FB]! flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? 'pb-20!' : ''}`}>
+        // The whole page is its main content (the workspace's identity, how to
+        // find your submissions, the tabs), so every part is in a landmark.
+        <main className={`max-w-screen bg-[#F5F7FB]! flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? 'pb-20!' : ''}`}>
             {/* The portal is in the respondent's language (<html lang>), as the form pages are. */}
             <RespondentDocumentLanguage />
             <div className="max-w-screen w-full md:max-h-full md:w-[320px] md:max-w-[320px] md:overflow-y-auto">
@@ -150,10 +153,10 @@ export default function ResponderPortalLayoutClient({
                                         {!auth?.roles?.includes('FORM_CREATOR') && (
                                             <>
                                                 <Divider className="text-black-200" />
-                                                <div className="p4-new text-black-600 p-4">
-                                                    No workspace is associated with this email yet.{' '}
+                                                <div className="p4-new text-black-600 p-4" lang={language}>
+                                                    {tRespondent('PORTAL.NO_WORKSPACE')}{' '}
                                                     <ActiveLink target="_blank" href="https://bettercollected.com" className="text-blue-500">
-                                                        Try bettercollected{' '}
+                                                        {tRespondent('PORTAL.TRY_PRODUCT')}
                                                     </ActiveLink>
                                                 </div>
                                             </>
@@ -194,7 +197,8 @@ export default function ResponderPortalLayoutClient({
                             return (
                                 <Link
                                     key={tab.path}
-                                    href={`${basePath}/${tab.path}${langQuery}`}
+                                    href={`${portalPath(workspace.workspaceName, hasCustomDomain, tab.path)}${langQuery}`}
+                                    aria-current={isActive ? 'page' : undefined}
                                     className={cn(
                                         'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-hidden',
                                         isActive
@@ -221,7 +225,7 @@ export default function ResponderPortalLayoutClient({
             <div className="lg:hidden">
                 <PoweredBy language={language} />
             </div>
-        </div>
+        </main>
     );
 }
 

@@ -1,12 +1,12 @@
-from beanie import PydanticObjectId
 from common.models.standard_form import Trigger
 from common.models.user import User
+from common.records import RecordId
 from common.services.http_client import HttpClient
 from starlette.requests import Request
 
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
 from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
@@ -20,7 +20,7 @@ from backend.app.models.enum.permission import Permission
 class ActionService:
     def __init__(
         self,
-        action_repository: ActionRepository,
+        action_repository: PostgresActionRepository,
         form_repo: FormRepository,
         temporal_service: TemporalService,
         http_client: HttpClient,
@@ -38,11 +38,11 @@ class ActionService:
         self.form_response_service = form_response_service
         self.workspace_repo = workspace_repo
 
-    async def get_action(self, action_id: PydanticObjectId):
+    async def get_action(self, action_id: RecordId):
         return await self.action_repository.get_action_by_id(action_id)
 
     async def create_action(
-        self, workspace_id: PydanticObjectId, action: ActionDto, user: User
+        self, workspace_id: RecordId, action: ActionDto, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.WORKSPACE_MANAGE, workspace_id
@@ -55,14 +55,14 @@ class ActionService:
     async def get_all_actions(self):
         return await self.action_repository.get_all_actions()
 
-    async def get_action_by_id(self, action_id: PydanticObjectId):
+    async def get_action_by_id(self, action_id: RecordId):
         return await self.action_repository.get_action_by_id(action_id=action_id)
 
     async def start_actions_for_submission(
         self,
         form: FormDocument,
         response: FormResponseDocument,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
     ):
         form_actions = form.actions
         if form_actions is None:
@@ -93,12 +93,12 @@ class ActionService:
                 action=action, form=form, response=response, workspace=workspace
             )
 
-    async def delete_action_from_workspace(self, action_id: PydanticObjectId):
+    async def delete_action_from_workspace(self, action_id: RecordId):
         await self.form_repo.remove_action_from_all_forms(action_id=action_id)
         await self.action_repository.delete_action(action_id=action_id)
 
     async def create_action_in_workspace_from_action(
-        self, workspace_id: PydanticObjectId, action: ActionResponse, user: User
+        self, workspace_id: RecordId, action: ActionResponse, user: User
     ):
         action = await self.action_repository.get_action_by_id(action.id)
         return await self.action_repository.create_action_in_workspace_from_action(

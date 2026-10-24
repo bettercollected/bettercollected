@@ -13,7 +13,12 @@ export const RESPONDENT_LANGUAGES: ReadonlyArray<{ code: RespondentLanguage; lab
     { code: 'nl', label: 'Nederlands' }
 ];
 
-const isRespondentLanguage = (value: string | null | undefined): value is RespondentLanguage => value === 'en' || value === 'nl';
+/**
+ * The language a value names, as one of the constants; null for anything
+ * else. Returning the constant (not the value) keeps text from the URL out of
+ * every attribute and link the language is used in.
+ */
+const asRespondentLanguage = (value: string | null | undefined): RespondentLanguage | null => (value === 'nl' ? 'nl' : value === 'en' ? 'en' : null);
 
 /**
  * The respondent's language: an explicit `?lang=nl|en` on the share link wins,
@@ -21,11 +26,11 @@ const isRespondentLanguage = (value: string | null | undefined): value is Respon
  * else English.
  */
 export function pickRespondentLanguage(search: string, preferred: ReadonlyArray<string>): RespondentLanguage {
-    const fromLink = new URLSearchParams(search).get('lang')?.toLowerCase();
-    if (isRespondentLanguage(fromLink)) return fromLink;
+    const fromLink = asRespondentLanguage(new URLSearchParams(search).get('lang')?.toLowerCase());
+    if (fromLink) return fromLink;
     for (const tag of preferred) {
-        const base = tag?.toLowerCase().split('-')[0];
-        if (isRespondentLanguage(base)) return base;
+        const base = asRespondentLanguage(tag?.toLowerCase().split('-')[0]);
+        if (base) return base;
     }
     return 'en';
 }
@@ -51,4 +56,19 @@ export default function useRespondentLanguage() {
     const language = chosen ?? detected;
     const { t } = useTranslation('respondent', { lng: language });
     return { language, setLanguage: setChosen, t };
+}
+
+/** Who a shared portal view is shown to: respondents on the portal, or the team previewing it on their dashboard. */
+export type PortalAudience = 'respondent' | 'team';
+
+/**
+ * Respondent-namespace text for a view shared by the portal and the team's
+ * dashboard: in the respondent's language on the portal, in the app's
+ * language on the dashboard.
+ */
+export function usePortalText(audience: PortalAudience = 'respondent') {
+    const respondent = useRespondentLanguage();
+    const team = useTranslation('respondent');
+    if (audience === 'team') return { t: team.t, language: team.i18n.language };
+    return { t: respondent.t, language: respondent.language as string };
 }

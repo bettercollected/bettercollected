@@ -493,6 +493,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
             if found.updated_at is None
             else FormRow.updated_at == found.updated_at
         )
+        self._touch(FormRow, [found.id])
         async with self._session() as session, session.begin():
             result = await session.execute(
                 update(FormRow)

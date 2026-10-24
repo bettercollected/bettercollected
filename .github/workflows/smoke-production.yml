@@ -1,0 +1,91 @@
+name: Production smoke test
+
+# Runs scripts/smoke against production's dedicated test workspace
+# (docs/smoke-test.md). The secrets and variables come only from the
+# `production-smoke` environment, which allows the develop and release/**
+# branches and needs the owner's approval: every run waits for it. Nothing
+# here works around that approval or the branch rule.
+on:
+    workflow_dispatch:
+        inputs:
+            note:
+                description: "What the run is for (shown in the run's name, e.g. 4.0.6 release check)"
+                type: string
+                default: ""
+    # Off until the owner turns it on. Once a month keeps the stored Google
+    # connection in use (it expires after about six months idle).
+    # schedule:
+    #     - cron: "17 6 1 * *"
+
+run-name: "Production smoke test${{ inputs.note && format(' - {0}', inputs.note) || '' }}"
+
+permissions:
+    contents: read
+
+# One run at a time, and a waiting run is never cancelled for a newer one: each
+# run asks for one sign-in code, and runs must not pile onto the code mails.
+concurrency:
+    group: smoke-production
+    cancel-in-progress: false
+
+jobs:
+    smoke:
+        name: Smoke test (production)
+        # the environment allows these branches only; this repeats it here
+        if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/')
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        environment: production-smoke
+        defaults:
+            run:
+                working-directory: scripts/smoke
+        env:
+            VIRTUAL_ENV: ""
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            # No dependency cache: nothing restored from another run reaches
+            # the job that holds the production secrets.
+            - name: Set up uv
+              uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
+              with:
+                  version: "0.12.23"
+                  python-version: 3.11.12
+                  enable-cache: false
+
+            - name: Install dependencies
+              run: uv sync --frozen --no-dev
+
+            - name: Install the browser
+              run: uv run --frozen --no-dev playwright install --with-deps chromium
+
+            # Exactly one mailbox set is configured (IMAP app password, or the
+            # three Gmail API values); the suite refuses both or neither.
+            # One attempt only: a failed run is looked at, not retried.
+            - name: Run the smoke test
+              env:
+                  SMOKE_API_KEY: ${{ secrets.SMOKE_API_KEY }}
+                  SMOKE_IMAP_APP_PASSWORD: ${{ secrets.SMOKE_IMAP_APP_PASSWORD }}
+                  SMOKE_GMAIL_CLIENT_ID: ${{ secrets.SMOKE_GMAIL_CLIENT_ID }}
+                  SMOKE_GMAIL_CLIENT_SECRET: ${{ secrets.SMOKE_GMAIL_CLIENT_SECRET }}
+                  SMOKE_GMAIL_REFRESH_TOKEN: ${{ secrets.SMOKE_GMAIL_REFRESH_TOKEN }}
+                  SMOKE_APP_URL: ${{ vars.SMOKE_APP_URL }}
+                  SMOKE_MAILBOX: ${{ vars.SMOKE_MAILBOX }}
+                  SMOKE_WORKSPACE_ID: ${{ vars.SMOKE_WORKSPACE_ID }}
+                  SMOKE_CUSTOM_DOMAIN: ${{ vars.SMOKE_CUSTOM_DOMAIN }}
+                  SMOKE_GOOGLE_FORM_ID: ${{ vars.SMOKE_GOOGLE_FORM_ID }}
+                  REPORT_DIR: ${{ runner.temp }}/smoke-report
+              run: uv run --frozen --no-dev python -m smoke --report-dir "$REPORT_DIR"
+
+            # pass/fail, timings and test-workspace ids only (no codes, tokens
+            # or mail contents); the same summary is on the run's page
+            - name: Keep the report
+              if: always()
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: smoke-report-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: ${{ runner.temp }}/smoke-report
+                  if-no-files-found: warn
+                  retention-days: 30

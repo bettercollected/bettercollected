@@ -32,7 +32,8 @@ def test_every_seeded_yes_no_question_has_yes_and_no():
         for field in _yes_no_fields(build()["fields"]):
             found += 1
             assert [c["value"] for c in field["properties"]["choices"]] == ["Yes", "No"]
-    assert found == 2
+    # 2 in the flow templates, 8 in each language of the Dutch-first ones
+    assert found == 2 + 2 * 8
 
 
 async def _seed_broken_lead_qualification():
@@ -116,10 +117,14 @@ async def test_seed_repairs_an_existing_template_and_leaves_the_rest():
 
     assert result["repaired"] == ["Lead qualification"]
     assert "Lead qualification" in result["skipped"]
-    assert sorted(result["seeded"]) == [
-        "Job application with screening",
-        "Support triage",
-    ]
+    assert sorted(result["seeded"]) == sorted(
+        build()["title"]
+        for build in TEMPLATE_BUILDERS
+        if build is not lead_qualification
+    )
+    assert {"Job application with screening", "Support triage"} <= set(
+        result["seeded"]
+    )
     assert _stored_yes_no_choices(await repo.get_template_by_id(broken.id)) == [
         ["Yes", "No"]
     ]

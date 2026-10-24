@@ -13,8 +13,8 @@ changes exactly what its step showed (``changed_meaning``). Rejecting only
 marks the proposal.
 
 Where proposals live: on the assistant turn of the chat session that
-produced them (``FormAISessionDocument.messages``, already stored in both
-databases through the routed session repository), as
+produced them (``FormAISessionDocument.messages``, stored through the
+session repository), as
 ``{"proposal": {id, status, expires_at, ...}}`` next to the turn's ``ops``
 and ``results``. That is shared by every worker and needs no new
 collection, table or migration; an in-process cache would not survive a
@@ -46,7 +46,7 @@ import secrets
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.exceptions import NotFoundError
 from common.form_spec import SpecConversionError, form_to_spec_dict
 from common.models.standard_form import StandardForm
@@ -455,7 +455,7 @@ class FormAIProposalService:
 
     async def _load(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         proposal_id: str,
         user: User,
@@ -467,7 +467,7 @@ class FormAIProposalService:
             raise _not_found()
         try:
             session = await self._session_repo.get_or_404(
-                PydanticObjectId(match.group(1))
+                RecordId(match.group(1))
             )
         except NotFoundError:
             session = None
@@ -713,7 +713,7 @@ class FormAIProposalService:
 
     async def accept(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         proposal_id: str,
         request: AcceptProposalRequest,
@@ -843,7 +843,7 @@ class FormAIProposalService:
 
     async def reject(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         proposal_id: str,
         user: User,

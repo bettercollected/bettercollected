@@ -43,7 +43,6 @@ from backend.app.schemas.scim import (
     ScimGroupMemberDocument,
     ScimUserDocument,
 )
-from backend.app.schemas.api_idempotency_record import ApiIdempotencyRecordDocument
 from common.db import MirrorWriteFailureDocument, init_documents, mongo_client
 
 document_models = []
@@ -101,7 +100,6 @@ async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
             ResponderGroupFormDocument,
             ResponderGroupMemberDocument,
             ResponderGroupDocument,
-            ApiIdempotencyRecordDocument,
             WorkspaceDomainDocument,
             SsoConnectionDocument,
             SsoUsedStateDocument,

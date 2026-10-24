@@ -1,10 +1,10 @@
-"""refdata and analytics are served from Postgres only (4.1): the backend's
+"""refdata, analytics, ai and actions are served from Postgres only (4.1): the backend's
 flags pin them there, a stale per-group flag refuses the start, and a fresh
 store gets its reference data from ``python -m backend.seed_refdata``."""
 
 import pytest
 
-from backend.db.groups import POSTGRES_ONLY_GROUPS, load_backend_flags
+from backend.db.groups import MONGO_JOINS, POSTGRES_ONLY_GROUPS, load_backend_flags
 from backend.seed_refdata import DEFAULT_ORIGINS, build_parser, run, seed_refdata
 from common.db import ReadSource, WriteMode
 from common.db.flags import FlagError
@@ -18,6 +18,8 @@ from common.db.flags import FlagError
         {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"},
         {"DB_READ_SOURCE__refdata": "postgres", "DB_WRITE_MODE__refdata": "postgres"},
         {"DB_WRITE_MODE__analytics": ""},
+        {"DB_READ_SOURCE__ai": "postgres", "DB_WRITE_MODE__AI": "postgres"},
+        {"DB_READ_SOURCE__Actions": "postgres", "DB_WRITE_MODE__actions": ""},
     ],
 )
 def test_the_groups_are_on_postgres_whatever_the_defaults(env):
@@ -30,10 +32,21 @@ def test_the_groups_are_on_postgres_whatever_the_defaults(env):
 
 
 def test_the_other_groups_keep_their_flags():
-    flags = load_backend_flags({"DB_WRITE_MODE": "dual", "DB_READ_SOURCE__ai": "postgres"})
+    flags = load_backend_flags(
+        {"DB_WRITE_MODE": "dual", "DB_READ_SOURCE__responses": "postgres"}
+    )
     assert flags.write_mode("identity") is WriteMode.DUAL
     assert flags.read_source("identity") is ReadSource.MONGO
-    assert flags.read_source("ai") is ReadSource.POSTGRES
+    assert flags.read_source("responses") is ReadSource.POSTGRES
+
+
+def test_no_mongo_query_joins_into_a_postgres_only_group():
+    """A ``$lookup`` into a group served from Postgres only would find nothing
+    (its Mongo collections are no longer written). identity's join into
+    workspace_actions went with the actions group: both workspace
+    repositories read the action's copy through the actions repository."""
+    for group, joined in MONGO_JOINS.items():
+        assert not set(joined) & set(POSTGRES_ONLY_GROUPS), group
 
 
 @pytest.mark.parametrize(
@@ -44,6 +57,10 @@ def test_the_other_groups_keep_their_flags():
         ("DB_WRITE_MODE__analytics", "postgres_primary_dual"),
         ("DB_READ_SOURCE__ANALYTICS", "mongo"),
         ("DB_WRITE_MODE__refdata", "nonsense"),
+        ("DB_READ_SOURCE__ai", "mongo"),
+        ("DB_WRITE_MODE__ai", "dual"),
+        ("DB_READ_SOURCE__actions", "mongo"),
+        ("DB_WRITE_MODE__ACTIONS", "postgres_primary_dual"),
     ],
 )
 def test_a_stale_group_flag_refuses_the_start(key, value):
@@ -51,6 +68,7 @@ def test_a_stale_group_flag_refuses_the_start(key, value):
         load_backend_flags({key: value})
     assert f"{key}={value!r}" in str(refused.value)
     assert "served from Postgres only" in str(refused.value)
+    assert "the refdata, analytics, ai and actions groups" in str(refused.value)
 
 
 async def test_seeding_fills_empty_tables_once(clean_postgres):

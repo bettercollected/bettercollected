@@ -190,7 +190,13 @@
         "NO_FORMS_TITLE": "Geen formulieren",
         "NO_FORMS_TEXT": "Deze organisatie heeft nog geen openbare formulieren.",
         "POWERED_BY": "Mogelijk gemaakt door <1>bettercollected</1>",
-        "POWERED_BY_LABEL": "Mogelijk gemaakt door"
+        "POWERED_BY_LABEL": "Mogelijk gemaakt door",
+        "QUESTIONS_one": "{{count}} vraag",
+        "QUESTIONS_other": "{{count}} vragen",
+        "PINNED": "Uitgelicht",
+        "UNTITLED_FORM": "Formulier zonder titel",
+        "NO_WORKSPACE": "Er hoort nog geen werkruimte bij dit e-mailadres.",
+        "TRY_PRODUCT": "Probeer bettercollected"
     },
     "SIRETO_FOOTER": {
         "PRODUCT_OF": "Een product van Sireto B.V.",
@@ -207,5 +213,36 @@
             "IDENTITY_NOT_VERIFIED": "je identiteit kon niet worden vastgesteld",
             "OTHER": "de organisatie heeft het verzoek afgewezen"
         }
+    },
+    "SUBMISSIONS": {
+        "FIND_TITLE": "Je inzendingen vinden",
+        "FIND_TEXT": "Bevestig je e-mailadres om te zien wat je hebt ingezonden. Of vul een inzendnummer in bij het zoekvak.",
+        "FIND_ANONYMOUS": "Anoniem ingezonden? Dan vind je dat antwoord alleen met je inzendnummer. Zo blijft het anoniem.",
+        "EMPTY_TITLE": "Nog geen inzendingen",
+        "EMPTY_TEXT": "Je hebt nog niets ingezonden bij de formulieren van deze organisatie.",
+        "NO_REQUESTS_TITLE": "Geen verwijderverzoeken",
+        "NO_REQUESTS_TEXT": "Je hebt nog niet gevraagd om een van je antwoorden te verwijderen.",
+        "ANONYMOUS_NOTE": "Anonieme inzendingen zijn niet gekoppeld aan je account. Je vindt ze met hun inzendnummer. Zo blijven ze anoniem.",
+        "SUBMITTED": "Ingezonden: {{date}}",
+        "REQUESTED": "Aangevraagd: {{date}}",
+        "ANONYMOUS": "Anoniem",
+        "ANONYMOUS_TITLE": "Ingezonden zonder je naam of e-mailadres erbij",
+        "NUMBER_TITLE": "Je inzendnummer. Je kunt er ook op zoeken.",
+        "LATEST_STATUS_TITLE": "De laatste status van de organisatie"
+    },
+    "SUBMISSION": {
+        "TABS_LABEL": "Je inzending",
+        "TAB_RESPONSE": "Mijn antwoorden",
+        "TAB_PRIVACY": "Privacy en verwijderen",
+        "OWNERSHIP": "Deze antwoorden zijn van jou. Je kunt altijd vragen om ze te verwijderen. Je ziet het verzoek en de status hier en onder Verwijderverzoeken.",
+        "REQUEST": "Verwijdering aanvragen",
+        "REQUEST_HINT": "De organisatie bekijkt elk verwijderverzoek. Zodra dat gebeurd is, zie je de status hier veranderen.",
+        "PENDING": "Verwijdering aangevraagd · In behandeling",
+        "PENDING_TEXT": "De organisatie heeft het verzoek gekregen om deze antwoorden te verwijderen. De status verandert hier en onder Verwijderverzoeken.",
+        "CONFIRM_QUESTION": "De organisatie vragen om deze antwoorden te verwijderen?",
+        "CONFIRM_TEXT": "De organisatie krijgt het verzoek om deze antwoorden te verwijderen. Je ziet het verzoek en de status hier en onder Verwijderverzoeken.",
+        "CANCEL": "Annuleren",
+        "REQUEST_SENT": "Verwijdering aangevraagd",
+        "REQUEST_FAILED": "Er ging iets mis. Probeer het opnieuw."
     }
 }

@@ -119,7 +119,35 @@ class PublishResult(_Model):
 
 
 class DeletionRequestInfo(_Model):
-    status: str = Field(description="pending or success.")
+    status: str = Field(description="pending, success or declined.")
+
+
+DeclineReasonCode = Literal[
+    "legal_obligation",
+    "legal_claims",
+    "public_interest",
+    "identity_not_verified",
+    "other",
+]
+
+
+class CloseDeletionRequest(_Model):
+    outcome: Literal["completed", "declined"] = Field(
+        description="completed deletes the workspace's stored copy of the "
+        "response; declined keeps it."
+    )
+    reason: Optional[DeclineReasonCode] = Field(
+        None,
+        description="Required with declined, refused with completed. A fixed "
+        "list, so no free text (and no personal data) reaches the respondent.",
+    )
+
+
+class ClosedDeletionRequestResult(_Model):
+    form_id: str
+    response_id: str
+    status: str = Field(description="success or declined.")
+    decline_reason: Optional[str] = None
 
 
 class ResponseSummary(_Model):

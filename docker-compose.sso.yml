@@ -2,14 +2,18 @@
 #   Ory Polis (formerly BoxyHQ SAML Jackson) on http://localhost:5225
 #   Mock SAML identity provider              on http://localhost:4000
 # Don't run this file directly: scripts/sso-dev-setup.sh generates the
-# throwaway keys/secrets in .sso-dev/ (gitignored), creates the `polis`
-# database in app-postgres and starts both containers. Connections are then
-# created in the app (workspace settings -> Single sign-on) or through its API.
-# Polis joins the network of docker-compose.local.yml to reach app-postgres.
-# Production runs Polis from docker-compose.deployment.yml (profile `sso`).
+# throwaway keys/secrets in .sso-dev/ (gitignored) and starts these containers.
+# Connections are then created in the app (workspace settings -> Single
+# sign-on) or through its API.
+# Networks, as in production: Polis's callers (the backend and auth) run on the
+# host and reach it on its published port, so Polis shares no network with the
+# local stack (Mongo, app-postgres, ...). `polis-db` (internal) holds Polis and
+# its own Postgres only; `polis-egress` is Polis's alone; the mock IdP has its
+# own network (the browser talks to both, Polis never calls it).
+# Production runs Polis from docker-compose.sso-deployment.yml.
 services:
   polis:
-    # 26.2.0, the version tested (as in docker-compose.deployment.yml)
+    # 26.2.0, the version tested (as in docker-compose.sso-deployment.yml)
     image: ${POLIS_IMAGE:-boxyhq/jackson@sha256:9165f3db9d9f5d3262f23446e860f4929f462d1d9c954af13f3bb44910c3a699}
     ports:
       - "127.0.0.1:5225:5225"
@@ -20,6 +24,8 @@ services:
       NEXTAUTH_URL: http://localhost:5225
       DB_ENGINE: sql
       DB_TYPE: postgres
+      # wins over a DB_URL left in an older .sso-dev/polis.env (app-postgres)
+      DB_URL: postgres://polis:polis@polis-postgres:5432/polis
       # SP-initiated only; IdP-initiated logins are refused (see the doc).
       IDP_ENABLED: "false"
       # Exact redirect_uri match (scheme, host, port and path).
@@ -28,8 +34,32 @@ services:
       SAML_AUDIENCE: https://saml.bettercollected.local
       BOXYHQ_NO_ANALYTICS: "1"
       DO_NOT_TRACK: "1"
+      # listen on every network of the container (Docker sets HOSTNAME to the
+      # container's name, which resolves to one network's address only)
+      HOSTNAME: 0.0.0.0
     networks:
-      - app
+      - polis-egress
+      - polis-db
+    depends_on:
+      polis-postgres:
+        condition: service_healthy
+
+  polis-postgres:
+    image: postgres:16-alpine
+    # local-only credentials: no published port, internal network only
+    environment:
+      POSTGRES_DB: polis
+      POSTGRES_USER: polis
+      POSTGRES_PASSWORD: polis
+    volumes:
+      - polis-db-data:/var/lib/postgresql/data
+    networks:
+      - polis-db
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U polis -d polis']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   mock-saml:
     # 1.4.2, the version tested
@@ -41,8 +71,17 @@ services:
     environment:
       APP_URL: http://localhost:4000
       ENTITY_ID: https://mock-saml.bettercollected.local/entityid
+    networks:
+      - mock-idp
+
+volumes:
+  polis-db-data:
 
 networks:
-  app:
-    name: bettercollected_default
-    external: true
+  # Polis only: the published port and egress
+  polis-egress:
+  # Polis and its database only, no egress
+  polis-db:
+    internal: true
+  # the mock IdP only
+  mock-idp:

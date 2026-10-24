@@ -14,10 +14,11 @@ from fastapi_pagination.api import set_page, set_params
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.action_dto import ActionDto
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.invitation_request import InvitationRequest
-from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.identity import (
     PostgresSessionRepository,
     PostgresUserTagsRepository,
@@ -34,14 +35,15 @@ from backend.app.repositories.workspace_api_key_repository import (
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-from backend.app.schemas.action_document import WorkspaceActionsDocument
 from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.db.models import WorkspaceActionRow
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.exceptions import NotFoundError
+from common.models.standard_form import ParameterValue
 from common.models.user import User
 from tests.app.repositories.parity import parity, strip
 
@@ -82,7 +84,9 @@ async def test_workspaces(sessions):
         "gamma", owner, custom_domain="gamma.example", custom_domain_disabled=True
     )
     mongo = WorkspaceRepository()
-    postgres = PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None))
+    postgres = PostgresWorkspaceRepository(
+        sessions, PostgresActionRepository(sessions, None)
+    )
     await parity(
         mongo,
         postgres,
@@ -143,19 +147,25 @@ async def test_workspaces(sessions):
 
 
 async def test_workspace_with_action_composes_over_the_actions_store(sessions):
-    """Mongo joins workspace_actions with $lookup; the twin asks the (routed)
-    actions repository — here the Mongo one, as in a staged cutover."""
+    """Both stores' workspace repositories read the workspace's copy of the
+    action through the actions repository (Postgres only since 4.1)."""
     owner = str(PydanticObjectId())
     ws = workspace("delta", owner)
-    action_id = PydanticObjectId()
-    await WorkspaceActionsDocument(
-        workspace_id=ws.id,
-        action_id=action_id,
-        parameters=[{"name": "Sheet", "value": "abc"}],
-        secrets=None,
-    ).save()
-    mongo = WorkspaceRepository()
-    postgres = PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None))
+    actions = PostgresActionRepository(sessions, None)
+    action = await actions.create_global_action(
+        ActionDto(
+            name="sheet",
+            action_code="print(1)",
+            parameters=[ParameterValue(name="Sheet", value="abc")],
+        ),
+        User(id=owner, sub="owner@example.com"),
+    )
+    action_id = action.id
+    copy = await actions.create_action_in_workspace_from_action(ws.id, action_id)
+    copy.parameters = [ParameterValue(name="Sheet", value="abc")]
+    await actions.save_document(copy, row=WorkspaceActionRow)
+    mongo = WorkspaceRepository(action_repository=actions)
+    postgres = PostgresWorkspaceRepository(sessions, actions)
     await mongo.save(ws)
     await postgres.save(ws)
     m = await mongo.get_workspace_with_action_by_id(ws.id, action_id)
@@ -176,7 +186,9 @@ async def test_workspace_users(sessions):
     ws = workspace("epsilon", owner.id)
     for repo in (
         WorkspaceRepository(),
-        PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None)),
+        PostgresWorkspaceRepository(
+            sessions, PostgresActionRepository(sessions, None)
+        ),
     ):
         await repo.save(ws)
 
@@ -228,7 +240,9 @@ async def test_disabled_admin_membership_is_disabled_in_both_stores(sessions):
     ws = workspace("zeta", owner.id)
     for repo in (
         WorkspaceRepository(),
-        PostgresWorkspaceRepository(sessions, ActionRepository(crypto=None)),
+        PostgresWorkspaceRepository(
+            sessions, PostgresActionRepository(sessions, None)
+        ),
     ):
         await repo.save(ws)
     owner_row, admin_row = (

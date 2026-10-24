@@ -11,13 +11,14 @@ as they were before the move (test support; removed together with Beanie).
 """
 
 import datetime as dt
-from typing import Annotated, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from beanie import Indexed, PydanticObjectId
 from bson import ObjectId
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db import PostgresRepositoryBase, write_op
+from common.models.standard_form import ParameterValue
 from pydantic import EmailStr, field_validator
 from pymongo import ReturnDocument
 
@@ -25,6 +26,7 @@ from backend.app.handlers.database import entity
 from backend.app.models.enum.coupon_status import CouponStatus
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.models.types.coupon_code import CouponCode
+from backend.app.schemas.action_document import ActionSettings
 from backend.db.models import AllowedOriginRow
 
 _ISO_ENCODERS = {
@@ -138,6 +140,190 @@ class RateLimitCounterDocument(MongoDocument):
         name = "rate_limit_counters"
 
 
+# -- ai --------------------------------------------------------------------------
+
+_DATETIME_ISO = {dt.datetime: lambda o: dt.datetime.isoformat(o)}
+
+
+class UserAIPreferenceMemoryDocument(MongoDocument):
+    """The AI's memory of how ONE creator likes forms, in ONE workspace
+    (plan §2.4) — a living document the user owns.
+
+    One fact per entry ("prefers pages under 5 questions", "titles in
+    sentence case"), extracted from AI sessions or added by hand, each with a
+    timestamp and source. Injected at the LOWEST precedence: the user's
+    request and the org profile always override. Deliberately not embeddings —
+    the user can read, edit and delete every line.
+    """
+
+    workspace_id: PydanticObjectId
+    user_id: str
+    entries: List[Dict[str, Any]] = []
+    learn_preferences: bool = False
+    learn_preferences_at: Optional[dt.datetime] = None
+
+    class Settings:
+        name = "ai_preference_memories"
+        bson_encoders = _DATETIME_ISO
+
+
+class FormAISessionDocument(MongoDocument):
+    """One AI form-editing conversation (plan §2.2).
+
+    Powers chat history for context, per-workspace usage accounting, and the
+    preference-memory extraction later (P1.7). Messages hold role/content plus
+    the ops the assistant applied and their results — the auditable record of
+    what the AI actually changed.
+    """
+
+    workspace_id: PydanticObjectId
+    form_id: str
+    user_id: str
+    provider: Optional[str] = None
+    messages: List[Dict[str, Any]] = []
+
+    class Settings:
+        name = "form_ai_sessions"
+        bson_encoders = _DATETIME_ISO
+
+
+class FormAIInsightDocument(MongoDocument):
+    """Cached AI summary of a form's responses (plan §2 'response summaries',
+    phase P3). One document per form, replaced on each regeneration.
+
+    Exists so viewing insights is free after the one explicit, creator-
+    triggered generation — the AI reads respondent data ONLY at that moment,
+    never in the background.
+    """
+
+    workspace_id: PydanticObjectId
+    form_id: str
+    payload: Dict[str, Any]
+    response_count: int
+    total_responses: int
+    generated_by: Optional[str] = None
+    generated_at: dt.datetime
+
+    class Settings:
+        name = "form_ai_insights"
+        bson_encoders = _DATETIME_ISO
+
+
+class WorkspaceAIProfileDocument(MongoDocument):
+    """The workspace's AI profile — the org context every AI call is grounded
+    in (see plans/ai-native-form-builder.md §2.3).
+
+    Three plain-markdown sections, deliberately a visible document the
+    workspace owns rather than hidden embeddings:
+    - ``about``      — tone of voice, audience, languages, vocabulary
+    - ``guidelines`` — dos/don'ts for forms
+    - ``compliance`` — hard requirements (injected with elevated wording;
+                       the AI must not violate these even if asked)
+
+    ``revisions`` keeps the last few versions — it's a policy document, so
+    auditability matters more than storage.
+    """
+
+    workspace_id: Annotated[PydanticObjectId, Indexed(unique=True)]
+    about: str = ""
+    guidelines: str = ""
+    compliance: str = ""
+    updated_by: Optional[str] = None
+    revisions: List[Dict[str, Any]] = []
+
+    class Settings:
+        name = "workspace_ai_profiles"
+        bson_encoders = _DATETIME_ISO
+
+
+class MCPAuditLogDocument(MongoDocument):
+    """Every MCP tool call, auditable (plan §2.5): which key did what, when,
+    and whether it succeeded. Pairs with the trust story — external AI access
+    is visible, not implied."""
+
+    workspace_id: PydanticObjectId
+    key_id: str
+    tool: str
+    ok: bool
+    detail: Optional[str] = None
+    at: dt.datetime
+
+    class Settings:
+        name = "mcp_audit_logs"
+        bson_encoders = _DATETIME_ISO
+
+
+class CreateFormPrompt(MongoDocument):
+    prompt: str
+    openai_response: Dict[str, Any]
+    created_form: Dict[str, Any]
+    form_id: PydanticObjectId
+
+    class Settings:
+        name = "create_form_prompts"
+        bson_encoders = _ISO_ENCODERS
+
+
+class ApiIdempotencyRecordDocument(MongoDocument):
+    """One ``Idempotency-Key`` an API key sent to the public API
+    (services/idempotency.py): the request it was first used for and, once
+    that finished, a summary of its response, from which a retry with the
+    same key is answered.
+
+    The id is derived from the API key's id and the client's key, so a key
+    is claimed by inserting it. Kept until ``expires_at`` (24 hours)."""
+
+    key_id: str
+    request_hash: str
+    state: str = "pending"
+    status_code: Optional[int] = None
+    body: Optional[str] = None
+    etag: Optional[str] = None
+    expires_at: dt.datetime
+
+    @field_validator("expires_at", mode="after")
+    @classmethod
+    def _utc(cls, value: dt.datetime) -> dt.datetime:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value
+
+    class Settings:
+        name = "api_idempotency_keys"
+
+
+# -- actions ---------------------------------------------------------------------
+
+
+class ActionDocument(MongoDocument):
+    name: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    action_code: str
+    created_by: PydanticObjectId
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
+    type: Optional[str] = None
+    predefined: Optional[bool] = None
+    url: Optional[str] = None
+
+    class Settings:
+        name = "actions"
+        bson_encoders = _ISO_ENCODERS
+
+
+class WorkspaceActionsDocument(MongoDocument):
+    workspace_id: PydanticObjectId
+    action_id: PydanticObjectId
+    settings: Optional[ActionSettings] = ActionSettings()
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
+
+    class Settings:
+        name = "workspace_actions"
+        bson_encoders = _ISO_ENCODERS
+
+
 ORIGINALS = (
     AllowedOriginsDocument,
     FormPluginConfigDocument,
@@ -146,6 +332,15 @@ ORIGINALS = (
     UserFeedbackDocument,
     FlowEventDocument,
     RateLimitCounterDocument,
+    UserAIPreferenceMemoryDocument,
+    FormAISessionDocument,
+    FormAIInsightDocument,
+    WorkspaceAIProfileDocument,
+    MCPAuditLogDocument,
+    CreateFormPrompt,
+    ApiIdempotencyRecordDocument,
+    ActionDocument,
+    WorkspaceActionsDocument,
 )
 
 for _original in ORIGINALS:

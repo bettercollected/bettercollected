@@ -511,7 +511,8 @@ SERVICES: Tuple[SettingSpec, ...] = (
           "Upstream the legacy certificate server points domains at.", tier=T3, max_length=253),
     _float("VERIFIED_DOMAINS_DNS_TIMEOUT_S", "domains", (BACKEND,), 5.0, 0.5, 60, "DNS lookup timeout."),
     _text("VERIFIED_DOMAINS_NAMESERVERS", "domains", (BACKEND,),
-          "Comma separated resolver addresses (empty: system resolvers).", tier=T3, max_length=500),
+          "Comma separated resolver IP addresses (empty: system resolvers).", tier=T3, max_length=500,
+          format="ip_list"),
     _int("VERIFIED_DOMAINS_LOSS_AFTER_FAILED_CHECKS", "domains", (BACKEND,), 3, 1, 100,
          "Failed checks before a domain counts as lost."),
     _int("VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS", "domains", (BACKEND,), 24, 1, 720,
@@ -565,8 +566,8 @@ TODO_LIVE: Dict[str, str] = {
     "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
     "API_ROOT_PATH": "backend/backend/app/asgi.py:201",
     "API_DOCS_ENABLED": "backend/backend/app/asgi.py:201",
-    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:615",
-    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:616",
+    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:532",
+    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:533",
 }
 
 # ------------------------------------------------------- environment only
@@ -760,6 +761,7 @@ NOT_A_SETTING: Dict[str, str] = {
     "GOOGLE_ENABLED": "compose profile switch",
     "APP_POSTGRES_PASSWORD": "database role password used by the deploy scripts",
     "POLIS_IMAGE": "compose image selection",
+    "POLIS_EGRESS_SUBNET": "compose subnet of the identity bridge's egress network",
     "POLIS_CLIENT_SECRET_VERIFIER": "read by the identity bridge container",
     "POLIS_DB_ENCRYPTION_KEY": "read by the identity bridge container",
     "POLIS_NEXTAUTH_SECRET": "read by the identity bridge container",

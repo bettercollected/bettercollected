@@ -1,14 +1,10 @@
 import datetime as dt
 from typing import Any, Dict, List, Optional
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
-
-from backend.app.handlers.database import entity
+from common.records import Record, RecordId
 
 
-@entity
-class FormAISessionDocument(MongoDocument):
+class FormAISessionDocument(Record):
     """One AI form-editing conversation (plan §2.2).
 
     Powers chat history for context, per-workspace usage accounting, and the
@@ -17,7 +13,7 @@ class FormAISessionDocument(MongoDocument):
     what the AI actually changed.
     """
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     form_id: str
     user_id: str
     provider: Optional[str] = None

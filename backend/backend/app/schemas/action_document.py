@@ -1,12 +1,9 @@
 import datetime as dt
 from typing import Optional, List
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
 from common.models.standard_form import ParameterValue
+from common.records import Record, RecordId
 from pydantic import BaseModel, Field
-
-from backend.app.handlers.database import entity
 
 
 class BaseAction(BaseModel):
@@ -20,13 +17,12 @@ class ActionSettings(BaseModel):
     is_public: bool = False
 
 
-@entity
-class ActionDocument(MongoDocument):
+class ActionDocument(Record):
     name: str
     title: Optional[str] = None
     description: Optional[str] = None
     action_code: str
-    created_by: PydanticObjectId
+    created_by: RecordId
     parameters: Optional[List[ParameterValue]] = None
     secrets: Optional[List[ParameterValue]] = None
     type: Optional[str] = None
@@ -42,10 +38,9 @@ class ActionDocument(MongoDocument):
         }
 
 
-@entity
-class WorkspaceActionsDocument(MongoDocument):
-    workspace_id: PydanticObjectId
-    action_id: PydanticObjectId
+class WorkspaceActionsDocument(Record):
+    workspace_id: RecordId
+    action_id: RecordId
     settings: Optional[ActionSettings] = ActionSettings()
     parameters: Optional[List[ParameterValue]] = None
     secrets: Optional[List[ParameterValue]] = None
