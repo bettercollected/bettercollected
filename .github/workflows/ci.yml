@@ -10,9 +10,11 @@ on:
         branches:
             - master
             - develop
+            - "release/**"
     push:
         branches:
             - develop
+            - "release/**"
     schedule:
         - cron: "23 2 * * *"
     workflow_dispatch:
