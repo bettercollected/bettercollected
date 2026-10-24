@@ -2,10 +2,10 @@
 
 Spine columns are what the code filters, joins, sorts or requires unique on
 (measured from the repositories); everything else stays inside ``doc``.
-Indexes mirror the Mongo ``IndexModel``s plus the join keys. A constraint
-Mongo did not enforce (``workspace_forms`` per workspace+form) is a plain
-index here until the migration preflight has proven the data is
-duplicate-free; ``workspace_users`` per workspace+user is unique (0011).
+Indexes mirror the Mongo ``IndexModel``s plus the join keys.
+``workspace_users`` per workspace+user is unique (0011), as is
+``workspace_forms`` per workspace+form (0019); both migrations refuse while
+duplicates exist.
 """
 
 from __future__ import annotations
@@ -234,7 +234,10 @@ class WorkspaceFormRow(Base, BaseRow):
     hidden = S.bool("settings", "hidden")
     pinned = S.bool("settings", "pinned")
     __table_args__ = (
-        Index("ix_workspace_forms_workspace_form", "workspace_id", "form_id"),
+        # one link per workspace and form (revision 0019)
+        Index(
+            "uq_workspace_forms_workspace_form", "workspace_id", "form_id", unique=True
+        ),
         Index(None, "form_id"),
         Index("ix_workspace_forms_workspace_custom_url", "workspace_id", "custom_url"),
     )

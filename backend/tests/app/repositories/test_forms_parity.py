@@ -14,6 +14,7 @@ from fastapi_pagination import Page, Params
 from fastapi_pagination.api import set_page, set_params
 
 from backend.app.container import container
+from backend.app.handlers.database import ensure_workspace_form_unique_index
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.enum.FormVersion import FormVersion
@@ -265,7 +266,19 @@ async def test_listing_counts_distinct_workspaces_not_link_rows(sessions):
         "save",
         link,
     )
-    await workspace_form(ws, "dup", "u1", 2).insert()  # the Mongo duplicate
+    # the Mongo duplicate: a database holding one has no unique link index
+    # (startup skips it and logs an error), so drop it for this test
+    links = WorkspaceFormDocument.get_pymongo_collection()
+    await links.drop_index("uq_workspace_forms_workspace_form")
+    try:
+        await workspace_form(ws, "dup", "u1", 2).insert()
+        await _assert_counted_once(ws, mongo, postgres)
+    finally:
+        await links.delete_many({"form_id": "dup"})
+        assert await ensure_workspace_form_unique_index(links.database)
+
+
+async def _assert_counted_once(ws, mongo, postgres):
     for response_id, workspace_id in (("d1", ws), ("d2", None)):
         await FormResponseDocument(
             form_id="dup",
