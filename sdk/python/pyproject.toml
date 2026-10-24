@@ -32,6 +32,8 @@ packages = ["src/bettercollected"]
 [tool.uv]
 # Only releases at least two weeks old when the lock was made.
 exclude-newer = "2026-10-03T00:00:00Z"
+# Security fixes released after the cut-off.
+exclude-newer-package = { certifi = "2026-10-24T00:00:00Z", black = "2026-10-24T00:00:00Z" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

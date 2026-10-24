@@ -3,7 +3,7 @@ name = "auth"
 version = "0.1.0"
 description = "This project was generated with fastapi-mvc."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "nabin6246", email = "nabin62246@gmail.com" },
 ]
