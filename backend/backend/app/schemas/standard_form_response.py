@@ -4,6 +4,7 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 from pymongo import IndexModel
+from pymongo.errors import OperationFailure
 
 from common.configs.mongo_document import MongoDocument
 from common.models.standard_form import StandardFormResponse
@@ -30,6 +31,28 @@ class DeletionRequestStatus(str, enum.Enum):
     SUCCESS = "success"
 
 
+DELETION_REQUEST_INDEX = "uq_deletion_requests_form_response_provider_workspace"
+# The unique (form_id, response_id, provider) key from before requests were
+# per workspace, under Mongo's default name. Beanie never drops an index, so a
+# database from before still holds it: drop_legacy_deletion_request_index.
+LEGACY_DELETION_REQUEST_INDEX = "form_id_1_response_id_1_provider_1"
+
+
+async def drop_legacy_deletion_request_index(collection) -> bool:
+    """Drop the superseded per-response unique index from the
+    ``responses_deletion_requests`` collection if it is still there (it would
+    refuse a workspace's request while another workspace has one for its copy
+    of the same response). Idempotent; True when it dropped it."""
+    if LEGACY_DELETION_REQUEST_INDEX not in await collection.index_information():
+        return False
+    try:
+        await collection.drop_index(LEGACY_DELETION_REQUEST_INDEX)
+    except OperationFailure as error:
+        if error.code != 27:  # IndexNotFound: another process dropped it meanwhile
+            raise
+    return True
+
+
 class FormResponseDeletionRequest(MongoDocument):
     form_id: str
     response_id: str
@@ -46,9 +69,21 @@ class FormResponseDeletionRequest(MongoDocument):
 
     class Settings:
         name = "responses_deletion_requests"
+        # One request per response, provider and workspace (as Postgres, app
+        # revision 0020): each workspace holding a copy of a provider response
+        # files its own. A missing or null workspace_id (a request stored
+        # before #768) indexes as null, so two of those for the same response
+        # still collide, as NULLS NOT DISTINCT does in Postgres.
         indexes = [
             IndexModel(
-                [("form_id", 1), ("response_id", 1), ("provider", 1)], unique=True
+                [
+                    ("form_id", 1),
+                    ("response_id", 1),
+                    ("provider", 1),
+                    ("workspace_id", 1),
+                ],
+                unique=True,
+                name=DELETION_REQUEST_INDEX,
             )
         ]
         bson_encoders = {

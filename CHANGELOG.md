@@ -39,6 +39,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   GROUP BY workspace_id, form_id HAVING count(*) > 1;`, in Mongo
   `db.workspace_forms.aggregate([{$group: {_id: {w: "$workspace_id", f: "$form_id"}, n: {$sum: 1}, ids:
   {$push: "$_id"}}}, {$match: {n: {$gt: 1}}}])`; keep one link per pair, in both stores.
+- Deletion requests are per workspace. A provider response imported into two workspaces is stored once in
+  each, and each workspace now files, sees and completes its own deletion request for its copy: a request
+  filed in one workspace no longer refuses the other's, and no longer shows as the status of the other
+  workspace's copy or in its responders' counts. The unique key becomes (`form_id`, `response_id`,
+  `provider`, `workspace_id`): app revision `0020` in Postgres (nulls not distinct, replacing the
+  per-response constraint) and `uq_deletion_requests_form_response_provider_workspace` in Mongo, where a
+  database from before drops the old `form_id_1_response_id_1_provider_1` index the first time it refuses
+  another workspace's request. Filing twice for the same copy is refused as before, and a request stored
+  before requests carried a workspace is still found for the response.
 
 ### Removed
 

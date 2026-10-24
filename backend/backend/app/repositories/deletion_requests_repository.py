@@ -60,12 +60,27 @@ class DeletionRequestsRepository:
             {"$set": {"form_imported_by": "$workspace_form.user_id"}},
             {"$unwind": "$form_imported_by"},
             # Carry the response's receipt number so a deletion request is
-            # cross-referenceable with the submission it covers.
+            # cross-referenceable with the submission it covers: the copy in
+            # the request's workspace (any copy for a request stored before
+            # requests carried one).
             {
                 "$lookup": {
                     "from": "form_responses",
                     "localField": "response_id",
                     "foreignField": "response_id",
+                    "let": {"workspace_id": {"$ifNull": ["$workspace_id", None]}},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$or": [
+                                        {"$eq": ["$$workspace_id", None]},
+                                        {"$eq": ["$workspace_id", "$$workspace_id"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
                     "as": "response_doc",
                 },
             },
