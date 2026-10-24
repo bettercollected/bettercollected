@@ -89,7 +89,10 @@ describe('the portal forms page', () => {
         signOut();
         at('/acme/forms?lang=nl');
         renderPortal(<WorkspaceFormsTabContent workspace={workspace} />);
-        await screen.findByRole('heading', { level: 3, name: 'Intake' });
+        // Once every part has picked up the respondent's language.
+        await screen.findByRole('heading', { level: 2, name: 'Alle formulieren (2)' });
+        await screen.findByRole('heading', { level: 2, name: 'Uitgelichte formulieren (1)' });
+        await screen.findByRole('heading', { level: 3, name: 'Formulier zonder titel' });
         const headings = outline();
         expect(headings.filter((h) => h.startsWith('h1'))).toEqual(['h1 Buurthuis De Linde']);
         expect(headings[0]).toBe('h1 Buurthuis De Linde');
@@ -139,7 +142,9 @@ describe('the portal submission lists', () => {
         at('/acme/my-submissions?lang=nl');
         nav.pathname = '/acme/my-submissions';
         renderPortal(<WorkspaceResponsesTabContent workspace={workspace} audience="respondent" />);
+        await screen.findByRole('heading', { level: 2, name: 'Mijn inzendingen' });
         const card = (await screen.findByRole('heading', { level: 3, name: 'Intake' })).closest('a')!;
+        await within(card).findByText('Anoniem');
         expect(card).toHaveAttribute('href', '/acme/submissions/r1/form?lang=nl');
         expect(within(card).getByText(`Ingezonden: ${utcToLocalDateTimeIn(submission.createdAt, 'nl')}`)).toBeInTheDocument();
         expect(within(card).getByText('Anoniem')).toHaveAttribute('title', 'Ingezonden zonder je naam of e-mailadres erbij');
@@ -178,7 +183,9 @@ describe('a submission’s own pages', () => {
     it('are in Dutch, marked so, with the form title as the one h1', async () => {
         at('/acme/submissions/r1/settings?lang=nl');
         renderSubmission({});
-        expect(await screen.findByRole('heading', { level: 1, name: 'Intake' })).toBeInTheDocument();
+        expect(await screen.findByRole('link', { name: 'Mijn inzendingen' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 1, name: 'Intake' })).toBeInTheDocument();
+        await screen.findByRole('button', { name: 'Verwijdering aanvragen' });
         expect(document.documentElement).toHaveAttribute('lang', 'nl');
         expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
         expect(screen.getByRole('link', { name: 'Mijn inzendingen' })).toHaveAttribute('href', '/acme/my-submissions?lang=nl');
