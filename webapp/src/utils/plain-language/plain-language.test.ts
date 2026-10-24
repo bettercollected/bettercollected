@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PIPE, SENTENCE_WORD_LIMIT, checkDoubleQuestion, checkJargon, checkPassive, checkPlainLanguage, checkSentenceLength, detectLanguage, languagesToCheck, normalizeFormLanguage, plainTextForCheck } from './index';
 import { JARGON } from './rules';
+import { textFingerprint } from './text';
 
 const words = (count: number, word = 'woord') => Array.from({ length: count }, () => word).join(' ');
 const rules = (text: string, formLanguage?: string) => checkPlainLanguage(text, { formLanguage }).map((hint) => hint.rule);
@@ -29,7 +30,17 @@ describe('sentence length', () => {
         expect(checkSentenceLength(`${words(15)}. ${words(15)}.`, ['nl'])).toEqual([]);
         const hints = checkSentenceLength(`${words(5)}. ${words(22)}?`, ['nl']);
         expect(hints).toHaveLength(1);
-        expect(hints[0].id).toBe('long-sentence:1');
+        expect(hints[0].id).toMatch(/^long-sentence:[0-9a-f]{8}$/);
+    });
+
+    it('keys a long sentence by its words, not its position', () => {
+        const first = checkSentenceLength(`${words(22)}.`, ['nl'])[0].id;
+        // The same sentence after a short one keeps its id ...
+        expect(checkSentenceLength(`${words(3)}. ${words(22)}.`, ['nl'])[0].id).toBe(first);
+        // ... and a different long sentence in its place gets another one.
+        expect(checkSentenceLength(`${words(23)}.`, ['nl'])[0].id).not.toBe(first);
+        // A sentence repeated word for word is one hint.
+        expect(checkSentenceLength(`${words(22)}. ${words(22)}.`, ['nl'])).toHaveLength(1);
     });
 
     it('treats paragraphs as separate sentences', () => {
@@ -253,6 +264,14 @@ describe('checkPlainLanguage', () => {
     it('combines rules with stable ids', () => {
         const hints = checkPlainLanguage('Indien u verhuist, dient te worden aangegeven waar u woonachtig bent en/of wanneer?');
         expect(hints.map((hint) => hint.rule)).toEqual(['jargon', 'jargon', 'jargon', 'passive', 'double-question']);
-        expect(hints.map((hint) => hint.id)).toEqual(['jargon:nl:indien', 'jargon:nl:dient te', 'jargon:nl:woonachtig', 'passive:nl:worden aangegeven', 'double-question:and-or']);
+        expect(hints.map((hint) => hint.id)).toEqual(['jargon:nl:indien', 'jargon:nl:dient te', 'jargon:nl:woonachtig', `passive:nl:${textFingerprint('worden aangegeven')}`, 'double-question:and-or']);
+    });
+
+    it("never puts the creator's words in an id", () => {
+        const title = 'Your parcel was delivered to the neighbours. Please tell us whether the delivery was made at the right address, whether the box was closed when it arrived and whether anything at all inside it was broken.';
+        const ids = checkPlainLanguage(title).map((hint) => hint.id);
+        expect(ids.some((id) => id.startsWith('passive:'))).toBe(true);
+        expect(ids.some((id) => id.startsWith('long-sentence:'))).toBe(true);
+        for (const id of ids) expect(id).not.toMatch(/delivered|parcel|neighbours|broken/i);
     });
 });

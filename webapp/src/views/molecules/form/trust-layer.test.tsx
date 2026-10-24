@@ -1,8 +1,12 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import I18nProvider from '@app/shared/hocs/i18n-provider';
+import { contrast } from '@app/utils/color-contrast';
 
 import TrustLayer, { TrustLayerProps } from './trust-layer';
 
@@ -99,6 +103,17 @@ describe('Privacy panel on respondent forms', () => {
         expect(row('identity')).toHaveTextContent('You sign in with your email address before you can answer.');
         expect(row('rights')).toHaveTextContent('You can view your answers and ask for them to be deleted at any time.');
         expect(within(row('rights')).getByRole('link', { name: /view or delete your response/i })).toHaveAttribute('href', 'https://forms.test/acme');
+    });
+
+    it('labels its rows in small text that meets 4.5:1 on the white panel (WCAG 1.4.3)', () => {
+        renderPanel({ ownerName: 'Acme Health', settings: {} });
+        openPanel();
+        const term = row('receiver').querySelector('dt')!;
+        expect(term.className).toContain('text-black-600');
+        // The token's value, from the theme; measured in Chrome too (4.97:1 on #FFFFFF).
+        const css = readFileSync(resolve(__dirname, '../../../assets/css/tailwind.css'), 'utf8');
+        const black600 = css.match(/--color-black-600:\s*(#[0-9a-fA-F]{6})/)![1];
+        expect(contrast(black600, '#FFFFFF')).toBeGreaterThanOrEqual(4.5);
     });
 
     it('speaks Dutch to a Dutch browser', () => {
