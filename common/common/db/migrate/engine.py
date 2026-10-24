@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Iterable, Mapping, Optional
 
 from bson import ObjectId
-from pymongo import AsyncMongoClient
+from pymongo import AsyncMongoClient, ReadPreference
 from pymongo.errors import DuplicateKeyError
 from sqlalchemy import Table, and_, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -198,6 +198,12 @@ def id_range(table: Table, after: Optional[str], upto: str):
     if after is None:
         return table.c.id <= upto
     return and_(table.c.id > after, table.c.id <= upto)
+
+
+def on_primary(collection):
+    """``collection`` read from the primary: the runner scans from a secondary,
+    but a compare-and-set must compare with the current copy."""
+    return collection.with_options(read_preference=ReadPreference.PRIMARY)
 
 
 def adapt_batch(size: int, seconds: float) -> int:
@@ -677,7 +683,14 @@ class Runner:
                 "before": report.as_dict(),
                 "direction": direction,
             }
-        if set(selected) == set(self.target.tables):
+        skipped_any = sum(r["skipped"] for r in results.values())
+        if skipped_any:
+            logger.info(
+                "outbox not drained: %d copies were skipped because the application "
+                "changed them meanwhile; run verify, then reconcile again",
+                skipped_any,
+            )
+        elif set(selected) == set(self.target.tables):
             await self._drain_outbox(direction, dry_run)
         else:
             logger.info(
@@ -736,9 +749,11 @@ class Runner:
                     # changed in between is not copied (its mirror write follows)
                     fresh = {
                         str(d["_id"]): checksum(canonical_document(d))
-                        for d in await coll.find(
+                        for d in await on_primary(coll)
+                        .find(
                             {"_id": {"$in": [ObjectId(r["id"]) for r, _ in to_write]}}
-                        ).to_list()
+                        )
+                        .to_list()
                     }
                     unchanged = [
                         (r, expected)
@@ -764,19 +779,21 @@ class Runner:
                         or checksum(canonical_document(mongo_doc)) != r[1]
                     ):
                         if dry_run or await self._apply_to_mongo(
-                            coll, document, mongo_doc
+                            coll, table, document, mongo_doc, r[1]
                         ):
                             fixed += 1
                         else:
                             skipped += 1
         if direction == "postgres->mongo":  # rows beyond Mongo's range
             async with self.engine.connect() as conn:
-                extra = select(table.c.doc)
+                extra = select(table.c._bc_checksum, table.c.doc)
                 if last_id:
                     extra = extra.where(table.c.id > last_id)
-                for (doc,) in (await conn.execute(extra)).all():
+                for row_checksum, doc in (await conn.execute(extra)).all():
                     document = from_canonical_document(doc)
-                    if dry_run or await self._apply_to_mongo(coll, document, None):
+                    if dry_run or await self._apply_to_mongo(
+                        coll, table, document, None, row_checksum
+                    ):
                         fixed += 1
                     else:
                         skipped += 1
@@ -789,37 +806,65 @@ class Runner:
         self, table: Table, writes: list[tuple[dict, Optional[str]]]
     ) -> int:
         """Store each ``(row values, checksum read)``: a row that was absent
-        is inserted only while it still is, a present one replaced only while
-        it still holds the checksum read. Returns how many were stored."""
+        is inserted only while it still is; a present one is updated (never
+        inserted) only while it still holds the checksum read, so a row the
+        application deleted meanwhile stays deleted. Returns how many were
+        stored."""
         applied = 0
         async with self.engine.begin() as conn:
             for values, expected in writes:
-                stmt = pg_insert(table).values(values)
                 if expected is None:
-                    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+                    stmt = (
+                        pg_insert(table)
+                        .values(values)
+                        .on_conflict_do_nothing(index_elements=["id"])
+                    )
                 else:
-                    stmt = stmt.on_conflict_do_update(
-                        index_elements=["id"],
-                        set_={
-                            name: stmt.excluded[name]
-                            for name in (
-                                "doc",
-                                "created_at",
-                                "updated_at",
-                                "_bc_checksum",
-                                "_bc_source",
-                            )
-                        },
-                        where=table.c._bc_checksum == expected,
+                    stmt = (
+                        table.update()
+                        .where(
+                            table.c.id == values["id"],
+                            table.c._bc_checksum == expected,
+                        )
+                        .values(
+                            {
+                                name: values[name]
+                                for name in (
+                                    "doc",
+                                    "created_at",
+                                    "updated_at",
+                                    "_bc_checksum",
+                                    "_bc_source",
+                                )
+                            }
+                        )
                     )
                 applied += (await conn.execute(stmt)).rowcount or 0
         return applied
 
-    @staticmethod
-    async def _apply_to_mongo(coll, document: dict, read: Optional[dict]) -> bool:
-        """Store ``document`` in Mongo only while the copy there is still the
-        one read (``read``; ``None``: there was none). Returns whether it was
-        stored."""
+    async def _apply_to_mongo(
+        self,
+        coll,
+        table: Table,
+        document: dict,
+        read: Optional[dict],
+        row_checksum: str,
+    ) -> bool:
+        """Store ``document`` (the Postgres row read, with ``row_checksum``)
+        in Mongo only while the row still holds that checksum (re-read here:
+        a row the application deleted or changed meanwhile is not copied)
+        and the Mongo copy is still the one read (``read``; ``None``: there
+        was none). Returns whether it was stored."""
+        async with self.engine.connect() as conn:
+            current = (
+                await conn.execute(
+                    select(table.c._bc_checksum).where(
+                        table.c.id == str(document["_id"])
+                    )
+                )
+            ).scalar_one_or_none()
+        if current != row_checksum:
+            return False
         if read is None:
             try:
                 await coll.insert_one(document)

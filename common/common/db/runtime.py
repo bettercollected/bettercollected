@@ -194,6 +194,7 @@ def metrics_snapshot(metrics) -> dict:
         "calls",
         "mirror_failures",
         "mirror_repairs",
+        "mirror_converge_skipped",
         "shadow_reads",
         "shadow_diffs",
         "shadow_errors",

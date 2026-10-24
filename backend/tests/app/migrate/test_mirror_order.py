@@ -12,8 +12,10 @@ not overwrite a copy the application changed after reconcile read it.
 Skipped unless DATABASE_URL points at a *_test database."""
 
 import asyncio
+import datetime as dt
 import functools
 import os
+import time
 
 import pytest
 from beanie import PydanticObjectId
@@ -26,9 +28,16 @@ from backend.config import settings
 from backend.db.base import SCHEMA
 from backend.db.models import FormRow, MigrationProgress
 from backend.migrate.__main__ import _tables
+import common.db.convergence as convergence
+import common.db.routing as routing
+from backend.app.repositories.postgres.ai import PostgresRateLimitRepository
+from backend.app.repositories.rate_limit_repository import RateLimitRepository
+from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
+from backend.db.models import RateLimitCounterRow
 from common.db import ReadSource, RoutingRepository, load_flags
+from common.db.outbox import MirrorWriteFailureDocument
 from common.db.beanie_bridge import store_exactly
-from common.db.canonical import checksum
+from common.db.canonical import canonical_document, checksum
 from common.db.migrate import Runner, Target
 from common.models.standard_form import StandardForm
 from sqlalchemy import select, update
@@ -294,9 +303,9 @@ class Interleaved(Runner):
         await self._run_between_once()
         return await super()._apply_to_postgres(table, writes)
 
-    async def _apply_to_mongo(self, coll, document, read):
+    async def _apply_to_mongo(self, coll, table, document, read, row_checksum):
         await self._run_between_once()
-        return await Runner._apply_to_mongo(coll, document, read)
+        return await super()._apply_to_mongo(coll, table, document, read, row_checksum)
 
 
 @pytest.mark.parametrize(
@@ -331,3 +340,212 @@ async def test_reconcile_never_overwrites_a_copy_changed_after_it_read_it(
     mongo, doc = await both_copies(created.form_id)
     assert mongo["title"] == doc["title"] == "Newer"
     assert await verify(target, "forms") == {}
+
+
+# -- review follow-ups: a deleted row never stays in the mirror -------------
+
+
+def primary_of(mode):
+    return ReadSource.MONGO if mode == "dual" else ReadSource.POSTGRES
+
+
+async def make_mirror_stale(mode, form):
+    if mode == "dual":
+        await set_postgres_title(form.id, "Stale")
+    else:
+        await FormDocument.get_pymongo_collection().update_one(
+            {"_id": form.id}, {"$set": {"title": "Stale"}}
+        )
+
+
+async def delete_in_both_stores(form):
+    """Another request deletes the form, primary and mirror."""
+    await FormDocument.get_pymongo_collection().delete_one({"_id": form.id})
+    async with container.pg_sessionmaker()() as session, session.begin():
+        row = await session.get(FormRow, str(form.id))
+        if row is not None:
+            await session.delete(row)
+
+
+def touched_form(form):
+    with convergence.collecting() as touched:
+        PostgresFormRepository(container.pg_sessionmaker(), None, None)._touch(
+            FormRow, [form.id]
+        )
+    return touched
+
+
+def delete_before_first_write(monkeypatch, form, after_write=None):
+    """The first copy convergence makes was read before another request
+    deleted the row in both stores, and lands after that delete."""
+    real_write = convergence._write
+    state = {"first": True}
+
+    async def write(entry, copies, store):
+        if state["first"]:
+            state["first"] = False
+            await delete_in_both_stores(form)
+            await real_write(entry, copies, store)
+            if after_write is not None:
+                await after_write()
+            return
+        await real_write(entry, copies, store)
+
+    monkeypatch.setattr(convergence, "_write", write)
+
+
+@pytest.mark.parametrize("mode", MODES)
+async def test_a_delete_landing_before_the_last_copy_is_not_left_in_the_mirror(
+    target, mode, monkeypatch
+):
+    repo, _ = forms_repo(mode, "save_form")
+    created = await new_form(repo)
+    await make_mirror_stale(mode, created)
+    delete_before_first_write(monkeypatch, created)
+
+    # one copying round: the copy is the last one, the re-check after it only reads
+    await convergence.converge(touched_form(created), primary_of(mode), rounds=1)
+
+    assert await both_copies(created.form_id) == (None, None)
+
+
+@pytest.mark.parametrize("mode", MODES)
+async def test_a_timeout_right_after_a_copy_still_rechecks_it(
+    target, mode, monkeypatch
+):
+    repo, _ = forms_repo(mode, "save_form")
+    created = await new_form(repo)
+    await make_mirror_stale(mode, created)
+    deadline = time.monotonic() + 0.2
+
+    async def past_the_deadline():
+        await asyncio.sleep(max(0.0, deadline - time.monotonic()) + 0.05)
+
+    delete_before_first_write(monkeypatch, created, after_write=past_the_deadline)
+
+    await convergence.converge(
+        touched_form(created), primary_of(mode), deadline=deadline
+    )
+
+    assert await both_copies(created.form_id) == (None, None)
+
+
+@pytest.mark.parametrize("mode", MODES)
+async def test_a_failed_primary_read_changes_nothing(target, mode, monkeypatch):
+    repo, _ = forms_repo(mode, "save_form")
+    created = await new_form(repo)
+    await make_mirror_stale(mode, created)
+    real_read = convergence._read
+    primary = primary_of(mode)
+
+    async def read(entry, ids, store):
+        if store is primary:
+            raise ConnectionError("primary unreachable")
+        return await real_read(entry, ids, store)
+
+    monkeypatch.setattr(convergence, "_read", read)
+    with pytest.raises(ConnectionError):
+        await convergence.converge(touched_form(created), primary)
+
+    mongo, doc = await both_copies(created.form_id)
+    stale, fresh = (doc, mongo) if mode == "dual" else (mongo, doc)
+    assert stale["title"] == "Stale" and fresh["title"] == "Draft"
+
+
+@pytest.mark.parametrize(
+    "mode, direction",
+    [("dual", "mongo->postgres"), ("postgres_primary_dual", "postgres->mongo")],
+)
+async def test_reconcile_never_brings_back_a_row_deleted_after_it_read_it(
+    target, mode, direction
+):
+    repo, _ = forms_repo(mode, "save_form")
+    created = await new_form(repo)
+    if mode == "dual":
+        await set_postgres_title(created.id, "Stale")  # a row to update
+    else:  # a document to insert: missing from Mongo, not deleted by the application
+        collection = FormDocument.get_pymongo_collection()
+        await collection.database[collection.name].delete_one({"_id": created.id})
+
+    async def application_delete():
+        await repo.delete_form(created.form_id)
+
+    Interleaved.between = application_delete
+    async with Interleaved(target) as runner:
+        result = await runner.reconcile(["forms"], direction=direction)
+
+    assert result["forms"]["skipped"] == 1 and result["forms"]["fixed"] == 0
+    assert await both_copies(created.form_id) == (None, None)
+
+
+async def test_a_reconcile_that_skipped_copies_keeps_the_outbox_open(target):
+    repo, _ = forms_repo("dual", "save_form")
+    created = await new_form(repo)
+    await set_postgres_title(created.id, "Stale")
+    await MirrorWriteFailureDocument(
+        table_name="FormRepository", row_id=str(created.id), op="save_form", error="-"
+    ).insert()
+
+    async def application_write():
+        document = await repo.get_form_document_by_id(created.form_id)
+        document.title = "Newer"
+        await repo.save_form(document)
+
+    Interleaved.between = application_write
+    async with Interleaved(target) as runner:
+        result = await runner.reconcile(direction="mongo->postgres")
+        assert result["forms"]["skipped"] == 1
+        assert (await runner.status())["outbox"]["mongo"] == 1
+
+
+async def test_an_expired_counter_is_not_copied_back(target):
+    """Mongo expires counters by TTL, on its own schedule; the twin deletes
+    expired ones when it counts. Convergence must not copy one back."""
+    flags = load_flags({"DB_WRITE_MODE": "dual"})
+    repo = RoutingRepository(
+        group="ai",
+        flags=flags,
+        mongo=RateLimitRepository(),
+        postgres=PostgresRateLimitRepository(container.pg_sessionmaker()),
+        on_mirror_failure=container.outbox_recorder(),
+    )
+    past = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
+    expired = str(PydanticObjectId())
+    # stored before it expired, in both stores
+    await repo.hit(expired, dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1))
+    await RateLimitCounterDocument.get_pymongo_collection().update_one(
+        {"_id": PydanticObjectId(expired)}, {"$set": {"expires_at": past}}
+    )
+    raw = await RateLimitCounterDocument.get_pymongo_collection().find_one(
+        {"_id": PydanticObjectId(expired)}
+    )
+    async with container.pg_sessionmaker()() as session, session.begin():
+        row = await session.get(RateLimitCounterRow, expired)
+        row.doc = canonical_document(raw)
+    async with container.pg_sessionmaker()() as session:
+        row = await session.get(RateLimitCounterRow, expired)
+        assert row.expires_at <= dt.datetime.now(dt.timezone.utc)
+
+    # a new counter: the twin deletes the expired one, Mongo still has it
+    await repo.hit(
+        str(PydanticObjectId()),
+        dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1),
+    )
+
+    async with container.pg_sessionmaker()() as session:
+        assert await session.get(RateLimitCounterRow, expired) is None
+    assert not repo.metrics.mirror_failures
+    assert not repo.metrics.mirror_repairs
+
+
+async def test_a_bulk_delete_is_left_to_verify(target, monkeypatch):
+    monkeypatch.setattr(routing, "MAX_CONVERGED_IDS", 2)
+    repo, _ = forms_repo("dual", "save_form")
+    forms = [await new_form(repo, f"Form {i}") for i in range(3)]
+
+    await repo.delete_forms([f.form_id for f in forms])
+
+    assert repo.metrics.mirror_converge_skipped[("forms", "delete_forms")] == 1
+    assert not repo.metrics.mirror_failures
+    for form in forms:
+        assert await both_copies(form.form_id) == (None, None)

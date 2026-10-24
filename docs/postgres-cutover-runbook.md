@@ -93,8 +93,13 @@ Start on staging; repeat on production only after the staging gate.
    copies the primary's version to the mirror where they differ: two writes to the same document
    at once can reach the mirror in the opposite order, which would leave the mirror with the older
    version. `metrics.<group>.mirror_repairs` counts the copies rewritten this way; a few under
-   concurrent editing are expected. A document that still differs after three rounds counts as a
-   mirror failure and lands in the outbox like one.
+   concurrent editing are expected. A document that still differs after three rounds, or when the
+   mirror timeout has passed, counts as a mirror failure and lands in the outbox like one; a mirror
+   copy of a document the primary no longer holds is deleted even then. A write that touched more
+   than 500 documents (a bulk delete) is not read back (`metrics.<group>.mirror_converge_skipped`):
+   `verify` covers it. Collections Mongo expires by a TTL index (sessions, rate-limit counters,
+   idempotency keys, flow events) treat an expired copy as absent, so one store's expiry is never
+   copied back from the other.
 2. **Preflight:** `python -m backend.migrate preflight` (and for auth/google). Non-zero exit means
    documents with non-ObjectId ids or duplicate unique keys (constraints *and* unique indexes;
    null and empty-string keys never collide); fix the data in Mongo first — backfill skips invalid
@@ -122,8 +127,9 @@ Start on staging; repeat on production only after the staging gate.
    again. Rows that exist on one side only are not deleted (see "Reconcile and deleted rows").
    Reconcile can run while the services write: each copy is stored only while the target still
    holds what reconcile read, so a document the application changed in the meantime is left as
-   the application wrote it and counted under `skipped`. Run `verify` again; if it still differs,
-   run `reconcile` again.
+   the application wrote it and counted under `skipped` (an update never re-inserts a row the
+   application deleted meanwhile). A run with skipped copies leaves the outbox open. Run `verify`
+   again; if it still differs, run `reconcile` again.
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
    must stay at zero; a diff names the repository and method, never the payload.
 

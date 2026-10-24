@@ -30,6 +30,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+import time
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
@@ -37,7 +38,12 @@ from typing import Any, Callable, Optional
 from pydantic import BaseModel
 
 from common.clock import write_clock
-from common.db.convergence import collecting, converge, touched_ids
+from common.db.convergence import (
+    MAX_CONVERGED_IDS,
+    collecting,
+    converge,
+    touched_ids,
+)
 from common.db.flags import DbFlags, ReadSource
 
 logger = logging.getLogger(__name__)
@@ -131,6 +137,8 @@ class RoutingMetrics:
     # mirror copies rewritten after the mirror write: concurrent writes to one
     # document reached the mirror in another order than the primary
     mirror_repairs: Counter = field(default_factory=Counter)
+    # writes that touched too many rows to converge (bulk deletes)
+    mirror_converge_skipped: Counter = field(default_factory=Counter)
     shadow_reads: Counter = field(default_factory=Counter)
     shadow_diffs: Counter = field(default_factory=Counter)
     shadow_errors: Counter = field(default_factory=Counter)
@@ -307,14 +315,31 @@ class RoutingRepository:
         self, name: str, primary: ReadSource, mirror: ReadSource, touched, args, kwargs
     ) -> None:
         """Bring the mirror's copy of the touched rows in line with the
-        primary's (:mod:`common.db.convergence`). Bounded like the mirror
-        write and, like it, never fails the request: a failure is a mirror
-        failure, reported with the ids it concerns."""
+        primary's (:mod:`common.db.convergence`). Bounded by the mirror
+        timeout as a deadline checked between copies (never cancelling one
+        before its re-check) and, like the mirror write, never fails the
+        request: a failure is a mirror failure, reported with the ids it
+        concerns. A write that touched more than ``MAX_CONVERGED_IDS`` rows
+        (a bulk delete) is not converged; ``verify`` covers those rows."""
         if not touched:
             return
+        count = sum(len(entry.ids) for entry in touched.values())
+        if count > MAX_CONVERGED_IDS:
+            self._metrics.mirror_converge_skipped[(self._group, name)] += 1
+            logger.info(
+                "mirror convergence skipped: group=%s repository=%s method=%s rows=%d",
+                self._group,
+                self._repository,
+                name,
+                count,
+            )
+            return
         try:
-            repaired = await asyncio.wait_for(
-                converge(touched, primary), timeout=self._mirror_timeout_s
+            repaired = await converge(
+                touched,
+                primary,
+                deadline=time.monotonic() + self._mirror_timeout_s,
+                read_timeout=self._mirror_timeout_s,
             )
         except BaseException as exc:  # noqa: BLE001 — never fails the request
             if isinstance(exc, (KeyboardInterrupt, SystemExit)):

@@ -28,11 +28,13 @@ write's :func:`collecting` block is open. A copy is compared by its checksum
 
 from __future__ import annotations
 
+import asyncio
 import re
+import time
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, Iterator, Mapping, Optional
 
 from bson import ObjectId
@@ -47,6 +49,9 @@ from common.db.flags import ReadSource
 ROUNDS = 3
 #: Ids per read/write batch.
 CHUNK = 500
+#: A routed write that touched more rows than this (a bulk delete) is not
+#: converged: the reads would outlast the mirror timeout; ``verify`` covers it.
+MAX_CONVERGED_IDS = 500
 
 _OBJECT_ID = re.compile(r"^[0-9a-f]{24}$")
 
@@ -63,6 +68,7 @@ class TouchedTable:
     sessions: Any  # async_sessionmaker of the Postgres store
     mongo_collection: Callable[[], Any]  # the Mongo collection (resolved lazily)
     ids: set = field(default_factory=set)
+    ttl: Optional[tuple] = None  # (field, seconds) when Mongo expires the collection
 
 
 _current: ContextVar[Optional[dict]] = ContextVar("bc_touched_rows", default=None)
@@ -82,12 +88,18 @@ def collecting() -> Iterator[dict]:
         _current.reset(token)
 
 
+def active() -> bool:
+    """Whether a routed write is collecting the rows it touches."""
+    return _current.get() is not None
+
+
 def touch(
     row: Any,
     ids: Iterable[Any],
     *,
     sessions: Any,
     mongo_collection: Callable[[], Any],
+    ttl: Optional[tuple] = None,
 ) -> None:
     """Record that the current routed write wrote (or deleted) ``ids`` of
     ``row``'s table. Outside a routed write this does nothing."""
@@ -96,8 +108,38 @@ def touch(
         return
     entry = touched.get(row)
     if entry is None:
-        entry = touched[row] = TouchedTable(row, sessions, mongo_collection)
+        entry = touched[row] = TouchedTable(row, sessions, mongo_collection, ttl=ttl)
     entry.ids.update(str(i) for i in ids)
+
+
+def ttl_of(document_cls: Any) -> Optional[tuple[str, int]]:
+    """(field, seconds) of the TTL index a Beanie document class declares,
+    or None. Mongo drops such documents on its own schedule and the twins
+    drop expired rows when they write, so the two stores disagree about an
+    expired row for a while: convergence treats an expired copy as absent."""
+    if document_cls is None:
+        return None
+    get_settings = getattr(document_cls, "get_settings", None)
+    try:
+        indexes = get_settings().indexes if get_settings else None
+    except Exception:  # noqa: BLE001 — not initialised: no settings to read
+        indexes = getattr(getattr(document_cls, "Settings", None), "indexes", None)
+    for index in indexes or ():
+        index = getattr(index, "index", index)  # Beanie wraps IndexModel
+        spec = getattr(index, "document", None)
+        if isinstance(spec, Mapping) and "expireAfterSeconds" in spec:
+            keys = list(spec.get("key", {}))
+            if len(keys) == 1:
+                return keys[0], int(spec["expireAfterSeconds"])
+    return None
+
+
+def _expired(document: Mapping[str, Any], ttl: Optional[tuple], now: datetime) -> bool:
+    if ttl is None:
+        return False
+    field_name, seconds = ttl
+    at = _timestamp(document.get(field_name))
+    return at is not None and at + timedelta(seconds=seconds) <= now
 
 
 def touched_ids(touched: Mapping[Any, TouchedTable]) -> list[str]:
@@ -109,32 +151,61 @@ def _other(store: ReadSource) -> ReadSource:
 
 
 async def converge(
-    touched: Mapping[Any, TouchedTable], primary: ReadSource, *, rounds: int = ROUNDS
+    touched: Mapping[Any, TouchedTable],
+    primary: ReadSource,
+    *,
+    rounds: Optional[int] = None,
+    deadline: Optional[float] = None,
+    read_timeout: Optional[float] = None,
 ) -> int:
     """Make the mirror's copy of every touched row equal the primary's.
+
     Returns how many mirror copies were rewritten (0 when the mirror write
-    had already left them equal); raises :class:`Diverged` when a row still
-    differs after ``rounds`` copies."""
+    had already left them equal). Raises :class:`Diverged` when a row still
+    differs after ``rounds`` copies or once ``deadline`` (a
+    ``time.monotonic()`` reading) has passed. The deadline is checked before
+    each copy, never in the middle of one, so every copy is followed by its
+    re-check; and whenever the loop stops early, a mirror copy whose row the
+    primary no longer holds is still deleted, since a delete cannot bring
+    data back. A read that fails (or outlasts ``read_timeout``) raises at
+    once and changes nothing; writes are never cancelled.
+    """
+    rounds = ROUNDS if rounds is None else rounds
     rewritten = 0
     for entry in touched.values():
         ids = sorted(i for i in entry.ids if _OBJECT_ID.match(i))
         for start in range(0, len(ids), CHUNK):
             rewritten += await _converge_ids(
-                entry, ids[start : start + CHUNK], primary, rounds
+                entry,
+                ids[start : start + CHUNK],
+                primary,
+                rounds,
+                deadline,
+                read_timeout,
             )
     return rewritten
 
 
 async def _converge_ids(
-    entry: TouchedTable, ids: list[str], primary: ReadSource, rounds: int
+    entry: TouchedTable,
+    ids: list[str],
+    primary: ReadSource,
+    rounds: int,
+    deadline: Optional[float],
+    read_timeout: Optional[float],
 ) -> int:
     mirror = _other(primary)
+
+    async def read(store):
+        return await asyncio.wait_for(_read(entry, ids, store), timeout=read_timeout)
+
     rewritten = 0
-    for attempt in range(rounds + 1):
+    attempt = 0
+    while True:
         # the primary first: a copy read from it is never older than the
         # mirror's copy read after it
-        source = await _read(entry, ids, primary)
-        target = await _read(entry, ids, mirror)
+        source = await read(primary)
+        target = await read(mirror)
         ids = [
             i
             for i in ids
@@ -142,21 +213,34 @@ async def _converge_ids(
         ]
         if not ids:
             return rewritten
-        if attempt == rounds:
-            break
+        out_of_time = deadline is not None and time.monotonic() >= deadline
+        if attempt >= rounds or out_of_time:
+            # stop copying, but never leave a copy of a row the primary no
+            # longer holds: deleting it cannot bring data back
+            gone = {i: None for i in ids if i not in source}
+            if gone:
+                await _write(entry, gone, mirror)
+                rewritten += len(gone)
+            left = [i for i in ids if i in source]
+            if not left:
+                return rewritten
+            why = "the mirror timeout passed" if out_of_time else f"{rounds} copies"
+            raise Diverged(
+                f"{entry.row.mongo_collection()}: {len(left)} document(s) still "
+                f"differ after {why}"
+            )
         await _write(entry, {i: source.get(i) for i in ids}, mirror)
         rewritten += len(ids)
-    raise Diverged(
-        f"{entry.row.mongo_collection()}: {len(ids)} document(s) still differ "
-        f"after {rounds} copies"
-    )
+        attempt += 1
 
 
 async def _read(
     entry: TouchedTable, ids: list[str], store: ReadSource
 ) -> dict[str, tuple[str, Any]]:
     """id -> (checksum, copy) for the ids present in ``store``; the copy is
-    the canonical ``doc`` from Postgres, the raw document from Mongo."""
+    the canonical ``doc`` from Postgres, the raw document from Mongo. An
+    expired copy (a collection Mongo expires by TTL) counts as absent."""
+    now = datetime.now(timezone.utc)
     if store is ReadSource.POSTGRES:
         row = entry.row
         async with entry.sessions() as session:
@@ -165,12 +249,20 @@ async def _read(
                     select(row.id, row.bc_checksum, row.doc).where(row.id.in_(ids))
                 )
             ).all()
-        return {r[0]: (r[1], r[2]) for r in rows}
+        return {
+            r[0]: (r[1], r[2])
+            for r in rows
+            if not _expired(from_canonical_document(r[2]), entry.ttl, now)
+        }
     collection = entry.mongo_collection()
     found = await collection.find(
         {"_id": {"$in": [ObjectId(i) for i in ids]}}
     ).to_list()
-    return {str(d["_id"]): (checksum(canonical_document(d)), d) for d in found}
+    return {
+        str(d["_id"]): (checksum(canonical_document(d)), d)
+        for d in found
+        if not _expired(d, entry.ttl, now)
+    }
 
 
 def _timestamp(value: Any) -> Optional[datetime]:
