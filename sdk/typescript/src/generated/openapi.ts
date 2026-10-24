@@ -65,7 +65,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a form and its responses
-         * @description The product's delete: the form leaves the workspace and the responses collected through it are deleted. Needs `forms:write`, and the key's creator needs to delete forms (`form.delete`).
+         * @description The product's delete: the form leaves the workspace and the responses collected through it are deleted. Needs `forms:delete` (`forms:write` is not enough), and the key's creator needs to delete forms (`form.delete`).
          */
         delete: operations["deleteForm"];
         options?: never;

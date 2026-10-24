@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "BetterCollected public API",
-    "description": "Create, read, change, publish and delete forms as **form spec v1** documents,\nread their responses and close deletion requests. Authenticate with a\nworkspace API key: `Authorization: Bearer bc_...`. A key works in its own\nworkspace only, with its scopes (`forms:read`, `forms:write`,\n`responses:read`, `deletion_requests:write`), and never does more than the\nperson who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limits per API key and per workspace: 429 with `Retry-After`.\n",
+    "description": "Create, read, change, publish and delete forms as **form spec v1** documents,\nread their responses and close deletion requests. Authenticate with a\nworkspace API key: `Authorization: Bearer bc_...`. A key works in its own\nworkspace only, with its scopes (`forms:read`, `forms:write`, `forms:delete`,\n`responses:read`, `deletion_requests:write`), and never does more than the\nperson who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limits per API key and per workspace: 429 with `Retry-After`.\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -681,7 +681,7 @@
           "Forms"
         ],
         "summary": "Delete a form and its responses",
-        "description": "The product's delete: the form leaves the workspace and the responses collected through it are deleted. Needs `forms:write`, and the key's creator needs to delete forms (`form.delete`).",
+        "description": "The product's delete: the form leaves the workspace and the responses collected through it are deleted. Needs `forms:delete` (`forms:write` is not enough), and the key's creator needs to delete forms (`form.delete`).",
         "operationId": "deleteForm",
         "security": [
           {

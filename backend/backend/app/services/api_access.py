@@ -23,6 +23,7 @@ from backend.app.services.ai.api_keys import APIKeyService
 SCOPE_PERMISSIONS: Dict[str, Tuple[Permission, ...]] = {
     "forms:read": (Permission.FORM_READ,),
     "forms:write": (Permission.FORM_EDIT,),
+    "forms:delete": (Permission.FORM_DELETE,),
     "responses:read": (Permission.RESPONSE_READ, Permission.RESPONSE_EXPORT),
     "deletion_requests:read": (Permission.PRIVACY_MANAGE,),
     "deletion_requests:write": (Permission.PRIVACY_MANAGE,),

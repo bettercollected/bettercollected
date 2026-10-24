@@ -489,15 +489,16 @@ async def publish_form(
     operation_id="deleteForm",
     summary="Delete a form and its responses",
     description="The product's delete: the form leaves the workspace and the "
-    "responses collected through it are deleted. Needs `forms:write`, and "
-    "the key's creator needs to delete forms (`form.delete`).",
+    "responses collected through it are deleted. Needs `forms:delete` "
+    "(`forms:write` is not enough), and the key's creator needs to delete "
+    "forms (`form.delete`).",
     status_code=HTTPStatus.NO_CONTENT,
     response_class=Response,
     responses=_errors(401, 403, 404, 409, 429),
 )
 async def delete_form(
     form_id: str,
-    caller: ApiCaller = Depends(api_key("forms:write", "api:delete_form")),
+    caller: ApiCaller = Depends(api_key("forms:delete", "api:delete_form")),
 ):
     await _require_form(caller, form_id)
     await (
