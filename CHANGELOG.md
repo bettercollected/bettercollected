@@ -66,6 +66,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
+- Searching a workspace's draft forms (`POST /workspaces/{id}/forms/search` without `published=true`)
+  now needs permission to read the workspace's forms, as the forms list already did. Any signed-in
+  account got 403 from the list but could search another workspace's drafts. Importer details (the
+  importing member's name and email) are only ever attached for members who may read the workspace's
+  forms: never in published search, and no longer when a non-member reads a single form. A single form's
+  importer is now the member who imported it, not the first user the auth service returned.
+
 ## [4.0.3] - 2026-10-24
 
 ### Added
