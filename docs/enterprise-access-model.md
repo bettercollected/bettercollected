@@ -33,7 +33,7 @@ can(user, permission, workspace, form?)  =
 | `security.manage` | SSO settings (view, test a connection), SCIM, verified domains, API keys. Changing the SSO configuration (connections, "require SSO", the default role) is **owner only** on top: a connection controls every account on the workspace's verified domains, the owner's included ([sso.md](sso.md)) |
 | `ai.manage` | AI opt-in and provider, AI profile |
 | `audit.read` | audit log |
-| `form.create` | create, import (Google/Typeform/PDF), from template |
+| `form.create` | create, import (Google/PDF), from template |
 | `form.read` | open a form in the dashboard (structure, settings) |
 | `form.edit` | edit, publish, duplicate, settings, actions, responder-group links |
 | `form.delete` | delete a form |

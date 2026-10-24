@@ -131,7 +131,6 @@ def test_published_ports_are_the_intended_ones():
         "jobs-worker",
         "auth",
         "integrations-googleform",
-        "integrations-typeform",
         "mongo-seed",
     ],
 )
@@ -227,7 +226,7 @@ def test_the_master_key_is_in_no_other_service():
     assert holders == MASTER_KEY_HOLDERS
 
 
-@pytest.mark.parametrize("service", ["worker", "webapp", "integrations-typeform", "nginx"])
+@pytest.mark.parametrize("service", ["worker", "webapp", "nginx"])
 def test_services_outside_the_store_get_no_store_variables(service):
     env = _env(service)
     for name in ("SETTINGS_MASTER_KEY", "SETTINGS_STORE", "SETTINGS_SNAPSHOT_DIR", "DATABASE_URL"):
@@ -253,12 +252,14 @@ def test_the_worker_keeps_two_keys_in_env_and_never_the_master_key():
     assert "volumes" not in SERVICES["worker"]
 
 
-def test_typeform_keeps_its_keys_in_env():
-    assert sorted(_env("integrations-typeform")) == [
-        "AUTH_AES_HEX_KEY",
-        "AUTH_JWT_SECRET",
-        "MASTER_ENCRYPTION_KEYSET",
-    ]
+def test_the_typeform_integration_is_gone():
+    """Removed in 4.1: no service, no seed switch, no env file, no kept keys."""
+    assert "integrations-typeform" not in SERVICES
+    assert "TYPEFORM" not in COMPOSE_TEXT
+    assert "integrations-typeform" not in DEPLOY.split("services_for() {", 1)[1].split("\n}", 1)[0]
+    assert "typeform_keys" not in DEPLOY and "service_env_file .env.typeform" not in DEPLOY
+    assert "typeform" not in (ROOT / "seed-data-deployment.js").read_text().lower()
+    assert "TYPEFORM_" not in (ROOT / ".env.deployment.example").read_text()
 
 
 def test_no_service_pins_debug_or_api_docs():
@@ -285,8 +286,6 @@ def test_wiring_pins_that_would_beat_the_portal_are_gone():
     for env in (backend, jobs):
         assert "UMAMI_URL" not in env  # seeded into the store by deploy.sh
         assert "AUTH_CALLBACK_URI" not in env  # the code default is the auth address
-    auth = _env("auth")
-    assert "TYPEFORM_REDIRECT_URI" not in auth and "TYPEFORM_SCOPE" not in auth
 
 
 # ----------------------------------------------------------- deploy.sh
@@ -331,8 +330,7 @@ def test_the_upgrade_imports_then_checks_and_prunes_only_on_request():
     # prune is a separate, explicit command, never part of the deploy run
     assert "settings_prune" not in DEPLOY[DEPLOY.index("function stack_keys()") :]
     prune = DEPLOY[DEPLOY.index("settings_prune() {") : DEPLOY.index("# ./deploy.sh settings-env-export")]
-    assert "typeform_keys=(AUTH_JWT_SECRET AUTH_AES_HEX_KEY MASTER_ENCRYPTION_KEYSET)" in DEPLOY
-    assert '--keep "$name"' in prune and "${typeform_keys[@]}" in prune
+    assert '--keep "$name"' in prune and "${env_driven_keys[@]}" in prune
 
 
 def test_the_setup_token_goes_to_the_console_only():
@@ -462,7 +460,6 @@ ENV_DEPLOYMENT_READERS = ("backend", "jobs-worker", "auth", "integrations-google
 OWN_ENV_FILE = {
     "webapp": ".env.webapp",
     "worker": ".env.worker",
-    "integrations-typeform": ".env.typeform",
 }
 
 
@@ -534,11 +531,11 @@ def test_the_webapp_and_worker_env_files_cover_what_those_services_read():
 
 
 def test_first_party_services_cannot_gain_privileges():
-    for name in ("webapp", "worker", "backend", "jobs-worker", "auth", "integrations-googleform", "integrations-typeform"):
+    for name in ("webapp", "worker", "backend", "jobs-worker", "auth", "integrations-googleform"):
         assert "no-new-privileges:true" in SERVICES[name]["security_opt"], name
     # the services that need no capability at all drop every one (the backend and jobs
     # worker keep root's file access: they open the document sandbox's socket directory)
-    for name in ("webapp", "worker", "integrations-typeform"):
+    for name in ("webapp", "worker"):
         assert SERVICES[name]["cap_drop"] == ["ALL"], name
     assert "cap_add" not in COMPOSE_TEXT
     assert SERVICES["nginx"]["image"] == "nginx:1.28-alpine"
@@ -611,6 +608,7 @@ DUMMY = {
     "MASTER_ENCRYPTION_KEYSET": "DUMMY-response-keyset-6",
     "AUTH_JWT_SECRET": "DUMMY-jwt-secret-7",
     "AUTH_AES_HEX_KEY": "DUMMY-aes-key-8",
+    # a value left over from before the Typeform removal reaches only the store readers too
     "TYPEFORM_CLIENT_SECRET": "DUMMY-typeform-secret-9",
 }
 NEVER_TO_PUBLIC_OR_BROWSER_SERVICES = ("worker", "webapp")
@@ -644,13 +642,13 @@ def test_a_populated_env_deployment_reaches_only_the_store_readers(tmp_path):
     """The rendered configuration, with every secret an operator may keep in
     .env.deployment filled in (as an upgraded stack has them): the Chromium worker and the
     public webapp hold none of them, and neither does any service outside the four that read
-    the settings store. The Typeform service gets only its own env file's contents."""
+    the settings store."""
     shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
     (tmp_path / ".env.deployment").write_text("".join(f"{k}={v}\n" for k, v in DUMMY.items()))
     holders = _holders(_render(tmp_path))
     for name, services in holders.items():
         assert set(services) <= set(ENV_DEPLOYMENT_READERS), (name, services)
-        for service in NEVER_TO_PUBLIC_OR_BROWSER_SERVICES + ("integrations-typeform", "nginx", "mongo-seed",
+        for service in NEVER_TO_PUBLIC_OR_BROWSER_SERVICES + ("nginx", "mongo-seed",
                                                               "admin", "task-runner", "document-sandbox",
                                                               "umami", "temporal", "mongodb"):
             assert service not in services, (name, service)
@@ -677,22 +675,16 @@ def test_the_service_env_files_deploy_sh_writes_are_the_only_extra_input(tmp_pat
     (tmp_path / ".env.deployment").write_text("".join(f"{k}={v}\n" for k, v in DUMMY.items()))
     (tmp_path / ".env.webapp").write_text("UNSPLASH_ACCESS_KEY=DUMMY-unsplash\n")
     (tmp_path / ".env.worker").write_text("COOKIE_DOMAIN=example.test\n")
-    (tmp_path / ".env.typeform").write_text("TYPEFORM_CLIENT_ID=DUMMY-tid\n")
+    (tmp_path / ".env.typeform").write_text("TYPEFORM_CLIENT_ID=DUMMY-tid\n")  # left by a pre-4.1 stack
     rendered = _render(tmp_path)
     assert rendered["webapp"]["environment"]["UNSPLASH_ACCESS_KEY"] == "DUMMY-unsplash"
     assert rendered["worker"]["environment"]["COOKIE_DOMAIN"] == "example.test"
-    assert rendered["integrations-typeform"]["environment"]["TYPEFORM_CLIENT_ID"] == "DUMMY-tid"
+    assert "integrations-typeform" not in rendered and "DUMMY-tid" not in json.dumps(rendered)
     # the worker's whole environment: its own file plus the compose file's few values
     assert set(rendered["worker"]["environment"]) == {"API_KEY", "AES_HEX_KEY", "TEMPORAL_SERVER_URL", "COOKIE_DOMAIN"}
     for name, services in _holders(rendered).items():
         for service in NEVER_TO_PUBLIC_OR_BROWSER_SERVICES:
             assert service not in services, (name, service)
-        if name != "AUTH_JWT_SECRET" and name != "AUTH_AES_HEX_KEY" and name != "MASTER_ENCRYPTION_KEYSET":
-            assert "integrations-typeform" not in services, name
-    # the typeform service keeps exactly its three documented keys from the compose file
-    assert {"AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET"} <= set(
-        rendered["integrations-typeform"]["environment"]
-    )
 
 
 @pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
@@ -741,7 +733,8 @@ def test_up_starts_every_required_service_for_every_preference(tmp_path, prefere
         "umami-postgresql", "umami", "app-postgres", "admin", "jobs-worker", "document-sandbox", "task-runner",
     }
     assert required <= created, sorted(required - created)
-    extra = {"both": {"integrations-typeform", "integrations-googleform"}, "typeform": {"integrations-typeform"},
+    # both and typeform are pre-4.1 preferences: Typeform itself is gone
+    extra = {"both": {"integrations-googleform"}, "typeform": set(),
              "googleform": {"integrations-googleform"}, "": set()}[preference]
     assert extra <= created
-    assert ("integrations-typeform" in created) == ("integrations-typeform" in extra)
+    assert ("integrations-googleform" in created) == ("integrations-googleform" in extra)

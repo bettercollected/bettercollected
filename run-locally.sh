@@ -4,7 +4,7 @@
 root_dir=$(pwd)
 
 # List of service directories and subservice directories
-services=("webapp" "auth" "integrations/google" "integrations/typeform" "backend" "temporal/worker" )
+services=("webapp" "auth" "integrations/google" "backend" "temporal/worker" )
 
 # Initialize an array to hold the background process IDs
 pids=()
