@@ -13,6 +13,16 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+### Fixed
+
+- Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
+  mirror store in the opposite order and leave it with the older version. After its mirror write,
+  each write now brings the mirror's copy of the rows it touched in line with the primary's
+  (counted as `mirror_repairs`); a mirror copy of a row the primary deleted is removed even when
+  the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
+  the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
+  stays open).
+
 ## [4.0.5] - 2026-10-24
 
 ### Fixed
