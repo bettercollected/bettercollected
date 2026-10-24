@@ -13,15 +13,45 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
-### Fixed
+## [4.0.6] - 2026-10-24
 
-- Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
-  mirror store in the opposite order and leave it with the older version. After its mirror write,
-  each write now brings the mirror's copy of the rows it touched in line with the primary's
-  (counted as `mirror_repairs`); a mirror copy of a row the primary deleted is removed even when
-  the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
-  the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
-  stays open).
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **Migrations run on start** (`deploy.sh`, or `DB_AUTO_MIGRATE`): app `0019`, `0020` and `0021`,
+  auth `0004`, google `0004`. All are expand-only. `0019` refuses to run while
+  `app.workspace_forms` holds duplicate (`workspace_id`, `form_id`) links; the read-only check is in
+  the `0019` entry below.
+- **No compose or setting change.**
+- **Rollback limit.** Roll back the image only and keep the schema: a 4.0.5 image runs on the newer
+  schema, so don't run the Alembic downgrades. Once two workspaces hold a deletion request for the
+  same response, a 4.0.5 service using Mongo can't rebuild its old unique index on
+  `responses_deletion_requests` (`form_id_1_response_id_1_provider_1`) and doesn't start, and the
+  `0020` downgrade fails. Check first (read-only):
+
+  ```sql
+  SELECT form_id, response_id, provider, count(*) AS requests,
+         array_agg(id ORDER BY updated_at DESC) AS ids
+    FROM app.responses_deletion_requests
+   GROUP BY form_id, response_id, provider HAVING count(*) > 1;
+  ```
+
+  ```js
+  db.responses_deletion_requests.aggregate([
+    {$group: {_id: {f: "$form_id", r: "$response_id", p: "$provider"}, n: {$sum: 1},
+              ids: {$push: "$_id"}, workspaces: {$push: "$workspace_id"}}},
+    {$match: {n: {$gt: 1}}}])
+  ```
+
+  If either finds a pair, prefer fixing forward on 4.0.6. To roll back anyway, merge each pair
+  into one request in both stores first: note the ids and workspaces, complete the requests that
+  can be completed, keep one request per response, and delete the others by id
+  (`DELETE FROM app.responses_deletion_requests WHERE id = '<id>';` and
+  `db.responses_deletion_requests.deleteOne({_id: ObjectId("<id>")})`). After upgrading again,
+  re-file the removed requests in their workspaces.
+- **After the deploy**, open the admin portal's health page. Every instance should report, with no
+  mirror failures and no outbox backlog.
+
 ### Changed
 
 - A form is linked to a workspace once: (`workspace_id`, `form_id`) is unique in `workspace_forms`, in
@@ -46,6 +76,28 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   same time (a failure of either is logged and the service starts anyway). Filing twice for the same copy
   is refused as before, and a request stored before requests carried a workspace is still found for the
   response.
+- Changelog entries are now files in `changelog.d/` (`<pr-number-or-branch-slug>.<category>.md`)
+  instead of edits to `CHANGELOG.md`, which a release assembles them into with
+  `.github/scripts/changelog.py assemble X.Y.Z` (`--draft` previews). A PR check fails when a pull
+  request changes code without a fragment (unless it is labelled `no-changelog`) or edits
+  `CHANGELOG.md` outside a `docs/changelog-X.Y.Z` release branch. See `changelog.d/README.md`.
+
+### Fixed
+
+- Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
+  mirror store in the opposite order and leave it with the older version. After its mirror write,
+  each write now brings the mirror's copy of the rows it touched in line with the primary's
+  (counted as `mirror_repairs`); a mirror copy of a row the primary deleted is removed even when
+  the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
+  the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
+  stays open).
+- `reconcile` could bring back a record deleted in one store whose delete had failed in the other
+  (a response, a deletion request, an account). Every delete now records a tombstone (collection,
+  id and time only) in the store that deletes, in every write mode. `reconcile` never copies a
+  deleted record and deletes its surviving copy instead, in both directions, and `verify` reports
+  deleted records that are still present (`tombstoned`). Tombstones are kept 120 days. New table
+  `deletion_tombstones` in the `app`, `auth` and `google` schemas (app revision `0021`, auth and
+  google `0004`).
 
 ## [4.0.5] - 2026-10-24
 
@@ -963,7 +1015,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.3...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.6...HEAD
+[4.0.6]: https://github.com/bettercollected/bettercollected/compare/v4.0.5...v4.0.6
 [4.0.3]: https://github.com/bettercollected/bettercollected/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/bettercollected/bettercollected/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/bettercollected/bettercollected/compare/v4.0.0...v4.0.1
