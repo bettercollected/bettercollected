@@ -96,11 +96,12 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   it). Repositories are grouped (`refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`);
   `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>` (`mongo|dual|postgres_primary_dual|postgres`) choose the store
   per group, flips are restarts, and `backend/db/groups.py` declares the cutover order the flags enforce at boot.
-- **Postgres-only groups (4.1):** `refdata`, `analytics` and `ai` (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`)
-  have no Mongo repository and no routing: their documents are `common.records.Record` classes, their repositories the
-  `postgres/refdata.py` / `postgres/analytics.py` / `postgres/ai.py` classes on `RecordRepository`, and a
-  `DB_*__<group>` flag other than `postgres` refuses the start. A fresh store gets its reference data from
-  `python -m backend.seed_refdata`.
+- **Postgres-only groups (4.1):** `refdata`, `analytics`, `ai` and `actions` (`POSTGRES_ONLY_GROUPS` in
+  `backend/db/groups.py`) have no Mongo repository and no routing: their documents are `common.records.Record` classes,
+  their repositories the `postgres/refdata.py` / `postgres/analytics.py` / `postgres/ai.py` / `postgres/actions.py`
+  classes on `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the start. No Mongo query may
+  join into one of them (its collections are no longer written): both workspace repositories read a workspace's copy of
+  an action through the actions repository. A fresh store gets its reference data from `python -m backend.seed_refdata`.
 - **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
   `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
   that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned

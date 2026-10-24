@@ -29,7 +29,7 @@ GROUPS = BACKEND_GROUPS
 #: Groups served from Postgres only: their repositories have no Mongo side and
 #: no routing any more. Their collections are read only by the import from 4.0
 #: (``python -m backend.migrate``).
-POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai")
+POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai", "actions")
 
 #: Mongo collection -> the repository group whose flags move it. Matches the
 #: ``group=`` of the routed repository serving it (a test keeps them in step);
@@ -96,8 +96,6 @@ MONGO_JOINS = {
     "responses": ("forms",),
     # FormTemplateRepository.get_templates_with_creator → workspaces
     "forms": ("identity",),
-    # WorkspaceRepository.get_workspace_with_action_by_id → workspace_actions
-    "identity": ("actions",),
 }
 
 
@@ -113,12 +111,18 @@ def load_backend_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
     of them (``DB_READ_SOURCE__refdata=mongo``, ``DB_WRITE_MODE__ai=dual``
     ...) refuses the start: the store it asks for is no longer there."""
     prefixes = tuple(base + OVERRIDE_SEP for base in (READ_KEY, WRITE_KEY))
+
+    def pinned(key: str) -> bool:
+        """A per-group flag of a group served from Postgres only."""
+        return (
+            key.startswith(prefixes)
+            and key.split(OVERRIDE_SEP, 1)[1].lower() in POSTGRES_ONLY_GROUPS
+        )
+
     stale = sorted(
         f"{key}={value!r}"
         for key, value in env.items()
-        if key.startswith(prefixes)
-        and key.split(OVERRIDE_SEP, 1)[1].lower() in POSTGRES_ONLY_GROUPS
-        and value.strip().lower() not in ("", "postgres")
+        if pinned(key) and value.strip().lower() not in ("", "postgres")
     )
     if stale:
         raise FlagError(
@@ -126,7 +130,12 @@ def load_backend_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
             "are served from Postgres only since 4.1 and have no Mongo store any "
             "more. Remove these settings (or set them to postgres) and restart."
         )
-    flags = load_flags(env, mongo_joins=MONGO_JOINS)
+    # what is left of them (postgres, or empty) is implied: left out, so that
+    # e.g. a remaining DB_READ_SOURCE__actions=postgres is not checked against
+    # the default write mode
+    flags = load_flags(
+        {k: v for k, v in env.items() if not pinned(k)}, mongo_joins=MONGO_JOINS
+    )
     return replace(
         flags,
         read_overrides={

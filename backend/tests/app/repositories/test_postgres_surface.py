@@ -21,9 +21,7 @@ from backend.app.repositories.postgres.forms import (
 from backend.app.repositories.template import FormTemplateRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
     PostgresResponderGroupsRepository,
@@ -98,7 +96,6 @@ PAIRS = [
     (FormResponseRepository, PostgresFormResponseRepository),
     (ResponderGroupsRepository, PostgresResponderGroupsRepository),
     (WorkspaceRespondersRepository, PostgresWorkspaceRespondersRepository),
-    (ActionRepository, PostgresActionRepository),
 ]
 
 
