@@ -104,7 +104,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                             · {q}
                         </span>
                     ))}
-                    {data.questionCount > data.questions.length && <span className="text-black-600 text-[11px]">+{data.questionCount - data.questions.length} more</span>}
+                    {data.moreCount > 0 && <span className="text-black-600 text-[11px]">+{data.moreCount} more</span>}
                 </div>
             )}
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -368,7 +368,9 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 label: pageLabel(slide, i).replace(/^Page \d+ · /, '') || 'Untitled page',
                 pageNumber: i + 1,
                 questionCount: slide.properties?.fields?.length ?? 0,
+                // The first question names the node; the next two are listed under it.
                 questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
+                moreCount: Math.max(0, (slide.properties?.fields?.length ?? 0) - 3),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !jumpTargetNode(j)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
