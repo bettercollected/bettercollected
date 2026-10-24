@@ -13,6 +13,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+### Fixed
+
+- Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
+  mirror store in the opposite order and leave it with the older version. After its mirror write,
+  each write now brings the mirror's copy of the rows it touched in line with the primary's
+  (counted as `mirror_repairs`); a mirror copy of a row the primary deleted is removed even when
+  the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
+  the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
+  stays open).
 ### Changed
 
 - A form is linked to a workspace once: (`workspace_id`, `form_id`) is unique in `workspace_forms`, in
@@ -37,23 +46,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   same time (a failure of either is logged and the service starts anyway). Filing twice for the same copy
   is refused as before, and a request stored before requests carried a workspace is still found for the
   response.
-
-### Fixed
-
-- Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
-  mirror store in the opposite order and leave it with the older version. After its mirror write,
-  each write now brings the mirror's copy of the rows it touched in line with the primary's
-  (counted as `mirror_repairs`); a mirror copy of a row the primary deleted is removed even when
-  the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
-  the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
-  stays open).
-- `reconcile` could bring back a record deleted in one store whose delete had failed in the other
-  (a response, a deletion request, an account). Every delete now records a tombstone (collection,
-  id and time only) in the store that deletes, in every write mode. `reconcile` never copies a
-  deleted record and deletes its surviving copy instead, in both directions, and `verify` reports
-  deleted records that are still present (`tombstoned`). Tombstones are kept 400 days. New table
-  `deletion_tombstones` in the `app`, `auth` and `google` schemas (app revision `0021`, auth and
-  google `0004`).
 
 ## [4.0.5] - 2026-10-24
 
