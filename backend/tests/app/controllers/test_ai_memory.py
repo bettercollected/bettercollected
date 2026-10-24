@@ -9,7 +9,6 @@ from httpx import AsyncClient
 from tests.app.controllers.data import testUser
 from backend.app.container import container
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
-from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.ai.memory import EXTRACTION_SYSTEM_PROMPT

@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Dict, Any, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from loguru import logger
 from common.models.user import User
 
@@ -11,9 +11,7 @@ from backend.app.services.openai_compatible_provider import OpenAICompatibleForm
 from backend.config import settings
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
-from backend.app.repositories.create_form_prompt_repository import (
-    CreateFormPromptRepository,
-)
+from backend.app.repositories.postgres.ai import PostgresCreateFormPromptRepository
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.services.ai_form_provider import AIFormProvider
 from backend.app.services.google_ai_provider import GoogleAIFormProvider
@@ -30,7 +28,7 @@ class OpenAIService:
         authorization_service=None,
         ai_consent_service: Optional[AIConsentService] = None,
         ai_usage_guard: Optional[AIUsageGuard] = None,
-        create_form_prompt_repo: Optional[CreateFormPromptRepository] = None,
+        create_form_prompt_repo: Optional[PostgresCreateFormPromptRepository] = None,
     ):
         self.workspace_service: WorkspaceService = workspace_service
         self.create_form_prompt_repo = create_form_prompt_repo
@@ -64,7 +62,7 @@ class OpenAIService:
 
     async def provider_for_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         requested: Optional[str] = None,
         *,
         user_id: Optional[Any] = None,
@@ -98,7 +96,7 @@ class OpenAIService:
             bind_usage(self.ai_usage_guard, workspace_id)
         return impl
 
-    async def admit_import(self, workspace_id: PydanticObjectId, user: User) -> None:
+    async def admit_import(self, workspace_id: RecordId, user: User) -> None:
         """A document upload that asks for AI structuring is one AI request
         of its uploader, admitted at upload (the import runs later, as a
         job). Nothing is counted while the workspace has AI off: the import
@@ -110,7 +108,7 @@ class OpenAIService:
 
     async def create_form_with_ai(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         create_form_ai: CreateFormWithAI,
         user: User,
     ):
@@ -134,7 +132,7 @@ class OpenAIService:
                     prompt=create_form_ai.prompt,
                     openai_response=outline.dump(),
                     created_form=form.model_dump(mode="json"),
-                    form_id=PydanticObjectId(form.form_id),
+                    form_id=RecordId(form.form_id),
                 )
             )
             return form

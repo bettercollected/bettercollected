@@ -27,7 +27,6 @@ from tests.app.ai_helpers import (
 )
 from backend.app.models.dtos.request_dtos import AIProvider
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
-from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace import WorkspaceDocument

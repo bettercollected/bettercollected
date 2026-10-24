@@ -1,19 +1,15 @@
 import datetime as dt
 from typing import Optional
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
-
-from backend.app.handlers.database import entity
+from common.records import Record, RecordId
 
 
-@entity
-class MCPAuditLogDocument(MongoDocument):
+class MCPAuditLogDocument(Record):
     """Every MCP tool call, auditable (plan §2.5): which key did what, when,
     and whether it succeeded. Pairs with the trust story — external AI access
     is visible, not implied."""
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     key_id: str
     tool: str
     ok: bool

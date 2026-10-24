@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from backend.app.container import AppContainer, container
 from backend.app.schemas.workspace import WorkspaceDocument
-from backend.db.groups import COLLECTION_GROUPS, GROUPS
+from backend.db.groups import COLLECTION_GROUPS, GROUPS, POSTGRES_ONLY_GROUPS
 from backend.db.models import AllowedOriginRow, MigrationProgress, MirrorWriteFailure
 from backend.migrate.__main__ import _tables, build_target
 from common.db import RoutingRepository, load_flags, write_op
@@ -70,6 +70,8 @@ def test_the_group_map_matches_the_routed_repositories():
         if provider.provides is not RoutingRepository:
             continue
         group, twin = provider.kwargs["group"], provider.kwargs.get("postgres")
+        # the groups served from Postgres only are not routed any more
+        assert group not in POSTGRES_ONLY_GROUPS, f"{name} is still routed"
         if twin is None:
             continue
         cls = twin.args[0]
@@ -79,7 +81,7 @@ def test_the_group_map_matches_the_routed_repositories():
                 COLLECTION_GROUPS[row.mongo_collection()] == group
             ), f"{name}: {row.__tablename__} is in group {group!r}"
             checked += 1
-    assert checked > 30
+    assert checked > 25
 
 
 # -- the marker ---------------------------------------------------------------

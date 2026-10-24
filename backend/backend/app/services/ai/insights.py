@@ -31,7 +31,7 @@ import re
 from http import HTTPStatus
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
@@ -39,7 +39,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
+from backend.app.repositories.postgres.ai import PostgresFormAIInsightRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.response_scope import response_scope
@@ -280,7 +280,7 @@ def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
 
 
 def project_responses(
-    workspace_id: PydanticObjectId,
+    workspace_id: RecordId,
     form: StandardForm,
     responses: List[FormResponseDocument],
     internal_ids: Iterable[str] = (),
@@ -343,7 +343,7 @@ class FormAIInsightsService:
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
         form_response_repo: FormResponseRepository,
-        insight_repo: FormAIInsightRepository,
+        insight_repo: PostgresFormAIInsightRepository,
         ai_consent_service: Optional[AIConsentService] = None,
         form_response_service: Optional[FormResponseService] = None,
     ):
@@ -358,7 +358,7 @@ class FormAIInsightsService:
 
     async def _authorize(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User,
         permission: Permission = Permission.RESPONSE_READ,
@@ -382,7 +382,7 @@ class FormAIInsightsService:
 
     async def update_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIInsightsSettingsRequest,
         user: User,
@@ -432,7 +432,7 @@ class FormAIInsightsService:
             )
 
     async def _require_insights_allowed(
-        self, workspace_id: PydanticObjectId, association
+        self, workspace_id: RecordId, association
     ) -> tuple:
         """(the moment respondents started seeing the notice, the provider name
         it shows), or 403: the form
@@ -461,7 +461,7 @@ class FormAIInsightsService:
         return settings.ai_insights_enabled_at, settings.ai_insights_provider_name
 
     async def get_cached(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: RecordId, form_id: str, user: User
     ) -> Optional[FormAIInsightsResponse]:
         await self._authorize(workspace_id, form_id, user)
         document = await self._insight_repo.find(workspace_id, form_id)
@@ -476,7 +476,7 @@ class FormAIInsightsService:
 
     async def generate(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIInsightsRequest,
         user: User,

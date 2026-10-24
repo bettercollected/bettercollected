@@ -9,9 +9,6 @@ import inspect
 
 import pytest
 
-from backend.app.repositories.create_form_prompt_repository import (
-    CreateFormPromptRepository,
-)
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.postgres.forms import (
@@ -25,24 +22,8 @@ from backend.app.repositories.template import FormTemplateRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.action_repository import ActionRepository
-from backend.app.repositories.ai_preference_memory_repository import (
-    AIPreferenceMemoryRepository,
-)
-from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
-from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
-from backend.app.repositories.idempotency_repository import IdempotencyRepository
 from backend.app.repositories.postgres.actions import PostgresActionRepository
-from backend.app.repositories.postgres.ai import (
-    PostgresAIPreferenceMemoryRepository,
-    PostgresCreateFormPromptRepository,
-    PostgresFormAIInsightRepository,
-    PostgresFormAISessionRepository,
-    PostgresIdempotencyRepository,
-    PostgresMcpAuditLogRepository,
-    PostgresWorkspaceAIProfileRepository,
-)
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
     PostgresResponderGroupsRepository,
@@ -50,9 +31,6 @@ from backend.app.repositories.postgres.responses import (
 )
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
-)
-from backend.app.repositories.workspace_ai_profile_repository import (
-    WorkspaceAIProfileRepository,
 )
 from backend.app.repositories.workspace_responders_repository import (
     WorkspaceRespondersRepository,
@@ -121,13 +99,6 @@ PAIRS = [
     (ResponderGroupsRepository, PostgresResponderGroupsRepository),
     (WorkspaceRespondersRepository, PostgresWorkspaceRespondersRepository),
     (ActionRepository, PostgresActionRepository),
-    (FormAIInsightRepository, PostgresFormAIInsightRepository),
-    (FormAISessionRepository, PostgresFormAISessionRepository),
-    (WorkspaceAIProfileRepository, PostgresWorkspaceAIProfileRepository),
-    (AIPreferenceMemoryRepository, PostgresAIPreferenceMemoryRepository),
-    (McpAuditLogRepository, PostgresMcpAuditLogRepository),
-    (CreateFormPromptRepository, PostgresCreateFormPromptRepository),
-    (IdempotencyRepository, PostgresIdempotencyRepository),
 ]
 
 

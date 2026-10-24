@@ -1,4 +1,4 @@
-"""refdata and analytics are served from Postgres only (4.1): the backend's
+"""refdata, analytics and ai are served from Postgres only (4.1): the backend's
 flags pin them there, a stale per-group flag refuses the start, and a fresh
 store gets its reference data from ``python -m backend.seed_refdata``."""
 
@@ -18,6 +18,7 @@ from common.db.flags import FlagError
         {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"},
         {"DB_READ_SOURCE__refdata": "postgres", "DB_WRITE_MODE__refdata": "postgres"},
         {"DB_WRITE_MODE__analytics": ""},
+        {"DB_READ_SOURCE__ai": "postgres", "DB_WRITE_MODE__AI": "postgres"},
     ],
 )
 def test_the_groups_are_on_postgres_whatever_the_defaults(env):
@@ -30,10 +31,12 @@ def test_the_groups_are_on_postgres_whatever_the_defaults(env):
 
 
 def test_the_other_groups_keep_their_flags():
-    flags = load_backend_flags({"DB_WRITE_MODE": "dual", "DB_READ_SOURCE__ai": "postgres"})
+    flags = load_backend_flags(
+        {"DB_WRITE_MODE": "dual", "DB_READ_SOURCE__actions": "postgres"}
+    )
     assert flags.write_mode("identity") is WriteMode.DUAL
     assert flags.read_source("identity") is ReadSource.MONGO
-    assert flags.read_source("ai") is ReadSource.POSTGRES
+    assert flags.read_source("actions") is ReadSource.POSTGRES
 
 
 @pytest.mark.parametrize(
@@ -44,6 +47,8 @@ def test_the_other_groups_keep_their_flags():
         ("DB_WRITE_MODE__analytics", "postgres_primary_dual"),
         ("DB_READ_SOURCE__ANALYTICS", "mongo"),
         ("DB_WRITE_MODE__refdata", "nonsense"),
+        ("DB_READ_SOURCE__ai", "mongo"),
+        ("DB_WRITE_MODE__ai", "dual"),
     ],
 )
 def test_a_stale_group_flag_refuses_the_start(key, value):
@@ -51,6 +56,7 @@ def test_a_stale_group_flag_refuses_the_start(key, value):
         load_backend_flags({key: value})
     assert f"{key}={value!r}" in str(refused.value)
     assert "served from Postgres only" in str(refused.value)
+    assert "the refdata, analytics and ai groups" in str(refused.value)
 
 
 async def test_seeding_fills_empty_tables_once(clean_postgres):

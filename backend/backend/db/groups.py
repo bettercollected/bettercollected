@@ -10,7 +10,7 @@ so a group served from Postgres frees the groups it used to join into.
 
 import os
 from dataclasses import replace
-from typing import Mapping
+from typing import Mapping, Sequence
 
 from common.db.flags import (
     OVERRIDE_SEP,
@@ -29,7 +29,7 @@ GROUPS = BACKEND_GROUPS
 #: Groups served from Postgres only: their repositories have no Mongo side and
 #: no routing any more. Their collections are read only by the import from 4.0
 #: (``python -m backend.migrate``).
-POSTGRES_ONLY_GROUPS = ("refdata", "analytics")
+POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai")
 
 #: Mongo collection -> the repository group whose flags move it. Matches the
 #: ``group=`` of the routed repository serving it (a test keeps them in step);
@@ -101,11 +101,16 @@ MONGO_JOINS = {
 }
 
 
+def _listed(names: Sequence[str]) -> str:
+    """``a``, ``a and b``, ``a, b and c``."""
+    return " and ".join(n for n in (", ".join(names[:-1]), names[-1]) if n)
+
+
 def load_backend_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
     """The backend's flags (:func:`common.db.load_flags`), with every group of
     :data:`POSTGRES_ONLY_GROUPS` on Postgres whatever the defaults say. A
     per-group flag left from the cutover that names another store for one
-    of them (``DB_READ_SOURCE__refdata=mongo``, ``DB_WRITE_MODE__analytics=dual``
+    of them (``DB_READ_SOURCE__refdata=mongo``, ``DB_WRITE_MODE__ai=dual``
     ...) refuses the start: the store it asks for is no longer there."""
     prefixes = tuple(base + OVERRIDE_SEP for base in (READ_KEY, WRITE_KEY))
     stale = sorted(
@@ -117,7 +122,7 @@ def load_backend_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
     )
     if stale:
         raise FlagError(
-            f"{', '.join(stale)}: the {' and '.join(POSTGRES_ONLY_GROUPS)} groups "
+            f"{', '.join(stale)}: the {_listed(POSTGRES_ONLY_GROUPS)} groups "
             "are served from Postgres only since 4.1 and have no Mongo store any "
             "more. Remove these settings (or set them to postgres) and restart."
         )

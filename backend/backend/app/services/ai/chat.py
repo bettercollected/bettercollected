@@ -15,7 +15,7 @@ from typing import Callable, List, Literal, Optional
 
 from fastapi import BackgroundTasks
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.models.standard_form import StandardForm
 from common.exceptions import NotFoundError
 from common.models.user import User
@@ -25,7 +25,7 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
-from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
+from backend.app.repositories.postgres.ai import PostgresFormAISessionRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_ai_session import FormAISessionDocument
@@ -141,7 +141,7 @@ def _c():
 
 
 async def _persist_settings_ops(
-    form_id: str, ops, results: List[OpResult], *, workspace_id: PydanticObjectId
+    form_id: str, ops, results: List[OpResult], *, workspace_id: RecordId
 ) -> Optional[dict]:
     """Write applied update_form_settings ops to the association document
     of ``workspace_id`` (the caller's workspace).
@@ -159,7 +159,7 @@ async def _persist_settings_ops(
     ):
         return None
     workspace_form = await _c().workspace_form_repo().find_workspace_form(
-        PydanticObjectId(workspace_id), str(form_id)
+        RecordId(workspace_id), str(form_id)
     )
     if not workspace_form:
         return None
@@ -176,7 +176,7 @@ async def persist_ops_to_form(
     form: StandardForm,
     ops,
     *,
-    workspace_id: PydanticObjectId,
+    workspace_id: RecordId,
     atomic: bool = False,
     expected_updated_at: Optional[dt.datetime] = None,
 ) -> tuple:
@@ -243,7 +243,7 @@ class FormAIChatService:
         provider_resolver: Callable,
         workspace_form_repo: WorkspaceFormRepository,
         form_repo: FormRepository,
-        session_repo: FormAISessionRepository,
+        session_repo: PostgresFormAISessionRepository,
     ):
         self._authorization = authorization_service
         self._workspace_form_repo = workspace_form_repo
@@ -271,7 +271,7 @@ class FormAIChatService:
 
     async def chat_edit(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIChatRequest,
         user: User,
@@ -298,7 +298,7 @@ class FormAIChatService:
         session = None
         if request.session_id:
             session = await self._session_repo.get_or_404(
-                PydanticObjectId(request.session_id)
+                RecordId(request.session_id)
             )
             if session and (
                 session.form_id != form_id
@@ -352,7 +352,7 @@ class FormAIChatService:
         if request.mode == "propose":
             # The proposal's id names its session: give a new one its id now.
             if session.id is None:
-                session.id = PydanticObjectId()
+                session.id = RecordId()
             # a dry run per op, spec and diff: off the event loop
             proposal, results = await run_in_threadpool(
                 build_proposal, form, association.settings, ops, reply, session.id
