@@ -32,15 +32,32 @@ from backend.app.repositories.metric_periods import (
     mongo_counts_per_period,
 )
 from backend.app.schemas.standard_form_response import (
+    LEGACY_DELETION_REQUEST_INDEX,
     FormResponseDocument,
     FormResponseDeletionRequest,
     DeletionRequestStatus,
+    drop_legacy_deletion_request_index,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from beanie.odm.queries.update import UpdateResponse
 from common.db import to_bson_dict
 from common.db.routing import write_op
 from common.clock import utcnow
+from pymongo.errors import DuplicateKeyError
+
+# In a $lookup of a response's deletion request (``let: {workspace_id}`` the
+# response copy's, null when it has none): the request of that copy's
+# workspace, or one stored before requests carried a workspace (#768).
+_REQUEST_OF_THIS_COPY = {
+    "$match": {
+        "$expr": {
+            "$in": [
+                {"$ifNull": ["$workspace_id", None]},
+                ["$$workspace_id", None],
+            ]
+        }
+    }
+}
 
 
 class FormResponseRepository(BaseRepository):
@@ -73,12 +90,15 @@ class FormResponseRepository(BaseRepository):
             {"$unwind": "$form_title"},
             # Surface any deletion request's status on the response itself —
             # without it, requesting deletion changed nothing visible in the
-            # responder's submissions list.
+            # responder's submissions list. This copy's workspace's request
+            # only: another workspace's copy has its own.
             {
                 "$lookup": {
                     "from": "responses_deletion_requests",
                     "localField": "response_id",
                     "foreignField": "response_id",
+                    "let": {"workspace_id": {"$ifNull": ["$workspace_id", None]}},
+                    "pipeline": [_REQUEST_OF_THIS_COPY],
                     "as": "deletion_request",
                 },
             },
@@ -118,6 +138,14 @@ class FormResponseRepository(BaseRepository):
                     "from": "responses_deletion_requests",
                     "localField": "response_ids",
                     "foreignField": "response_id",
+                    # this workspace's requests (or stored before they had one)
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "workspace_id": {"$in": [scope.workspace_id, None]}
+                            }
+                        }
+                    ],
                     "as": "deletion_requests",
                 }
             },
@@ -438,7 +466,7 @@ class FormResponseRepository(BaseRepository):
     async def add_deletion_request(
         self, response: FormResponseDocument, response_id: str
     ) -> FormResponseDeletionRequest:
-        return await FormResponseDeletionRequest(
+        request = FormResponseDeletionRequest(
             form_id=response.form_id,
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
@@ -446,7 +474,19 @@ class FormResponseRepository(BaseRepository):
             provider=response.provider,
             workspace_id=response.workspace_id,
             deleted_at=None,
-        ).save()
+        )
+        try:
+            return await request.save()
+        except DuplicateKeyError as error:
+            # A database from before still has the per-response key, which
+            # refuses this workspace's request because another workspace has
+            # one for its copy of the response: drop it (once) and store.
+            if LEGACY_DELETION_REQUEST_INDEX not in str(error):
+                raise
+            await drop_legacy_deletion_request_index(
+                FormResponseDeletionRequest.get_pymongo_collection()
+            )
+            return await request.save()
 
     @write_op
     async def delete_by_form_id_except(
