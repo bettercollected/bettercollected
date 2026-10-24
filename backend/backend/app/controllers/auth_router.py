@@ -264,16 +264,15 @@ class AuthRoutes(Routable):
             provider_name=provider_name, state=state, request=request, user=user
         )
 
-        redirect_uri = state_data.client_referer_uri
-
-        if settings.api_settings.ENABLE_GOOGLE_PICKER_API:
-            redirect_uri = redirect_uri + "?modal=true"
+        redirect_uri = await self.auth_service.import_return_url(
+            user,
+            state_data.client_referer_uri,
+            modal=bool(settings.api_settings.ENABLE_GOOGLE_PICKER_API),
+        )
         response = RedirectResponse(redirect_uri)
         # same session (sid and email_verified carried over): new access token
         set_access_token_to_response(user, response)
-        if state_data.client_referer_uri:
-            return response
-        return {"message": "Token saved successfully."}
+        return response
 
     @get(
         "/{provider}/basic",
