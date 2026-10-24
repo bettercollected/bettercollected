@@ -72,6 +72,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   importing member's name and email) are only ever attached for members who may read the workspace's
   forms: never in published search, and no longer when a non-member reads a single form. A single form's
   importer is now the member who imported it, not the first user the auth service returned.
+- Reading one unpublished form (`GET /workspaces/{id}/forms/{form_id}` without `published=true`, by id
+  or custom URL) now needs permission to read the workspace's forms, as the forms list and search do;
+  anyone else gets 403, the same answer whether or not the form exists. `published=true&draft=true`
+  falls back to a never-published form's draft for those members only; for everyone else it reads the
+  published form, as `published=true` does. Published forms stay readable by anyone, as before.
 
 ## [4.0.3] - 2026-10-24
 

@@ -489,6 +489,8 @@ CASES = [
     # --- forms
     Case("forms.list", "GET", W + "/forms", P.FORM_READ),
     Case("forms.search", "POST", W + "/forms/search?query=a", P.FORM_READ, ok=200),
+    # one form's draft (published forms stay open: test_draft_form_read.py)
+    Case("forms.read.draft", "GET", F, P.FORM_READ, ok=200),
     Case(
         "forms.create",
         "POST",
