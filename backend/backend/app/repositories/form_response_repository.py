@@ -34,6 +34,7 @@ from backend.app.repositories.metric_periods import (
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
     FormResponseDeletionRequest,
+    DeclineReason,
     DeletionRequestStatus,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
@@ -467,6 +468,21 @@ class FormResponseRepository(BaseRepository):
             workspace_id=response.workspace_id,
             deleted_at=None,
         ).save()
+
+    @write_op
+    async def close_deletion_request(
+        self,
+        request: FormResponseDeletionRequest,
+        status: DeletionRequestStatus,
+        closed_by: str,
+        decline_reason: Optional[DeclineReason] = None,
+    ) -> FormResponseDeletionRequest:
+        """Staff closed ``request`` by hand: its outcome, who and when."""
+        request.status = status
+        request.closed_by = closed_by
+        request.closed_at = utcnow()
+        request.decline_reason = decline_reason
+        return await request.save()
 
     @write_op
     async def delete_by_form_id_except(

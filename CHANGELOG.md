@@ -125,6 +125,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Staff with `privacy.manage` close a pending deletion request by hand, without the form's provider:
+  `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close` with
+  `outcome` `completed` (the workspace's stored copy is deleted) or `declined` plus a reason from a fixed list.
+  Responses imported from Google Forms could only be cleared by deleting them at the source and syncing again.
+  Who closed a request and when is kept on it, and a later sync no longer brings back a response whose deletion
+  request was completed.
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
