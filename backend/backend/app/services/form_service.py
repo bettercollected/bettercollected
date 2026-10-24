@@ -146,8 +146,9 @@ class FormService:
         self, user: Optional[User], workspace_id: PydanticObjectId, published: bool
     ) -> bool:
         """Whether ``user`` sees the workspace's forms as staff (``form.read``).
-        Members get the dashboard listing and search; everyone else only the
-        published forms: drafts (``published`` false) are 403 for them. Staff
+        Members get the dashboard listing, search and single-form reads;
+        everyone else only the published forms: drafts (``published`` false)
+        are 403 for them. Staff
         alone get importer details (members' names and emails)."""
         staff = await self._authorization.has_permission(
             user, Permission.FORM_READ, workspace_id
@@ -221,16 +222,17 @@ class FormService:
         draft: bool = False,
     ):
         # Members see the form as staff; respondents and the public don't.
-        is_admin = await self._authorization.has_permission(
-            user, Permission.FORM_READ, workspace_id
-        )
+        # Drafts are staff-only, as in the listing and search: 403 before any
+        # lookup, whether or not the form exists. ``draft`` (the draft of a
+        # never-published form in place of its published version) likewise.
+        is_admin = await self._staff_view(user, workspace_id, published)
         form = await self._get_form_by_id(
             workspace_id=workspace_id,
             form_id=form_id,
             user=user,
             is_admin=is_admin,
             published=published,
-            draft=draft,
+            draft=draft and is_admin,
         )
         # Respondents and the public never receive internal fields.
         return form if is_admin else respondent_view(form)
@@ -305,6 +307,10 @@ class FormService:
                     form = form[0]
                     form = await self.add_user_details_to_form(form, is_admin)
                     return form
+                if not workspace_form:
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
+                    )
                 form = await self._form_repo.get_latest_version_of_form(
                     form_id=PydanticObjectId(workspace_form.form_id)
                 )
