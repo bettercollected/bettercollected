@@ -48,7 +48,9 @@ from backend.app.repositories.response_scope import (
 )
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.models.dtos.deletion_request_dto import DeletionRequestOutcome
 from backend.app.schemas.standard_form_response import (
+    DeclineReason,
     DeletionRequestStatus,
     FormResponseDeletionRequest,
     FormResponseDocument,
@@ -716,6 +718,95 @@ class FormResponseService:
             and str(request.form_id) == str(form_id)
             and request.status == DeletionRequestStatus.PENDING
         )
+
+    async def _unresolved_copy(
+        self, workspace_id: PydanticObjectId, form_id: str, response_id: str
+    ) -> bool:
+        """Whether a stored copy of (form_id, response_id) remains that is
+        this workspace's or belongs to no workspace yet."""
+        return any(
+            str(copy.form_id) == str(form_id)
+            and copy.workspace_id in (None, PydanticObjectId(workspace_id))
+            for copy in await self._form_response_repo.list_by_response_id(
+                str(response_id)
+            )
+        )
+
+    async def close_deletion_request(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        response_id: str,
+        outcome: DeletionRequestOutcome,
+        reason: Optional[DeclineReason],
+        user: User,
+    ) -> FormResponseDeletionRequest:
+        """Staff close the workspace's pending deletion request on
+        ``response_id`` without the form's provider: an imported response
+        (Google Forms) can otherwise only be cleared by deleting it at the
+        source and syncing again. Completed deletes the workspace's stored
+        copy (if still there); declined deletes nothing and records the
+        reason. Either way who and when is kept on the request. Needs
+        ``privacy.manage`` (owners, admins, privacy officers); the answers
+        are never read."""
+        await self._authorization.authorize(
+            user, Permission.PRIVACY_MANAGE, workspace_id, form_id=str(form_id)
+        )
+        scope = await self.scope(workspace_id, [str(form_id)])
+        request = next(
+            (
+                r
+                for r in await self._form_response_repo.list_deletion_requests_for_form_ids(
+                    scope
+                )
+                if r.response_id == response_id
+            ),
+            None,
+        )
+        if request is None:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        if request.status != DeletionRequestStatus.PENDING:
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                content={
+                    "code": "deletion_request_closed",
+                    "message": "This deletion request is already closed.",
+                },
+            )
+        if outcome is DeletionRequestOutcome.COMPLETED:
+            stored = await self.workspace_response(workspace_id, response_id)
+            if stored is not None and str(stored.form_id) == str(form_id):
+                await self.delete_form_response(form_id, response_id, workspace_id)
+            elif await self._unresolved_copy(workspace_id, form_id, response_id):
+                # a copy this workspace may own (e.g. stored before #768
+                # without a workspace, on a form linked to several) is still
+                # there: never say "completed" while the data stays
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": "deletion_request_copy_unresolved",
+                        "message": "A stored copy of this response could not be "
+                        "attributed to this workspace; it was not deleted.",
+                    },
+                )
+            status, reason = DeletionRequestStatus.SUCCESS, None
+        else:
+            status = DeletionRequestStatus.DECLINED
+        closed = await self._form_response_repo.close_deletion_request(
+            request, status, closed_by=str(user.id), decline_reason=reason
+        )
+        # ids only: never the respondent's identifier or answers
+        logger.info(
+            "Deletion request closed by staff: workspace={} form={} response={} "
+            "outcome={} reason={} by={}",
+            workspace_id,
+            form_id,
+            response_id,
+            status.value,
+            reason.value if reason else None,
+            user.id,
+        )
+        return closed
 
     async def delete_response(self, response_id: str):
         return await self._form_response_repo.delete_response(response_id=response_id)

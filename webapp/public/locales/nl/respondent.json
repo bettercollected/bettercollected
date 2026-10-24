@@ -179,5 +179,17 @@
         "MY_SUBMISSIONS": "Mijn inzendingen",
         "DELETION_REQUESTS": "Verwijderverzoeken",
         "SEARCH_FORMS": "Formulieren zoeken"
+    },
+    "DELETION": {
+        "REQUESTED": "Verwijdering aangevraagd",
+        "DELETED": "Verwijderd ({{date}})",
+        "DECLINED": "Niet verwijderd: {{reason}}",
+        "REASON": {
+            "LEGAL_OBLIGATION": "de organisatie moet het wettelijk bewaren",
+            "LEGAL_CLAIMS": "het is nodig voor een juridische claim",
+            "PUBLIC_INTEREST": "het wordt bewaard in het algemeen belang",
+            "IDENTITY_NOT_VERIFIED": "uw identiteit kon niet worden vastgesteld",
+            "OTHER": "de organisatie heeft het verzoek afgewezen"
+        }
     }
 }

@@ -16,18 +16,19 @@ from loguru import logger
 
 from backend.app.public_api.auth import AUDIT_STATE
 from backend.app.public_api.errors import error_payload, install_error_handlers
-from backend.app.public_api.models import OpsRequest
+from backend.app.public_api.models import CloseDeletionRequest, OpsRequest
 from backend.app.public_api.routes import router
 from backend.app.services.api_access import audit_key_call
 
 PUBLIC_API_PATH = "/public/v1"
 PUBLIC_API_VERSION = "1.0.0"
 DESCRIPTION = """\
-Create, read, change and publish forms as **form spec v1** documents, and read
-their responses. Authenticate with a workspace API key:
-`Authorization: Bearer bc_...`. A key works in its own workspace only, with
-its scopes (`forms:read`, `forms:write`, `responses:read`), and never does
-more than the person who created it may do at the time of the call.
+Create, read, change, publish and delete forms as **form spec v1** documents,
+read their responses and close deletion requests. Authenticate with a
+workspace API key: `Authorization: Bearer bc_...`. A key works in its own
+workspace only, with its scopes (`forms:read`, `forms:write`, `forms:delete`,
+`responses:read`, `deletion_requests:write`), and never does more than the
+person who created it may do at the time of the call.
 
 - Errors: `{"code", "message", "errors"?: [{"path", "message"}]}`; `path` is
   a JSON pointer into the request body.
@@ -135,12 +136,16 @@ def build_public_api() -> FastAPI:
             )
             # bodies the endpoints read themselves (size-capped) are only
             # named in their requestBody: add the ones no response names
-            schema["components"]["schemas"].setdefault(
-                "OpsRequest",
-                OpsRequest.model_json_schema(
-                    by_alias=True, ref_template="#/components/schemas/{model}"
-                ),
-            )
+            for name, model in (
+                ("OpsRequest", OpsRequest),
+                ("CloseDeletionRequest", CloseDeletionRequest),
+            ):
+                schema["components"]["schemas"].setdefault(
+                    name,
+                    model.model_json_schema(
+                        by_alias=True, ref_template="#/components/schemas/{model}"
+                    ),
+                )
             # FastAPI's default 422 schemas are never sent: every error is Error
             schema["components"]["schemas"].pop("HTTPValidationError", None)
             schema["components"]["schemas"].pop("ValidationError", None)

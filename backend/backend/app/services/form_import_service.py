@@ -10,6 +10,7 @@ from backend.app.repositories.form_response_repository import FormResponseReposi
 from backend.app.repositories.response_scope import response_scope
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form_response import (
+    DeletionRequestStatus,
     FormResponseDocument,
 )
 from backend.app.services.form_service import FormService
@@ -58,9 +59,21 @@ class FormImportService:
             stored.response_id: stored.id
             for stored in await self._form_response_repo.list_by_form_id(scope)
         }
+        # A deletion request completed in this workspace (by staff, or by
+        # deleting the response) is not undone by a sync: the response stays
+        # deleted here even while the source still has it.
+        deleted_here = {
+            request.response_id
+            for request in await self._form_response_repo.list_deletion_requests_for_form_ids(
+                scope
+            )
+            if request.status == DeletionRequestStatus.SUCCESS
+        }
         responses = form_data.responses
         updated_responses_id = []
         for response in responses:
+            if response.response_id in deleted_here:
+                continue
             response_document = FormResponseDocument(**response.model_dump(mode="json"))
             response_document.id = stored_ids.get(response.response_id)
             response_document.form_id = standard_form.form_id
@@ -96,7 +109,8 @@ class FormImportService:
             await self._form_response_repo.mark_deletion_requests_success_except(
                 scope=scope,
                 provider=standard_form.settings.provider,
-                keep_response_ids=updated_responses_id,
+                # the skipped ones are already done: not counted again
+                keep_response_ids=updated_responses_id + sorted(deleted_here),
                 now=datetime.datetime.now(datetime.timezone.utc),
             )
         )
