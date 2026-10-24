@@ -236,7 +236,8 @@ record.
 Retention: tombstones are kept 120 days, enough for the cutover. Some ids are derived from personal
 data (a responder group member's id is a hash of the group and the email), so they are not kept
 longer. Mongo expires its tombstones with a TTL index (`deleted_at_ttl`). Each service prunes its
-expired Postgres tombstones as it records deletes (a bounded batch every 200 deletes), and
+expired Postgres tombstones as it records deletes (a bounded batch every 200 deletes, after
+the delete committed and in a transaction of its own), and
 `reconcile` prunes them at the end of each run. Drop the tables and the collection with the Mongo
 decommission (below).
 

@@ -820,6 +820,16 @@ CASES = [
         ok=200,
     ),
     Case(
+        # closing a deletion request by hand (no provider needed) is the
+        # privacy programme only
+        "responses.deletion_request.close",
+        "POST",
+        F + "/submissions/{requested}/deletion-request/close",
+        P.PRIVACY_MANAGE,
+        lambda c: {"json": {"outcome": "declined", "reason": "other"}},
+        ok=200,
+    ),
+    Case(
         "responses.internal_answers",
         "PATCH",
         F + "/submissions/{response}/internal-answers",
