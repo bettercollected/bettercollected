@@ -25,12 +25,6 @@ These are some of the required tools or process that you need to follow in order
     13. In the "OAuth client ID" page, you can find your client ID and client secret.
     14. Click on the "Download" button to download your client secret as a JSON file.
         Once you have generated your client secret, you can use it in your application to authenticate with Google APIs.
-3. Generate a Typeform client secret. To generate a Typeform client secret, you need to follow these steps:
-    1. Go to the [Admin Typeform's Developer Apps](https://admin.typeform.com/).
-    2. Go to Developer apps from the dashboard and "Register a new app".
-    3. Fill up the details and set the "Redirect URIs": `http://localhost:8000/api/v1/auth/typeform/basic/callback` and `https://localhost:8000/api/v1/auth/typeform/oauth/callback`.
-    4. Once you register the new app, you'll see a `secret`. You need to save this secret some place safe as you'll not see this again.
-    5. You can see the `client_id` whenever you want to.
 
 <hr/>
 
@@ -61,15 +55,12 @@ The need for you to clone this repository is because you need it to seed the dat
 
     - Environment name used in `backend` service: `AUTH_JWT_SECRET`
     - Environment name used in `auth` service: `AUTH_JWT_SECRET`
-    - Environment name used in `integrations-typeform` service: `AUTH_JWT_SECRET`
     - Environment name used in `integrations-googleform` service: `AUTH_JWT_SECRET`
 
 3. After you created the `Google` secret. You need to add the values from the secret into our docker-compose environments
 
     - Environment name used in `auth` service and `integrations-googleform` service: `GOOGLE_CLIENT_ID`, `GOOGLE_PROJECT_ID`, and `GOOGLE_CLIENT_SECRET`
 
-4. After you created the `Typeform` secret. You need to add the values from the secret into our docker-compose environments
-    - Environment name used in `auth` service and `integrations-typeform` service: `TYPEFORM_CLIENT_ID` and `TYPEFORM_CLIENT_SECRET`
 
 #### C. Configure `backend` service's environment in docker-compose
 
@@ -92,10 +83,10 @@ The need for you to clone this repository is because you need it to seed the dat
 
     Note that you may need to repeat these steps to generate multiple app passwords for different apps or devices. You can also revoke app passwords that you no longer need.
 
-3. Fill out `Google` and `Typeform` environments
+3. Fill out the `Google` environments
 4. Environment related to `stripe` are not required to test it out, unless you want to test pricing features.
 
-#### E. Configure `integrations-typeform` and `integrations-googleform`
+#### E. Configure `integrations-googleform`
 
 After configuring all the environments in the `docker-compose.yml` file, run the following command to start the services:
 
@@ -191,8 +182,6 @@ services:
             - backend
             - db
         environment:
-            TYPEFORM_SCOPE: ${TYPEFORM_BASIC_SCOPE}
-            TYPEFORM_REDIRECT_URI: ${TYPEFORM_BASIC_REDIRECT_URI}
             # Stripe
             STRIPE_SUCCESS_URL: ${STRIPE_REDIRECT_URL}
             STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL}
@@ -201,17 +190,6 @@ services:
             - .env
         ports:
             - '8001:8000'
-
-    integrations-typeform:
-        image: git.sireto.io:5050/bettercollected/integrations-typeform:nightly
-        # image: bettercollected/integrations-typeform:nightly
-        networks:
-            - backend
-            - db
-        env_file:
-            - .env
-        ports:
-            - '8002:8000'
 
     integrations-googleform:
         image: git.sireto.io:5050/bettercollected/integrations-googleform:nightly
@@ -254,14 +232,6 @@ Also put this environment variable in the same folder containing the docker-comp
 - GOOGLE_REDIRECT_URIS=http://localhost:8000/api/v1/auth/google/oauth/callback
 - OAUTHLIB_INSECURE_TRANSPORT=1
 - OAUTHLIB_RELAX_TOKEN_SCOPE=1
-
-# Typeform
-- TYPEFORM_BASIC_SCOPE=
-- TYPEFORM_SCOPE=
-- TYPEFORM_CLIENT_ID=
-- TYPEFORM_CLIENT_SECRET=
-- TYPEFORM_BASIC_REDIRECT_URI=http://localhost:8000/api/v1/auth/typeform/basic/callback
-- TYPEFORM_REDIRECT_URI=http://localhost:8000/api/v1/auth/typeform/oauth/callback
 
 # Encryption
 - MASTER_ENCRYPTION_KEYSET=<your base64 Tink keyset, see docs/DEVELOPERS_GUIDE.md>

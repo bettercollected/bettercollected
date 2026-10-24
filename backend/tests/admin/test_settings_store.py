@@ -769,6 +769,24 @@ async def test_rewrap_skips_and_reports_unknown_keys(svc, superuser):
     assert result.skipped == (T1,)
 
 
+async def test_a_retired_key_is_left_alone_without_a_report(svc, superuser):
+    """A row of a key removed from the inventory (``RETIRED``, e.g. Typeform's)
+    stays in the store: rewrap, verify and the host reads pass over it silently."""
+    from common.settings.registry import Registry
+
+    await put(svc, T1, 1)
+    retired = Registry(
+        [s for s in store_registry() if s.key != T1],
+        secret_problems=lambda k, v: [],
+        retired=(T1,),
+    )
+    service = SettingsService(svc._engine, retired, make_keys())
+    assert (await service.rewrap(CLI)).skipped == ()
+    assert T1 not in {p.key for p in await service.verify()}
+    stored = await service.stored()
+    assert T1 not in stored.values and T1 not in stored.unverified
+
+
 async def test_report_state_prunes_only_the_callers_stale_rows(server, migrated, superuser):
     sql = "SELECT settings.report_state(:i, 1, CAST('{}' AS text[]), CAST('{}' AS text[]), false, '')"
     async with superuser.begin() as conn:

@@ -117,6 +117,11 @@ MONGO_DRIVEN = {
         "test_the_keyset_comes_from_the_settings_store_when_the_runner_has_none",
         "test_the_run_checkpoints_and_reports_progress",
     },
+    "tests/app/controllers/test_deletion_requests_per_workspace.py": {
+        "test_mongo_one_request_per_response_provider_and_workspace",
+        "test_startup_drops_the_superseded_key_and_builds_the_new_one",
+        "test_index_failures_are_logged_and_the_start_goes_on",
+    },
     "tests/app/controllers/test_scim_review.py": {
         "test_a_legacy_row_in_both_stores",
         "test_the_unique_index_and_the_duplicate_report",

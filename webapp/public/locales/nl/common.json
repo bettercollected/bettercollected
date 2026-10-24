@@ -77,7 +77,6 @@
     "SEND_INVITATION": "Uitnodiging verzenden",
     "SHARE": "deel",
     "SUBMIT": "Verzenden",
-    "TYPEFORM_SIGNIN": "Aanmelden met Typeform",
     "UPDATE": "Bijwerken",
     "UPDATE_URL": "URL bijwerken",
     "UPDATE_WORKSPACE": "Werkruimte bijwerken",
@@ -189,7 +188,7 @@
     "DELETION_RESPONSE_WARNING_MESSAGE": "Weet u zeker dat u wilt verzoeken om verwijdering van uw reactie?",
     "DRAFT": "Concept",
     "EMPTY": {
-      "DESCRIPTION": "Importeer uw Google Forms of Typeforms",
+      "DESCRIPTION": "Importeer uw Google Forms",
       "TITLE": "Importeer uw eerste formulier"
     },
     "EMPTY_DELETION_REQUEST": {
@@ -359,7 +358,7 @@
     },
     "FORM_BUILDERS": {
       "TITLE": "Gebruikt u online formulierbouwers?",
-      "DESCRIPTION": "Gebruikt u online formulierbouwers zoals Google Form en Typeform voor het verzamelen van formulierreacties voor uzelf of uw bedrijf?"
+      "DESCRIPTION": "Gebruikt u online formulierbouwers zoals Google Forms voor het verzamelen van formulierreacties voor uzelf of uw bedrijf?"
     },
     "FORM_BRAND": {
       "TITLE": "Heb je ooit gewenst dat je je formulieren beter kon brandmerken?",
@@ -592,10 +591,10 @@
     "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
     "WELCOME_MESSAGE": "Welkom terug!",
     "FEATURES": {
-      "TITLE": "Versterk uw organisatie met een aangepaste formulierpagina",
-      "OTP_TITLE": "Aangepaste URL's en verbeterde SEO",
-      "DESCRIPTION": "Maak uw aangepaste formulierpagina aan om al uw formulieren te centraliseren (betere verzamelde formulieren, Google Formulieren en Typeform). Deze gepersonaliseerde oplossing stelt u in staat om al uw formulieren binnen één enkele omgeving te verzamelen en te beheren.",
-      "OTP_DESCRIPTION": "Vervang standaardkoppelingen door uw eigen URL's die uw bedrijf beter vertegenwoordigen en uw online aanwezigheid verbeteren."
+      "TITLE": "Uw formulieren, op een site die van u is",
+      "OTP_TITLE": "Eén code, geen wachtwoorden",
+      "DESCRIPTION": "bettercollected is de formulierbouwer met privacy voorop — rustige, eerlijke formulieren die mensen met een gerust hart invullen.",
+      "OTP_DESCRIPTION": "We hebben u een inlogcode van 6 cijfers gemaild — niets om aan te maken, te onthouden of te lekken."
     },
     "SEND_CODE_BUTTON": "Stuur code",
     "OR_SIGN_IN_USING": "Of log in met",
@@ -622,7 +621,7 @@
     "ENTER_OTP_CODE": "Voer de OTP-code in",
     "ENTER_CODE_PLACEHOLDER": "bijv: 000000",
     "SIGNUP_AGREEMENT_DESCRIPTION": "Door je aan te melden, ga je akkoord met onze",
-    "SIGNUP_TO_CONTINUE": "Je kunt je aanmelden door eenvoudig in te loggen met Google of Typeform, of door je e-mail te gebruiken.",
+    "SIGNUP_TO_CONTINUE": "Je kunt je aanmelden door in te loggen met Google, of met een code die naar je e-mail wordt gestuurd.",
     "FEATURES": {
       "TITLE": "Wij zijn een platform voor formulierenbouwers met focus op privacy",
       "OTP_TITLE": "Word een betere gegevensverzamelaar ",

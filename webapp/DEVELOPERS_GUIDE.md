@@ -99,7 +99,7 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 ### Walk through `README.md`
 
 1.  Use python version `3.10` , if you dont have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
-2.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,`bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
+2.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,`bettercollected-integrations-google-forms`.
 3.  Also inside each repository set up for "common" submodule with command:
     `git submodule update --init --recursive --remote`
     And then navigate to common submodule `cd common` and checkout master branch `git checkout master && git pull` and `cd ..`.
@@ -143,12 +143,12 @@ use following command to run the docker container from this webapp repository.
      "origin":"http://localhost:3000"  # Replace 3000 with 3001 and 3002
     ```
 6. Also go to 'forms_plugin_configs' collection, if not present create it manually.
-7. And then add individual document for `google` and `typeform` with a field like:
+7. And then add a document for `google` with fields like:
     ```
         "enabled":"true"
-        "provider_name":"typeform"      # Replace typeform with `google`
-        "provider_url":"http://localhost:8002/api/v1"       # Replace `8002` with `8003`
-        "auth_callback_url":"http://localhost:8002/api/v1/typeform/oauth/callback"      # Replace typeform with `google` and replace `8002` with `8003`
+        "provider_name":"google"
+        "provider_url":"http://localhost:8003/api/v1"
+        "auth_callback_url":"http://localhost:8003/api/v1/google/oauth/callback"
         "type":"oauth2"
     ``` -->
 

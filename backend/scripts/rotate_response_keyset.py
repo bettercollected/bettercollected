@@ -111,14 +111,6 @@ logger = logging.getLogger("rotate_response_keyset")
 
 
 # ----------------------------------------------------------------------- CLI
-TYPEFORM_NOTE = (
-    "The Typeform integration (a separate image) also receives "
-    "MASTER_ENCRYPTION_KEYSET; this script cannot check or re-encrypt what it "
-    "stores. If you run it, keep the old key, or reconnect its accounts after "
-    "deploying the final keyset."
-)
-
-
 def deployed_keyset_problem(keyset, env=os.environ) -> Optional[str]:
     """Why ``keyset`` must not be used to write: its primary key is not the
     primary of the keyset the services run with (``MASTER_ENCRYPTION_KEYSET``
@@ -437,7 +429,6 @@ async def _main(argv: List[str]) -> int:
             await close()
 
     if args.command == "drop-old":
-        report["note"] = TYPEFORM_NOTE
         report["records"] = {
             target: {store: counts["records"] for store, counts in stores.items()}
             for target, stores in report["targets"].items()

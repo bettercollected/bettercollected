@@ -115,7 +115,9 @@
 
 /* -- base --------------------------------------------------------------------- */
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+/* Reserve the scrollbar's width on every page, so the layout doesn't jump sideways when a page (or an HTMX
+   swap, or task progress) makes it long enough to scroll. */
+html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
 body { margin: 0; font: 400 1rem/1.55 var(--font-sans); color: var(--text); background: var(--ground); caret-color: var(--focus); }
 ::selection { background: var(--tint-edge); color: var(--ink); }
 h1, h2, h3 { margin: 0; color: var(--ink); font-weight: 600; }

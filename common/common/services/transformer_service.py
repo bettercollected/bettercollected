@@ -9,7 +9,7 @@ FormResponseDocumentType = TypeVar("FormResponseDocumentType")
 
 class FormTransformerService(metaclass=abc.ABCMeta):
     """
-    Abstract base class for form and form responses transformer for Google, Typeform
+    Abstract base class for a provider integration's form and form responses transformer
     """
 
     @abc.abstractmethod
