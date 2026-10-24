@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db.beanie_bridge import from_row_doc, row_values
+from common.db.convergence import touch
 
 
 class PostgresNotConfigured(RuntimeError):
@@ -109,6 +110,19 @@ class PostgresRepositoryBase:
             ).scalar_one()
 
     # -- writes ----------------------------------------------------------------
+    def _touch(self, row: Type[Any], ids: Iterable[Any]) -> None:
+        """Report rows this repository writes or deletes to the routed write
+        in progress (:mod:`common.db.convergence`). The helpers below do it;
+        a method that executes its own INSERT/UPDATE/DELETE calls it too."""
+        touch(
+            row,
+            ids,
+            sessions=self._sessions,
+            mongo_collection=lambda: self.document.get_pymongo_collection().database[
+                row.mongo_collection()
+            ],
+        )
+
     def _column_names(self, row: Optional[Type[Any]] = None) -> dict[str, str]:
         """attribute -> column name (``bc_source`` is stored as ``_bc_source``)."""
         mapper = sa_inspect(row or self.row).mapper
@@ -141,6 +155,7 @@ class PostgresRepositoryBase:
     ):
         row = row or self.row
         names = self._column_names(row)
+        self._touch(row, [values["id"]])
         stmt = pg_insert(row).values({names[k]: v for k, v in values.items()})
         excluded = stmt.excluded
         return stmt.on_conflict_do_update(
@@ -204,9 +219,15 @@ class PostgresRepositoryBase:
         )
 
     async def delete_where(self, *where: Any, row: Optional[Type[Any]] = None) -> int:
+        row = row or self.row
         async with self._session() as session, session.begin():
-            result = await session.execute(delete(row or self.row).where(*where))
-        return result.rowcount or 0
+            ids = (
+                (await session.execute(delete(row).where(*where).returning(row.id)))
+                .scalars()
+                .all()
+            )
+        self._touch(row, ids)
+        return len(ids)
 
     async def delete_one_where(
         self, *where: Any, row: Optional[Type[Any]] = None
@@ -223,8 +244,17 @@ class PostgresRepositoryBase:
                 .limit(1)
                 .scalar_subquery()
             )
-            result = await session.execute(delete(row).where(row.id == target))
-        return result.rowcount or 0
+            ids = (
+                (
+                    await session.execute(
+                        delete(row).where(row.id == target).returning(row.id)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        self._touch(row, ids)
+        return len(ids)
 
     async def delete_by_id(self, document_id: Any) -> int:
         return await self.delete_where(self.row.id == str(document_id))

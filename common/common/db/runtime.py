@@ -193,6 +193,7 @@ def metrics_snapshot(metrics) -> dict:
     for name in (
         "calls",
         "mirror_failures",
+        "mirror_repairs",
         "shadow_reads",
         "shadow_diffs",
         "shadow_errors",

@@ -18,6 +18,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
   scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
   HTMX swaps or task progress updates.
+- Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
+  mirror store in the opposite order and leave it with the older version. After its mirror write,
+  each write now brings the mirror's copy of the rows it touched in line with the primary's
+  (counted as `mirror_repairs`), and `reconcile` no longer overwrites a copy the application
+  changed after reconcile read it (counted as `skipped`).
 
 ## [4.0.4] - 2026-10-24
 

@@ -13,6 +13,10 @@ Method calls are dispatched by the flags for the repository's group:
   not pass in (a new document's id, an invitation token) must be marked
   ``@write_op(replay=True)`` and return the persisted document(s) — the
   mirror then stores *those*, so both stores hold the same document;
+  After the mirror write, the mirror's copy of every row the write touched
+  is brought in line with the primary's (:mod:`common.db.convergence`), so
+  concurrent writes to one document that reach the mirror out of order do
+  not leave it with the older version;
 * **reads** go to the read source; with ``DB_SHADOW_READ_SAMPLE`` > 0 a
   sample is also issued to the other store and the results compared.
 
@@ -33,6 +37,7 @@ from typing import Any, Callable, Optional
 from pydantic import BaseModel
 
 from common.clock import write_clock
+from common.db.convergence import collecting, converge, touched_ids
 from common.db.flags import DbFlags, ReadSource
 
 logger = logging.getLogger(__name__)
@@ -123,6 +128,9 @@ class ShadowDiff:
 class RoutingMetrics:
     calls: Counter = field(default_factory=Counter)
     mirror_failures: Counter = field(default_factory=Counter)
+    # mirror copies rewritten after the mirror write: concurrent writes to one
+    # document reached the mirror in another order than the primary
+    mirror_repairs: Counter = field(default_factory=Counter)
     shadow_reads: Counter = field(default_factory=Counter)
     shadow_diffs: Counter = field(default_factory=Counter)
     shadow_errors: Counter = field(default_factory=Counter)
@@ -244,12 +252,17 @@ class RoutingRepository:
             primary = self._flags.primary_store(self._group)
             # One clock reading for the primary and its mirror: a re-executed
             # write stamps the same created_at/updated_at in both stores.
-            with write_clock():
+            # Every routed write collects the rows it touches, also without a
+            # mirror, so a nested routed write's rows never land in the outer one.
+            with write_clock(), collecting() as touched:
                 result = await self._impl(primary, name)(*args, **kwargs)
                 mirror = self._flags.mirror_store(self._group)
                 if mirror is not None and self._stores[mirror] is not None:
                     documents = persisted_documents(result) if replay else []
-                    await self._mirror(name, mirror, args, kwargs, documents)
+                    if await self._mirror(name, mirror, args, kwargs, documents):
+                        await self._converge(
+                            name, primary, mirror, touched, args, kwargs
+                        )
             return result.value if isinstance(result, WriteResult) else result
 
         return method
@@ -273,7 +286,8 @@ class RoutingRepository:
 
     async def _mirror(
         self, name: str, store: ReadSource, args, kwargs, documents: list = ()
-    ) -> None:
+    ) -> bool:
+        """The mirror write; False when it failed (and was reported)."""
         try:
             if documents:
                 coro = self._replay(store, documents)
@@ -285,35 +299,73 @@ class RoutingRepository:
         ) as exc:  # noqa: BLE001 — the mirror must never fail the request
             if isinstance(exc, (KeyboardInterrupt, SystemExit)):
                 raise
-            self._metrics.mirror_failures[(self._group, name)] += 1
-            logger.warning(
-                "mirror write failed: group=%s repository=%s method=%s store=%s error=%s",
+            await self._mirror_failed(name, store, args, kwargs, exc, documents)
+            return False
+        return True
+
+    async def _converge(
+        self, name: str, primary: ReadSource, mirror: ReadSource, touched, args, kwargs
+    ) -> None:
+        """Bring the mirror's copy of the touched rows in line with the
+        primary's (:mod:`common.db.convergence`). Bounded like the mirror
+        write and, like it, never fails the request: a failure is a mirror
+        failure, reported with the ids it concerns."""
+        if not touched:
+            return
+        try:
+            repaired = await asyncio.wait_for(
+                converge(touched, primary), timeout=self._mirror_timeout_s
+            )
+        except BaseException as exc:  # noqa: BLE001 — never fails the request
+            if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                raise
+            await self._mirror_failed(
+                name, mirror, args, kwargs, exc, touched_ids(touched)
+            )
+            return
+        if repaired:
+            self._metrics.mirror_repairs[(self._group, name)] += repaired
+            logger.info(
+                "mirror copy repaired: group=%s repository=%s method=%s store=%s rows=%d",
                 self._group,
                 self._repository,
                 name,
-                store.value,
-                type(exc).__name__,
+                mirror.value,
+                repaired,
             )
-            if self._on_mirror_failure is not None:
-                try:
-                    maybe = self._on_mirror_failure(
-                        MirrorFailure(
-                            self._group,
-                            self._repository,
-                            name,
-                            store,
-                            args,
-                            kwargs,
-                            exc,
-                            tuple(documents),
-                        )
+
+    async def _mirror_failed(
+        self, name: str, store: ReadSource, args, kwargs, exc, documents=()
+    ) -> None:
+        self._metrics.mirror_failures[(self._group, name)] += 1
+        logger.warning(
+            "mirror write failed: group=%s repository=%s method=%s store=%s error=%s",
+            self._group,
+            self._repository,
+            name,
+            store.value,
+            type(exc).__name__,
+        )
+        if self._on_mirror_failure is not None:
+            try:
+                maybe = self._on_mirror_failure(
+                    MirrorFailure(
+                        self._group,
+                        self._repository,
+                        name,
+                        store,
+                        args,
+                        kwargs,
+                        exc,
+                        tuple(documents),
                     )
-                    if inspect.isawaitable(maybe):
-                        await maybe
-                except Exception as hook_exc:  # noqa: BLE001
-                    logger.warning(
-                        "mirror failure hook raised: {}", type(hook_exc).__name__
-                    )
+                )
+                if inspect.isawaitable(maybe):
+                    await maybe
+            except Exception as hook_exc:  # noqa: BLE001
+                logger.warning(
+                    "mirror failure hook raised: {}", type(hook_exc).__name__
+                )
 
     async def _shadow(self, name, source, other, result, args, kwargs) -> None:
         self._metrics.shadow_reads[(self._group, name)] += 1
