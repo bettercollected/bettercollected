@@ -36,6 +36,9 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   hide, jumps fire and endings are chosen. Before, these conditions never matched. Forms that relied
   on that (a question that "never showed") will now follow their rules, so review forms whose logic
   tests a chosen option. Piped choice answers now show the option's text instead of its internal id.
+- **Operators: `reconcile --direction postgres->mongo` now needs `postgres_primary_dual`.** It exits
+  with code 2, naming each group and its mode, unless every group it covers is on that write mode.
+  Run it with the services' flags. `--dry-run` and mongo->postgres are unchanged.
 - **Rollback:** 4.0.7 can run against a 4.0.8 database. The new functions stay unused, and 4.0.7
   treats a `CopyUnverified` outbox entry as an ordinary entry that `reconcile` resolves.
 
@@ -74,6 +77,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Expired deletion tombstones are pruned after a delete has committed, in a transaction of their own,
   instead of inside the delete's transaction, so a delete never waits on pruning or holds its locks,
   and a failed prune never undoes a delete.
+- `reconcile --direction postgres->mongo` refuses to run unless every group it covers is on
+  `DB_WRITE_MODE=postgres_primary_dual` (`--dry-run` excepted): under `dual`, Mongo deletes first and
+  records no tombstone for a document that is not there, so a delete racing its Mongo insert would
+  not be caught. When reconcile's removal of its own copy finds nothing left to remove, it says so
+  in the log.
 
 ## [4.0.7] - 2026-10-25
 
